@@ -270,12 +270,22 @@ PvfsCreateFileDoSysOpen(
 
     if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) && pSecCtx)
     {
+        uid_t ownerId = pProcess->Uid;
+        gid_t groupId = pProcess->Gid;
+
         /* Unix Security */
 
-        ntError = PvfsSysChown(
-                      pCreateContext->pCcb,
-                      pProcess->Uid,
-                      pProcess->Gid);
+        if (gPvfsDriverConfig.VirtualUid != (uid_t)-1)
+        {
+            ownerId = gPvfsDriverConfig.VirtualUid;
+            groupId = 0;
+            if (gPvfsDriverConfig.VirtualGid != (gid_t)-1)
+            {
+                groupId = gPvfsDriverConfig.VirtualGid;
+            }
+        }
+
+        ntError = PvfsSysChown(pCreateContext->pCcb, ownerId, groupId);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Security Descriptor */
@@ -466,12 +476,22 @@ PvfsCreateDirDoSysOpen(
 
     if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) && pSecCtx)
     {
+        uid_t ownerId = pProcess->Uid;
+        gid_t groupId = pProcess->Gid;
+
         /* Unix Security */
 
-        ntError = PvfsSysChown(
-                      pCreateContext->pCcb,
-                      pProcess->Uid,
-                      pProcess->Gid);
+        if (gPvfsDriverConfig.VirtualUid != (uid_t)-1)
+        {
+            ownerId = gPvfsDriverConfig.VirtualUid;
+            groupId = 0;
+            if (gPvfsDriverConfig.VirtualGid != (gid_t)-1)
+            {
+                groupId = gPvfsDriverConfig.VirtualGid;
+            }
+        }
+
+        ntError = PvfsSysChown(pCreateContext->pCcb, ownerId, groupId);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Security Descriptor */

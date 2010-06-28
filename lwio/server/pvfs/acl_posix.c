@@ -824,10 +824,15 @@ PvfsSecurityPosixSetGroup(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsSysChown(pCcb, pStat->s_uid, (gid_t)Id);
-    BAIL_ON_NT_STATUS(ntError);
+    // Don't allow Unix ownership changes on virtual owner systems
 
-    pStat->s_gid = (gid_t)Id;
+    if (gPvfsDriverConfig.VirtualUid != (uid_t)-1)
+    {
+        ntError = PvfsSysChown(pCcb, pStat->s_uid, (gid_t)Id);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pStat->s_gid = (gid_t)Id;
+    }
 
     ntError = STATUS_SUCCESS;
 

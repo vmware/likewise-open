@@ -138,6 +138,23 @@ PvfsConfigRegistryInit(
         0x00000fff,
         &pConfig->CreateDirectoryMode);
 
+    LwIoReadConfigDword(
+        pReg,
+        "VirtualOwner",
+        TRUE,
+        0,
+        0xffffffff,
+        (PDWORD)&pConfig->VirtualUid);
+
+    LwIoReadConfigDword(
+        pReg,
+        "VirtualGroup",
+        TRUE,
+        0,
+        0xffffffff,
+        (PDWORD)&pConfig->VirtualGid);
+
+
 cleanup:
 
     if (pReg)
@@ -171,6 +188,9 @@ PvfsConfigDefaultInit(
     pConfig->EnableFullAsync = FALSE;
     pConfig->EnableDriverDebug = FALSE;
     pConfig->ZctMode = PVFS_ZCT_MODE_DISABLED;
+
+    pConfig->VirtualUid = (uid_t)-1;
+    pConfig->VirtualGid = (gid_t)-1;
 
     pConfig->WorkerThreadPoolSize = 4;
 
