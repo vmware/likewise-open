@@ -393,7 +393,6 @@ SrvTree2FindFile_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
     PLWIO_SRV_TREE_2         pTree,
     PSMB2_FID                pFid,
-    BOOLEAN                  bRelated,
     PLWIO_SRV_FILE_2*        ppFile
     );
 

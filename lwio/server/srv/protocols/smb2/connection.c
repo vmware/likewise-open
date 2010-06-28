@@ -62,11 +62,22 @@ SrvConnection2FindSession_SMB_V2(
 
     if (ullUid)
     {
-        if (pSmb2Context->pSession)
+        if (ullUid == 0xFFFFFFFFFFFFFFFFLL)
+        {
+            if (!pSmb2Context->pSession)
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+            }
+            else
+            {
+                pSession = SrvSession2Acquire(pSmb2Context->pSession);
+            }
+        }
+        else if (pSmb2Context->pSession)
         {
             if (pSmb2Context->pSession->ullUid != ullUid)
             {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                ntStatus = STATUS_INVALID_PARAMETER;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else
