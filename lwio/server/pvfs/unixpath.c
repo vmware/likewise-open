@@ -284,6 +284,7 @@ PvfsFileDirname(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszCursor = NULL;
     PSTR pszNewString = NULL;
+    size_t stringLength = 0;
 
     /* Case #1: No '/' so just return '.' */
     if (((pszCursor = strrchr(pszPath, '/')) == NULL))
@@ -301,11 +302,16 @@ PvfsFileDirname(
 
     /* Case #3: Real dirname and file name components */
 
-    ntError = RTL_ALLOCATE(&pszNewString, CHAR,
-                           PVFS_PTR_DIFF(pszPath,pszCursor) + 1);
+    stringLength = PVFS_PTR_DIFF(pszPath,pszCursor);
+
+    ntError = LW_RTL_ALLOCATE_NOCLEAR(
+                  &pszNewString,
+                  CHAR,
+                  stringLength + 1);
     BAIL_ON_NT_STATUS(ntError);
 
-    RtlCopyMemory(pszNewString, pszPath, PVFS_PTR_DIFF(pszPath,pszCursor));
+    RtlCopyMemory(pszNewString, pszPath, stringLength);
+    pszNewString[stringLength] = '\0';
 
     *ppszDirname = pszNewString;
     ntError = STATUS_SUCCESS;
@@ -433,10 +439,11 @@ PvfsLookupFile(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszFullPath = NULL;
 
-    ntError = RtlCStringAllocatePrintf(&pszFullPath,
-                                       "%s/%s",
-                                       pszDiskDirname,
-                                       pszFilename);
+    ntError = RtlCStringAllocatePrintf(
+                  &pszFullPath,
+                  "%s/%s",
+                  pszDiskDirname,
+                  pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsLookupPath(ppszDiskPath, pszFullPath, bCaseSensitive);
@@ -467,7 +474,7 @@ PvfsResolvePath(
     PVFS_STAT Stat = {0};
     PSTR pszResolvedPath = NULL;
     PSTR pszResWorkingPath = NULL;
-    PSTR pszWorkingPath = NULL;
+    CHAR pszWorkingPath[PATH_MAX] = { 0 };
     DWORD Length = PATH_MAX;
     DIR *pDir = NULL;
     struct dirent *pDirEntry = NULL;
@@ -478,9 +485,6 @@ PvfsResolvePath(
     }
 
     ntError = RTL_ALLOCATE(&pszResolvedPath, CHAR, Length);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = RTL_ALLOCATE(&pszWorkingPath, CHAR, PATH_MAX);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = RtlCStringDuplicate(&pszPath, pszLookupPath);
@@ -604,7 +608,6 @@ PvfsResolvePath(
 
 cleanup:
     RtlCStringFree(&pszPath);
-    RtlCStringFree(&pszWorkingPath);
     RtlCStringFree(&pszResWorkingPath);
     RtlCStringFree(&pszResolvedPath);
 
