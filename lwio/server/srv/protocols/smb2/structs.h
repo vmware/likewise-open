@@ -430,6 +430,13 @@ typedef struct __SMB2_LOCK
     ULONG  ulReserved;
 } __attribute__((__packed__)) SMB2_LOCK, *PSMB2_LOCK;
 
+typedef struct __SMB2_LOCK_REQUEST_PREAMBLE
+{
+    USHORT usLength;
+    USHORT usLockCount;
+} __attribute__((__packed__)) SMB2_LOCK_REQUEST_PREAMBLE,
+                            *PSMB2_LOCK_REQUEST_PREAMBLE;
+
 typedef struct __SMB2_LOCK_REQUEST_HEADER
 {
     USHORT    usLength;
