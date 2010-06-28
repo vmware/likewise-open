@@ -169,7 +169,8 @@ PvfsCreateZctContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pZctContext,
-                  sizeof(*pZctContext));
+                  sizeof(*pZctContext),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pZctContext->Mode = ZctMode;
@@ -178,7 +179,8 @@ PvfsCreateZctContext(
     case PVFS_ZCT_MODE_MEMORY:
         ntError = PvfsAllocateMemory(
                       OUT_PPVOID(&pZctContext->pBuffer),
-                      pIrpContext->pIrp->Args.ReadWrite.Length);
+                      pIrpContext->pIrp->Args.ReadWrite.Length,
+                      TRUE);
         BAIL_ON_NT_STATUS(ntError);
         break;
 #ifdef HAVE_SPLICE

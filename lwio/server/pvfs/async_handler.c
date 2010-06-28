@@ -199,7 +199,8 @@ PvfsCreateWorkContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pWorkCtx,
-                  sizeof(PVFS_WORK_CONTEXT));
+                  sizeof(PVFS_WORK_CONTEXT),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pWorkCtx->Flags = lFlags;

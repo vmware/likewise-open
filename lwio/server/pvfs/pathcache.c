@@ -82,7 +82,8 @@ PvfsPathCacheAdd(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pCacheRecord,
-                  sizeof(PVFS_PATH_CACHE_ENTRY));
+                  sizeof(PVFS_PATH_CACHE_ENTRY),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = LwRtlCStringDuplicate(
