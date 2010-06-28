@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,50 +24,39 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        prototypes.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - SRV
  *
  *        Utilities
  *
+ *        Function prototypes
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+// logfilter.c
 
-#include <lwio/lwio.h>
+NTSTATUS
+SrvLogSpecCreate(
+    PSRV_LOG_SPEC* ppLogSpec
+    );
 
-#include <reg/lwntreg.h>
+PSRV_LOG_SPEC
+SrvLogSpecAcquire(
+    PSRV_LOG_SPEC pLogSpec
+    );
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvutils.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "externs.h"
-
-
-
+VOID
+SrvLogSpecRelease(
+    PSRV_LOG_SPEC pLogSpec
+    );
 

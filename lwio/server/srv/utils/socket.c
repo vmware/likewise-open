@@ -168,6 +168,39 @@ error:
 }
 
 NTSTATUS
+SrvSocketStringToAddressA(
+    PCSTR            pszAddress,
+    struct sockaddr* pSocketAddress,
+    SOCKLEN_T*       pAddressLength
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    struct addrinfo* pAddrInfo = NULL;
+
+    ntStatus = SrvSocketGetAddrInfoA(pszAddress, &pAddrInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pSocketAddress = *pAddrInfo->ai_addr;
+    *pAddressLength = pAddrInfo->ai_addrlen;
+
+cleanup:
+
+    if (pAddrInfo)
+    {
+        freeaddrinfo(pAddrInfo);
+    }
+
+    return ntStatus;
+
+error:
+
+    memset(pSocketAddress, 0, sizeof(*pSocketAddress));
+    *pAddressLength = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvSocketGetAddrInfoW(
     PCWSTR            pwszClientname,
     struct addrinfo** ppAddrInfo

@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,50 +24,66 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        libmain.c
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - SRV
  *
  *        Utilities
  *
+ *        Bootstrap routines
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <lwio/lwio.h>
+NTSTATUS
+SrvUtilsInitialize(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-#include <reg/lwntreg.h>
+    pthread_rwlock_init(&gSrvUtilsGlobals.mutex, NULL);
+    gSrvUtilsGlobals.pMutex = &gSrvUtilsGlobals.mutex;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
+    ntStatus = SrvLogSpecCreate(&gSrvUtilsGlobals.pLogSpec);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include <lwnet.h>
+error:
 
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
+    return ntStatus;
+}
 
-#include <iodriver.h>
-#include <ioapi.h>
+NTSTATUS
+SrvUtilsShutdown(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock  = FALSE;
 
-#include <srvutils.h>
+    if (gSrvUtilsGlobals.pMutex)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvUtilsGlobals.mutex);
+    }
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "externs.h"
+    if (gSrvUtilsGlobals.pLogSpec)
+    {
+        SrvLogSpecRelease(gSrvUtilsGlobals.pLogSpec);
+        gSrvUtilsGlobals.pLogSpec = NULL;
+    }
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvUtilsGlobals.mutex);
+    gSrvUtilsGlobals.pMutex = NULL;
 
-
-
+    return ntStatus;
+}
