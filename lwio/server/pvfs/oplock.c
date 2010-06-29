@@ -499,8 +499,7 @@ PvfsOplockBreakIfLocked(
                       PVFS_OPLOCK_RECORD,
                       OplockList);
 
-        /* Cancelled records will be cleaned up outside of the
-           oplock break processing.  Just ignore them. */
+        PvfsQueueCancelIrpIfRequested(pOplock->pIrpContext);
 
         bActive = PvfsIrpContextMarkIfNotSetFlag(
                       pOplock->pIrpContext,
