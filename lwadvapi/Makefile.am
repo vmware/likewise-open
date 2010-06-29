@@ -6,7 +6,7 @@ liblwadvapi_la_LIBADD = \
 	unthreaded/liblwadvapi_nothr.la
 
 if !ENABLE_COMPAT
-SUBDIRS += join
+SUBDIRS += join tools
 liblwadvapi_la_LIBADD += \
 	join/liblwadvapi_join.la
 endif
