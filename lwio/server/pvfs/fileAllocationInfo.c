@@ -168,9 +168,9 @@ PvfsSetFileAllocationInfo(
                       PvfsSetAllocationWithContext,
                       PvfsFreeSetAllocationContext,
                       (PVOID)pSetAllocationCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pSetAllocationCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -181,9 +181,9 @@ PvfsSetFileAllocationInfo(
                       PvfsSetAllocationWithContext,
                       PvfsFreeSetAllocationContext,
                       (PVOID)pSetAllocationCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pSetAllocationCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }

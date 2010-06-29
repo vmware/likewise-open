@@ -869,18 +869,24 @@ PvfsAddItemPendingOplockBreakAck(
     BAIL_ON_INVALID_PTR(pFcb, ntError);
     BAIL_ON_INVALID_PTR(pfnCompletion, ntError);
 
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
+
+    if (!pFcb->bOplockBreakInProgress)
+    {
+        ntError = pfnCompletion(pCompletionContext);
+        goto cleanup;
+    }
+
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pPendingOp,
                   sizeof(PVFS_OPLOCK_PENDING_OPERATION),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     pPendingOp->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pPendingOp->pfnCompletion = pfnCompletion;
     pPendingOp->pfnFreeContext = pfnFreeContext;
     pPendingOp->pCompletionContext = pCompletionContext;
-
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
     ntError = PvfsListAddTail(
                   pFcb->pOplockPendingOpsQueue,
@@ -899,6 +905,8 @@ PvfsAddItemPendingOplockBreakAck(
     /* Set the request in a cancellable state */
 
     PvfsIrpContextClearFlag(pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
+
+    ntError = STATUS_PENDING;
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);

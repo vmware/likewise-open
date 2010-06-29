@@ -280,9 +280,9 @@ PvfsCreateFileSupersede(
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
                       (PVOID)pCreateCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pCreateCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -293,9 +293,9 @@ PvfsCreateFileSupersede(
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
                       (PVOID)pCreateCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pCreateCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }
@@ -553,9 +553,9 @@ PvfsCreateFileOpenOrOverwrite(
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
                       (PVOID)pCreateCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pCreateCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -566,9 +566,9 @@ PvfsCreateFileOpenOrOverwrite(
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
                       (PVOID)pCreateCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pCreateCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }
@@ -738,9 +738,9 @@ PvfsCreateFileOpenOrOverwriteIf(
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
                       (PVOID)pCreateCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pCreateCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -751,9 +751,9 @@ PvfsCreateFileOpenOrOverwriteIf(
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
                       (PVOID)pCreateCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pCreateCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }

@@ -173,9 +173,9 @@ PvfsWriteInternal(
                       PvfsWriteFileWithContext,
                       PvfsFreeWriteContext,
                       (PVOID)pWriteCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pWriteCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -186,9 +186,9 @@ PvfsWriteInternal(
                       PvfsWriteFileWithContext,
                       PvfsFreeWriteContext,
                       (PVOID)pWriteCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pWriteCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }
