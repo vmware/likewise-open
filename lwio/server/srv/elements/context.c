@@ -69,6 +69,12 @@ SrvBuildExecContext(
     ntStatus = SrvBuildEmptyExecContext(&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvLogContextUpdateFilter(
+                    pContext->pLogContext,
+                    &pConnection->clientAddress,
+                    pConnection->clientAddrLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pContext->pConnection = SrvConnectionAcquire(pConnection);
 
     pContext->pSmbRequest = pSmbRequest;

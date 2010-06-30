@@ -1394,6 +1394,8 @@ SrvLogContextCreate(
     if (gSrvUtilsGlobals.pLogSpec)
     {
         pLogContext->pLogSpec = SrvLogSpecAcquire(gSrvUtilsGlobals.pLogSpec);
+
+        pLogContext->pCurFilter = pLogContext->pLogSpec->pDefaultSpec;
     }
 
     *ppLogContext = pLogContext;
@@ -1417,112 +1419,103 @@ error:
 }
 
 NTSTATUS
-SrvLogContextGetLevel(
-    PSRV_LOG_CONTEXT     pLogContext,
-    struct sockaddr*     pClientAddress,
-    SOCKLEN_T            ulClientAddressLength,
-    ULONG                protocolVer,
-    USHORT               usOpcode,
-    LWIO_LOG_LEVEL*      pLogLevel
+SrvLogContextUpdateFilter(
+    PSRV_LOG_CONTEXT pLogContext,
+    struct sockaddr* pClientAddress,
+    SOCKLEN_T        ulClientAddressLength
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_LOG_FILTER pLogFilter = NULL;
-    LWIO_LOG_LEVEL  logLevel   = LWIO_LOG_LEVEL_ERROR;
-    PSRV_LOG_FILTER_OP pFilterOp = NULL;
     BOOLEAN         bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pLogContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pLogContext->mutex);
 
-    if (!(pLogFilter = pLogContext->pCurFilter))
+    if (pClientAddress && pLogContext->pLogSpec)
     {
-        pLogFilter = SrvLogSpecFindFilter(
-                            pLogContext->pLogSpec->pClientSpecList,
-                            pClientAddress,
-                            ulClientAddressLength);
-
-        if (pLogFilter) // set only if we could look up using the IP Address
+        PSRV_LOG_FILTER pLogFilter = SrvLogSpecFindFilter(
+                                        pLogContext->pLogSpec->pClientSpecList,
+                                        pClientAddress,
+                                        ulClientAddressLength);
+        if (pLogFilter)
         {
-            LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
-
-            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pLogContext->mutex);
-
-            if (!pLogContext->pCurFilter)
-            {
-                pLogContext->pCurFilter = pLogFilter;
-            }
-            else
-            {
-                pLogFilter = pLogContext->pCurFilter;
-            }
-            LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
+            pLogContext->pCurFilter = pLogFilter;
         }
     }
-
-    if (!bInLock)
-    {
-        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pLogContext->mutex);
-    }
-
-    if (!pLogFilter)
-    {
-        pLogFilter = pLogContext->pLogSpec->pDefaultSpec;
-    }
-
-    switch (protocolVer)
-    {
-        case 1:
-
-            if (pLogFilter->pFilterList_smb1)
-            {
-                pFilterOp = SrvLogFilterFindOp(
-                                    pLogFilter->pFilterList_smb1,
-                                    usOpcode);
-            }
-
-            if (pFilterOp)
-            {
-                logLevel = pFilterOp->logLevel;
-            }
-            else
-            {
-                logLevel = pLogFilter->defaultLogLevel;
-            }
-
-            break;
-
-        case 2:
-
-            if (pLogFilter->pFilterList_smb2)
-            {
-                pFilterOp = SrvLogFilterFindOp(
-                                    pLogFilter->pFilterList_smb2,
-                                    usOpcode);
-            }
-
-            if (pFilterOp)
-            {
-                logLevel = pFilterOp->logLevel;
-            }
-            else
-            {
-                logLevel = pLogFilter->defaultLogLevel;
-            }
-
-            break;
-
-        default:
-
-            logLevel = pLogFilter->defaultLogLevel;
-
-            break;
-    }
-
-    *pLogLevel = logLevel;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
 
     return ntStatus;
+}
+
+LWIO_LOG_LEVEL
+SrvLogContextGetLevel(
+    PSRV_LOG_CONTEXT pLogContext,
+    ULONG            protocolVer,
+    USHORT           usOpcode
+    )
+{
+    LWIO_LOG_LEVEL logLevel = LWIO_LOG_LEVEL_ERROR;
+    BOOLEAN        bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pLogContext->mutex);
+
+    if (pLogContext->pCurFilter)
+    {
+        PSRV_LOG_FILTER_OP pFilterOp = NULL;
+
+        switch (protocolVer)
+        {
+            case 1:
+
+                if (pLogContext->pCurFilter->pFilterList_smb1)
+                {
+                    pFilterOp = SrvLogFilterFindOp(
+                                    pLogContext->pCurFilter->pFilterList_smb1,
+                                    usOpcode);
+                }
+
+                if (pFilterOp)
+                {
+                    logLevel = pFilterOp->logLevel;
+                }
+                else
+                {
+                    logLevel = pLogContext->pCurFilter->defaultLogLevel;
+                }
+
+                break;
+
+            case 2:
+
+                if (pLogContext->pCurFilter->pFilterList_smb2)
+                {
+                    pFilterOp = SrvLogFilterFindOp(
+                                    pLogContext->pCurFilter->pFilterList_smb2,
+                                    usOpcode);
+                }
+
+                if (pFilterOp)
+                {
+                    logLevel = pFilterOp->logLevel;
+                }
+                else
+                {
+                    logLevel = pLogContext->pCurFilter->defaultLogLevel;
+                }
+
+                break;
+
+            default:
+
+                logLevel = pLogContext->pCurFilter->defaultLogLevel;
+
+                break;
+        }
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
+
+    return logLevel;
 }
 
 VOID
