@@ -997,8 +997,10 @@ PvfsCreateLockContext(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pLockCtx,
                   sizeof(PVFS_PENDING_LOCK),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
+
+    PVFS_INIT_LINKS(&pLockCtx->LockList);
 
     pLockCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pLockCtx->pCcb = PvfsReferenceCCB(pCcb);

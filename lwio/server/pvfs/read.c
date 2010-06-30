@@ -383,9 +383,10 @@ PvfsCreateReadContext(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pReadCtx,
                   sizeof(PVFS_PENDING_READ),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
+    pReadCtx->pZctContext = NULL;
     pReadCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pReadCtx->pCcb = PvfsReferenceCCB(pCcb);
 

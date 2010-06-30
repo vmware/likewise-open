@@ -123,6 +123,11 @@
 
 #define PVFS_CSTRING_NON_NULL(s)    ((s) && (*(s)))
 
+#define PVFS_INIT_LINKS(x)                      \
+    do {                                        \
+        (x)->Prev = (x)->Next = NULL;           \
+    } while (0)
+
 #endif    /* _PVFS_MACROS_H */
 
 

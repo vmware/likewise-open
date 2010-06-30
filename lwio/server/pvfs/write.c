@@ -454,9 +454,10 @@ PvfsCreateWriteContext(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pWriteCtx,
                   sizeof(PVFS_PENDING_WRITE),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
+    pWriteCtx->pZctContext = NULL;
     pWriteCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pWriteCtx->pCcb = PvfsReferenceCCB(pCcb);
 
