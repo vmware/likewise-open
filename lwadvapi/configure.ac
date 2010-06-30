@@ -286,6 +286,8 @@ AC_CONFIG_FILES([Makefile
                  unthreaded/dscache/Makefile
                  unthreaded/time/Makefile
                  unthreaded/logging/Makefile
-                 join/Makefile])
+                 join/Makefile
+                 tools/Makefile
+                 tools/lwkrb5str/Makefile])
 
 AC_OUTPUT
