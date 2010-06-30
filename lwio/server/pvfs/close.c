@@ -78,6 +78,13 @@ PvfsClose(
         PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
     }
 
+    /* Explicitly remove the CCB from the FCB list to force
+       rundown that it triggered by closing the last open handle.
+       Events like an async IRP cancellation could be running
+       in the background maintaining a valid reference to the CCB
+       that would other prevent the final PvfsFreeCCB() call */
+
+    PvfsRemoveCCBFromFCB(pCcb->pFcb, pCcb);
 
     if (PVFS_IS_DIR(pCcb))
     {
@@ -140,14 +147,10 @@ cleanup:
 
     if (pCcb)
     {
-        /* Explicitly remove the CCB from the FCB list to force
-           rundown that it triggered by closing the last open handle.
-           Events like an async IRP cancellation could be running
-           in the background maintaining a valid reference to the CCB
-           that would other prevent the final PvfsFreeCCB() call */
-
-        PvfsRemoveCCBFromFCB(pCcb->pFcb, pCcb);
-        PvfsReleaseFCB(&pCcb->pFcb);
+        if (pCcb->pFcb)
+        {
+            PvfsReleaseFCB(&pCcb->pFcb);
+        }
 
         PvfsReleaseCCB(pCcb);
     }
