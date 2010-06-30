@@ -484,7 +484,7 @@ PvfsNotifyScheduleFullReport(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pReport,
                   sizeof(PVFS_NOTIFY_REPORT_RECORD),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     pReport->pFcb = PvfsReferenceFCB(pFcb);

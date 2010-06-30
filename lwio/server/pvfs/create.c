@@ -796,8 +796,11 @@ PvfsAllocateCreateContext(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pCreateCtx,
                   sizeof(PVFS_PENDING_CREATE),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
+
+    pCreateCtx->pszOriginalFilename = NULL;
+    pCreateCtx->pszDiskFilename = NULL;
 
     ntError = PvfsCanonicalPathName(
                   &pCreateCtx->pszOriginalFilename,
@@ -811,6 +814,11 @@ PvfsAllocateCreateContext(
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
+
+    pCreateCtx->bFileExisted = FALSE;
+    pCreateCtx->GrantedAccess = 0;
+    pCreateCtx->pFcb = NULL;
+    pCreateCtx->SetPropertyFlags = 0;
 
     *ppCreate = pCreateCtx;
     pCreateCtx = NULL;
