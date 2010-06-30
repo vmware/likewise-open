@@ -10,7 +10,7 @@ lwkrb5str_CPPFLAGS =  \
     $(KRB5_INCLUDES)
 
 lwkrb5str_LDADD = \
-    @top_builddir@/join/liblwadvapi_join.la \
+    @top_builddir@/threaded/liblwadvapi_threaded.la \
     @top_builddir@/unthreaded/liblwadvapi_nothr.la \
     $(KRB5_LIBS)
 
