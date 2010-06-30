@@ -882,6 +882,8 @@ PvfsAddItemPendingOplockBreakAck(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
+    PVFS_INIT_LINKS(&pPendingOp->PendingOpList);
+
     pPendingOp->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pPendingOp->pfnCompletion = pfnCompletion;
     pPendingOp->pfnFreeContext = pfnFreeContext;
