@@ -11,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- * 
+ *
  *        Security Identifier API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -64,7 +64,7 @@ typedef enum {
 //example: S-1-5-32-546 (Guests)
 //See http://support.microsoft.com/kb/243330
 
-//In binary format, 
+//In binary format,
 //the fields are encoded as unsigned integers of varying lenths and endianness:
 //<revision>: 1-byte, big-endian
 //<word count>: 1-byte, big-endian
@@ -73,7 +73,7 @@ typedef enum {
 //<relative-id>: 4-byte, little-endian, unsigned integer
 
 
-//So for example, if your SID is S-1-5-21-2127521184-1604012920-1887927527-72713, 
+//So for example, if your SID is S-1-5-21-2127521184-1604012920-1887927527-72713,
 //then your raw hex SID is
 // 01 05 000000000005 15000000 A065CF7E 784B9B5F E77C8770 091C0100
 //This breaks down as follows:
@@ -94,7 +94,7 @@ LwUidHashCalc(
     DWORD dwAuthorityCount,
     PDWORD pdwHash
     );
-    
+
 DWORD
 LwSidStringToBytes(
     IN PCSTR pszSidString,

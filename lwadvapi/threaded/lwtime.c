@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- *                    
+ *
  *        Time Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -61,40 +61,40 @@ LwParseDateString(
     DWORD  dwTimeIntervalLocalLen = 0;
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
-    
+
     LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
     LW_BAIL_ON_INVALID_STRING(pszTimeInterval);
-        
+
     dwError = LwAllocateString(
-                    pszTimeInterval, 
+                    pszTimeInterval,
                     &pszTimeIntervalLocal
                     );
     BAIL_ON_LW_ERROR(dwError);
 
     dwTimeIntervalLocalLen = strlen(pszTimeIntervalLocal);
-    
+
     pszUnitCode = pszTimeIntervalLocal + dwTimeIntervalLocalLen - 1;
 
-    if (isdigit((int)(*pszUnitCode))) 
+    if (isdigit((int)(*pszUnitCode)))
     {
         dwUnitMultiplier = 1;
     }
 
-    else 
+    else
     {
 
-        switch(*pszUnitCode) 
+        switch(*pszUnitCode)
         {
             case 's':
             case 'S':
-    	        dwUnitMultiplier = 1;
-    	        break;
-	        
+	        dwUnitMultiplier = 1;
+	        break;
+
             case 'm':
             case 'M':
 	        dwUnitMultiplier = LW_SECONDS_IN_MINUTE;
-    	        break;
+	        break;
 
             case 'h':
             case 'H':
@@ -114,21 +114,21 @@ LwParseDateString(
 
         *pszUnitCode = ' ';
     }
-    
+
     LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
-    
+
     dwTimeInterval = (DWORD) atoi(pszTimeIntervalLocal) * dwUnitMultiplier;
-    
+
     *pdwTimeInterval = dwTimeInterval;
-    
+
 cleanup:
-    
+
     LW_SAFE_FREE_STRING(pszTimeIntervalLocal);
-    
+
     return dwError;
 
 error:
-    
+
     goto cleanup;
 }
 
@@ -181,7 +181,7 @@ LwSetSystemTime(
         }
     }
 #endif
-    
+
 #ifdef HAVE_SETTIMEOFDAY
     if (!bTimeset)
     {
@@ -196,7 +196,7 @@ LwSetSystemTime(
         }
     }
 #endif
-    
+
     if (!bTimeset)
     {
         dwError = LW_ERROR_FAILED_TO_SET_TIME;
@@ -212,7 +212,7 @@ LwSetSystemTime(
         readTime = systemspec.tv_sec;
     }
 #endif
-    
+
 #ifdef HAVE_GETTIMEOFDAY
     if (!bTimeset && gettimeofday(&systemval, NULL) >= 0)
     {
@@ -220,12 +220,12 @@ LwSetSystemTime(
         readTime = systemval.tv_sec;
     }
 #endif
-    
+
     if (!bTimeset) {
         dwError = LW_ERROR_FAILED_TO_SET_TIME;
         BAIL_ON_LW_ERROR(dwError);
     }
-        
+
     //Make sure the time is now within 5 seconds of what we set
     if (labs(readTime - ttCurTime) > 5)
     {
@@ -253,8 +253,8 @@ LwSetSystemTime(
 
 cleanup:
 
-    return dwError;      
-    
+    return dwError;
+
 error:
 
     goto cleanup;

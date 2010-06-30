@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- * 
+ *
  *        Kerberos 5 runtime environment
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -105,7 +105,7 @@ LwKrb5GetTgt(
     if (LW_IS_NULL_OR_EMPTY_STR(pszCcPath)) {
         ret = krb5_cc_default(ctx, &cc);
         BAIL_ON_KRB_ERROR(ctx, ret);
-                
+
     } else {
         ret = krb5_cc_resolve(ctx, pszCcPath, &cc);
         BAIL_ON_KRB_ERROR(ctx, ret);
@@ -113,7 +113,7 @@ LwKrb5GetTgt(
 
     ret = krb5_parse_name(ctx, pszUPN, &client);
     BAIL_ON_KRB_ERROR(ctx, ret);
- 
+
     if (!LW_IS_NULL_OR_EMPTY_STR(pszPassword)) {
         dwError = LwAllocateString(pszPassword, &pszPass);
         BAIL_ON_LW_ERROR(dwError);
@@ -155,10 +155,10 @@ LwKrb5GetTgt(
 
     ret = krb5_cc_store_cred(ctx, cc, &creds);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    
+
     if (pdwGoodUntilTime)
     {
-    	*pdwGoodUntilTime = creds.times.endtime;
+	*pdwGoodUntilTime = creds.times.endtime;
     }
 
 cleanup:
@@ -169,16 +169,16 @@ cleanup:
     }
 
     if (ctx) {
-        
+
         if (client)
         {
             krb5_free_principal(ctx, client);
         }
-        
+
         krb5_cc_close(ctx, cc);
 
         krb5_free_cred_contents(ctx, &creds);
-        
+
         krb5_free_context(ctx);
     }
 
@@ -195,12 +195,12 @@ cleanup:
     LW_SAFE_CLEAR_FREE_STRING(pszPass);
 
     return dwError;
-    
+
 error:
 
     if (pdwGoodUntilTime)
     {
-    	*pdwGoodUntilTime = 0;
+	*pdwGoodUntilTime = 0;
     }
 
     goto cleanup;
@@ -230,7 +230,7 @@ LwKrb5GetTgs(
     if (LW_IS_NULL_OR_EMPTY_STR(pszCcPath)) {
         ret = krb5_cc_default(ctx, &cc);
         BAIL_ON_KRB_ERROR(ctx, ret);
-                
+
     } else {
         ret = krb5_cc_resolve(ctx, pszCcPath, &cc);
         BAIL_ON_KRB_ERROR(ctx, ret);
@@ -302,7 +302,7 @@ LwKrb5GetServiceTicketForUser(
     PSTR            pszTargetName = NULL;
     PSTR            pszUPN = NULL;
     PSTR            pszRealmIdx = NULL;
-    
+
     LW_BAIL_ON_INVALID_STRING(pszUserPrincipal);
     LW_BAIL_ON_INVALID_STRING(pszServername);
 
@@ -320,46 +320,46 @@ LwKrb5GetServiceTicketForUser(
 
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    
+
     dwError = LwKrb5GetUserCachePath(
                     uid,
                     cacheType,
                     &pszCachePath);
     BAIL_ON_LW_ERROR(dwError);
-            
+
     if (LW_IS_NULL_OR_EMPTY_STR(pszCachePath)) {
-                
+
         ret = krb5_cc_default(ctx, &cc);
         BAIL_ON_KRB_ERROR(ctx, ret);
-                
+
     } else {
-                
+
         ret = krb5_cc_resolve(ctx, pszCachePath, &cc);
         BAIL_ON_KRB_ERROR(ctx, ret);
-                
+
     }
-    
+
     ret = krb5_parse_name(ctx, pszUPN, &user_principal);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    
+
     dwError = LwAllocateStringPrintf(
                     &pszTargetName,
                     "%s$@%s",
                     pszServername,
                     pszDomain);
     BAIL_ON_LW_ERROR(dwError);
-    
+
     LwStrToUpper(pszTargetName);
 
     ret = krb5_parse_name(ctx, pszTargetName, &server_principal);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    
+
     ret = krb5_copy_principal(ctx, user_principal, &in_creds.client);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
     ret = krb5_copy_principal(ctx, server_principal, &in_creds.server);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    
+
     ret = krb5_get_credentials(
                 ctx,
                 0,
@@ -367,38 +367,38 @@ LwKrb5GetServiceTicketForUser(
                 &in_creds,
                 &pCreds);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    
+
 cleanup:
 
     if (ctx) {
-    
+
         if (user_principal) {
             krb5_free_principal(ctx, user_principal);
         }
-        
+
         if (server_principal) {
             krb5_free_principal(ctx, server_principal);
         }
-    
+
         if (cc) {
             krb5_cc_close(ctx, cc);
         }
-    
+
         krb5_free_cred_contents(ctx, &in_creds);
-        
+
         if (pCreds) {
             krb5_free_creds(ctx, pCreds);
         }
-    
+
         krb5_free_context(ctx);
     }
 
     LW_SAFE_FREE_STRING(pszCachePath);
     LW_SAFE_FREE_STRING(pszTargetName);
     LW_SAFE_FREE_STRING(pszUPN);
-    
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
