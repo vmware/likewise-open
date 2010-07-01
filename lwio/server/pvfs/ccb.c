@@ -272,6 +272,7 @@ PvfsSaveFileDeviceInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = pCcb->pFcb;
+    BOOLEAN bLocked = FALSE;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
@@ -280,11 +281,12 @@ PvfsSaveFileDeviceInfo(
     pCcb->FileId.Inode  = Stat.s_ino;
     pCcb->FileSize = Stat.s_size;
 
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
     if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
     {
         pFcb->FileId = pCcb->FileId;
     }
-
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
 cleanup:
     return ntError;
