@@ -58,6 +58,149 @@
     (INET_ADDRSTRLEN + 1)
 #endif
 
+// Logging
+
+#define _SRV_LOG_CALL_IF(level, pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+    if (pLogCtx)                                                             \
+    {                                                                        \
+        LWIO_LOG_LEVEL maxLogLevel = SrvLogContextGetLevel(                  \
+                                        pLogCtx,                             \
+                                        protoVer,                            \
+                                        usOpcode);                           \
+        if (maxLogLevel >= (level))                                          \
+        {                                                                    \
+            (pfnLogger)(pLogCtx,                                             \
+                        (level),                                             \
+                        __FUNCTION__,                                        \
+                        LWIO_SAFE_LOG_STRING(SrvPathGetFileName(__FILE__)),  \
+                        __LINE__,                                            \
+                        ## __VA_ARGS__);                                     \
+        }                                                                    \
+    }
+
+#define SRV_LOG_CALL_ALWAYS(pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+        _SRV_LOG_CALL_IF(LWIO_LOG_LEVEL_ALWAYS, \
+                            pLogCtx,   \
+                            protoVer,  \
+                            usOpcode,  \
+                            pfnLogger, \
+                            ## __VA_ARGS__)
+
+#define SRV_LOG_CALL_ERROR(pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+        _SRV_LOG_CALL_IF(LWIO_LOG_LEVEL_ERROR, \
+                            pLogCtx,   \
+                            protoVer,  \
+                            usOpcode,  \
+                            pfnLogger, \
+                            ## __VA_ARGS__)
+
+#define SRV_LOG_CALL_WARNING(pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+        _SRV_LOG_CALL_IF(LWIO_LOG_LEVEL_WARNING, \
+                            pLogCtx,   \
+                            protoVer,  \
+                            usOpcode,  \
+                            pfnLogger, \
+                            ## __VA_ARGS__)
+
+#define SRV_LOG_CALL_INFO(pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+        _SRV_LOG_CALL_IF(LWIO_LOG_LEVEL_INFO, \
+                            pLogCtx,   \
+                            protoVer,  \
+                            usOpcode,  \
+                            pfnLogger, \
+                            ## __VA_ARGS__)
+
+#define SRV_LOG_CALL_VERBOSE(pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+        _SRV_LOG_CALL_IF(LWIO_LOG_LEVEL_VERBOSE, \
+                            pLogCtx,   \
+                            protoVer,  \
+                            usOpcode,  \
+                            pfnLogger, \
+                            ## __VA_ARGS__)
+
+#define SRV_LOG_CALL_DEBUG(pLogCtx, protoVer, usOpcode, pfnLogger, ...) \
+        _SRV_LOG_CALL_IF(LWIO_LOG_LEVEL_DEBUG,  \
+                            pLogCtx,   \
+                            protoVer,  \
+                            usOpcode,  \
+                            pfnLogger, \
+                            ## __VA_ARGS__)
+
+#define _SRV_LOG_IF(level, pLogCtx, protoVer, usOpcode, szFmt, ...)         \
+    if (pLogCtx)                                                            \
+    {                                                                       \
+        LWIO_LOG_LEVEL maxLogLevel = SrvLogContextGetLevel(                 \
+                                        pLogCtx,                            \
+                                        protoVer,                           \
+                                        usOpcode);                          \
+        if (maxLogLevel >= (level))                                         \
+        {                                                                   \
+            if ((level) >= LWIO_LOG_LEVEL_DEBUG)                            \
+            {                                                               \
+                LWIO_LOG_ALWAYS_CUSTOM(                                     \
+                        (level),                                            \
+                        "[%s() %s:%d] "                                     \
+                        szFmt,                                              \
+                        __FUNCTION__,                                       \
+                        LWIO_SAFE_LOG_STRING(SrvPathGetFileName(__FILE__)), \
+                        __LINE__,                                           \
+                        ## __VA_ARGS__);                                    \
+            }                                                               \
+            else                                                            \
+            {                                                               \
+                LWIO_LOG_ALWAYS_CUSTOM((level), szFmt, ## __VA_ARGS__);     \
+            }                                                               \
+        }                                                                   \
+    }
+
+#define SRV_LOG_ALWAYS(pLogCtx, protoVer, usOpcode, szFmt, ...) \
+        _SRV_LOG_IF(LWIO_LOG_LEVEL_ALWAYS, \
+                    pLogCtx,  \
+                    protoVer, \
+                    usOpcode, \
+                    szFmt,    \
+                    ## __VA_ARGS__)
+
+#define SRV_LOG_ERROR(pLogCtx, protoVer, usOpcode, szFmt, ...) \
+        _SRV_LOG_IF(LWIO_LOG_LEVEL_ERROR, \
+                    pLogCtx,  \
+                    protoVer, \
+                    usOpcode, \
+                    szFmt,    \
+                    ## __VA_ARGS__)
+
+#define SRV_LOG_WARNING(pLogCtx, protoVer, usOpcode, szFmt, ...) \
+        _SRV_LOG_IF(LWIO_LOG_LEVEL_WARNING, \
+                    pLogCtx,  \
+                    protoVer, \
+                    usOpcode, \
+                    szFmt,    \
+                    ## __VA_ARGS__)
+
+#define SRV_LOG_INFO(pLogCtx, protoVer, usOpcode, szFmt, ...) \
+        _SRV_LOG_IF(LWIO_LOG_LEVEL_INFO, \
+                    pLogCtx,  \
+                    protoVer, \
+                    usOpcode, \
+                    szFmt,    \
+                    ## __VA_ARGS__)
+
+#define SRV_LOG_VERBOSE(pLogCtx, protoVer, usOpcode, szFmt, ...) \
+        _SRV_LOG_IF(LWIO_LOG_LEVEL_VERBOSE, \
+                    pLogCtx,  \
+                    protoVer, \
+                    usOpcode, \
+                    szFmt,    \
+                    ## __VA_ARGS__)
+
+#define SRV_LOG_DEBUG(pLogCtx, protoVer, usOpcode, szFmt, ...) \
+        _SRV_LOG_IF(LWIO_LOG_LEVEL_DEBUG, \
+                    pLogCtx,  \
+                    protoVer, \
+                    usOpcode, \
+                    szFmt,    \
+                    ## __VA_ARGS__)
+
 typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
 
 typedef struct _SMB_PROD_CONS_QUEUE
@@ -93,6 +236,15 @@ typedef struct _SRV_HOST_INFO
 } SRV_HOST_INFO, *PSRV_HOST_INFO;
 
 typedef struct _SRV_LOG_CONTEXT* PSRV_LOG_CONTEXT;
+
+typedef VOID (*PFN_SRV_LOG_HANDLER)(
+                    PSRV_LOG_CONTEXT  pLogContext,
+                    LWIO_LOG_LEVEL    logLevel,
+                    PCSTR             pszFunction,
+                    PCSTR             pszFile,
+                    ULONG             ulLine,
+                    ...
+                    );
 
 NTSTATUS
 SrvUtilsInitialize(
@@ -139,6 +291,11 @@ NTSTATUS
 SrvGetParentPath(
     PWSTR  pwszPath,
     PWSTR* ppwszParentPath
+    );
+
+PCSTR
+SrvPathGetFileName(
+    PCSTR  pszPath
     );
 
 NTSTATUS
@@ -210,6 +367,15 @@ SrvAllocateStringPrintf(
     ...
     );
 
+NTSTATUS
+SrvGetHexDump(
+    PBYTE  pBuffer,
+    ULONG  ulBufLen,
+    ULONG  ulMaxLength,
+    PSTR*  ppszHexString,
+    PULONG pulHexStringLength
+    );
+
 VOID
 SrvProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
@@ -273,6 +439,11 @@ SrvLogContextGetLevel(
     PSRV_LOG_CONTEXT pLogContext,
     ULONG            protocolVer,
     USHORT           usOpcode
+    );
+
+ULONG
+SrvLogContextGetMaxLogLength(
+    PSRV_LOG_CONTEXT pLogContext
     );
 
 VOID

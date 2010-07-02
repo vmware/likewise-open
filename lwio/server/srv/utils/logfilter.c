@@ -235,7 +235,9 @@ SrvLogSpecCreate(
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
     wchar16_t wszLoggingKey[]  = REG_KEY_PATH_SRV_LOGGING_W;
     wchar16_t wszEnableLogging[] = REG_VALUE_SRV_LOGGING_ENABLED_W;
+    wchar16_t wszMaxReqLogLen[]  = REG_VALUE_SRV_MAX_REQ_LOG_LEN_W;
     DWORD     dwEnableLogging    = FALSE;
+    DWORD     dwMaxReqLogLen     = SRV_REQ_MAX_LOG_LEN_DEFAULT;
     DWORD     dwDataType         = REG_DWORD;
     DWORD     dwValueLen         = sizeof(dwEnableLogging);
     ULONG     ulValueLen         = MAX_VALUE_LENGTH;
@@ -284,6 +286,25 @@ SrvLogSpecCreate(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pLogSpec->refCount = 1;
+        pLogSpec->dwMaxRequestLogLength = SRV_REQ_MAX_LOG_LEN_DEFAULT;
+
+        dwDataType = REG_DWORD;
+        dwValueLen = sizeof(dwMaxReqLogLen);
+
+        ntStatus = NtRegGetValueW(
+                        hRegConnection,
+                        hKey,
+                        NULL,
+                        &wszMaxReqLogLen[0],
+                        RRF_RT_REG_DWORD,
+                        &dwDataType,
+                        &dwMaxReqLogLen,
+                        &dwValueLen);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            // TODO: Should we limit this length based on a maximum value?
+            pLogSpec->dwMaxRequestLogLength = dwMaxReqLogLen;
+        }
 
         ntStatus = SrvAllocateMemory(
                         sizeof(SRV_LOG_FILTER),
@@ -1516,6 +1537,14 @@ SrvLogContextGetLevel(
     LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
 
     return logLevel;
+}
+
+ULONG
+SrvLogContextGetMaxLogLength(
+    PSRV_LOG_CONTEXT pLogContext
+    )
+{
+    return pLogContext->pLogSpec ? pLogContext->pLogSpec->dwMaxRequestLogLength : 0;
 }
 
 VOID

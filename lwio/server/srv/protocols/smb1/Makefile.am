@@ -18,6 +18,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     globals.c        \
     libmain.c        \
     lockx.c          \
+    logging.c        \
     logoff.c         \
     notify.c         \
     negotiate.c      \

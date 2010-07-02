@@ -54,6 +54,11 @@
 #define REG_VALUE_SRV_LOGGING_ENABLED_W \
             {'E','n','a','b','l','e','L','o','g','g','i','n','g',0}
 
+#define REG_VALUE_SRV_MAX_REQ_LOG_LEN_W \
+            {'M','a','x','R','e','q','u','e','s','t','L','o','g','L','e','n','g','t','h',0}
+
+#define SRV_REQ_MAX_LOG_LEN_DEFAULT  256
+
 #define REG_VALUE_SRV_FILTERS_W \
             {'F','i','l','t','e','r','s',0}
 
