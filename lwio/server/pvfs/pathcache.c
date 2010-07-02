@@ -48,16 +48,12 @@
 
 #define PVFS_PATH_CACHE_SIZE        1021
 #define PVFS_PATH_HASH_MULTIPLIER   31
-#define PVFS_PATH_CACHE_EXPIRY      120
 
 typedef struct _PVFS_PATH_CACHE_ENTRY
 {
     PSTR pszPathname;
-    time_t LastAccess;
 
 } PVFS_PATH_CACHE_ENTRY, *PPVFS_PATH_CACHE_ENTRY;
-
-
 
 /*****************************************************************************
  ****************************************************************************/
@@ -76,6 +72,7 @@ PvfsPathCacheAdd(
     {
         /* If the PathCache has been disabled or is not
            initialized, just report success and move on */
+
         ntError = STATUS_SUCCESS;
         goto cleanup;
     }
@@ -83,15 +80,13 @@ PvfsPathCacheAdd(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pCacheRecord,
                   sizeof(PVFS_PATH_CACHE_ENTRY),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = LwRtlCStringDuplicate(
                   &pCacheRecord->pszPathname,
                   pszResolvedPath);
     BAIL_ON_NT_STATUS(ntError);
-
-    pCacheRecord->LastAccess = time(NULL);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
     dwError = SMBHashSetValue(
@@ -112,7 +107,11 @@ cleanup:
 error:
     if (pCacheRecord)
     {
-        RtlCStringFree(&pCacheRecord->pszPathname);
+        if (pCacheRecord->pszPathname)
+        {
+            LwRtlCStringFree(&pCacheRecord->pszPathname);
+        }
+
         PVFS_FREE(&pCacheRecord);
     }
 
@@ -133,7 +132,6 @@ PvfsPathCacheLookup(
     BOOLEAN bLocked = FALSE;
     PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
     PSTR pszResolvedPath = NULL;
-    time_t now = 0;
 
     if (gpPathCache == NULL)
     {
@@ -143,32 +141,16 @@ PvfsPathCacheLookup(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gPathCacheRwLock);
     dwError = SMBHashGetValue(
                   gpPathCache,
                   (PCVOID)pszOriginalPath,
                   (PVOID*)&pCacheRecord);
-    if (dwError != LWIO_ERROR_SUCCESS) {
-        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    now = time(NULL);
-
-    /* Expire cache records > EXPIRE seconds old.  Check for time warps
-       that sent us back in time (system clock changed) */
-
-    if (((pCacheRecord->LastAccess + PVFS_PATH_CACHE_EXPIRY) < now) ||
-        (pCacheRecord->LastAccess > now))
+    if (dwError != LWIO_ERROR_SUCCESS)
     {
-        dwError = SMBHashRemoveKey(gpPathCache, (PCVOID)pszOriginalPath);
-        /* Ignore errors from the remove */
-
         ntError = STATUS_OBJECT_PATH_NOT_FOUND;
         BAIL_ON_NT_STATUS(ntError);
     }
-
-    pCacheRecord->LastAccess = now;
 
     ntError = LwRtlCStringDuplicate(
                   &pszResolvedPath,
@@ -176,16 +158,17 @@ PvfsPathCacheLookup(
     BAIL_ON_NT_STATUS(ntError);
 
     *ppszResolvedPath = pszResolvedPath;
-    pszResolvedPath = NULL;
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
 
-    LwRtlCStringFree(&pszResolvedPath);
-
     return ntError;
 
 error:
+    if (pszResolvedPath)
+    {
+        LwRtlCStringFree(&pszResolvedPath);
+    }
     goto cleanup;
 }
 
@@ -198,41 +181,20 @@ PvfsPathCacheRemove(
     PCSTR pszPathname
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
     DWORD dwError = LWIO_ERROR_SUCCESS;
     BOOLEAN bLocked = FALSE;
-    PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
 
-    if (gpPathCache == NULL)
+    if (gpPathCache != NULL)
     {
-        /* If the PathCache has been disabled, just fail return */
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
 
-        ntError = STATUS_SUCCESS;
-        goto cleanup;
+        /* Ignore errors from the remove */
+        dwError = SMBHashRemoveKey(gpPathCache, (PCVOID)pszPathname);
+
+        LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
-
-    dwError = SMBHashGetValue(
-                  gpPathCache,
-                  (PCVOID)pszPathname,
-                  (PVOID*)&pCacheRecord);
-    if (dwError != LWIO_ERROR_SUCCESS)
-    {
-        ntError = STATUS_SUCCESS;
-        goto cleanup;
-    }
-
-    /* Ignore errors from the remove */
-
-    dwError = SMBHashRemoveKey(gpPathCache, (PCVOID)pszPathname);
-
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
-
-    return ntError;
+    return STATUS_SUCCESS;
 }
 
 
