@@ -130,7 +130,8 @@ PvfsCreateFileSupersede(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
-    PVFS_STAT Stat = {0};
+    PVFS_STAT statPath = {0};
+    PVFS_STAT statFile = {0};
 
     /* Caller had to have asked for DELETE access */
 
@@ -151,13 +152,14 @@ PvfsCreateFileSupersede(
                   pCreateCtx->pszOriginalFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
+    ntError = PvfsLookupPath(&pszDiskDirname, &statPath, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for file existence.  Remove it if necessary */
 
     ntError = PvfsLookupFile(
                   &pCreateCtx->pszDiskFilename,
+                  &statFile,
                   pszDiskDirname,
                   pszRelativeFilename,
                   FALSE);
@@ -171,8 +173,7 @@ PvfsCreateFileSupersede(
 
     if (pCreateCtx->bFileExisted)
     {
-        ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
-        if ((ntError == STATUS_SUCCESS) && S_ISDIR(Stat.s_mode))
+        if (S_ISDIR(statFile.s_mode))
         {
             ntError = STATUS_FILE_IS_A_DIRECTORY;
             BAIL_ON_NT_STATUS(ntError);
@@ -347,18 +348,13 @@ PvfsCreateFileCreate(
 
     ntError = PvfsLookupPath(
                   &pCreateCtx->pszDiskFilename,
+                  &Stat,
                   pCreateCtx->pszOriginalFilename,
                   FALSE);
     switch (ntError)
     {
         case STATUS_SUCCESS:
-        {
-            NTSTATUS ntErrorStat = STATUS_SUCCESS;
-
-            ntErrorStat = PvfsSysStat(
-                              pCreateCtx->pszDiskFilename,
-                              &Stat);
-            if ((ntErrorStat == STATUS_SUCCESS) && S_ISDIR(Stat.s_mode))
+            if (S_ISDIR(Stat.s_mode))
             {
                 ntError = STATUS_FILE_IS_A_DIRECTORY;
             }
@@ -366,8 +362,7 @@ PvfsCreateFileCreate(
             {
                 ntError = STATUS_OBJECT_NAME_COLLISION;
             }
-        }
-        break;
+            break;
 
         case STATUS_OBJECT_NAME_NOT_FOUND:
             ntError = STATUS_SUCCESS;
@@ -385,7 +380,7 @@ PvfsCreateFileCreate(
                   pCreateCtx->pszOriginalFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
+    ntError = PvfsLookupPath(&pszDiskDirname, &Stat, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = RtlCStringAllocatePrintf(
@@ -472,11 +467,9 @@ PvfsCreateFileOpenOrOverwrite(
 
     ntError = PvfsLookupPath(
                   &pCreateCtx->pszDiskFilename,
+                  &Stat,
                   pCreateCtx->pszOriginalFilename,
                   FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     if (S_ISDIR(Stat.s_mode))
@@ -607,7 +600,8 @@ PvfsCreateFileOpenOrOverwriteIf(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
-    PVFS_STAT Stat = {0};
+    PVFS_STAT statPath = {0};
+    PVFS_STAT statFile = {0};
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -618,13 +612,14 @@ PvfsCreateFileOpenOrOverwriteIf(
                   pCreateCtx->pszOriginalFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
+    ntError = PvfsLookupPath(&pszDiskDirname, &statPath, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for file existence */
 
     ntError = PvfsLookupFile(
                   &pCreateCtx->pszDiskFilename,
+                  &statFile,
                   pszDiskDirname,
                   pszRelativeFilename,
                   FALSE);
@@ -638,10 +633,7 @@ PvfsCreateFileOpenOrOverwriteIf(
 
     if (pCreateCtx->bFileExisted)
     {
-        ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
-        BAIL_ON_NT_STATUS(ntError);
-
-        if (S_ISDIR(Stat.s_mode))
+        if (S_ISDIR(statFile.s_mode))
         {
             ntError = STATUS_FILE_IS_A_DIRECTORY;
             BAIL_ON_NT_STATUS(ntError);

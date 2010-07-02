@@ -117,6 +117,7 @@ PvfsSetFileRenameInfo(
     PSTR pszNewFileDirname = NULL;
     PSTR pszNewFileBasename = NULL;
     PSTR pszCanonicalNewPathname = NULL;
+    PVFS_STAT stat = { 0 };
 
     /* Sanity checks */
 
@@ -187,7 +188,7 @@ PvfsSetFileRenameInfo(
                                 pszNewPathname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszNewFileDiskDirname, pszNewFileDirname, FALSE);
+    ntError = PvfsLookupPath(&pszNewFileDiskDirname, &stat, pszNewFileDirname, FALSE);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = STATUS_OBJECT_PATH_NOT_FOUND;
@@ -219,6 +220,7 @@ PvfsSetFileRenameInfo(
 
     ntError = PvfsLookupPath(
                   &pszCanonicalNewPathname,
+                  &stat,
                   pszNewDiskPathname,
                   FALSE);
     if (ntError == STATUS_SUCCESS)

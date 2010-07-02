@@ -371,17 +371,19 @@ PvfsFileSplitPath(
 
 NTSTATUS
 PvfsLookupPath(
-    PSTR *ppszDiskPath,
-    PCSTR pszPath,
-    BOOLEAN bCaseSensitive
+    OUT PSTR *ppszDiskPath,
+    IN OUT PPVFS_STAT pStat,
+    IN PCSTR pszPath,
+    IN BOOLEAN bCaseSensitive
     );
 
 NTSTATUS
 PvfsLookupFile(
-    PSTR *ppszDiskPath,
-    PCSTR pszDiskDirname,
-    PCSTR pszFilename,
-    BOOLEAN bCaseSensitive
+    OUT PSTR *ppszDiskPath,
+    IN OUT PPVFS_STAT pStat,
+    IN PCSTR pszDiskDirname,
+    IN PCSTR pszFilename,
+    IN BOOLEAN bCaseSensitive
     );
 
 /* From pathcache.c */
