@@ -1143,7 +1143,7 @@ SrvSetDefaultKrb5CachePath(
         }
     }
 
-    LWIO_LOG_DEBUG("Cache path set to [%s]", SMB_SAFE_LOG_STRING(pszCachePath));
+    LWIO_LOG_DEBUG("Cache path set to [%s]", LWIO_SAFE_LOG_STRING(pszCachePath));
 
 cleanup:
 
