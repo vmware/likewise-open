@@ -655,7 +655,9 @@ PvfsCreateFCB(
     /* Protect against adding a duplicate */
 
     ntError = _PvfsFindFCB(&pFcb, pszFilename);
-    if (ntError == STATUS_SUCCESS) {
+    if (ntError == STATUS_SUCCESS)
+    {
+        LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
 
         ntError = PvfsEnforceShareMode(
                       pFcb,
