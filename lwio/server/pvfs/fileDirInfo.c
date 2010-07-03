@@ -279,7 +279,7 @@ PvfsQueryFileDirInfo(
     /* Critical region to prevent inteleaving directory
        enumeration */
 
-    LWIO_LOCK_MUTEX(bLocked, &pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bLocked, &pCcb->ControlBlock);
     if (!pCcb->pDirContext->bScanned) {
         ntError = PvfsEnumerateDirectory(
                       pCcb,
@@ -287,7 +287,7 @@ PvfsQueryFileDirInfo(
                       -1,
                       FALSE);
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &pCcb->ControlBlock);
 
     BAIL_ON_NT_STATUS(ntError);
 

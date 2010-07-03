@@ -138,9 +138,9 @@ PvfsSetFileDispositionInfo(
 
             LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
 
-            LWIO_LOCK_MUTEX(bDirLocked, &pCcb->FileMutex);
+            LWIO_LOCK_MUTEX(bDirLocked, &pCcb->ControlBlock);
             ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1, TRUE);
-            LWIO_UNLOCK_MUTEX(bDirLocked,  &pCcb->FileMutex);
+            LWIO_UNLOCK_MUTEX(bDirLocked,  &pCcb->ControlBlock);
 
             if (ntError == STATUS_SUCCESS)
             {

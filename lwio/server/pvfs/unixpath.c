@@ -215,7 +215,7 @@ PvfsValidatePath(
     BOOLEAN bFcbLocked = FALSE;
     PVFS_STAT Stat = {0};
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwFileName);
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwLock);
 
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
@@ -230,7 +230,7 @@ PvfsValidatePath(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwLock);
 
     return ntError;
 

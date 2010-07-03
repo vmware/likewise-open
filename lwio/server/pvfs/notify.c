@@ -179,7 +179,7 @@ PvfsNotifyReportBufferedChanges(
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     /* See if we have any changes to report immediately */
 
@@ -237,7 +237,7 @@ PvfsNotifyReportBufferedChanges(
 
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     return ntError;
 
@@ -392,13 +392,13 @@ PvfsNotifyAddFilter(
     }
 
 
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     ntError = PvfsListAddTail(
                   pFcb->pNotifyListIrp,
                   &pFilter->NotifyList);
 
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     BAIL_ON_NT_STATUS(ntError);
 
@@ -557,7 +557,7 @@ PvfsNotifyFullReport(
 
     while ((pParentFcb = PvfsGetParentFCB(pCursor)) != NULL)
     {
-        LWIO_LOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+        LWIO_LOCK_MUTEX(bLocked, &pParentFcb->ControlBlock);
 
         /* Process buffers before Irp so we don't doublt report
            a change on a pending Irp that has requested buffering a
@@ -567,7 +567,7 @@ PvfsNotifyFullReport(
         PvfsNotifyFullReportBuffer(pParentFcb, pReport);
         PvfsNotifyFullReportIrp(pParentFcb, pReport);
 
-        LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+        LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->ControlBlock);
 
         PvfsReleaseFCB(&pCursor);
 
@@ -977,7 +977,7 @@ PvfsNotifyCleanIrpList(
     PLW_LIST_LINKS pNextLink = NULL;
     BOOLEAN bFound = FALSE;
 
-    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->mutexNotify);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
     pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
 
@@ -1017,7 +1017,7 @@ PvfsNotifyCleanIrpList(
         PvfsAsyncIrpComplete(pIrpCtx);
     }
 
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexNotify);
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
     if (pFcb)
     {

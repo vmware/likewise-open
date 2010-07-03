@@ -69,7 +69,6 @@ PvfsAllocateCCB(
 
     /* Initialize mutexes and refcounts */
 
-    pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
     PVFS_INIT_LINKS(&pCCB->FcbList);
@@ -143,7 +142,6 @@ PvfsFreeCCB(
     PVFS_FREE(&pCCB->LockTable.ExclusiveLocks.pLocks);
     PVFS_FREE(&pCCB->LockTable.SharedLocks.pLocks);
 
-    pthread_mutex_destroy(&pCCB->FileMutex);
     pthread_mutex_destroy(&pCCB->ControlBlock);
 
     PVFS_FREE(&pCCB);

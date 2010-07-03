@@ -453,9 +453,9 @@ PvfsZctCompleteRead(
     PPVFS_CCB pCcb = pZctContext->pCcb;
     BOOLEAN bMutexLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
     PvfsFreeZctContext(&pZctContext);
-    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     return STATUS_SUCCESS;
 }
@@ -655,7 +655,7 @@ PvfsZctCloseCcb(
     PLW_LIST_LINKS pNextLink = NULL;
     PPVFS_ZCT_CONTEXT pZctContext = NULL;
 
-    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     pZctCtxLink = PvfsListTraverse(pCcb->pZctContextList, NULL);
 
@@ -673,7 +673,7 @@ PvfsZctCloseCcb(
         PvfsFreeZctContext(&pZctContext);
     }
 
-    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 }
 
 /*
