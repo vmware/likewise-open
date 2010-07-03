@@ -69,6 +69,8 @@ extern PVFS_FCB_TABLE gFcbTable;
 extern pthread_mutex_t gDeviceFcbMutex;
 extern PPVFS_FCB gpPvfsDeviceFcb;
 
+extern pthread_mutex_t gPvfsIrpContextMutex;
+
 extern PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx;
 
 extern pthread_mutex_t gUidMruCacheMutex;

@@ -69,6 +69,8 @@ PSMB_HASH_TABLE gpPathCache = NULL;
 pthread_mutex_t gDeviceFcbMutex = PTHREAD_MUTEX_INITIALIZER;
 PPVFS_FCB gpPvfsDeviceFcb = NULL;
 
+pthread_mutex_t gPvfsIrpContextMutex = PTHREAD_MUTEX_INITIALIZER;
+
 PVFS_FCB_TABLE gFcbTable;
 
 PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
