@@ -152,6 +152,35 @@ typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
 #define PVFS_SET_PROP_SECURITY  0x00000001
 #define PVFS_SET_PROP_ATTRIB    0x00000002
 
+typedef struct _PVFS_FCB_TABLE_ENTRY
+{
+    pthread_rwlock_t rwLock;
+    pthread_rwlock_t *pRwLock;
+    PLWRTL_RB_TREE pTree;
+
+} PVFS_FCB_TABLE_ENTRY, *PPVFS_FCB_TABLE_ENTRY;
+
+typedef int (*PVFS_HASH_KEY_COMPARE)(PCVOID, PCVOID);
+typedef size_t (*PVFS_HASH_KEY)(PCVOID);
+typedef void (*PVFS_HASH_FREE_ENTRY)(PPVFS_FCB_TABLE_ENTRY*);
+
+typedef struct _PVFS_HASH_TABLE
+{
+    size_t sTableSize;
+    size_t sCount;
+    PPVFS_FCB_TABLE_ENTRY *ppEntries;
+    PVFS_HASH_KEY_COMPARE fnCompare;
+    PVFS_HASH_KEY fnHash;
+    PVFS_HASH_FREE_ENTRY fnFree;
+} PVFS_HASH_TABLE, *PPVFS_HASH_TABLE;
+
+typedef struct _PVFS_FCB_TABLE
+{
+    pthread_rwlock_t rwLock;
+    PPVFS_HASH_TABLE pFcbTable;
+
+} PVFS_FCB_TABLE, *PPVFS_FCB_TABLE;
+
 typedef struct _PVFS_PENDING_CREATE
 {
     PPVFS_IRP_CONTEXT pIrpContext;
@@ -248,10 +277,11 @@ typedef struct _PVFS_FILE_ID
 
 } PVFS_FILE_ID, *PPVFS_FILE_ID;
 
-
 struct _PVFS_FCB
 {
     LONG RefCount;
+
+    PPVFS_FCB_TABLE_ENTRY pBucket;      /* FcbTable Bucket */
 
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
@@ -292,14 +322,6 @@ struct _PVFS_FCB
     PPVFS_LIST pPendingLockQueue;
     /* End rwBrlLock */
 };
-
-typedef struct _PVFS_FCB_TABLE
-{
-    pthread_rwlock_t rwLock;
-
-    PLWRTL_RB_TREE pFcbTree;
-
-} PVFS_FCB_TABLE;
 
 typedef struct _PVFS_LOCK_LIST
 {

@@ -193,6 +193,7 @@ PvfsAllocateFCB(
     pFcb->bRemoved = FALSE;
     pFcb->bOplockBreakInProgress = FALSE;
     pFcb->pParentFcb = NULL;
+    pFcb->pBucket = NULL;
     pFcb->pszFilename = NULL;
 
     *ppFcb = pFcb;
@@ -322,17 +323,17 @@ PvfsReleaseFCB(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN bTableLocked = FALSE;
+    BOOLEAN bBucketLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
     BOOLEAN bFcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = NULL;
+    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
 
-    /* Do housekeeping such as setting the last write time or
-       honoring DeletOnClose when the CCB handle count reaches
-       0.  Not necessarily when the RefCount reaches 0.  We
-       may have a non-handle open in the FCB table for a
-       path component (see PvfsFindParentFCB()). */
+    /* Do housekeeping such as setting the last write time or honoring
+       DeletOnClose when the CCB handle count reaches 0.  Not necessarily
+       when the RefCount reaches 0.  We may have a non-handle open in the
+       FCB table for a path component (see PvfsFindParentFCB()). */
 
     if (ppFcb == NULL || *ppFcb == NULL)
     {
@@ -374,25 +375,21 @@ PvfsReleaseFCB(
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
 
                 /* The locking heirarchy requires that we drop the FCP control
-                   block mutex before trying to pick up the FcbTable exclusive lock */
-
-                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-
-                /* Remove the FCB and allow the refcount to handle the free().
-                   This prevents a failed delete-on-close from preventing
-                   any future opens. */
-
-                LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
-                LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+                   block mutex before trying to pick up the FcbTable exclusive
+                   lock */
 
                 if (!pFcb->bRemoved)
                 {
-                    PvfsFcbTableRemove(pFcb);
-                    pFcb->bRemoved = TRUE;
-                }
+                    PPVFS_FCB_TABLE_ENTRY pBucket = pFcb->pBucket;
 
+                    pFcb->bRemoved = TRUE;
+                    pFcb->pBucket = NULL;
+
+                    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
+                    PvfsFcbTableRemove(pBucket, pFcb);
+                }
                 LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-                LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
 
                 PvfsPathCacheRemove(pFcb->pszFilename);
 
@@ -407,43 +404,70 @@ PvfsReleaseFCB(
                         pFcb->pszFilename);
                 }
             }
+
+            LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
         }
     }
-    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
     LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
 
 
-    /* It is important to lock the FcbTable here so that
-       there is no window between the decrement and the remove.
-       Otherwise another open request could search and locate the
-       FCB in the tree and return free()'d memory. */
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
-
     if (InterlockedDecrement(&pFcb->RefCount) == 0)
     {
+        /* It is important to lock the FcbTable here so that there is no window
+           between the refcount check and the remove. Otherwise another open request
+           could search and locate the FCB in the tree and return free()'d memory.
+           However, if the FCB has no bucket pointer, it has already been removed
+           from the FcbTable so locking is unnecessary.
 
-        /* Clear the path cache */
+           We lock inside the InterlockedDecrement() block to avoid grabing an
+           exclusive lock on every FCB release. */
 
-        PvfsPathCacheRemove(pFcb->pszFilename);
+        pBucket = pFcb->pBucket;
 
-        LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-        if (!pFcb->bRemoved)
+        if (pBucket)
         {
-            PvfsFcbTableRemove(pFcb);
-            pFcb->bRemoved = TRUE;
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
         }
-        LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
-        LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
+        /* Check the refcount again in case someone grab a reference in
+           between the InterlockedDecrement() and when we obtained the
+           exclusive lock on the bucket */
 
-        PvfsFreeFCB(pFcb);
+        if (pFcb->RefCount == 0)
+        {
+            LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+            if (!pFcb->bRemoved)
+            {
+                PPVFS_FCB_TABLE_ENTRY pBucket = pFcb->pBucket;
+
+                pFcb->bRemoved = TRUE;
+                pFcb->pBucket = NULL;
+
+                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
+                PvfsFcbTableRemove_inlock(pBucket, pFcb);
+            }
+            LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
+            if (pBucket)
+            {
+                LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
+            }
+
+            /* Clear the path cache */
+
+            PvfsPathCacheRemove(pFcb->pszFilename);
+
+            PvfsFreeFCB(pFcb);
+        }
+        if (pBucket)
+        {
+            LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
+        }
     }
 
-    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
-
-    *ppFcb = (PPVFS_FCB)NULL;
+    *ppFcb = NULL;
 
 cleanup:
     return;
@@ -463,38 +487,52 @@ PvfsFindParentFCB(
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN  PSTR pszFilename,
-    IN  FILE_SHARE_FLAGS SharedAccess,
-    IN  ACCESS_MASK DesiredAccess
+    IN PSTR pszFilename,
+    IN BOOLEAN bCheckShareAccess,
+    IN FILE_SHARE_FLAGS SharedAccess,
+    IN ACCESS_MASK DesiredAccess
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
-    BOOLEAN bFcbTableLocked = FALSE;
+    BOOLEAN bBucketLocked = FALSE;
+    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_FCB pParentFcb = NULL;
+    BOOLEAN bFcbLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbTableLocked, &gFcbTable.rwLock);
+    ntError = PvfsFindParentFCB(&pParentFcb, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFcbTableGetBucket(&pBucket, &gFcbTable, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Protect against adding a duplicate */
 
-    ntError = PvfsFcbTableLookup_inlock(&pFcb, pszFilename);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
+
+    ntError = PvfsFcbTableLookup_inlock(&pFcb, pBucket, pszFilename);
     if (ntError == STATUS_SUCCESS)
     {
-        LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
+        LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
-        ntError = PvfsEnforceShareMode(
-                      pFcb,
-                      SharedAccess,
-                      DesiredAccess);
-
-        /* If we have success, then we are good.  If we have a sharing
-           violation, give the caller a chance to break the oplock and
-           we'll try again when the create is resumed. */
-
-        if (ntError == STATUS_SUCCESS ||
-            ntError == STATUS_SHARING_VIOLATION)
+        if (bCheckShareAccess)
         {
-            *ppFcb = PvfsReferenceFCB(pFcb);
+            ntError = PvfsEnforceShareMode(
+                          pFcb,
+                          SharedAccess,
+                          DesiredAccess);
+
+            /* If we have success, then we are good.  If we have a sharing
+               violation, give the caller a chance to break the oplock and
+               we'll try again when the create is resumed. */
+
+            if (ntError == STATUS_SUCCESS ||
+                ntError == STATUS_SHARING_VIOLATION)
+            {
+                *ppFcb = PvfsReferenceFCB(pFcb);
+            }
         }
+
         goto cleanup;
     }
 
@@ -504,14 +542,17 @@ PvfsCreateFCB(
     ntError = RtlCStringDuplicate(&pFcb->pszFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Lookup the parent FCB */
-
-    ntError = PvfsFindParentFCB(&pFcb->pParentFcb, pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
+    pFcb->pParentFcb = pParentFcb ? PvfsReferenceFCB(pParentFcb) : NULL;
 
     /* Add to the file handle table */
 
-    ntError = PvfsFcbTableAdd(pFcb);
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    ntError = PvfsFcbTableAdd_inlock(pBucket, pFcb);
+    if (ntError == STATUS_SUCCESS)
+    {
+        pFcb->pBucket = pBucket;
+    }
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Return a reference to the FCB */
@@ -520,9 +561,15 @@ PvfsCreateFCB(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
-    if (pFcb) {
+    if (pParentFcb)
+    {
+        PvfsReleaseFCB(&pParentFcb);
+    }
+
+    if (pFcb)
+    {
         PvfsReleaseFCB(&pFcb);
     }
 
@@ -531,7 +578,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
 
 /***********************************************************************
  **********************************************************************/
@@ -546,6 +592,7 @@ PvfsFindParentFCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
     PSTR pszDirname = NULL;
+    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
 
     if (LwRtlCStringIsEqual(pszFilename, "/", TRUE))
     {
@@ -558,29 +605,22 @@ PvfsFindParentFCB(
     ntError = PvfsFileDirname(&pszDirname, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsFcbTableLookup_inlock(&pFcb, pszDirname);
-    if (ntError != STATUS_SUCCESS)
+    ntError = PvfsFcbTableGetBucket(&pBucket, &gFcbTable, pszDirname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFcbTableLookup(&pFcb, pBucket, pszDirname);
+    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
-        ntError = PvfsAllocateFCB(&pFcb);
-        BAIL_ON_NT_STATUS(ntError);
-
-        pFcb->pszFilename = pszDirname;
-        pszDirname = NULL;
-
-        /* Lookup the parent FCB */
-
-        ntError = PvfsFindParentFCB(&pFcb->pParentFcb, pFcb->pszFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
-        /* Add to the file handle table */
-
-        ntError = PvfsFcbTableAdd(pFcb);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsCreateFCB(
+                      &pFcb,
+                      pszDirname,
+                      FALSE,
+                      0,
+                      0);
     }
+    BAIL_ON_NT_STATUS(ntError);
 
     *ppParentFcb = pFcb;
-
-    ntError = STATUS_SUCCESS;
 
 cleanup:
     LwRtlCStringFree(&pszDirname);
@@ -1157,98 +1197,126 @@ NTSTATUS
 PvfsRenameFCB(
     PPVFS_FCB pFcb,
     PPVFS_CCB pCcb,
-    PCSTR pszNewFilename
+    PSTR pszNewFilename
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN bTableLocked = FALSE;
-    BOOLEAN bFcbLocked = FALSE;
-    BOOLEAN bCcbLocked = FALSE;
     PPVFS_FCB pNewParentFcb = NULL;
     PPVFS_FCB pOldParentFcb = NULL;
-    PPVFS_FCB pExistingTargetFcb = NULL;
-    BOOLEAN bExistingFcbLocked = FALSE;
+    PPVFS_FCB pTargetFcb = NULL;
+    PPVFS_FCB_TABLE_ENTRY pTargetBucket = NULL;
+    PPVFS_FCB_TABLE_ENTRY pCurrentBucket = NULL;
+    BOOLEAN bCurrentFcbControl = FALSE;
     BOOLEAN bTargetFcbControl = FALSE;
+    BOOLEAN bTargetBucketLocked = FALSE;
+    BOOLEAN bCurrentBucketLocked = FALSE;
+    BOOLEAN bFcbRwLocked = FALSE;
+    BOOLEAN bCcbLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
+    ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
+    BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
-        BAIL_ON_NT_STATUS(ntError);
+    /* If the target has an existing FCB, remove it from the Table and let
+       the existing ref counters play out (e.g. pending change notifies. */
 
-        /* If the target has an existing FCB, remove it from the Table
-           and let the existing ref counters play out (e.g. pending
-           change notifies. */
+    ntError = PvfsFindParentFCB(&pNewParentFcb, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsFcbTableLookup_inlock(&pExistingTargetFcb, pszNewFilename);
-        if (ntError == STATUS_SUCCESS)
+    ntError = PvfsFcbTableGetBucket(&pTargetBucket, &gFcbTable, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Locks - pTargetBucket(Excl) */
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTargetBucketLocked, &pTargetBucket->rwLock);
+
+    ntError = PvfsFcbTableLookup_inlock(
+                  &pTargetFcb,
+                  pTargetBucket,
+                  pszNewFilename);
+    if (ntError == STATUS_SUCCESS)
+    {
+        /* Make sure we have a different FCB */
+
+        if (pTargetFcb != pFcb)
         {
-            /* Make sure we have a different FCB */
-
-            if (pExistingTargetFcb != pFcb)
+            LWIO_LOCK_MUTEX(bTargetFcbControl, &pTargetFcb->ControlBlock);
+            if (!pTargetFcb->bRemoved)
             {
-                LWIO_LOCK_MUTEX(bExistingFcbLocked, &pExistingTargetFcb->ControlBlock);
-                if (!pExistingTargetFcb->bRemoved)
-                {
-                    PvfsFcbTableRemove(pExistingTargetFcb);
-                    pExistingTargetFcb->bRemoved = TRUE;
-                }
-                LWIO_UNLOCK_MUTEX(bExistingFcbLocked, &pExistingTargetFcb->ControlBlock);
+                pTargetFcb->bRemoved = TRUE;
+                pTargetFcb->pBucket = NULL;
+
+                LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pTargetFcb->ControlBlock);
+
+                PvfsFcbTableRemove_inlock(pTargetBucket, pTargetFcb);
             }
+            LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pTargetFcb->ControlBlock);
         }
 
-        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbLocked, &pFcb->rwLock);
+        PvfsReleaseFCB(&pTargetFcb);
+    }
 
-            ntError = PvfsSysRename(pCcb->pFcb->pszFilename, pszNewFilename);
-            BAIL_ON_NT_STATUS(ntError);
+    /* Locks - pTargetBucket(Excl), pFcb->rwLock(Excl) */
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->rwLock);
 
-            /* Clear the cache entry but ignore any errors */
+    ntError = PvfsSysRename(pCcb->pFcb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
 
-            ntError = PvfsPathCacheRemove(pFcb->pszFilename);
+    /* Clear the cache entry but ignore any errors */
 
-            /* Remove the FCB from the table, update the lookup key,
-               and then re-add.  Otherwise you will get memory corruption
-               as a freed pointer gets left in the Table because if
-               cannot be located using the current (updated) filename.
-               Another reason to use the dev/inode pair instead if
-               we could solve the "Create New File" issue.  */
+    ntError = PvfsPathCacheRemove(pFcb->pszFilename);
 
-            LWIO_LOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
-            ntError = PvfsFcbTableRemove(pFcb);
-            if (ntError == STATUS_SUCCESS)
-            {
-                pFcb->bRemoved = TRUE;
-            }
-            LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
-            BAIL_ON_NT_STATUS(ntError);
+    /* Remove the FCB from the table, update the lookup key, and then re-add.
+       Otherwise you will get memory corruption as a freed pointer gets left
+       in the Table because if cannot be located using the current (updated)
+       filename. Another reason to use the dev/inode pair instead if we could
+       solve the "Create New File" issue. */
 
-            PVFS_FREE(&pFcb->pszFilename);
-            ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
-            BAIL_ON_NT_STATUS(ntError);
+    pCurrentBucket = pFcb->pBucket;
 
-            ntError = PvfsFindParentFCB(&pNewParentFcb, pFcb->pszFilename);
-            BAIL_ON_NT_STATUS(ntError);
+    LWIO_LOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
+    pFcb->bRemoved = TRUE;
+    pFcb->pBucket = NULL;
+    LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
 
-            /* Have to update the parent links as well */
+    /* Locks - pTargetBucket(Excl), pFcb->rwLock(Excl), pCurrentBucket(Excl) */
+    /* WARNING - Potential Deadly Embrace!!! */
 
-            if (pNewParentFcb != pFcb->pParentFcb)
-            {
-                pOldParentFcb = pFcb->pParentFcb;
-                pFcb->pParentFcb = pNewParentFcb;
-                pNewParentFcb = NULL;
-            }
+    if (pCurrentBucket != pTargetBucket)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bCurrentBucketLocked, &pCurrentBucket->rwLock);
+    }
 
-            LWIO_LOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
-            ntError = PvfsFcbTableAdd(pFcb);
-            if (ntError == STATUS_SUCCESS)
-            {
-                pFcb->bRemoved = FALSE;
-            }
-            LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
-            BAIL_ON_NT_STATUS(ntError);
+    ntError = PvfsFcbTableRemove_inlock(pCurrentBucket, pFcb);
+    LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
+    BAIL_ON_NT_STATUS(ntError);
 
-        LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwLock);
+    PVFS_FREE(&pFcb->pszFilename);
 
-    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
+    ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Have to update the parent links as well */
+
+    if (pNewParentFcb != pFcb->pParentFcb)
+    {
+        pOldParentFcb = pFcb->pParentFcb;
+        pFcb->pParentFcb = pNewParentFcb;
+        pNewParentFcb = NULL;
+    }
+
+    /* Locks - pTargetBucket(Excl), pFcb->rwLock(Excl), pFcb->ControlBlock */
+    LWIO_LOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
+    ntError = PvfsFcbTableAdd_inlock(pTargetBucket, pFcb);
+    if (ntError == STATUS_SUCCESS)
+    {
+        pFcb->bRemoved = FALSE;
+        pFcb->pBucket = pTargetBucket;
+    }
+    LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
+
 
     LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
@@ -1259,6 +1327,12 @@ PvfsRenameFCB(
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+
     if (pNewParentFcb)
     {
         PvfsReleaseFCB(&pNewParentFcb);
@@ -1269,18 +1343,9 @@ cleanup:
         PvfsReleaseFCB(&pOldParentFcb);
     }
 
-    if (pExistingTargetFcb)
-    {
-        PvfsReleaseFCB(&pExistingTargetFcb);
-    }
-
     return ntError;
 
 error:
-    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwLock);
-    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
-
     goto cleanup;
 }
 

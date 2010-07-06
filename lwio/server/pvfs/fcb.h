@@ -70,9 +70,10 @@ PvfsReleaseFCB(
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN  PSTR pszFilename,
-    IN  FILE_SHARE_FLAGS SharedAccess,
-    IN  ACCESS_MASK DesiredAccess
+    IN PSTR pszFilename,
+    IN BOOLEAN bCheckShareAccess,
+    IN FILE_SHARE_FLAGS SharedAccess,
+    IN ACCESS_MASK DesiredAccess
     );
 
 NTSTATUS
@@ -156,7 +157,7 @@ NTSTATUS
 PvfsRenameFCB(
     PPVFS_FCB pFcb,
     PPVFS_CCB pCcb,
-    PCSTR pszNewFilename
+    PSTR pszNewFilename
     );
 
 BOOLEAN
@@ -201,24 +202,43 @@ PvfsFcbTableDestroy(
 NTSTATUS
 PvfsFcbTableLookup(
     PPVFS_FCB *ppFcb,
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PSTR pszFilename
     );
 
 NTSTATUS
 PvfsFcbTableLookup_inlock(
     PPVFS_FCB *ppFcb,
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PCSTR pszFilename
     );
 
 NTSTATUS
-PvfsFcbTableAdd(
+PvfsFcbTableAdd_inlock(
+    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB pFcb
+    );
+
+NTSTATUS
+PvfsFcbTableRemove_inlock(
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PPVFS_FCB pFcb
     );
 
 NTSTATUS
 PvfsFcbTableRemove(
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PPVFS_FCB pFcb
     );
+
+NTSTATUS
+PvfsFcbTableGetBucket(
+    OUT PPVFS_FCB_TABLE_ENTRY *ppBucket,
+    IN PPVFS_FCB_TABLE pFcbTable,
+    IN PVOID pKey
+    );
+
+
 
 
 

@@ -46,15 +46,67 @@
 
 #include "pvfs.h"
 
-/*****************************************************************************
- ****************************************************************************/
+#define PVFS_FCB_TABLE_HASH_SIZE    127
+#define PVFS_HASH_STRKEY_MULTIPLIER 31
+
+static
+NTSTATUS
+PvfsHashTableCreate(
+    size_t sTableSize,
+    PVFS_HASH_KEY_COMPARE fnCompare,
+    PVFS_HASH_KEY fnHash,
+    PVFS_HASH_FREE_ENTRY fnFree,
+    PPVFS_HASH_TABLE* ppHashTable
+    );
+
+static
+VOID
+PvfsHashTableDestroy(
+    PVFS_HASH_TABLE** ppTable
+    );
+
+NTSTATUS
+PvfsHashTableGetValue(
+    PPVFS_HASH_TABLE pTable,
+    PVOID  pKey,
+    PPVFS_FCB *ppFcb
+    );
+
+NTSTATUS
+PvfsHashTableSetValue(
+    PPVFS_HASH_TABLE pTable,
+    PVOID  pKey,
+    PPVFS_FCB pFcb
+    );
+
+NTSTATUS
+PvfsHashTableRemoveKey(
+    PVFS_HASH_TABLE *pTable,
+    PVOID  pKey
+    );
+
+static
+size_t
+PvfsFcbTableHashKey(
+    PCVOID pszPath
+    );
+
+static
+VOID
+PvfsFcbTableFreeHashEntry(
+    PPVFS_FCB_TABLE_ENTRY *ppEntry
+    );
 
 static
 int
-FcbTableFilenameCompare(
-    PVOID a,
-    PVOID b
+PvfsFcbTableFilenameCompare(
+    PCVOID a,
+    PCVOID b
     );
+
+/*****************************************************************************
+ ****************************************************************************/
+
 
 NTSTATUS
 PvfsFcbTableInitialize(
@@ -65,10 +117,12 @@ PvfsFcbTableInitialize(
 
     pthread_rwlock_init(&gFcbTable.rwLock, NULL);
 
-    ntError = LwRtlRBTreeCreate(&FcbTableFilenameCompare,
-                                NULL,
-                                NULL,
-                                &gFcbTable.pFcbTree);
+    ntError = PvfsHashTableCreate(
+                  1021,
+                  PvfsFcbTableFilenameCompare,
+                  PvfsFcbTableHashKey,
+                  PvfsFcbTableFreeHashEntry,
+                  &gFcbTable.pFcbTable);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -78,22 +132,6 @@ error:
     goto cleanup;
 }
 
-static
-int
-FcbTableFilenameCompare(
-    PVOID a,
-    PVOID b
-    )
-{
-    int iReturn = 0;
-
-    PSTR pszFilename1 = (PSTR)a;
-    PSTR pszFilename2 = (PSTR)b;
-
-    iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
-
-    return iReturn;
-}
 
 /*****************************************************************************
  ****************************************************************************/
@@ -106,12 +144,7 @@ PvfsFcbTableDestroy(
     BOOLEAN bLocked = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
-
-    /* Need a traversal to close all open CCBs first.  Then free the
-       RBTree */
-    LwRtlRBTreeFree(gFcbTable.pFcbTree);
-    gFcbTable.pFcbTree = NULL;
-
+    PvfsHashTableDestroy(&gFcbTable.pFcbTable);
     LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
     pthread_rwlock_destroy(&gFcbTable.rwLock);
@@ -126,15 +159,17 @@ PvfsFcbTableDestroy(
  **********************************************************************/
 
 NTSTATUS
-PvfsFcbTableAdd(
+PvfsFcbTableAdd_inlock(
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PPVFS_FCB pFcb
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
 
-    ntError = LwRtlRBTreeAdd(gFcbTable.pFcbTree,
-                             (PVOID)pFcb->pszFilename,
-                             (PVOID)pFcb);
+    ntError = LwRtlRBTreeAdd(
+                  pBucket->pTree,
+                  (PVOID)pFcb->pszFilename,
+                  (PVOID)pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -149,20 +184,45 @@ error:
  **********************************************************************/
 
 NTSTATUS
+PvfsFcbTableRemove_inlock(
+    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    ntError = LwRtlRBTreeRemove(
+                  pBucket->pTree,
+                  (PVOID)pFcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
 PvfsFcbTableRemove(
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PPVFS_FCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bLocked = FALSE;
 
-    /* We must have the mutex locked exclusively coming
-       into this */
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pBucket->rwLock);
 
-    ntError = LwRtlRBTreeRemove(gFcbTable.pFcbTree,
-                               (PVOID)pFcb->pszFilename);
+    ntError = PvfsFcbTableRemove_inlock(pBucket, pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pBucket->rwLock);
+
     return ntError;
 
 error:
@@ -176,17 +236,18 @@ error:
 NTSTATUS
 PvfsFcbTableLookup(
     PPVFS_FCB *ppFcb,
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PSTR pszFilename
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gFcbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pBucket->rwLock);
 
-    ntError = PvfsFcbTableLookup_inlock(ppFcb, pszFilename);
+    ntError = PvfsFcbTableLookup_inlock(ppFcb, pBucket, pszFilename);
 
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pBucket->rwLock);
 
     return ntError;
 }
@@ -198,16 +259,19 @@ PvfsFcbTableLookup(
 NTSTATUS
 PvfsFcbTableLookup_inlock(
     PPVFS_FCB *ppFcb,
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PCSTR pszFilename
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
 
-    ntError = LwRtlRBTreeFind(gFcbTable.pFcbTree,
-                              (PVOID)pszFilename,
-                              (PVOID*)&pFcb);
-    if (ntError == STATUS_NOT_FOUND) {
+    ntError = LwRtlRBTreeFind(
+                  pBucket->pTree,
+                  (PVOID)pszFilename,
+                  (PVOID*)&pFcb);
+    if (ntError == STATUS_NOT_FOUND)
+    {
         ntError = STATUS_OBJECT_NAME_NOT_FOUND;
     }
     BAIL_ON_NT_STATUS(ntError);
@@ -220,6 +284,230 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+/****************************************************************************
+ ***************************************************************************/
+
+NTSTATUS
+PvfsFcbTableGetBucket(
+    OUT PPVFS_FCB_TABLE_ENTRY *ppBucket,
+    IN PPVFS_FCB_TABLE pFcbTable,
+    IN PVOID pKey
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    size_t sBucket = 0;
+    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_HASH_TABLE pHashTable = pFcbTable->pFcbTable;
+
+    if (pHashTable->sTableSize > 0)
+    {
+        sBucket = pHashTable->fnHash(pKey) % pHashTable->sTableSize;
+        pBucket = pHashTable->ppEntries[sBucket];
+    }
+
+    if (pBucket == NULL)
+    {
+        ntError = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    *ppBucket = pBucket;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/****************************************************************************
+ ***************************************************************************/
+
+static
+NTSTATUS
+PvfsHashTableCreate(
+    size_t sTableSize,
+    PVFS_HASH_KEY_COMPARE fnCompare,
+    PVFS_HASH_KEY fnHash,
+    PVFS_HASH_FREE_ENTRY fnFree,
+    PPVFS_HASH_TABLE* ppTable
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_HASH_TABLE pTable = NULL;
+    size_t sIndex = 0;
+    PPVFS_FCB_TABLE_ENTRY pNewEntry = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pTable,
+                  sizeof(*pTable),
+                  FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pTable->sTableSize = sTableSize;
+    pTable->sCount = 0;
+    pTable->fnCompare = fnCompare;
+    pTable->fnHash = fnHash;
+    pTable->fnFree = fnFree;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pTable->ppEntries,
+                  sizeof(*pTable->ppEntries) * sTableSize,
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // Allocating the entire hash table of buckets saves a required
+    // exclusive lock on the entire hash table later when adding
+    // new entries
+
+    for (sIndex=0; sIndex < pTable->sTableSize; sIndex++)
+    {
+        ntError = PvfsAllocateMemory(
+                      (PVOID*)&pNewEntry,
+                      sizeof(*pNewEntry),
+                      FALSE);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pthread_rwlock_init(&pNewEntry->rwLock, NULL);
+        pNewEntry->pRwLock = &pNewEntry->rwLock;
+
+        ntError = LwRtlRBTreeCreate(
+                      (PFN_LWRTL_RB_TREE_COMPARE)pTable->fnCompare,
+                      NULL,
+                      NULL,
+                      &pNewEntry->pTree);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pTable->ppEntries[sIndex] = pNewEntry;
+        pNewEntry = NULL;
+    }
+
+    *ppTable = pTable;
+
+cleanup:
+    return ntError;
+
+error:
+    PvfsHashTableDestroy(&pTable);
+
+    goto cleanup;
+}
+
+/****************************************************************************
+ ***************************************************************************/
+
+static
+VOID
+PvfsHashTableDestroy(
+    PPVFS_HASH_TABLE *ppTable
+    )
+{
+    DWORD dwIndex = 0;
+    PPVFS_HASH_TABLE pTable = NULL;
+
+    if (ppTable && *ppTable)
+    {
+        pTable = *ppTable;
+
+        for (dwIndex=0; dwIndex < pTable->sTableSize; dwIndex++)
+        {
+            if (pTable->ppEntries[dwIndex] == NULL)
+            {
+                continue;
+            }
+
+            pTable->fnFree(&pTable->ppEntries[dwIndex]);
+        }
+
+        PVFS_FREE(&pTable->ppEntries);
+        PVFS_FREE(&pTable);
+
+        *ppTable = NULL;
+    }
+
+    return;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+size_t
+PvfsFcbTableHashKey(
+    PCVOID pszPath
+    )
+{
+    size_t KeyResult = 0;
+    PCSTR pszPathname = (PCSTR)pszPath;
+    PCSTR pszChar = NULL;
+
+    for (pszChar=pszPathname; pszChar && *pszChar; pszChar++)
+    {
+        KeyResult = (PVFS_HASH_STRKEY_MULTIPLIER * KeyResult) + (size_t)*pszChar;
+    }
+
+    return KeyResult;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+int
+PvfsFcbTableFilenameCompare(
+    PCVOID a,
+    PCVOID b
+    )
+{
+    int iReturn = 0;
+
+    PSTR pszFilename1 = (PSTR)a;
+    PSTR pszFilename2 = (PSTR)b;
+
+    iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
+
+    return iReturn;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsFcbTableFreeHashEntry(
+    PPVFS_FCB_TABLE_ENTRY *ppEntry
+    )
+{
+    BOOLEAN bLocked = FALSE;
+    PPVFS_FCB_TABLE_ENTRY pEntry = ppEntry ? *ppEntry : NULL;
+
+    if (pEntry)
+    {
+        if (pEntry->pRwLock)
+        {
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pEntry->rwLock);
+            if (pEntry->pTree)
+            {
+                LwRtlRBTreeFree(pEntry->pTree);
+            }
+            LWIO_UNLOCK_RWMUTEX(bLocked, &pEntry->rwLock);
+
+            pthread_rwlock_destroy(&pEntry->rwLock);
+        }
+
+
+        PVFS_FREE(&pEntry);
+
+        *ppEntry = NULL;
+    }
+
+    return;
 }
 
 

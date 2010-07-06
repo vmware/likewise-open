@@ -1001,6 +1001,8 @@ PvfsNotifyCleanIrpList(
         PvfsListRemoveItem(pFcb->pNotifyListIrp, pFilterLink);
         pFilterLink = NULL;
 
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
         pFilter->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pFilter->pIrpContext);
@@ -1010,14 +1012,14 @@ PvfsNotifyCleanIrpList(
         /* Can only be one IrpContext match so we are done */
     }
 
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
     if (!bFound)
     {
         pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pIrpCtx);
     }
-
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
     if (pFcb)
     {
