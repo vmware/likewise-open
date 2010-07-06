@@ -85,6 +85,7 @@ PvfsAllocateCCB(
     pCCB->pDirContext = NULL;
     pCCB->pUserToken = NULL;
     pCCB->EcpFlags = 0;
+    pCCB->ChangeEvent = 0;
 
     LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 
