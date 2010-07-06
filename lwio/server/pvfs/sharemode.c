@@ -65,7 +65,7 @@ PvfsCheckShareMode(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_FCB pFcb = NULL;
 
-    ntError = PvfsFindFCB(&pFcb, pszFilename);
+    ntError = PvfsFcbTableLookup(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS) {
 
         ntError = PvfsEnforceShareMode(

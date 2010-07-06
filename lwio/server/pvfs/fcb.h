@@ -49,6 +49,9 @@
 
 #include "pvfs.h"
 
+
+// From fcb.c
+
 NTSTATUS
 PvfsAllocateFCB(
     PPVFS_FCB *ppFcb
@@ -62,22 +65,6 @@ PvfsReferenceFCB(
 VOID
 PvfsReleaseFCB(
     PPVFS_FCB *ppFcb
-    );
-
-NTSTATUS
-PvfsInitializeFCBTable(
-    VOID
-    );
-
-NTSTATUS
-PvfsDestroyFCBTable(
-    VOID
-    );
-
-NTSTATUS
-PvfsFindFCB(
-    PPVFS_FCB *ppFcb,
-    PSTR pszFilename
     );
 
 NTSTATUS
@@ -198,6 +185,43 @@ PvfsSetLastWriteTimeFCB(
     PPVFS_FCB pFcb,
     LONG64 LastWriteTime
     );
+
+// From fcbtable.c
+
+NTSTATUS
+PvfsFcbTableInitialize(
+    VOID
+    );
+
+NTSTATUS
+PvfsFcbTableDestroy(
+    VOID
+    );
+
+NTSTATUS
+PvfsFcbTableLookup(
+    PPVFS_FCB *ppFcb,
+    PSTR pszFilename
+    );
+
+NTSTATUS
+PvfsFcbTableLookup_inlock(
+    PPVFS_FCB *ppFcb,
+    PCSTR pszFilename
+    );
+
+NTSTATUS
+PvfsFcbTableAdd(
+    PPVFS_FCB pFcb
+    );
+
+NTSTATUS
+PvfsFcbTableRemove(
+    PPVFS_FCB pFcb
+    );
+
+
+
 
 #endif   /* _PVFS_FCB_H */
 

@@ -46,80 +46,6 @@
 
 #include "pvfs.h"
 
-/*****************************************************************************
- ****************************************************************************/
-
-static
-int
-FcbTableFilenameCompare(
-    PVOID a,
-    PVOID b
-    );
-
-NTSTATUS
-PvfsInitializeFCBTable(
-    VOID
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    pthread_rwlock_init(&gFcbTable.rwLock, NULL);
-
-    ntError = LwRtlRBTreeCreate(&FcbTableFilenameCompare,
-                                NULL,
-                                NULL,
-                                &gFcbTable.pFcbTree);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-static int
-FcbTableFilenameCompare(
-    PVOID a,
-    PVOID b
-    )
-{
-    int iReturn = 0;
-
-    PSTR pszFilename1 = (PSTR)a;
-    PSTR pszFilename2 = (PSTR)b;
-
-    iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
-
-    return iReturn;
-}
-
-/*****************************************************************************
- ****************************************************************************/
-
-NTSTATUS
-PvfsDestroyFCBTable(
-    VOID
-    )
-{
-    BOOLEAN bLocked = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
-
-    /* Need a traversal to close all open CCBs first.  Then free the
-       RBTree */
-    LwRtlRBTreeFree(gFcbTable.pFcbTree);
-    gFcbTable.pFcbTree = NULL;
-
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
-
-    pthread_rwlock_destroy(&gFcbTable.rwLock);
-
-    PVFS_ZERO_MEMORY(&gFcbTable);
-
-    return STATUS_SUCCESS;
-}
-
 
 /*****************************************************************************
  ****************************************************************************/
@@ -284,30 +210,6 @@ error:
         PvfsFreeFCB(pFcb);
     }
 
-    goto cleanup;
-}
-
-/*******************************************************
- ******************************************************/
-
-static NTSTATUS
-PvfsRemoveFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    /* We must have the mutex locked exclusively coming
-       into this */
-
-    ntError = LwRtlRBTreeRemove(gFcbTable.pFcbTree,
-                               (PVOID)pFcb->pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
     goto cleanup;
 }
 
@@ -485,7 +387,7 @@ PvfsReleaseFCB(
 
                 if (!pFcb->bRemoved)
                 {
-                    PvfsRemoveFCB(pFcb);
+                    PvfsFcbTableRemove(pFcb);
                     pFcb->bRemoved = TRUE;
                 }
 
@@ -529,7 +431,7 @@ PvfsReleaseFCB(
         LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
         if (!pFcb->bRemoved)
         {
-            PvfsRemoveFCB(pFcb);
+            PvfsFcbTableRemove(pFcb);
             pFcb->bRemoved = TRUE;
         }
         LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
@@ -547,80 +449,6 @@ cleanup:
     return;
 }
 
-
-/*******************************************************
- ******************************************************/
-
-static NTSTATUS
-_PvfsFindFCB(
-    PPVFS_FCB *ppFcb,
-    PCSTR pszFilename
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_FCB pFcb = NULL;
-
-    ntError = LwRtlRBTreeFind(gFcbTable.pFcbTree,
-                              (PVOID)pszFilename,
-                              (PVOID*)&pFcb);
-    if (ntError == STATUS_NOT_FOUND) {
-        ntError = STATUS_OBJECT_NAME_NOT_FOUND;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    *ppFcb = PvfsReferenceFCB(pFcb);
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/*******************************************************
- ******************************************************/
-
-NTSTATUS
-PvfsFindFCB(
-    PPVFS_FCB *ppFcb,
-    PSTR pszFilename
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bLocked = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gFcbTable.rwLock);
-
-    ntError = _PvfsFindFCB(ppFcb, pszFilename);
-
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
-
-    return ntError;
-}
-
-
-/*******************************************************
- ******************************************************/
-
-static NTSTATUS
-PvfsAddFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    ntError = LwRtlRBTreeAdd(gFcbTable.pFcbTree,
-                             (PVOID)pFcb->pszFilename,
-                             (PVOID)pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
 
 /***********************************************************************
  **********************************************************************/
@@ -648,7 +476,7 @@ PvfsCreateFCB(
 
     /* Protect against adding a duplicate */
 
-    ntError = _PvfsFindFCB(&pFcb, pszFilename);
+    ntError = PvfsFcbTableLookup_inlock(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
@@ -683,7 +511,7 @@ PvfsCreateFCB(
 
     /* Add to the file handle table */
 
-    ntError = PvfsAddFCB(pFcb);
+    ntError = PvfsFcbTableAdd(pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Return a reference to the FCB */
@@ -730,7 +558,7 @@ PvfsFindParentFCB(
     ntError = PvfsFileDirname(&pszDirname, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = _PvfsFindFCB(&pFcb, pszDirname);
+    ntError = PvfsFcbTableLookup_inlock(&pFcb, pszDirname);
     if (ntError != STATUS_SUCCESS)
     {
         ntError = PvfsAllocateFCB(&pFcb);
@@ -746,7 +574,7 @@ PvfsFindParentFCB(
 
         /* Add to the file handle table */
 
-        ntError = PvfsAddFCB(pFcb);
+        ntError = PvfsFcbTableAdd(pFcb);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -1351,7 +1179,7 @@ PvfsRenameFCB(
            and let the existing ref counters play out (e.g. pending
            change notifies. */
 
-        ntError = _PvfsFindFCB(&pExistingTargetFcb, pszNewFilename);
+        ntError = PvfsFcbTableLookup_inlock(&pExistingTargetFcb, pszNewFilename);
         if (ntError == STATUS_SUCCESS)
         {
             /* Make sure we have a different FCB */
@@ -1361,7 +1189,7 @@ PvfsRenameFCB(
                 LWIO_LOCK_MUTEX(bExistingFcbLocked, &pExistingTargetFcb->ControlBlock);
                 if (!pExistingTargetFcb->bRemoved)
                 {
-                    PvfsRemoveFCB(pExistingTargetFcb);
+                    PvfsFcbTableRemove(pExistingTargetFcb);
                     pExistingTargetFcb->bRemoved = TRUE;
                 }
                 LWIO_UNLOCK_MUTEX(bExistingFcbLocked, &pExistingTargetFcb->ControlBlock);
@@ -1385,7 +1213,7 @@ PvfsRenameFCB(
                we could solve the "Create New File" issue.  */
 
             LWIO_LOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
-            ntError = PvfsRemoveFCB(pFcb);
+            ntError = PvfsFcbTableRemove(pFcb);
             if (ntError == STATUS_SUCCESS)
             {
                 pFcb->bRemoved = TRUE;
@@ -1410,7 +1238,7 @@ PvfsRenameFCB(
             }
 
             LWIO_LOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
-            ntError = PvfsAddFCB(pFcb);
+            ntError = PvfsFcbTableAdd(pFcb);
             if (ntError == STATUS_SUCCESS)
             {
                 pFcb->bRemoved = FALSE;
