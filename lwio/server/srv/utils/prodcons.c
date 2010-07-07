@@ -157,6 +157,49 @@ error:
 }
 
 NTSTATUS
+SrvProdConsEnqueueFront(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    PVOID                pItem
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    BOOLEAN  bSignalEvent = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
+
+    while (pQueue->ulNumItems == pQueue->ulNumMaxItems)
+    {
+        pthread_cond_wait(&pQueue->event, &pQueue->mutex);
+    }
+
+    ntStatus = SMBEnqueueFront(&pQueue->queue, pItem);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pQueue->ulNumItems)
+    {
+        bSignalEvent = TRUE;
+    }
+
+    pQueue->ulNumItems++;
+
+    if (bSignalEvent)
+    {
+        pthread_cond_broadcast(&pQueue->event);
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvProdConsDequeue(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID*               ppItem
