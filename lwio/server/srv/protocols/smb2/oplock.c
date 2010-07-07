@@ -957,14 +957,6 @@ SrvOplockAsyncCB_SMB_V2(
     PLWIO_SRV_TREE_2         pTree        = NULL;
     PLWIO_SRV_FILE_2         pFile        = NULL;
 
-    /* Nothing to do if this was cancelled */
-
-    if (pOplockState->ioStatusBlock.Status == STATUS_CANCELLED)
-    {
-        ntStatus = STATUS_SUCCESS;
-        goto cleanup;
-    }
-
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
     if (pOplockState->pAcb->AsyncCancelContext)
@@ -975,7 +967,13 @@ SrvOplockAsyncCB_SMB_V2(
 
     pOplockState->pAcb = NULL;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
+    /* Nothing to do if this was cancelled */
+
+    if (pOplockState->ioStatusBlock.Status == STATUS_CANCELLED)
+    {
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
 
     ntStatus = pOplockState->ioStatusBlock.Status;
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1004,7 +1002,7 @@ SrvOplockAsyncCB_SMB_V2(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(
+    ntStatus = SrvProdConsEnqueueFront(
                     gProtocolGlobals_SMB_V2.pWorkQueue,
                     pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1012,6 +1010,8 @@ SrvOplockAsyncCB_SMB_V2(
     pExecContext = NULL;
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
 
     if (pOplockState)
     {
