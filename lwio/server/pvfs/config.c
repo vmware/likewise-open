@@ -94,12 +94,6 @@ PvfsConfigRegistryInit(
 
     LwIoReadConfigBoolean(
         pReg,
-        "EnableFullAsync",
-        TRUE,
-        &pConfig->EnableFullAsync);
-
-    LwIoReadConfigBoolean(
-        pReg,
         "EnableDriverDebug",
         TRUE,
         &pConfig->EnableDriverDebug);
@@ -185,7 +179,6 @@ PvfsConfigDefaultInit(
     pConfig->CreateDirectoryMode = 0700;
 
     pConfig->EnableOplocks = TRUE;
-    pConfig->EnableFullAsync = FALSE;
     pConfig->EnableDriverDebug = FALSE;
     pConfig->ZctMode = PVFS_ZCT_MODE_DISABLED;
 

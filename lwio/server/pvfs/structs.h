@@ -531,7 +531,6 @@ typedef struct _PVFS_DRIVER_CONFIG
     DWORD     CreateDirectoryMode;
 
     BOOLEAN   EnableOplocks;
-    BOOLEAN   EnableFullAsync;
     BOOLEAN   EnableDriverDebug;
     PVFS_ZCT_MODE ZctMode;
 
