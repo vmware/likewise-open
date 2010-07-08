@@ -387,6 +387,18 @@ SrvProcessLockAndX(
                         &pLockRangeLarge);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Lock request: file-id(%u),locks(%u),unlocks(%u),lockType(0x%x),oplock-level(0x%x),timeout(%u)",
+                pRequestHeader->usFid,
+                pRequestHeader->usNumLocks,
+                pRequestHeader->usNumUnlocks,
+                pRequestHeader->ucLockType,
+                pRequestHeader->ucOplockLevel,
+                pRequestHeader->ulTimeout);
+
         ntStatus = SrvTreeFindFile_SMB_V1(
                         pCtxSmb1,
                         pTree,

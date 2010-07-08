@@ -57,6 +57,17 @@ SrvBuildCheckdirState(
     );
 
 static
+VOID
+SrvLogCheckDirState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildCheckDirectoryResponse(
     PSRV_EXEC_CONTEXT pExecContext
@@ -175,6 +186,13 @@ SrvProcessCheckDirectory(
     switch (pCheckdirState->stage)
     {
         case SRV_CHECKDIR_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogCheckDirState_SMB_V1,
+                    pCheckdirState);
 
             ntStatus = SrvBuildTreeRelativePath(
                             pCtxSmb1->pTree,
@@ -329,6 +347,62 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogCheckDirState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_CHECKDIR_STATE_SMB_V1 pCheckdirState = NULL;
+    PSTR pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pCheckdirState = va_arg(msgList, PSRV_CHECKDIR_STATE_SMB_V1);
+
+    if (pCheckdirState)
+    {
+        if (pCheckdirState->pwszPathFragment)
+        {
+            ntStatus = SrvWc16sToMbs(pCheckdirState->pwszPathFragment, &pszPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Check directory state: Path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Check directory state: Path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 

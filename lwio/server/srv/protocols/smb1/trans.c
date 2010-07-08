@@ -200,6 +200,13 @@ SrvProcessTransaction(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Trans Request Params: Function code(%u)",
+                *pSetup);
+
         ntStatus = SrvBuildTransState(
                         pRequestHeader,
                         pBytecount,

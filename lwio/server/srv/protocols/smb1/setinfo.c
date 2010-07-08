@@ -85,6 +85,17 @@ SrvReleaseSetInfoStateAsync(
     );
 
 static
+VOID
+SrvLogSetInfo_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildSetInformationResponse(
     PSRV_EXEC_CONTEXT pExecContext
@@ -168,6 +179,14 @@ SrvProcessSetInformation(
                         &pRequestHeader,
                         &pwszFilename);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_CALL_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                &SrvLogSetInfo_SMB_V1,
+                pRequestHeader,
+                pwszFilename);
 
         ntStatus = SrvBuildSetInfoState(
                         pRequestHeader,
@@ -482,6 +501,66 @@ SrvReleaseSetInfoStateAsync(
 
         pInfoState->pAcb = NULL;
     }
+}
+
+static
+VOID
+SrvLogSetInfo_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSET_INFO_REQUEST_HEADER pRequestHeader = NULL;
+    PWSTR pwszFilename = NULL;
+    PSTR  pszFilename  = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+    pRequestHeader = va_arg(msgList, PSET_INFO_REQUEST_HEADER);
+    pwszFilename   = va_arg(msgList, PWSTR);
+
+    if (pwszFilename)
+    {
+        ntStatus = SrvWc16sToMbs(pwszFilename, &pszFilename);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] SetInfo Parameters: last-write-date(%u),last-write-time(%u),file-attrs(0x%x),Filename(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pRequestHeader->lastWriteDate,
+                pRequestHeader->lastWriteTime,
+                pRequestHeader->usFileAttributes,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "SetInfo Parameters: last-write-date(%u),last-write-time(%u),file-attrs(0x%x),Filename(%s)",
+                pRequestHeader->lastWriteDate,
+                pRequestHeader->lastWriteTime,
+                pRequestHeader->usFileAttributes,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszFilename);
+
+    return;
 }
 
 static

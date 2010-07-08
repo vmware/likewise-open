@@ -166,6 +166,22 @@ SrvProcessSetInformation2(
                         &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Set Info2 Parameters: "
+                "file-id(%u),creation-date(%u),creation-time(%u),"
+                "last-access-date(%u),last-access-time(%u),"
+                "last-write-date(%u),last-write-time(%u)",
+                pRequestHeader->usFid,
+                pRequestHeader->creationDate,
+                pRequestHeader->creationTime,
+                pRequestHeader->lastAccessDate,
+                pRequestHeader->lastAccessTime,
+                pRequestHeader->lastWriteDate,
+                pRequestHeader->lastWriteTime);
+
         ntStatus = SrvTreeFindFile_SMB_V1(
                         pCtxSmb1,
                         pTree,

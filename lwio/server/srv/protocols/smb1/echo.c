@@ -31,6 +31,17 @@
 #include "includes.h"
 
 static
+VOID
+SrvLogEchoState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvMarshallEchoResponse(
     PSRV_EXEC_CONTEXT pExecContext,
@@ -61,6 +72,14 @@ SrvProcessEchoAndX(
                     &pEchoBlob);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_LOG_CALL_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_1,
+            pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+            &SrvLogEchoState_SMB_V1,
+            pEchoHeader,
+            pEchoBlob);
+
     if (!pEchoHeader->echoCount)
     {
         // If echo count is zero, no response is sent
@@ -81,6 +100,76 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogEchoState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PECHO_REQUEST_HEADER pEchoHeader = NULL; // Do not Free
+    PBYTE                pEchoBlob   = NULL; // Do Not Free
+    PSTR  pszHexString = NULL;
+    ULONG ulLen = 0;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pEchoHeader = va_arg(msgList, PECHO_REQUEST_HEADER);
+    pEchoBlob   = va_arg(msgList, PBYTE);
+
+    if (pEchoHeader)
+    {
+        if (pEchoHeader->byteCount)
+        {
+            ntStatus = SrvGetHexDump(
+                            pEchoBlob,
+                            pEchoHeader->byteCount,
+                            SrvLogContextGetMaxLogLength(pLogContext),
+                            &pszHexString,
+                            &ulLen);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Delete directory state: EchoCount(%u),EchoBlob[%u/%u bytes](%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pEchoHeader->echoCount,
+                    ulLen,
+                    pEchoHeader->byteCount,
+                    LWIO_SAFE_LOG_STRING(pszHexString));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Delete directory state: EchoCount(%u),EchoBlob[%u/%u bytes](%s)",
+                    pEchoHeader->echoCount,
+                    ulLen,
+                    pEchoHeader->byteCount,
+                    LWIO_SAFE_LOG_STRING(pszHexString));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszHexString);
+
+    return;
 }
 
 static

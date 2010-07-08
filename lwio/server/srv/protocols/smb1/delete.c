@@ -43,6 +43,17 @@ SrvDeleteSingleFile(
     );
 
 static
+VOID
+SrvLogDeleteState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildDeleteResponse(
     PSRV_EXEC_CONTEXT pExecContext
@@ -157,6 +168,13 @@ SrvProcessDelete(
     switch (pDeleteState->stage)
     {
         case SRV_DELETE_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogDeleteState_SMB_V1,
+                    pDeleteState);
 
             ntStatus = SrvConnectionFindSession_SMB_V1(
                             pCtxSmb1,
@@ -595,6 +613,66 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogDeleteState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_DELETE_STATE_SMB_V1 pDeleteState = NULL;
+    PSTR pszSearchPattern = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pDeleteState = va_arg(msgList, PSRV_DELETE_STATE_SMB_V1);
+
+    if (pDeleteState)
+    {
+        if (pDeleteState->pwszSearchPattern)
+        {
+            ntStatus = SrvWc16sToMbs(pDeleteState->pwszSearchPattern, &pszSearchPattern);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Delete directory state: SearchAttrs(0x%x),UseLongFilenames(%s),SearchPattern(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pDeleteState->pRequestHeader->usSearchAttributes,
+                    pDeleteState->bUseLongFilenames ? "TRUE" : "FALSE",
+                    LWIO_SAFE_LOG_STRING(pszSearchPattern));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Delete directory state: SearchAttrs(0x%x),UseLongFilenames(%s),SearchPattern(%s)",
+                    pDeleteState->pRequestHeader->usSearchAttributes,
+                    pDeleteState->bUseLongFilenames ? "TRUE" : "FALSE",
+                    LWIO_SAFE_LOG_STRING(pszSearchPattern));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszSearchPattern);
+
+    return;
 }
 
 static

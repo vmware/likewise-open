@@ -61,6 +61,17 @@ SrvExecuteCreateAsyncCB(
     );
 
 static
+VOID
+SrvLogCreateState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildCreateState(
     PSRV_EXEC_CONTEXT         pExecContext,
@@ -178,6 +189,13 @@ SrvProcessNTCreateAndX(
     switch (pCreateState->stage)
     {
         case SRV_CREATE_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogCreateState_SMB_V1,
+                    pCreateState);
 
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_CREATE_FILE_COMPLETED;
 
@@ -750,6 +768,84 @@ SrvExecuteCreateAsyncCB(
 
         SrvReleaseExecContext(pExecContext);
     }
+}
+
+static
+VOID
+SrvLogCreateState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_CREATE_STATE_SMB_V1 pCreateState = NULL;
+    PSTR pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pCreateState = va_arg(msgList, PSRV_CREATE_STATE_SMB_V1);
+
+    if (pCreateState)
+    {
+        if (pCreateState->pFilename->FileName)
+        {
+            ntStatus = SrvWc16sToMbs(pCreateState->pFilename->FileName, &pszPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] CreateAndX state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "security-flags(0x%x),root-dir-fid(%u),path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pCreateState->pRequestHeader->allocationSize,
+                    pCreateState->pRequestHeader->createDisposition,
+                    pCreateState->pRequestHeader->desiredAccess,
+                    pCreateState->pRequestHeader->createOptions,
+                    pCreateState->pRequestHeader->shareAccess,
+                    pCreateState->pRequestHeader->flags,
+                    pCreateState->pRequestHeader->securityFlags,
+                    pCreateState->pRequestHeader->rootDirectoryFid,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "CreateAndX state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "security-flags(0x%x),root-dir-fid(%u),path(%s)",
+                    pCreateState->pRequestHeader->allocationSize,
+                    pCreateState->pRequestHeader->createDisposition,
+                    pCreateState->pRequestHeader->desiredAccess,
+                    pCreateState->pRequestHeader->createOptions,
+                    pCreateState->pRequestHeader->shareAccess,
+                    pCreateState->pRequestHeader->flags,
+                    pCreateState->pRequestHeader->securityFlags,
+                    pCreateState->pRequestHeader->rootDirectoryFid,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

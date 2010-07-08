@@ -158,6 +158,14 @@ SrvProcessCloseAndX(
     {
         case SRV_CLOSE_STAGE_SMB_V1_INITIAL:
 
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    "Close State: File id (%u), LastWriteTime(%u)",
+                    pCloseState->pRequestHeader->fid,
+                    pCloseState->pRequestHeader->ulLastWriteTime);
+
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_SET_INFO_COMPLETED;
 
             switch (pCloseState->pRequestHeader->ulLastWriteTime)

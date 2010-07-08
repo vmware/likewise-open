@@ -45,6 +45,17 @@ SrvSetFileInformation_inlock(
     );
 
 static
+VOID
+SrvLogDelDirState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildDeleteDirectoryResponse(
     PSRV_EXEC_CONTEXT pExecContext
@@ -163,6 +174,13 @@ SrvProcessDeleteDirectory(
     switch (pDeletedirState->stage)
     {
         case SRV_DELETEDIR_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogDelDirState_SMB_V1,
+                    pDeletedirState);
 
             ntStatus = SrvBuildTreeRelativePath(
                             pCtxSmb1->pTree,
@@ -355,6 +373,62 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogDelDirState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_DELETEDIR_STATE_SMB_V1 pDeldirState = NULL;
+    PSTR pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pDeldirState = va_arg(msgList, PSRV_DELETEDIR_STATE_SMB_V1);
+
+    if (pDeldirState)
+    {
+        if (pDeldirState->pwszPathFragment)
+        {
+            ntStatus = SrvWc16sToMbs(pDeldirState->pwszPathFragment, &pszPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Delete directory state: Path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Delete directory state: Path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

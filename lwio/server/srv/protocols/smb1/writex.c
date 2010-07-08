@@ -156,6 +156,17 @@ SrvProcessWriteAndX(
                                 &pData);
                 BAIL_ON_NT_STATUS(ntStatus);
 
+                SRV_LOG_DEBUG(
+                        pExecContext->pLogContext,
+                        SMB_PROTOCOL_VERSION_1,
+                        pSmbRequest->pHeader->command,
+                        "WriteAndX(WC12) request params: file-id(%u),"
+                        "data-length-high(%u),data-length(%u),offset(%u)",
+                        pRequestHeader_WC_12->fid,
+                        pRequestHeader_WC_12->dataLengthHigh,
+                        pRequestHeader_WC_12->dataLength,
+                        pRequestHeader_WC_12->offset);
+
                 ntStatus = SrvTreeFindFile_SMB_V1(
                                 pCtxSmb1,
                                 pTree,
@@ -174,6 +185,19 @@ SrvProcessWriteAndX(
                                 &pRequestHeader_WC_14,
                                 &pData);
                 BAIL_ON_NT_STATUS(ntStatus);
+
+                SRV_LOG_DEBUG(
+                        pExecContext->pLogContext,
+                        SMB_PROTOCOL_VERSION_1,
+                        pSmbRequest->pHeader->command,
+                        "WriteAndX(WC14) request params: file-id(%u),"
+                        "data-length-high(%u),data-length(%u),"
+                        "offset-high(%u),offset(%u)",
+                        pRequestHeader_WC_14->fid,
+                        pRequestHeader_WC_14->dataLengthHigh,
+                        pRequestHeader_WC_14->dataLength,
+                        pRequestHeader_WC_14->offsetHigh,
+                        pRequestHeader_WC_14->offset);
 
                 ntStatus = SrvTreeFindFile_SMB_V1(
                                 pCtxSmb1,
