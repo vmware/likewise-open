@@ -164,19 +164,10 @@ PvfsFcbTableAdd_inlock(
     PPVFS_FCB pFcb
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-
-    ntError = LwRtlRBTreeAdd(
-                  pBucket->pTree,
-                  (PVOID)pFcb->pszFilename,
-                  (PVOID)pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
+    return LwRtlRBTreeAdd(
+               pBucket->pTree,
+               (PVOID)pFcb->pszFilename,
+               (PVOID)pFcb);
 }
 
 
@@ -189,18 +180,7 @@ PvfsFcbTableRemove_inlock(
     PPVFS_FCB pFcb
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-
-    ntError = LwRtlRBTreeRemove(
-                  pBucket->pTree,
-                  (PVOID)pFcb->pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
+   return LwRtlRBTreeRemove(pBucket->pTree, (PVOID)pFcb->pszFilename);
 }
 
 /***********************************************************************
