@@ -810,6 +810,8 @@ cleanup:
     return ntError;
 
 error:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
     if (pPendingOp)
     {
         PvfsFreePendingOp(&pPendingOp);
