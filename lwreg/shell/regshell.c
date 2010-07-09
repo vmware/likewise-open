@@ -2114,6 +2114,11 @@ int main(int argc, char *argv[])
     dwError = RegShellInitParseState(&parseState);
     BAIL_ON_REG_ERROR(dwError);
 
+    if (geteuid() != 0) {
+        fprintf(stderr, "This program requires super-user privileges.\n");
+        dwError = ERROR_ACCESS_DENIED;
+        BAIL_ON_REG_ERROR(dwError);
+    }
 
     memset(&action, 0, sizeof(action));
     action.sa_handler = pfnRegShellSignal;
