@@ -90,8 +90,17 @@ SrvProcessTreeDisconnect_SMB_V2(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Disconnecting tree (Id:%u)",
-            pSmbRequest->pHeader->ulTid);
+            "Disconnecting tree: "
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u)",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset);
 
     ntStatus = SrvSession2FindTree_SMB_V2(
                     pCtxSmb2,

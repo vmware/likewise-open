@@ -84,7 +84,17 @@ SrvProcessNegotiate_SMB_V2(
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
             "Negotiate request params: "
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),"
             "capabilities(0x%x),dialect-count(%u),security-mode(%u)",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset,
             pNegotiateRequestHeader->ulCapabilities,
             pNegotiateRequestHeader->usDialectCount,
             pNegotiateRequestHeader->usSecurityMode);
@@ -105,7 +115,17 @@ SrvProcessNegotiate_SMB_V2(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_2,
                     pSmbRequest->pHeader->command,
-                    "Negotiate dialect selected (0x%x)",
+                    "Negotiate dialect selected: ",
+                    "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                    "credits(%u),flags(0x%x),chain-offset(%u),dialect(0x%x)",
+                    pSmbRequest->pHeader->command,
+                    (long long)pSmbRequest->pHeader->ullSessionId,
+                    (long long)pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->usCredits,
+                    pSmbRequest->pHeader->ulFlags,
+                    pSmbRequest->pHeader->ulChainOffset,
                     usDialect);
 
             break;

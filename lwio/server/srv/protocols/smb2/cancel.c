@@ -67,9 +67,17 @@ SrvProcessCancel_SMB_V2(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Cancel request: flags(0x%x),command-seq(%llu)",
+            "Cancel request: "
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
             pSmbRequest->pHeader->ulFlags,
-            (long long) pSmbRequest->pHeader->ullCommandSequence);
+            pSmbRequest->pHeader->ulChainOffset);
 
     if (!(pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_ASYNC_COMMAND) ||
          (pSmbRequest->pHeader->ullCommandSequence != 0))
@@ -85,7 +93,17 @@ SrvProcessCancel_SMB_V2(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Cancel request: async-id(%llu)",
+            "Cancel request: "
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),async-id(%llu)",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset,
             (long long) ullAsyncId);
 
     ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
@@ -95,7 +113,17 @@ SrvProcessCancel_SMB_V2(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Cancel request params: command(%u:%s)",
+            "Cancel request: "
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),cancel-command(%u:%s)",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset,
             pAsyncState->usCommand,
             LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V2(pAsyncState->usCommand)));
 
