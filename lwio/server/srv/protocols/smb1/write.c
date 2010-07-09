@@ -177,7 +177,14 @@ SrvProcessWrite(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "Write request params: file-id(%u),data-length(%u),offset(%u)",
+                "Write request params: "
+                "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                "file-id(%u),data-length(%u),offset(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pRequestHeader->fid,
                 pRequestHeader->dataLength,
                 pRequestHeader->offset);

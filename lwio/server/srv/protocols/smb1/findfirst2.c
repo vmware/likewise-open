@@ -417,7 +417,13 @@ SrvBuildFindFirst2Response(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_1,
             pSmbRequest->pHeader->command,
-            "Created search space (id:%u)",
+            "Created search space: command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+            "search-id(%u)",
+            pSmbRequest->pHeader->command,
+            pSmbRequest->pHeader->uid,
+            pSmbRequest->pHeader->mid,
+            SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+            pSmbRequest->pHeader->tid,
             usSearchId);
 
     if (!pSmbResponse->ulSerialNum)

@@ -118,7 +118,13 @@ SrvProcessSessionSetup(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "Using existing session (Id:%u)",
+                "Using existing session: "
+                "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),session-id(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pSessionExisting->uid);
     }
     else
@@ -130,7 +136,13 @@ SrvProcessSessionSetup(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "Created session (Id:%u)",
+                "Created session : "
+                "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),session-id(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pCtxSmb1->pSession->uid);
     }
 
@@ -196,7 +208,14 @@ SrvProcessSessionSetup(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pSmbRequest->pHeader->command,
-                    "Session (Id:%u) is logged in as guest",
+                    "Session info: "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "session-id(%u) logged in as guest",
+                    pSmbRequest->pHeader->command,
+                    pSmbRequest->pHeader->uid,
+                    pSmbRequest->pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pSmbRequest->pHeader->tid,
                     pCtxSmb1->pSession->uid);
         }
 
@@ -219,7 +238,14 @@ SrvProcessSessionSetup(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pSmbRequest->pHeader->command,
-                    "Session (Id:%u) setup for principal (%s)",
+                    "Session info: "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "session-id(%u),user-principal(%s)",
+                    pSmbRequest->pHeader->command,
+                    pSmbRequest->pHeader->uid,
+                    pSmbRequest->pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pSmbRequest->pHeader->tid,
                     pCtxSmb1->pSession->uid,
                     pszClientPrincipalName);
         }

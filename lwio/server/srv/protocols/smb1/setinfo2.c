@@ -171,9 +171,15 @@ SrvProcessSetInformation2(
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
                 "Set Info2 Parameters: "
+                "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
                 "file-id(%u),creation-date(%u),creation-time(%u),"
                 "last-access-date(%u),last-access-time(%u),"
                 "last-write-date(%u),last-write-time(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pRequestHeader->usFid,
                 pRequestHeader->creationDate,
                 pRequestHeader->creationTime,
