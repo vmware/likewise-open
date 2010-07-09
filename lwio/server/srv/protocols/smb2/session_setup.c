@@ -145,14 +145,33 @@ SrvProcessSessionSetup_SMB_V2(
     if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
                                    pConnection->hGssNegotiate))
     {
+        SRV_LOG_VERBOSE(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "session setup GSS negotiate not yet complete");
+
         pSmbResponse->pHeader->error = STATUS_MORE_PROCESSING_REQUIRED;
     }
     else
     {
+        SRV_LOG_VERBOSE(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "session setup GSS negotiate complete");
+
         ntStatus = SrvConnection2CreateSession(
                         pConnection,
                         &pCtxSmb2->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_VERBOSE(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Created session (Id:%llu)",
+                (long long)pCtxSmb2->pSession->ullUid);
 
         ntStatus = SrvSetStatSession2Info(pExecContext, pCtxSmb2->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -199,6 +218,13 @@ SrvProcessSessionSetup_SMB_V2(
                 pConnection->pSessionKey = NULL;
                 pConnection->ulSessionKeyLength = 0;
             }
+
+            SRV_LOG_VERBOSE(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_2,
+                    pSmbRequest->pHeader->command,
+                    "Session (Id:%llu) is logged in as guest",
+                    (long long)pCtxSmb2->pSession->ullUid);
         }
 
         // Go ahead and close out this GSS negotiate state so we can
@@ -211,6 +237,14 @@ SrvProcessSessionSetup_SMB_V2(
 
         if (pszClientPrincipalName)
         {
+            SRV_LOG_VERBOSE(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_2,
+                    pSmbRequest->pHeader->command,
+                    "Session (Id:%llu) setup for principal (%s)",
+                    (long long)pCtxSmb2->pSession->ullUid,
+                    pszClientPrincipalName);
+
             ntStatus = SrvSession2SetPrincipalName(
                                 pCtxSmb2->pSession,
                                 pszClientPrincipalName);

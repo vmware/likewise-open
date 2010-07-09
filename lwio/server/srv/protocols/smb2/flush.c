@@ -149,6 +149,14 @@ SrvProcessFlush_SMB_V2(
         ntStatus = SMB2UnmarshalFlushRequest(pSmbRequest, &pFid);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Flush request params: file-id(persistent:0x%x,volatile:0x%x)",
+                (long long)pFid->ullPersistentId,
+                (long long)pFid->ullVolatileId);
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,

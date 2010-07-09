@@ -141,6 +141,24 @@ SrvProcessGetInfo_SMB_V2(
         ntStatus = SMB2UnmarshalGetInfoRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Get Info request params: file-id(persistent:0x%x,volatile:0x%x),"
+                "info-class(0x%x),info-type(0x%x),flags(0x%x),"
+                "input-buffer-length(%u),input-buffer-offset(%u),"
+                "output-buffer-length(%u),additional-info(%u)",
+                (long long)pRequestHeader->fid.ullPersistentId,
+                (long long)pRequestHeader->fid.ullVolatileId,
+                pRequestHeader->ucInfoClass,
+                pRequestHeader->ucInfoType,
+                pRequestHeader->ulFlags,
+                pRequestHeader->ulInputBufferLen,
+                pRequestHeader->usInputBufferOffset,
+                pRequestHeader->ulOutputBufferLen,
+                pRequestHeader->ulAdditionalInfo);
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,

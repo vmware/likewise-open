@@ -70,6 +70,13 @@ SrvProcessLogoff_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PLWIO_SRV_SESSION_2        pSession      = NULL;
 
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Logoff request params: session (Id:%llu)",
+            (long long)pSmbRequest->pHeader->ullSessionId);
+
     ntStatus = SrvConnection2FindSession_SMB_V2(
                     pCtxSmb2,
                     pConnection,

@@ -79,6 +79,16 @@ SrvProcessNegotiate_SMB_V2(
                         &pusDialects);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Negotiate request params: "
+            "capabilities(0x%x),dialect-count(%u),security-mode(%u)",
+            pNegotiateRequestHeader->ulCapabilities,
+            pNegotiateRequestHeader->usDialectCount,
+            pNegotiateRequestHeader->usSecurityMode);
+
     if (!pNegotiateRequestHeader->usDialectCount)
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
@@ -91,6 +101,13 @@ SrvProcessNegotiate_SMB_V2(
 
         if (usDialect == 0x0202)
         {
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_2,
+                    pSmbRequest->pHeader->command,
+                    "Negotiate dialect selected (0x%x)",
+                    usDialect);
+
             break;
         }
     }

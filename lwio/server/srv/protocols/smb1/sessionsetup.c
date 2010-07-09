@@ -214,6 +214,14 @@ SrvProcessSessionSetup(
                             pCtxSmb1->pSession,
                             pszClientPrincipalName);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            SRV_LOG_VERBOSE(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pSmbRequest->pHeader->command,
+                    "Session (Id:%u) setup for principal (%s)",
+                    pCtxSmb1->pSession->uid,
+                    pszClientPrincipalName);
         }
 
         if (pConnection->pOEMConnection)

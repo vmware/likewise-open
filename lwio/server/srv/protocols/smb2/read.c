@@ -183,6 +183,22 @@ SrvProcessRead_SMB_V2(
         ntStatus = SMB2UnmarshalReadRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Read request params: file-id(persistent:0x%x,volatile:0x%x),"
+            "channel(%u),channel-info-length(%u),channel-info-offset(%u),"
+            "minimum-count(%u),data-length(%u),data-offset(%llu)",
+            (long long)pRequestHeader->fid.ullPersistentId,
+            (long long)pRequestHeader->fid.ullVolatileId,
+            pRequestHeader->ulChannel,
+            pRequestHeader->usReadChannelInfoLength,
+            pRequestHeader->usReadChannelInfoOffset,
+            pRequestHeader->ulMinimumCount,
+            pRequestHeader->ulDataLength,
+            (long long)pRequestHeader->ullFileOffset);
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,

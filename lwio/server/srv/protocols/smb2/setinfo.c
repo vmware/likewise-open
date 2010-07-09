@@ -240,6 +240,17 @@ SrvProcessSetInfo_SMB_V2(
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Set Info request params: file-id(persistent:0x%x,volatile:0x%x),"
+                "info-class(0x%x),info-type(0x%x)",
+                (long long)pRequestHeader->fid.ullPersistentId,
+                (long long)pRequestHeader->fid.ullVolatileId,
+                pRequestHeader->ucInfoClass,
+                pRequestHeader->ucInfoType);
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,

@@ -182,6 +182,22 @@ SrvProcessWrite_SMB_V2(
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Write request params: file-id(persistent:0x%x,volatile:0x%x),"
+                "channel(%u),channel-info-length(%u),channel-info-offset(%u),"
+                "flags(0x%x),data-length(%u),data-offset(%llu)",
+                pRequestHeader->fid.ullPersistentId,
+                pRequestHeader->fid.ullVolatileId,
+                pRequestHeader->ulChannel,
+                pRequestHeader->usWriteChannelInfoLength,
+                pRequestHeader->usWriteChannelInfoOffset,
+                pRequestHeader->ulFlags,
+                pRequestHeader->ulDataLength,
+                (long long)pRequestHeader->ullFileOffset);
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,

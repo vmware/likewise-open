@@ -152,6 +152,19 @@ SrvProcessNotify_SMB_V2(
         ntStatus = SMB2UnmarshalNotifyRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Change notify request params: "
+                "file-id(persistent:0x%x,volatile:0x%x),"
+                "flags(0x%x),completion-filter(%u),output-buffer-length(%u)",
+                (long long)pRequestHeader->fid.ullPersistentId,
+                (long long)pRequestHeader->fid.ullVolatileId,
+                pRequestHeader->usFlags,
+                pRequestHeader->ulCompletionFilter,
+                pRequestHeader->ulOutputBufferLength);
+
         ntStatus = SrvBuildNotifyRequestState_SMB_V2(
                         pRequestHeader,
                         &pNotifyRequestState);

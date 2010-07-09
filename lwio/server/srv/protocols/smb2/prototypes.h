@@ -190,6 +190,11 @@ SrvBuildExecContext_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2* ppSmb2Context
     );
 
+PCSTR
+SrvGetCommandDescription_SMB_V2(
+    ULONG ulCommand
+    );
+
 // logging.c
 
 VOID
