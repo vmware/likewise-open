@@ -60,9 +60,10 @@ typedef struct _SRV_LOG_FILTER
     struct sockaddr    clientAddress;
     SOCKLEN_T          ulClientAddressLength;
 
-    LWIO_LOG_LEVEL     defaultLogLevel;
-
+    LWIO_LOG_LEVEL     defaultLogLevel_smb1;
     PSRV_LOG_FILTER_OP pFilterList_smb1;
+
+    LWIO_LOG_LEVEL     defaultLogLevel_smb2;
     PSRV_LOG_FILTER_OP pFilterList_smb2;
 
     struct _SRV_LOG_FILTER* pNext;
