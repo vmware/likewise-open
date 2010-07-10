@@ -376,6 +376,18 @@ SrvInitialize(
                     &gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
+
+    if (gSMBSrvGlobals.config.ulMonitorIntervalMinutes)
+    {
+        ntStatus = SrvMonitorCreate(
+                    gSMBSrvGlobals.config.ulMonitorIntervalMinutes,
+                    &gSMBSrvGlobals.pMonitor);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvMonitorStart(gSMBSrvGlobals.pMonitor);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvAllocateMemory(
                     gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER),
                     (PVOID*)&gSMBSrvGlobals.pWorkerArray);
@@ -903,6 +915,15 @@ SrvShutdown(
         }
 
         SrvProtocolShutdown();
+
+        if (gSMBSrvGlobals.pMonitor)
+        {
+            SrvMonitorIndicateStop(gSMBSrvGlobals.pMonitor);
+
+            SrvMonitorFree(gSMBSrvGlobals.pMonitor);
+
+            gSMBSrvGlobals.pMonitor = NULL;
+        }
 
         SrvStatisticsShutdown();
 

@@ -18,6 +18,7 @@ libsrv_sys_la_SOURCES = \
     driver.c       \
     files.c        \
     globals.c      \
+    monitor.c      \
     sessions.c     \
     srvshares.c    \
     srvstats.c     \
