@@ -183,7 +183,10 @@ SrvElementsResetStats(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvElements.statsLock);
 
-    memset(&gSrvElements.stats, 0, sizeof(gSrvElements.stats));
+    gSrvElements.stats.llMaxNumConnections = gSrvElements.stats.llNumConnections;
+    gSrvElements.stats.llMaxNumSessions    = gSrvElements.stats.llNumSessions;
+    gSrvElements.stats.llMaxNumTreeConnects = gSrvElements.stats.llNumTreeConnects;
+    gSrvElements.stats.llMaxNumOpenFiles   = gSrvElements.stats.llNumOpenFiles;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
 
