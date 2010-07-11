@@ -388,7 +388,6 @@ typedef enum
 
 struct _PVFS_IRP_CONTEXT
 {
-    pthread_mutex_t Mutex;
     LONG RefCount;
 
     USHORT Flags;

@@ -74,8 +74,6 @@ PvfsFreeIrpContext(
             PvfsReleaseFCB(&pIrpCtx->pFcb);
         }
 
-        pthread_mutex_destroy(&pIrpCtx->Mutex);
-
         PVFS_FREE(ppIrpContext);
 
         InterlockedDecrement(&gPvfsIrpContextCount);
@@ -103,7 +101,6 @@ PvfsAllocateIrpContext(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pthread_mutex_init(&pIrpContext->Mutex, NULL);
     pIrpContext->RefCount = 1;
 
     pIrpContext->Flags = PVFS_IRP_CTX_FLAG_NONE;
@@ -136,9 +133,9 @@ PvfsIrpContextCheckFlag(
     BOOLEAN bLocked = FALSE;
     BOOLEAN bIsSet = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
     bIsSet = IsSetFlag(pIrpContext->Flags, BitToCheck);
-    LWIO_UNLOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
 
     return bIsSet;
 }
@@ -154,9 +151,9 @@ PvfsIrpContextSetFlag(
 {
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
     SetFlag(pIrpContext->Flags, BitToSet);
-    LWIO_UNLOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
 
     return;
 }
@@ -173,9 +170,9 @@ PvfsIrpContextClearFlag(
 {
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
     ClearFlag(pIrpContext->Flags, BitToClear);
-    LWIO_UNLOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
 
     return;
 }
@@ -238,7 +235,7 @@ PvfsIrpContextConditionalSetFlag(
     BOOLEAN bLocked = FALSE;
     USHORT FlagWasSet = 0;
 
-    LWIO_LOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
     if (IsSetFlag(pIrpContext->Flags, BitToCheck))
     {
         SetFlag(pIrpContext->Flags, BitToSetOnTrue);
@@ -249,7 +246,7 @@ PvfsIrpContextConditionalSetFlag(
         SetFlag(pIrpContext->Flags, BitToSetOnFalse);
         FlagWasSet = BitToSetOnFalse;
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &pIrpContext->Mutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
 
     return FlagWasSet;
 }
