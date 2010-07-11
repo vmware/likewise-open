@@ -718,7 +718,6 @@ PvfsOplockBreakAllLevel2Oplocks(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
-    BOOLEAN bFcbLocked = FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
     PLW_LIST_LINKS pOplockLink = NULL;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
@@ -728,8 +727,6 @@ PvfsOplockBreakAllLevel2Oplocks(
     {
         goto cleanup;
     }
-
-    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
     while (!PvfsListIsEmpty(pFcb->pOplockList))
     {
@@ -772,8 +769,6 @@ PvfsOplockBreakAllLevel2Oplocks(
     }
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
-
     return ntError;
 
 error:
