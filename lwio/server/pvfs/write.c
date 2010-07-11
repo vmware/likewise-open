@@ -241,7 +241,7 @@ PvfsPrepareZctWrite(
                                      pIrp->Args.ReadWrite.Length);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     /* Save the ZCT context for complete */
     pIrp->Args.ReadWrite.ZctCompletionContext = pZctContext;
@@ -252,7 +252,7 @@ PvfsPrepareZctWrite(
                   &pZctContext->CcbLinks);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     ntError = STATUS_SUCCESS;
 
@@ -329,7 +329,7 @@ PvfsWriteFileWithContext(
        the buffer atomically while it may take several write()
        calls */
 
-    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     if (pIrp->Args.ReadWrite.ByteOffset) {
         Offset = *pIrp->Args.ReadWrite.ByteOffset;
@@ -380,7 +380,7 @@ PvfsWriteFileWithContext(
     }
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     return ntError;
 

@@ -260,19 +260,24 @@ struct _PVFS_FCB
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
     BOOLEAN bRemoved;
+
+    BOOLEAN bOplockBreakInProgress;
+    PPVFS_LIST pOplockList;
+    PPVFS_LIST pOplockPendingOpsQueue;
+    PPVFS_LIST pOplockReadyOpsQueue;
+
+    PPVFS_LIST pNotifyListIrp;
+    PPVFS_LIST pNotifyListBuffer;
     /* End ControlBlock */
 
-    /* rwParent */
-    pthread_rwlock_t rwParent;
+
+    /* rwLock */
+    pthread_rwlock_t rwLock;
 
     PPVFS_FCB pParentFcb;
-    /* End rwParent */
-
-    /* rwFileName */
-    pthread_rwlock_t rwFileName;
-
     PSTR pszFilename;
-    /* End rwFileName */
+    /* End rwLock */
+
 
     /* rwCcbLock */
     pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
@@ -286,24 +291,6 @@ struct _PVFS_FCB
                                        and the LastFailedLock entry */
     PPVFS_LIST pPendingLockQueue;
     /* End rwBrlLock */
-
-
-    /* mutexOplock */
-    pthread_mutex_t  mutexOplock;   /* Managing oplock lists */
-    BOOLEAN bOplockBreakInProgress;
-
-    PPVFS_LIST pOplockList;
-
-    PPVFS_LIST pOplockPendingOpsQueue;
-    PPVFS_LIST pOplockReadyOpsQueue;
-    /* End mutexOplock */
-
-    /* Change Notify */
-    pthread_mutex_t mutexNotify;
-
-    PPVFS_LIST pNotifyListIrp;
-    PPVFS_LIST pNotifyListBuffer;
-    /* Change Notify */
 };
 
 typedef struct _PVFS_FCB_TABLE
@@ -345,8 +332,7 @@ struct _PVFS_CCB
 {
     LW_LIST_LINKS FcbList;
 
-    pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
-    pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
+    pthread_mutex_t ControlBlock;
 
     LONG RefCount;
     BOOLEAN bPendingDeleteHandle;

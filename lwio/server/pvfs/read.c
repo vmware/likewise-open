@@ -233,7 +233,7 @@ PvfsReadFileWithContext(
        the buffer atomically while it may take several read()
        calls */
 
-    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     if (pIrp->Args.ReadWrite.ByteOffset) {
         Offset = *pIrp->Args.ReadWrite.ByteOffset;
@@ -305,7 +305,7 @@ PvfsReadFileWithContext(
     pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_LAST_ACCESS;
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
 
     return ntError;
 
