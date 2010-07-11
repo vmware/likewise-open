@@ -547,7 +547,6 @@ PvfsNotifyFullReport(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
     PPVFS_FCB pParentFcb = NULL;
-    BOOLEAN bLocked = FALSE;
     PPVFS_FCB pCursor = NULL;
     PPVFS_FCB pReportParentFcb = NULL;
 
@@ -563,8 +562,6 @@ PvfsNotifyFullReport(
     {
         PvfsReleaseFCB(&pCursor);
 
-        LWIO_LOCK_MUTEX(bLocked, &pParentFcb->ControlBlock);
-
         /* Process buffers before Irp so we don't doubly report
            a change on a pending Irp that has requested buffering a
            change log (which shouldn't start until the existing Irp
@@ -572,8 +569,6 @@ PvfsNotifyFullReport(
 
         PvfsNotifyFullReportBuffer(pParentFcb, pReportParentFcb, pReport);
         PvfsNotifyFullReportIrp(pParentFcb, pReportParentFcb, pReport);
-
-        LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->ControlBlock);
 
         pCursor = pParentFcb;
     }
@@ -618,6 +613,9 @@ PvfsNotifyFullReportBuffer(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pFilterLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListBuffer, NULL);
          pFilterLink;
@@ -640,6 +638,8 @@ PvfsNotifyFullReportBuffer(
             break;
         }
     }
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     return;
 }
@@ -669,6 +669,9 @@ PvfsNotifyFullReportIrp(
     PLW_LIST_LINKS pFilterLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     BOOLEAN bActive = FALSE;
+    BOOLEAN bLocked =  FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
          pFilterLink;
@@ -690,6 +693,8 @@ PvfsNotifyFullReportIrp(
 
         PvfsListRemoveItem(pFcb->pNotifyListIrp, pFilterLink);
 
+        LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
         PvfsQueueCancelIrpIfRequested(pFilter->pIrpContext);
 
         bActive = PvfsIrpContextMarkIfNotSetFlag(
@@ -699,7 +704,6 @@ PvfsNotifyFullReportIrp(
 
         if (!bActive)
         {
-            PvfsFreeNotifyRecord(&pFilter);
             continue;
         }
 
@@ -714,7 +718,10 @@ PvfsNotifyFullReportIrp(
 
         if (pFilter->Buffer.Length > 0)
         {
+            LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
             ntError = PvfsListAddTail(pFcb->pNotifyListBuffer, pFilterLink);
+            LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
             BAIL_ON_NT_STATUS(ntError);
 
             pFilter = NULL;
@@ -725,6 +732,7 @@ PvfsNotifyFullReportIrp(
     }
 
 cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     if (pFilter)
     {
