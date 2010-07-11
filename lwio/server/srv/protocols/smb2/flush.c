@@ -153,7 +153,18 @@ SrvProcessFlush_SMB_V2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_2,
                 pSmbRequest->pHeader->command,
-                "Flush request params: file-id(persistent:0x%x,volatile:0x%x)",
+                "Flush request params: "
+                "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                "credits(%u),flags(0x%x),chain-offset(%u),"
+                "file-id(persistent:0x%x,volatile:0x%x)",
+                pSmbRequest->pHeader->command,
+                (long long)pSmbRequest->pHeader->ullSessionId,
+                (long long)pSmbRequest->pHeader->ullCommandSequence,
+                pSmbRequest->pHeader->ulPid,
+                pSmbRequest->pHeader->ulTid,
+                pSmbRequest->pHeader->usCredits,
+                pSmbRequest->pHeader->ulFlags,
+                pSmbRequest->pHeader->ulChainOffset,
                 (long long)pFid->ullPersistentId,
                 (long long)pFid->ullVolatileId);
 

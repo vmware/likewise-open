@@ -200,8 +200,19 @@ SrvProcessLock_SMB_V2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_2,
                 pSmbRequest->pHeader->command,
-                "Lock request params: file-id(persistent:0x%x,volatile:0x%x),"
+                "Lock request params: "
+                "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                "credits(%u),flags(0x%x),chain-offset(%u),"
+                "file-id(persistent:0x%x,volatile:0x%x),"
                 "lock-sequence(%u),lock-count(%u)",
+                pSmbRequest->pHeader->command,
+                (long long)pSmbRequest->pHeader->ullSessionId,
+                (long long)pSmbRequest->pHeader->ullCommandSequence,
+                pSmbRequest->pHeader->ulPid,
+                pSmbRequest->pHeader->ulTid,
+                pSmbRequest->pHeader->usCredits,
+                pSmbRequest->pHeader->ulFlags,
+                pSmbRequest->pHeader->ulChainOffset,
                 (long long)pRequestHeader->fid.ullPersistentId,
                 (long long)pRequestHeader->fid.ullVolatileId,
                 pRequestHeader->ulLockSequence,

@@ -74,8 +74,17 @@ SrvProcessLogoff_SMB_V2(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Logoff request params: session (Id:%llu)",
-            (long long)pSmbRequest->pHeader->ullSessionId);
+            "Logoff request params: "
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u)",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset);
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
                     pCtxSmb2,

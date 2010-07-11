@@ -149,7 +149,17 @@ SrvProcessSessionSetup_SMB_V2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_2,
                 pSmbRequest->pHeader->command,
-                "session setup GSS negotiate not yet complete");
+                "session setup GSS negotiate not yet complete:"
+                "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                "credits(%u),flags(0x%x),chain-offset(%u)",
+                pSmbRequest->pHeader->command,
+                (long long)pSmbRequest->pHeader->ullSessionId,
+                (long long)pSmbRequest->pHeader->ullCommandSequence,
+                pSmbRequest->pHeader->ulPid,
+                pSmbRequest->pHeader->ulTid,
+                pSmbRequest->pHeader->usCredits,
+                pSmbRequest->pHeader->ulFlags,
+                pSmbRequest->pHeader->ulChainOffset);
 
         pSmbResponse->pHeader->error = STATUS_MORE_PROCESSING_REQUIRED;
     }
@@ -159,7 +169,17 @@ SrvProcessSessionSetup_SMB_V2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_2,
                 pSmbRequest->pHeader->command,
-                "session setup GSS negotiate complete");
+                "session setup GSS negotiate complete: "
+                "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                "credits(%u),flags(0x%x),chain-offset(%u)",
+                pSmbRequest->pHeader->command,
+                (long long)pSmbRequest->pHeader->ullSessionId,
+                (long long)pSmbRequest->pHeader->ullCommandSequence,
+                pSmbRequest->pHeader->ulPid,
+                pSmbRequest->pHeader->ulTid,
+                pSmbRequest->pHeader->usCredits,
+                pSmbRequest->pHeader->ulFlags,
+                pSmbRequest->pHeader->ulChainOffset);
 
         ntStatus = SrvConnection2CreateSession(
                         pConnection,
@@ -170,7 +190,17 @@ SrvProcessSessionSetup_SMB_V2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_2,
                 pSmbRequest->pHeader->command,
-                "Created session (Id:%llu)",
+                "Created session: ",
+                "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                "credits(%u),flags(0x%x),chain-offset(%u),session-id(%llu)",
+                pSmbRequest->pHeader->command,
+                (long long)pSmbRequest->pHeader->ullSessionId,
+                (long long)pSmbRequest->pHeader->ullCommandSequence,
+                pSmbRequest->pHeader->ulPid,
+                pSmbRequest->pHeader->ulTid,
+                pSmbRequest->pHeader->usCredits,
+                pSmbRequest->pHeader->ulFlags,
+                pSmbRequest->pHeader->ulChainOffset,
                 (long long)pCtxSmb2->pSession->ullUid);
 
         ntStatus = SrvSetStatSession2Info(pExecContext, pCtxSmb2->pSession);
@@ -223,7 +253,18 @@ SrvProcessSessionSetup_SMB_V2(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_2,
                     pSmbRequest->pHeader->command,
-                    "Session (Id:%llu) is logged in as guest",
+                    "Session info: "
+                    "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                    "credits(%u),flags(0x%x),chain-offset(%u),session-id(%llu) "
+                    "is logged in as guest",
+                    pSmbRequest->pHeader->command,
+                    (long long)pSmbRequest->pHeader->ullSessionId,
+                    (long long)pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->usCredits,
+                    pSmbRequest->pHeader->ulFlags,
+                    pSmbRequest->pHeader->ulChainOffset,
                     (long long)pCtxSmb2->pSession->ullUid);
         }
 
@@ -241,7 +282,18 @@ SrvProcessSessionSetup_SMB_V2(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_2,
                     pSmbRequest->pHeader->command,
-                    "Session (Id:%llu) setup for principal (%s)",
+                    "Session info: "
+                    "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+                    "credits(%u),flags(0x%x),chain-offset(%u),"
+                    "session-id(%llu),user-principal(%s)",
+                    pSmbRequest->pHeader->command,
+                    (long long)pSmbRequest->pHeader->ullSessionId,
+                    (long long)pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->usCredits,
+                    pSmbRequest->pHeader->ulFlags,
+                    pSmbRequest->pHeader->ulChainOffset,
                     (long long)pCtxSmb2->pSession->ullUid,
                     pszClientPrincipalName);
 

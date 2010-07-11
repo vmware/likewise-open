@@ -269,13 +269,18 @@ error:
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u),Internal(%s),Status(0x%x:%s)",
+            "command:%u(%s),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),"
+            "internal(%s),status(0x%x:%s)",
             pSmbRequest->pHeader->command,
             LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command)),
             (long long)pSmbRequest->pHeader->ullSessionId,
             (long long)pSmbRequest->pHeader->ullCommandSequence,
             pSmbRequest->pHeader->ulPid,
             pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset,
             pExecContext->bInternal? "TRUE" : "FALSE",
             ntStatus,
             LWIO_SAFE_LOG_STRING(LwNtStatusToName(ntStatus)));
@@ -354,7 +359,7 @@ SrvProcessRequestSpecific_SMB_V2(
     SRV_LOG_VERBOSE(pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_2,
                     pSmbRequest->pHeader->command,
-                    "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u),Credits(%u),Flags(0x%x),ChainOffset(%u)",
+                    "command:%u(%s),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),credits(%u),flags(0x%x),chain-offset(%u)",
                     pSmbRequest->pHeader->command,
                     SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
                     (long long)pSmbRequest->pHeader->ullSessionId,
@@ -627,13 +632,18 @@ error:
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_2,
             pSmbRequest->pHeader->command,
-            "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u),Internal(%s),Status(0x%x:%s)",
+            "command:%u(%s),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),"
+            "internal(%s),status(0x%x:%s)",
             pSmbRequest->pHeader->command,
             LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command)),
             (long long)pSmbRequest->pHeader->ullSessionId,
             (long long)pSmbRequest->pHeader->ullCommandSequence,
             pSmbRequest->pHeader->ulPid,
             pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset,
             pExecContext->bInternal? "TRUE" : "FALSE",
             ntStatus,
             LWIO_SAFE_LOG_STRING(LwNtStatusToDescription(ntStatus)));
