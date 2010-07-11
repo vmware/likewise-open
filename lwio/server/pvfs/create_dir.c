@@ -128,6 +128,7 @@ PvfsCreateDirCreate(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVFS_STAT statPath = { 0 };
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -136,6 +137,7 @@ PvfsCreateDirCreate(
 
     ntError = PvfsLookupPath(
                   &pCreateCtx->pszDiskFilename,
+                  &statPath,
                   pCreateCtx->pszOriginalFilename,
                   FALSE);
     switch (ntError)
@@ -158,7 +160,7 @@ PvfsCreateDirCreate(
                   pCreateCtx->pszOriginalFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
+    ntError = PvfsLookupPath(&pszDiskDirname, &statPath, pszDirname, FALSE);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = STATUS_OBJECT_PATH_NOT_FOUND;
@@ -255,11 +257,9 @@ PvfsCreateDirOpen(
 
     ntError = PvfsLookupPath(
                   &pCreateCtx->pszDiskFilename,
+                  &Stat,
                   pCreateCtx->pszOriginalFilename,
                   FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     if (!S_ISDIR(Stat.s_mode))
@@ -336,7 +336,8 @@ PvfsCreateDirOpenIf(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
-    PVFS_STAT Stat = {0};
+    PVFS_STAT statPath = { 0 };
+    PVFS_STAT statFile = { 0 };
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -347,13 +348,14 @@ PvfsCreateDirOpenIf(
                   pCreateCtx->pszOriginalFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
+    ntError = PvfsLookupPath(&pszDiskDirname, &statPath, pszDirname, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for file existence */
 
     ntError = PvfsLookupFile(
                   &pCreateCtx->pszDiskFilename,
+                  &statFile,
                   pszDiskDirname,
                   pszRelativeFilename,
                   FALSE);
@@ -380,11 +382,7 @@ PvfsCreateDirOpenIf(
     }
     else
     {
-
-        ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
-        BAIL_ON_NT_STATUS(ntError);
-
-        if (!S_ISDIR(Stat.s_mode))
+        if (!S_ISDIR(statFile.s_mode))
         {
             ntError = STATUS_NOT_A_DIRECTORY;
             BAIL_ON_NT_STATUS(ntError);

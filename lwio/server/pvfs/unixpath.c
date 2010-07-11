@@ -408,9 +408,10 @@ error:
 
 NTSTATUS
 PvfsLookupPath(
-    PSTR *ppszDiskPath,
-    PCSTR pszPath,
-    BOOLEAN bCaseSensitive
+    OUT PSTR *ppszDiskPath,
+    IN OUT PPVFS_STAT pStat,
+    IN PCSTR pszPath,
+    IN BOOLEAN bCaseSensitive
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -428,6 +429,7 @@ PvfsLookupPath(
         ntError = PvfsSysStat(pszDiskPath, &Stat);
         if (ntError == STATUS_SUCCESS)
         {
+            *pStat = Stat;
             *ppszDiskPath = pszDiskPath;
             goto cleanup;
         }
@@ -441,6 +443,8 @@ PvfsLookupPath(
     ntError = PvfsSysStat(pszPath, &Stat);
     if (ntError == STATUS_SUCCESS)
     {
+        *pStat = Stat;
+
         ntError = RtlCStringDuplicate(ppszDiskPath, pszPath);
         BAIL_ON_NT_STATUS(ntError);
 
@@ -467,6 +471,7 @@ PvfsLookupPath(
     ntError = PvfsSysStat(pszDiskPath, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
+    *pStat = Stat;
     *ppszDiskPath = pszDiskPath;
 
 cleanup:
@@ -483,10 +488,11 @@ error:
 
 NTSTATUS
 PvfsLookupFile(
-    PSTR *ppszDiskPath,
-    PCSTR pszDiskDirname,
-    PCSTR pszFilename,
-    BOOLEAN bCaseSensitive
+    OUT PSTR *ppszDiskPath,
+    IN OUT PPVFS_STAT pStat,
+    IN PCSTR pszDiskDirname,
+    IN PCSTR pszFilename,
+    IN BOOLEAN bCaseSensitive
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -499,7 +505,11 @@ PvfsLookupFile(
                   pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(ppszDiskPath, pszFullPath, bCaseSensitive);
+    ntError = PvfsLookupPath(
+                  ppszDiskPath,
+                  pStat,
+                  pszFullPath,
+                  bCaseSensitive);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
