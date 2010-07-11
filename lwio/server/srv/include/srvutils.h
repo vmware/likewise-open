@@ -262,13 +262,17 @@ SrvLogContextCreate(
     );
 
 NTSTATUS
+SrvLogContextUpdateFilter(
+    PSRV_LOG_CONTEXT pLogContext,
+    struct sockaddr* pClientAddress,
+    SOCKLEN_T        ulClientAddressLength
+    );
+
+LWIO_LOG_LEVEL
 SrvLogContextGetLevel(
-    PSRV_LOG_CONTEXT     pLogContext,
-    struct sockaddr*     pClientAddress,
-    SOCKLEN_T            ulClientAddressLength,
-    ULONG                protocolVer,
-    USHORT               usOpcode,
-    LWIO_LOG_LEVEL*      pLogLevel
+    PSRV_LOG_CONTEXT pLogContext,
+    ULONG            protocolVer,
+    USHORT           usOpcode
     );
 
 VOID
