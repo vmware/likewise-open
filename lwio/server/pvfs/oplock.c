@@ -465,6 +465,7 @@ PvfsOplockBreakIfLocked(
     ULONG BreakResult = 0;
     BOOLEAN bActive = FALSE;
     BOOLEAN bCcbLocked = FALSE;
+    PPVFS_LIST pBrokenOplocks = NULL;
 
     LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
@@ -600,7 +601,20 @@ PvfsOplockBreakIfLocked(
         PvfsListRemoveItem(pFcb->pOplockList, pOplockLink);
         pOplockLink = pNextLink;
 
-        PvfsFreeOplockRecord(&pOplock);
+        /* Add the broken oplock to a list that we can free outside of the current
+           FCB ControlBlock lock */
+
+        if (pBrokenOplocks == NULL)
+        {
+            ntError = PvfsListInit(
+                          &pBrokenOplocks,
+                          0,
+                          (PPVFS_LIST_FREE_DATA_FN)PvfsFreeOplockRecord);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError = PvfsListAddTail(pBrokenOplocks, &pOplock->OplockList);
+        BAIL_ON_NT_STATUS(ntError);
 
         /* Broken -- See if we need to defer the calling operation
            and remove the oplock record from the list */
@@ -616,6 +630,8 @@ PvfsOplockBreakIfLocked(
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
+    PvfsListDestroy(&pBrokenOplocks);
 
     if (ntBreakStatus != STATUS_SUCCESS)
     {
@@ -1338,10 +1354,15 @@ PvfsOplockCleanOplockQueue(
         pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
         LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
         PvfsFreeOplockRecord(&pOplock);
 
         /* Can only be one IrpContext match so we are done */
     }
+
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
 
     if (!bFound)
     {
@@ -1350,7 +1371,6 @@ PvfsOplockCleanOplockQueue(
         PvfsAsyncIrpComplete(pIrpCtx);
     }
 
-    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
     if (pFcb)
     {
