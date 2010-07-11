@@ -526,6 +526,7 @@ static
 VOID
 PvfsNotifyFullReportBuffer(
     PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     );
 
@@ -533,6 +534,7 @@ static
 VOID
 PvfsNotifyFullReportIrp(
     PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     );
 
@@ -547,6 +549,7 @@ PvfsNotifyFullReport(
     PPVFS_FCB pParentFcb = NULL;
     BOOLEAN bLocked = FALSE;
     PPVFS_FCB pCursor = NULL;
+    PPVFS_FCB pReportParentFcb = NULL;
 
     BAIL_ON_INVALID_PTR(pReport, ntError);
 
@@ -554,22 +557,23 @@ PvfsNotifyFullReport(
        record on top if there is a match */
 
     pCursor = PvfsReferenceFCB(pReport->pFcb);
+    pReportParentFcb = PvfsGetParentFCB(pReport->pFcb);
 
     while ((pParentFcb = PvfsGetParentFCB(pCursor)) != NULL)
     {
+        PvfsReleaseFCB(&pCursor);
+
         LWIO_LOCK_MUTEX(bLocked, &pParentFcb->ControlBlock);
 
-        /* Process buffers before Irp so we don't doublt report
+        /* Process buffers before Irp so we don't doubly report
            a change on a pending Irp that has requested buffering a
            change log (which shouldn't start until the existing Irp
            has been completed). */
 
-        PvfsNotifyFullReportBuffer(pParentFcb, pReport);
-        PvfsNotifyFullReportIrp(pParentFcb, pReport);
+        PvfsNotifyFullReportBuffer(pParentFcb, pReportParentFcb, pReport);
+        PvfsNotifyFullReportIrp(pParentFcb, pReportParentFcb, pReport);
 
         LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->ControlBlock);
-
-        PvfsReleaseFCB(&pCursor);
 
         pCursor = pParentFcb;
     }
@@ -579,6 +583,11 @@ cleanup:
     if (pCursor)
     {
         PvfsReleaseFCB(&pCursor);
+    }
+
+    if (pReportParentFcb)
+    {
+        PvfsReleaseFCB(&pReportParentFcb);
     }
 
     return ntError;
@@ -602,13 +611,13 @@ static
 VOID
 PvfsNotifyFullReportBuffer(
     PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pFilterLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
-    PPVFS_FCB pReportParentFcb = NULL;
 
     for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListBuffer, NULL);
          pFilterLink;
@@ -621,13 +630,6 @@ PvfsNotifyFullReportBuffer(
 
         /* Match the filter and depth */
 
-        if (pReportParentFcb)
-        {
-            PvfsReleaseFCB(&pReportParentFcb);
-        }
-
-        pReportParentFcb = PvfsGetParentFCB(pReport->pFcb);
-
         if ((pFilter->NotifyFilter & pReport->Filter) &&
             ((pFcb == pReportParentFcb) || pFilter->bWatchTree))
         {
@@ -638,12 +640,6 @@ PvfsNotifyFullReportBuffer(
             break;
         }
     }
-
-    if (pReportParentFcb)
-    {
-        PvfsReleaseFCB(&pReportParentFcb);
-    }
-
 
     return;
 }
@@ -665,6 +661,7 @@ static
 VOID
 PvfsNotifyFullReportIrp(
     PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     )
 {
@@ -672,7 +669,6 @@ PvfsNotifyFullReportIrp(
     PLW_LIST_LINKS pFilterLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     BOOLEAN bActive = FALSE;
-    PPVFS_FCB pReportParentFcb = NULL;
 
     for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
          pFilterLink;
@@ -684,13 +680,6 @@ PvfsNotifyFullReportIrp(
                       NotifyList);
 
         /* Continue if we don't match the filter and depth */
-
-        if (pReportParentFcb)
-        {
-            PvfsReleaseFCB(&pReportParentFcb);
-        }
-
-        pReportParentFcb = PvfsGetParentFCB(pReport->pFcb);
 
         if (!((pFilter->NotifyFilter & pReport->Filter) &&
               ((pFcb == pReportParentFcb) || pFilter->bWatchTree)))
@@ -736,11 +725,6 @@ PvfsNotifyFullReportIrp(
     }
 
 cleanup:
-
-    if (pReportParentFcb)
-    {
-        PvfsReleaseFCB(&pReportParentFcb);
-    }
 
     if (pFilter)
     {
