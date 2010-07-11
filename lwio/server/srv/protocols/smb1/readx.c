@@ -190,8 +190,14 @@ SrvProcessReadAndX(
                         SMB_PROTOCOL_VERSION_1,
                         pSmbRequest->pHeader->command,
                         "ReadAndX(WC10) request params: "
+                        "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
                         "file-id(%u),min-count(%u),"
                         "max-count-high(%u),max-count(%u),offset(%u)",
+                        pSmbRequest->pHeader->command,
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->tid,
                         pRequestHeader_WC_10->fid,
                         pRequestHeader_WC_10->minCount,
                         pRequestHeader_WC_10->maxCountHigh,
@@ -221,9 +227,15 @@ SrvProcessReadAndX(
                         SMB_PROTOCOL_VERSION_1,
                         pSmbRequest->pHeader->command,
                         "ReadAndX(WC12) request params: "
+                        "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
                         "file-id(%u),min-count(%u),"
                         "max-count-high(%u),max-count(%u),"
                         "offset-high(%u),offset(%u)",
+                        pSmbRequest->pHeader->command,
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->tid,
                         pRequestHeader_WC_12->fid,
                         pRequestHeader_WC_12->minCount,
                         pRequestHeader_WC_12->maxCountHigh,

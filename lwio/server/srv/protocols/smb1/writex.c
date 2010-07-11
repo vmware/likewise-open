@@ -160,8 +160,15 @@ SrvProcessWriteAndX(
                         pExecContext->pLogContext,
                         SMB_PROTOCOL_VERSION_1,
                         pSmbRequest->pHeader->command,
-                        "WriteAndX(WC12) request params: file-id(%u),"
-                        "data-length-high(%u),data-length(%u),offset(%u)",
+                        "WriteAndX(WC12) request params: "
+                        "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                        "file-id(%u),data-length-high(%u),data-length(%u),"
+                        "offset(%u)",
+                        pSmbRequest->pHeader->command,
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->tid,
                         pRequestHeader_WC_12->fid,
                         pRequestHeader_WC_12->dataLengthHigh,
                         pRequestHeader_WC_12->dataLength,
@@ -190,9 +197,15 @@ SrvProcessWriteAndX(
                         pExecContext->pLogContext,
                         SMB_PROTOCOL_VERSION_1,
                         pSmbRequest->pHeader->command,
-                        "WriteAndX(WC14) request params: file-id(%u),"
-                        "data-length-high(%u),data-length(%u),"
+                        "WriteAndX(WC14) request params: "
+                        "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                        "file-id(%u),data-length-high(%u),data-length(%u),"
                         "offset-high(%u),offset(%u)",
+                        pSmbRequest->pHeader->command,
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->tid,
                         pRequestHeader_WC_14->fid,
                         pRequestHeader_WC_14->dataLengthHigh,
                         pRequestHeader_WC_14->dataLength,

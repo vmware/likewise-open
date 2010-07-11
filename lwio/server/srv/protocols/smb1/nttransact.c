@@ -252,7 +252,13 @@ SrvProcessNtTransact(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "NT Transact Params: Function(%u)",
+                "NT Transact Params: command(%u),uid(%u),mid(%u),pid(%u),"
+                "tid(%u),function(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pRequestHeader->usFunction);
 
         ntStatus = SrvBuildNTTransactState(
@@ -462,7 +468,14 @@ SrvQuerySecurityDescriptor(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
-                    "NT Transact (Query Sec Desc): file-id(%u),sec-info(%u)",
+                    "NT Transact (Query Sec Desc): "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u),sec-info(%u)",
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->uid,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader),
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->tid,
                     pNTTransactState->pSecurityRequestHeader->usFid,
                     pNTTransactState->pSecurityRequestHeader->ulSecurityInfo);
 
@@ -766,7 +779,14 @@ SrvSetSecurityDescriptor(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
-                    "NT Transact (Set Sec Desc): file-id(%u),sec-info(%u)",
+                    "NT Transact (Set Sec Desc): "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u),sec-info(%u)",
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->uid,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader),
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->tid,
                     pNTTransactState->pSecurityRequestHeader->usFid,
                     pNTTransactState->pSecurityRequestHeader->ulSecurityInfo);
 
@@ -984,7 +1004,14 @@ SrvProcessIOCTL(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
-                    "NT Transact (IOCTL): file-id(%u),is-fsctl(%s),flags(0x%x),function-code(%u)",
+                    "NT Transact (IOCTL): "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u),is-fsctl(%s),flags(0x%x),function-code(%u)",
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->uid,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader),
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->tid,
                     pNTTransactState->pIoctlRequest->usFid,
                     pNTTransactState->pIoctlRequest->bIsFsctl? "TRUE" : "FALSE",
                     pNTTransactState->pIoctlRequest->ucFlags,
@@ -1451,7 +1478,14 @@ SrvProcessNotifyChange(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pSmbRequest->pHeader->command,
-                    "NT Transact (Change Notify): file-id(%u),completion-filter(0x%x),watch-tree(%s)",
+                    "NT Transact (Change Notify): "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u),completion-filter(0x%x),watch-tree(%s)",
+                    pSmbRequest->pHeader->command,
+                    pSmbRequest->pHeader->uid,
+                    pSmbRequest->pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                    pSmbRequest->pHeader->tid,
                     pNTTransactState->pNotifyChangeHeader->usFid,
                     pNTTransactState->pNotifyChangeHeader->ulCompletionFilter,
                     pNTTransactState->pNotifyChangeHeader->bWatchTree? "TRUE" : "FALSE");

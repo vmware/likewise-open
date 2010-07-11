@@ -62,8 +62,12 @@ SrvProcessLogoffAndX(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_1,
             pSmbRequest->pHeader->command,
-            "Logging off uid (%u)",
-            pSmbRequest->pHeader->uid);
+            "Logging off session: command(%u),uid(%u),mid(%u),pid(%u),tid(%u)",
+            pSmbRequest->pHeader->command,
+            pSmbRequest->pHeader->uid,
+            pSmbRequest->pHeader->mid,
+            SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+            pSmbRequest->pHeader->tid);
 
     SrvSessionRundown(pSession);
 

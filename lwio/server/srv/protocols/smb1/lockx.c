@@ -391,7 +391,14 @@ SrvProcessLockAndX(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "Lock request: file-id(%u),locks(%u),unlocks(%u),lockType(0x%x),oplock-level(0x%x),timeout(%u)",
+                "Lock request: command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                "file-id(%u),locks(%u),unlocks(%u),lockType(0x%x),"
+                "oplock-level(0x%x),timeout(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pRequestHeader->usFid,
                 pRequestHeader->usNumLocks,
                 pRequestHeader->usNumUnlocks,

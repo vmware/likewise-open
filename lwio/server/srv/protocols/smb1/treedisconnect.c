@@ -70,7 +70,11 @@ SrvProcessTreeDisconnectAndX(
             pExecContext->pLogContext,
             SMB_PROTOCOL_VERSION_1,
             pSmbRequest->pHeader->command,
-            "Disconnecting tree (Id:%u)",
+            "Disconnecting tree: command(%u),uid(%u),mid(%u),pid(%u),tid(%u)",
+            pSmbRequest->pHeader->command,
+            pSmbRequest->pHeader->uid,
+            pSmbRequest->pHeader->mid,
+            SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
             pSmbRequest->pHeader->tid);
 
     SrvTreeRundown(pTree);

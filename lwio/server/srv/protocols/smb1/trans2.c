@@ -118,7 +118,13 @@ SrvProcessTransaction2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "Trans2 Request Params: Function code(%u)",
+                "Trans2 Request Params: "
+                "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),function-code(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 *pSetup);
 
         ntStatus = SrvBuildTrans2State(

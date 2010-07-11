@@ -164,7 +164,13 @@ SrvProcessQueryInformation2(
                 pExecContext->pLogContext,
                 SMB_PROTOCOL_VERSION_1,
                 pSmbRequest->pHeader->command,
-                "Query file info on fid (%u)",
+                "Query file info: "
+                "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),file-id(%u)",
+                pSmbRequest->pHeader->command,
+                pSmbRequest->pHeader->uid,
+                pSmbRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                pSmbRequest->pHeader->tid,
                 pRequestHeader->usFid);
 
         ntStatus = SrvTreeFindFile_SMB_V1(

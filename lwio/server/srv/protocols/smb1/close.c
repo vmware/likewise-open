@@ -162,7 +162,13 @@ SrvProcessCloseAndX(
                     pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_1,
                     pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
-                    "Close State: File id (%u), LastWriteTime(%u)",
+                    "Close State: command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u),last-write-time(%u)",
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->uid,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader),
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->tid,
                     pCloseState->pRequestHeader->fid,
                     pCloseState->pRequestHeader->ulLastWriteTime);
 
