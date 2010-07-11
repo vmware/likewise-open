@@ -190,6 +190,18 @@ SrvBuildExecContext_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2* ppSmb2Context
     );
 
+// logging.c
+
+VOID
+SrvLogRequest_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
 // lock.c
 
 NTSTATUS

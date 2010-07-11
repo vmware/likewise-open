@@ -192,6 +192,35 @@ error:
     goto cleanup;
 }
 
+PCSTR
+SrvPathGetFileName(
+    PCSTR  pszPath
+    )
+{
+    PCSTR  pszCursor     = pszPath;
+    size_t sLen          = 0;
+    CHAR   szBackSlash[] = { '\\', 0 };
+    CHAR   szFwdSlash[]  = { '/',  0 };
+
+    if (pszPath && (sLen = strlen(pszPath)))
+    {
+        pszCursor = pszPath + sLen - 1;
+
+        while (!IsNullOrEmptyString(pszCursor) && (pszCursor != pszPath))
+        {
+            if ((*pszCursor == szBackSlash[0]) || (*pszCursor == szFwdSlash[0]))
+            {
+                pszCursor++;
+                break;
+            }
+
+            pszCursor--;
+        }
+    }
+
+    return pszCursor;
+}
+
 NTSTATUS
 SrvMatchPathPrefix(
     PWSTR pwszPath,

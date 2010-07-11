@@ -250,6 +250,18 @@ SrvCancelLockState(
     HANDLE hLockState
     );
 
+// logging.c
+
+VOID
+SrvLogRequest_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
 // logoff.c
 
 NTSTATUS

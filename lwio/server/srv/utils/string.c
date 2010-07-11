@@ -93,3 +93,85 @@ SrvAllocateStringPrintf(
 
     return ntStatus;
 }
+
+/**
+ * @brief Get the hex dump of the bytes passed in
+ *
+ * @param[in] pBuffer                Bytes to be dumped
+ * @param[in] ulBufLen               Length of bytes to be dumped
+ * @param[in] ulMaxLength            Maximum number of bytes to be dumped
+ * @param[out] ppszHexString         Hex string of the bytes to be dumped
+ * @param[in,out] pulHexStringLength Number of actual bytes dumped
+ *
+ */
+NTSTATUS
+SrvGetHexDump(
+    PBYTE  pBuffer,
+    ULONG  ulBufLen,
+    ULONG  ulMaxLength,
+    PSTR*  ppszHexString,
+    PULONG pulHexStringLength
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSTR     pszHexString = NULL;
+    ULONG    ulLen = 0;
+
+    if ((ulLen = SMB_MIN(ulMaxLength, ulBufLen)) > 0) // hex dump
+    {
+        PSTR  pszHexCursor = NULL;
+        PBYTE pBufCursor = pBuffer;
+        ULONG i = 0;
+        ULONG j = 0;
+
+        size_t sBufferLen =
+                    (ulLen * 2)+     /* 2  hex chars per byte   */
+                    ((ulLen/16)*17)+ /* 17 extra chars per line */
+                    (ulLen%16)+ 1;
+
+        ntStatus = SrvAllocateMemory(sBufferLen, (PVOID*)&pszHexString);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pszHexCursor = pszHexString;
+
+        for (; i < ulLen; i++, pBufCursor++)
+        {
+            CHAR hexChar[] = {'0','1','2','3','4','5','6','7','8',
+                              '9','A','B','C','D','E','F'};
+
+            if (j != 0)
+            {
+                *pszHexCursor++ = ' ';
+            }
+            if (j == 8)
+            {
+                *pszHexCursor++ = ' ';
+            }
+
+            *pszHexCursor++ = hexChar[*pBufCursor & 0x0F];
+            *pszHexCursor++ = hexChar[(*pBufCursor & 0xF0) >> 4];
+
+            if (j++ == 15)
+            {
+                *pszHexCursor++ = '^';
+                j = 0;
+            }
+        }
+    }
+
+    *ppszHexString      = pszHexString;
+    *pulHexStringLength = ulLen;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppszHexString      = NULL;
+    *pulHexStringLength = 0;
+
+    SRV_SAFE_FREE_MEMORY(pszHexString);
+
+    goto cleanup;
+}

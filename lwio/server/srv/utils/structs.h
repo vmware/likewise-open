@@ -77,6 +77,8 @@ typedef struct _SRV_LOG_SPEC
 
     PSRV_LOG_FILTER pDefaultSpec;
 
+    DWORD           dwMaxRequestLogLength;
+
 } SRV_LOG_SPEC, *PSRV_LOG_SPEC;
 
 typedef struct _SRV_LOG_CONTEXT

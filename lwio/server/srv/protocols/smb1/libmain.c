@@ -95,6 +95,12 @@ SrvProtocolExecute_SMB_V1(
 
     if (!pExecContext->pProtocolContext->pSmb1Context)
     {
+        SRV_LOG_CALL_DEBUG( pExecContext->pLogContext,
+                            SMB_PROTOCOL_VERSION_1,
+                            0xFFFF,
+                            &SrvLogRequest_SMB_V1,
+                            pExecContext);
+
         ntStatus = SrvBuildExecContext_SMB_V1(
                         pExecContext->pConnection,
                         pExecContext->pSmbRequest,
