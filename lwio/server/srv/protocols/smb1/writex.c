@@ -220,14 +220,17 @@ SrvProcessWriteAndX(
 
         case SRV_WRITEX_STAGE_SMB_V1_ATTEMPT_WRITE:
 
+            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_IO;
+
             ntStatus = SrvExecuteWriteAndX(pWriteState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_IO;
 
             // intentional fall through
 
         case SRV_WRITEX_STAGE_SMB_V1_ZCT_IO:
+
+            pWriteState->ulBytesWritten =
+                pWriteState->ioStatusBlock.BytesTransferred;
 
             if (pWriteState->zct.pZct)
             {
@@ -500,9 +503,6 @@ SrvExecuteWriteAndX(
         ntStatus = pWriteState->ioStatusBlock.Status;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    pWriteState->ulBytesWritten =
-            pWriteState->ioStatusBlock.BytesTransferred;
 
 cleanup:
 
