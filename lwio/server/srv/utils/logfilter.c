@@ -127,8 +127,9 @@ SrvLogSpecParseOpcodes(
 static
 NTSTATUS
 SrvLogSpecParseLoglevel(
-    PSRV_LOG_FILTER_LEX_STATE pLexState,  /* IN OUT */
-    PSRV_LOG_FILTER           pLogFilter  /*  IN OUT */
+    PSRV_LOG_FILTER_LEX_STATE pLexState,     /* IN OUT */
+    ULONG                     ulProtocolVer, /* IN     */
+    PSRV_LOG_FILTER           pLogFilter     /* IN OUT */
     );
 
 static
@@ -311,7 +312,8 @@ SrvLogSpecCreate(
                         (PVOID*)&pLogSpec->pDefaultSpec);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pLogSpec->pDefaultSpec->defaultLogLevel = LWIO_LOG_LEVEL_ERROR;
+        pLogSpec->pDefaultSpec->defaultLogLevel_smb1 = LWIO_LOG_LEVEL_ERROR;
+        pLogSpec->pDefaultSpec->defaultLogLevel_smb2 = LWIO_LOG_LEVEL_ERROR;
 
         dwDataType = REG_MULTI_SZ;
 
@@ -443,7 +445,7 @@ SrvLogSpecParseFilter(
     ntStatus = SrvLogSpecParseOpcodes(&lexState, ulProtocolVer, pLogFilter);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvLogSpecParseLoglevel(&lexState, pLogFilter);
+    ntStatus = SrvLogSpecParseLoglevel(&lexState, ulProtocolVer, pLogFilter);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppLogFilter = pLogFilter;
@@ -488,7 +490,8 @@ SrvLogSpecParseClients(
                             (PVOID*)&pLogFilterList);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pLogFilterList->defaultLogLevel = LWIO_LOG_LEVEL_ERROR;
+            pLogFilterList->defaultLogLevel_smb1 = LWIO_LOG_LEVEL_ERROR;
+            pLogFilterList->defaultLogLevel_smb2 = LWIO_LOG_LEVEL_ERROR;
 
             break;
 
@@ -512,7 +515,8 @@ SrvLogSpecParseClients(
                                 (PVOID*)&pLogFilter);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                pLogFilter->defaultLogLevel = LWIO_LOG_LEVEL_ERROR;
+                pLogFilter->defaultLogLevel_smb1 = LWIO_LOG_LEVEL_ERROR;
+                pLogFilter->defaultLogLevel_smb2 = LWIO_LOG_LEVEL_ERROR;
 
                 chSave = *(token.pData + token.ulLength);
                 *(token.pData + token.ulLength) = 0;
@@ -838,8 +842,9 @@ error:
 static
 NTSTATUS
 SrvLogSpecParseLoglevel(
-    PSRV_LOG_FILTER_LEX_STATE pLexState,  /* IN OUT */
-    PSRV_LOG_FILTER           pLogFilter  /* IN OUT */
+    PSRV_LOG_FILTER_LEX_STATE pLexState,     /* IN OUT */
+    ULONG                     ulProtocolVer, /* IN     */
+    PSRV_LOG_FILTER           pLogFilter     /* IN OUT */
     )
 {
     NTSTATUS        ntStatus   = STATUS_SUCCESS;
@@ -913,29 +918,58 @@ SrvLogSpecParseLoglevel(
             {
                 PSRV_LOG_FILTER_OP pOpCursor = NULL;
 
-                if (logLevels[iLevel].logLevel > pCursor->defaultLogLevel)
+                switch (ulProtocolVer)
                 {
-                    pCursor->defaultLogLevel = logLevels[iLevel].logLevel;
-                }
+                    case 1:
 
-                for (pOpCursor = pCursor->pFilterList_smb1;
-                     pOpCursor;
-                     pOpCursor = pOpCursor->pNext)
-                {
-                    if (logLevels[iLevel].logLevel > pOpCursor->logLevel)
-                    {
-                        pOpCursor->logLevel = logLevels[iLevel].logLevel;
-                    }
-                }
+                        // update the default log level only if a wild-card
+                        // was set for the op-code list
+                        if (!pCursor->pFilterList_smb1 &&
+                            (logLevels[iLevel].logLevel > pCursor->defaultLogLevel_smb1))
+                        {
+                            pCursor->defaultLogLevel_smb1 = logLevels[iLevel].logLevel;
+                        }
 
-                for (pOpCursor = pCursor->pFilterList_smb2;
-                     pOpCursor;
-                     pOpCursor = pOpCursor->pNext)
-                {
-                    if (logLevels[iLevel].logLevel > pOpCursor->logLevel)
-                    {
-                        pOpCursor->logLevel = logLevels[iLevel].logLevel;
-                    }
+                        for (pOpCursor = pCursor->pFilterList_smb1;
+                             pOpCursor;
+                             pOpCursor = pOpCursor->pNext)
+                        {
+                            if (logLevels[iLevel].logLevel > pOpCursor->logLevel)
+                            {
+                                pOpCursor->logLevel = logLevels[iLevel].logLevel;
+                            }
+                        }
+
+                        break;
+
+                    case 2:
+
+                        // update the default log level only if a wild-card
+                        // was set for the op-code list
+                        if (!pCursor->pFilterList_smb2 &&
+                            (logLevels[iLevel].logLevel > pCursor->defaultLogLevel_smb2))
+                        {
+                            pCursor->defaultLogLevel_smb2 = logLevels[iLevel].logLevel;
+                        }
+
+                        for (pOpCursor = pCursor->pFilterList_smb2;
+                             pOpCursor;
+                             pOpCursor = pOpCursor->pNext)
+                        {
+                            if (logLevels[iLevel].logLevel > pOpCursor->logLevel)
+                            {
+                                pOpCursor->logLevel = logLevels[iLevel].logLevel;
+                            }
+                        }
+
+                        break;
+
+                    default:
+
+                        ntStatus = STATUS_DATA_ERROR;
+                        BAIL_ON_NT_STATUS(ntStatus);
+
+                        break;
                 }
             }
 
@@ -1110,17 +1144,16 @@ SrvLogSpecMergeFilter(
         }
         else // merge
         {
-            if (pCandidate->defaultLogLevel > pExisting->defaultLogLevel)
-            {
-                pExisting->defaultLogLevel = pCandidate->defaultLogLevel;
-            }
-
             if (pCandidate->pFilterList_smb1)
             {
                 ntStatus = SrvLogSpecMergeOpFilters(
                                     pCandidate->pFilterList_smb1,
                                     &pExisting->pFilterList_smb1);
                 BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else if (pCandidate->defaultLogLevel_smb1 > pExisting->defaultLogLevel_smb1)
+            {
+                pExisting->defaultLogLevel_smb1 = pCandidate->defaultLogLevel_smb1;
             }
 
             if (pCandidate->pFilterList_smb2)
@@ -1129,6 +1162,10 @@ SrvLogSpecMergeFilter(
                                     pCandidate->pFilterList_smb2,
                                     &pExisting->pFilterList_smb2);
                 BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else if (pCandidate->defaultLogLevel_smb2 > pExisting->defaultLogLevel_smb2)
+            {
+                pExisting->defaultLogLevel_smb2 = pCandidate->defaultLogLevel_smb2;
             }
 
             SrvLogFilterFree(pCandidate);
@@ -1501,7 +1538,7 @@ SrvLogContextGetLevel(
                 }
                 else
                 {
-                    logLevel = pLogContext->pCurFilter->defaultLogLevel;
+                    logLevel = pLogContext->pCurFilter->defaultLogLevel_smb1;
                 }
 
                 break;
@@ -1521,14 +1558,14 @@ SrvLogContextGetLevel(
                 }
                 else
                 {
-                    logLevel = pLogContext->pCurFilter->defaultLogLevel;
+                    logLevel = pLogContext->pCurFilter->defaultLogLevel_smb2;
                 }
 
                 break;
 
             default:
 
-                logLevel = pLogContext->pCurFilter->defaultLogLevel;
+                logLevel = LWIO_LOG_LEVEL_ERROR;
 
                 break;
         }
