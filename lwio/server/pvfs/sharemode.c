@@ -64,10 +64,14 @@ PvfsCheckShareMode(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_FCB pFcb = NULL;
+    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
 
-    ntError = PvfsFcbTableLookup(&pFcb, pszFilename);
-    if (ntError == STATUS_SUCCESS) {
+    ntError = PvfsFcbTableGetBucket(&pBucket, &gFcbTable, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsFcbTableLookup(&pFcb, pBucket, pszFilename);
+    if (ntError == STATUS_SUCCESS)
+    {
         ntError = PvfsEnforceShareMode(
                       pFcb,
                       SharedAccess,
@@ -95,6 +99,7 @@ PvfsCheckShareMode(
     ntError = PvfsCreateFCB(
                   &pFcb,
                   pszFilename,
+                  TRUE,
                   SharedAccess,
                   DesiredAccess);
 

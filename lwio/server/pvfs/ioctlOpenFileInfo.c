@@ -146,6 +146,7 @@ PvfsFillOpenFileInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_OPEN_FILE_INFO OpenFileInfo = {0};
     BOOLEAN bLocked = FALSE;
+    DWORD dwIndex = 0;
 
     LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gFcbTable.rwLock);
 
@@ -158,12 +159,20 @@ PvfsFillOpenFileInfo(
     OpenFileInfo.pData = pBuffer;
     OpenFileInfo.pPreviousEntry = NULL;
 
-    ntError = LwRtlRBTreeTraverse(
-                  gFcbTable.pFcbTree,
-                  LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                  PvfsOpenFileInfo,
-                  &OpenFileInfo);
-    BAIL_ON_NT_STATUS(ntError);
+    for (dwIndex=0; dwIndex<gFcbTable.pFcbTable->sTableSize; dwIndex++)
+    {
+        if (gFcbTable.pFcbTable->ppEntries[dwIndex] == NULL)
+        {
+            continue;
+        }
+
+        ntError = LwRtlRBTreeTraverse(
+                      gFcbTable.pFcbTable->ppEntries[dwIndex]->pTree,
+                      LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                      PvfsOpenFileInfo,
+                      &OpenFileInfo);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     *pBytesConsumed = BufLen - OpenFileInfo.BytesAvailable;
 
