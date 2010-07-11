@@ -374,9 +374,9 @@ PvfsLookupPath(
            to manual checks */
 
         ntError = PvfsSysStat(pszDiskPath, &Stat);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_SUCCESS)
+        {
             *ppszDiskPath = pszDiskPath;
-            pszDiskPath = NULL;
             goto cleanup;
         }
 
@@ -392,7 +392,7 @@ PvfsLookupPath(
         ntError = RtlCStringDuplicate(ppszDiskPath, pszPath);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsPathCacheAdd(*ppszDiskPath);
+        ntError = PvfsPathCacheAdd(pszPath);
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
@@ -400,27 +400,28 @@ PvfsLookupPath(
 
     /* Done if use case sensitive matches */
 
-    if (bCaseSensitive) {
+    if (bCaseSensitive)
+    {
         ntError = STATUS_OBJECT_NAME_NOT_FOUND;
         BAIL_ON_NT_STATUS(ntError);
     }
 
     /* Resolve the path */
 
-    ntError = PvfsResolvePath(ppszDiskPath, pszPath);
+    ntError = PvfsResolvePath(&pszDiskPath, pszPath);
     BAIL_ON_NT_STATUS(ntError);
 
     /* This should succeed now */
-    ntError = PvfsSysStat(*ppszDiskPath, &Stat);
+    ntError = PvfsSysStat(pszDiskPath, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-cleanup:
-    LwRtlCStringFree(&pszDiskPath);
+    *ppszDiskPath = pszDiskPath;
 
+cleanup:
     return ntError;
 
 error:
-    LwRtlCStringFree(ppszDiskPath);
+    LwRtlCStringFree(&pszDiskPath);
 
     goto cleanup;
 }
