@@ -72,6 +72,8 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
+    PVFS_INIT_LINKS(&pCCB->FcbList);
+
     pCCB->bPendingDeleteHandle = FALSE;
     pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
@@ -118,12 +120,8 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-
     if (pCCB->pFcb)
     {
-        ntError = PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
-
         PvfsReleaseFCB(&pCCB->pFcb);
     }
 
