@@ -45,6 +45,17 @@ SrvUnmarshallFindNext2Params(
     );
 
 static
+VOID
+SrvLogFindNext2Params_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildFindNext2Response(
     PSRV_EXEC_CONTEXT pExecContext,
@@ -86,6 +97,18 @@ SrvProcessTrans2FindNext2(
                     &ulResumeHandle,
                     &pwszResumeFilename);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_LOG_CALL_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_1,
+            pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+            &SrvLogFindNext2Params_SMB_V1,
+            &usSearchId,
+            &usSearchCount,
+            &usFlags,
+            &infoLevel,
+            &ulResumeHandle,
+            pwszResumeFilename);
 
     ntStatus = SrvBuildFindNext2Response(
                     pExecContext,
@@ -219,6 +242,79 @@ error:
 
     goto cleanup;
 }
+
+static
+VOID
+SrvLogFindNext2Params_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PUSHORT         pusSearchId    = 0;
+    PUSHORT         pusSearchCount = 0;
+    PUSHORT         pusFlags       = 0;
+    PSMB_INFO_LEVEL pinfoLevel     = 0;
+    PULONG          pulResumeHandle = 0;
+    PWSTR           pwszResumeFilename   = NULL; // Do not free
+    PSTR            pszResumeFilename = NULL;
+    va_list         msgList;
+
+    va_start(msgList, ulLine);
+    pusSearchId    = (PUSHORT)va_arg(msgList, PUSHORT);
+    pusSearchCount = (PUSHORT)va_arg(msgList, PUSHORT);
+    pusFlags       = (PUSHORT)va_arg(msgList, PUSHORT);
+    pinfoLevel     = (PSMB_INFO_LEVEL)va_arg(msgList, PSMB_INFO_LEVEL);
+    pulResumeHandle = (PULONG)va_arg(msgList, PULONG);
+    pwszResumeFilename = (PWSTR)va_arg(msgList, PWSTR);
+
+    if (pwszResumeFilename)
+    {
+        ntStatus = SrvWc16sToMbs(pwszResumeFilename, &pszResumeFilename);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] FindFirst2 Parameters: SearchId(%u),SearchCount(%u),Flags(0x%x),InfoLevel(%u),ResumeHandle(%u),ResumeFilename(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                *pusSearchId,
+                *pusSearchCount,
+                *pusFlags,
+                *pinfoLevel,
+                *pulResumeHandle,
+                LWIO_SAFE_LOG_STRING(pszResumeFilename));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "FindFirst2 Parameters: SearchId(%u),SearchCount(%u),Flags(0x%x),InfoLevel(%u),ResumeHandle(%u),ResumeFilename(%s)",
+                *pusSearchId,
+                *pusSearchCount,
+                *pusFlags,
+                *pinfoLevel,
+                *pulResumeHandle,
+                LWIO_SAFE_LOG_STRING(pszResumeFilename));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszResumeFilename);
+
+    return;
+}
+
 
 static
 NTSTATUS

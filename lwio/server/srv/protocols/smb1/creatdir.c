@@ -39,6 +39,17 @@ SrvBuildCreatedirState(
     );
 
 static
+VOID
+SrvLogCreateDirState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildCreateDirectoryResponse(
     PSRV_EXEC_CONTEXT pExecContext
@@ -157,6 +168,13 @@ SrvProcessCreateDirectory(
     switch (pCreatedirState->stage)
     {
         case SRV_CREATEDIR_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogCreateDirState_SMB_V1,
+                    pCreatedirState);
 
             ntStatus = SrvBuildTreeRelativePath(
                             pCtxSmb1->pTree,
@@ -303,6 +321,62 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogCreateDirState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_CREATEDIR_STATE_SMB_V1 pCreatedirState = NULL;
+    PSTR pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pCreatedirState = va_arg(msgList, PSRV_CREATEDIR_STATE_SMB_V1);
+
+    if (pCreatedirState)
+    {
+        if (pCreatedirState->pwszPathFragment)
+        {
+            ntStatus = SrvWc16sToMbs(pCreatedirState->pwszPathFragment, &pszPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Create directory state: Path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Create directory state: Path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

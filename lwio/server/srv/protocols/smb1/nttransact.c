@@ -132,6 +132,17 @@ SrvParseNtTransactCreateParameters(
     );
 
 static
+VOID
+SrvLogNtTransactCreateState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvQueryNTTransactFileInformation(
     PSRV_EXEC_CONTEXT pExecContext
@@ -236,6 +247,13 @@ SrvProcessNtTransact(
                         &pParameters,
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "NT Transact Params: Function(%u)",
+                pRequestHeader->usFunction);
 
         ntStatus = SrvBuildNTTransactState(
                         pRequestHeader,
@@ -439,6 +457,14 @@ SrvQuerySecurityDescriptor(
 
             pNTTransactState->pSecurityRequestHeader =
                 (PSMB_SECURITY_INFORMATION_HEADER)pNTTransactState->pParameters;
+
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    "NT Transact (Query Sec Desc): file-id(%u),sec-info(%u)",
+                    pNTTransactState->pSecurityRequestHeader->usFid,
+                    pNTTransactState->pSecurityRequestHeader->ulSecurityInfo);
 
             ntStatus = SrvTreeFindFile_SMB_V1(
                             pCtxSmb1,
@@ -736,6 +762,14 @@ SrvSetSecurityDescriptor(
             pNTTransactState->pSecurityRequestHeader =
                 (PSMB_SECURITY_INFORMATION_HEADER)pNTTransactState->pParameters;
 
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    "NT Transact (Set Sec Desc): file-id(%u),sec-info(%u)",
+                    pNTTransactState->pSecurityRequestHeader->usFid,
+                    pNTTransactState->pSecurityRequestHeader->ulSecurityInfo);
+
             ntStatus = SrvTreeFindFile_SMB_V1(
                             pCtxSmb1,
                             pNTTransactState->pTree,
@@ -945,6 +979,16 @@ SrvProcessIOCTL(
             }
 
             SrvUnmarshallBoolean(&pNTTransactState->pIoctlRequest->bIsFsctl);
+
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    "NT Transact (IOCTL): file-id(%u),is-fsctl(%s),flags(0x%x),function-code(%u)",
+                    pNTTransactState->pIoctlRequest->usFid,
+                    pNTTransactState->pIoctlRequest->bIsFsctl? "TRUE" : "FALSE",
+                    pNTTransactState->pIoctlRequest->ucFlags,
+                    pNTTransactState->pIoctlRequest->ulFunctionCode);
 
             if (pNTTransactState->pIoctlRequest->ucFlags & 0x1)
             {
@@ -1402,6 +1446,15 @@ SrvProcessNotifyChange(
                 (PSMB_NOTIFY_CHANGE_HEADER)(PBYTE)pNTTransactState->pSetup;
 
             SrvUnmarshallBoolean(&pNTTransactState->pNotifyChangeHeader->bWatchTree);
+
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pSmbRequest->pHeader->command,
+                    "NT Transact (Change Notify): file-id(%u),completion-filter(0x%x),watch-tree(%s)",
+                    pNTTransactState->pNotifyChangeHeader->usFid,
+                    pNTTransactState->pNotifyChangeHeader->ulCompletionFilter,
+                    pNTTransactState->pNotifyChangeHeader->bWatchTree? "TRUE" : "FALSE");
 
             ntStatus = SrvTreeFindFile_SMB_V1(
                             pCtxSmb1,
@@ -1961,6 +2014,13 @@ SrvProcessNtTransactCreate(
             ntStatus = SrvParseNtTransactCreateParameters(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogNtTransactCreateState_SMB_V1,
+                    pNTTransactState);
+
             pNTTransactState->stage =
                                 SRV_NTTRANSACT_STAGE_SMB_V1_CREATE_COMPLETED;
 
@@ -2318,6 +2378,88 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogNtTransactCreateState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pCreateState = NULL;
+    PSTR pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pCreateState = va_arg(msgList, PSRV_NTTRANSACT_STATE_SMB_V1);
+
+    if (pCreateState)
+    {
+        if (pCreateState->pFilename->FileName)
+        {
+            ntStatus = SrvWc16sToMbs(pCreateState->pFilename->FileName, &pszPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] NtTransact Create state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "sec-flags(0x%x),root-dir-fid(%u),ea-length(%u),sec-desc-length(%u),path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulCreateDisposition,
+                    pCreateState->pNtTransactCreateHeader->ulDesiredAccess,
+                    pCreateState->pNtTransactCreateHeader->ulCreateOptions,
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulFlags,
+                    pCreateState->pNtTransactCreateHeader->ucSecurityFlags,
+                    pCreateState->pNtTransactCreateHeader->ulRootDirectoryFid,
+                    pCreateState->pNtTransactCreateHeader->ulEALength,
+                    pCreateState->pNtTransactCreateHeader->ulSecurityDescLength,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "NtTransact Create state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "sec-flags(0x%x),root-dir-fid(%u),ea-length(%u),sec-desc-length(%u),path(%s)",
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulCreateDisposition,
+                    pCreateState->pNtTransactCreateHeader->ulDesiredAccess,
+                    pCreateState->pNtTransactCreateHeader->ulCreateOptions,
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulFlags,
+                    pCreateState->pNtTransactCreateHeader->ucSecurityFlags,
+                    pCreateState->pNtTransactCreateHeader->ulRootDirectoryFid,
+                    pCreateState->pNtTransactCreateHeader->ulEALength,
+                    pCreateState->pNtTransactCreateHeader->ulSecurityDescLength,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

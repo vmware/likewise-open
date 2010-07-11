@@ -45,6 +45,17 @@ SrvUnmarshallFindFirst2Params(
     );
 
 static
+VOID
+SrvLogFindFirst2Params_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildFindFirst2Response(
     PSRV_EXEC_CONTEXT   pExecContext,
@@ -86,6 +97,18 @@ SrvProcessTrans2FindFirst2(
                     &ulSearchStorageType,
                     &pwszSearchPattern);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_LOG_CALL_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_1,
+            pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+            &SrvLogFindFirst2Params_SMB_V1,
+            &usSearchAttrs,
+            &usSearchCount,
+            &usFlags,
+            &infoLevel,
+            &ulSearchStorageType,
+            pwszSearchPattern);
 
     ntStatus = SrvBuildFindFirst2Response(
                     pExecContext,
@@ -229,6 +252,79 @@ error:
 }
 
 static
+VOID
+SrvLogFindFirst2Params_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PUSHORT         pusSearchAttrs = 0;
+    PUSHORT         pusSearchCount = 0;
+    PUSHORT         pusFlags       = 0;
+    PSMB_INFO_LEVEL pinfoLevel     = 0;
+    PULONG          pulSearchStorageType = 0;
+    PWSTR           pwszSearchPattern   = NULL; // Do not free
+    PSTR            pszSearchPattern = NULL;
+    va_list         msgList;
+
+    va_start(msgList, ulLine);
+    pusSearchAttrs = (PUSHORT)va_arg(msgList, PUSHORT);
+    pusSearchCount = (PUSHORT)va_arg(msgList, PUSHORT);
+    pusFlags       = (PUSHORT)va_arg(msgList, PUSHORT);
+    pinfoLevel     = (PSMB_INFO_LEVEL)va_arg(msgList, PSMB_INFO_LEVEL);
+    pulSearchStorageType = (PULONG)va_arg(msgList, PULONG);
+    pwszSearchPattern = (PWSTR)va_arg(msgList, PWSTR);
+
+    if (pwszSearchPattern)
+    {
+        ntStatus = SrvWc16sToMbs(pwszSearchPattern, &pszSearchPattern);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] FindFirst2 Parameters: SearchAttrs(0x%x),SearchCount(%u),Flags(0x%x),InfoLevel(%u),StorageType(%u),SearchPattern(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                *pusSearchAttrs,
+                *pusSearchCount,
+                *pusFlags,
+                *pinfoLevel,
+                *pulSearchStorageType,
+                LWIO_SAFE_LOG_STRING(pszSearchPattern));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "FindFirst2 Parameters: SearchAttrs(0x%x),SearchCount(%u),Flags(0x%x),InfoLevel(%u),StorageType(%u),SearchPattern(%s)",
+                *pusSearchAttrs,
+                *pusSearchCount,
+                *pusFlags,
+                *pinfoLevel,
+                *pulSearchStorageType,
+                LWIO_SAFE_LOG_STRING(pszSearchPattern));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszSearchPattern);
+
+    return;
+}
+
+
+static
 NTSTATUS
 SrvBuildFindFirst2Response(
     PSRV_EXEC_CONTEXT   pExecContext,
@@ -316,6 +412,13 @@ SrvBuildFindFirst2Response(
                     &hSearchSpace,
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_1,
+            pSmbRequest->pHeader->command,
+            "Created search space (id:%u)",
+            usSearchId);
 
     if (!pSmbResponse->ulSerialNum)
     {

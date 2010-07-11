@@ -86,6 +86,17 @@ SrvIoFreeEcpString(
     );
 
 static
+VOID
+SrvLogTreeConnect_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildTreeConnectResponse(
     PSRV_EXEC_CONTEXT pExecContext
@@ -179,6 +190,16 @@ SrvProcessTreeConnectAndX(
                         &pwszPath,
                         &pszService);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_CALL_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                &SrvLogTreeConnect_SMB_V1,
+                pRequestHeader,
+                pszPassword,
+                pwszPath,
+                pszService);
 
         if (pRequestHeader->flags & 0x1)
         {
@@ -712,6 +733,68 @@ SrvIoFreeEcpString(
         RtlUnicodeStringFree(pEcpString);
         RtlMemoryFree(pEcpString);
     }
+}
+
+static
+VOID
+SrvLogTreeConnect_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PTREE_CONNECT_REQUEST_HEADER pRequestHeader = NULL;
+    PSTR    pszPassword = NULL;
+    PWSTR   pwszPath    = NULL;
+    PSTR    pszService  = NULL;
+    PSTR    pszPath     = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+    pRequestHeader = (PTREE_CONNECT_REQUEST_HEADER)va_arg(msgList, PTREE_CONNECT_REQUEST_HEADER);
+    pszPassword = (PSTR)va_arg(msgList, PSTR);
+    pwszPath    = (PWSTR)va_arg(msgList, PWSTR);
+    pszService  = (PSTR)va_arg(msgList, PSTR);
+
+    if (pwszPath)
+    {
+        ntStatus = SrvWc16sToMbs(pwszPath, &pszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] TreeConnect Parameters: Flags(0x%x),Service(%s),Path(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pRequestHeader->flags,
+                LWIO_SAFE_LOG_STRING(pszService),
+                LWIO_SAFE_LOG_STRING(pszPath));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "TreeConnect Parameters: Flags(0x%x),Service(%s),Path(%s)",
+                pRequestHeader->flags,
+                LWIO_SAFE_LOG_STRING(pszService),
+                LWIO_SAFE_LOG_STRING(pszPath));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

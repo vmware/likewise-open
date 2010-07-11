@@ -58,6 +58,13 @@ SrvProcessLogoffAndX(
     ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_1,
+            pSmbRequest->pHeader->command,
+            "Logging off uid (%u)",
+            pSmbRequest->pHeader->uid);
+
     SrvSessionRundown(pSession);
 
     ntStatus = SrvConnectionRemoveSession(

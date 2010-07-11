@@ -188,9 +188,16 @@ SrvProtocolExecute_SMB_V1(
                                         pExecContext->pSmbResponse->bufferUsed -
                                         sizeof(NETBIOS_HEADER);
 
-        LWIO_LOG_VERBOSE("Executing command [%s:%d]",
-                         SrvGetCommandDescription_SMB_V1(pRequest->ucCommand),
-                         pRequest->ucCommand);
+        SRV_LOG_VERBOSE(pExecContext->pLogContext,
+                        SMB_PROTOCOL_VERSION_1,
+                        pRequest->ucCommand,
+                        "Command:%u(%s),Uid(%u),Mid(%u),Pid(%u),Tid(%u)",
+                        pRequest->ucCommand,
+                        SrvGetCommandDescription_SMB_V1(pRequest->ucCommand),
+                        pRequest->pHeader->uid,
+                        pRequest->pHeader->mid,
+                        SMB_V1_GET_PROCESS_ID(pRequest->pHeader),
+                        pRequest->pHeader->tid);
 
         if (pExecContext->pStatInfo)
         {
@@ -440,6 +447,21 @@ SrvProtocolExecute_SMB_V1(
                 break;
         }
 
+        SRV_LOG_VERBOSE(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pRequest->ucCommand,
+                "Command:%u(%s),Uid(%u),Mid(%u),Pid(%u),Tid(%u),Internal(%s),Status(0x%x:%s)",
+                pRequest->ucCommand,
+                LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V1(pRequest->ucCommand)),
+                pRequest->pHeader->uid,
+                pRequest->pHeader->mid,
+                SMB_V1_GET_PROCESS_ID(pRequest->pHeader),
+                pRequest->pHeader->tid,
+                pExecContext->bInternal? "TRUE" : "FALSE",
+                ntStatus,
+                LWIO_SAFE_LOG_STRING(LwNtStatusToName(ntStatus)));
+
         switch (ntStatus)
         {
             case STATUS_PENDING:
@@ -536,6 +558,27 @@ cleanup:
     return ntStatus;
 
 error:
+
+    if (pSmb1Context)
+    {
+        PSRV_MESSAGE_SMB_V1 pRequest =
+                                &pSmb1Context->pRequests[pSmb1Context->iMsg];
+
+        SRV_LOG_VERBOSE(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_1,
+            pRequest->ucCommand,
+            "Command:%u(%s),Uid(%u),Mid(%u),Pid(%u),Tid(%u),Internal(%s),Status(0x%x:%s)",
+            pRequest->ucCommand,
+            LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V1(pRequest->ucCommand)),
+            pRequest->pHeader->uid,
+            pRequest->pHeader->mid,
+            SMB_V1_GET_PROCESS_ID(pRequest->pHeader),
+            pRequest->pHeader->tid,
+            pExecContext->bInternal? "TRUE" : "FALSE",
+            ntStatus,
+            LWIO_SAFE_LOG_STRING(LwNtStatusToDescription(ntStatus)));
+    }
 
     switch (ntStatus)
     {

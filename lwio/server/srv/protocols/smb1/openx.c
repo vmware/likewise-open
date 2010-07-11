@@ -40,6 +40,17 @@ SrvBuildOpenState(
     );
 
 static
+VOID
+SrvLogOpenState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvQueryFileOpenInformation(
     PSRV_EXEC_CONTEXT pExecContext
@@ -171,6 +182,13 @@ SrvProcessOpenAndX(
     switch (pOpenState->stage)
     {
         case SRV_OPEN_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_CALL_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    &SrvLogOpenState_SMB_V1,
+                    pOpenState);
 
             pOpenState->stage = SRV_OPEN_STAGE_SMB_V1_OPEN_FILE_COMPLETED;
 
@@ -554,6 +572,82 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogOpenState_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_OPEN_STATE_SMB_V1 pOpenState = NULL;
+    PSTR pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pOpenState = va_arg(msgList, PSRV_OPEN_STATE_SMB_V1);
+
+    if (pOpenState)
+    {
+        if (pOpenState->pFilename->FileName)
+        {
+            ntStatus = SrvWc16sToMbs(pOpenState->pFilename->FileName, &pszPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Open state: "
+                    "alloc-size(%u),creation-time(0x%x),desired-access(0x%x),"
+                    "file-attrs(0x%x),flags(0x%x),open-function(%u),"
+                    "search-attrs(0x%x),path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pOpenState->pRequestHeader->ulAllocationSize,
+                    pOpenState->pRequestHeader->ulCreationTime,
+                    pOpenState->pRequestHeader->usDesiredAccess,
+                    pOpenState->pRequestHeader->usFileAttributes,
+                    pOpenState->pRequestHeader->usFlags,
+                    pOpenState->pRequestHeader->usOpenFunction,
+                    pOpenState->pRequestHeader->usSearchAttributes,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Open state: "
+                    "alloc-size(%u),creation-time(0x%x),desired-access(0x%x),"
+                    "file-attrs(0x%x),flags(0x%x),open-function(%u),"
+                    "search-attrs(0x%x),path(%s)",
+                    pOpenState->pRequestHeader->ulAllocationSize,
+                    pOpenState->pRequestHeader->ulCreationTime,
+                    pOpenState->pRequestHeader->usDesiredAccess,
+                    pOpenState->pRequestHeader->usFileAttributes,
+                    pOpenState->pRequestHeader->usFlags,
+                    pOpenState->pRequestHeader->usOpenFunction,
+                    pOpenState->pRequestHeader->usSearchAttributes,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

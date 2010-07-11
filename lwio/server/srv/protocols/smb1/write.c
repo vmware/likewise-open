@@ -173,6 +173,15 @@ SrvProcessWrite(
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Write request params: file-id(%u),data-length(%u),offset(%u)",
+                pRequestHeader->fid,
+                pRequestHeader->dataLength,
+                pRequestHeader->offset);
+
         ntStatus = SrvTreeFindFile_SMB_V1(
                         pCtxSmb1,
                         pTree,

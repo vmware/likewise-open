@@ -68,6 +68,13 @@ SrvProcessFindClose2(
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_LOG_DEBUG(
+        pExecContext->pLogContext,
+        SMB_PROTOCOL_VERSION_1,
+        pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+        "Closing search id:(%u)",
+        usSearchId);
+
     ntStatus = SrvFinderCloseSearchSpace(
                     pSession->hFinderRepository,
                     usSearchId);

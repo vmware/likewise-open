@@ -160,6 +160,13 @@ SrvProcessQueryInformation2(
                         &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Query file info on fid (%u)",
+                pRequestHeader->usFid);
+
         ntStatus = SrvTreeFindFile_SMB_V1(
                         pCtxSmb1,
                         pTree,

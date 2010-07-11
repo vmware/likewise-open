@@ -266,6 +266,27 @@ cleanup:
 
 error:
 
+    if (pSmb2Context)
+    {
+        PSRV_MESSAGE_SMB_V2 pSmbRequest =
+                                &pSmb2Context->pRequests[pSmb2Context->iMsg];
+
+        SRV_LOG_VERBOSE(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u),Internal(%s),Status(0x%x:%s)",
+            pSmbRequest->pHeader->command,
+            LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command)),
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pExecContext->bInternal? "TRUE" : "FALSE",
+            ntStatus,
+            LWIO_SAFE_LOG_STRING(LwNtStatusToName(ntStatus)));
+    }
+
     switch (ntStatus)
     {
         case STATUS_PENDING:
@@ -336,9 +357,16 @@ SrvProcessRequestSpecific_SMB_V2(
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
 
-    LWIO_LOG_VERBOSE("Executing command [%s:%d]",
-                     SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
-                     pSmbRequest->pHeader->command);
+    SRV_LOG_VERBOSE(pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_2,
+                    pSmbRequest->pHeader->command,
+                    "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u)",
+                    pSmbRequest->pHeader->command,
+                    SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
+                    (long long)pSmbRequest->pHeader->ullSessionId,
+                    (long long)pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ulTid);
 
     if (!iMsg &&
         LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
@@ -592,9 +620,28 @@ SrvProcessRequestSpecific_SMB_V2(
             break;
     }
 
-error:
+cleanup:
 
     return ntStatus;
+
+error:
+
+    SRV_LOG_VERBOSE(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u),Internal(%s),Status(0x%x:%s)",
+            pSmbRequest->pHeader->command,
+            LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command)),
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pExecContext->bInternal? "TRUE" : "FALSE",
+            ntStatus,
+            LWIO_SAFE_LOG_STRING(LwNtStatusToDescription(ntStatus)));
+
+    goto cleanup;
 }
 
 static

@@ -103,7 +103,8 @@ SrvProcessSessionSetup(
                     ulSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pSmbRequest->pHeader->uid) {
+    if (pSmbRequest->pHeader->uid)
+    {
         ntStatus = SrvConnectionFindSession_SMB_V1(
                         pCtxSmb1,
                         pConnection,
@@ -113,9 +114,24 @@ SrvProcessSessionSetup(
 
         pSessionExisting = pCtxSmb1->pSession;
 
-    } else {
+        SRV_LOG_VERBOSE(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Using existing session (Id:%u)",
+                pSessionExisting->uid);
+    }
+    else
+    {
         ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_VERBOSE(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                "Created session (Id:%u)",
+                pCtxSmb1->pSession->uid);
     }
 
     pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
@@ -175,6 +191,13 @@ SrvProcessSessionSetup(
                 pConnection->pSessionKey = NULL;
                 pConnection->ulSessionKeyLength = 0;
             }
+
+            SRV_LOG_VERBOSE(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pSmbRequest->pHeader->command,
+                    "Session (Id:%u) is logged in as guest",
+                    pCtxSmb1->pSession->uid);
         }
 
         // Go ahead and close out this GSS negotiate state so we can

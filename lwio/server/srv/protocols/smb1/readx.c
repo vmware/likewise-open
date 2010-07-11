@@ -185,6 +185,19 @@ SrvProcessReadAndX(
                                 &pRequestHeader_WC_10);
                 BAIL_ON_NT_STATUS(ntStatus);
 
+                SRV_LOG_DEBUG(
+                        pExecContext->pLogContext,
+                        SMB_PROTOCOL_VERSION_1,
+                        pSmbRequest->pHeader->command,
+                        "ReadAndX(WC10) request params: "
+                        "file-id(%u),min-count(%u),"
+                        "max-count-high(%u),max-count(%u),offset(%u)",
+                        pRequestHeader_WC_10->fid,
+                        pRequestHeader_WC_10->minCount,
+                        pRequestHeader_WC_10->maxCountHigh,
+                        pRequestHeader_WC_10->maxCount,
+                        pRequestHeader_WC_10->offset);
+
                 ntStatus = SrvTreeFindFile_SMB_V1(
                                 pCtxSmb1,
                                 pTree,
@@ -202,6 +215,21 @@ SrvProcessReadAndX(
                                 ulOffset,
                                 &pRequestHeader_WC_12);
                 BAIL_ON_NT_STATUS(ntStatus);
+
+                SRV_LOG_DEBUG(
+                        pExecContext->pLogContext,
+                        SMB_PROTOCOL_VERSION_1,
+                        pSmbRequest->pHeader->command,
+                        "ReadAndX(WC12) request params: "
+                        "file-id(%u),min-count(%u),"
+                        "max-count-high(%u),max-count(%u),"
+                        "offset-high(%u),offset(%u)",
+                        pRequestHeader_WC_12->fid,
+                        pRequestHeader_WC_12->minCount,
+                        pRequestHeader_WC_12->maxCountHigh,
+                        pRequestHeader_WC_12->maxCount,
+                        pRequestHeader_WC_12->offsetHigh,
+                        pRequestHeader_WC_12->offset);
 
                 ntStatus = SrvTreeFindFile_SMB_V1(
                                 pCtxSmb1,

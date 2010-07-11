@@ -40,6 +40,17 @@ SrvBuildNtRenameState(
     );
 
 static
+VOID
+SrvLogNtRename_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvExecuteNtRename(
     PSRV_EXEC_CONTEXT pExecContext
@@ -150,6 +161,15 @@ SrvProcessNtRename(
                         &pwszOldName,
                         &pwszNewName);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_CALL_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_1,
+                pSmbRequest->pHeader->command,
+                &SrvLogNtRename_SMB_V1,
+                pRequestHeader,
+                pwszOldName,
+                pwszNewName);
 
         ntStatus = SrvBuildNtRenameState(
                         pRequestHeader,
@@ -341,6 +361,78 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogNtRename_SMB_V1(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_NT_RENAME_REQUEST_HEADER pRequestHeader = NULL;
+    PWSTR pwszOldName = NULL;
+    PWSTR pwszNewName = NULL;
+    PSTR  pszOldName  = NULL;
+    PSTR  pszNewName  = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+    pRequestHeader = va_arg(msgList, PSMB_NT_RENAME_REQUEST_HEADER);
+    pwszOldName    = va_arg(msgList, PWSTR);
+    pwszNewName    = va_arg(msgList, PWSTR);
+
+    if (pwszOldName)
+    {
+        ntStatus = SrvWc16sToMbs(pwszOldName, &pszOldName);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pwszNewName)
+    {
+        ntStatus = SrvWc16sToMbs(pwszNewName, &pszNewName);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] NtRename Parameters: cluster-count(%u),info-level(%u),search-attrs(0x%x),old-name(%s),new-name(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pRequestHeader->ulClusterCount,
+                pRequestHeader->usInfoLevel,
+                pRequestHeader->usSearchAttributes,
+                LWIO_SAFE_LOG_STRING(pszOldName),
+                LWIO_SAFE_LOG_STRING(pszNewName));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "NtRename Parameters: cluster-count(%u),info-level(%u),search-attrs(0x%x),old-name(%s),new-name(%s)",
+                pRequestHeader->ulClusterCount,
+                pRequestHeader->usInfoLevel,
+                pRequestHeader->usSearchAttributes,
+                LWIO_SAFE_LOG_STRING(pszOldName),
+                LWIO_SAFE_LOG_STRING(pszNewName));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszOldName);
+    SRV_SAFE_FREE_MEMORY(pszNewName);
+
+    return;
 }
 
 static
