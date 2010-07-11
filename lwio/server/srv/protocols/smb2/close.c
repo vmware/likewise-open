@@ -171,6 +171,15 @@ SrvProcessClose_SMB_V2(
         ntStatus = SMB2UnmarshalCloseRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Close request: file-id(persistent:0x%x,volatile:0x%x),flags(0x%x)",
+                (long long)pRequestHeader->fid.ullPersistentId,
+                (long long)pRequestHeader->fid.ullVolatileId,
+                pRequestHeader->usFlags);
+
         if (pCtxSmb2->bFileClosed)
         {
             ntStatus = STATUS_INVALID_PARAMETER;

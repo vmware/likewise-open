@@ -86,6 +86,13 @@ SrvProcessTreeDisconnect_SMB_V2(
                     &pTreeDisconnectHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Disconnecting tree (Id:%u)",
+            pSmbRequest->pHeader->ulTid);
+
     ntStatus = SrvSession2FindTree_SMB_V2(
                     pCtxSmb2,
                     pSession,

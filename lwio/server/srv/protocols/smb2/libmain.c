@@ -61,12 +61,6 @@ SrvSendInterimResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
-static
-PCSTR
-SrvGetCommandDescription_SMB_V2(
-    ULONG ulCommand
-    );
-
 NTSTATUS
 SrvProtocolInit_SMB_V2(
     PSMB_PROD_CONS_QUEUE pWorkQueue
@@ -360,13 +354,16 @@ SrvProcessRequestSpecific_SMB_V2(
     SRV_LOG_VERBOSE(pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_2,
                     pSmbRequest->pHeader->command,
-                    "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u)",
+                    "Command:%u(%s),Uid(%llu),Cmd-seq(%llu),Pid(%u),Tid(%u),Credits(%u),Flags(0x%x),ChainOffset(%u)",
                     pSmbRequest->pHeader->command,
                     SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
                     (long long)pSmbRequest->pHeader->ullSessionId,
                     (long long)pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulPid,
-                    pSmbRequest->pHeader->ulTid);
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->usCredits,
+                    pSmbRequest->pHeader->ulFlags,
+                    pSmbRequest->pHeader->ulChainOffset);
 
     if (!iMsg &&
         LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
@@ -973,7 +970,6 @@ SrvProtocolShutdown_SMB_V2(
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
 }
 
-static
 PCSTR
 SrvGetCommandDescription_SMB_V2(
     ULONG ulCommand

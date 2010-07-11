@@ -161,6 +161,25 @@ SrvProcessIOCTL_SMB_V2(
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "IOCTL request params: file-id(persistent:0x%x,volatile:0x%x),"
+            "flags(0x%x),function-code(%u),"
+            "input-length(%u),input-offset(%u),max-input-length(%u),"
+            "output-length(%u),output-offset(%u),max-output-length(%u)",
+            (long long)pRequestHeader->fid.ullPersistentId,
+            (long long)pRequestHeader->fid.ullVolatileId,
+            pRequestHeader->ulFlags,
+            pRequestHeader->ulFunctionCode,
+            pRequestHeader->ulInLength,
+            pRequestHeader->ulInOffset,
+            pRequestHeader->ulMaxInLength,
+            pRequestHeader->ulOutLength,
+            pRequestHeader->ulOutOffset,
+            pRequestHeader->ulMaxOutLength);
+
         switch (pRequestHeader->ulFunctionCode)
         {
             case IO_FSCTL_GET_DFS_REFERRALS:

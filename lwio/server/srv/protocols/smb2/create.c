@@ -52,6 +52,17 @@
 #include "includes.h"
 
 static
+VOID
+SrvLogCreateParams_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildCreateState_SMB_V2(
     PSRV_EXEC_CONTEXT           pExecContext,
@@ -225,6 +236,15 @@ SrvProcessCreate_SMB_V2(
             wszFileName.Length = 0;
             wszFileName.MaximumLength = sizeof(wszEmpty);
         }
+
+        SRV_LOG_CALL_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                &SrvLogCreateParams_SMB_V2,
+                pCreateRequestHeader,
+                &wszFileName,
+                &ulNumContexts);
 
         ntStatus = SrvConnection2CreateAsyncState(
                                 pConnection,
@@ -538,6 +558,96 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogCreateParams_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_CREATE_REQUEST_HEADER pCreateRequestHeader = NULL;
+    PUNICODE_STRING             pwszFileName = NULL;
+    PULONG                      pulNumContexts = NULL;
+    PWSTR pwszFilename1 = NULL;
+    PSTR  pszFilename   = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pCreateRequestHeader = va_arg(msgList, PSMB2_CREATE_REQUEST_HEADER);
+    pwszFileName = va_arg(msgList, PUNICODE_STRING);
+    pulNumContexts = va_arg(msgList, PULONG);
+
+    if (pwszFileName->Length)
+    {
+        ntStatus = SrvAllocateMemory(
+                        pwszFileName->Length + sizeof(wchar16_t),
+                        (PVOID*)&pwszFilename1);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy( (PBYTE)pwszFilename1,
+                (PBYTE)pwszFileName->Buffer,
+                pwszFileName->Length);
+
+        ntStatus = SrvWc16sToMbs(pwszFilename1, &pszFilename);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] Create params: "
+                "create-disp(0x%x),desired-access(0x%x),num-contexts(%u),"
+                "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                "security-flags(0x%x),oplock-level(%u),file-name(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pCreateRequestHeader->ulCreateDisposition,
+                pCreateRequestHeader->ulDesiredAccess,
+                *pulNumContexts,
+                pCreateRequestHeader->ulCreateOptions,
+                pCreateRequestHeader->ulShareAccess,
+                (long long)pCreateRequestHeader->ullCreateFlags,
+                pCreateRequestHeader->ucSecurityFlags,
+                pCreateRequestHeader->ucOplockLevel,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "Create params: "
+                "create-disp(0x%x),desired-access(0x%x),num-contexts(%u),"
+                "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                "security-flags(0x%x),oplock-level(%u),file-name(%s)",
+                pCreateRequestHeader->ulCreateDisposition,
+                pCreateRequestHeader->ulDesiredAccess,
+                *pulNumContexts,
+                pCreateRequestHeader->ulCreateOptions,
+                pCreateRequestHeader->ulShareAccess,
+                (long long)pCreateRequestHeader->ullCreateFlags,
+                pCreateRequestHeader->ucSecurityFlags,
+                pCreateRequestHeader->ucOplockLevel,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pwszFilename1);
+    SRV_SAFE_FREE_MEMORY(pszFilename);
+
+    return;
 }
 
 static

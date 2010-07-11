@@ -99,6 +99,17 @@ SrvIoFreeEcpString_SMB_V2(
     );
 
 static
+VOID
+SrvLogTreeConnect_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvBuildTreeConnectResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
@@ -179,6 +190,13 @@ SrvProcessTreeConnect_SMB_V2(
                         &wszPath,
                         &pTConState);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SRV_LOG_CALL_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                &SrvLogTreeConnect_SMB_V2,
+                pTConState);
 
         pCtxSmb2->hState = pTConState;
         InterlockedIncrement(&pTConState->refCount);
@@ -622,6 +640,58 @@ SrvIoFreeEcpString_SMB_V2(
         RtlUnicodeStringFree(pEcpString);
         RtlMemoryFree(pEcpString);
     }
+}
+
+static
+VOID
+SrvLogTreeConnect_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState = NULL;
+    PSTR    pszPath = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+    pTConState = va_arg(msgList, PSRV_TREE_CONNECT_STATE_SMB_V2);
+
+    if (pTConState && pTConState->pwszPath)
+    {
+        ntStatus = SrvWc16sToMbs(pTConState->pwszPath, &pszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] TreeConnect Parameters: Path(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                LWIO_SAFE_LOG_STRING(pszPath));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "TreeConnect Parameters: Path(%s)",
+                LWIO_SAFE_LOG_STRING(pszPath));
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pszPath);
+
+    return;
 }
 
 static

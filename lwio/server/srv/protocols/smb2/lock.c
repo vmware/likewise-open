@@ -196,6 +196,17 @@ SrvProcessLock_SMB_V2(
         ntStatus = SMB2UnmarshalLockRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SRV_LOG_DEBUG(
+                pExecContext->pLogContext,
+                SMB_PROTOCOL_VERSION_2,
+                pSmbRequest->pHeader->command,
+                "Lock request params: file-id(persistent:0x%x,volatile:0x%x),"
+                "lock-sequence(%u),lock-count(%u)",
+                (long long)pRequestHeader->fid.ullPersistentId,
+                (long long)pRequestHeader->fid.ullVolatileId,
+                pRequestHeader->ulLockSequence,
+                pRequestHeader->usLockCount);
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,

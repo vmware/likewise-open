@@ -52,6 +52,17 @@
 #include "includes.h"
 
 static
+VOID
+SrvLogFindRequest_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    );
+
+static
 NTSTATUS
 SrvFindIdBothDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
@@ -252,6 +263,14 @@ SrvProcessFind_SMB_V2(
                     &pRequestHeader,
                     &wszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_LOG_CALL_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            &SrvLogFindRequest_SMB_V2,
+            pRequestHeader,
+            &wszFilename);
 
     ntStatus = SrvTree2FindFile_SMB_V2(
                     pCtxSmb2,
@@ -641,6 +660,93 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvLogFindRequest_SMB_V2(
+    PSRV_LOG_CONTEXT pLogContext,
+    LWIO_LOG_LEVEL   logLevel,
+    PCSTR            pszFunction,
+    PCSTR            pszFile,
+    ULONG            ulLine,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_FIND_REQUEST_HEADER pRequestHeader = NULL;
+    PUNICODE_STRING           pwszFilename   = NULL;
+    PWSTR pwszFilename1 = NULL;
+    PSTR pszFilename = NULL;
+    va_list msgList;
+
+    va_start(msgList, ulLine);
+
+    pRequestHeader = va_arg(msgList, PSMB2_FIND_REQUEST_HEADER);
+    pwszFilename   = va_arg(msgList, PUNICODE_STRING);
+
+    if (pRequestHeader)
+    {
+        if (pwszFilename->Length)
+        {
+            ntStatus = SrvAllocateMemory(
+                            pwszFilename->Length + sizeof(wchar16_t),
+                            (PVOID*)&pwszFilename1);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            memcpy( (PBYTE)pwszFilename1,
+                    (PBYTE)pwszFilename->Buffer,
+                    pwszFilename->Length);
+
+            ntStatus = SrvWc16sToMbs(pwszFilename1, &pszFilename);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Find request params: "
+                    "file-id(persistent:0x%x,volatile:0x%x),"
+                    "info-class(0x%x),search-flags(0x%x),file-index(%u),"
+                    "out-buffer-length(%u),file-name(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    (long long)pRequestHeader->fid.ullPersistentId,
+                    (long long)pRequestHeader->fid.ullVolatileId,
+                    pRequestHeader->ucInfoClass,
+                    pRequestHeader->ucSearchFlags,
+                    pRequestHeader->ulFileIndex,
+                    pRequestHeader->ulOutBufferLength,
+                    LWIO_SAFE_LOG_STRING(pszFilename));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Find request params: "
+                    "file-id(persistent:0x%x,volatile:0x%x),"
+                    "info-class(0x%x),search-flags(0x%x),file-index(%u),"
+                    "out-buffer-length(%u),file-name(%s)",
+                    (long long)pRequestHeader->fid.ullPersistentId,
+                    (long long)pRequestHeader->fid.ullVolatileId,
+                    pRequestHeader->ucInfoClass,
+                    pRequestHeader->ucSearchFlags,
+                    pRequestHeader->ulFileIndex,
+                    pRequestHeader->ulOutBufferLength,
+                    LWIO_SAFE_LOG_STRING(pszFilename));
+        }
+    }
+
+error:
+
+    va_end(msgList);
+
+    SRV_SAFE_FREE_MEMORY(pwszFilename1);
+    SRV_SAFE_FREE_MEMORY(pszFilename);
+
+    return;
 }
 
 static

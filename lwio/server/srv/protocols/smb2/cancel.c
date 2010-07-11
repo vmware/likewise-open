@@ -63,6 +63,14 @@ SrvProcessCancel_SMB_V2(
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
 
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Cancel request: flags(0x%x),command-seq(%llu)",
+            pSmbRequest->pHeader->ulFlags,
+            (long long) pSmbRequest->pHeader->ullCommandSequence);
+
     if (!(pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_ASYNC_COMMAND) ||
          (pSmbRequest->pHeader->ullCommandSequence != 0))
     {
@@ -73,8 +81,23 @@ SrvProcessCancel_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Cancel request: async-id(%llu)",
+            (long long) ullAsyncId);
+
     ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Cancel request params: command(%u:%s)",
+            pAsyncState->usCommand,
+            LWIO_SAFE_LOG_STRING(SrvGetCommandDescription_SMB_V2(pAsyncState->usCommand)));
 
     switch (pAsyncState->usCommand)
     {
