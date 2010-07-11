@@ -819,7 +819,7 @@ SrvOplockAsyncCB(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(
+    ntStatus = SrvProdConsEnqueueFront(
                     gProtocolGlobals_SMB_V1.pWorkQueue,
                     pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
