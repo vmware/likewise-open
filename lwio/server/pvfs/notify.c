@@ -981,12 +981,6 @@ PvfsNotifyCleanIrpList(
 
     pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
 
-    if (pFilterLink == NULL)
-    {
-        ntError = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     while (pFilterLink)
     {
         pFilter = LW_STRUCT_FROM_FIELD(
@@ -1023,7 +1017,6 @@ PvfsNotifyCleanIrpList(
         PvfsAsyncIrpComplete(pIrpCtx);
     }
 
-cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexNotify);
 
     if (pFcb)
@@ -1037,9 +1030,6 @@ cleanup:
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 

@@ -1299,12 +1299,6 @@ PvfsOplockCleanOplockQueue(
 
     pOplockLink = PvfsListTraverse(pFcb->pOplockList, NULL);
 
-    if (pOplockLink == NULL)
-    {
-        ntError = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     while (pOplockLink)
     {
         pOplock = LW_STRUCT_FROM_FIELD(
@@ -1345,7 +1339,6 @@ PvfsOplockCleanOplockQueue(
         PvfsAsyncIrpComplete(pIrpCtx);
     }
 
-cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexOplock);
 
     if (pFcb)
@@ -1359,9 +1352,6 @@ cleanup:
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 
