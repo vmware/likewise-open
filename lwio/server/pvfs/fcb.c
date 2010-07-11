@@ -451,6 +451,9 @@ PvfsReleaseFCB(
 
             if (PvfsFcbIsPendingDelete(pFcb))
             {
+                /* Clear the cache entry and remove the file but ignore any errors */
+
+                ntError = PvfsPathCacheRemove(pFcb->pszFilename);
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
 
                 /* Remove the FCB and allow the refcount to handle the free().
@@ -471,10 +474,6 @@ PvfsReleaseFCB(
 
                 if (ntError == STATUS_SUCCESS)
                 {
-                    /* Clear the cache entry but ignore any errors */
-
-                    PvfsPathCacheRemove(pFcb->pszFilename);
-
                     PvfsNotifyScheduleFullReport(
                         pFcb,
                         S_ISDIR(Stat.s_mode) ?
