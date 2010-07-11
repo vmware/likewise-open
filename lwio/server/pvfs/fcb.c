@@ -366,7 +366,13 @@ error:
 
 }
 
-static NTSTATUS
+/***********************************************************************
+ Make sure to alkways enter this unfunction with thee pFcb->ControlMutex
+ locked
+ **********************************************************************/
+
+static
+NTSTATUS
 PvfsExecuteDeleteOnClose(
     PPVFS_FCB pFcb
     )
@@ -375,7 +381,7 @@ PvfsExecuteDeleteOnClose(
 
     /* Always reset the delete-on-close state to be safe */
 
-    PvfsFcbSetPendingDelete(pFcb, FALSE);
+    pFcb->bDeleteOnClose = FALSE;
 
     /* Verify we are deleting the file we think we are */
 
@@ -396,6 +402,20 @@ cleanup:
     return ntError;
 
 error:
+    switch (ntError)
+    {
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+        break;
+
+    default:
+        LWIO_LOG_ERROR(
+            "%s: Failed to execute delete-on-close on %s (%d,%d) (%s)\n",
+            PVFS_LOG_HEADER,
+            pFcb->pszFilename, pFcb->FileId.Device, pFcb->FileId.Inode,
+            LwNtStatusToName(ntError));
+        break;
+    }
+
     goto cleanup;
 }
 
@@ -449,12 +469,18 @@ PvfsReleaseFCB(
                 }
             }
 
-            if (PvfsFcbIsPendingDelete(pFcb))
+            LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
+            if (pFcb->bDeleteOnClose)
             {
                 /* Clear the cache entry and remove the file but ignore any errors */
 
-                ntError = PvfsPathCacheRemove(pFcb->pszFilename);
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
+
+                /* The locking heirarchy requires that we drop the FCP control
+                   block mutex before trying to pick up the FcbTable exclusive lock */
+
+                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
                 /* Remove the FCB and allow the refcount to handle the free().
                    This prevents a failed delete-on-close from preventing
@@ -472,6 +498,8 @@ PvfsReleaseFCB(
                 LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
                 LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
 
+                PvfsPathCacheRemove(pFcb->pszFilename);
+
                 if (ntError == STATUS_SUCCESS)
                 {
                     PvfsNotifyScheduleFullReport(
@@ -485,6 +513,7 @@ PvfsReleaseFCB(
             }
         }
     }
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
     LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
 
