@@ -175,9 +175,9 @@ PvfsReadInternal(
                       PvfsReadFileWithContext,
                       PvfsFreeReadContext,
                       (PVOID)pReadCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pReadCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -188,9 +188,9 @@ PvfsReadInternal(
                       PvfsReadFileWithContext,
                       PvfsFreeReadContext,
                       (PVOID)pReadCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pReadCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }

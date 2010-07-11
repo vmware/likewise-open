@@ -659,10 +659,9 @@ PvfsOplockPendingBreakIfLocked(
                       pTestContext->pfnCompletion,
                       pTestContext->pfnFreeContext,
                       pTestContext->pCompletionContext);
-        if (ntError == STATUS_SUCCESS)
+        if (ntError == STATUS_PENDING)
         {
             pTestContext->pCompletionContext = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -673,10 +672,9 @@ PvfsOplockPendingBreakIfLocked(
                       pTestContext->pfnCompletion,
                       pTestContext->pfnFreeContext,
                       pTestContext->pCompletionContext);
-        if (ntError == STATUS_SUCCESS)
+        if (ntError == STATUS_PENDING)
         {
             pTestContext->pCompletionContext = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }
@@ -1677,7 +1675,7 @@ PvfsCreateOplockBreakTestContext(
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pTestCtx,
                   sizeof(PVFS_PENDING_OPLOCK_BREAK_TEST),
-                  TRUE);
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     pTestCtx->pFcb = PvfsReferenceFCB(pFcb);

@@ -168,9 +168,9 @@ PvfsSetFileEndOfFileInfo(
                       PvfsSetEndOfFileWithContext,
                       PvfsFreeSetEndOfFileContext,
                       (PVOID)pSetEoFCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pSetEoFCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
 
@@ -181,9 +181,9 @@ PvfsSetFileEndOfFileInfo(
                       PvfsSetEndOfFileWithContext,
                       PvfsFreeSetEndOfFileContext,
                       (PVOID)pSetEoFCtx);
-        if (ntError == STATUS_SUCCESS) {
+        if (ntError == STATUS_PENDING)
+        {
             pSetEoFCtx = NULL;
-            ntError = STATUS_PENDING;
         }
         break;
     }

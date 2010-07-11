@@ -127,9 +127,9 @@ PvfsLockControl(
                           PvfsLockFileWithContext,
                           PvfsFreeLockContext,
                           (PVOID)pLockCtx);
-            if (ntError == STATUS_SUCCESS) {
+            if (ntError == STATUS_PENDING)
+            {
                 pLockCtx = NULL;
-                ntError = STATUS_PENDING;
             }
             break;
 
@@ -140,9 +140,9 @@ PvfsLockControl(
                           PvfsLockFileWithContext,
                           PvfsFreeLockContext,
                           (PVOID)pLockCtx);
-            if (ntError == STATUS_SUCCESS) {
+            if (ntError == STATUS_PENDING)
+            {
                 pLockCtx = NULL;
-                ntError = STATUS_PENDING;
             }
             break;
 
