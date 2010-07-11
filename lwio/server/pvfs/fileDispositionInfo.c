@@ -114,9 +114,6 @@ PvfsSetFileDispositionInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    /* Should really be a check on the parent, but I'm not
-       entirely positive */
-
     ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
     BAIL_ON_NT_STATUS(ntError);
 
