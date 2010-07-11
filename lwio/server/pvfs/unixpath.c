@@ -335,17 +335,69 @@ PvfsFileSplitPath(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszCursor = NULL;
+    PSTR pszDirComponent = NULL;
+    PSTR pszBaseComponent = NULL;
+    size_t stringLength = 0;
 
-    ntError = PvfsFileDirname(ppszDirname, pszPath);
+    /* Case #1: No '/' so just return '.' */
+    if (((pszCursor = strrchr(pszPath, '/')) == NULL))
+    {
+        ntError = RtlCStringDuplicate(ppszDirname, ".");
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlCStringDuplicate(ppszBasename, pszPath);
+        BAIL_ON_NT_STATUS(ntError);
+
+        goto cleanup;
+    }
+
+    /* Case #2: only one '/' (at beginning of path) */
+
+    if (pszCursor == pszPath)
+    {
+        ntError = RtlCStringDuplicate(ppszDirname, "/");
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlCStringDuplicate(ppszBasename, "");
+        BAIL_ON_NT_STATUS(ntError);
+
+        goto cleanup;
+    }
+
+    /* Case #3: Real dirname and file name components */
+
+    stringLength = PVFS_PTR_DIFF(pszPath, pszCursor);
+
+    ntError = LW_RTL_ALLOCATE_NOCLEAR(
+                  &pszDirComponent,
+                  CHAR,
+                  stringLength + 1);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsFileBasename(ppszBasename, pszPath);
+    RtlCopyMemory(pszDirComponent, pszPath, stringLength);
+    pszDirComponent[stringLength] = '\0';
+
+    ntError = LwRtlCStringDuplicate(&pszBaseComponent, pszCursor+1);
     BAIL_ON_NT_STATUS(ntError);
+
+    *ppszBasename = pszBaseComponent;
+    *ppszDirname  = pszDirComponent;
 
 cleanup:
     return ntError;
 
 error:
+    if (pszBaseComponent)
+    {
+        LwRtlCStringFree(&pszBaseComponent);
+    }
+
+    if (pszDirComponent)
+    {
+        LwRtlCStringFree(&pszDirComponent);
+    }
+
     goto cleanup;
 
 }
