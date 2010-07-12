@@ -57,6 +57,8 @@ typedef struct _LWIO_SRV_CONFIG
 
     BOOLEAN bBootstrapDefaultSharePath;
 
+    ULONG ulMonitorIntervalMinutes;
+
 } LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
 
 typedef struct _SRV_CCB
@@ -108,6 +110,29 @@ typedef struct _LWIO_SRV_WORKER
 
 } LWIO_SRV_WORKER, *PLWIO_SRV_WORKER;
 
+typedef struct _LWIO_SRV_MONITOR_CONTEXT
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    pthread_cond_t   cond;
+    pthread_cond_t*  pCond;
+
+    BOOLEAN bStop;
+
+    ULONG   ulMonitorInterval;
+
+} LWIO_SRV_MONITOR_CONTEXT, *PLWIO_SRV_MONITOR_CONTEXT;
+
+typedef struct _LWIO_SRV_MONITOR
+{
+    pthread_t  worker;
+    pthread_t* pWorker;
+
+    LWIO_SRV_MONITOR_CONTEXT context;
+
+} LWIO_SRV_MONITOR, *PLWIO_SRV_MONITOR;
+
 typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 {
     pthread_mutex_t           mutex;
@@ -122,6 +147,8 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
     PLWIO_SRV_WORKER          pWorkerArray;
     ULONG                     ulNumWorkers;
+
+    PLWIO_SRV_MONITOR         pMonitor;
 
     PLWIO_PACKET_ALLOCATOR    hPacketAllocator;
 

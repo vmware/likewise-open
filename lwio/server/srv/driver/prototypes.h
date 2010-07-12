@@ -201,6 +201,29 @@ SrvDevCtlCloseFile(
     IN OUT PULONG pulBytesTransferred
     );
 
+// monitor.c
+
+NTSTATUS
+SrvMonitorCreate(
+    ULONG              ulMonitorInterval,
+    PLWIO_SRV_MONITOR* ppMonitor
+    );
+
+NTSTATUS
+SrvMonitorStart(
+    PLWIO_SRV_MONITOR pMonitor
+    );
+
+VOID
+SrvMonitorIndicateStop(
+    PLWIO_SRV_MONITOR pMonitor
+    );
+
+VOID
+SrvMonitorFree(
+    PLWIO_SRV_MONITOR pMonitor
+    );
+
 // sessions.c
 
 NTSTATUS

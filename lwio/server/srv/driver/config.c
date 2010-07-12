@@ -90,6 +90,15 @@ SrvReadConfig(
             bUsePolicy,
             &srvConfig.bBootstrapDefaultSharePath);
 
+    /* Ignore error as it may not exist; we can still use default. */
+    LwIoReadConfigDword(
+            pReg,
+            "MonitorIntervalMinutes",
+            bUsePolicy,
+            LWIO_SRV_DEFAULT_MONITOR_INTERVAL_MINS_MIN,
+            LWIO_SRV_DEFAULT_MONITOR_INTERVAL_MINS_MAX,
+            &srvConfig.ulMonitorIntervalMinutes);
+
     ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -122,6 +131,7 @@ SrvInitConfig(
     pConfig->ulNumWorkers             = LWIO_SRV_DEFAULT_NUM_WORKERS;
     pConfig->ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
     pConfig->bBootstrapDefaultSharePath       = FALSE;
+    pConfig->ulMonitorIntervalMinutes = LWIO_SRV_DEFAULT_MONITOR_INTERVAL_MINS;
 
     return ntStatus;
 }
