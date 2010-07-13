@@ -9,5 +9,4 @@ SUBDIRS = \
     netlogon   \
     krb5pac    \
     dssetup    \
-    netlib     \
-    testrpc
+    netlib

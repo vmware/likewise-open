@@ -43,6 +43,7 @@ NetrOpenSchannel(
     IN  PCWSTR            pwszHostname,
     IN  PCWSTR            pwszServer,
     IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszFqdn,
     IN  PCWSTR            pwszComputer,
     IN  PCWSTR            pwszMachinePassword,
     IN  NetrCredentials  *pCreds,
@@ -97,10 +98,12 @@ NetrOpenSchannel(
            16);
 
     SchannelAuthInfo.domain_name  = (unsigned char*) awc16stombs(pwszDomain);
+    SchannelAuthInfo.fqdn         = (unsigned char*) awc16stombs(pwszFqdn);
     SchannelAuthInfo.machine_name = (unsigned char*) awc16stombs(pwszComputer);
     SchannelAuthInfo.sender_flags = rpc_schn_initiator_flags;
 
     BAIL_ON_NULL_PTR(SchannelAuthInfo.domain_name, ntStatus);
+    BAIL_ON_NULL_PTR(SchannelAuthInfo.fqdn, ntStatus);
     BAIL_ON_NULL_PTR(SchannelAuthInfo.machine_name, ntStatus);
 
     ntStatus = LwIoGetActiveCreds(NULL, &pIoCreds);
@@ -116,8 +119,7 @@ NetrOpenSchannel(
 
     ntStatus = InitNetlogonBindingDefault(&hSchannelBinding,
                                           pszHostname,
-                                          pIoCreds,
-                                          TRUE);
+                                          pIoCreds);
     BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_set_auth_info(hSchannelBinding,
@@ -139,6 +141,7 @@ NetrOpenSchannel(
 
 cleanup:
     SAFE_FREE(SchannelAuthInfo.domain_name);
+    SAFE_FREE(SchannelAuthInfo.fqdn);
     SAFE_FREE(SchannelAuthInfo.machine_name);
 
     if (pszHostname)

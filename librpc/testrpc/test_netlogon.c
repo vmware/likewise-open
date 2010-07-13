@@ -52,7 +52,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitNetlogonBindingDefault(binding, hostname, creds, FALSE);
+    status = InitNetlogonBindingDefault(binding, hostname, creds);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];

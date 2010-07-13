@@ -152,7 +152,6 @@ InitLsaBindingFull(
     {
         rpc_smb_transport_info_from_lwio_creds(
             pIoAccessToken,
-            FALSE,
             &hInfo,
             &rpcStatus);
         BAIL_ON_RPC_STATUS(rpcStatus);

@@ -42,8 +42,7 @@ RPCSTATUS
 InitNetlogonBindingDefault(
     OUT handle_t            *phNetrBinding,
     IN  PCSTR                pszHostname,
-    IN  LW_PIO_CREDS  pAccessToken,
-    IN  BOOLEAN              bIsSchannel
+    IN  LW_PIO_CREDS  pAccessToken
     );
 
 
@@ -55,8 +54,7 @@ InitNetlogonBindingFull(
     IN  PCSTR                 pszEndpoint,
     IN  PCSTR                 pszUuid,
     IN  PCSTR                 pszOptions,
-    IN  LW_PIO_CREDS   pAccessToken,
-    IN  BOOLEAN               bIsSchannel
+    IN  LW_PIO_CREDS   pAccessToken
     );
 
 

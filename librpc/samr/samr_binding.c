@@ -151,7 +151,6 @@ InitSamrBindingFull(
     {
         rpc_smb_transport_info_from_lwio_creds(
             pCreds,
-            FALSE,
             &hInfo,
             &rpcStatus);
         BAIL_ON_RPC_STATUS(rpcStatus);

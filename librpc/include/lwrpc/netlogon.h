@@ -48,6 +48,7 @@ NetrOpenSchannel(
     IN  PCWSTR            pwszHostname,
     IN  PCWSTR            pwszServer,
     IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszFqdn,
     IN  PCWSTR            pwszComputer,
     IN  PCWSTR            pwszMachinePassword,
     IN  NetrCredentials  *pCreds,

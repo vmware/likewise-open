@@ -149,7 +149,6 @@ InitDsrBindingFull(
 
     rpc_smb_transport_info_from_lwio_creds(
         pIoAccessToken,
-        FALSE,
         &hTransportInfo,
         &rpcStatus);
     BAIL_ON_RPC_STATUS(rpcStatus);
