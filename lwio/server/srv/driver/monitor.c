@@ -63,6 +63,22 @@ SrvLogResourceStats(
     );
 
 static
+NTSTATUS
+SrvMonitorGetProgramSize(
+    PULONG pulProgramSize
+    );
+
+#ifdef __LWI_LINUX__
+
+static
+NTSTATUS
+SrvMonitorGetProgramSize_Linux(
+    PULONG pulProgramSize
+    );
+
+#endif /* __LWI_LINUX__ */
+
+static
 VOID
 SrvMonitorIndicateStopContext(
     PLWIO_SRV_MONITOR_CONTEXT pContext
@@ -215,25 +231,30 @@ SrvLogResourceStats(
     };
     IO_STATISTICS_INFO_0 ioStatInfo0 = {0};
     ULONG ulBytesTransferred = 0;
-
-#if 0
-    struct rusage resUsage;
-
-    memset(&resUsage, 0, sizeof(resUsage));
-
-    // TODO: This returns 0 for memory values on linux
-    if (getrusage(RUSAGE_SELF, &resUsage) < 0)
+    ULONG ulNumMemPages = 0;
+    ULONG64 ullProgramSize = 0;
+    enum
     {
-        status = LwErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(status);
-    }
+        BYTES = 0,
+        KILO_BYTES,
+        MEGA_BYTES
+    } sizeDenomination = BYTES;
 
-    LWIO_LOG_ALWAYS(
-        "Memory:shared-mem-size(%ld),unshared-data-size(%ld),unshared-stack-size(%ld)",
-        resUsage.ru_ixrss,
-        resUsage.ru_idrss,
-        resUsage.ru_isrss);
-#endif
+    status = SrvMonitorGetProgramSize(&ulNumMemPages);
+    if (status == STATUS_SUCCESS)
+    {
+        ullProgramSize = ulNumMemPages * sysconf(_SC_PAGESIZE);
+        if (ullProgramSize > (1024 * 1024))
+        {
+            ullProgramSize /= (1024 * 1024);
+            sizeDenomination = MEGA_BYTES;
+        }
+        else if (ullProgramSize > 1024)
+        {
+            ullProgramSize /= 1024;
+            sizeDenomination = KILO_BYTES;
+        }
+    }
 
     status = SrvProcessStatistics(
                         (PBYTE)&ioStatBuf,
@@ -244,8 +265,10 @@ SrvLogResourceStats(
     BAIL_ON_NT_STATUS(status);
 
     LWIO_LOG_ALWAYS(
-            "Statistics (srv): connections(%lld),sessions(%lld),"
+            "Statistics (srv): program-size(%u %s),connections(%lld),sessions(%lld),"
             "trees(%lld),files(%lld)",
+            ullProgramSize,
+            (sizeDenomination == MEGA_BYTES ? "M" : (sizeDenomination == KILO_BYTES ? "KB" : "bytes")),
             (long long)ioStatInfo0.llNumConnections,
             (long long)ioStatInfo0.llNumSessions,
             (long long)ioStatInfo0.llNumTreeConnects,
@@ -262,6 +285,70 @@ error:
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvMonitorGetProgramSize(
+    PULONG pulProgramSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+#ifdef __LWI_LINUX__
+    ntStatus = SrvMonitorGetProgramSize_Linux(pulProgramSize);
+#else
+    ntStatus = STATUS_NOT_SUPPORTED;
+#endif
+
+    return ntStatus;
+}
+
+#ifdef __LWI_LINUX__
+static
+NTSTATUS
+SrvMonitorGetProgramSize_Linux(
+    PULONG pulProgramSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    FILE* pFile = NULL;
+    ULONG ulProgramSize = 0;
+    int   nRead = 0;
+
+    //
+    // Note: getrusage(..) does not work on Linux 2.6
+    //
+    if (!(pFile = fopen("/proc/self/statm", "r")))
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    nRead = fscanf(pFile, "%u", &ulProgramSize);
+    if ((nRead < 1) || (nRead == EOF))
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pulProgramSize = ulProgramSize;
+
+cleanup:
+
+    if (pFile)
+    {
+        fclose(pFile);
+    }
+
+    return ntStatus;
+
+error:
+
+    *pulProgramSize = 0;
+
+    goto cleanup;
+}
+#endif /* __LWI_LINUX__ */
 
 VOID
 SrvMonitorIndicateStop(
