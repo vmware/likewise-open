@@ -1171,8 +1171,7 @@ AD_DsEnumerateDomainTrusts(
 
     status = InitNetlogonBindingDefault(&netr_b,
                                         pszDomainControllerName,
-                                        pCreds,
-                                        FALSE);
+                                        pCreds);
     if (status != 0)
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1304,8 +1303,7 @@ AD_DsGetDcName(
 
     status = InitNetlogonBindingDefault(&netr_b,
                                         pszServerName,
-                                        pCreds,
-                                        FALSE);
+                                        pCreds);
     if (status != 0)
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1640,6 +1638,7 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszServerName = NULL;
     PWSTR pwszShortDomain = NULL;
     PWSTR pwszPrimaryShortDomain = NULL;
+    PWSTR pwszPrimaryFqdn = NULL;
     PWSTR pwszUsername = NULL;
     PWSTR pwszComputer = NULL;
     PSTR pszHostname = NULL;
@@ -1715,6 +1714,13 @@ AD_NetlogonAuthenticationUserEx(
                                 &pwszPrimaryShortDomain);
         BAIL_ON_LSA_ERROR(dwError);
 
+        dwError = LwMbsToWc16s(gpADProviderData->szDomain,
+                               &pwszPrimaryFqdn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwWc16sToLower(pwszPrimaryFqdn);
+        BAIL_ON_LSA_ERROR(dwError);
+
         /* Establish the initial bind to \NETLOGON */
 
         dwError = AD_SetSystemAccess(&pOldToken);
@@ -1725,7 +1731,7 @@ AD_NetlogonAuthenticationUserEx(
         dwError = LwNtStatusToErrno(status);
         BAIL_ON_LSA_ERROR(dwError);
 
-        status = InitNetlogonBindingDefault(&netr_b,(const char*)pszDomainController, pCreds, FALSE);
+        status = InitNetlogonBindingDefault(&netr_b,(const char*)pszDomainController, pCreds);
         if (status != 0)
         {
             LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
@@ -1742,6 +1748,7 @@ AD_NetlogonAuthenticationUserEx(
                                      pwszDomainController,
                                      pwszServerName,
                                      pwszPrimaryShortDomain,
+                                     pwszPrimaryFqdn,
                                      pwszComputer,
                                      pMachAcctInfo->pwszMachinePassword,
                                      &gSchannelCreds,
@@ -1918,6 +1925,7 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pwszServerName);
     LW_SAFE_FREE_MEMORY(pwszShortDomain);
     LW_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
+    LW_SAFE_FREE_MEMORY(pwszPrimaryFqdn);
     LW_SAFE_FREE_MEMORY(pwszComputer);
 
     pthread_mutex_unlock(&gSchannelLock);

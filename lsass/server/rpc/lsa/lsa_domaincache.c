@@ -720,8 +720,7 @@ LsaSrvConnectDomainByName(
 
         rpcStatus = InitNetlogonBindingDefault(&hNetrBinding,
                                                pszDcName,
-                                               pCreds,
-                                               FALSE);
+                                               pCreds);
         if (rpcStatus)
         {
             ntStatus = LwRpcStatusToNtStatus(rpcStatus);
@@ -940,8 +939,7 @@ LsaSrvConnectDomainBySid(
 
         rpcStatus = InitNetlogonBindingDefault(&hNetrBinding,
                                                pszDcName,
-                                               pCreds,
-                                               FALSE);
+                                               pCreds);
         if (rpcStatus)
         {
             ntStatus = LwRpcStatusToNtStatus(rpcStatus);
