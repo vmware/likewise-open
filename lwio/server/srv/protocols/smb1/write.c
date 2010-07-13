@@ -235,6 +235,8 @@ SrvProcessWrite(
                                 pWriteState,
                                 pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
+
+                pWriteState->ioStatusBlock.BytesTransferred = 0;
             }
 
             // intentional fall through
