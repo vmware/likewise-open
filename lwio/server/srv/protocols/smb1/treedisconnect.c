@@ -91,6 +91,7 @@ SrvProcessTreeDisconnectAndX(
                         COM_TREE_DISCONNECT,
                         STATUS_SUCCESS,
                         TRUE,
+                        pConnection->serverProperties.Capabilities,
                         pSmbRequest->pHeader->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pSession->uid,

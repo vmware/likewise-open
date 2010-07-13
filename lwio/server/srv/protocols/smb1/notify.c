@@ -313,6 +313,7 @@ SrvNotifyBuildExecContext(
                     COM_NT_TRANSACT,
                     pNotifyState->ioStatusBlock.Status,
                     FALSE,  /* not a response */
+                    pNotifyState->pConnection->serverProperties.Capabilities,
                     pNotifyState->usTid,
                     pNotifyState->ulPid,
                     pNotifyState->usUid,

@@ -594,6 +594,7 @@ SrvBuildSetInformationResponse(
                         COM_SET_INFORMATION,
                         STATUS_SUCCESS,
                         TRUE,
+                        pConnection->serverProperties.Capabilities,
                         pCtxSmb1->pTree->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pCtxSmb1->pSession->uid,

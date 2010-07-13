@@ -234,7 +234,7 @@ error:
 
 
 NTSTATUS
-SrvIoSecCreateSecurityContext(
+SrvIoSecCreateSecurityContextFromGssContext(
     OUT PIO_CREATE_SECURITY_CONTEXT* ppSecurityContext,
     OUT PBOOLEAN pbLoggedInAsGuest,
     IN LW_MAP_SECURITY_GSS_CONTEXT hContextHandle,
@@ -313,6 +313,64 @@ error:
         IoSecurityDereferenceSecurityContext(&pIoSecCreateCtx);
         pIoSecCreateCtx = NULL;
     }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvIoSecCreateSecurityContextFromNtlmLogon(
+    OUT PIO_CREATE_SECURITY_CONTEXT* ppSecurityContext,
+    OUT PBOOLEAN pbLoggedInAsGuest,
+    OUT PSTR* ppszUsername,
+    OUT PVOID* ppSessionKey,
+    OUT PULONG pulSessionKeyLength,
+    IN PLW_MAP_SECURITY_NTLM_LOGON_INFO pNtlmLogonInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLW_MAP_SECURITY_NTLM_LOGON_RESULT pNtlmLogonResult = NULL;
+
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+    PSTR pszUsername = NULL;
+    PVOID pSessionKey = NULL;
+
+    // Create security context
+    ntStatus = IoSecurityCreateSecurityContextFromNtlmLogon(
+                &pSecurityContext,
+                &pNtlmLogonResult,
+                pNtlmLogonInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Session key
+    ntStatus = SrvAllocateMemory(NTLM_SESSION_KEY_SIZE, &pSessionKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    RtlCopyMemory(pSessionKey, pNtlmLogonResult->SessionKey, NTLM_SESSION_KEY_SIZE);
+
+    // Username
+    ntStatus = SrvAllocateString(pNtlmLogonResult->pszUsername, &pszUsername);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSecurityContext = pSecurityContext;
+    *pbLoggedInAsGuest = pNtlmLogonResult->bMappedToGuest;
+    *ppszUsername = pszUsername;
+    *ppSessionKey = pSessionKey;
+    *pulSessionKeyLength = NTLM_SESSION_KEY_SIZE;
+
+cleanup:
+
+    if (pNtlmLogonResult)
+    {
+        IoSecurityFreeNtlmLogonResult(&pNtlmLogonResult);
+    }
+
+    return ntStatus;
+
+error:
+
+    IoSecurityDereferenceSecurityContext(&pSecurityContext);
+    SRV_SAFE_FREE_MEMORY(pSessionKey);
+    SRV_SAFE_FREE_MEMORY(pszUsername);
 
     goto cleanup;
 }

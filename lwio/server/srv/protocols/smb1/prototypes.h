@@ -621,6 +621,7 @@ SrvMarshalHeader_SMB_V1(
     UCHAR         ucCommand,
     ULONG         ulError,
     BOOLEAN       bIsResponse,
+    ULONG         ulCapabilities,
     USHORT        usTid,
     ULONG         ulPid,
     USHORT        usUid,

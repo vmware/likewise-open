@@ -99,6 +99,7 @@ SrvProcessFindClose2(
                         COM_FIND_CLOSE2,
                         STATUS_SUCCESS,
                         TRUE,
+                        pConnection->serverProperties.Capabilities,
                         pSmbRequest->pHeader->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pCtxSmb1->pSession->uid,

@@ -30,7 +30,6 @@
 
 #include "includes.h"
 
-
 NTSTATUS
 SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     PLWIO_SRV_CONNECTION pConnection,
@@ -47,6 +46,7 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     uint8_t*  pDataCursor = NULL;
     PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
     PSMB_PACKET pSmbResponse = NULL;
+    PWSTR     pwszHostname = NULL;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -59,6 +59,11 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if ((pSmbRequest->pSMBHeader->flags2 & FLAG2_EXT_SEC) == 0)
+    {
+        pServerProperties->Capabilities &= ~CAP_EXTENDED_SECURITY;
+    }
 
     ntStatus = SMBPacketMarshallHeader(
                 pSmbResponse->pRawBuffer,
@@ -73,6 +78,10 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                 FALSE,
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+    if ((pServerProperties->Capabilities & CAP_EXTENDED_SECURITY) == 0)
+    {
+        pSmbResponse->pSMBHeader->flags2 &= ~FLAG2_EXT_SEC;
+    }
 
     pSmbResponse->pSMBHeader->wordCount = 17;
 
@@ -117,13 +126,13 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     pResponseHeader->systemTimeLow = llUTCTime & 0xFFFFFFFFLL;
     pResponseHeader->systemTimeHigh = (llUTCTime & 0xFFFFFFFF00000000LL) >> 32;
 
-    pResponseHeader->encryptionKeyLength = 0;
-
     pDataCursor = pSmbResponse->pData;
     if (pResponseHeader->capabilities & CAP_EXTENDED_SECURITY)
     {
         PBYTE pNegHintsBlob = NULL; /* Do not free */
         ULONG ulNegHintsLength = 0;
+
+        pResponseHeader->encryptionKeyLength = 0;
 
         memcpy(pDataCursor, pServerProperties->GUID, sizeof(pServerProperties->GUID));
         pDataCursor += sizeof(pServerProperties->GUID);
@@ -147,8 +156,58 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     }
     else
     {
-        ntStatus = STATUS_NOT_SUPPORTED;
-        BAIL_ON_NT_STATUS(ntStatus);
+        WCHAR wszWorkgroup[] = SRV_NATIVE_DOMAIN_W;
+        CHAR  szHostname[HOST_NAME_MAX];
+        PWSTR pwszDomain = pConnection->clientProperties.pwszNativeDomain;
+
+        if (!pwszDomain)
+        {
+            pwszDomain = &wszWorkgroup[0];
+        }
+
+        if (gethostname(szHostname, HOST_NAME_MAX) == -1)
+        {
+            ntStatus = LwErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pResponseHeader->encryptionKeyLength =
+            sizeof(pConnection->ServerChallenge);
+
+        // Generate challenge and remember it in connection
+        if (!RAND_bytes( pConnection->ServerChallenge,
+                         sizeof(pConnection->ServerChallenge)))
+        {
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        RtlCopyMemory(pDataCursor, &pConnection->ServerChallenge,
+                      sizeof(pConnection->ServerChallenge));
+        pDataCursor += sizeof(pConnection->ServerChallenge);
+        byteCount += sizeof(pConnection->ServerChallenge);
+
+        // Add domain name
+        {
+            size_t sDomainLen = (wc16slen(pwszDomain)+1) * sizeof(wchar16_t);
+
+            RtlCopyMemory(pDataCursor, pwszDomain, sDomainLen);
+            pDataCursor += sDomainLen;
+            byteCount += sDomainLen;
+        }
+
+        // Add hostname
+        {
+            size_t sHostnameLen = 0;
+
+            ntStatus = SrvMbsToWc16s(szHostname, &pwszHostname);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            sHostnameLen = (wc16slen(pwszHostname)+1) * sizeof(wchar16_t);
+            RtlCopyMemory(pDataCursor, pwszHostname, sHostnameLen);
+            pDataCursor += sHostnameLen;
+            byteCount += sHostnameLen;
+        }
     }
 
     pResponseHeader->byteCount = byteCount;
@@ -160,6 +219,8 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    SRV_SAFE_FREE_MEMORY(pwszHostname);
 
     return ntStatus;
 
@@ -211,6 +272,10 @@ SrvBuildNegotiateResponse_SMB_V1_Invalid(
                 FALSE,
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+    if ((pConnection->serverProperties.Capabilities & CAP_EXTENDED_SECURITY) == 0)
+    {
+        pSmbResponse->pSMBHeader->flags2 &= ~FLAG2_EXT_SEC;
+    }
 
     pSmbResponse->pSMBHeader->wordCount = 1;
     pResponseHeader = (NEGOTIATE_INVALID_RESPONSE_HEADER*)pSmbResponse->pParams;

@@ -51,6 +51,8 @@
 
 #include <uuid/uuid.h>
 
+#include <openssl/rand.h>
+
 #include <lwio/lwio.h>
 #include <lwio/lwiosrvstatprovider.h>
 
@@ -62,6 +64,7 @@
 
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
+#include <lw/mapsecurity.h>
 
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>

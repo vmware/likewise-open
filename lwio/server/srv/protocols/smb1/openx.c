@@ -916,6 +916,7 @@ SrvBuildOpenResponse(
                         COM_OPEN_ANDX,
                         STATUS_SUCCESS,
                         TRUE,
+                        pConnection->serverProperties.Capabilities,
                         pOpenState->pTree->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pCtxSmb1->pSession->uid,

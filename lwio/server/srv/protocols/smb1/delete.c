@@ -707,6 +707,7 @@ SrvBuildDeleteResponse(
                         COM_DELETE,
                         STATUS_SUCCESS,
                         TRUE,
+                        pConnection->serverProperties.Capabilities,
                         pDeleteState->pTree->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pDeleteState->pSession->uid,

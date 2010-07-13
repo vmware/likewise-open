@@ -203,6 +203,7 @@ SrvMarshallEchoResponse(
                         COM_ECHO,
                         STATUS_SUCCESS,
                         TRUE,
+                        pExecContext->pConnection->serverProperties.Capabilities,
                         pSmbRequest->pHeader->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pSmbRequest->pHeader->uid,

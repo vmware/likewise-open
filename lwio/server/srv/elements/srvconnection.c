@@ -280,8 +280,8 @@ SrvConnectionCreate(
     pthread_rwlock_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
 
-    pthread_mutex_init(&pConnection->mutexGssNegotiate, NULL);
-    pConnection->pMutexGssNegotiate = &pConnection->mutexGssNegotiate;
+    pthread_mutex_init(&pConnection->mutexSessionSetup, NULL);
+    pConnection->pMutexSessionSetup = &pConnection->mutexSessionSetup;
 
     ntStatus = SrvConnectionCreateSessionCollection(
                     &pConnection->pSessionCollection);
@@ -1666,10 +1666,10 @@ SrvConnectionFree(
         pConnection->pMutex = NULL;
     }
 
-    if (pConnection->pMutexGssNegotiate)
+    if (pConnection->pMutexSessionSetup)
     {
-        pthread_mutex_destroy(&pConnection->mutexGssNegotiate);;
-        pConnection->pMutexGssNegotiate = NULL;
+        pthread_mutex_destroy(&pConnection->mutexSessionSetup);;
+        pConnection->pMutexSessionSetup = NULL;
     }
 
     SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);

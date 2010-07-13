@@ -480,10 +480,11 @@ typedef struct _SRV_CONNECTION
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
     PVOID                      pProtocolTransportDriverContext;
 
+    BYTE                ServerChallenge[8];
     HANDLE              hGssContext;
 
-    pthread_mutex_t     mutexGssNegotiate;
-    pthread_mutex_t*    pMutexGssNegotiate;
+    pthread_mutex_t     mutexSessionSetup;
+    pthread_mutex_t*    pMutexSessionSetup;
 
     HANDLE              hGssNegotiate;
 
@@ -1226,11 +1227,21 @@ SrvTree2Rundown(
     );
 
 NTSTATUS
-SrvIoSecCreateSecurityContext(
+SrvIoSecCreateSecurityContextFromGssContext(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
     OUT PBOOLEAN pbLoggedInAsGuest,
     IN LW_MAP_SECURITY_GSS_CONTEXT hGssContext,
     IN PCSTR pszUsername
+    );
+
+NTSTATUS
+SrvIoSecCreateSecurityContextFromNtlmLogon(
+    OUT PIO_CREATE_SECURITY_CONTEXT* ppSecurityContext,
+    OUT PBOOLEAN pbLoggedInAsGuest,
+    OUT PSTR* ppszUsername,
+    OUT PVOID* ppSessionKey,
+    OUT PULONG pulSessionKeyLength,
+    IN PLW_MAP_SECURITY_NTLM_LOGON_INFO pNtlmLogonInfo
     );
 
 NTSTATUS

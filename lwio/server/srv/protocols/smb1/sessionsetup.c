@@ -32,7 +32,7 @@
 
 static
 NTSTATUS
-SrvUnmarshallSessionSetupRequest(
+SrvUnmarshallSessionSetupRequest_WC_12(
     PLWIO_SRV_CONNECTION pConnection,
     PSRV_MESSAGE_SMB_V1  pSmbRequest,
     PBYTE*               ppSecurityBlob,
@@ -41,15 +41,73 @@ SrvUnmarshallSessionSetupRequest(
 
 static
 NTSTATUS
-SrvMarshallSessionSetupResponse(
+SrvUnmarshallSessionSetupRequest_WC_13(
+    PLWIO_SRV_CONNECTION                pConnection,
+    PSRV_MESSAGE_SMB_V1                 pSmbRequest,
+    PLW_MAP_SECURITY_NTLM_LOGON_INFO    pNtlmLogonInfo
+    );
+
+static
+NTSTATUS
+SrvMarshallSessionSetupResponse_WC_4(
     PSRV_EXEC_CONTEXT    pExecContext,
     PBYTE                pSecurityBlob,
     ULONG                ulSecurityBlobLength
     );
 
+static
+NTSTATUS
+SrvMarshallSessionSetupResponse_WC_3(
+    PSRV_EXEC_CONTEXT    pExecContext
+    );
+
+static
+NTSTATUS
+SrvProcessSessionSetup_WC_12(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvProcessSessionSetup_WC_13(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 
 NTSTATUS
 SrvProcessSessionSetup(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus        = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol    = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1    pCtxSmb1        = pCtxProtocol->pSmb1Context;
+    ULONG                       iMsg            = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1         pSmbRequest     = &pCtxSmb1->pRequests[iMsg];
+
+    if (*pSmbRequest->pWordCount == 12)
+    {
+        ntStatus = SrvProcessSessionSetup_WC_12(pExecContext);
+    }
+    else if (*pSmbRequest->pWordCount == 13)
+    {
+        ntStatus = SrvProcessSessionSetup_WC_13(pExecContext);
+    }
+    else
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+    }
+
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvProcessSessionSetup_WC_12(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
@@ -71,14 +129,14 @@ SrvProcessSessionSetup(
     BOOLEAN                    bLoggedInAsGuest = FALSE;
     BOOLEAN                    bInitializedSessionKey = FALSE;
 
-    ntStatus = SrvUnmarshallSessionSetupRequest(
+    ntStatus = SrvUnmarshallSessionSetupRequest_WC_12(
                     pConnection,
                     pSmbRequest,
                     &pSecurityBlob,
                     &ulSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_MUTEX(bGssNegotiateLocked, &pConnection->mutexGssNegotiate);
+    LWIO_LOCK_MUTEX(bGssNegotiateLocked, &pConnection->mutexSessionSetup);
 
     if (pConnection->hGssNegotiate == NULL)
     {
@@ -97,7 +155,7 @@ SrvProcessSessionSetup(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvMarshallSessionSetupResponse(
+    ntStatus = SrvMarshallSessionSetupResponse_WC_4(
                     pExecContext,
                     pSecurityBlob,
                     ulSecurityBlobLength);
@@ -179,7 +237,7 @@ SrvProcessSessionSetup(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvIoSecCreateSecurityContext(
+        ntStatus = SrvIoSecCreateSecurityContextFromGssContext(
                        &pCtxSmb1->pSession->pIoSecurityContext,
                        &bLoggedInAsGuest,
                        hContextHandle,
@@ -190,7 +248,7 @@ SrvProcessSessionSetup(
         {
             PBYTE pSessionBuffer = pSmbResponse->pBuffer + pSmbResponse->usHeaderSize;
 
-            ((PSESSION_SETUP_RESPONSE_HEADER)pSessionBuffer)->action = 0x1;
+            ((PSESSION_SETUP_RESPONSE_HEADER_WC_4)pSessionBuffer)->action = 0x1;
 
             SrvSessionSetUserFlags(pCtxSmb1->pSession, SMB_SESSION_FLAG_GUEST);
 
@@ -276,7 +334,7 @@ SrvProcessSessionSetup(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bGssNegotiateLocked, &pConnection->mutexGssNegotiate);
+    LWIO_UNLOCK_MUTEX(bGssNegotiateLocked, &pConnection->mutexSessionSetup);
 
     SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
     SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
@@ -304,7 +362,104 @@ error:
 
 static
 NTSTATUS
-SrvUnmarshallSessionSetupRequest(
+SrvProcessSessionSetup_WC_13(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus    = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION        pConnection = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol= pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1    pCtxSmb1    = pCtxProtocol->pSmb1Context;
+    ULONG                       iMsg        = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1         pSmbRequest = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1         pSmbResponse= &pCtxSmb1->pResponses[iMsg];
+    LW_MAP_SECURITY_NTLM_LOGON_INFO ntlmLogonInfo = { 0 };
+    BOOLEAN                     bLoggedInAsGuest = FALSE;
+    BOOLEAN                     bSessionSetupLocked = FALSE;
+    PSTR                        pszUsername = NULL;
+    PBYTE                       pSessionKey = NULL;
+    ULONG                       ulSessionKeyLength = 0;
+
+    // Unmarshall request
+    ntStatus = SrvUnmarshallSessionSetupRequest_WC_13(
+                    pConnection,
+                    pSmbRequest,
+                    &ntlmLogonInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    RtlCopyMemory(ntlmLogonInfo.Challenge, pConnection->ServerChallenge,
+                  sizeof(ntlmLogonInfo.Challenge));
+
+    ntStatus = SrvMarshallSessionSetupResponse_WC_3(pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
+
+    ntStatus = SrvSetStatSessionInfo(pExecContext, pCtxSmb1->pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvIoSecCreateSecurityContextFromNtlmLogon(
+                    &pCtxSmb1->pSession->pIoSecurityContext,
+                    &bLoggedInAsGuest,
+                    &pszUsername,
+                    (PVOID*)&pSessionKey,
+                    &ulSessionKeyLength,
+                    &ntlmLogonInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->pSessionKey == NULL && bLoggedInAsGuest == FALSE)
+    {
+        LWIO_LOCK_MUTEX(bSessionSetupLocked, &pConnection->mutexSessionSetup);
+        if (pConnection->pSessionKey == NULL)
+        {
+            ntStatus = SrvAllocateMemory(ulSessionKeyLength,
+                                         (PVOID*)&pConnection->pSessionKey);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            RtlCopyMemory(pConnection->pSessionKey,
+                          pSessionKey,
+                          ulSessionKeyLength);
+
+            pConnection->ulSessionKeyLength = ulSessionKeyLength;
+        }
+        LWIO_UNLOCK_MUTEX(bSessionSetupLocked, &pConnection->mutexSessionSetup);
+    }
+
+    if (bLoggedInAsGuest)
+    {
+        PBYTE pSessionBuffer = pSmbResponse->pBuffer + pSmbResponse->usHeaderSize;
+        ((PSESSION_SETUP_RESPONSE_HEADER_WC_3)pSessionBuffer)->action = 0x1;
+
+        SrvSessionSetUserFlags(pCtxSmb1->pSession, SMB_SESSION_FLAG_GUEST);
+    }
+
+    ntStatus = SrvSessionSetPrincipalName(
+                            pCtxSmb1->pSession,
+                            pszUsername);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bSessionSetupLocked, &pConnection->mutexSessionSetup);
+
+    SRV_SAFE_FREE_MEMORY(pszUsername);
+    SRV_SAFE_FREE_MEMORY(pSessionKey);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvUnmarshallSessionSetupRequest_WC_12(
     PLWIO_SRV_CONNECTION pConnection,
     PSRV_MESSAGE_SMB_V1  pSmbRequest,
     PBYTE*               ppSecurityBlob,
@@ -312,7 +467,7 @@ SrvUnmarshallSessionSetupRequest(
     )
 {
     NTSTATUS ntStatus = 0;
-    SESSION_SETUP_REQUEST_HEADER* pHeader = NULL; // Do not free
+    SESSION_SETUP_REQUEST_HEADER_WC_12* pHeader = NULL; // Do not free
     PBYTE pSecurityBlob    = NULL; // Do not free
     PWSTR pwszNativeOS     = NULL; // Do not free
     PWSTR pwszNativeLanMan = NULL; // Do not free
@@ -321,7 +476,7 @@ SrvUnmarshallSessionSetupRequest(
     ULONG ulOffset         = pSmbRequest->usHeaderSize;
     ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
 
-    ntStatus = UnmarshallSessionSetupRequest(
+    ntStatus = UnmarshallSessionSetupRequest_WC_12(
                     pBuffer,
                     ulBytesAvailable,
                     ulOffset % 2,
@@ -394,7 +549,83 @@ error:
 
 static
 NTSTATUS
-SrvMarshallSessionSetupResponse(
+SrvUnmarshallSessionSetupRequest_WC_13(
+    PLWIO_SRV_CONNECTION    pConnection,
+    PSRV_MESSAGE_SMB_V1     pSmbRequest,
+    PLW_MAP_SECURITY_NTLM_LOGON_INFO    pNtlmLogonInfo
+    )
+{
+    NTSTATUS ntStatus = 0;
+    SESSION_SETUP_REQUEST_HEADER_WC_13* pHeader = NULL; // Do not free
+    PWSTR pwszNativeOS     = NULL; // Do not free
+    PWSTR pwszNativeLanMan = NULL; // Do not free
+    PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
+    ULONG ulOffset         = pSmbRequest->usHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
+
+    ntStatus = UnmarshallSessionSetupRequest_WC_13(
+                    pBuffer,
+                    ulBytesAvailable,
+                    ulOffset % 2,
+                    &pHeader,
+                    pNtlmLogonInfo,
+                    &pwszNativeOS,
+                    &pwszNativeLanMan);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->clientProperties.pwszNativeOS)
+    {
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeOS);
+        pConnection->clientProperties.pwszNativeOS = NULL;
+    }
+    if (pwszNativeOS)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pwszNativeOS,
+                        &pConnection->clientProperties.pwszNativeOS);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pConnection->clientProperties.pwszNativeLanMan)
+    {
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeLanMan);
+        pConnection->clientProperties.pwszNativeLanMan = NULL;
+    }
+    if (pwszNativeLanMan)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pwszNativeLanMan,
+                        &pConnection->clientProperties.pwszNativeLanMan);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pConnection->clientProperties.pwszNativeDomain)
+    {
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeDomain);
+        pConnection->clientProperties.pwszNativeDomain = NULL;
+    }
+    if (pNtlmLogonInfo->pwszDomain)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pNtlmLogonInfo->pwszDomain,
+                        &pConnection->clientProperties.pwszNativeDomain);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pConnection->clientProperties.Capabilities = pHeader->capabilities;
+    pConnection->clientProperties.MaxBufferSize = pHeader->maxBufferSize;
+    pConnection->clientProperties.MaxMpxCount = pHeader->maxMpxCount;
+    pConnection->clientProperties.SessionKey = pHeader->sessionKey;
+    pConnection->clientProperties.VcNumber = pHeader->vcNumber;
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvMarshallSessionSetupResponse_WC_4(
     PSRV_EXEC_CONTEXT pExecContext,
     PBYTE             pSecurityBlob,
     ULONG             ulSecurityBlobLength
@@ -407,12 +638,12 @@ SrvMarshallSessionSetupResponse(
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
-    SESSION_SETUP_RESPONSE_HEADER* pResponseHeader = NULL;
+    SESSION_SETUP_RESPONSE_HEADER_WC_4* pResponseHeader = NULL;
     PBYTE     pReplySecurityBlob = NULL;
     ULONG     ulReplySecurityBlobLength = 0;
-    wchar16_t wszNativeOS[] = {'U', 'n', 'i', 'x', 0 };
-    wchar16_t wszNativeLanMan[] = {'L','i','k','e','w','i','s','e',' ','C','I', 'F', 'S', 0 };
-    wchar16_t wszNativeDomain[] = { 0 };
+    wchar16_t wszNativeOS[] = SRV_NATIVE_OS_W;
+    wchar16_t wszNativeLanMan[] = SRV_NATIVE_LAN_MAN_W;
+    wchar16_t wszNativeDomain[] = SRV_NATIVE_DOMAIN_W;
     PBYTE pOutBuffer         = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable   = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset           = 0;
@@ -437,6 +668,7 @@ SrvMarshallSessionSetupResponse(
                         COM_SESSION_SETUP_ANDX,
                         STATUS_SUCCESS,
                         TRUE,  /* is response */
+                        pConnection->serverProperties.Capabilities,
                         pSmbRequest->pHeader->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pSmbRequest->pHeader->uid,
@@ -467,18 +699,18 @@ SrvMarshallSessionSetupResponse(
 
     *pSmbResponse->pWordCount = 4;
 
-    if (ulBytesAvailable < sizeof(SESSION_SETUP_RESPONSE_HEADER))
+    if (ulBytesAvailable < sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_4))
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pResponseHeader = (PSESSION_SETUP_RESPONSE_HEADER)pOutBuffer;
+    pResponseHeader = (PSESSION_SETUP_RESPONSE_HEADER_WC_4)pOutBuffer;
 
-    ulTotalBytesUsed += sizeof(SESSION_SETUP_RESPONSE_HEADER);
-    ulOffset         += sizeof(SESSION_SETUP_RESPONSE_HEADER);
-    ulBytesAvailable -= sizeof(SESSION_SETUP_RESPONSE_HEADER);
-    pOutBuffer       += sizeof(SESSION_SETUP_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_4);
+    ulOffset         += sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_4);
+    ulBytesAvailable -= sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_4);
+    pOutBuffer       += sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_4);
 
     /* TODO : change to native domain */
 
@@ -520,6 +752,119 @@ cleanup:
     {
         SrvFreeMemory(pReplySecurityBlob);
     }
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvMarshallSessionSetupResponse_WC_3(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    SESSION_SETUP_RESPONSE_HEADER_WC_3* pResponseHeader = NULL;
+    wchar16_t wszNativeOS[] = SRV_NATIVE_OS_W;
+    wchar16_t wszNativeLanMan[] = SRV_NATIVE_LAN_MAN_W;
+    wchar16_t wszNativeDomain[] = SRV_NATIVE_DOMAIN_W;
+    PBYTE pOutBuffer         = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable   = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset           = 0;
+    ULONG ulBytesUsed        = 0;
+    ULONG ulTotalBytesUsed   = 0;
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_SESSION_SETUP_ANDX,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pConnection->serverProperties.Capabilities,
+                        pSmbRequest->pHeader->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pSmbRequest->pHeader->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_SESSION_SETUP_ANDX,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 3;
+
+    if (ulBytesAvailable < sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_3))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PSESSION_SETUP_RESPONSE_HEADER_WC_3)pOutBuffer;
+
+    ulTotalBytesUsed += sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_3);
+    ulOffset         += sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_3);
+    ulBytesAvailable -= sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_3);
+    pOutBuffer       += sizeof(SESSION_SETUP_RESPONSE_HEADER_WC_3);
+
+    ntStatus = MarshallSessionSetupResponseData(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset % 2,
+                    &ulBytesUsed,
+                    NULL,
+                    0,
+                    &wszNativeOS[0],
+                    &wszNativeLanMan[0],
+                    &wszNativeDomain[0]);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    assert(ulBytesUsed <= UINT16_MAX);
+    pResponseHeader->byteCount = (USHORT) ulBytesUsed;
+
+    ulTotalBytesUsed += ulBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
 
     return ntStatus;
 
