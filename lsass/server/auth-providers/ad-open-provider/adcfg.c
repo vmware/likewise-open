@@ -256,7 +256,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &pszSpaceReplacement
+            &pszSpaceReplacement,
+            NULL
         },
         {
             "DomainSeparator",
@@ -265,7 +266,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &pszDomainSeparator
+            &pszDomainSeparator,
+            NULL
         },
         {
             "HomeDirUmask",
@@ -274,7 +276,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &pszUmask
+            &pszUmask,
+            NULL
         },
         {
             "RequireMembershipOf",
@@ -283,7 +286,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &pszUnresolvedMemberList
+            &pszUnresolvedMemberList,
+            NULL
         },
         {
             "LoginShellTemplate",
@@ -292,7 +296,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.pszShell
+            &StagingConfig.pszShell,
+            NULL
         },
         {
             "HomeDirTemplate",
@@ -301,7 +306,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.pszHomedirTemplate
+            &StagingConfig.pszHomedirTemplate,
+            NULL
         },
         {
             "CachePurgeTimeout",
@@ -310,7 +316,8 @@ AD_ReadRegistry(
             AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS,
             AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS,
             NULL,
-            &StagingConfig.dwCacheReaperTimeoutSecs
+            &StagingConfig.dwCacheReaperTimeoutSecs,
+            NULL
         },
         {
             "MachinePasswordLifespan",
@@ -319,7 +326,8 @@ AD_ReadRegistry(
             0,  /* Valid range is 0 or [AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS,*/
             MAXDWORD, /* AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS] */
             NULL,
-            &dwMachinePasswordSyncLifetime
+            &dwMachinePasswordSyncLifetime,
+            NULL
         },
         {
             "CacheEntryExpiry",
@@ -328,7 +336,8 @@ AD_ReadRegistry(
             AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS,
             AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS,
             NULL,
-            &StagingConfig.dwCacheEntryExpirySecs
+            &StagingConfig.dwCacheEntryExpirySecs,
+            NULL
         },
         {
             "MemoryCacheSizeCap",
@@ -337,7 +346,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.dwCacheSizeCap
+            &StagingConfig.dwCacheSizeCap,
+            NULL
         },
         {
             "LdapSignAndSeal",
@@ -346,7 +356,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bLDAPSignAndSeal
+            &StagingConfig.bLDAPSignAndSeal,
+            NULL
         },
         {
             "AssumeDefaultDomain",
@@ -355,7 +366,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bAssumeDefaultDomain
+            &StagingConfig.bAssumeDefaultDomain,
+            NULL
         },
         {
             "SyncSystemTime",
@@ -364,7 +376,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bSyncSystemTime
+            &StagingConfig.bSyncSystemTime,
+            NULL
         },
         {
             "LogNetworkConnectionEvents",
@@ -373,7 +386,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bShouldLogNetworkConnectionEvents
+            &StagingConfig.bShouldLogNetworkConnectionEvents,
+            NULL
         },
         {
             "CreateK5Login",
@@ -382,7 +396,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bCreateK5Login
+            &StagingConfig.bCreateK5Login,
+            NULL
         },
         {
             "CreateHomeDir",
@@ -391,7 +406,8 @@ AD_ReadRegistry(
             0,
             -1,
             NULL,
-            &StagingConfig.bCreateHomeDir
+            &StagingConfig.bCreateHomeDir,
+            NULL
         },
         {
             "SkeletonDirs",
@@ -400,7 +416,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.pszSkelDirs
+            &StagingConfig.pszSkelDirs,
+            NULL
         },
         {
             "HomeDirPrefix",
@@ -409,7 +426,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.pszHomedirPrefix
+            &StagingConfig.pszHomedirPrefix,
+            NULL
         },
         {
             "RefreshUserCredentials",
@@ -418,7 +436,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bRefreshUserCreds
+            &StagingConfig.bRefreshUserCreds,
+            NULL
         },
         {
             "TrimUserMembership",
@@ -427,7 +446,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bTrimUserMembershipEnabled
+            &StagingConfig.bTrimUserMembershipEnabled,
+            NULL
         },
         {
             "CellSupport",
@@ -436,7 +456,8 @@ AD_ReadRegistry(
             AD_CELL_SUPPORT_UNPROVISIONED,
             AD_CELL_SUPPORT_UNPROVISIONED,
             CellSupport,
-            &StagingConfig.CellSupport
+            &StagingConfig.CellSupport,
+            NULL
         },
         {
             "CacheType",
@@ -445,7 +466,8 @@ AD_ReadRegistry(
             AD_CACHE_SQLITE,
             AD_CACHE_IN_MEMORY,
             CacheBackend,
-            &StagingConfig.CacheBackend
+            &StagingConfig.CacheBackend,
+            NULL
         },
         {
             "NssGroupMembersQueryCacheOnly",
@@ -454,7 +476,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bNssGroupMembersCacheOnlyEnabled
+            &StagingConfig.bNssGroupMembersCacheOnlyEnabled,
+            NULL
         },
         {
             "NssUserMembershipQueryCacheOnly",
@@ -463,7 +486,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bNssUserMembershipCacheOnlyEnabled
+            &StagingConfig.bNssUserMembershipCacheOnlyEnabled,
+            NULL
         },
         {
             "NssEnumerationEnabled",
@@ -472,7 +496,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bNssEnumerationEnabled
+            &StagingConfig.bNssEnumerationEnabled,
+            NULL
         },
         {
             "DomainManagerCheckDomainOnlineInterval",
@@ -481,7 +506,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.DomainManager.dwCheckDomainOnlineSeconds
+            &StagingConfig.DomainManager.dwCheckDomainOnlineSeconds,
+            NULL
         },
         {
             "DomainManagerUnknownDomainCacheTimeout",
@@ -490,7 +516,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.DomainManager.dwUnknownDomainCacheTimeoutSeconds
+            &StagingConfig.DomainManager.dwUnknownDomainCacheTimeoutSeconds,
+            NULL
         }
     };
 
@@ -503,7 +530,8 @@ AD_ReadRegistry(
             0,
             MAXDWORD,
             NULL,
-            &StagingConfig.bEnableEventLog
+            &StagingConfig.bEnableEventLog,
+            NULL
         }
     };
 
