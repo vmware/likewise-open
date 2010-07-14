@@ -150,6 +150,7 @@ LsaSrvApiInitConfig(
 {
     LsaSrvApiFreeConfigContents(pConfig);
 
+    pConfig->bLogInvalidPasswords = FALSE;
     pConfig->bEnableEventLog = FALSE;
     pConfig->bLogNetworkConnectionEvents = TRUE;
 
@@ -183,6 +184,15 @@ LsaSrvApiReadRegistry(
            MAXDWORD,
            NULL,
            &StagingConfig.bLogNetworkConnectionEvents
+        },
+        {
+           "LogInvalidPasswords",
+           FALSE,
+           LsaTypeBoolean,
+           0,
+           MAXDWORD,
+           NULL,
+           &StagingConfig.bLogInvalidPasswords
         }
     };
 
@@ -302,6 +312,22 @@ LsaSrvEventlogEnabled(
     pthread_mutex_lock(&gAPIConfigLock);
 
     bResult = gAPIConfig.bEnableEventLog;
+
+    pthread_mutex_unlock(&gAPIConfigLock);
+
+    return bResult;
+}
+
+BOOLEAN
+LsaSrvLogInvalidPasswords(
+    VOID
+    )
+{
+    BOOLEAN bResult = FALSE;
+
+    pthread_mutex_lock(&gAPIConfigLock);
+
+    bResult = gAPIConfig.bLogInvalidPasswords;
 
     pthread_mutex_unlock(&gAPIConfigLock);
 

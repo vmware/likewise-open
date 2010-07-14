@@ -78,6 +78,11 @@ LsaSrvEventlogEnabled(
     VOID
     );
 
+BOOLEAN
+LsaSrvLogInvalidPasswords(
+    VOID
+    );
+
 VOID
 LsaSrvEnableEventlog(
     BOOLEAN bValue

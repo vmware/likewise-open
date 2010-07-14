@@ -11,6 +11,7 @@
 [HKEY_THIS_MACHINE\Services\lsass\Parameters]
 "EnableEventlog"=dword:00000000
 "LogNetworkConnectionEvents"=dword:00000001
+"LogInvalidPasswords"=dword:00000000
 "LogLevel"="error"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\NTLM]

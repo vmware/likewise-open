@@ -159,11 +159,11 @@ error:
     }
     else
     {
-        /* if (dwError == LW_ERROR_PASSWORD_MISMATCH && LsaSrvLogPasswords())
+        if (dwError == LW_ERROR_PASSWORD_MISMATCH && LsaSrvLogInvalidPasswords())
         {
             LSA_LOG_ERROR_API_FAILED(hServer, dwError, "authenticate user (name = '%s', password = '%s')", LSA_SAFE_LOG_STRING(pParams->pszLoginName), LSA_SAFE_LOG_STRING(pParams->pszPassword));
         }
-        else */
+        else
         {
             LSA_LOG_ERROR_API_FAILED(hServer, dwError, "authenticate user (name = '%s')", LSA_SAFE_LOG_STRING(pParams->pszLoginName));
         }
