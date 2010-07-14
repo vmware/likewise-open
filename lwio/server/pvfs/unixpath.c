@@ -537,7 +537,8 @@ PvfsResolvePath(
     PVFS_STAT Stat = {0};
     PSTR pszResolvedPath = NULL;
     PSTR pszCurrentResolvedPath = NULL;
-    CHAR pszResWorkingPath[PATH_MAX] = { 0 };
+    PSTR pszResWorkingPath = NULL;
+    PSTR pszResWorkingPath2 = NULL;
     CHAR pszWorkingPath[PATH_MAX] = { 0 };
     DWORD Length = PATH_MAX;
     DIR *pDir = NULL;
@@ -591,11 +592,19 @@ PvfsResolvePath(
 
         /* Try cache first */
 
-        ntError = PvfsPathCacheLookup2(pszResWorkingPath, PATH_MAX, pszWorkingPath);
+        if (pszResWorkingPath2)
+        {
+            LwRtlCStringFree(&pszResWorkingPath2);
+            pszResWorkingPath = NULL;
+        }
+
+        ntError = PvfsPathCacheLookup(&pszResWorkingPath2, pszWorkingPath);
         if (ntError == STATUS_SUCCESS)
         {
+            pszResWorkingPath = pszResWorkingPath2;
+            pszResWorkingPath2 = NULL;
+
             pszCurrentResolvedPath = pszResWorkingPath;
-            Length = PATH_MAX - RtlCStringNumChars(pszCurrentResolvedPath);
         }
 
         /* Maybe an exact match on disk? */
@@ -603,7 +612,6 @@ PvfsResolvePath(
         else if (PvfsSysStat(pszWorkingPath, &Stat) == STATUS_SUCCESS)
         {
             pszCurrentResolvedPath = pszWorkingPath;
-            Length = PATH_MAX - RtlCStringNumChars(pszCurrentResolvedPath);
 
             ntError = PvfsPathCacheAdd(pszCurrentResolvedPath);
             BAIL_ON_NT_STATUS(ntError);
@@ -615,7 +623,7 @@ PvfsResolvePath(
         {
             /* Enumerate directory entries and look for a match */
 
-            ntError = PvfsSysOpenDir(pszResolvedPath, &pDir);
+            ntError = PvfsSysOpenDir(pszCurrentResolvedPath, &pDir);
             if (ntError == STATUS_NOT_A_DIRECTORY)
             {
                 ntError = STATUS_OBJECT_PATH_NOT_FOUND;
@@ -654,10 +662,23 @@ PvfsResolvePath(
                 BAIL_ON_NT_STATUS(ntError);
             }
 
-            strncat(pszResolvedPath, "/", Length-1);
-            Length -= 1;
-            strncat(pszResolvedPath, pDirEntry->d_name, Length-1);
-            Length -= RtlCStringNumChars(pDirEntry->d_name);
+            if (pszCurrentResolvedPath == pszResolvedPath)
+            {
+                size_t sResolvedLen = RtlCStringNumChars(pszResolvedPath);
+
+                strncat(pszResolvedPath, "/", PATH_MAX-sResolvedLen-1);
+                sResolvedLen++;
+                strncat(pszResolvedPath, pDirEntry->d_name, PATH_MAX-sResolvedLen-1);
+            }
+            else
+            {
+                snprintf(
+                    pszResolvedPath,
+                    PATH_MAX-1,
+                    "%s/%s",
+                    pszCurrentResolvedPath,
+                    pDirEntry->d_name);
+            }
 
             pszCurrentResolvedPath = pszResolvedPath;
 
@@ -669,6 +690,8 @@ PvfsResolvePath(
             BAIL_ON_NT_STATUS(ntError);
 
         }
+
+        Length = PATH_MAX - RtlCStringNumChars(pszCurrentResolvedPath);
 
         /* Cleanup for next loop */
 
@@ -705,8 +728,25 @@ PvfsResolvePath(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    RtlCStringFree(&pszPath);
-    RtlCStringFree(&pszResolvedPath);
+    if (pszPath)
+    {
+        LwRtlCStringFree(&pszPath);
+    }
+
+    if (pszResolvedPath)
+    {
+        LwRtlCStringFree(&pszResolvedPath);
+    }
+
+    if (pszResWorkingPath)
+    {
+        LwRtlCStringFree(&pszResWorkingPath);
+    }
+
+    if (pszResWorkingPath2)
+    {
+        LwRtlCStringFree(&pszResWorkingPath2);
+    }
 
     if (pDir)
     {
