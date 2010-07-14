@@ -409,6 +409,13 @@ PvfsPathCacheLookup(
     IN  PCSTR pszOriginalPath
     );
 
+NTSTATUS
+PvfsPathCacheLookup2(
+    OUT PSTR pszBuffer,
+    IN  size_t sBufferLength,
+    IN  PCSTR pszOriginalPath
+    );
+
 
 /* From wildcard.c */
 
