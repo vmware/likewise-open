@@ -382,12 +382,17 @@ PvfsReleaseFCB(
                 {
                     PPVFS_FCB_TABLE_ENTRY pBucket = pFcb->pBucket;
 
-                    pFcb->bRemoved = TRUE;
-                    pFcb->pBucket = NULL;
-
                     LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
+                    /* Remove the FCB from the Bucket before setting pFcb->pBucket
+                       to NULL */
+
                     PvfsFcbTableRemove(pBucket, pFcb);
+
+                    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+                    pFcb->bRemoved = TRUE;
+                    pFcb->pBucket = NULL;
+                    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
                 }
                 LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
@@ -412,59 +417,45 @@ PvfsReleaseFCB(
     LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
 
 
-    if (InterlockedDecrement(&pFcb->RefCount) == 0)
-    {
         /* It is important to lock the FcbTable here so that there is no window
            between the refcount check and the remove. Otherwise another open request
            could search and locate the FCB in the tree and return free()'d memory.
            However, if the FCB has no bucket pointer, it has already been removed
-           from the FcbTable so locking is unnecessary.
+           from the FcbTable so locking is unnecessary. */
 
-           We lock inside the InterlockedDecrement() block to avoid grabing an
-           exclusive lock on every FCB release. */
+    pBucket = pFcb->pBucket;
 
-        pBucket = pFcb->pBucket;
+    if (pBucket)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
+    }
 
-        if (pBucket)
+    if (InterlockedDecrement(&pFcb->RefCount) == 0)
+    {
+
+        if (!pFcb->bRemoved)
         {
-            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
+            PvfsFcbTableRemove_inlock(pBucket, pFcb);
+
+            pFcb->bRemoved = TRUE;
+            pFcb->pBucket = NULL;
         }
 
-        /* Check the refcount again in case someone grab a reference in
-           between the InterlockedDecrement() and when we obtained the
-           exclusive lock on the bucket */
-
-        if (pFcb->RefCount == 0)
-        {
-            LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-            if (!pFcb->bRemoved)
-            {
-                PPVFS_FCB_TABLE_ENTRY pBucket = pFcb->pBucket;
-
-                pFcb->bRemoved = TRUE;
-                pFcb->pBucket = NULL;
-
-                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-
-                PvfsFcbTableRemove_inlock(pBucket, pFcb);
-            }
-            LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-
-            if (pBucket)
-            {
-                LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
-            }
-
-            /* Clear the path cache */
-
-            PvfsPathCacheRemove(pFcb->pszFilename);
-
-            PvfsFreeFCB(pFcb);
-        }
         if (pBucket)
         {
             LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
         }
+
+        /* Clear the path cache */
+
+        PvfsPathCacheRemove(pFcb->pszFilename);
+
+        PvfsFreeFCB(pFcb);
+    }
+
+    if (pBucket)
+    {
+        LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
     }
 
     *ppFcb = NULL;
