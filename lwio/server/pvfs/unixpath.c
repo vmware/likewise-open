@@ -443,13 +443,14 @@ PvfsLookupPath(
     ntError = PvfsSysStat(pszPath, &Stat);
     if (ntError == STATUS_SUCCESS)
     {
-        *pStat = Stat;
-
-        ntError = RtlCStringDuplicate(ppszDiskPath, pszPath);
+        ntError = RtlCStringDuplicate(&pszDiskPath, pszPath);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsPathCacheAdd(pszPath);
         BAIL_ON_NT_STATUS(ntError);
+
+        *pStat = Stat;
+        *ppszDiskPath = pszDiskPath;
 
         goto cleanup;
     }
@@ -478,7 +479,10 @@ cleanup:
     return ntError;
 
 error:
-    LwRtlCStringFree(&pszDiskPath);
+    if (pszDiskPath)
+    {
+        LwRtlCStringFree(&pszDiskPath);
+    }
 
     goto cleanup;
 }
@@ -592,15 +596,14 @@ PvfsResolvePath(
 
         /* Try cache first */
 
-        if (pszResWorkingPath2)
-        {
-            LwRtlCStringFree(&pszResWorkingPath2);
-            pszResWorkingPath = NULL;
-        }
-
         ntError = PvfsPathCacheLookup(&pszResWorkingPath2, pszWorkingPath);
         if (ntError == STATUS_SUCCESS)
         {
+            if (pszResWorkingPath)
+            {
+                LwRtlCStringFree(&pszResWorkingPath);
+            }
+
             pszResWorkingPath = pszResWorkingPath2;
             pszResWorkingPath2 = NULL;
 
