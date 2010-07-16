@@ -1341,6 +1341,8 @@ PvfsOplockCleanOplockQueue(
         PvfsListRemoveItem(pFcb->pOplockList, pOplockLink);
         pOplockLink = NULL;
 
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pOplock->pIrpContext);
@@ -1348,8 +1350,6 @@ PvfsOplockCleanOplockQueue(
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
         pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
         LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-
-        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
         PvfsFreeOplockRecord(&pOplock);
 
