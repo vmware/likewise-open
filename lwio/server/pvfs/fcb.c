@@ -718,6 +718,8 @@ PvfsPendOplockBreakTest(
                   pCompletionContext);
     BAIL_ON_NT_STATUS(ntError);
 
+    // Returns STATUS_PENDING on success
+
     ntError = PvfsAddItemPendingOplockBreakAck(
                   pFcb,
                   pIrpContext,
@@ -726,7 +728,11 @@ PvfsPendOplockBreakTest(
                   (PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX)
                       PvfsFreeOplockBreakTestContext,
                   (PVOID)pTestCtx);
-    BAIL_ON_NT_STATUS(ntError);
+    if ((ntError != STATUS_SUCCESS) &&
+        (ntError != STATUS_PENDING))
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
 cleanup:
     return ntError;
