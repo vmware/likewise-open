@@ -1239,6 +1239,8 @@ PvfsCleanPendingLockQueue(
         PvfsListRemoveItem(pFcb->pPendingLockQueue, pLockRecordLink);
         pLockRecordLink = NULL;
 
+        LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwBrlLock);
+
         pLockRecord->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pLockRecord->pIrpContext);
@@ -1256,7 +1258,6 @@ PvfsCleanPendingLockQueue(
 
         PvfsAsyncIrpComplete(pIrpContext);
     }
-
 
     if (pFcb)
     {
