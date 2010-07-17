@@ -790,43 +790,47 @@ PvfsAllocateCreateContext(
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
     IRP_ARGS_CREATE Args = pIrpContext->pIrp->Args.Create;
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
+    PSTR pszOriginalFilename = NULL;
+
+    ntError = PvfsCanonicalPathName(
+                  &pszOriginalFilename,
+                  Args.FileName);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pCreateCtx,
                   sizeof(PVFS_PENDING_CREATE),
-                  FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pCreateCtx->pszOriginalFilename = NULL;
-    pCreateCtx->pszDiskFilename = NULL;
-
-    ntError = PvfsCanonicalPathName(
-                  &pCreateCtx->pszOriginalFilename,
-                  Args.FileName);
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCreateCtx->pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    pCreateCtx->pszOriginalFilename = pszOriginalFilename;
+    pszOriginalFilename = NULL;
 
     ntError = PvfsAcquireAccessToken(pCreateCtx->pCcb, pSecCtx);
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
 
-    pCreateCtx->bFileExisted = FALSE;
-    pCreateCtx->GrantedAccess = 0;
-    pCreateCtx->pFcb = NULL;
-    pCreateCtx->SetPropertyFlags = 0;
-
     *ppCreate = pCreateCtx;
     pCreateCtx = NULL;
-
 
 cleanup:
     return ntError;
 
 error:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    if (pCreateCtx)
+    {
+        PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    }
+
+    if (pszOriginalFilename)
+    {
+        LwRtlCStringFree(&pszOriginalFilename);
+    }
+
 
     goto cleanup;
 }
