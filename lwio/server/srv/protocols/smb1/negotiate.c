@@ -118,9 +118,10 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
 
     curTime = time(NULL);
 
-    pResponseHeader->serverTimeZone = (mktime(gmtime(&curTime)) - curTime)/60;
+    ntStatus = WireSMBUTimeToTimeZone(curTime, &pResponseHeader->serverTimeZone);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = WireSMBUTimetoNTTime(curTime, &llUTCTime);
+    ntStatus = WireSMBUTimetoNTTime(curTime, FALSE, &llUTCTime);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader->systemTimeLow = llUTCTime & 0xFFFFFFFFLL;
