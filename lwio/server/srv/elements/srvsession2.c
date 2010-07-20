@@ -319,8 +319,7 @@ SrvSession2SetPrincipalName(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+    PWSTR    pwszClientPrincipalName = NULL;
 
     if (!pszClientPrincipal)
     {
@@ -328,12 +327,17 @@ SrvSession2SetPrincipalName(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SRV_SAFE_FREE_MEMORY(pSession->pwszClientPrincipalName);
-
     ntStatus = SMBMbsToWc16s(
                     pszClientPrincipal,
-                    &pSession->pwszClientPrincipalName);
+                    &pwszClientPrincipalName);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    SRV_SAFE_FREE_MEMORY(pSession->pwszClientPrincipalName);
+
+    pSession->pwszClientPrincipalName = pwszClientPrincipalName;
+    // pwszClientPrincipalName = NULL;
 
 cleanup:
 
@@ -342,6 +346,8 @@ cleanup:
     return ntStatus;
 
 error:
+
+    SRV_SAFE_FREE_MEMORY(pwszClientPrincipalName);
 
     goto cleanup;
 }
