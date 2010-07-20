@@ -158,6 +158,19 @@ PvfsWC16CanonicalPathName(
             BAIL_ON_NT_STATUS(ntError);
         }
 
+        if (*pszCursor == '$')
+        {
+            if (LwRtlCStringIsEqual(pszPath, PVFS_NTFS_QUOTA_FILENAME, TRUE))
+            {
+                LwRtlCStringFree(&pszPath);
+                ntError= LwRtlCStringDuplicate(&pszPath, PVFS_UNIX_QUOTA_FILENAME);
+                BAIL_ON_NT_STATUS(ntError);
+
+                goto cleanup;
+            }
+        }
+
+
         if (*pszCursor == '\\')
         {
             *pszCursor = '/';
@@ -191,14 +204,19 @@ PvfsWC16CanonicalPathName(
         pszPath[i] = '\0';
     }
 
-    *ppszPath = pszPath;
-
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    *ppszPath = pszPath;
+
     return ntError;
 
 error:
+    if (pszPath)
+    {
+        LwRtlCStringFree(&pszPath);
+    }
+
     goto cleanup;
 }
 

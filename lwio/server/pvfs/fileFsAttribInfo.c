@@ -106,6 +106,7 @@ PvfsQueryFileFsAttribInfo(
     PWSTR pwszFsName = NULL;
     size_t FsNameLenBytes = RtlCStringNumChars(PVFS_FS_NAME) * sizeof(WCHAR);
     PVFS_STATFS StatFs = {0};
+    ULONG FsAttributeSet = PVFS_FILE_SYSTEM_ATTRIBUTES;
 
     /* Sanity checks */
 
@@ -135,11 +136,7 @@ PvfsQueryFileFsAttribInfo(
     ntError = RtlWC16StringAllocateFromCString(&pwszFsName, PVFS_FS_NAME);
     BAIL_ON_NT_STATUS(ntError);
 
-    pFileInfo->FileSystemAttributes = FILE_CASE_SENSITIVE_SEARCH |\
-                                      FILE_CASE_PRESERVED_NAMES |\
-                                      FILE_UNICODE_ON_DISK |\
-                                      FILE_PERSISTENT_ACLS |\
-                                      FILE_SUPPORTS_SPARSE_FILES;
+    pFileInfo->FileSystemAttributes = FsAttributeSet;
     pFileInfo->MaximumComponentNameLength = StatFs.MaximumNameLength;
     pFileInfo->FileSystemNameLength = FsNameLenBytes;
     memcpy(pFileInfo->FileSystemName, pwszFsName, FsNameLenBytes);

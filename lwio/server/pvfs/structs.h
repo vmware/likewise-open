@@ -45,8 +45,19 @@
 #ifndef _PVFS_STRUCTS_H
 #define _PVFS_STRUCTS_H
 
-#define PVFS_FS_NAME     "NTFS"
+// File System information
 
+#define PVFS_FS_NAME     "NTFS"
+#define PVFS_FILE_SYSTEM_ATTRIBUTES   \
+    (FILE_CASE_SENSITIVE_SEARCH |     \
+     FILE_CASE_PRESERVED_NAMES |      \
+     FILE_UNICODE_ON_DISK |           \
+     FILE_PERSISTENT_ACLS |           \
+     FILE_SUPPORTS_SPARSE_FILES |     \
+     FILE_VOLUME_QUOTAS)
+
+#define PVFS_NTFS_QUOTA_FILENAME    "$Extend\\$Quota:$Q:$INDEX_ALLOCATION"
+#define PVFS_UNIX_QUOTA_FILENAME    ".Quota.sys"
 
 /* HP-UX does not use blksize_t type for st_blksize
    (see stat(5))
