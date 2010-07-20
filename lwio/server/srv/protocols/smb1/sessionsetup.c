@@ -408,6 +408,7 @@ SrvProcessSessionSetup_WC_13(
                     (PVOID*)&pSessionKey,
                     &ulSessionKeyLength,
                     &ntlmLogonInfo);
+    ntStatus = (NT_SUCCESS(ntStatus)) ? ntStatus : STATUS_LOGON_FAILURE;
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pConnection->pSessionKey == NULL && bLoggedInAsGuest == FALSE)
