@@ -260,7 +260,7 @@ cleanup:
 
 error:
 
-    if (pSmb2Context && pSmb2Context->ulNumRequests)
+    if (pSmb2Context)
     {
         PSRV_MESSAGE_SMB_V2 pSmbRequest =
                                 &pSmb2Context->pRequests[pSmb2Context->iMsg];
