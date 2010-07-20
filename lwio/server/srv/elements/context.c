@@ -106,6 +106,9 @@ SrvBuildEmptyExecContext(
     ntStatus = SrvAllocateMemory(sizeof(SRV_EXEC_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pthread_mutex_init(&pContext->execMutex, NULL);
+    pContext->pExecMutex = &pContext->execMutex;
+
     ntStatus = SrvLogContextCreate(&pContext->pLogContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -216,9 +219,9 @@ SrvFreeExecContext(
         SrvLogContextFree(pContext->pLogContext);
     }
 
-    if (pContext->pMutex)
+    if (pContext->pExecMutex)
     {
-        pthread_mutex_destroy(&pContext->mutex);
+        pthread_mutex_destroy(&pContext->execMutex);
     }
 
     SrvFreeMemory(pContext);

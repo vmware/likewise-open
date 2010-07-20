@@ -610,8 +610,8 @@ typedef struct _SRV_EXEC_CONTEXT
 {
     LONG                               refCount;
 
-    pthread_mutex_t                    mutex;
-    pthread_mutex_t*                   pMutex;
+    pthread_mutex_t                    execMutex;
+    pthread_mutex_t*                   pExecMutex;
 
     PLWIO_SRV_CONNECTION               pConnection;
     PSMB_PACKET                        pSmbRequest;
