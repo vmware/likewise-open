@@ -105,6 +105,7 @@ SrvMarshalHeader_SMB_V1(
     UCHAR         ucCommand,
     ULONG         ulError,
     BOOLEAN       bIsResponse,
+    ULONG         ulCapabilities,
     USHORT        usTid,
     ULONG         ulPid,
     USHORT        usUid,
@@ -141,7 +142,9 @@ SrvMarshalHeader_SMB_V1(
     pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
     pHeader->flags2 = ((bIsResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
                        (bIsResponse ? 0 : FLAG2_IS_LONG_NAME) |
-                       FLAG2_KNOWS_EAS | FLAG2_EXT_SEC | FLAG2_UNICODE);
+                       ((ulCapabilities & CAP_EXTENDED_SECURITY) ? FLAG2_EXT_SEC : 0) |
+                       FLAG2_KNOWS_EAS | FLAG2_UNICODE);
+
     switch (ulError)
     {
         case ERROR_CANCEL_VIOLATION:

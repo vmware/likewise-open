@@ -964,6 +964,7 @@ SrvBuildErrorResponse_SMB_V1(
                     pRequestHeader->command,
                     errorStatus,
                     TRUE,
+                    pConnection->serverProperties.Capabilities,
                     pRequestHeader->tid,
                     SMB_V1_GET_PROCESS_ID(pRequestHeader),
                     pRequestHeader->uid,

@@ -539,6 +539,7 @@ SrvBuildOplockBreakResponse(
                         COM_LOCKING_ANDX,
                         STATUS_SUCCESS,
                         FALSE,
+                        pExecContext->pConnection->serverProperties.Capabilities,
                         pCtxSmb1->pTree->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pCtxSmb1->pSession->uid,
@@ -914,6 +915,7 @@ SrvBuildOplockExecContext(
                     COM_LW_OPLOCK,
                     STATUS_SUCCESS,
                     FALSE,  /* not a response */
+                    pOplockState->pConnection->serverProperties.Capabilities,
                     pOplockState->usTid,
                     0,      /* pid */
                     pOplockState->usUid,

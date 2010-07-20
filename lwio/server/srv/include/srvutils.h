@@ -367,6 +367,12 @@ SrvAllocateStringW(
     );
 
 NTSTATUS
+SrvAllocateString(
+    IN  PSTR  pszInputString,
+    OUT PSTR* ppszOutputString
+    );
+
+NTSTATUS
 SrvAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,

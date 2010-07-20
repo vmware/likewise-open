@@ -228,7 +228,7 @@ SrvProcessSessionSetup_SMB_V2(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvIoSecCreateSecurityContext(
+        ntStatus = SrvIoSecCreateSecurityContextFromGssContext(
                        &pCtxSmb2->pSession->pIoSecurityContext,
                        &bLoggedInAsGuest,
                        hContextHandle,

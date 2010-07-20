@@ -143,4 +143,9 @@ typedef UCHAR SMB_OPLOCK_REQUEST;
     },                                                          \
 };
 
+#define SRV_NATIVE_OS_W         {'U', 'n', 'i', 'x', 0 }
+#define SRV_NATIVE_LAN_MAN_W    {'L','i','k','e','w','i','s','e',' ','C','I','F','S', 0 }
+// #define SRV_NATIVE_DOMAIN_W     {'W','O','R','K','G','R','O','U','P', 0}
+#define SRV_NATIVE_DOMAIN_W     { 0 }
+
 #endif /* __DEFS_H__ */

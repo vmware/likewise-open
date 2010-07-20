@@ -85,6 +85,7 @@ SrvProcessLogoffAndX(
                         COM_LOGOFF_ANDX,
                         STATUS_SUCCESS,
                         TRUE,
+                        pConnection->serverProperties.Capabilities,
                         pSmbRequest->pHeader->tid,
                         SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                         pSmbRequest->pHeader->uid,
