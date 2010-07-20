@@ -359,7 +359,7 @@ PvfsFileSplitPath(
         ntError = RtlCStringDuplicate(ppszDirname, "/");
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = RtlCStringDuplicate(ppszBasename, "");
+        ntError = RtlCStringDuplicate(ppszBasename, pszCursor+1);
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
