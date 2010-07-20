@@ -326,17 +326,21 @@ PvfsAccessCheckFileEnumerate(
     PACCESS_TOKEN pToken = pCcb->pUserToken;
     PSTR pszFilename = NULL;
     ACCESS_MASK AccessMask = 0;
+    ACCESS_MASK GrantedAccess = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
-    BYTE pRelativeSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
+    BYTE pRelativeSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
     ULONG ulRelativeSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
     BOOLEAN bGranted = FALSE;
     SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
                                     GROUP_SECURITY_INFORMATION |
-                                    DACL_SECURITY_INFORMATION);
-    ACCESS_MASK AccessRequired = (FILE_READ_ATTRIBUTES|
-                                  FILE_READ_EA|
-                                  FILE_READ_DATA|
-                                  READ_CONTROL);
+                                    DACL_SECURITY_INFORMATION  |
+                                    SACL_SECURITY_INFORMATION);
+    ACCESS_MASK Desired = (FILE_READ_ATTRIBUTES|
+                           FILE_READ_EA|
+                           FILE_READ_DATA|
+                           READ_CONTROL);
+    PSID pOwner = NULL;
+    BOOLEAN bOwnerDefaulted = FALSE;
 
     /* Create the absolute path */
 
@@ -361,26 +365,36 @@ PvfsAccessCheckFileEnumerate(
                   (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
     BAIL_ON_NT_STATUS(ntError);
 
+    // Tests against NTFS/Win2003R2 show that the file/directory object
+    // owner is always granted FILE_READ_ATTRIBUTE
+
+    ntError = RtlGetOwnerSecurityDescriptor(
+                  pSecDesc,
+                  &pOwner,
+                  &bOwnerDefaulted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (RtlIsSidMemberOfToken(pToken, pOwner))
+    {
+        ClearFlag(Desired, FILE_READ_ATTRIBUTES);
+        SetFlag(GrantedAccess, FILE_READ_ATTRIBUTES);
+    }
+
     /* Now check access */
 
     bGranted = RtlAccessCheck(
                    pSecDesc,
                    pToken,
-                   MAXIMUM_ALLOWED,
-                   0,
+                   Desired,
+                   GrantedAccess,
                    &gPvfsFileGenericMapping,
                    &AccessMask,
                    &ntError);
     if (!bGranted)
     {
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = STATUS_ACCESS_DENIED;
     }
-
-    ntError = STATUS_ACCESS_DENIED;
-    if ((AccessMask & AccessRequired) == AccessRequired)
-    {
-        ntError = STATUS_SUCCESS;
-    }
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     if (pszFilename)
