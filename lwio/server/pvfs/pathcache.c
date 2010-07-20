@@ -177,6 +177,54 @@ error:
  ****************************************************************************/
 
 NTSTATUS
+PvfsPathCacheLookup2(
+    OUT PSTR pszBuffer,
+    IN  size_t sBufferLength,
+    IN  PCSTR pszOriginalPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+    PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
+
+    if (gpPathCache == NULL)
+    {
+        /* If the PathCache has been disabled, just fail
+           the lookup and move on */
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gPathCacheRwLock);
+    dwError = SMBHashGetValue(
+                  gpPathCache,
+                  (PCVOID)pszOriginalPath,
+                  (PVOID*)&pCacheRecord);
+    if (dwError != LWIO_ERROR_SUCCESS)
+    {
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    strncpy(pszBuffer, pCacheRecord->pszPathname, sBufferLength-1);
+    pszBuffer[sBufferLength-1] = '\0';
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
 PvfsPathCacheRemove(
     PCSTR pszPathname
     )

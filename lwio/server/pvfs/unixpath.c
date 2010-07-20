@@ -536,19 +536,23 @@ PvfsResolvePath(
     PSTR pszPath = NULL;
     PVFS_STAT Stat = {0};
     PSTR pszResolvedPath = NULL;
-    PSTR pszResWorkingPath = NULL;
+    PSTR pszCurrentResolvedPath = NULL;
+    CHAR pszResWorkingPath[PATH_MAX] = { 0 };
     CHAR pszWorkingPath[PATH_MAX] = { 0 };
     DWORD Length = PATH_MAX;
     DIR *pDir = NULL;
     struct dirent *pDirEntry = NULL;
 
-    if (*pszLookupPath != '/') {
+    if (*pszLookupPath != '/')
+    {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = RTL_ALLOCATE(&pszResolvedPath, CHAR, Length);
     BAIL_ON_NT_STATUS(ntError);
+
+    pszCurrentResolvedPath = pszResolvedPath;
 
     ntError = RtlCStringDuplicate(&pszPath, pszLookupPath);
     BAIL_ON_NT_STATUS(ntError);
@@ -559,32 +563,49 @@ PvfsResolvePath(
     {
         pDir = NULL;
 
-        if ((pszCursor = strchr(pszComponent, '/')) != NULL) {
+        if ((pszCursor = strchr(pszComponent, '/')) != NULL)
+        {
             *pszCursor = '\0';
         }
 
-        snprintf(pszWorkingPath, PATH_MAX-1, "%s/%s",
-                 pszResolvedPath, pszComponent);
+        /* If pszWorkingPath and pszCurrentResolvedPath overlap (i.e. are the same
+           pointer), we cannot use snprintf() */
+
+        if (pszCurrentResolvedPath == pszWorkingPath)
+        {
+            size_t sWorkingLen = RtlCStringNumChars(pszWorkingPath);
+
+            strncat(pszWorkingPath, "/", PATH_MAX-sWorkingLen-1);
+            sWorkingLen++;
+            strncat(pszWorkingPath, pszComponent, PATH_MAX-sWorkingLen-1);
+        }
+        else
+        {
+            snprintf(
+                pszWorkingPath,
+                PATH_MAX-1,
+                "%s/%s",
+                pszCurrentResolvedPath,
+                pszComponent);
+        }
 
         /* Try cache first */
 
-        ntError = PvfsPathCacheLookup(&pszResWorkingPath, pszWorkingPath);
-        if(ntError == STATUS_SUCCESS)
+        ntError = PvfsPathCacheLookup2(pszResWorkingPath, PATH_MAX, pszWorkingPath);
+        if (ntError == STATUS_SUCCESS)
         {
-            strncpy(pszResolvedPath, pszResWorkingPath, PATH_MAX-1);
-            Length = PATH_MAX - RtlCStringNumChars(pszResolvedPath);
-            RtlCStringFree(&pszResWorkingPath);
+            pszCurrentResolvedPath = pszResWorkingPath;
+            Length = PATH_MAX - RtlCStringNumChars(pszCurrentResolvedPath);
         }
 
         /* Maybe an exact match on disk? */
 
         else if (PvfsSysStat(pszWorkingPath, &Stat) == STATUS_SUCCESS)
         {
-            strncpy(pszResolvedPath, pszWorkingPath, PATH_MAX-1);
-            Length = PATH_MAX - RtlCStringNumChars(pszResolvedPath);
-            RtlCStringFree(&pszResWorkingPath);
+            pszCurrentResolvedPath = pszWorkingPath;
+            Length = PATH_MAX - RtlCStringNumChars(pszCurrentResolvedPath);
 
-            ntError = PvfsPathCacheAdd(pszResolvedPath);
+            ntError = PvfsPathCacheAdd(pszCurrentResolvedPath);
             BAIL_ON_NT_STATUS(ntError);
         }
 
@@ -608,14 +629,16 @@ PvfsResolvePath(
                 /* First check the error return */
                 BAIL_ON_NT_STATUS(ntError);
 
-                if (RtlCStringIsEqual(pszComponent, pDirEntry->d_name, FALSE)) {
+                if (RtlCStringIsEqual(pszComponent, pDirEntry->d_name, FALSE))
+                {
                     break;
                 }
             }
 
             /* Did we find a match? */
 
-            if (!pDirEntry) {
+            if (!pDirEntry)
+            {
                 /* Return code depends on whether the last component was
                    not found or if an intermediate component was invalid */
 
@@ -636,6 +659,8 @@ PvfsResolvePath(
             strncat(pszResolvedPath, pDirEntry->d_name, Length-1);
             Length -= RtlCStringNumChars(pDirEntry->d_name);
 
+            pszCurrentResolvedPath = pszResolvedPath;
+
             ntError = PvfsSysCloseDir(pDir);
             pDir = NULL;
             BAIL_ON_NT_STATUS(ntError);
@@ -648,20 +673,30 @@ PvfsResolvePath(
         /* Cleanup for next loop */
 
 
-        if (pszCursor) {
+        if (pszCursor)
+        {
             *pszCursor = '/';
         }
 
-        if ((pszComponent = strchr(pszComponent, '/')) != NULL) {
+        if ((pszComponent = strchr(pszComponent, '/')) != NULL)
+        {
             pszComponent++;
         }
     }
 
     /* Did we finish? */
 
-    if ((Length <= 0) && (pszComponent != NULL)) {
+    if ((Length <= 0) && (pszComponent != NULL))
+    {
         ntError = STATUS_NAME_TOO_LONG;
         BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (pszCurrentResolvedPath != pszResolvedPath)
+    {
+        strncpy(pszResolvedPath, pszCurrentResolvedPath, PATH_MAX-1);
+        pszResolvedPath[PATH_MAX-1] = '\0';
+        pszCurrentResolvedPath = NULL;
     }
 
     *ppszResolvedPath = pszResolvedPath;
@@ -671,10 +706,10 @@ PvfsResolvePath(
 
 cleanup:
     RtlCStringFree(&pszPath);
-    RtlCStringFree(&pszResWorkingPath);
     RtlCStringFree(&pszResolvedPath);
 
-    if (pDir) {
+    if (pDir)
+    {
         PvfsSysCloseDir(pDir);
     }
 
