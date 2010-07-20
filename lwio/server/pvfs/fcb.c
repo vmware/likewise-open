@@ -1062,8 +1062,10 @@ error:
 static
 NTSTATUS
 PvfsOplockCleanPendingOpInternal(
+    PPVFS_FCB pFcb,
     PPVFS_LIST pQueue,
-    PPVFS_IRP_CONTEXT pIrpContext
+    PPVFS_IRP_CONTEXT pIrpContext,
+    BOOLEAN bCancelIfNotFound
     );
 
 static
@@ -1075,28 +1077,27 @@ PvfsOplockCleanPendingOpQueue(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
     PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpCtx->pFcb);
-    BOOLEAN bLocked = FALSE;
-
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
     /* We have to check both the "pending" and the "ready" queues.
        Although, it is possible that the "ready" queue processed a
        cancelled IRP before we get to it here. */
 
     ntError = PvfsOplockCleanPendingOpInternal(
+                  pFcb,
                   pFcb->pOplockPendingOpsQueue,
-                  pIrpCtx);
+                  pIrpCtx,
+                  FALSE);
     if (ntError != STATUS_SUCCESS)
     {
         ntError = PvfsOplockCleanPendingOpInternal(
+                      pFcb,
                       pFcb->pOplockReadyOpsQueue,
-                      pIrpCtx);
+                      pIrpCtx,
+                      TRUE);
     }
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
-
     if (pFcb)
     {
         PvfsReleaseFCB(&pFcb);
@@ -1120,8 +1121,10 @@ error:
 static
 NTSTATUS
 PvfsOplockCleanPendingOpInternal(
+    PPVFS_FCB pFcb,
     PPVFS_LIST pQueue,
-    PPVFS_IRP_CONTEXT pIrpContext
+    PPVFS_IRP_CONTEXT pIrpContext,
+    BOOLEAN bCancelIfNotFound
     )
 {
     NTSTATUS ntError = STATUS_NOT_FOUND;
@@ -1129,6 +1132,9 @@ PvfsOplockCleanPendingOpInternal(
     PLW_LIST_LINKS pOpLink = NULL;
     PLW_LIST_LINKS pNextLink = NULL;
     BOOLEAN bFound = FALSE;
+    BOOLEAN bFcbLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
     pOpLink = PvfsListTraverse(pQueue, NULL);
 
@@ -1152,6 +1158,8 @@ PvfsOplockCleanPendingOpInternal(
         PvfsListRemoveItem(pQueue, pOpLink);
         pOpLink = NULL;
 
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
         pOperation->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pOperation->pIrpContext);
@@ -1161,17 +1169,13 @@ PvfsOplockCleanPendingOpInternal(
         /* Can only be one IrpContext match so we are done */
         ntError = STATUS_SUCCESS;
     }
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
-    if (!bFound)
+    if (!bFound && bCancelIfNotFound)
     {
         pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pIrpContext);
-    }
-
-    if (pIrpContext)
-    {
-        PvfsReleaseIrpContext(&pIrpContext);
     }
 
     return ntError;
