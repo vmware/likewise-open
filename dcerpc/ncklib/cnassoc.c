@@ -772,6 +772,14 @@ unsigned32              *st;
                                  assoc->cn_ctlblk.cn_sock,
                                  *st));
 
+                /*
+                 * The call is about to be orphaned, so remove it from the assoc
+                 */
+                if (assoc->call_rep == call_r)
+                {
+                    assoc->call_rep = NULL;
+                }
+
                 if ((old_server == false) &&
 		    (*st == rpc_s_connection_closed) &&
                     ((assoc->assoc_vers_minor == RPC_C_CN_PROTO_VERS_COMPAT) ||
