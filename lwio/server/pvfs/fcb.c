@@ -521,16 +521,16 @@ PvfsCreateFCB(
                           pFcb,
                           SharedAccess,
                           DesiredAccess);
+        }
 
-            /* If we have success, then we are good.  If we have a sharing
-               violation, give the caller a chance to break the oplock and
-               we'll try again when the create is resumed. */
+        /* If we have success, then we are good.  If we have a sharing
+           violation, give the caller a chance to break the oplock and
+           we'll try again when the create is resumed. */
 
-            if (ntError == STATUS_SUCCESS ||
-                ntError == STATUS_SHARING_VIOLATION)
-            {
-                *ppFcb = PvfsReferenceFCB(pFcb);
-            }
+        if (ntError == STATUS_SUCCESS ||
+            ntError == STATUS_SHARING_VIOLATION)
+        {
+            *ppFcb = PvfsReferenceFCB(pFcb);
         }
 
         goto cleanup;
