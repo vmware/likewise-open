@@ -97,7 +97,7 @@ PvfsGetSecurityDescriptorFile(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BYTE pFullSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
+    BYTE pFullSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
     ULONG ulFullSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
     SECURITY_INFORMATION SecInfoAll = (OWNER_SECURITY_INFORMATION |
                                        GROUP_SECURITY_INFORMATION |
@@ -181,7 +181,7 @@ PvfsGetSecurityDescriptorFilename(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BYTE pFullSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
+    BYTE pFullSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
     ULONG ulFullSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
     SECURITY_INFORMATION SecInfoAll = (OWNER_SECURITY_INFORMATION |
                                        GROUP_SECURITY_INFORMATION |
@@ -604,11 +604,6 @@ PvfsCreateFileSecurity(
                                        GROUP_SECURITY_INFORMATION |
                                        DACL_SECURITY_INFORMATION  |
                                        SACL_SECURITY_INFORMATION);
-    BYTE DefaultSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
-    ULONG DefaultSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
-
-    LwRtlZeroMemory(ParentSecDescBuffer, ParentSecDescLength);
-    LwRtlZeroMemory(DefaultSecDescBuffer, DefaultSecDescLength);
 
     ntError = PvfsFileSplitPath(
                   &pszParentPath,
