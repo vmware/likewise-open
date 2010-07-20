@@ -148,4 +148,8 @@ typedef UCHAR SMB_OPLOCK_REQUEST;
 // #define SRV_NATIVE_DOMAIN_W     {'W','O','R','K','G','R','O','U','P', 0}
 #define SRV_NATIVE_DOMAIN_W     { 0 }
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 #endif /* __DEFS_H__ */
