@@ -129,7 +129,7 @@ PvfsGetSecurityDescriptorFile(
     {
         ulFullSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
 
-        LWRtlZeroMemory(pFullSecDescBuffer, ulFullSecDescLength);
+        LwRtlZeroMemory(pFullSecDescBuffer, ulFullSecDescLength);
 
         ntError = PvfsGetSecurityDescriptorPosix(
                       pCcb,
@@ -215,7 +215,7 @@ PvfsGetSecurityDescriptorFilename(
     {
         ulFullSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
 
-        LWRtlZeroMemory(pFullSecDescBuffer, ulFullSecDescLength);
+        LwRtlZeroMemory(pFullSecDescBuffer, ulFullSecDescLength);
 
         ntError = PvfsGetSecurityDescriptorFilenamePosix(
                       pszFilename,
