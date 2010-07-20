@@ -112,6 +112,9 @@ SrvProtocolExecute(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pContext->execMutex);
 
     ntStatus = SrvProtocolAddContext(pContext, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -165,6 +168,8 @@ SrvProtocolExecute(
     }
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pContext->execMutex);
 
     return ntStatus;
 
