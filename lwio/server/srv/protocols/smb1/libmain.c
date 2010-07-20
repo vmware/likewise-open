@@ -559,7 +559,7 @@ cleanup:
 
 error:
 
-    if (pSmb1Context)
+    if (pSmb1Context && pSmb1Context->ulNumRequests)
     {
         PSRV_MESSAGE_SMB_V1 pRequest =
                                 &pSmb1Context->pRequests[pSmb1Context->iMsg];
