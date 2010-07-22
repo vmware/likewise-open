@@ -217,26 +217,6 @@ AD_ReadRegistry(
     LSA_CONFIG ADConfigDescription[] =
     {
         {
-            "SpaceReplacement",
-            TRUE,
-            LsaTypeString,
-            0,
-            MAXDWORD,
-            NULL,
-            &pszSpaceReplacement,
-            NULL
-        },
-        {
-            "DomainSeparator",
-            TRUE,
-            LsaTypeString,
-            0,
-            MAXDWORD,
-            NULL,
-            &pszDomainSeparator,
-            NULL
-        },
-        {
             "HomeDirUmask",
             TRUE,
             LsaTypeString,

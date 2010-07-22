@@ -198,7 +198,7 @@ LocalDirAddGroup(
 
     if (!pLoginInfo->pszDomain)
     {
-        LOCAL_RDLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+        LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.mutex);
         dwError = LwAllocateString(
                         gLPGlobals.pszNetBIOSName,
                         &pLoginInfo->pszDomain);
@@ -274,7 +274,7 @@ LocalDirAddGroup(
     }
 
 cleanup:
-    LOCAL_UNLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
 
     if (pLoginInfo)
     {

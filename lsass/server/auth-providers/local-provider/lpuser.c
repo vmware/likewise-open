@@ -323,6 +323,7 @@ LocalDirAddUser(
     };
     DIRECTORY_MOD mods[LOCAL_DAU0_IDX_SENTINEL + 1];
 
+    BOOLEAN bLocked = 0;
     DWORD iMod = 0;
     PWSTR pwszSamAccountName = NULL;
     PWSTR pwszGecos = NULL;
@@ -371,7 +372,7 @@ LocalDirAddUser(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LOCAL_RDLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+    LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.mutex);
 
     if (!pLoginInfo->pszDomain)
     {
@@ -643,6 +644,7 @@ LocalDirAddUser(
     }
 
 cleanup:
+    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
 
     LsaUtilFreeSecurityObjectList(1, ppObjects);
 
