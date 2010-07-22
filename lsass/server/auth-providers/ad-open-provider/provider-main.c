@@ -225,10 +225,6 @@ AD_InitializeProvider(
                     &gpLsaAdProviderState->config);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSetDomainSeparator(
-                gpLsaAdProviderState->config.chDomainSeparator);
-    BAIL_ON_LSA_ERROR(dwError);
-
     LsaAdProviderLogConfigReloadEvent();
 
     InitADCacheFunctionTable(gpCacheProvider);
@@ -773,13 +769,12 @@ AD_ValidateUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LsaSrvCrackDomainQualifiedName(
                     pszLoginId,
-                    gpADProviderData->szDomain,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName)) {
+    if (!AD_ServicesDomain(pLoginInfo->pszDomain)) {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -802,7 +797,7 @@ cleanup:
 
     if (pLoginInfo)
     {
-        LsaFreeNameInfo(pLoginInfo);
+        LsaSrvFreeNameInfo(pLoginInfo);
     }
 
     return dwError;
@@ -1107,9 +1102,8 @@ AD_RemoveUserByNameFromCache(
     if (dwError == LW_ERROR_NO_SUCH_USER &&
         AD_ShouldAssumeDefaultDomain())
     {
-        dwError = LsaCrackDomainQualifiedName(
+        dwError = LsaSrvCrackDomainQualifiedName(
                       pszLoginId,
-                      gpADProviderData->szDomain,
                       &pUserNameInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1144,7 +1138,7 @@ cleanup:
     LW_SAFE_FREE_STRING(pszLocalLoginId);
     if (pUserNameInfo)
     {
-        LsaFreeNameInfo(pUserNameInfo);
+        LsaSrvFreeNameInfo(pUserNameInfo);
     }
 
     return dwError;
@@ -2082,9 +2076,8 @@ AD_OpenSession(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LsaSrvCrackDomainQualifiedName(
                     pszLoginId,
-                    gpADProviderData->szDomain,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2139,7 +2132,7 @@ cleanup:
 
     if (pLoginInfo)
     {
-        LsaFreeNameInfo(pLoginInfo);
+        LsaSrvFreeNameInfo(pLoginInfo);
     }
 
     return dwError;
@@ -2169,9 +2162,8 @@ AD_CloseSession(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LsaSrvCrackDomainQualifiedName(
                     pszLoginId,
-                    gpADProviderData->szDomain,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2220,7 +2212,7 @@ cleanup:
 
     if (pLoginInfo)
     {
-        LsaFreeNameInfo(pLoginInfo);
+        LsaSrvFreeNameInfo(pLoginInfo);
     }
 
     return dwError;
@@ -2865,10 +2857,6 @@ AD_RefreshConfiguration(
                     &gpLsaAdProviderState->config);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSetDomainSeparator(
-                    gpLsaAdProviderState->config.chDomainSeparator);
-    BAIL_ON_LSA_ERROR(dwError);
-
     AD_FreeAllowedSIDs_InLock();
 
     dwError = LsaDmSetState(
@@ -3041,7 +3029,7 @@ AD_GetNameWithReplacedSeparators(
     DWORD dwError = 0;
     // Capture the separator here so we consistent within
     // this function in case it changes.
-    const CHAR chSeparator = AD_GetSpaceReplacement();
+    const CHAR chSeparator = LsaSrvSpaceReplacement();
     PSTR pszLocalName = NULL;
     PCSTR pszUseName = NULL;
 
@@ -3154,9 +3142,8 @@ AD_FindUserObjectByName(
     if (dwError == LW_ERROR_NO_SUCH_USER &&
         AD_ShouldAssumeDefaultDomain())
     {
-        dwError = LsaCrackDomainQualifiedName(
+        dwError = LsaSrvCrackDomainQualifiedName(
                             pszLoginId,
-                            gpADProviderData->szDomain,
                             &pUserNameInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -3192,7 +3179,7 @@ cleanup:
     LW_SAFE_FREE_STRING(pszLocalLoginId);
     if (pUserNameInfo)
     {
-        LsaFreeNameInfo(pUserNameInfo);
+        LsaSrvFreeNameInfo(pUserNameInfo);
     }
 
     return dwError;
@@ -3325,9 +3312,8 @@ AD_FindGroupObjectByName(
     if (dwError == LW_ERROR_NO_SUCH_GROUP &&
         AD_ShouldAssumeDefaultDomain())
     {
-        dwError = LsaCrackDomainQualifiedName(
+        dwError = LsaSrvCrackDomainQualifiedName(
                             pszGroupName,
-                            gpADProviderData->szDomain,
                             &pGroupNameInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -3363,7 +3349,7 @@ cleanup:
     LW_SAFE_FREE_STRING(pszLocalGroupName);
     if (pGroupNameInfo)
     {
-        LsaFreeNameInfo(pGroupNameInfo);
+        LsaSrvFreeNameInfo(pGroupNameInfo);
     }
 
     return dwError;
@@ -4376,8 +4362,8 @@ LsaAdProviderLogConfigReloadEvent(
                  LSA_SAFE_LOG_STRING(gpszADProviderName),
                  gpLsaAdProviderState->config.dwCacheReaperTimeoutSecs,
                  gpLsaAdProviderState->config.dwCacheEntryExpirySecs,
-                 gpLsaAdProviderState->config.chSpaceReplacement,
-                 gpLsaAdProviderState->config.chDomainSeparator,
+                 LsaSrvSpaceReplacement(),
+                 LsaSrvDomainSeparator(),
                  gpLsaAdProviderState->config.bEnableEventLog ? "true" : "false",
                  pszMemberList ? pszMemberList : "        <No login restrictions specified>\r\n",
                  gpLsaAdProviderState->config.bShouldLogNetworkConnectionEvents ? "true" : "false",
@@ -4599,9 +4585,8 @@ AD_ResolveConfiguredLists(
         }
         else // User or Group Name
         {
-            dwError = LsaCrackDomainQualifiedName(
+            dwError = LsaSrvCrackDomainQualifiedName(
                 pszMember,
-                gpADProviderData->szDomain,
                 &pLoginInfo);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -4621,7 +4606,7 @@ AD_ResolveConfiguredLists(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            LsaFreeNameInfo(pLoginInfo);
+            LsaSrvFreeNameInfo(pLoginInfo);
             pLoginInfo = NULL;
 
             QueryList.ppszStrings = (PCSTR*) &pszMember;
@@ -4674,7 +4659,7 @@ cleanup:
 
     if (pLoginInfo)
     {
-        LsaFreeNameInfo(pLoginInfo);
+        LsaSrvFreeNameInfo(pLoginInfo);
     }
 
     if (ppszMembers)
