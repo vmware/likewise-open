@@ -366,10 +366,20 @@ LocalDirAddUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LocalCrackDomainQualifiedName(
+    dwError = LsaSrvCrackDomainQualifiedName(
                     pUserInfo->pszName,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
+
+    LOCAL_RDLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+
+    if (!pLoginInfo->pszDomain)
+    {
+        dwError = LwAllocateString(
+                        gLPGlobals.pszNetBIOSName,
+                        &pLoginInfo->pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (!LocalServicesDomain(pLoginInfo->pszDomain))
     {
