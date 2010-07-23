@@ -329,6 +329,7 @@ SrvIoSecCreateSecurityContextFromNtlmLogon(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLW_MAP_SECURITY_NTLM_LOGON_RESULT pNtlmLogonResult = NULL;
+    ULONG ulSessionKeySize = 0;
 
     PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PSTR pszUsername = NULL;
@@ -341,11 +342,22 @@ SrvIoSecCreateSecurityContextFromNtlmLogon(
                 pNtlmLogonInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // Session key
-    ntStatus = SrvAllocateMemory(NTLM_SESSION_KEY_SIZE, &pSessionKey);
+    // Session Key for raw NTLM is the user session key catenated with
+    // the NT response blob
+
+    ulSessionKeySize = NTLM_SESSION_KEY_SIZE + pNtlmLogonInfo->ulNtResponseSize;
+    ntStatus = SrvAllocateMemory(ulSessionKeySize, &pSessionKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    RtlCopyMemory(pSessionKey, pNtlmLogonResult->SessionKey, NTLM_SESSION_KEY_SIZE);
+    RtlCopyMemory(
+        pSessionKey,
+        pNtlmLogonResult->SessionKey,
+        NTLM_SESSION_KEY_SIZE);
+    RtlCopyMemory(
+        pSessionKey + NTLM_SESSION_KEY_SIZE,
+        pNtlmLogonInfo->pNtResponse,
+        pNtlmLogonInfo->ulNtResponseSize);
+
 
     // Username
     ntStatus = SrvAllocateString(pNtlmLogonResult->pszUsername, &pszUsername);
@@ -355,7 +367,7 @@ SrvIoSecCreateSecurityContextFromNtlmLogon(
     *pbLoggedInAsGuest = pNtlmLogonResult->bMappedToGuest;
     *ppszUsername = pszUsername;
     *ppSessionKey = pSessionKey;
-    *pulSessionKeyLength = NTLM_SESSION_KEY_SIZE;
+    *pulSessionKeyLength = ulSessionKeySize;
 
 cleanup:
 
