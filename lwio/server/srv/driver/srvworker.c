@@ -121,7 +121,7 @@ SrvWorkerMain(
                 NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
                 if (ntStatus2)
                 {
-                    LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+                    LWIO_LOG_VERBOSE("Failed to execute server task [code:%d]", ntStatus2);
                 }
             }
 
