@@ -354,7 +354,7 @@ error:
 
             ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 
-            break;
+            // Intentional fall through
 
         default:
 
