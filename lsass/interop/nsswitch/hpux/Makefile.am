@@ -7,8 +7,13 @@ libnss_lsass_la_SOURCES = \
 	nss-pruser.c
 
 libnss_lsass_la_CPPFLAGS = \
+<<<<<<< .working
 	$(AM_CPPFLAGS) \
 	-I$(srcdir)/../include
+=======
+	-I$(srcdir)/../include \
+	-I$(srcdir)/../../auth/include
+>>>>>>> .merge-right.r48132
 
 libnss_lsass_la_LIBADD = \
 	./../common/libnsscommon.la \
