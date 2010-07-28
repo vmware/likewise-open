@@ -59,6 +59,8 @@ Logoff(
     uint32_t ntStatus = 0;
     SMB_PACKET packet = {0};
     PSMB_PACKET pResponsePacket = NULL;
+    USHORT usMid = 0;
+    SMB_RESPONSE *pResponse = NULL;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -93,13 +95,20 @@ Logoff(
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBResponseCreate(usMid, &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrSocketAddResponse(pSession->pSocket, pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBSocketSend(pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketReceiveResponse(
+    ntStatus = RdrSocketReceiveResponse(
                     pSession->pSocket,
                     packet.haveSignature,
                     packet.sequence + 1,
+                    pResponse,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -107,9 +116,16 @@ Logoff(
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
+
     if (pResponsePacket)
     {
         SMBPacketRelease(pSession->pSocket->hPacketAllocator, pResponsePacket);
+    }
+
+    if (pResponse)
+    {
+        SMBResponseFree(pResponse);
+        pResponse = NULL;
     }
 
     if (packet.bufferLen)

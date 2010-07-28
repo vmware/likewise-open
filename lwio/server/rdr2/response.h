@@ -39,9 +39,3 @@ SMBResponseInvalidate_InLock(
     PSMB_RESPONSE pResponse,
     NTSTATUS ntStatus
     );
-
-VOID
-SMBResponseUnlock(
-    PSMB_RESPONSE pResponse
-    );
-

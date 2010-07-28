@@ -66,9 +66,9 @@ Negotiate(
     uint32_t securityBlobLen = 0;
     uint32_t packetByteCount = 0;
     BOOLEAN bSocketLocked = FALSE;
-
+    SMB_RESPONSE *pResponse = NULL;
     const uchar8_t *pszDialects[1] = { (uchar8_t *) "NT LM 0.12" };
-
+    USHORT usMid = 0;
     PSMB_PACKET pResponsePacket = NULL;
 
     /* @todo: make initial length configurable */
@@ -77,6 +77,9 @@ Negotiate(
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrSocketAcquireMid(pSocket, &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
@@ -88,10 +91,10 @@ Negotiate(
                 0xFFFF, /* tid */
                 gRdrRuntime.SysPid, /* pid */
                 0, /* uid */
-                0, /* mid */
+                usMid, /* mid */
                 FALSE, /* sign messages */
                 &packet);
-   BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     packet.pData = packet.pParams + sizeof(NEGOTIATE_REQUEST_HEADER);
     packet.bufferUsed += sizeof(NEGOTIATE_REQUEST_HEADER);
@@ -118,13 +121,20 @@ Negotiate(
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBResponseCreate(usMid, &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrSocketAddResponse(pSocket, pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBSocketSend(pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketReceiveResponse(
+    ntStatus = RdrSocketReceiveResponse(
                     pSocket,
                     packet.haveSignature,
                     packet.sequence + 1,
+                    pResponse,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -195,6 +205,11 @@ cleanup:
     if (pResponsePacket)
     {
         SMBPacketRelease(pSocket->hPacketAllocator, pResponsePacket);
+    }
+
+    if (pResponse)
+    {
+        SMBResponseFree(pResponse);
     }
 
     if (packet.bufferLen)

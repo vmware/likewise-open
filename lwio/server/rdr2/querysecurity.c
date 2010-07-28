@@ -57,8 +57,8 @@ RdrTransactNtTransQuerySecurityDesc(
         &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeAcquireMid(
-        pTree,
+    ntStatus = RdrSocketAcquireMid(
+        pTree->pSession->pSocket,
         &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -135,7 +135,7 @@ RdrTransactNtTransQuerySecurityDesc(
         ntStatus = SMBResponseCreate(usMid, &pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+        ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (!pResponsePacket)
@@ -144,8 +144,8 @@ RdrTransactNtTransQuerySecurityDesc(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = SMBTreeReceiveResponse(
-            pTree,
+        ntStatus = RdrSocketReceiveResponse(
+            pTree->pSession->pSocket,
             packet.haveSignature,
             packet.sequence + 1,
             pResponse,

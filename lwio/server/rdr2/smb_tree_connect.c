@@ -63,6 +63,8 @@ TreeConnect(
     uint32_t packetByteCount = 0;
     TREE_CONNECT_REQUEST_HEADER *pHeader = NULL;
     SMB_PACKET *pResponsePacket = NULL;
+    SMB_RESPONSE *pResponse = NULL;
+    USHORT usMid = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -70,6 +72,9 @@ TreeConnect(
                     1024*64,
                     &packet.pRawBuffer,
                     &packet.bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrSocketAcquireMid(pSession->pSocket, &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
@@ -81,7 +86,7 @@ TreeConnect(
                     0,
                     gRdrRuntime.SysPid,
                     pSession->uid,
-                    0,
+                    usMid,
                     TRUE,
                     &packet);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -119,13 +124,20 @@ TreeConnect(
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBResponseCreate(usMid, &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrSocketAddResponse(pSession->pSocket, pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBSocketSend(pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSessionReceiveResponse(
-                    pSession,
+    ntStatus = RdrSocketReceiveResponse(
+                    pSession->pSocket,
                     packet.haveSignature,
                     packet.sequence + 1,
+                    pResponse,
                     &pResponsePacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -139,6 +151,11 @@ cleanup:
     if (pResponsePacket)
     {
         SMBPacketRelease(pSession->pSocket->hPacketAllocator, pResponsePacket);
+    }
+
+    if (pResponse)
+    {
+        SMBResponseFree(pResponse);
     }
 
     if (packet.bufferLen)

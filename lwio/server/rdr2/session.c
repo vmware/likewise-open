@@ -115,8 +115,6 @@ SMBSessionCreate(
                 &pSession->pTreeHashByTID);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSession->pTreePacket = NULL;
-
     bDestroySetupCondition = TRUE;
 
     *ppSession = pSession;
@@ -250,8 +248,6 @@ SMBSessionFree(
     SMBHashSafeFree(&pSession->pTreeHashByPath);
     SMBHashSafeFree(&pSession->pTreeHashByTID);
 
-    assert(!pSession->pTreePacket);
-
     pthread_mutex_destroy(&pSession->mutex);
 
     LWIO_SAFE_FREE_MEMORY(pSession->pSessionKey);
@@ -383,88 +379,6 @@ cleanup:
 error:
 
     *ppTree = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSessionReceiveResponse(
-    IN PSMB_SESSION pSession,
-    IN BOOLEAN bVerifySignature,
-    IN DWORD dwExpectedSequence,
-    OUT PSMB_PACKET* ppPacket
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    struct timespec ts = { 0, 0 };
-    PSMB_PACKET pPacket = NULL;
-    int err = 0;
-
-    // TODO-The pSocket->pTreePacket stuff needs to go away
-    // so that this function can go away.
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    while (!pSession->pTreePacket)
-    {
-        ts.tv_sec = time(NULL) + 30;
-        ts.tv_nsec = 0;
-
-retry_wait:
-
-        /* @todo: always verify non-error state after acquiring mutex */
-        err = pthread_cond_timedwait(
-            &pSession->event,
-            &pSession->mutex,
-            &ts);
-        if (err == ETIMEDOUT)
-        {
-            if (time(NULL) < ts.tv_sec)
-            {
-                err = 0;
-                goto retry_wait;
-            }
-
-            /* As long as the socket is active, continue to wait.
-             * otherwise, mark the socket as bad and return
-             */
-            if (SMBSocketTimedOut(pSession->pSocket))
-            {
-                ntStatus = STATUS_IO_TIMEOUT;
-                SMBSocketInvalidate(pSession->pSocket, ntStatus);
-            }
-            else
-            {
-                ntStatus = STATUS_SUCCESS;
-            }
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pPacket = pSession->pTreePacket;
-    pSession->pTreePacket = NULL;
-
-    ntStatus = SMBPacketDecodeHeader(
-                    pPacket,
-                    bVerifySignature && !RdrSocketGetIgnoreServerSignatures(pSession->pSocket),
-                    dwExpectedSequence,
-                    pSession->pSocket->pSessionKey,
-                    pSession->pSocket->dwSessionKeyLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-
-    *ppPacket = pPacket;
-
-    return ntStatus;
-
-error:
-    if (pPacket)
-    {
-        SMBPacketRelease(pSession->pSocket->hPacketAllocator, pPacket);
-        pPacket = NULL;
-    }
 
     goto cleanup;
 }

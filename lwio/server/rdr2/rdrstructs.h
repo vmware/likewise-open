@@ -79,8 +79,6 @@ typedef struct
 
     PLW_TASK pTask;     /* Single reader */
 
-    PSMB_PACKET    pSessionPacket; /* To store packets without a UID
-                                         (Negotiate and Session Setup) */
     BOOLEAN volatile bSessionSetupInProgress;
 
     uint16_t maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
@@ -99,7 +97,8 @@ typedef struct
 
     DWORD    dwSequence;
     PSMB_PACKET pPacket;
-
+    SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
+    USHORT usNextMid;
 } SMB_SOCKET, *PSMB_SOCKET;
 
 typedef enum _RDR_SESSION_STATE
@@ -142,8 +141,6 @@ typedef struct
                                             could be a list of free MIDs from a custom
                                             allocator. */
 
-    PSMB_PACKET  pTreePacket;   /* To store packets without a
-                                       TID (Tree Connect) or disconnects */
     BOOLEAN volatile bTreeConnectInProgress;
 
     PBYTE  pSessionKey;
@@ -177,29 +174,16 @@ typedef struct
     SMB_SESSION *pSession;      /* Back pointer to parent session */
     uint16_t tid;
     PSTR pszPath;               /* For hashing */
-    uint16_t mid;
-
-    SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
-
 } SMB_TREE, *PSMB_TREE;
 
 typedef struct
 {
-    /* In a fully asynchronus daemon, this structure would contain all the
-       state required to continue an operation. */
-    pthread_mutex_t mutex;      /* Locks the structure */
+    PSMB_SOCKET pSocket;
     SMB_RESOURCE_STATE volatile state;   /* Response state: valid, invalid, etc. */
     NTSTATUS volatile error;
     pthread_cond_t event;
-
-    /* No refcount: the lifetime of a response is always managed by the
-       owning thread (for now) */
-
-    PSMB_TREE pTree;            /* Parent tree */
     uint16_t mid;               /* Multiplex ID (MID) for the response */
-
-    PSMB_PACKET pPacket; /* Pointer to response packet; response
-                                   owner must free */
+    PSMB_PACKET pPacket; /* Pointer to response packet; response owner must free */
 } SMB_RESPONSE, *PSMB_RESPONSE;
 
 typedef struct _SMB_CLIENT_FILE_HANDLE

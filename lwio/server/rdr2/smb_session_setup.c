@@ -81,6 +81,8 @@ SessionSetup(
     SMB_PACKET *pResponsePacket = NULL;
     PSESSION_SETUP_RESPONSE_HEADER_WC_4 pResponseHeader = NULL;
     WORD wUid = 0;
+    USHORT usMid = 0;
+    SMB_RESPONSE *pResponse = NULL;
 
     ntStatus = SMBGSSContextBuild(
         pSocket->pwszCanonicalName,
@@ -111,6 +113,21 @@ SessionSetup(
         PWSTR pwszNativeLanman = NULL;
         PWSTR pwszNativeDomain = NULL;
 
+        if (pResponsePacket)
+        {
+            SMBPacketRelease(pSocket->hPacketAllocator, pResponsePacket);
+            pResponsePacket = NULL;
+        }
+
+        if (pResponse)
+        {
+            SMBResponseFree(pResponse);
+            pResponse = NULL;
+        }
+
+        ntStatus = RdrSocketAcquireMid(pSocket, &usMid);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         ntStatus = SMBPacketMarshallHeader(
                         packet.pRawBuffer,
                         packet.bufferLen,
@@ -120,7 +137,7 @@ SessionSetup(
                         0xFFFF,
                         gRdrRuntime.SysPid,
                         wUid,
-                        0,
+                        usMid,
                         TRUE,
                         &packet);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -179,27 +196,23 @@ SessionSetup(
         ntStatus = SMBPacketMarshallFooter(&packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        /* Because there's no MID, only one SESSION_SETUP_ANDX packet can be
-           outstanding. */
-        /* FIXME: use flag and condition variable here to wait for outstanding
-           session setup to finish */
+        ntStatus = SMBResponseCreate(usMid, &pResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = RdrSocketAddResponse(pSocket, pResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         /* @todo: on send packet error, the response must be removed from the
            tree. */
         ntStatus = SMBSocketSend(pSocket, &packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pResponsePacket)
-        {
-            SMBPacketRelease(pSocket->hPacketAllocator, pResponsePacket);
-            pResponsePacket = NULL;
-        }
-
-        ntStatus = SMBSocketReceiveResponse(
-                        pSocket,
-                        packet.haveSignature && pSocket->pSessionKey != NULL,
-                        packet.sequence + 1,
-                        &pResponsePacket);
+        ntStatus = RdrSocketReceiveResponse(
+            pSocket,
+            packet.haveSignature && pSocket->pSessionKey != NULL,
+            packet.sequence + 1,
+            pResponse,
+            &pResponsePacket);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = pResponsePacket->pSMBHeader->error;
@@ -282,6 +295,12 @@ cleanup:
     if (pResponsePacket)
     {
         SMBPacketRelease(pSocket->hPacketAllocator, pResponsePacket);
+    }
+
+    if (pResponse)
+    {
+        SMBResponseFree(pResponse);
+        pResponse = NULL;
     }
 
     if (packet.bufferLen)

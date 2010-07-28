@@ -60,16 +60,11 @@ SMBResponseCreate(
     NTSTATUS ntStatus = 0;
     PSMB_RESPONSE pResponse = NULL;
     BOOLEAN bDestroyCondition = FALSE;
-    BOOLEAN bDestroyMutex = FALSE;
 
     ntStatus = SMBAllocateMemory(
                     sizeof(SMB_RESPONSE),
                     (PVOID*)&pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pthread_mutex_init(&pResponse->mutex, NULL);
-
-    bDestroyMutex = TRUE;
 
     pResponse->state = SMB_RESOURCE_STATE_INITIALIZING;
 
@@ -78,7 +73,6 @@ SMBResponseCreate(
 
     bDestroyCondition = TRUE;
 
-    pResponse->pTree = NULL;
     pResponse->mid = wMid;
     pResponse->pPacket = NULL;
 
@@ -95,11 +89,6 @@ error:
         pthread_cond_destroy(&pResponse->event);
     }
 
-    if (bDestroyMutex)
-    {
-        pthread_mutex_destroy(&pResponse->mutex);
-    }
-
     LWIO_SAFE_FREE_MEMORY(pResponse);
 
     *ppResponse = NULL;
@@ -107,36 +96,18 @@ error:
     goto cleanup;
 }
 
-/* This function does not remove a socket from it's parent hash; it merely
-   frees the memory if the refcount is zero. */
 VOID
 SMBResponseFree(
     PSMB_RESPONSE pResponse
     )
 {
-    BOOLEAN bInTreeLock = FALSE;
+    if (pResponse->pSocket)
+    {
+        RdrSocketRemoveResponse(pResponse->pSocket, pResponse);
+    }
 
     pthread_cond_destroy(&pResponse->event);
 
-    pthread_mutex_destroy(&pResponse->mutex);
-
-    if (pResponse->pTree)
-    {
-        LWIO_LOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
-
-        LWIO_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]",
-                      pResponse->mid, pResponse->pTree);
-
-        SMBHashRemoveKey(
-            pResponse->pTree->pResponseHash,
-            &pResponse->mid);
-
-        LWIO_UNLOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
-
-        SMBTreeRelease(pResponse->pTree);
-    }
-
-    /* @todo: use allocator */
     SMBFreeMemory(pResponse);
 }
 
@@ -150,14 +121,4 @@ SMBResponseInvalidate_InLock(
     pResponse->error = ntStatus;
 
     pthread_cond_broadcast(&pResponse->event);
-}
-
-VOID
-SMBResponseUnlock(
-    PSMB_RESPONSE pResponse
-    )
-{
-    BOOLEAN bInLock = TRUE;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pResponse->mutex);
 }

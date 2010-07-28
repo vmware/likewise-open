@@ -61,9 +61,9 @@ WireWriteFile(
                     &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeAcquireMid(
-                    pTree,
-                    &wMid);
+    ntStatus = RdrSocketAcquireMid(
+        pTree->pSession->pSocket,
+        &wMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
@@ -143,7 +143,7 @@ WireWriteFile(
     ntStatus = SMBResponseCreate(wMid, &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* @todo: on send packet error, the response must be removed from the
@@ -151,8 +151,8 @@ WireWriteFile(
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeReceiveResponse(
-                    pTree,
+    ntStatus = RdrSocketReceiveResponse(
+                    pTree->pSession->pSocket,
                     packet.haveSignature,
                     packet.sequence + 1,
                     pResponse,

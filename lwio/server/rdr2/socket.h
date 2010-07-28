@@ -112,14 +112,6 @@ SMBSocketRead(
     );
 
 NTSTATUS
-SMBSocketReceiveResponse(
-    IN PSMB_SOCKET pSocket,
-    IN BOOLEAN bVerifySignature,
-    IN DWORD dwExpectedSequence,
-    OUT PSMB_PACKET* ppPacket
-    );
-
-NTSTATUS
 SMBSocketFindSessionByPrincipal(
     IN PSMB_SOCKET pSocket,
     IN PCSTR pszPrincipal,
@@ -150,6 +142,33 @@ RdrSocketGetIgnoreServerSignatures(
 VOID
 SMBSocketBeginSequence(
     PSMB_SOCKET pSocket
+    );
+
+NTSTATUS
+RdrSocketAcquireMid(
+    PSMB_SOCKET pSocket,
+    USHORT* pusMid
+    );
+
+NTSTATUS
+RdrSocketAddResponse(
+    PSMB_SOCKET pSocket,
+    PSMB_RESPONSE pResponse
+    );
+
+NTSTATUS
+RdrSocketRemoveResponse(
+    PSMB_SOCKET pSocket,
+    PSMB_RESPONSE pResponse
+    );
+
+NTSTATUS
+RdrSocketReceiveResponse(
+    IN PSMB_SOCKET pSocket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN PSMB_RESPONSE pResponse,
+    OUT PSMB_PACKET* ppResponsePacket
     );
 
 #endif /* __SOCKET_H__ */

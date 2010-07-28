@@ -64,14 +64,6 @@ SMBSessionFindTreeById(
     PSMB_TREE*   ppTree
     );
 
-NTSTATUS
-SMBSessionReceiveResponse(
-    IN PSMB_SESSION pSession,
-    IN BOOLEAN bVerifySignature,
-    IN DWORD dwExpectedSequence,
-    OUT PSMB_PACKET* ppPacket
-    );
-
 VOID
 SMBSessionRelease(
     PSMB_SESSION pSession

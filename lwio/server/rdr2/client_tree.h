@@ -39,18 +39,6 @@ SMBSrvClientTreeOpen(
     );
 
 NTSTATUS
-SMBSrvClientTreeAddResponse(
-    PSMB_TREE     pTree,
-    PSMB_RESPONSE pResponse
-    );
-
-NTSTATUS
-SMBSrvClientTreeIsStale_inlock(
-    PSMB_TREE pTree,
-    PBOOLEAN  pbIsStale
-    );
-
-NTSTATUS
 SMBSrvClientTreeClose(
     PSMB_TREE pTree
     );

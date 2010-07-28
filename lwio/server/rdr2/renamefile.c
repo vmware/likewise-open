@@ -51,9 +51,7 @@ RdrTransactRenameFile(
         &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeAcquireMid(
-        pTree,
-        &usMid);
+    ntStatus = RdrSocketAcquireMid(pTree->pSession->pSocket, &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
@@ -119,14 +117,14 @@ RdrTransactRenameFile(
     ntStatus = SMBResponseCreate(usMid, &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeReceiveResponse(
-        pTree,
+    ntStatus = RdrSocketReceiveResponse(
+        pTree->pSession->pSocket,
         packet.haveSignature,
         packet.sequence + 1,
         pResponse,
@@ -191,9 +189,7 @@ RdrTransactNTRenameFile(
         &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeAcquireMid(
-        pTree,
-        &usMid);
+    ntStatus = RdrSocketAcquireMid(pTree->pSession->pSocket, &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
@@ -261,14 +257,14 @@ RdrTransactNTRenameFile(
     ntStatus = SMBResponseCreate(usMid, &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeReceiveResponse(
-        pTree,
+    ntStatus = RdrSocketReceiveResponse(
+        pTree->pSession->pSocket,
         packet.haveSignature,
         packet.sequence + 1,
         pResponse,
@@ -335,8 +331,8 @@ RdrTransactTrans2RenameFile(
         &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeAcquireMid(
-        pTree,
+    ntStatus = RdrSocketAcquireMid(
+        pTree->pSession->pSocket,
         &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -408,14 +404,14 @@ RdrTransactTrans2RenameFile(
     ntStatus = SMBResponseCreate(usMid, &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeReceiveResponse(
-        pTree,
+    ntStatus = RdrSocketReceiveResponse(
+        pTree->pSession->pSocket,
         packet.haveSignature,
         packet.sequence + 1,
         pResponse,

@@ -60,7 +60,7 @@ TreeDisconnect(
     SMB_PACKET packet = {0};
     SMB_RESPONSE *pResponse = NULL;
     SMB_PACKET *pResponsePacket = NULL;
-    uint16_t wMid = 0;
+    USHORT usMid = 0;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -70,9 +70,9 @@ TreeDisconnect(
                     &packet.bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeAcquireMid(
-                    pTree,
-                    &wMid);
+    ntStatus = RdrSocketAcquireMid(
+        pTree->pSession->pSocket,
+        &usMid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
@@ -84,7 +84,7 @@ TreeDisconnect(
                 pTree->tid,
                 gRdrRuntime.SysPid,
                 pTree->pSession->uid,
-                wMid,
+                usMid,
                 TRUE,
                 &packet);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -102,10 +102,10 @@ TreeDisconnect(
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBResponseCreate(wMid, &pResponse);
+    ntStatus = SMBResponseCreate(usMid, &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* @todo: on send packet error, the response must be removed from the
@@ -113,8 +113,8 @@ TreeDisconnect(
     ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeReceiveResponse(
-                    pTree,
+    ntStatus = RdrSocketReceiveResponse(
+                    pTree->pSession->pSocket,
                     packet.haveSignature,
                     packet.sequence + 1,
                     pResponse,

@@ -96,17 +96,38 @@ SMBSocketFindAndSignalResponse(
 
 static
 NTSTATUS
-SMBSocketFindSessionByUID(
-    PSMB_SOCKET   pSocket,
-    uint16_t      uid,
-    PSMB_SESSION* ppSession
-    );
-
-static
-NTSTATUS
 RdrEaiToNtStatus(
     int eai
     );
+
+static
+int
+RdrSocketHashResponseCompare(
+    PCVOID vp1,
+    PCVOID vp2)
+{
+    uint16_t mid1 = *((uint16_t *) vp1);
+    uint16_t mid2 = *((uint16_t *) vp2);
+
+    if (mid1 == mid2)
+    {
+        return 0;
+    }
+    else if (mid1 > mid2)
+    {
+        return 1;
+    }
+
+    return -1;
+}
+
+static
+size_t
+RdrSocketHashResponse(
+    PCVOID vp)
+{
+    return *((uint16_t *) vp);
+}
 
 NTSTATUS
 SMBSocketCreate(
@@ -189,6 +210,14 @@ SMBSocketCreate(
                     &pSocket->pSessionHashByUID);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBHashCreate(
+                19,
+                &RdrSocketHashResponseCompare,
+                &RdrSocketHashResponse,
+                NULL,
+                &pSocket->pResponseHash);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = LwRtlCreateTask(
         gRdrRuntime.pThreadPool,
         &pSocket->pTask,
@@ -196,8 +225,6 @@ SMBSocketCreate(
         SMBSocketReaderMain,
         pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pSocket->pSessionPacket = NULL;
 
     *ppSocket = pSocket;
 
@@ -211,6 +238,7 @@ error:
     {
         SMBHashSafeFree(&pSocket->pSessionHashByUID);
         SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
+        SMBHashSafeFree(&pSocket->pResponseHash);
 
         LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
         LWIO_SAFE_FREE_MEMORY(pSocket->pwszCanonicalName);
@@ -729,6 +757,35 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+RdrSocketFindResponseByMid(
+    PSMB_SOCKET pSocket,
+    USHORT usMid,
+    PSMB_RESPONSE* ppResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_RESPONSE pResponse = NULL;
+
+    ntStatus = SMBHashGetValue(
+        pSocket->pResponseHash,
+        &usMid,
+        (PVOID *) &pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppResponse = pResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppResponse = NULL;
+
+    goto cleanup;
+}
+
 /* Ref. counting intermediate structures is not strictly necessary because
    there are currently no blocking operations in the response path; one could
    simply lock hashes all the way up the path */
@@ -740,72 +797,14 @@ SMBSocketFindAndSignalResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SESSION  pSession  = NULL;
-    PSMB_TREE     pTree     = NULL;
     PSMB_RESPONSE pResponse = NULL;
-    BOOLEAN bSocketInLock = FALSE;
-    uint8_t command = SMB_LTOH8(pPacket->pSMBHeader->command);
-    uint16_t uid = SMB_LTOH16(pPacket->pSMBHeader->uid);
-    uint16_t tid = SMB_LTOH16(pPacket->pSMBHeader->tid);
-    uint16_t mid = SMB_LTOH16(pPacket->pSMBHeader->mid);
+    USHORT usMid = SMB_LTOH16(pPacket->pSMBHeader->mid);
 
-    /* If any intermediate object has an error status, then the
-       waiting thread has (or will soon) be awoken with an error
-       condition by the thread which set the original error. */
-
-    if (command == COM_NEGOTIATE ||
-        command == COM_SESSION_SETUP_ANDX ||
-        command == COM_LOGOFF_ANDX)
-    {
-        LWIO_LOCK_MUTEX(bSocketInLock, &pSocket->mutex);
-
-        assert(!pSocket->pSessionPacket);
-
-        pSocket->pSessionPacket = pPacket;
-
-        pthread_cond_broadcast(&pSocket->event);
-
-        LWIO_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
-
-        goto cleanup;
-    }
-
-    ntStatus = SMBSocketFindSessionByUID(
+    ntStatus = RdrSocketFindResponseByMid(
                     pSocket,
-                    uid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* COM_TREE_DISCONNECT has a MID and is handled by the normal MID path. */
-    if (command == COM_TREE_CONNECT_ANDX)
-    {
-        BOOLEAN bSessionInLock = FALSE;
-
-        LWIO_LOCK_MUTEX(bSessionInLock, &pSession->mutex);
-
-        assert(!pSession->pTreePacket);
-        pSession->pTreePacket = pPacket;
-
-        pthread_cond_broadcast(&pSession->event);
-
-        LWIO_UNLOCK_MUTEX(bSessionInLock, &pSession->mutex);
-
-        goto cleanup;
-    }
-
-    ntStatus = SMBSessionFindTreeById(
-                    pSession,
-                    tid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBTreeFindLockedResponseByMID(
-                    pTree,
-                    mid,
+                    usMid,
                     &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", mid, pTree, pSocket);
 
     pResponse->pPacket = pPacket;
     pResponse->state = SMB_RESOURCE_STATE_VALID;
@@ -814,65 +813,9 @@ SMBSocketFindAndSignalResponse(
 
 cleanup:
 
-    if (pTree)
-    {
-        SMBTreeRelease(pTree);
-    }
-
-    if (pSession)
-    {
-        SMBSessionRelease(pSession);
-    }
-
-    if (pResponse)
-    {
-        LWIO_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
-
-        SMBResponseUnlock(pResponse);
-    }
-
     return ntStatus;
 
 error:
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SMBSocketFindSessionByUID(
-    PSMB_SOCKET   pSocket,
-    uint16_t      uid,
-    PSMB_SESSION* ppSession
-    )
-{
-    /* It is not necessary to ref. the socket here because we're guaranteed
-       that the reader thread dies before the socket is destroyed */
-    NTSTATUS ntStatus = 0;
-    PSMB_SESSION pSession = NULL;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    ntStatus = SMBHashGetValue(
-                    pSocket->pSessionHashByUID,
-                    &uid,
-                    (PVOID *) &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSession->refCount++;
-
-    *ppSession = pSession;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppSession = NULL;
 
     goto cleanup;
 }
@@ -1128,92 +1071,6 @@ SMBSocketGetState(
 }
 
 NTSTATUS
-SMBSocketReceiveResponse(
-    IN PSMB_SOCKET pSocket,
-    IN BOOLEAN bVerifySignature,
-    IN DWORD dwExpectedSequence,
-    OUT PSMB_PACKET* ppPacket
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    struct timespec ts = { 0, 0 };
-    PSMB_PACKET pPacket = NULL;
-    int err = 0;
-
-    // TODO-The pSocket->pSessionPacket stuff needs to go away
-    // so that this function can go away.
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    /* @todo: always check socket state for error */
-
-    while (!pSocket->pSessionPacket)
-    {
-
-        ts.tv_sec = time(NULL) + 30;
-        ts.tv_nsec = 0;
-
-retry_wait:
-
-        /* @todo: always verify non-error state after acquiring mutex */
-        err = pthread_cond_timedwait(
-            &pSocket->event,
-            &pSocket->mutex,
-            &ts);
-        if (err == ETIMEDOUT)
-        {
-            if (time(NULL) < ts.tv_sec)
-            {
-                err = 0;
-                goto retry_wait;
-            }
-
-            /* As long as the socket is active, continue to wait.
-             * otherwise, mark the socket as bad and return
-             */
-            if (SMBSocketTimedOut_InLock(pSocket))
-            {
-                ntStatus = STATUS_IO_TIMEOUT;
-                SMBSocketInvalidate_InLock(pSocket, ntStatus);
-            }
-            else
-            {
-                ntStatus = STATUS_SUCCESS;
-            }
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pPacket = pSocket->pSessionPacket;
-    pSocket->pSessionPacket = NULL;
-
-    ntStatus = SMBPacketDecodeHeader(
-                    pPacket,
-                    bVerifySignature && !pSocket->bIgnoreServerSignatures,
-                    dwExpectedSequence,
-                    pSocket->pSessionKey,
-                    pSocket->dwSessionKeyLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    *ppPacket = pPacket;
-
-    return ntStatus;
-
-error:
-    if (pPacket)
-    {
-        SMBPacketRelease(pSocket->hPacketAllocator, pPacket);
-        pPacket = NULL;
-    }
-
-    goto cleanup;
-}
-
-NTSTATUS
 SMBSocketFindSessionByPrincipal(
     IN PSMB_SOCKET pSocket,
     IN PCSTR pszPrincipal,
@@ -1366,11 +1223,6 @@ SMBSocketFree(
     SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
     SMBHashSafeFree(&pSocket->pSessionHashByUID);
 
-    if (pSocket->pSessionPacket)
-    {
-        SMBPacketRelease(pSocket->hPacketAllocator, pSocket->pSessionPacket);
-    }
-
     if (pSocket->pPacket)
     {
         SMBPacketRelease(pSocket->hPacketAllocator, pSocket->pPacket);
@@ -1437,5 +1289,175 @@ RdrEaiToNtStatus(
     default:
         return STATUS_UNSUCCESSFUL;
     }
+}
+
+NTSTATUS
+RdrSocketAcquireMid(
+    PSMB_SOCKET pSocket,
+    USHORT* pusMid
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    *pusMid = pSocket->usNextMid++;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return ntStatus;
+}
+
+
+
+NTSTATUS
+RdrSocketAddResponse(
+    PSMB_SOCKET pSocket,
+    PSMB_RESPONSE pResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    /* @todo: if we allocate the MID outside of this function, we need to
+       check for a conflict here */
+    ntStatus = SMBHashSetValue(
+                    pSocket->pResponseHash,
+                    &pResponse->mid,
+                    pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pResponse->pSocket = pSocket;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+RdrSocketRemoveResponse(
+    PSMB_SOCKET pSocket,
+    PSMB_RESPONSE pResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    /* @todo: if we allocate the MID outside of this function, we need to
+       check for a conflict here */
+    ntStatus = SMBHashRemoveKey(
+                    pSocket->pResponseHash,
+                    &pResponse->mid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pResponse->pSocket = NULL;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+RdrSocketReceiveResponse(
+    IN PSMB_SOCKET pSocket,
+    IN BOOLEAN bVerifySignature,
+    IN DWORD dwExpectedSequence,
+    IN PSMB_RESPONSE pResponse,
+    OUT PSMB_PACKET* ppResponsePacket
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+    struct timespec ts = {0, 0};
+    int err = 0;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    while (!(pResponse->state == SMB_RESOURCE_STATE_VALID))
+    {
+        ts.tv_sec = time(NULL) + 30;
+        ts.tv_nsec = 0;
+
+retry_wait:
+
+        /* @todo: always verify non-error state after acquiring mutex */
+        err = pthread_cond_timedwait(
+            &pResponse->event,
+            &pSocket->mutex,
+            &ts);
+        if (err == ETIMEDOUT)
+        {
+            if (time(NULL) < ts.tv_sec)
+            {
+                err = 0;
+                goto retry_wait;
+            }
+
+            /* As long as the socket is active, continue to wait.
+             * otherwise, mark the socket as bad and return
+             */
+            if (SMBSocketTimedOut_InLock(pSocket))
+            {
+                ntStatus = STATUS_IO_TIMEOUT;
+                SMBSocketInvalidate(pSocket, ntStatus);
+                SMBResponseInvalidate_InLock(pResponse, ntStatus);
+            }
+            else
+            {
+                // continue waiting
+                ntStatus = STATUS_SUCCESS;
+            }
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SMBHashRemoveKey(
+        pSocket->pResponseHash,
+        &pResponse->mid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pResponse->pSocket = NULL;
+    pSocket->lastActiveTime = time(NULL);
+
+    ntStatus = SMBPacketDecodeHeader(
+                    pResponse->pPacket,
+                    bVerifySignature && !pSocket->bIgnoreServerSignatures,
+                    dwExpectedSequence,
+                    pSocket->pSessionKey,
+                    pSocket->dwSessionKeyLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Could be NULL on error */
+    *ppResponsePacket = pResponse->pPacket;
+    pResponse->pPacket = NULL;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppResponsePacket = NULL;
+
+    goto cleanup;
 }
 
