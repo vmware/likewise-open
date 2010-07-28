@@ -99,34 +99,6 @@ error:
     return(ntStatus);
 }
 
-
-NTSTATUS
-RdrAllocateCCB(
-    PRDR_CCB *ppCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PRDR_CCB pCCB = NULL;
-
-   /* ntStatus = IoMemoryAllocate(
-                    sizeof(RDR_CCB),
-                    &pCCB
-                    );*/
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppCCB = pCCB;
-
-    return(ntStatus);
-
-error:
-
-    *ppCCB = NULL;
-
-    return(ntStatus);
-}
-
-
-
 NTSTATUS
 RdrCommonCreate(
     PRDR_IRP_CONTEXT pIrpContext,
