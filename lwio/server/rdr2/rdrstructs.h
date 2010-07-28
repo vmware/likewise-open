@@ -97,8 +97,12 @@ typedef struct
 
     DWORD    dwSequence;
     PSMB_PACKET pPacket;
+    PSMB_PACKET pOutgoing;
+    size_t OutgoingWritten;
     SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
     USHORT usNextMid;
+    unsigned volatile bReadBlocked:1;
+    unsigned volatile bWriteBlocked:1;
 } SMB_SOCKET, *PSMB_SOCKET;
 
 typedef enum _RDR_SESSION_STATE

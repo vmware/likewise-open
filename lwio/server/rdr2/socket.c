@@ -78,8 +78,15 @@ SMBSocketHashSessionByKey(
     );
 
 static
+NTSTATUS
+SMBSocketSendData(
+    IN PSMB_SOCKET pSocket,
+    IN PSMB_PACKET pPacket
+    );
+
+static
 VOID
-SMBSocketReaderMain(
+SMBSocketTask(
     PLW_TASK pTask,
     LW_PVOID pContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -222,7 +229,7 @@ SMBSocketCreate(
         gRdrRuntime.pThreadPool,
         &pSocket->pTask,
         gRdrRuntime.pReaderTaskGroup,
-        SMBSocketReaderMain,
+        SMBSocketTask,
         pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -449,16 +456,54 @@ SMBSocketUpdateLastActiveTime(
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
+static
+NTSTATUS
+SMBSocketSendData(
+    IN PSMB_SOCKET pSocket,
+    IN PSMB_PACKET pPacket
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ssize_t  writtenLen = 0;
+
+    do
+    {
+        writtenLen = write(
+            pSocket->fd,
+            pPacket->pRawBuffer + pSocket->OutgoingWritten,
+            pPacket->bufferUsed - pSocket->OutgoingWritten);
+        if (writtenLen >= 0)
+        {
+            pSocket->OutgoingWritten += writtenLen;
+        }
+    } while (pSocket->OutgoingWritten < pPacket->bufferUsed &&
+             (writtenLen >= 0 || (writtenLen < 0 && errno == EINTR)));
+
+    if (writtenLen < 0)
+    {
+        switch (errno)
+        {
+        case EAGAIN:
+            ntStatus = STATUS_PENDING;
+            BAIL_ON_NT_STATUS(ntStatus);
+        default:
+            ntStatus = LwErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+error:
+
+    return ntStatus;
+}
+
 NTSTATUS
 SMBSocketSend(
     IN PSMB_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     )
 {
-    /* @todo: signal handling */
     NTSTATUS ntStatus = 0;
-    ssize_t  writtenLen = 0;
-    size_t totalWritten = 0;
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bSemaphoreAcquired = FALSE;
     BOOLEAN bIsSignatureRequired = FALSE;
@@ -502,23 +547,31 @@ SMBSocketSend(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    do
+    /* Wait until current outgoing packet is fully sent */
+    while (pSocket->pOutgoing)
     {
-        writtenLen = write(
-            pSocket->fd,
-            pPacket->pRawBuffer + totalWritten,
-            pPacket->bufferUsed - totalWritten);
-        if (writtenLen >= 0)
+        if (pSocket->error)
         {
-            totalWritten += writtenLen;
+            ntStatus = pSocket->error;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
-    } while (totalWritten < pPacket->bufferUsed &&
-             (writtenLen >= 0 || (writtenLen < 0 && (errno == EAGAIN || errno == EINTR))));
 
-    if (writtenLen < 0)
+        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
+    }
+
+    pSocket->pOutgoing = pPacket;
+    LwRtlWakeTask(pSocket->pTask);
+
+   /* Wait until our packet is fully sent */
+    while (pSocket->pOutgoing == pPacket)
     {
-        ntStatus = LwErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (pSocket->error)
+        {
+            ntStatus = pSocket->error;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
     }
 
 cleanup:
@@ -624,7 +677,7 @@ error:
 
 static
 VOID
-SMBSocketReaderMain(
+SMBSocketTask(
     PLW_TASK pTask,
     LW_PVOID pContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -696,47 +749,84 @@ SMBSocketReaderMain(
         }
     }
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    SMBSocketUpdateLastActiveTime(pSocket);
-
-    if (!pSocket->pPacket)
+    if (WakeMask & LW_TASK_EVENT_FD_READABLE)
     {
-        ntStatus = SMBPacketAllocate(pSocket->hPacketAllocator, &pSocket->pPacket);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SMBPacketBufferAllocate(
-            pSocket->hPacketAllocator,
-            1024*64,
-            &pSocket->pPacket->pRawBuffer,
-            &pSocket->pPacket->bufferLen);
-        BAIL_ON_NT_STATUS(ntStatus);
+        pSocket->bReadBlocked = FALSE;
     }
 
-    ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pSocket->pPacket);
-    switch(ntStatus)
+    if (WakeMask & LW_TASK_EVENT_FD_WRITABLE)
     {
-    case STATUS_SUCCESS:
-        if (pSocket->maxMpxCount)
+        pSocket->bWriteBlocked = FALSE;
+    }
+
+    pSocket->lastActiveTime = time(NULL);
+
+    *pWaitMask = LW_TASK_EVENT_EXPLICIT;
+
+    if (!pSocket->bReadBlocked)
+    {
+        if (!pSocket->pPacket)
         {
-            ntStatus = SMBSemaphorePost(&pSocket->semMpx);
+            ntStatus = SMBPacketAllocate(pSocket->hPacketAllocator, &pSocket->pPacket);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SMBPacketBufferAllocate(
+                pSocket->hPacketAllocator,
+                1024*64,
+                &pSocket->pPacket->pRawBuffer,
+                &pSocket->pPacket->bufferLen);
             BAIL_ON_NT_STATUS(ntStatus);
         }
-        /* This function should free packet and socket memory on error */
-        ntStatus = SMBSocketFindAndSignalResponse(pSocket, pSocket->pPacket);
-        BAIL_ON_NT_STATUS(ntStatus);
 
-        pSocket->pPacket = NULL;
+        ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pSocket->pPacket);
+        switch(ntStatus)
+        {
+        case STATUS_SUCCESS:
+            /* This function should free packet and socket memory on error */
+            ntStatus = SMBSocketFindAndSignalResponse(pSocket, pSocket->pPacket);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        *pWaitMask = LW_TASK_EVENT_YIELD;
-        break;
+            pSocket->pPacket = NULL;
 
-    case STATUS_PENDING:
-        *pWaitMask = LW_TASK_EVENT_FD_READABLE;
-        goto cleanup;
+            *pWaitMask |= LW_TASK_EVENT_YIELD;
+            break;
+        case STATUS_PENDING:
+            pSocket->bReadBlocked = TRUE;
+            break;
+        default:
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
 
-    default:
-        BAIL_ON_NT_STATUS(ntStatus);
+    if (!pSocket->bWriteBlocked && pSocket->pOutgoing)
+    {
+        ntStatus = SMBSocketSendData(pSocket, pSocket->pOutgoing);
+        switch (ntStatus)
+        {
+        case STATUS_SUCCESS:
+            pSocket->OutgoingWritten = 0;
+            pSocket->pOutgoing = NULL;
+            pthread_cond_broadcast(&pSocket->event);
+            *pWaitMask |= LW_TASK_EVENT_YIELD;
+            break;
+        case STATUS_PENDING:
+            pSocket->bWriteBlocked = TRUE;
+            break;
+        default:
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+    /* Determine next wake mask */
+
+    if (pSocket->bReadBlocked)
+    {
+        *pWaitMask |= LW_TASK_EVENT_FD_READABLE;
+    }
+
+    if (pSocket->bWriteBlocked && pSocket->pOutgoing)
+    {
+        *pWaitMask |= LW_TASK_EVENT_FD_WRITABLE;
     }
 
 cleanup:
@@ -810,6 +900,12 @@ SMBSocketFindAndSignalResponse(
     pResponse->state = SMB_RESOURCE_STATE_VALID;
 
     pthread_cond_broadcast(&pResponse->event);
+
+    if (pSocket->maxMpxCount)
+    {
+        ntStatus = SMBSemaphorePost(&pSocket->semMpx);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
