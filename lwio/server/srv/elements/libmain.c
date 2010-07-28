@@ -155,7 +155,7 @@ SrvElementsGetOEMSessionEcpEnabled(
     VOID
     )
 {
-    return gSrvElements.bClientAddressEcpEnabled;
+    return gSrvElements.bOEMSessionEcpEnabled;
 }
 
 NTSTATUS
