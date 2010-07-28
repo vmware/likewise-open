@@ -406,6 +406,7 @@ SMBSrvClientTreeCreate(
     if (!ntStatus)
     {
         pTree->refCount++;
+        RdrTreeRevive(pTree);
         SMBSessionRelease(pSession);
         *ppSession = NULL;
     }

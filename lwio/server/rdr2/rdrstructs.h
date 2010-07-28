@@ -56,10 +56,6 @@ typedef struct
     int32_t volatile refCount;      /* Reference count */
     BOOLEAN volatile bParentLink;   /* Whether socket is linked to by parent (global socket table) */
 
-    time_t  volatile lastActiveTime;     /* Checked by the reaper thread and message
-                                            handler threads; set when new data is
-                                            received */
-
     int fd;
     PWSTR pwszHostname;         /* Raw hostname, including channel specifier */
     PWSTR pwszCanonicalName;      /* Canconical hostname for DNS resolution/GSS principal construction */
@@ -77,7 +73,8 @@ typedef struct
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
     SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
 
-    PLW_TASK pTask;     /* Single reader */
+    PLW_TASK pTask;
+    PLW_TASK pTimeout;
 
     BOOLEAN volatile bSessionSetupInProgress;
 
@@ -124,8 +121,6 @@ typedef struct
     int32_t volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink;        /* Whether session is linked to by parent (socket) */
 
-    time_t volatile lastActiveTime;
-
     SMB_SOCKET *pSocket;        /* Back pointer to parent socket */
 
     USHORT uid;
@@ -149,8 +144,7 @@ typedef struct
 
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
-
-    /* @todo: store max mux, enforce.  Per session, per tree, or global? */
+    PLW_TASK pTimeout;
 } SMB_SESSION, *PSMB_SESSION;
 
 typedef enum _RDR_TREE_STATE
@@ -174,10 +168,10 @@ typedef struct
     int32_t volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink; /* Whether tree is linked to by parent (session) */
 
-    time_t  volatile lastActiveTime;
     SMB_SESSION *pSession;      /* Back pointer to parent session */
     uint16_t tid;
     PSTR pszPath;               /* For hashing */
+    PLW_TASK pTimeout;
 } SMB_TREE, *PSMB_TREE;
 
 typedef struct
@@ -229,12 +223,6 @@ typedef struct _RDR_GLOBAL_RUNTIME
     SMB_HASH_TABLE   *pSocketHashByName;    /* Socket hash by name */
     pthread_mutex_t   socketHashLock;
     PLWIO_PACKET_ALLOCATOR hPacketAllocator;
-    BOOLEAN volatile bShutdown;
-    pthread_mutex_t   reaperMutex;
-    pthread_cond_t    reaperEvent;
-    pthread_t reaperThread;
-    time_t expirationTime;
-    time_t volatile nextWakeupTime;
     pid_t SysPid;
     PLW_THREAD_POOL pThreadPool;
     PLW_TASK_GROUP pReaderTaskGroup;

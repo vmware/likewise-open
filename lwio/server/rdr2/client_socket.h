@@ -41,31 +41,7 @@ SMBSrvClientSocketCreate(
     );
 
 NTSTATUS
-SMBSrvClientSocketIsStale_inlock(
-    PSMB_SOCKET pSocket,
-    PBOOLEAN    pbIsStale
-    );
-
-NTSTATUS
-SMBSrvClientSocketAddSessionByPrincipal(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
-    );
-
-NTSTATUS
-SMBSrvClientSocketRemoveSessionByPrincipal(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
-    );
-
-NTSTATUS
 SMBSrvClientSocketAddSessionByUID(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
-    );
-
-NTSTATUS
-SMBSrvClientSocketRemoveSessionByUID(
     PSMB_SOCKET  pSocket,
     PSMB_SESSION pSession
     );

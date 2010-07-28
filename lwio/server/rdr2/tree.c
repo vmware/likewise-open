@@ -45,8 +45,6 @@
  *
  * Author: Kaya Bekiroglu (kaya@likewisesoftware.com)
  *
- * @todo: add error logging code
- * @todo: switch to NT error codes where appropriate
  */
 
 #include "rdr.h"
@@ -91,15 +89,6 @@ SMBTreeCreate(
     bDestroyCondition = TRUE;
 
     pTree->refCount = 1;
-
-    /* @todo: find a portable time call which is immune to host date and time
-       changes, such as made by ntpd */
-    if (time((time_t*) &pTree->lastActiveTime) == (time_t)-1)
-    {
-        ntStatus = ErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     pTree->pSession = NULL;
     pTree->tid = 0;
     pTree->pszPath = NULL;
@@ -138,8 +127,18 @@ error:
     goto cleanup;
 }
 
-/* This must be called with the parent hash lock held to avoid a race with the
-   reaper. */
+VOID
+RdrTreeRevive(
+    PSMB_TREE pTree
+    )
+{
+    if (pTree->pTimeout)
+    {
+        LwRtlCancelTask(pTree->pTimeout);
+        LwRtlReleaseTask(&pTree->pTimeout);
+    }
+}
+
 VOID
 SMBTreeAddReference(
     PSMB_TREE pTree
@@ -150,6 +149,7 @@ SMBTreeAddReference(
     LWIO_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
     pTree->refCount++;
+    RdrTreeRevive(pTree);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
@@ -174,6 +174,24 @@ SMBTreeSetState(
     return ntStatus;
 }
 
+static
+VOID
+RdrTreeUnlink(
+    PSMB_TREE pTree
+    )
+{
+    if (pTree->bParentLink)
+    {
+        SMBHashRemoveKey(
+            pTree->pSession->pTreeHashByPath,
+            pTree->pszPath);
+        SMBHashRemoveKey(
+            pTree->pSession->pTreeHashByTID,
+            &pTree->tid);
+        pTree->bParentLink = FALSE;
+    }
+}
+
 NTSTATUS
 SMBTreeInvalidate(
     PSMB_TREE pTree,
@@ -189,16 +207,7 @@ SMBTreeInvalidate(
     pTree->error = ntStatus;
 
     LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-    if (pTree->bParentLink)
-    {
-        SMBHashRemoveKey(
-            pTree->pSession->pTreeHashByPath,
-            pTree->pszPath);
-        SMBHashRemoveKey(
-            pTree->pSession->pTreeHashByTID,
-            &pTree->tid);
-        pTree->bParentLink = FALSE;
-    }
+    RdrTreeUnlink(pTree);
     LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
 
     pthread_cond_broadcast(&pTree->event);
@@ -206,6 +215,68 @@ SMBTreeInvalidate(
     LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
+}
+
+static
+VOID
+RdrTreeReap(
+    PVOID pContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+    PSMB_TREE pTree = pContext;
+    PSMB_SESSION pSession = pTree->pSession;
+
+    LWIO_LOCK_MUTEX(bLocked, &pSession->mutex);
+
+    if (pTree->refCount == 0)
+    {
+        RdrTreeUnlink(pTree);
+        LWIO_UNLOCK_MUTEX(bLocked, &pSession->mutex);
+        status = TreeDisconnect(pTree);
+        SMBTreeFree(pTree);
+        BAIL_ON_NT_STATUS(status);
+    }
+
+error:
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pSession->mutex);
+}
+
+static
+VOID
+RdrTreeTimeout(
+    PLW_TASK pTask,
+    LW_PVOID pContext,
+    LW_TASK_EVENT_MASK WakeMask,
+    LW_TASK_EVENT_MASK* pWaitMask,
+    LW_LONG64* pllTime
+    )
+{
+    PSMB_TREE pTree = pContext;
+
+    if (WakeMask & LW_TASK_EVENT_CANCEL)
+    {
+        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+    }
+    else if (WakeMask & LW_TASK_EVENT_INIT)
+    {
+        *pWaitMask = LW_TASK_EVENT_TIME;
+        *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
+    }
+    else if (WakeMask & LW_TASK_EVENT_TIME)
+    {
+        if (LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrTreeReap, pTree, 0) == STATUS_SUCCESS)
+        {
+            *pWaitMask = LW_TASK_EVENT_COMPLETE;
+        }
+        else
+        {
+            *pWaitMask = LW_TASK_EVENT_TIME;
+            *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
+        }
+    }
 }
 
 VOID
@@ -223,24 +294,30 @@ SMBTreeRelease(
     {
         if (pTree->state != RDR_TREE_STATE_READY)
         {
-            if (pTree->bParentLink)
-            {
-                SMBHashRemoveKey(
-                    pTree->pSession->pTreeHashByPath,
-                    pTree->pszPath);
-                SMBHashRemoveKey(
-                    pTree->pSession->pTreeHashByTID,
-                    &pTree->tid);
-                pTree->bParentLink = FALSE;
-            }
+            RdrTreeUnlink(pTree);
             LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
             SMBTreeFree(pTree);
         }
         else
         {
             LWIO_LOG_VERBOSE("Tree %p is eligible for reaping", pTree);
-            LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
-            RdrReaperPoke(&gRdrRuntime, pTree->lastActiveTime);
+
+            if (LwRtlCreateTask(
+                    gRdrRuntime.pThreadPool,
+                    &pTree->pTimeout,
+                    gRdrRuntime.pReaderTaskGroup,
+                    RdrTreeTimeout,
+                    pTree) == STATUS_SUCCESS)
+            {
+                LwRtlWakeTask(pTree->pTimeout);
+                LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+            }
+            else
+            {
+                RdrTreeUnlink(pTree);
+                LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+                SMBTreeFree(pTree);
+            }
         }
     }
     else
@@ -276,6 +353,12 @@ SMBTreeDestroyContents(
     )
 {
     LWIO_SAFE_FREE_MEMORY(pTree->pszPath);
+
+    if (pTree->pTimeout)
+    {
+        LwRtlCancelTask(pTree->pTimeout);
+        LwRtlReleaseTask(&pTree->pTimeout);
+    }
 
     return 0;
 }

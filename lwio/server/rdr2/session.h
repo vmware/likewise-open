@@ -29,6 +29,11 @@ SMBSessionCreate(
     );
 
 VOID
+RdrSessionRevive(
+    PSMB_SESSION pSession
+    );
+
+VOID
 SMBSessionAddReference(
     PSMB_SESSION pSession
     );
@@ -43,11 +48,6 @@ VOID
 SMBSessionSetState(
     PSMB_SESSION pSession,
     SMB_RESOURCE_STATE state
-    );
-
-VOID
-SMBSessionUpdateLastActiveTime(
-    PSMB_SESSION pSession
     );
 
 NTSTATUS

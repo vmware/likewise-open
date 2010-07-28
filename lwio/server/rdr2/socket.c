@@ -166,11 +166,6 @@ SMBSocketCreate(
     bDestroyCondition = TRUE;
 
     pSocket->refCount = 1;
-
-    /* @todo: find a portable time call which is immune to host date and time
-       changes, such as made by ntpd */
-    pSocket->lastActiveTime = time(NULL);
-
     pSocket->fd = -1;
 
     /* Hostname is trusted */
@@ -324,47 +319,7 @@ SMBSocketHashSessionByKey(
     return SMBHashCaselessString(pKey->pszPrincipal) ^ (pKey->uid ^ (pKey->uid << 16));
 }
 
-BOOLEAN
-SMBSocketTimedOut(
-    PSMB_SOCKET pSocket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-    BOOLEAN bTimedOut = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    bTimedOut = SMBSocketTimedOut_InLock(pSocket);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return bTimedOut;
-}
-
-BOOLEAN
-SMBSocketTimedOut_InLock(
-    PSMB_SOCKET pSocket
-    )
-{
-    BOOLEAN bTimedOut = FALSE;
-    DWORD   dwDiffSeconds = 0;
-
-    /* Because we don't compare with the time of last write, only last read, a
-       socket can become stale immediately after a request has been sent if
-       the socket was previously idle.  We rely on the large timeout in
-       SMBTreeReceiveResponse to smooth this over; we don't want to block
-       forever on requests just because other threads are writing to the
-       (possibly dead) socket. */
-    dwDiffSeconds = difftime(time(NULL), pSocket->lastActiveTime);
-    if (dwDiffSeconds > 30)
-    {
-        LWIO_LOG_DEBUG("Socket timed out and was stale for [%d] seconds", dwDiffSeconds);
-        bTimedOut = TRUE;
-    }
-
-    return bTimedOut;
-}
-
+static
 BOOLEAN
 SMBSocketIsSignatureRequired(
     IN PSMB_SOCKET pSocket
@@ -438,20 +393,6 @@ SMBSocketBeginSequence(
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     pSocket->dwSequence = 2;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-}
-
-VOID
-SMBSocketUpdateLastActiveTime(
-    PSMB_SOCKET pSocket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    pSocket->lastActiveTime = time(NULL);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
@@ -759,8 +700,6 @@ SMBSocketTask(
         pSocket->bWriteBlocked = FALSE;
     }
 
-    pSocket->lastActiveTime = time(NULL);
-
     *pWaitMask = LW_TASK_EVENT_EXPLICIT;
 
     if (!pSocket->bReadBlocked)
@@ -847,6 +786,7 @@ error:
     goto cleanup;
 }
 
+static
 NTSTATUS
 RdrSocketFindResponseByMid(
     PSMB_SOCKET pSocket,
@@ -917,6 +857,18 @@ error:
 }
 
 VOID
+RdrSocketRevive(
+    PSMB_SOCKET pSocket
+    )
+{
+    if (pSocket->pTimeout)
+    {
+        LwRtlCancelTask(pSocket->pTimeout);
+        LwRtlReleaseTask(&pSocket->pTimeout);
+    }
+}
+
+VOID
 SMBSocketAddReference(
     PSMB_SOCKET pSocket
     )
@@ -926,8 +878,79 @@ SMBSocketAddReference(
     LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     pSocket->refCount++;
+    RdrSocketRevive(pSocket);
 
     LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+}
+
+static
+VOID
+RdrSocketUnlink(
+    PSMB_SOCKET pSocket
+    )
+{
+    if (pSocket->bParentLink)
+    {
+        SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                         pSocket->pwszHostname);
+        pSocket->bParentLink = FALSE;
+    }
+}
+
+static
+VOID
+RdrSocketReap(
+    PVOID pContext
+    )
+{
+    BOOLEAN bLocked = FALSE;
+    PSMB_SOCKET pSocket = pContext;
+
+    LWIO_LOCK_MUTEX(bLocked, &gRdrRuntime.socketHashLock);
+
+    if (pSocket->refCount == 0)
+    {
+        RdrSocketUnlink(pSocket);
+        LWIO_UNLOCK_MUTEX(bLocked, &gRdrRuntime.socketHashLock);
+        SMBSocketFree(pSocket);
+    }
+
+    LWIO_UNLOCK_MUTEX(bLocked, &gRdrRuntime.socketHashLock);
+}
+
+static
+VOID
+RdrSocketTimeout(
+    PLW_TASK pTask,
+    LW_PVOID pContext,
+    LW_TASK_EVENT_MASK WakeMask,
+    LW_TASK_EVENT_MASK* pWaitMask,
+    LW_LONG64* pllTime
+    )
+{
+    PSMB_SOCKET pSocket = pContext;
+
+    if (WakeMask & LW_TASK_EVENT_CANCEL)
+    {
+        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+    }
+    else if (WakeMask & LW_TASK_EVENT_INIT)
+    {
+        *pWaitMask = LW_TASK_EVENT_TIME;
+        *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
+    }
+    else if (WakeMask & LW_TASK_EVENT_TIME)
+    {
+        if (LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrSocketReap, pSocket, 0) == STATUS_SUCCESS)
+        {
+            *pWaitMask = LW_TASK_EVENT_COMPLETE;
+        }
+        else
+        {
+            *pWaitMask = LW_TASK_EVENT_TIME;
+            *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
+        }
+    }
 }
 
 NTSTATUS
@@ -1121,12 +1144,7 @@ SMBSocketInvalidate_InLock(
     pSocket->error = ntStatus;
 
     LWIO_LOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
-    if (pSocket->bParentLink)
-    {
-        SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                         pSocket->pwszHostname);
-        pSocket->bParentLink = FALSE;
-    }
+    RdrSocketUnlink(pSocket);
     LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
 
     pthread_cond_broadcast(&pSocket->event);
@@ -1219,20 +1237,29 @@ SMBSocketRelease(
     {
         if (pSocket->state != RDR_SOCKET_STATE_READY)
         {
-            if (pSocket->bParentLink)
-            {
-                SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                                 pSocket->pwszHostname);
-                pSocket->bParentLink = FALSE;
-            }
+            RdrSocketUnlink(pSocket);
             LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             SMBSocketFree(pSocket);
         }
         else
         {
             LWIO_LOG_VERBOSE("Socket %p is eligible for reaping", pSocket);
-            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
-            RdrReaperPoke(&gRdrRuntime, pSocket->lastActiveTime);
+            if (LwRtlCreateTask(
+                    gRdrRuntime.pThreadPool,
+                    &pSocket->pTimeout,
+                    gRdrRuntime.pReaderTaskGroup,
+                    RdrSocketTimeout,
+                    pSocket) == STATUS_SUCCESS)
+            {
+                LwRtlWakeTask(pSocket->pTimeout);
+                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+            }
+            else
+            {
+                RdrSocketUnlink(pSocket);
+                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+                SMBSocketFree(pSocket);
+            }
         }
     }
     else
@@ -1327,6 +1354,12 @@ SMBSocketFree(
     pthread_mutex_destroy(&pSocket->mutex);
 
     LWIO_SAFE_FREE_MEMORY(pSocket->pSessionKey);
+
+    if (pSocket->pTimeout)
+    {
+        LwRtlCancelTask(pSocket->pTimeout);
+        LwRtlReleaseTask(&pSocket->pTimeout);
+    }
 
     /* @todo: use allocator */
     SMBFreeMemory(pSocket);
@@ -1506,20 +1539,9 @@ retry_wait:
                 goto retry_wait;
             }
 
-            /* As long as the socket is active, continue to wait.
-             * otherwise, mark the socket as bad and return
-             */
-            if (SMBSocketTimedOut_InLock(pSocket))
-            {
-                ntStatus = STATUS_IO_TIMEOUT;
-                SMBSocketInvalidate(pSocket, ntStatus);
-                SMBResponseInvalidate_InLock(pResponse, ntStatus);
-            }
-            else
-            {
-                // continue waiting
-                ntStatus = STATUS_SUCCESS;
-            }
+            ntStatus = STATUS_IO_TIMEOUT;
+            SMBSocketInvalidate(pSocket, ntStatus);
+            SMBResponseInvalidate_InLock(pResponse, ntStatus);
         }
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -1530,7 +1552,6 @@ retry_wait:
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponse->pSocket = NULL;
-    pSocket->lastActiveTime = time(NULL);
 
     ntStatus = SMBPacketDecodeHeader(
                     pResponse->pPacket,

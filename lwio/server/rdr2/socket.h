@@ -44,6 +44,11 @@ SMBSocketConnect(
     );
 
 VOID
+RdrSocketRevive(
+    PSMB_SOCKET pSocket
+    );
+
+VOID
 SMBSocketAddReference(
     PSMB_SOCKET pSocket
     );
@@ -71,23 +76,8 @@ SMBSocketGetState(
     PSMB_SOCKET        pSocket
     );
 
-BOOLEAN
-SMBSocketTimedOut(
-    PSMB_SOCKET pSocket
-    );
-
-BOOLEAN
-SMBSocketTimedOut_InLock(
-    PSMB_SOCKET pSocket
-    );
-
 ULONG
 SMBSocketGetNextSequence(
-    PSMB_SOCKET pSocket
-    );
-
-VOID
-SMBSocketUpdateLastActiveTime(
     PSMB_SOCKET pSocket
     );
 

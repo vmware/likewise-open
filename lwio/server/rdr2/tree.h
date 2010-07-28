@@ -24,6 +24,11 @@
  */
 
 VOID
+RdrTreeRevive(
+    PSMB_TREE pTree
+    );
+
+VOID
 SMBTreeAddReference(
     PSMB_TREE pTree
     );

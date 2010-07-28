@@ -64,6 +64,7 @@ RdrShutdown(
     VOID
     );
 
+static
 VOID
 RdrDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
@@ -77,6 +78,7 @@ RdrDriverShutdown(
     }
 }
 
+static
 NTSTATUS
 RdrDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
@@ -167,6 +169,11 @@ RdrDriverDispatch(
     return ntStatus;
 }
 
+extern NTSTATUS IO_DRIVER_ENTRY(rdr)(
+    IN IO_DRIVER_HANDLE DriverHandle,
+    IN ULONG InterfaceVersion
+    );
+
 NTSTATUS
 IO_DRIVER_ENTRY(rdr)(
     IN IO_DRIVER_HANDLE DriverHandle,
@@ -233,9 +240,6 @@ RdrInitialize(
     ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pReaderTaskGroup);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RdrReaperInit(&gRdrRuntime);
-    BAIL_ON_NT_STATUS(ntStatus);
-
 error:
 
     LwRtlFreeThreadPoolAttributes(&pAttrs);
@@ -250,9 +254,6 @@ RdrShutdown(
     )
 {
     NTSTATUS ntStatus = 0;
-
-    ntStatus = RdrReaperShutdown(&gRdrRuntime);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketShutdown();
     BAIL_ON_NT_STATUS(ntStatus);

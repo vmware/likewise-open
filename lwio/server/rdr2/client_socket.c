@@ -80,51 +80,6 @@ SMBSrvClientSocketCreate(
     return _FindOrCreateSocket(pwszHostname, ppSocket);
 }
 
-
-/* Must be called with the session mutex held */
-NTSTATUS
-SMBSrvClientSocketIsStale_inlock(
-    PSMB_SOCKET pSocket,
-    PBOOLEAN    pbIsStale
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bIsStale = FALSE;
-    SMB_HASH_ITERATOR iterator;
-
-    if (pSocket->refCount > 2)
-    {
-        goto done;
-    }
-
-    ntStatus = SMBHashGetIterator(
-                    pSocket->pSessionHashByPrincipal,
-                    &iterator);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBHashNext(&iterator))
-    {
-        goto done;
-    }
-
-    /* @todo: find a tick function which won't jump backward */
-    /* @todo: make idle time configurable */
-    if (difftime(time(NULL), pSocket->lastActiveTime) < 60*15)
-    {
-        goto done;
-    }
-
-    bIsStale = TRUE;
-
-done:
-
-    *pbIsStale = bIsStale;
-
-error:
-
-    return ntStatus;
-}
-
 static
 NTSTATUS
 _FindOrCreateSocket(
@@ -147,6 +102,7 @@ _FindOrCreateSocket(
     if (!ntStatus)
     {
         pSocket->refCount++;
+        RdrSocketRevive(pSocket);
     }
     else
     {
@@ -183,63 +139,6 @@ error:
 }
 
 NTSTATUS
-SMBSrvClientSocketAddSessionByPrincipal(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    ntStatus = SMBHashSetValue(
-        pSocket->pSessionHashByPrincipal,
-        &pSession->key,
-        pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSession->bParentLink = TRUE;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSocketRemoveSessionByPrincipal(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    ntStatus = SMBHashRemoveKey(
-                    pSocket->pSessionHashByPrincipal,
-                    &pSession->key);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
 SMBSrvClientSocketAddSessionByUID(
     PSMB_SOCKET  pSocket,
     PSMB_SESSION pSession
@@ -259,36 +158,6 @@ SMBSrvClientSocketAddSessionByUID(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSession->bParentLink = TRUE;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSocketRemoveSessionByUID(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    ntStatus = SMBHashRemoveKey(
-                    pSocket->pSessionHashByUID,
-                    &pSession->uid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* @todo: this need be set only when the hash is empty */
-    SMBSocketUpdateLastActiveTime(pSocket);
 
 cleanup:
 

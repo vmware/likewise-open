@@ -43,7 +43,6 @@ librdr2_sys_la_SOURCES =   \
     socket.c              \
     tree.c                \
     writefile.c           \
-    reaper.c              \
     lwio-semaphore.c      \
     rdrdriver.c           \
     rdrcreate.c           \
@@ -64,7 +63,7 @@ librdr2_sys_la_CPPFLAGS = \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include
 
-librdr2_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
+librdr2_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS) -Wmissing-prototypes
 
 librdr2_sys_la_LIBADD = \
     @top_builddir@/server/smbcommon/liblwiosmbcommon.la \

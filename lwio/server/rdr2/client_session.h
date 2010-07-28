@@ -38,31 +38,7 @@ SMBSrvClientSessionCreate(
     );
 
 NTSTATUS
-SMBSrvClientSessionIsStale_inlock(
-    PSMB_SESSION pSession,
-    PBOOLEAN     pbIsStale
-    );
-
-NTSTATUS
 SMBSrvClientSessionAddTreeById(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    );
-
-NTSTATUS
-SMBSrvClientSessionRemoveTreeById(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    );
-
-NTSTATUS
-SMBSrvClientSessionAddTreeByPath(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    );
-
-NTSTATUS
-SMBSrvClientSessionRemoveTreeByPath(
     PSMB_SESSION pSession,
     PSMB_TREE    pTree
     );

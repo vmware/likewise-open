@@ -77,6 +77,7 @@ SMBSrvClientSessionCreate(
     if (!ntStatus)
     {
         pSession->refCount++;
+        RdrSessionRevive(pSession);
         SMBSocketRelease(pSocket);
         *ppSocket = NULL;
     }
@@ -130,54 +131,6 @@ error:
     goto cleanup;
 }
 
-/* Must be called with the session mutex held */
-NTSTATUS
-SMBSrvClientSessionIsStale_inlock(
-    PSMB_SESSION pSession,
-    PBOOLEAN     pbIsStale
-    )
-{
-    NTSTATUS ntStatus = 0;
-    SMB_HASH_ITERATOR iterator;
-    BOOLEAN bIsStale = FALSE;
-
-    if (pSession->refCount > 2)
-    {
-        goto done;
-    }
-
-    ntStatus = SMBHashGetIterator(
-                    pSession->pTreeHashByPath,
-                    &iterator);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SMBHashNext(&iterator))
-    {
-        goto done;
-    }
-
-    /* @todo: find a tick function which won't jump backward */
-    /* @todo: make idle time configurable */
-    if (difftime(time(NULL), pSession->lastActiveTime) < 60*15)
-    {
-        goto done;
-    }
-
-    bIsStale = TRUE;
-
-done:
-
-    *pbIsStale = bIsStale;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
 NTSTATUS
 SMBSrvClientSessionAddTreeById(
     PSMB_SESSION pSession,
@@ -198,91 +151,6 @@ SMBSrvClientSessionAddTreeById(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->bParentLink = TRUE;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSessionRemoveTreeById(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    ntStatus = SMBHashRemoveKey(
-                    pSession->pTreeHashByTID,
-                    &pTree->tid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBSessionUpdateLastActiveTime(pSession);
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSessionAddTreeByPath(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    /* @todo: check for race */
-    ntStatus = SMBHashSetValue(
-                    pSession->pTreeHashByPath,
-                    pTree->pszPath,
-                    pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pTree->bParentLink = TRUE;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSessionRemoveTreeByPath(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    ntStatus = SMBHashRemoveKey(pSession->pTreeHashByPath, pTree->pszPath);
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 

@@ -90,15 +90,6 @@ SMBSessionCreate(
 
     pSession->refCount = 1;
 
-    /* @todo: find a portable time call which is immune to host date and time
-       changes, such as made by ntpd */
-    ntStatus = time((time_t*) &pSession->lastActiveTime);
-    if (ntStatus == -1)
-    {
-        ntStatus = ErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     ntStatus = SMBHashCreate(
                 19,
                 SMBHashCaselessStringCompare,
@@ -180,6 +171,36 @@ SMBSessionHashTreeByTID(
     return *((uint16_t *) vp);
 }
 
+static
+VOID
+RdrSessionUnlink(
+    PSMB_SESSION pSession
+    )
+{
+    if (pSession->bParentLink)
+    {
+        SMBHashRemoveKey(
+            pSession->pSocket->pSessionHashByPrincipal,
+            &pSession->key);
+        SMBHashRemoveKey(
+            pSession->pSocket->pSessionHashByUID,
+            &pSession->uid);
+        pSession->bParentLink = FALSE;
+    }
+}
+
+VOID
+RdrSessionRevive(
+    PSMB_SESSION pSession
+    )
+{
+    if (pSession->pTimeout)
+    {
+        LwRtlCancelTask(pSession->pTimeout);
+        LwRtlReleaseTask(&pSession->pTimeout);
+    }
+}
+
 VOID
 SMBSessionAddReference(
     PSMB_SESSION pSession
@@ -190,8 +211,71 @@ SMBSessionAddReference(
     LWIO_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
     pSession->refCount++;
+    RdrSessionRevive(pSession);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+}
+
+static
+VOID
+RdrSessionReap(
+    PVOID pContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+    PSMB_SESSION pSession = pContext;
+    PSMB_SOCKET pSocket = pSession->pSocket;
+
+    LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
+
+    if (pSession->refCount == 0)
+    {
+        RdrSessionUnlink(pSession);
+        LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+        status = Logoff(pSession);
+        SMBSessionFree(pSession);
+        BAIL_ON_NT_STATUS(status);
+    }
+
+error:
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+}
+
+static
+VOID
+RdrSessionTimeout(
+    PLW_TASK pTask,
+    LW_PVOID pContext,
+    LW_TASK_EVENT_MASK WakeMask,
+    LW_TASK_EVENT_MASK* pWaitMask,
+    LW_LONG64* pllTime
+    )
+{
+    PSMB_SESSION pSession = pContext;
+
+    if (WakeMask & LW_TASK_EVENT_CANCEL)
+    {
+        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+    }
+    else if (WakeMask & LW_TASK_EVENT_INIT)
+    {
+        *pWaitMask = LW_TASK_EVENT_TIME;
+        *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
+    }
+    else if (WakeMask & LW_TASK_EVENT_TIME)
+    {
+        if (LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrSessionReap, pSession, 0) == STATUS_SUCCESS)
+        {
+            *pWaitMask = LW_TASK_EVENT_COMPLETE;
+        }
+        else
+        {
+            *pWaitMask = LW_TASK_EVENT_TIME;
+            *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
+        }
+    }
 }
 
 VOID
@@ -209,24 +293,29 @@ SMBSessionRelease(
     {
         if (pSession->state != RDR_SESSION_STATE_READY)
         {
-            if (pSession->bParentLink)
-            {
-                SMBHashRemoveKey(
-                    pSession->pSocket->pSessionHashByPrincipal,
-                    &pSession->key);
-                SMBHashRemoveKey(
-                    pSession->pSocket->pSessionHashByUID,
-                    &pSession->uid);
-                pSession->bParentLink = FALSE;
-            }
+            RdrSessionUnlink(pSession);
             LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             SMBSessionFree(pSession);
         }
         else
         {
             LWIO_LOG_VERBOSE("Session %p is eligible for reaping", pSession);
-            LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
-            RdrReaperPoke(&gRdrRuntime, pSession->lastActiveTime);
+            if (LwRtlCreateTask(
+                    gRdrRuntime.pThreadPool,
+                    &pSession->pTimeout,
+                    gRdrRuntime.pReaderTaskGroup,
+                    RdrSessionTimeout,
+                    pSession) == STATUS_SUCCESS)
+            {
+                LwRtlWakeTask(pSession->pTimeout);
+                LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+            }
+            else
+            {
+                RdrSessionUnlink(pSession);
+                LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+                SMBSessionFree(pSession);
+            }
         }
     }
     else
@@ -244,7 +333,6 @@ SMBSessionFree(
 
     pthread_cond_destroy(&pSession->event);
 
-    /* @todo: assert that the session hashes are empty */
     SMBHashSafeFree(&pSession->pTreeHashByPath);
     SMBHashSafeFree(&pSession->pTreeHashByTID);
 
@@ -252,6 +340,12 @@ SMBSessionFree(
 
     LWIO_SAFE_FREE_MEMORY(pSession->pSessionKey);
     LWIO_SAFE_FREE_MEMORY(pSession->key.pszPrincipal);
+
+    if (pSession->pTimeout)
+    {
+        LwRtlCancelTask(pSession->pTimeout);
+        LwRtlReleaseTask(&pSession->pTimeout);
+    }
 
     if (pSession->pSocket)
     {
@@ -381,20 +475,6 @@ error:
     *ppTree = NULL;
 
     goto cleanup;
-}
-
-VOID
-SMBSessionUpdateLastActiveTime(
-    PSMB_SESSION pSession
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    pSession->lastActiveTime = time(NULL);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 
 NTSTATUS

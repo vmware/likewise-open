@@ -94,6 +94,8 @@
 
 #include "externs.h"
 
+#define RDR_IDLE_TIMEOUT 10
+
 NTSTATUS
 RdrCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -344,22 +346,6 @@ SMBSocketWaitSessionSetup(
 NTSTATUS
 SMBSessionWaitTreeConnect(
     PSMB_SESSION pSession
-    );
-
-NTSTATUS
-RdrReaperInit(
-    PRDR_GLOBAL_RUNTIME pRuntime
-    );
-
-NTSTATUS
-RdrReaperShutdown(
-    PRDR_GLOBAL_RUNTIME pRuntime
-    );
-
-VOID
-RdrReaperPoke(
-    PRDR_GLOBAL_RUNTIME pRuntime,
-    time_t lastActiveTime
     );
 
 #endif /* __RDR_H__ */
