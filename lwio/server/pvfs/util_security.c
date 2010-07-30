@@ -241,7 +241,7 @@ PvfsAccessCheckFile(
         bGranted = RtlAccessCheck(
                    pSecDesc,
                    pToken,
-                   FILE_DELETE_CHILD,
+                   DELETE,
                    GrantedAccess,
                    &gPvfsFileGenericMapping,
                    &AccessMask,
@@ -267,7 +267,7 @@ PvfsAccessCheckFile(
             bGranted = RtlAccessCheck(
                            pParentSecDesc,
                            pToken,
-                           DELETE,
+                           FILE_DELETE_CHILD,
                            0,
                            &gPvfsFileGenericMapping,
                            &AccessMask,
@@ -280,6 +280,8 @@ PvfsAccessCheckFile(
             {
                 BAIL_ON_NT_STATUS(ntError);
             }
+
+            AccessMask = DELETE;
         }
 
         // Combine directory and file object granted permissions
