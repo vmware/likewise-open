@@ -274,11 +274,11 @@ error:
 NTSTATUS
 RdrCreateContext(
     PIRP pIrp,
-    PRDR_IRP_CONTEXT* ppContext
+    PRDR_OP_CONTEXT* ppContext
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PRDR_IRP_CONTEXT pContext = NULL;
+    PRDR_OP_CONTEXT pContext = NULL;
 
     status = LW_RTL_ALLOCATE_AUTO(&pContext);
     BAIL_ON_NT_STATUS(status);
@@ -296,7 +296,7 @@ error:
 
 VOID
 RdrFreeContext(
-    PRDR_IRP_CONTEXT pContext
+    PRDR_OP_CONTEXT pContext
     )
 {
     if (pContext)
@@ -312,6 +312,41 @@ RdrFreeContext(
     }
 }
 
+PRDR_OP_CONTEXT
+RdrContinueContext(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    if (pContext->Continue)
+    {
+        return pContext->Continue(pContext, status, pParam);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+VOID
+RdrContinueContextList(
+    PLW_LIST_LINKS pList,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    PLW_LIST_LINKS pElement = NULL;
+    PRDR_OP_CONTEXT pContext = NULL;
+
+    while (!LwListIsEmpty(pList))
+    {
+        pElement = LwListRemoveHead(pList);
+        pContext = LW_STRUCT_FROM_FIELD(pElement, RDR_OP_CONTEXT, Link);
+
+        RdrContinueContext(pContext, status, pParam);
+    }
+}
 /*
 local variables:
 mode: c

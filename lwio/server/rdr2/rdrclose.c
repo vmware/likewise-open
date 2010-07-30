@@ -50,9 +50,9 @@
 #include "rdr.h"
 
 static
-PRDR_CONTINUATION
+PRDR_OP_CONTEXT
 RdrFinishClose(
-    PRDR_CONTINUATION pContinuation,
+    PRDR_OP_CONTEXT pContext,
     NTSTATUS status,
     PVOID pParam
     );
@@ -76,7 +76,7 @@ RdrClose(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
     PCLOSE_REQUEST_HEADER pHeader = NULL;
-    PRDR_IRP_CONTEXT pContext = NULL;
+    PRDR_OP_CONTEXT pContext = NULL;
 
     ntStatus = RdrCreateContext(pIrp, &pContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -120,8 +120,7 @@ RdrClose(
         ntStatus = SMBPacketMarshallFooter(&pContext->Packet);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pContext->Continuation.Function = RdrFinishClose;
-        pContext->Continuation.pContext = pContext;
+        pContext->Continue = RdrFinishClose;
 
         ntStatus = RdrSocketTransceive(
             pFile->pTree->pSession->pSocket,
@@ -149,14 +148,13 @@ error:
 }
 
 static
-PRDR_CONTINUATION
+PRDR_OP_CONTEXT
 RdrFinishClose(
-    PRDR_CONTINUATION pContinuation,
+    PRDR_OP_CONTEXT pContext,
     NTSTATUS status,
     PVOID pParam
     )
 {
-    PRDR_IRP_CONTEXT pContext = pContinuation->pContext;
     PSMB_PACKET pPacket = pParam;
     PIRP pIrp = pContext->pIrp;
     PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);

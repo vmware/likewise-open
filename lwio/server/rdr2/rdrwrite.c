@@ -52,7 +52,7 @@
 static
 NTSTATUS
 RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
@@ -63,7 +63,7 @@ RdrWrite(
     )
 {
     NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_OP_CONTEXT pIrpContext = NULL;
 
     ntStatus = RdrAllocateIrpContext(
                         pIrp,
@@ -82,7 +82,7 @@ error:
 static
 NTSTATUS
 RdrCommonWrite(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {

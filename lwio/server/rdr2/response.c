@@ -120,14 +120,10 @@ SMBResponseInvalidate_InLock(
     pResponse->state = SMB_RESOURCE_STATE_INVALID;
     pResponse->error = ntStatus;
 
-    if (pResponse->pContinuation)
+    if (pResponse->pContext)
     {
-        pResponse->pContinuation->Function(
-            pResponse->pContinuation,
-            ntStatus,
-            NULL);
+        RdrContinueContext(pResponse->pContext, ntStatus, NULL);
     }
 
     pthread_cond_broadcast(&pResponse->event);
-
 }

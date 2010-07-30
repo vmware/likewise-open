@@ -52,14 +52,14 @@
 static
 NTSTATUS
 RdrCommonSetInformation(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
 static
 NTSTATUS
 RdrCommonRename(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
@@ -92,7 +92,7 @@ error:
 static
 NTSTATUS
 RdrCommonSetInformation(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
@@ -138,7 +138,7 @@ error:
 static
 NTSTATUS
 RdrCommonRename(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {

@@ -56,7 +56,7 @@ RdrFsctl(
     )
 {
     NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_OP_CONTEXT pIrpContext = NULL;
 
     ntStatus = RdrAllocateIrpContext(
                         pIrp,
@@ -75,7 +75,7 @@ error:
 
 NTSTATUS
 RdrCommonFsctl(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {

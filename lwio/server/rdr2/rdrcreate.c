@@ -56,7 +56,7 @@ RdrCreate(
     )
 {
     NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_OP_CONTEXT pIrpContext = NULL;
 
     ntStatus = RdrAllocateIrpContext(
                         pIrp,
@@ -77,14 +77,14 @@ error:
 NTSTATUS
 RdrAllocateIrpContext(
     PIRP pIrp,
-    PRDR_IRP_CONTEXT * ppIrpContext
+    PRDR_OP_CONTEXT * ppIrpContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_OP_CONTEXT pIrpContext = NULL;
 
     /*ntStatus = IoMemoryAllocate(
-                    sizeof(RDR_IRP_CONTEXT),
+                    sizeof(RDR_OP_CONTEXT),
                     &pIrpContext
                     );*/
     BAIL_ON_NT_STATUS(ntStatus);
@@ -101,7 +101,7 @@ error:
 
 NTSTATUS
 RdrCommonCreate(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {

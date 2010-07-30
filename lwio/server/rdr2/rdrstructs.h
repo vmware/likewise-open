@@ -33,25 +33,18 @@
 
 #include "lwlist.h"
 
-
-
-typedef struct _RDR_CONTINUATION
-{
-    struct _RDR_CONTINUATION* (*Function) (
-        struct _RDR_CONTINUATION* pContinuation,
-        NTSTATUS status,
-        PVOID pParam
-        );
-    PVOID pContext;
-} RDR_CONTINUATION, *PRDR_CONTINUATION;
-
-typedef struct _RDR_IRP_CONTEXT
+typedef struct _RDR_OP_CONTEXT
 {
     PIRP pIrp;
     SMB_PACKET Packet;
-    RDR_CONTINUATION Continuation;
+    struct _RDR_OP_CONTEXT* (*Continue) (
+        struct _RDR_OP_CONTEXT* pContext,
+        NTSTATUS status,
+        PVOID pParam
+        );
+    PVOID pData;
     LW_LIST_LINKS Link;
-} RDR_IRP_CONTEXT, *PRDR_IRP_CONTEXT;
+} RDR_OP_CONTEXT, *PRDR_OP_CONTEXT;
 
 typedef enum _RDR_SOCKET_STATE
 {
@@ -113,7 +106,7 @@ typedef struct
     PSMB_PACKET pPacket; /* Incoming packet */
     PSMB_PACKET pOutgoing; /* Outgoing packet */
     size_t OutgoingWritten;
-    LW_LIST_LINKS PendingSend; /* List of RDR_IRP_CONTEXTs with packets that need to be sent */
+    LW_LIST_LINKS PendingSend; /* List of RDR_OP_CONTEXTs with packets that need to be sent */
     SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
     USHORT usNextMid;
     unsigned volatile bReadBlocked:1;
@@ -200,7 +193,7 @@ typedef struct
     pthread_cond_t event;
     uint16_t mid;               /* Multiplex ID (MID) for the response */
     PSMB_PACKET pPacket; /* Pointer to response packet; response owner must free */
-    PRDR_CONTINUATION pContinuation;
+    PRDR_OP_CONTEXT pContext;
 } SMB_RESPONSE, *PSMB_RESPONSE;
 
 typedef struct _SMB_CLIENT_FILE_HANDLE

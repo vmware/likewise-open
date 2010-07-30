@@ -99,12 +99,27 @@
 NTSTATUS
 RdrCreateContext(
     PIRP pIrp,
-    PRDR_IRP_CONTEXT* ppContext
+    PRDR_OP_CONTEXT* ppContext
     );
 
 VOID
 RdrFreeContext(
-    PRDR_IRP_CONTEXT pContext
+    PRDR_OP_CONTEXT pContext
+    );
+
+
+PRDR_OP_CONTEXT
+RdrContinueContext(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    );
+
+VOID
+RdrContinueContextList(
+    PLW_LIST_LINKS pList,
+    NTSTATUS status,
+    PVOID pParam
     );
 
 NTSTATUS
@@ -208,7 +223,7 @@ RdrGetSessionKey(
 
 NTSTATUS
 RdrCommonFsctl(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 

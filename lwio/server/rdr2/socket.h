@@ -90,7 +90,7 @@ SMBSocketSend(
 NTSTATUS
 SMBSocketQueue(
     IN PSMB_SOCKET pSocket,
-    IN PRDR_IRP_CONTEXT pContext
+    IN PRDR_OP_CONTEXT pContext
     );
 
 NTSTATUS
@@ -170,7 +170,7 @@ RdrSocketReceiveResponse(
 NTSTATUS
 RdrSocketTransceive(
     IN OUT PSMB_SOCKET pSocket,
-    IN PRDR_IRP_CONTEXT pContext
+    IN PRDR_OP_CONTEXT pContext
     );
 
 #endif /* __SOCKET_H__ */

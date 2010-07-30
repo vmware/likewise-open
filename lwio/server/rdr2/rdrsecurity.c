@@ -48,7 +48,7 @@
 static
 NTSTATUS
 RdrCommonQuerySecurity(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     );
 
@@ -75,7 +75,7 @@ error:
 static
 NTSTATUS
 RdrCommonQuerySecurity(
-    PRDR_IRP_CONTEXT pIrpContext,
+    PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {

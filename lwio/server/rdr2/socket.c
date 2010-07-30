@@ -539,7 +539,7 @@ error:
 NTSTATUS
 SMBSocketQueue(
     IN PSMB_SOCKET pSocket,
-    IN PRDR_IRP_CONTEXT pContext
+    IN PRDR_OP_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -558,7 +558,7 @@ SMBSocketQueue(
 NTSTATUS
 RdrSocketTransceive(
     IN PSMB_SOCKET pSocket,
-    IN PRDR_IRP_CONTEXT pContext
+    IN PRDR_OP_CONTEXT pContext
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -574,7 +574,7 @@ RdrSocketTransceive(
     status = SMBResponseCreate(usMid, &pResponse);
     BAIL_ON_NT_STATUS(status);
 
-    pResponse->pContinuation = &pContext->Continuation;
+    pResponse->pContext = pContext;
 
     status = RdrSocketAddResponse(pSocket, pResponse);
     BAIL_ON_NT_STATUS(status);
@@ -690,7 +690,7 @@ SMBSocketTask(
     SOCKLEN_T len = sizeof(err);
     static const LONG64 llConnectTimeout = 10 * 1000000000ll; // 10 sec
     PLW_LIST_LINKS pLink = NULL;
-    PRDR_IRP_CONTEXT pIrpContext = NULL;
+    PRDR_OP_CONTEXT pIrpContext = NULL;
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
@@ -763,7 +763,7 @@ SMBSocketTask(
     if (!pSocket->pOutgoing && !LwListIsEmpty(&pSocket->PendingSend))
     {
         pLink = LwListRemoveHead(&pSocket->PendingSend);
-        pIrpContext = LW_STRUCT_FROM_FIELD(pLink, RDR_IRP_CONTEXT, Link);
+        pIrpContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
         ntStatus = SMBSocketPrepareSend(pSocket, &pIrpContext->Packet);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -893,6 +893,7 @@ SMBSocketFindAndSignalResponse(
     NTSTATUS ntStatus = 0;
     PSMB_RESPONSE pResponse = NULL;
     USHORT usMid = SMB_LTOH16(pPacket->pSMBHeader->mid);
+    BOOLEAN bLocked = TRUE;
 
     ntStatus = RdrSocketFindResponseByMid(
                     pSocket,
@@ -913,15 +914,13 @@ SMBSocketFindAndSignalResponse(
     pResponse->pPacket = pPacket;
     pResponse->state = SMB_RESOURCE_STATE_VALID;
 
-    if (pResponse->pContinuation)
+    if (pResponse->pContext)
     {
-        pResponse->pContinuation =
-            pResponse->pContinuation->Function(
-                pResponse->pContinuation,
-                STATUS_SUCCESS,
-                pPacket);
+        LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+        pResponse->pContext = RdrContinueContext(pResponse->pContext, STATUS_SUCCESS, pPacket);
+        LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
 
-        if (!pResponse->pContinuation)
+        if (!pResponse->pContext)
         {
             ntStatus = SMBHashRemoveKey(
                 pSocket->pResponseHash,
