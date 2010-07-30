@@ -1633,13 +1633,6 @@ SrvConnectionFree(
         SrvGssReleaseContext(pConnection->hGssContext);
     }
 
-    if (pConnection->pOEMConnection)
-    {
-        SrvOEMCloseClientConnection(
-                pConnection->pOEMConnection,
-                pConnection->ulOEMConnectionLength);
-    }
-
     if (pConnection->pSocket)
     {
         pConnection->pSocketDispatch->pfnFree(pConnection->pSocket);
@@ -1648,6 +1641,13 @@ SrvConnectionFree(
     if (pConnection->pSessionCollection)
     {
         LwRtlRBTreeFree(pConnection->pSessionCollection);
+    }
+
+    if (pConnection->pOEMConnection)
+    {
+        SrvOEMCloseClientConnection(
+                pConnection->pOEMConnection,
+                pConnection->ulOEMConnectionLength);
     }
 
     if (pConnection->pAsyncStateCollection)
