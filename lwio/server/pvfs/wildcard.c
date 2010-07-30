@@ -177,7 +177,7 @@ PvfsWildcardMatch(
 
             /* Consume dwCount characters */
             for (i=0;
-                 i<dwCount && PVFS_CSTRING_NON_NULL(pszString);
+                 (i<(dwCount-1)) && PVFS_CSTRING_NON_NULL(pszString);
                  i++, pszString++)
             {
                 /* no loop body */;
