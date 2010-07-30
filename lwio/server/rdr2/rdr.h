@@ -97,6 +97,17 @@
 #define RDR_IDLE_TIMEOUT 10
 
 NTSTATUS
+RdrCreateContext(
+    PIRP pIrp,
+    PRDR_IRP_CONTEXT* ppContext
+    );
+
+VOID
+RdrFreeContext(
+    PRDR_IRP_CONTEXT pContext
+    );
+
+NTSTATUS
 RdrCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
@@ -245,12 +256,6 @@ RdrTransactFindNext2(
     PVOID pResult,
     ULONG ulResultLength,
     PULONG pulResultLengthUsed
-    );
-
-NTSTATUS
-RdrTransactCloseFile(
-    PSMB_TREE pTree,
-    USHORT usFid
     );
 
 NTSTATUS

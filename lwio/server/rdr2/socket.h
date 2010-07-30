@@ -88,6 +88,12 @@ SMBSocketSend(
     );
 
 NTSTATUS
+SMBSocketQueue(
+    IN PSMB_SOCKET pSocket,
+    IN PRDR_IRP_CONTEXT pContext
+    );
+
+NTSTATUS
 SMBSocketReceiveAndUnmarshall(
     IN PSMB_SOCKET pSocket,
     OUT PSMB_PACKET pPacket
@@ -159,6 +165,12 @@ RdrSocketReceiveResponse(
     IN DWORD dwExpectedSequence,
     IN PSMB_RESPONSE pResponse,
     OUT PSMB_PACKET* ppResponsePacket
+    );
+
+NTSTATUS
+RdrSocketTransceive(
+    IN OUT PSMB_SOCKET pSocket,
+    IN PRDR_IRP_CONTEXT pContext
     );
 
 #endif /* __SOCKET_H__ */

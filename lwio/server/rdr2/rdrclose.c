@@ -50,72 +50,12 @@
 #include "rdr.h"
 
 static
-NTSTATUS
-RdrCommonClose(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+PRDR_CONTINUATION
+RdrFinishClose(
+    PRDR_CONTINUATION pContinuation,
+    NTSTATUS status,
+    PVOID pParam
     );
-
-NTSTATUS
-RdrClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    ntStatus = RdrCommonClose(
-        NULL,
-        pIrp
-        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
-}
-
-static
-VOID
-RdrCloseWorkItem(
-    PVOID pContext
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PIRP pIrp = (PIRP) pContext;
-    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
-
-    pFile = IoFileGetContext(pIrp->FileHandle);
-
-    if (pFile->fid)
-    {
-        ntStatus = RdrTransactCloseFile(
-            pFile->pTree,
-            pFile->fid
-            );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pFile->fid = 0;
-    }
-
-cleanup:
-
-    RdrReleaseFile(pFile);
-
-    pIrp->IoStatusBlock.Status = ntStatus;
-
-    IoIrpComplete(pIrp);
-
-    return;
-
-error:
-
-    /* We discard any errors on close and proceed to
-       release all local resources */
-    ntStatus = STATUS_SUCCESS;
-
-    goto cleanup;
-}
 
 static
 VOID
@@ -127,28 +67,132 @@ RdrCancelClose(
     return;
 }
 
-static
 NTSTATUS
-RdrCommonClose(
-    PRDR_IRP_CONTEXT pIrpContext,
+RdrClose(
+    IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+    PCLOSE_REQUEST_HEADER pHeader = NULL;
+    PRDR_IRP_CONTEXT pContext = NULL;
 
-    IoIrpMarkPending(pIrp, RdrCancelClose, NULL);
-
-    ntStatus = LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrCloseWorkItem, pIrp, 0);
+    ntStatus = RdrCreateContext(pIrp, &pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = STATUS_PENDING;
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pFile->fid)
+    {
+        IoIrpMarkPending(pIrp, RdrCancelClose, NULL);
+
+        ntStatus = SMBPacketBufferAllocate(
+            pFile->pTree->pSession->pSocket->hPacketAllocator,
+            1024*64,
+            &pContext->Packet.pRawBuffer,
+            &pContext->Packet.bufferLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMBPacketMarshallHeader(
+            pContext->Packet.pRawBuffer,
+            pContext->Packet.bufferLen,
+            COM_CLOSE,
+            0,
+            0,
+            pFile->pTree->tid,
+            gRdrRuntime.SysPid,
+            pFile->pTree->pSession->uid,
+            0,
+            TRUE,
+            &pContext->Packet);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pContext->Packet.pData = pContext->Packet.pParams + sizeof(CLOSE_REQUEST_HEADER);
+        pContext->Packet.bufferUsed += sizeof(CLOSE_REQUEST_HEADER);
+
+        pContext->Packet.pSMBHeader->wordCount = 3;
+
+        pHeader = (PCLOSE_REQUEST_HEADER) pContext->Packet.pParams;
+
+        pHeader->fid = SMB_HTOL16(pFile->fid);
+        pHeader->ulLastWriteTime = SMB_HTOL32(0);
+        pHeader->byteCount = SMB_HTOL16(0);
+
+        ntStatus = SMBPacketMarshallFooter(&pContext->Packet);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pContext->Continuation.Function = RdrFinishClose;
+        pContext->Continuation.pContext = pContext;
+
+        ntStatus = RdrSocketTransceive(
+            pFile->pTree->pSession->pSocket,
+            pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        RdrReleaseFile(pFile);
+    }
+
 
 cleanup:
+
+    if (ntStatus != STATUS_PENDING)
+    {
+        RdrFreeContext(pContext);
+    }
 
     return ntStatus;
 
 error:
 
     goto cleanup;
+}
+
+static
+PRDR_CONTINUATION
+RdrFinishClose(
+    PRDR_CONTINUATION pContinuation,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    PRDR_IRP_CONTEXT pContext = pContinuation->pContext;
+    PSMB_PACKET pPacket = pParam;
+    PIRP pIrp = pContext->pIrp;
+    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+
+    if (status == STATUS_SUCCESS)
+    {
+        status = pPacket->pSMBHeader->error;
+    }
+
+    pIrp->IoStatusBlock.Status = status;
+    IoIrpComplete(pIrp);
+    RdrReleaseFile(pFile);
+    RdrFreeContext(pContext);
+
+    /* FIXME: free packet */
+    /* FIXME: handle continuation chaining */
+    return NULL;
+}
+
+void
+RdrReleaseFile(
+    PSMB_CLIENT_FILE_HANDLE pFile
+    )
+{
+    if (pFile->pTree)
+    {
+        SMBTreeRelease(pFile->pTree);
+    }
+
+    if (pFile->pMutex)
+    {
+        pthread_mutex_destroy(pFile->pMutex);
+    }
+
+    RTL_FREE(&pFile->pwszPath);
+    RTL_FREE(&pFile->find.pBuffer);
+
+    SMBFreeMemory(pFile);
 }

@@ -271,6 +271,46 @@ error:
     return ntStatus;
 }
 
+NTSTATUS
+RdrCreateContext(
+    PIRP pIrp,
+    PRDR_IRP_CONTEXT* ppContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PRDR_IRP_CONTEXT pContext = NULL;
+
+    status = LW_RTL_ALLOCATE_AUTO(&pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    LwListInit(&pContext->Link);
+
+    pContext->pIrp = pIrp;
+
+    *ppContext = pContext;
+
+error:
+
+    return status;
+}
+
+VOID
+RdrFreeContext(
+    PRDR_IRP_CONTEXT pContext
+    )
+{
+    if (pContext)
+    {
+        if (pContext->Packet.bufferLen)
+        {
+            SMBPacketBufferFree(gRdrRuntime.hPacketAllocator,
+                                pContext->Packet.pRawBuffer,
+                                pContext->Packet.bufferLen);
+        }
+
+        RTL_FREE(&pContext);
+    }
+}
 
 /*
 local variables:

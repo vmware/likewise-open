@@ -155,6 +155,8 @@ SMBSocketCreate(
                 (PVOID*)&pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pSocket->PendingSend);
+
     pSocket->bUseSignedMessagesIfSupported = bUseSignedMessagesIfSupported;
 
     pthread_mutex_init(&pSocket->mutex, NULL);
@@ -326,9 +328,6 @@ SMBSocketIsSignatureRequired(
     )
 {
     BOOLEAN bIsRequired = FALSE;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* We need to sign outgoing packets if we negotiated it and the
        socket is in the ready state -- that is, we have completed the
@@ -343,8 +342,6 @@ SMBSocketIsSignatureRequired(
     {
         bIsRequired = TRUE;
     }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return bIsRequired;
 }
@@ -438,24 +435,15 @@ error:
     return ntStatus;
 }
 
+static
 NTSTATUS
-SMBSocketSend(
+SMBSocketPrepareSend(
     IN PSMB_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     )
 {
-    NTSTATUS ntStatus = 0;
-    BOOLEAN  bInLock = FALSE;
-    BOOLEAN  bSemaphoreAcquired = FALSE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bIsSignatureRequired = FALSE;
-
-    if (pSocket->maxMpxCount)
-    {
-        ntStatus = SMBSemaphoreWait(&pSocket->semMpx);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bSemaphoreAcquired = TRUE;
-    }
 
     if (pPacket->allowSignature)
     {
@@ -470,8 +458,6 @@ SMBSocketSend(
     SMBPacketHTOLSmbHeader(pPacket->pSMBHeader);
 
     pPacket->haveSignature = bIsSignatureRequired;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
     {
@@ -488,8 +474,30 @@ SMBSocketSend(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    /* Wait until current outgoing packet is fully sent */
-    while (pSocket->pOutgoing)
+    pSocket->pOutgoing = pPacket;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMBSocketSend(
+    IN PSMB_SOCKET pSocket,
+    IN PSMB_PACKET pPacket
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    /* Wait until packet queue is empty */
+    while (pSocket->pOutgoing || !LwListIsEmpty(&pSocket->PendingSend))
     {
         if (pSocket->error)
         {
@@ -500,7 +508,9 @@ SMBSocketSend(
         pthread_cond_wait(&pSocket->event, &pSocket->mutex);
     }
 
-    pSocket->pOutgoing = pPacket;
+    ntStatus = SMBSocketPrepareSend(pSocket, pPacket);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     LwRtlWakeTask(pSocket->pTask);
 
    /* Wait until our packet is fully sent */
@@ -523,19 +533,66 @@ cleanup:
 
 error:
 
-    if (bSemaphoreAcquired)
-    {
-        NTSTATUS localStatus = SMBSemaphorePost(&pSocket->semMpx);
-        if (localStatus)
-        {
-            LWIO_LOG_ERROR("Failed to post semaphore (status = 0x%08X)", localStatus);
-        }
-    }
+    goto cleanup;
+}
 
-    if (pSocket != NULL)
+NTSTATUS
+SMBSocketQueue(
+    IN PSMB_SOCKET pSocket,
+    IN PRDR_IRP_CONTEXT pContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    LwListInsertBefore(&pSocket->PendingSend, &pContext->Link);
+    LwRtlWakeTask(pSocket->pTask);
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return ntStatus;
+}
+
+NTSTATUS
+RdrSocketTransceive(
+    IN PSMB_SOCKET pSocket,
+    IN PRDR_IRP_CONTEXT pContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB_RESPONSE pResponse = NULL;
+    PSMB_PACKET pPacket = &pContext->Packet;
+    USHORT usMid = 0;
+
+    status = RdrSocketAcquireMid(pSocket, &usMid);
+    BAIL_ON_NT_STATUS(status);
+
+    pPacket->pSMBHeader->mid = usMid;
+
+    status = SMBResponseCreate(usMid, &pResponse);
+    BAIL_ON_NT_STATUS(status);
+
+    pResponse->pContinuation = &pContext->Continuation;
+
+    status = RdrSocketAddResponse(pSocket, pResponse);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBSocketQueue(pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = STATUS_PENDING;
+
+cleanup:
+
+    return status;
+
+error:
+
+    if (pResponse)
     {
-        LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-        SMBSocketInvalidate_InLock(pSocket, ntStatus);
+        SMBResponseFree(pResponse);
     }
 
     goto cleanup;
@@ -632,6 +689,8 @@ SMBSocketTask(
     int err = 0;
     SOCKLEN_T len = sizeof(err);
     static const LONG64 llConnectTimeout = 10 * 1000000000ll; // 10 sec
+    PLW_LIST_LINKS pLink = NULL;
+    PRDR_IRP_CONTEXT pIrpContext = NULL;
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
@@ -700,6 +759,15 @@ SMBSocketTask(
         pSocket->bWriteBlocked = FALSE;
     }
 
+    /* FIXME: max mpx count */
+    if (!pSocket->pOutgoing && !LwListIsEmpty(&pSocket->PendingSend))
+    {
+        pLink = LwListRemoveHead(&pSocket->PendingSend);
+        pIrpContext = LW_STRUCT_FROM_FIELD(pLink, RDR_IRP_CONTEXT, Link);
+        ntStatus = SMBSocketPrepareSend(pSocket, &pIrpContext->Packet);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     *pWaitMask = LW_TASK_EVENT_EXPLICIT;
 
     if (!pSocket->bReadBlocked)
@@ -757,7 +825,6 @@ SMBSocketTask(
     }
 
     /* Determine next wake mask */
-
     if (pSocket->bReadBlocked)
     {
         *pWaitMask |= LW_TASK_EVENT_FD_READABLE;
@@ -816,9 +883,6 @@ error:
     goto cleanup;
 }
 
-/* Ref. counting intermediate structures is not strictly necessary because
-   there are currently no blocking operations in the response path; one could
-   simply lock hashes all the way up the path */
 static
 NTSTATUS
 SMBSocketFindAndSignalResponse(
@@ -834,17 +898,43 @@ SMBSocketFindAndSignalResponse(
                     pSocket,
                     usMid,
                     &pResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch(ntStatus)
+    {
+    case STATUS_SUCCESS:
+        break;
+    case STATUS_NOT_FOUND:
+        SMBPacketRelease(pSocket->hPacketAllocator, pPacket);
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    default:
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     pResponse->pPacket = pPacket;
     pResponse->state = SMB_RESOURCE_STATE_VALID;
 
-    pthread_cond_broadcast(&pResponse->event);
-
-    if (pSocket->maxMpxCount)
+    if (pResponse->pContinuation)
     {
-        ntStatus = SMBSemaphorePost(&pSocket->semMpx);
-        BAIL_ON_NT_STATUS(ntStatus);
+        pResponse->pContinuation =
+            pResponse->pContinuation->Function(
+                pResponse->pContinuation,
+                STATUS_SUCCESS,
+                pPacket);
+
+        if (!pResponse->pContinuation)
+        {
+            ntStatus = SMBHashRemoveKey(
+                pSocket->pResponseHash,
+                &pResponse->mid);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pResponse->pSocket = NULL;
+            SMBResponseFree(pResponse);
+        }
+    }
+    else
+    {
+        pthread_cond_signal(&pResponse->event);
     }
 
 cleanup:

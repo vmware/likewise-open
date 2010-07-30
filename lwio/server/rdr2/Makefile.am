@@ -21,7 +21,6 @@ librdr2_sys_la_SOURCES =   \
     client_socket.c       \
     client_tree.c         \
     createfile.c          \
-    closefile.c           \
     getsesskey.c          \
     globals.c             \
     readfile.c            \

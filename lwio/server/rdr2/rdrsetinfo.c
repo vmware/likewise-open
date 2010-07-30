@@ -151,6 +151,8 @@ RdrCommonRename(
 
     pRenameInfo = pIrp->Args.QuerySetInformation.FileInformation;
 
+/* FIXME */
+#if 0
     if (pFile->fid)
     {
         ntStatus = RdrTransactCloseFile(
@@ -161,6 +163,7 @@ RdrCommonRename(
 
         pFile->fid = 0;
     }
+#endif
 
     ntStatus = RdrGetFilePath(
         pRenameInfo->FileName,
