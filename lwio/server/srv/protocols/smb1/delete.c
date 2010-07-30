@@ -495,6 +495,7 @@ error:
     switch (ntStatus)
     {
         case STATUS_PENDING:
+        case STATUS_ACCESS_DENIED:
         case STATUS_FILE_IS_A_DIRECTORY:
         case STATUS_SHARING_VIOLATION:
         case STATUS_OBJECT_NAME_NOT_FOUND:
@@ -592,6 +593,7 @@ error:
     switch (ntStatus)
     {
         case STATUS_PENDING:
+        case STATUS_ACCESS_DENIED:
         case STATUS_FILE_IS_A_DIRECTORY:
         case STATUS_SHARING_VIOLATION:
         case STATUS_OBJECT_NAME_INVALID:
