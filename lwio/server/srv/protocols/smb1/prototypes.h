@@ -559,6 +559,13 @@ SrvProcessTrans2SetFileInformation(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// trans2sfsq.h
+
+NTSTATUS
+SrvProcessTrans2SetFsQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // trans2spi.h
 
 NTSTATUS

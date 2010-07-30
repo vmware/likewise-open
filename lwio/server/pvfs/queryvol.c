@@ -55,15 +55,18 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { (FILE_INFORMATION_CLASS)FileFsAttributeInformation,  PvfsFileFsAttribInfo },
     { (FILE_INFORMATION_CLASS)FileFsSizeInformation,       PvfsFileFsSizeInfo },
     { (FILE_INFORMATION_CLASS)FileFsVolumeInformation,     PvfsFileFsVolInfo },
-    { (FILE_INFORMATION_CLASS)FileFsDeviceInformation,     PvfsFileFsDeviceInfo }
+    { (FILE_INFORMATION_CLASS)FileFsDeviceInformation,     PvfsFileFsDeviceInfo },
+    { (FILE_INFORMATION_CLASS)FileFsControlInformation,    PvfsFileFsControlInfo }
 };
 
 
 /* Code */
 
+static
 NTSTATUS
-PvfsQueryVolumeInformation(
-    PPVFS_IRP_CONTEXT  pIrpContext
+PvfsQuerySetVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext,
+    PVFS_INFO_TYPE infoType
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -89,7 +92,7 @@ PvfsQueryVolumeInformation(
                 break;
             }
 
-            ntError = InfoLevelDispatchTable[i].fn(PVFS_QUERY, pIrpContext);
+            ntError = InfoLevelDispatchTable[i].fn(infoType, pIrpContext);
             break;
         }
     }
@@ -107,11 +110,20 @@ error:
 
 
 NTSTATUS
+PvfsQueryVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    return PvfsQuerySetVolumeInformation(pIrpContext, PVFS_QUERY);
+}
+
+
+NTSTATUS
 PvfsSetVolumeInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return PvfsQuerySetVolumeInformation(pIrpContext, PVFS_SET);
 }
 
 /*

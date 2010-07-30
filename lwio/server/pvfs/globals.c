@@ -89,6 +89,8 @@ LONG gPvfsFcbCount = 0;
 LONG gPvfsCcbCount = 0;
 LONG gPvfsWorkContextCount = 0;
 
+FILE_FS_CONTROL_INFORMATION gPvfsFileFsControlInformation = { 0 };
+
 /*
 local variables:
 mode: c
