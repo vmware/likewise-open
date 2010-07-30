@@ -916,6 +916,14 @@ SMBSocketFindAndSignalResponse(
 
     if (pResponse->pContext)
     {
+        ntStatus = SMBPacketDecodeHeader(
+            pPacket,
+            pResponse->pContext->Packet.haveSignature && !pSocket->bIgnoreServerSignatures,
+            pResponse->pContext->Packet.sequence + 1,
+            pSocket->pSessionKey,
+            pSocket->dwSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
         pResponse->pContext = RdrContinueContext(pResponse->pContext, STATUS_SUCCESS, pPacket);
         LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
@@ -943,6 +951,15 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+VOID
+RdrSocketCancel(
+    IN PSMB_SOCKET pSocket,
+    IN PRDR_OP_CONTEXT pContext
+    )
+{
+    /* Currently a no-op */
 }
 
 VOID
@@ -1549,6 +1566,11 @@ RdrSocketAddResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponse->pSocket = pSocket;
+
+    if (pResponse->pContext)
+    {
+        pResponse->pContext->usMid = pResponse->mid;
+    }
 
 cleanup:
 

@@ -329,6 +329,35 @@ RdrContinueContext(
     }
 }
 
+NTSTATUS
+RdrAllocateContextPacket(
+    PRDR_OP_CONTEXT pContext,
+    ULONG ulSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    if (pContext->Packet.pRawBuffer)
+    {
+        SMBPacketBufferFree(
+            gRdrRuntime.hPacketAllocator,
+            pContext->Packet.pRawBuffer,
+            pContext->Packet.bufferLen);
+    }
+
+    status = SMBPacketBufferAllocate(
+        gRdrRuntime.hPacketAllocator,
+        ulSize,
+        &pContext->Packet.pRawBuffer,
+        &pContext->Packet.bufferLen);
+    BAIL_ON_NT_STATUS(status);
+
+error:
+
+    return status;
+}
+
+
 VOID
 RdrContinueContextList(
     PLW_LIST_LINKS pList,

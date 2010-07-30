@@ -173,4 +173,10 @@ RdrSocketTransceive(
     IN PRDR_OP_CONTEXT pContext
     );
 
+VOID
+RdrSocketCancel(
+    IN PSMB_SOCKET pSocket,
+    IN PRDR_OP_CONTEXT pContext
+    );
+
 #endif /* __SOCKET_H__ */

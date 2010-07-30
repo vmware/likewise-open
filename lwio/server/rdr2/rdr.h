@@ -123,6 +123,12 @@ RdrContinueContextList(
     );
 
 NTSTATUS
+RdrAllocateContextPacket(
+    PRDR_OP_CONTEXT pContext,
+    ULONG ulSize
+    );
+
+NTSTATUS
 RdrCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp

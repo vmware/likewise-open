@@ -23,7 +23,6 @@ librdr2_sys_la_SOURCES =   \
     createfile.c          \
     getsesskey.c          \
     globals.c             \
-    readfile.c            \
     queryinfofile.c       \
     setinfofile.c         \
     renamefile.c          \
