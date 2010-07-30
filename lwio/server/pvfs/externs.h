@@ -86,5 +86,7 @@ extern LONG gPvfsFcbCount;
 extern LONG gPvfsCcbCount;
 extern LONG gPvfsWorkContextCount;
 
+extern FILE_FS_CONTROL_INFORMATION gPvfsFileFsControlInformation;
+
 
 #endif /* __EXTERNS_H__ */

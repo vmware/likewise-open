@@ -379,6 +379,7 @@ SrvProtocolTransportDriverConnectionNew(
     properties.Capabilities |= CAP_STATUS32;
     properties.Capabilities |= CAP_LEVEL_II_OPLOCKS;
     properties.Capabilities |= CAP_NT_FIND;
+    properties.Capabilities |= CAP_INFOLEVEL_PASSTHRU;
     properties.Capabilities |= CAP_LARGE_READX;
     properties.Capabilities |= CAP_LARGE_WRITEX;
     properties.Capabilities |= CAP_EXTENDED_SECURITY;

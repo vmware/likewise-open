@@ -202,6 +202,12 @@ SrvProcessTransaction2(
 
             break;
 
+        case SMB_SUB_COMMAND_TRANS2_SET_FS_QUOTA:
+
+            ntStatus = SrvProcessTrans2SetFsQuota(pExecContext);
+
+            break;
+
         case SMB_SUB_COMMAND_TRANS2_OPEN2 :
         case SMB_SUB_COMMAND_TRANS2_FSCTL :
         case SMB_SUB_COMMAND_TRANS2_IOCTL2 :

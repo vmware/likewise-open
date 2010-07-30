@@ -215,6 +215,12 @@ PvfsFileFsDeviceInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsFileFsControlInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 /* utility functions */
 
 /* From util_dir.c */
