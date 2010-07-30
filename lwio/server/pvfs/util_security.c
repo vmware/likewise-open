@@ -241,7 +241,7 @@ PvfsAccessCheckFile(
         bGranted = RtlAccessCheck(
                    pSecDesc,
                    pToken,
-                   DELETE,
+                   FILE_DELETE_CHILD,
                    GrantedAccess,
                    &gPvfsFileGenericMapping,
                    &AccessMask,
