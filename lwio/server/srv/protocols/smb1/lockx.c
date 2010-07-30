@@ -523,12 +523,12 @@ SrvProcessLockAndX(
 
                             ntStatus = SrvTimerPostRequest(
                                             llExpiry,
-                                            pExecContext,
+                                            pLockState,
                                             &SrvLockExpiredCB,
                                             &pLockState->pTimerRequest);
                             BAIL_ON_NT_STATUS(ntStatus);
 
-                            SrvAcquireExecContext(pExecContext);
+                            SrvAcquireLockState(pLockState);
                         }
 
                         break;
@@ -1553,15 +1553,18 @@ SrvFreeLockTimerRequest_inlock(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
     if (pLockState->pTimerRequest)
     {
-        PSRV_EXEC_CONTEXT pExecContext = NULL;
+        PSRV_LOCK_STATE_SMB_V1 pTmpLockState = NULL;
 
-        SrvTimerCancelRequest(pLockState->pTimerRequest, (PVOID*)&pExecContext);
+        ntStatus = SrvTimerCancelRequest(pLockState->pTimerRequest,
+                                         (PVOID*)&pTmpLockState);
 
-        if (pExecContext)
+        if (ntStatus != STATUS_NOT_FOUND)
         {
-            SrvReleaseExecContext(pExecContext);
+            SrvReleaseLockState(pLockState);
         }
 
         SrvTimerRelease(pLockState->pTimerRequest);
@@ -1747,8 +1750,6 @@ SrvExecuteLockRequest(
 
     pLockState->bCompleted = TRUE;
 
-    SrvFreeLockTimerRequest_inlock(pLockState);
-
 cleanup:
 
     return ntStatus;
@@ -1765,13 +1766,8 @@ SrvLockExpiredCB(
     PVOID              pUserData
     )
 {
-    PSRV_EXEC_CONTEXT pExecContext = (PSRV_EXEC_CONTEXT)pUserData;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
-    PSRV_LOCK_STATE_SMB_V1     pLockState   = NULL;
+    PSRV_LOCK_STATE_SMB_V1 pLockState = (PSRV_LOCK_STATE_SMB_V1)pUserData;
     BOOLEAN bInLock = FALSE;
-
-    pLockState = (PSRV_LOCK_STATE_SMB_V1)pCtxSmb1->hState;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockState->mutex);
 
@@ -1784,7 +1780,7 @@ SrvLockExpiredCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockState->mutex);
 
-    SrvReleaseExecContext(pExecContext);
+    SrvReleaseLockState(pLockState);
 }
 
 static
@@ -2041,9 +2037,10 @@ SrvAcquireLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     )
 {
-    LWIO_LOG_DEBUG("Acquiring lock state [0x%08x]", pLockState);
+    LONG NewRefCount = InterlockedIncrement(&pLockState->refCount);
 
-    InterlockedIncrement(&pLockState->refCount);
+    LWIO_LOG_DEBUG("Acquiring lock state [0x%08x]. New RefCount: %d",
+        pLockState, NewRefCount);
 
     return pLockState;
 }
@@ -2054,9 +2051,14 @@ SrvReleaseLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     )
 {
-    LWIO_LOG_DEBUG("Releasing lock state [0x%08x]", pLockState);
+    LONG NewRefCount = InterlockedDecrement(&pLockState->refCount);
 
-    if (InterlockedDecrement(&pLockState->refCount) == 0)
+    assert(NewRefCount >= 0);
+
+    LWIO_LOG_DEBUG("Releasing lock state [0x%08x]. New RefCount: %d",
+        pLockState, NewRefCount);
+
+    if (NewRefCount == 0)
     {
         SrvFreeLockState(pLockState);
     }
