@@ -122,7 +122,9 @@ SrvProcessTreeDisconnect_SMB_V2(
                     ulBytesAvailable,
                     COM2_TREE_DISCONNECT,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pTree->ulTid,

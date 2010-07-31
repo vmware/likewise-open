@@ -118,6 +118,17 @@ typedef struct _SRV_ELEMENTS_ENUM_RESOURCES
 
 } SRV_ELEMENTS_ENUM_RESOURCES, *PSRV_ELEMENTS_ENUM_RESOURCES;
 
+typedef struct _SRV_ELEMENTS_CONFIG
+{
+    BOOLEAN bShareNameEcpEnabled;
+    BOOLEAN bClientAddressEcpEnabled;
+    BOOLEAN bOEMSessionEcpEnabled;
+
+    ULONG  ulGlobalCreditLimit;
+    ULONG  usClientCreditLimit;
+
+} SRV_ELEMENTS_CONFIG, *PSRV_ELEMENTS_CONFIG;
+
 typedef struct _SRV_ELEMENTS_GLOBALS
 {
     pthread_mutex_t  mutex;
@@ -128,13 +139,15 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     ULONG ulHintsLength;
 
     LONG64 llBootTime;
-    BOOLEAN bShareNameEcpEnabled;
-    BOOLEAN bClientAddressEcpEnabled;
-    BOOLEAN bOEMSessionEcpEnabled;
+
+    ULONG  ulGlobalCreditLimit;
+
+    pthread_rwlock_t    configLock;
+    pthread_rwlock_t*   pConfigLock;
+    SRV_ELEMENTS_CONFIG config;
 
     pthread_rwlock_t        statsLock;
     pthread_rwlock_t*       pStatsLock;
-
     SRV_ELEMENTS_STATISTICS stats;
 
     SRV_ELEMENTS_RESOURCES  resources;

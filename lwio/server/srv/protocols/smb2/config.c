@@ -134,8 +134,6 @@ SrvConfigGetDefaults_SMB_V2(
     )
 {
     /* Add new config parameters in alphabetic order. */
-    pConfig->ulClientCreditLimit = LWIO_DEFAULT_CLIENT_CREDIT_LIMIT_SMB_V2;
-    pConfig->ulGlobalCreditLimit = LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT_SMB_V2;
     pConfig->ulOplockTimeout     = LWIO_DEFAULT_TIMEOUT_MSECS_SMB_V2;
 }
 

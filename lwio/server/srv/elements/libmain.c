@@ -54,14 +54,19 @@ SrvElementsInit(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     int      iIter = 0;
 
-    status = SrvElementsResourcesInit();
-    BAIL_ON_NT_STATUS(status);
+    ntStatus = SrvElementsConfigSetupInitial();
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = WireGetCurrentNTTime(&gSrvElements.llBootTime);
-    BAIL_ON_NT_STATUS(status);
+    gSrvElements.ulGlobalCreditLimit = SrvElementsConfigGetGlobalCreditLimit();
+
+    ntStatus = SrvElementsResourcesInit();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireGetCurrentNTTime(&gSrvElements.llBootTime);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     while (!RAND_status() && (iIter++ < 10))
     {
@@ -76,15 +81,15 @@ SrvElementsInit(
         RAND_seed(szUUID, sizeof(szUUID));
     }
 
-    status = SrvTimerInit(&gSrvElements.timer);
-    BAIL_ON_NT_STATUS(status);
+    ntStatus = SrvTimerInit(&gSrvElements.timer);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_rwlock_init(&gSrvElements.statsLock, NULL);
     gSrvElements.pStatsLock = &gSrvElements.statsLock;
 
 error:
 
-    return status;
+    return ntStatus;
 }
 
 NTSTATUS
@@ -132,30 +137,6 @@ SrvElementsGetBootTime(
     *pullBootTime = llBootTime;
 
     return STATUS_SUCCESS;
-}
-
-BOOLEAN
-SrvElementsGetShareNameEcpEnabled(
-    VOID
-    )
-{
-    return gSrvElements.bShareNameEcpEnabled;
-}
-
-BOOLEAN
-SrvElementsGetClientAddressEcpEnabled(
-    VOID
-    )
-{
-    return gSrvElements.bClientAddressEcpEnabled;
-}
-
-BOOLEAN
-SrvElementsGetOEMSessionEcpEnabled(
-    VOID
-    )
-{
-    return gSrvElements.bOEMSessionEcpEnabled;
 }
 
 NTSTATUS
@@ -219,6 +200,8 @@ SrvElementsShutdown(
     }
 
     SrvElementsResourcesShutdown();
+
+    SrvElementsConfigShutdown();
 
 error:
 

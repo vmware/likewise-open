@@ -885,7 +885,9 @@ SrvBuildLockResponse_SMB_V2(
                 ulBytesAvailable,
                 COM2_LOCK,
                 pSmbRequest->pHeader->usEpoch,
-                pSmbRequest->pHeader->usCredits,
+                SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                 pSmbRequest->pHeader->ulPid,
                 pSmbRequest->pHeader->ullCommandSequence,
                 pCtxSmb2->pTree->ulTid,

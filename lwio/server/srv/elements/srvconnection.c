@@ -283,6 +283,9 @@ SrvConnectionCreate(
     pthread_mutex_init(&pConnection->mutexSessionSetup, NULL);
     pConnection->pMutexSessionSetup = &pConnection->mutexSessionSetup;
 
+    ntStatus = SrvCreditorCreate(&pConnection->pCreditor);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvConnectionCreateSessionCollection(
                     &pConnection->pSessionCollection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1636,6 +1639,11 @@ SrvConnectionFree(
     if (pConnection->pSocket)
     {
         pConnection->pSocketDispatch->pfnFree(pConnection->pSocket);
+    }
+
+    if (pConnection->pCreditor)
+    {
+        SrvCreditorFree(pConnection->pCreditor);
     }
 
     if (pConnection->pSessionCollection)

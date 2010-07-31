@@ -1,7 +1,9 @@
 noinst_LTLIBRARIES = libsrvelements.la
 
 libsrvelements_la_SOURCES = \
+    config.c        \
     context.c       \
+    creditor.c      \
     globals.c       \
     libmain.c       \
     resources.c     \

@@ -103,7 +103,9 @@ SrvBuildErrorResponse_SMB_V2(
                 ulBytesAvailable,
                 pSmbRequest->pHeader->command,
                 pSmbRequest->pHeader->usEpoch,
-                pSmbRequest->pHeader->usCredits, /* TODO: Figure out this one */
+                SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                 pSmbRequest->pHeader->ulPid,
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,

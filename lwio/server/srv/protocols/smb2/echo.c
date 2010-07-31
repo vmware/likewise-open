@@ -78,7 +78,9 @@ SrvProcessEcho_SMB_V2(
                     ulBytesAvailable,
                     COM2_ECHO,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,

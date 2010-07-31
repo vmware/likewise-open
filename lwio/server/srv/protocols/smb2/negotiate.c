@@ -274,7 +274,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
                 ulBytesAvailable,
                 COM2_NEGOTIATE,
                 1, /* usEpoch      */
-                1, /* usCredits    */
+                SrvCreditorGetCredits(pConnection->pCreditor, 1),
                 0, /* usPid        */
                 0, /* ullMid       */
                 0, /* usTid        */

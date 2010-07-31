@@ -486,7 +486,9 @@ SrvBuildIOCTLResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_IOCTL,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,

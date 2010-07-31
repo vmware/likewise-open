@@ -47,6 +47,45 @@
  *
  */
 
+// config.c
+
+NTSTATUS
+SrvElementsConfigSetupInitial(
+    VOID
+    );
+
+NTSTATUS
+SrvElementsConfigRefresh(
+    VOID
+    );
+
+ULONG
+SrvElementsConfigGetGlobalCreditLimit(
+    VOID
+    );
+
+USHORT
+SrvElementsConfigGetClientCreditLimit(
+    VOID
+    );
+
+VOID
+SrvElementsConfigShutdown(
+    VOID
+    );
+
+// creditor.c
+
+NTSTATUS
+SrvCreditorCreate(
+    PSRV_CREDITOR* ppCreditor
+    );
+
+VOID
+SrvCreditorFree(
+    PSRV_CREDITOR pCreditor
+    );
+
 // resources.c
 
 NTSTATUS

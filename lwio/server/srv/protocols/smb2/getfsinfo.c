@@ -268,7 +268,9 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
@@ -397,7 +399,9 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
@@ -526,7 +530,9 @@ SrvBuildFileSystemFullInfoResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
@@ -650,7 +656,9 @@ SrvBuildFileSystemSizeInfoResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pExecContext->pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,

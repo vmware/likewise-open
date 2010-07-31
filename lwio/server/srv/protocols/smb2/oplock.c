@@ -622,7 +622,7 @@ SrvBuildOplockBreakNotification_SMB_V2(
                         ulBytesAvailable,
                         COM2_BREAK,
                         pSmbRequest->pHeader->usEpoch,
-                        0,  /* Credits     */
+			0,  /* Credits     */
                         0L, /* Process Id  */
                         pSmbRequest->pHeader->ullCommandSequence,
                         0L,  /* Tree Id    */
@@ -732,7 +732,9 @@ SrvBuildOplockBreakResponse_SMB_V2(
                         ulBytesAvailable,
                         COM2_BREAK,
                         pSmbRequest->pHeader->usEpoch,
-                        pSmbRequest->pHeader->usCredits,
+                        SrvCreditorGetCredits(
+							pExecContext->pConnection->pCreditor,
+							pSmbRequest->pHeader->usCredits),
                         pSmbRequest->pHeader->ulPid,
                         pSmbRequest->pHeader->ullCommandSequence,
                         pCtxSmb2->pTree->ulTid,

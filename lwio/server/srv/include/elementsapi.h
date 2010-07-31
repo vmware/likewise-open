@@ -423,6 +423,18 @@ typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
     PFN_SRV_SOCKET_GET_ADDRESS_BYTES pfnGetAddressBytes;
 } SRV_CONNECTION_SOCKET_DISPATCH, *PSRV_CONNECTION_SOCKET_DISPATCH;
 
+typedef struct _SRV_CREDITOR
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    BOOLEAN bInitialized;
+
+    USHORT  usCreditLimit;
+    USHORT  usCreditsAcquired;
+
+} SRV_CREDITOR, *PSRV_CREDITOR;
+
 typedef struct _SRV_CONNECTION
 {
     LONG                refCount;
@@ -503,6 +515,8 @@ typedef struct _SRV_CONNECTION
 
     PVOID               pOEMConnection;
     ULONG               ulOEMConnectionLength;
+
+    PSRV_CREDITOR       pCreditor;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
@@ -1565,6 +1579,12 @@ NTSTATUS
 SrvElementsUnregisterResource(
     ULONG          ulResourceId, /* IN              */
     PSRV_RESOURCE* ppResource    /*    OUT OPTIONAL */
+    );
+
+USHORT
+SrvCreditorGetCredits(
+    PSRV_CREDITOR pCreditor,
+    USHORT        usCreditsRequested
     );
 
 NTSTATUS
