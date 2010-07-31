@@ -58,7 +58,6 @@
 
 #include <lwiodef.h>
 #include <lwioutils.h>
-#include <lwiocfg.h>
 #include <lwiolog_r.h>
 #include <lwnet.h>
 

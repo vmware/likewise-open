@@ -53,7 +53,7 @@ SRV_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2 =
 {
     .mutex           = PTHREAD_MUTEX_INITIALIZER,
     .pWorkQueue      = NULL,
-    .ulOplockTimeout = LWIO_DEFAULT_TIMEOUT_MSECS_SMB_V2
+    .pConfigLock     = NULL
 };
 
 

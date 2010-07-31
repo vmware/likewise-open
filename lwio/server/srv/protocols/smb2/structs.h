@@ -1270,13 +1270,23 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
 
 } SRV_EXEC_CONTEXT_SMB_V2;
 
+typedef struct _SRV_CONFIG_SMB_V2
+{
+    ULONG  ulOplockTimeout;
+    ULONG  ulGlobalCreditLimit;
+    ULONG  ulClientCreditLimit;
+
+} SRV_CONFIG_SMB_V2, *PSRV_CONFIG_SMB_V2;
+
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
 {
     pthread_mutex_t      mutex;
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 
-    ULONG                ulOplockTimeout;
+    pthread_rwlock_t     configLock;
+    pthread_rwlock_t*    pConfigLock;
+    SRV_CONFIG_SMB_V2    config;
 
 } SRV_RUNTIME_GLOBALS_SMB_V2, *PSRV_RUNTIME_GLOBALS_SMB_V2;
 
