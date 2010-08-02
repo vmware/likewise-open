@@ -164,13 +164,18 @@ RdrFinishClose(
         status = pPacket->pSMBHeader->error;
     }
 
+    if (pPacket)
+    {
+        SMBPacketRelease(
+            pFile->pTree->pSession->pSocket->hPacketAllocator,
+            pPacket);
+    }
+
     pIrp->IoStatusBlock.Status = status;
     IoIrpComplete(pIrp);
     RdrReleaseFile(pFile);
     RdrFreeContext(pContext);
 
-    /* FIXME: free packet */
-    /* FIXME: handle continuation chaining */
     return FALSE;
 }
 
