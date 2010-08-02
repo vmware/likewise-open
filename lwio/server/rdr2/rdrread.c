@@ -221,7 +221,8 @@ RdrFinishReadFile(
         ntStatus = pResponsePacket->pSMBHeader->error;
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pResponsePacket->pNetBIOSHeader->len - (pResponsePacket->pParams - pResponsePacket->pRawBuffer) <
+        if (pResponsePacket->pSMBHeader->command != COM_READ_ANDX ||
+            pResponsePacket->pNetBIOSHeader->len - (pResponsePacket->pParams - pResponsePacket->pRawBuffer) <
             sizeof(READ_ANDX_RESPONSE_HEADER))
         {
             ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
@@ -239,13 +240,8 @@ RdrFinishReadFile(
         {
             usBytesRead = pResponseHeader->dataLength;
 
-            if (usBytesRead > pContext->State.Read.usReadLen)
-            {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
-            if (pResponseHeader->dataOffset + usBytesRead > pResponsePacket->pNetBIOSHeader->len)
+            if (usBytesRead > pContext->State.Read.usReadLen ||
+                pResponseHeader->dataOffset + usBytesRead > pResponsePacket->pNetBIOSHeader->len)
             {
                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                 BAIL_ON_NT_STATUS(ntStatus);
