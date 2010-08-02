@@ -2025,6 +2025,9 @@ AD_NtStatusIsConnectionError(
 
     switch (status)
     {
+    case STATUS_CONNECTION_ABORTED:
+    case STATUS_CONNECTION_DISCONNECTED:
+    case STATUS_CONNECTION_REFUSED:
     case STATUS_CONNECTION_RESET:
     case STATUS_IO_TIMEOUT:
     case STATUS_ACCESS_DENIED:
@@ -2061,6 +2064,8 @@ AD_WinErrorIsConnectionError(
 {
     switch (winError)
     {
+        case ERROR_CONNECTION_ABORTED:
+        case ERROR_CONNECTION_REFUSED:
         case ERROR_NETNAME_DELETED:
         case ERROR_SEM_TIMEOUT:
         case ERROR_ACCESS_DENIED:
