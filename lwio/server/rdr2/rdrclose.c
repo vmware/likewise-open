@@ -50,7 +50,7 @@
 #include "rdr.h"
 
 static
-PRDR_OP_CONTEXT
+BOOLEAN
 RdrFinishClose(
     PRDR_OP_CONTEXT pContext,
     NTSTATUS status,
@@ -148,7 +148,7 @@ error:
 }
 
 static
-PRDR_OP_CONTEXT
+BOOLEAN
 RdrFinishClose(
     PRDR_OP_CONTEXT pContext,
     NTSTATUS status,
@@ -171,7 +171,7 @@ RdrFinishClose(
 
     /* FIXME: free packet */
     /* FIXME: handle continuation chaining */
-    return NULL;
+    return FALSE;
 }
 
 void

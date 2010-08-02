@@ -894,6 +894,7 @@ SMBSocketFindAndSignalResponse(
     PSMB_RESPONSE pResponse = NULL;
     USHORT usMid = SMB_LTOH16(pPacket->pSMBHeader->mid);
     BOOLEAN bLocked = TRUE;
+    BOOLEAN bKeep = FALSE;
 
     ntStatus = RdrSocketFindResponseByMid(
                     pSocket,
@@ -925,10 +926,10 @@ SMBSocketFindAndSignalResponse(
         BAIL_ON_NT_STATUS(ntStatus);
 
         LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
-        pResponse->pContext = RdrContinueContext(pResponse->pContext, STATUS_SUCCESS, pPacket);
+        bKeep = RdrContinueContext(pResponse->pContext, STATUS_SUCCESS, pPacket);
         LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
 
-        if (!pResponse->pContext)
+        if (!bKeep)
         {
             ntStatus = SMBHashRemoveKey(
                 pSocket->pResponseHash,

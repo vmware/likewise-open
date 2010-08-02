@@ -108,7 +108,7 @@ RdrFreeContext(
     );
 
 
-PRDR_OP_CONTEXT
+BOOLEAN
 RdrContinueContext(
     PRDR_OP_CONTEXT pContext,
     NTSTATUS status,
@@ -118,6 +118,15 @@ RdrContinueContext(
 VOID
 RdrContinueContextList(
     PLW_LIST_LINKS pList,
+    NTSTATUS status,
+    PVOID pParam
+    );
+
+VOID
+RdrNotifyContextList(
+    PLW_LIST_LINKS pList,
+    BOOLEAN bLocked,
+    pthread_mutex_t* pMutex,
     NTSTATUS status,
     PVOID pParam
     );

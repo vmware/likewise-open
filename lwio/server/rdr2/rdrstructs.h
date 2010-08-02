@@ -37,8 +37,7 @@ typedef struct _RDR_OP_CONTEXT
 {
     PIRP pIrp;
     SMB_PACKET Packet;
-    USHORT usMid;
-    struct _RDR_OP_CONTEXT* (*Continue) (
+    BOOLEAN (*Continue) (
         struct _RDR_OP_CONTEXT* pContext,
         NTSTATUS status,
         PVOID pParam
@@ -48,11 +47,12 @@ typedef struct _RDR_OP_CONTEXT
     {
         struct
         {
-            USHORT usReadLen;
             LONG64 llByteOffset;
             LONG64 llTotalBytesRead;
+            USHORT usReadLen;
         } Read;
     } State;
+    USHORT usMid;
 } RDR_OP_CONTEXT, *PRDR_OP_CONTEXT;
 
 typedef enum _RDR_SOCKET_STATE

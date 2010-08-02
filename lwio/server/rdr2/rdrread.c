@@ -55,7 +55,7 @@
 #define READ_DATA_OFFSET     60
 
 static
-PRDR_OP_CONTEXT
+BOOLEAN
 RdrFinishReadFile(
     PRDR_OP_CONTEXT pContext,
     NTSTATUS ntStatus,
@@ -198,7 +198,7 @@ error:
 }
 
 static
-PRDR_OP_CONTEXT
+BOOLEAN
 RdrFinishReadFile(
     PRDR_OP_CONTEXT pContext,
     NTSTATUS ntStatus,
@@ -318,7 +318,7 @@ cleanup:
         RdrFreeContext(pContext);
     }
 
-    return NULL;
+    return FALSE;
 
 error:
 

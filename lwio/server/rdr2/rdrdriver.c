@@ -312,7 +312,7 @@ RdrFreeContext(
     }
 }
 
-PRDR_OP_CONTEXT
+BOOLEAN
 RdrContinueContext(
     PRDR_OP_CONTEXT pContext,
     NTSTATUS status,
@@ -325,7 +325,7 @@ RdrContinueContext(
     }
     else
     {
-        return NULL;
+        return FALSE;
     }
 }
 
@@ -367,15 +367,55 @@ RdrContinueContextList(
 {
     PLW_LIST_LINKS pElement = NULL;
     PRDR_OP_CONTEXT pContext = NULL;
+    PLW_LIST_LINKS pLink = NULL;
+    PLW_LIST_LINKS pNext = NULL;
 
-    while (!LwListIsEmpty(pList))
+    for (pLink = pList->Next; pLink != pList; pLink = pNext)
     {
-        pElement = LwListRemoveHead(pList);
+        pNext = pLink->Next;
+        pElement = LwListRemoveHead(pLink);
         pContext = LW_STRUCT_FROM_FIELD(pElement, RDR_OP_CONTEXT, Link);
 
-        RdrContinueContext(pContext, status, pParam);
+        if (!RdrContinueContext(pContext, status, pParam))
+        {
+            LwListRemove(pLink);
+        }
     }
 }
+
+VOID
+RdrNotifyContextList(
+    PLW_LIST_LINKS pList,
+    BOOLEAN bLocked,
+    pthread_mutex_t* pMutex,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    LW_LIST_LINKS List;
+    PLW_LIST_LINKS pLink = NULL;
+    BOOLEAN bWasLocked = bLocked;
+
+    LWIO_LOCK_MUTEX(bLocked, pMutex);
+    List = *pList;
+    LwListInit(pList);
+
+    LWIO_UNLOCK_MUTEX(bLocked, pMutex);
+    RdrContinueContextList(&List, status, pParam);
+    LWIO_LOCK_MUTEX(bLocked, pMutex);
+
+    while ((pLink = LwListRemoveHead(&List)))
+    {
+        LwListInsertTail(pList, pLink);
+    }
+
+    if (!bWasLocked)
+    {
+        LWIO_UNLOCK_MUTEX(bLocked, pMutex);
+    }
+}
+
+
 /*
 local variables:
 mode: c
