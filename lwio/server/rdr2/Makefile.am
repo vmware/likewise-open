@@ -20,7 +20,6 @@ librdr2_sys_la_SOURCES =   \
     client_session.c      \
     client_socket.c       \
     client_tree.c         \
-    createfile.c          \
     getsesskey.c          \
     globals.c             \
     queryinfofile.c       \

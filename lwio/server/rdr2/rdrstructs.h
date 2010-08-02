@@ -51,6 +51,11 @@ typedef struct _RDR_OP_CONTEXT
             LONG64 llTotalBytesRead;
             USHORT usReadLen;
         } Read;
+        struct
+        {
+            struct _SMB_CLIENT_FILE_HANDLE* pFile;
+            PWSTR pwszFilename;
+        } Create;
     } State;
     USHORT usMid;
 } RDR_OP_CONTEXT, *PRDR_OP_CONTEXT;

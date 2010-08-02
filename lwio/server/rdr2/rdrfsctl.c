@@ -58,12 +58,6 @@ RdrFsctl(
     NTSTATUS ntStatus = 0;
     PRDR_OP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = RdrAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = RdrCommonFsctl(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
