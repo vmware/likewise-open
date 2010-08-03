@@ -69,11 +69,18 @@ SrvProtocolInit_SMB_V2(
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
+    /* Configuration setup should always come first as other initalization
+     * routines may rely on configuration parameters to be set */
+    status = SrvConfigSetupInitial_SMB_V2();
+    BAIL_ON_NT_STATUS(status);
+
     LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
 
     gProtocolGlobals_SMB_V2.pWorkQueue = pWorkQueue;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
+
+error:
 
     return status;
 }
@@ -978,6 +985,10 @@ SrvProtocolShutdown_SMB_V2(
     gProtocolGlobals_SMB_V2.pWorkQueue = NULL;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
+
+    /* Configuration shutdown should always come last as other shutdown
+     * routines may rely on configuration parameters to be set */
+    SrvConfigShutdown_SMB_V2();
 }
 
 PCSTR

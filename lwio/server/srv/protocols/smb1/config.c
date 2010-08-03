@@ -76,8 +76,6 @@
 
 #include "includes.h"
 
-/* Forward declarations */
-
 static
 VOID
 SrvConfigGetDefaults_SMB_V1(
@@ -95,10 +93,6 @@ VOID
 SrvConfigFreeContents_SMB_V1(
     IN PSRV_CONFIG_SMB_V1 pConfig
     );
-
-/* File Globals */
-
-/* Code */
 
 NTSTATUS
 SrvConfigSetupInitial_SMB_V1(
@@ -156,20 +150,6 @@ cleanup:
 error:
     SrvConfigFree_SMB_V1(pConfig);
     goto cleanup;
-}
-
-VOID
-SrvConfigShutdown_SMB_V1(
-    VOID
-    )
-{
-    SrvConfigFree_SMB_V1(&gProtocolGlobals_SMB_V1.config);
-
-    if (gProtocolGlobals_SMB_V1.pConfigLock)
-    {
-        pthread_rwlock_destroy(gProtocolGlobals_SMB_V1.pConfigLock);
-        gProtocolGlobals_SMB_V1.pConfigLock = NULL;
-    }
 }
 
 static
@@ -242,4 +222,19 @@ SrvConfigGetOplockTimeoutMillisecs_SMB_V1(
     LWIO_UNLOCK_RWMUTEX(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
 
     return dwTimeout;
+}
+
+
+VOID
+SrvConfigShutdown_SMB_V1(
+    VOID
+    )
+{
+    SrvConfigFree_SMB_V1(&gProtocolGlobals_SMB_V1.config);
+
+    if (gProtocolGlobals_SMB_V1.pConfigLock)
+    {
+        pthread_rwlock_destroy(gProtocolGlobals_SMB_V1.pConfigLock);
+        gProtocolGlobals_SMB_V1.pConfigLock = NULL;
+    }
 }

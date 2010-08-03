@@ -52,6 +52,37 @@
 
 #define LWIO_DEFAULT_TIMEOUT_MSECS_SMB_V2 (30 * 1000)
 
+#define LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT_SMB_V2 (250000)
+#define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT_SMB_V2 (5)
+
+#define SRV_CONFIG_TABLE_INITIALIZER_SMB_V2                     \
+{                                                               \
+    {                                                           \
+        .pszName        = "OplockTimeoutMillisecs",             \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = 0,                                    \
+        .dwMax          = 60000,                                \
+        .pValue         = &pConfig->ulOplockTimeout             \
+    },                                                          \
+    {                                                           \
+        .pszName        = "GlobalCreditLimit",                  \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = 0,                                    \
+        .dwMax          = 3200000,                              \
+        .pValue         = &pConfig->ulGlobalCreditLimit         \
+    },                                                          \
+    {                                                           \
+        .pszName        = "ClientCreditLimit",                  \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = 0,                                    \
+        .dwMax          = 64,                                   \
+        .pValue         = &pConfig->ulClientCreditLimit         \
+    },                                                          \
+};
+
 #define COM2_NEGOTIATE_DESC       "SMB2_NEGOTIATE"
 #define COM2_SESSION_SETUP_DESC   "SMB2_SESSION_SETUP"
 #define COM2_LOGOFF_DESC          "SMB2_LOGOFF"

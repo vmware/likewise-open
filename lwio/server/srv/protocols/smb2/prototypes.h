@@ -76,8 +76,23 @@ SrvConnection2FindSession_SMB_V2(
 
 // config.c
 
+NTSTATUS
+SrvConfigSetupInitial_SMB_V2(
+    VOID
+    );
+
+NTSTATUS
+SrvConfigRefresh_SMB_V2(
+    VOID
+    );
+
 ULONG
 SrvConfigGetOplockTimeout_SMB_V2(
+    VOID
+    );
+
+VOID
+SrvConfigShutdown_SMB_V2(
     VOID
     );
 
