@@ -723,7 +723,9 @@ SrvBuildTreeConnectResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_TREE_CONNECT,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pTConState->pTree->ulTid,

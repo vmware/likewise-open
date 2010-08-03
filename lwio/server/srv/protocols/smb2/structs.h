@@ -1273,8 +1273,6 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
 typedef struct _SRV_CONFIG_SMB_V2
 {
     ULONG  ulOplockTimeout;
-    ULONG  ulGlobalCreditLimit;
-    ULONG  ulClientCreditLimit;
 
 } SRV_CONFIG_SMB_V2, *PSRV_CONFIG_SMB_V2;
 

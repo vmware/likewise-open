@@ -47,6 +47,29 @@
  *
  */
 
+#define LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT (250000)
+#define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT (5)
+
+#define SRV_ELEMENTS_CONFIG_TABLE_INITIALIZER                   \
+{                                                               \
+    {                                                           \
+        .pszName        = "GlobalCreditLimit",                  \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = 1,                                    \
+        .dwMax          = 3200000,                              \
+        .pValue         = &pConfig->ulGlobalCreditLimit         \
+    },                                                          \
+    {                                                           \
+        .pszName        = "ClientCreditLimit",                  \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = 1,                                    \
+        .dwMax          = 32,                                   \
+        .pValue         = &pConfig->usClientCreditLimit         \
+    },                                                          \
+};
+
 #define SRV_ELEMENTS_INCREMENT_STAT(stat, maxstat) \
 { \
     BOOLEAN bStatsInLock = FALSE; \

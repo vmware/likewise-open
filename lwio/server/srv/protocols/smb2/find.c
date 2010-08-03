@@ -423,7 +423,9 @@ SrvProcessFind_SMB_V2(
                     ulBytesAvailable,
                     COM2_FIND,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    SrvCreditorGetCredits(
+						pConnection->pCreditor,
+						pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pTree->ulTid,

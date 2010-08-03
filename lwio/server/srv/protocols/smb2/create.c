@@ -1373,7 +1373,10 @@ SrvBuildCreateResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_CREATE,
                     pSmbRequest->pHeader->usEpoch,
-                    (pCreateState->ullAsyncId ? 0 : pSmbRequest->pHeader->usCredits),
+                    (pCreateState->ullAsyncId ? 0 :
+						SrvCreditorGetCredits(
+							pExecContext->pConnection->pCreditor,
+							pSmbRequest->pHeader->usCredits)),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
