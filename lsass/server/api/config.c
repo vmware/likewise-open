@@ -152,7 +152,6 @@ LsaSrvApiInitConfig(
 
     pConfig->bLogInvalidPasswords = FALSE;
     pConfig->bEnableEventLog = FALSE;
-    pConfig->bLogNetworkConnectionEvents = TRUE;
     pConfig->cDomainSeparator = '\\';
     pConfig->cSpaceReplacement = '^';
 
@@ -179,16 +178,6 @@ LsaSrvApiReadRegistry(
            MAXDWORD,
            NULL,
            &StagingConfig.bEnableEventLog,
-           NULL
-        },
-        {
-           "LogNetworkConnectionEvents",
-           TRUE,
-           LsaTypeBoolean,
-           0,
-           MAXDWORD,
-           NULL,
-           &StagingConfig.bLogNetworkConnectionEvents,
            NULL
         },
         {
@@ -380,22 +369,6 @@ LsaSrvEnableEventlog(
     pthread_mutex_unlock(&gAPIConfigLock);
 }
 
-BOOLEAN
-LsaSrvShouldLogNetworkConnectionEvents(
-    VOID
-    )
-{
-    BOOLEAN bResult = TRUE;
-
-    pthread_mutex_lock(&gAPIConfigLock);
-
-    bResult = gAPIConfig.bLogNetworkConnectionEvents;
-
-    pthread_mutex_unlock(&gAPIConfigLock);
-
-    return bResult;
-}
-
 char
 LsaSrvSpaceReplacement(
     VOID
@@ -427,19 +400,6 @@ LsaSrvDomainSeparator(
 
     return cResult;
 }
-
-VOID
-LsaSrvSetLogNetworkConnectionEvents(
-    BOOLEAN bValue
-    )
-{
-    pthread_mutex_lock(&gAPIConfigLock);
-
-    gAPIConfig.bLogNetworkConnectionEvents = bValue;
-
-    pthread_mutex_unlock(&gAPIConfigLock);
-}
-
 
 DWORD
 LsaSrvSetMachineSid(

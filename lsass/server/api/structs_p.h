@@ -54,7 +54,6 @@ typedef struct __LSA_SRV_API_CONFIG
 {
     BOOLEAN bLogInvalidPasswords;
     BOOLEAN bEnableEventLog;
-    BOOLEAN bLogNetworkConnectionEvents; 
     char cDomainSeparator;
     char cSpaceReplacement;
 } LSA_SRV_API_CONFIG, *PLSA_SRV_API_CONFIG;
