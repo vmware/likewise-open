@@ -503,11 +503,9 @@ RdrTransceiveCreate(
     uint32_t packetByteCount = 0;
     CREATE_REQUEST_HEADER *pHeader = NULL;
 
-    status = SMBPacketBufferAllocate(
-        pFile->pTree->pSession->pSocket->hPacketAllocator,
-        1024*64,
-        &pContext->Packet.pRawBuffer,
-        &pContext->Packet.bufferLen);
+    status = RdrAllocateContextPacket(
+        pContext,
+        1024*64);
     BAIL_ON_NT_STATUS(status);
 
     status = SMBPacketMarshallHeader(

@@ -85,11 +85,9 @@ RdrClose(
     {
         IoIrpMarkPending(pIrp, RdrCancelClose, NULL);
 
-        ntStatus = SMBPacketBufferAllocate(
-            pFile->pTree->pSession->pSocket->hPacketAllocator,
-            1024*64,
-            &pContext->Packet.pRawBuffer,
-            &pContext->Packet.bufferLen);
+        ntStatus = RdrAllocateContextPacket(
+            pContext,
+            1024*64);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SMBPacketMarshallHeader(
