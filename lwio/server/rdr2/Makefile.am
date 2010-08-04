@@ -39,7 +39,6 @@ librdr2_sys_la_SOURCES =   \
     socket.c              \
     tree.c                \
     writefile.c           \
-    lwio-semaphore.c      \
     rdrdriver.c           \
     rdrcreate.c           \
     rdrread.c             \
