@@ -28,7 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
 NTSTATUS
 RdrSocketInit(
     VOID

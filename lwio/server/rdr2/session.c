@@ -499,26 +499,3 @@ error:
 
     return ntStatus;
 }
-
-NTSTATUS
-SMBSessionWaitTreeConnect(
-    PSMB_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    while (pSession->bTreeConnectInProgress)
-    {
-        if (pSession->state == RDR_SESSION_STATE_ERROR)
-        {
-            ntStatus = pSession->error;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pthread_cond_wait(&pSession->event, &pSession->mutex);
-    }
-
-error:
-
-    return ntStatus;
-}

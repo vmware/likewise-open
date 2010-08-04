@@ -119,7 +119,7 @@ error:
 
     if (status != STATUS_PENDING && pSession)
     {
-        SMBSrvClientSessionRelease(pSession);
+        SMBSessionRelease(pSession);
         pSession = NULL;
     }
 

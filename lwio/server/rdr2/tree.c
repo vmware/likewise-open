@@ -62,7 +62,6 @@ SMBTreeCreate(
 {
     NTSTATUS ntStatus = 0;
     PSMB_TREE pTree = NULL;
-    BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     pthread_mutexattr_t mutexAttr;
     pthread_mutexattr_t* pMutexAttr = NULL;
@@ -85,11 +84,6 @@ SMBTreeCreate(
     pthread_mutex_init(&pTree->mutex, pMutexAttr);
     bDestroyMutex = TRUE;
 
-    ntStatus = pthread_cond_init(&pTree->event, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bDestroyCondition = TRUE;
-
     pTree->refCount = 1;
     pTree->pSession = NULL;
     pTree->tid = 0;
@@ -107,11 +101,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (bDestroyCondition)
-    {
-        pthread_cond_destroy(&pTree->event);
-    }
 
     if (bDestroyMutex)
     {
@@ -169,8 +158,6 @@ SMBTreeSetState(
 
     pTree->state = state;
 
-    pthread_cond_broadcast(&pTree->event);
-
     LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
@@ -211,8 +198,6 @@ SMBTreeInvalidate(
     LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
     RdrTreeUnlink(pTree);
     LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-
-    pthread_cond_broadcast(&pTree->event);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
@@ -335,7 +320,6 @@ SMBTreeFree(
 {
     assert(!pTree->refCount);
 
-    pthread_cond_destroy(&pTree->event);
     pthread_mutex_destroy(&pTree->mutex);
 
     SMBTreeDestroyContents(pTree);
@@ -363,27 +347,4 @@ SMBTreeDestroyContents(
     }
 
     return 0;
-}
-
-NTSTATUS
-SMBTreeWaitReady(
-    PSMB_TREE pTree
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    while (pTree->state < RDR_TREE_STATE_READY)
-    {
-        if (pTree->state == RDR_TREE_STATE_ERROR)
-        {
-            ntStatus = pTree->error;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pthread_cond_wait(&pTree->event, &pTree->mutex);
-    }
-
-error:
-
-    return ntStatus;
 }

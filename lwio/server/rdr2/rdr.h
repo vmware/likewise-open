@@ -366,18 +366,8 @@ SMBSessionWaitReady(
     );
 
 NTSTATUS
-SMBTreeWaitReady(
-    PSMB_TREE pTree
-    );
-
-NTSTATUS
 SMBSocketWaitSessionSetup(
     PSMB_SOCKET pSocket
-    );
-
-NTSTATUS
-SMBSessionWaitTreeConnect(
-    PSMB_SESSION pSession
     );
 
 #endif /* __RDR_H__ */

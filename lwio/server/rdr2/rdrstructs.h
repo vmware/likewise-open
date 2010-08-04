@@ -167,14 +167,6 @@ typedef struct
     SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
     SMB_HASH_TABLE *pTreeHashByTID;     /* Storage for dependent trees */
 
-    uint16_t volatile nextTID;           /* The next free MID to be used.  For now this
-                                            is merely a monotonically increasing counter
-                                            checked against the hash. In the future it
-                                            could be a list of free MIDs from a custom
-                                            allocator. */
-
-    BOOLEAN volatile bTreeConnectInProgress;
-
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
     PLW_TASK pTimeout;
@@ -196,7 +188,6 @@ typedef struct _SMB_TREE
 
     RDR_TREE_STATE volatile state;   /* Tree state: valid, invalid, etc. */
     NTSTATUS volatile error;
-    pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink; /* Whether tree is linked to by parent (session) */
 

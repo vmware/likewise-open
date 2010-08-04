@@ -30,7 +30,6 @@
 
 #include "rdr.h"
 
-/* @todo: support internationalized principals */
 NTSTATUS
 SMBSrvClientSessionCreate(
     IN OUT PSMB_SOCKET* ppSocket,
@@ -127,67 +126,6 @@ error:
     }
 
     *ppSession = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSessionAddTreeById(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    /* No need to check for a race here; the path hash is always checked
-       first */
-    ntStatus = SMBHashSetValue(
-                    pSession->pTreeHashByTID,
-                    &pTree->tid,
-                    pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pTree->bParentLink = TRUE;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSrvClientSessionRelease(
-    PSMB_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    /** @todo: keep unused sockets around for a little while when daemonized.
-     * To avoid writing frequently to shared cache lines, perhaps set a bit
-     * when the hash transitions to non-empty, then periodically sweep for
-     * empty hashes.  If a hash is empty after x number of timed sweeps, tear
-     * down the parent.
-     */
-
-    /* @todo: verify that the tree hash is empty */
-    ntStatus = Logoff(pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    SMBSessionRelease(pSession);
-
-    return ntStatus;
-
-error:
 
     goto cleanup;
 }

@@ -28,22 +28,10 @@
  * license@likewisesoftware.com
  */
 
-
 NTSTATUS
 SMBSrvClientSessionCreate(
     IN OUT PSMB_SOCKET* ppSocket,
     PIO_CREDS pCreds,
     IN uid_t uid,
     OUT PSMB_SESSION* ppSession
-    );
-
-NTSTATUS
-SMBSrvClientSessionAddTreeById(
-    PSMB_SESSION pSession,
-    PSMB_TREE    pTree
-    );
-
-NTSTATUS
-SMBSrvClientSessionRelease(
-    PSMB_SESSION pSession
     );
