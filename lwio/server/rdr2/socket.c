@@ -1438,11 +1438,6 @@ SMBSocketFree(
         LWIO_LOG_ERROR("Failed to close socket [fd:%d]", pSocket->fd);
     }
 
-    if (pSocket && pSocket->maxMpxCount)
-    {
-        SMBSemaphoreDestroy(&pSocket->semMpx);
-    }
-
     pthread_cond_destroy(&pSocket->event);
 
     LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);

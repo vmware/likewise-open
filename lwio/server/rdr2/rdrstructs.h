@@ -112,7 +112,6 @@ typedef struct
     BOOLEAN volatile bSessionSetupInProgress;
 
     uint16_t maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
-    LSMB_SEMAPHORE semMpx;
 
     SMB_SECURITY_MODE securityMode; /* Share or User security */
     BOOLEAN  bPasswordsMustBeEncrypted;

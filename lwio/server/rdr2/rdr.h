@@ -72,14 +72,11 @@
 #include <lwio/io-types.h>
 #include "iodriver.h"
 
-#include "lwio-semaphore.h"
 #include "rdrstructs.h"
-#include "readfile.h"
 #include "writefile.h"
 #include "getsesskey.h"
 #include "smb_negotiate.h"
 #include "smb_session_setup.h"
-#include "smb_tree_connect.h"
 #include "smb_write.h"
 #include "smb_tree_disconnect.h"
 #include "smb_logoff.h"

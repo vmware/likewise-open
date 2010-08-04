@@ -176,14 +176,7 @@ Negotiate(
     pSocket->bPasswordsMustBeEncrypted = (pHeader->securityMode & 0x2) ? TRUE : FALSE;
     pSocket->bSignedMessagesSupported = (pHeader->securityMode & 0x4) ? TRUE : FALSE;
     pSocket->bSignedMessagesRequired = (pHeader->securityMode & 0x8) ? TRUE : FALSE;
-
-    if (pHeader->maxMpxCount)
-    {
-        ntStatus = SMBSemaphoreInit(&pSocket->semMpx, pHeader->maxMpxCount);
-        BAIL_ON_NT_STATUS(ntStatus);
-        pSocket->maxMpxCount = pHeader->maxMpxCount;
-    }
-
+    pSocket->maxMpxCount = pHeader->maxMpxCount;
     pSocket->securityBlobLen = securityBlobLen;
 
     ntStatus = SMBAllocateMemory(
@@ -223,11 +216,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (pSocket && pSocket->maxMpxCount)
-    {
-        SMBSemaphoreDestroy(&pSocket->semMpx);
-    }
 
     goto cleanup;
 }
