@@ -28,17 +28,11 @@
  * license@likewisesoftware.com
  */
 
-
 NTSTATUS
-SMBSrvClientTreeOpen(
-    PCWSTR pszHostname,
+RdrTreeConnect(
+    PCWSTR pwszHostname,
     PCSTR pszSharename,
     PIO_CREDS pCreds,
-    uid_t uid,
-    PSMB_TREE* ppTree
-    );
-
-NTSTATUS
-SMBSrvClientTreeClose(
-    PSMB_TREE pTree
+    uid_t Uid,
+    PRDR_OP_CONTEXT pContinue
     );

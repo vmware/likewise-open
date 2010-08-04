@@ -56,6 +56,15 @@ typedef struct _RDR_OP_CONTEXT
             struct _SMB_CLIENT_FILE_HANDLE* pFile;
             PWSTR pwszFilename;
         } Create;
+        struct
+        {
+            struct _SMB_TREE* pTree;
+            PWSTR pwszHostname;
+            PSTR pszSharename;
+            PIO_CREDS pCreds;
+            uid_t Uid;
+            struct _RDR_OP_CONTEXT* pContinue;
+        } TreeConnect;
     } State;
     USHORT usMid;
 } RDR_OP_CONTEXT, *PRDR_OP_CONTEXT;
@@ -177,11 +186,10 @@ typedef enum _RDR_TREE_STATE
     RDR_TREE_STATE_NOT_READY,
     RDR_TREE_STATE_INITIALIZING,
     RDR_TREE_STATE_READY,
-    RDR_TREE_STATE_TEARDOWN,
     RDR_TREE_STATE_ERROR
 } RDR_TREE_STATE;
 
-typedef struct
+typedef struct _SMB_TREE
 {
     pthread_mutex_t mutex;      /* Locks both the structure and the hash */
                                 /* responses are inserted and removed so often
@@ -197,6 +205,7 @@ typedef struct
     uint16_t tid;
     PSTR pszPath;               /* For hashing */
     PLW_TASK pTimeout;
+    LW_LIST_LINKS StateWaiters;
 } SMB_TREE, *PSMB_TREE;
 
 typedef struct

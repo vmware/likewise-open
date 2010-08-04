@@ -72,6 +72,8 @@ SMBTreeCreate(
                 (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pTree->StateWaiters);
+
     ntStatus = pthread_mutexattr_init(&mutexAttr);
     BAIL_ON_NT_STATUS(ntStatus);
 

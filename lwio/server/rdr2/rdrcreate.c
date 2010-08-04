@@ -93,13 +93,12 @@ RdrCancelCreate(
 }
 
 static
-VOID
-RdrCreateTreeConnectWorkItem(
-    PVOID _pContext
+NTSTATUS
+RdrCreateTreeConnect(
+    PRDR_OP_CONTEXT pContext
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PRDR_OP_CONTEXT pContext = _pContext;
     PIRP pIrp = pContext->pIrp;
     PIO_FILE_NAME pFileName = &pIrp->Args.Create.FileName;
     PIO_CREDS pCreds = IoSecurityGetCredentials(pIrp->Args.Create.SecurityContext);
@@ -109,23 +108,6 @@ RdrCreateTreeConnectWorkItem(
     PWSTR pwszServer = NULL;
     PSTR pszShare = NULL;
     PSTR pszFilename = NULL;
-    PSTR pszCachePath = NULL;
-
-    switch (pCreds->type)
-    {
-    case IO_CREDS_TYPE_KRB5_TGT:
-        status = SMBCredTokenToKrb5CredCache(pCreds, &pszCachePath);
-        BAIL_ON_NT_STATUS(status);
-
-        status = SMBKrb5SetDefaultCachePath(pszCachePath, NULL);
-        BAIL_ON_NT_STATUS(status);
-        break;
-    case IO_CREDS_TYPE_PLAIN:
-        break;
-    default:
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
 
     status = ParseSharePath(
         pFileName->FileName,
@@ -139,29 +121,26 @@ RdrCreateTreeConnectWorkItem(
         pszFilename);
     BAIL_ON_NT_STATUS(status);
 
-    status = SMBSrvClientTreeOpen(
+    status = RdrTreeConnect(
         pwszServer,
         pszShare,
         pCreds,
         pProcessInfo->Uid,
-        &pTree);
+        pContext);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
-
-    if (pszCachePath)
-    {
-        SMBKrb5DestroyCache(pszCachePath);
-        RTL_FREE(&pszCachePath);
-    }
 
     RTL_FREE(&pwszServer);
     RTL_FREE(&pszShare);
     RTL_FREE(&pszFilename);
 
-    RdrContinueContext(pContext, status, pTree);
+    if (status != STATUS_PENDING)
+    {
+        RdrContinueContext(pContext, status, pTree);
+    }
 
-    return;
+    return status;
 
 error:
 
@@ -319,10 +298,8 @@ RdrCreate(
 
     pContext->Continue = RdrCreateTreeConnected;
 
-    status = LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrCreateTreeConnectWorkItem, pContext, 0);
+    status = RdrCreateTreeConnect(pContext);
     BAIL_ON_NT_STATUS(status);
-
-    status = STATUS_PENDING;
 
 cleanup:
 

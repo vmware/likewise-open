@@ -32,6 +32,14 @@
 
 static
 NTSTATUS
+RdrTransceiveTreeConnect(
+    PRDR_OP_CONTEXT pContext,
+    PSMB_TREE pTree,
+    PCWSTR pwszPath
+    );
+
+static
+NTSTATUS
 SMBSrvClientTreeCreate(
     IN OUT PSMB_SESSION* ppSession,
     IN PCSTR pszPath,
@@ -55,70 +63,204 @@ RdrAcquireEstablishedSession(
     );
 
 static
-NTSTATUS
-RdrAcquireConnectedTree(
-    IN OUT PSMB_SESSION* ppSession,
-    IN PCSTR pszSharename,
-    OUT PSMB_TREE* ppTree
-    );
-
-NTSTATUS
-SMBSrvClientTreeOpen(
-    PCWSTR pwszHostname,
-    PCSTR pszSharename,
-    PIO_CREDS pCreds,
-    uid_t uid,
-    PSMB_TREE* ppTree
+VOID
+RdrAcquireSessionWorkItem(
+    PVOID _pContext
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS status = STATUS_SUCCESS;
+    PRDR_OP_CONTEXT pContext = _pContext;
     PSMB_SOCKET pSocket = NULL;
     PSMB_SESSION pSession = NULL;
-    PSMB_TREE pTree = NULL;
+    PIO_CREDS pCreds = pContext->State.TreeConnect.pCreds;
+    PSTR pszCachePath = NULL;
 
-    ntStatus = RdrAcquireNegotiatedSocket(
-        pwszHostname,
+    status = RdrAcquireNegotiatedSocket(
+        pContext->State.TreeConnect.pwszHostname,
         &pSocket);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
-    ntStatus = RdrAcquireEstablishedSession(
+    switch (pCreds->type)
+    {
+    case IO_CREDS_TYPE_KRB5_TGT:
+        status = SMBCredTokenToKrb5CredCache(pCreds, &pszCachePath);
+        BAIL_ON_NT_STATUS(status);
+
+        status = SMBKrb5SetDefaultCachePath(pszCachePath, NULL);
+        BAIL_ON_NT_STATUS(status);
+        break;
+    case IO_CREDS_TYPE_PLAIN:
+        break;
+    default:
+        status = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    status = RdrAcquireEstablishedSession(
         &pSocket,
         pCreds,
-        uid,
+        pContext->State.TreeConnect.Uid,
         &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = RdrAcquireConnectedTree(
-        &pSession,
-        pszSharename,
-        &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppTree = pTree;
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
 
-    return ntStatus;
+    if (pszCachePath)
+    {
+        SMBKrb5DestroyCache(pszCachePath);
+        RTL_FREE(&pszCachePath);
+    }
+
+    RdrContinueContext(pContext, status, pSession);
+
+    return;
 
 error:
 
-    if (pTree)
-    {
-        SMBTreeRelease(pTree);
-    }
-
-    if (pSession)
+    if (status != STATUS_PENDING && pSession)
     {
         SMBSrvClientSessionRelease(pSession);
+        pSession = NULL;
     }
 
-    if (pSocket)
+    if (status != STATUS_PENDING && pSocket)
     {
         SMBSocketRelease(pSocket);
+        pSocket = NULL;
     }
 
     goto cleanup;
 }
+
+
+static
+BOOLEAN
+RdrFinishTreeConnect(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    PSMB_TREE pTree = pContext->State.TreeConnect.pTree;
+    PSMB_PACKET pResponsePacket = pParam;
+    BOOLEAN bTreeLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bTreeLocked, &pTree->mutex);
+
+    BAIL_ON_NT_STATUS(status);
+
+    status = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(status);
+
+    pTree->tid = pResponsePacket->pSMBHeader->tid;
+    pTree->state = RDR_TREE_STATE_READY;
+
+cleanup:
+
+    if (pResponsePacket)
+    {
+        SMBPacketRelease(
+            pTree->pSession->pSocket->hPacketAllocator,
+            pResponsePacket);
+    }
+
+    RdrNotifyContextList(&pTree->StateWaiters, bTreeLocked, &pTree->mutex, status, pTree);
+
+    LWIO_UNLOCK_MUTEX(bTreeLocked, &pTree->mutex);
+
+    RTL_FREE(&pContext->State.TreeConnect.pwszHostname);
+    RTL_FREE(&pContext->State.TreeConnect.pszSharename);
+    LwIoDeleteCreds(pContext->State.TreeConnect.pCreds);
+    RdrFreeContext(pContext);
+
+    return FALSE;
+
+error:
+
+    goto cleanup;
+}
+
+static
+BOOLEAN
+RdrTreeConnectSessionSetup(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    PSMB_SESSION pSession = pParam;
+    PSMB_TREE pTree = NULL;
+    BOOLEAN bTreeLocked = FALSE;
+    BOOLEAN bFreeContext = FALSE;
+    PWSTR pwszPath = NULL;
+
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBSrvClientTreeCreate(
+        &pSession,
+        pContext->State.TreeConnect.pszSharename,
+        &pTree);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->State.TreeConnect.pTree = pTree;
+
+    LWIO_LOCK_MUTEX(bTreeLocked, &pTree->mutex);
+
+    switch (pTree->state)
+    {
+    case RDR_TREE_STATE_NOT_READY:
+        LwListInsertTail(&pTree->StateWaiters, &pContext->State.TreeConnect.pContinue->Link);
+        pTree->state = RDR_TREE_STATE_INITIALIZING;
+
+        status = SMBMbsToWc16s(pTree->pszPath, &pwszPath);
+        BAIL_ON_NT_STATUS(status);
+
+        pContext->Continue = RdrFinishTreeConnect;
+
+        status = RdrTransceiveTreeConnect(pContext, pTree, pwszPath);
+        BAIL_ON_NT_STATUS(status);
+        break;
+    case RDR_TREE_STATE_INITIALIZING:
+        LwListInsertTail(&pTree->StateWaiters, &pContext->State.TreeConnect.pContinue->Link);
+        bFreeContext = TRUE;
+        status = STATUS_PENDING;
+        break;
+    case RDR_TREE_STATE_READY:
+        bFreeContext = TRUE;
+        break;
+    case RDR_TREE_STATE_ERROR:
+        status = pTree->error;
+        BAIL_ON_NT_STATUS(status);
+        break;
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bTreeLocked, &pTree->mutex);
+
+    if (status != STATUS_PENDING)
+    {
+        RdrContinueContext(pContext->State.TreeConnect.pContinue, status, pTree);
+        bFreeContext = TRUE;
+    }
+
+    if (bFreeContext)
+    {
+        RTL_FREE(&pContext->State.TreeConnect.pwszHostname);
+        RTL_FREE(&pContext->State.TreeConnect.pszSharename);
+        LwIoDeleteCreds(pContext->State.TreeConnect.pCreds);
+        RdrFreeContext(pContext);
+    }
+
+    RTL_FREE(&pwszPath);
+
+    return FALSE;
+
+error:
+
+    goto cleanup;
+}
+
 
 static
 NTSTATUS
@@ -292,99 +434,6 @@ error:
 
 static
 NTSTATUS
-RdrAcquireConnectedTree(
-    IN OUT PSMB_SESSION* ppSession,
-    IN PCSTR pszSharename,
-    OUT PSMB_TREE* ppTree
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_TREE pTree = NULL;
-    BOOLEAN bInTreeLock = FALSE;
-    BOOLEAN bInSessionLock = FALSE;
-    PWSTR pwszPath = NULL;
-    BOOLEAN bTreeConnectInProgress = TRUE;
-
-    ntStatus = SMBSrvClientTreeCreate(
-        ppSession,
-        pszSharename,
-        &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
-
-    if (pTree->state == RDR_TREE_STATE_NOT_READY)
-    {
-        pTree->state = RDR_TREE_STATE_INITIALIZING;
-        LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
-
-        /* Exclude other tree connects in this session */
-        LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-        ntStatus = SMBSessionWaitTreeConnect(pTree->pSession);
-        BAIL_ON_NT_STATUS(ntStatus);
-        pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = TRUE;
-        LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-
-        ntStatus = SMBMbsToWc16s(pTree->pszPath, &pwszPath);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = TreeConnect(pTree->pSession, pwszPath, &pTree->tid);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SMBSrvClientSessionAddTreeById(pTree->pSession, pTree);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
-        pTree->state = RDR_TREE_STATE_READY;
-        pthread_cond_broadcast(&pTree->event);
-        LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
-
-        /* Wake up anyone waiting for tree connect exclusion */
-        LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-        pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = FALSE;
-        pthread_cond_broadcast(&pTree->pSession->event);
-        LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-    }
-    else
-    {
-        ntStatus = SMBTreeWaitReady(pTree);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
-    }
-
-    *ppTree = pTree;
-
-cleanup:
-
-    RTL_FREE(&pwszPath);
-
-    return ntStatus;
-
-error:
-
-    *ppTree = NULL;
-
-    if (bTreeConnectInProgress)
-    {
-        LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-        pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = FALSE;
-        pthread_cond_broadcast(&pTree->pSession->event);
-    }
-
-    LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
-    LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-
-    if (pTree)
-    {
-        SMBTreeRelease(pTree);
-    }
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
 SMBSrvClientTreeCreate(
     IN OUT PSMB_SESSION* ppSession,
     IN PCSTR pszPath,
@@ -456,15 +505,131 @@ error:
     goto cleanup;
 }
 
+static
 NTSTATUS
-SMBSrvClientTreeClose(
-    PSMB_TREE pTree
+RdrTransceiveTreeConnect(
+    PRDR_OP_CONTEXT pContext,
+    PSMB_TREE pTree,
+    PCWSTR pwszPath
     )
 {
-    if (pTree)
-    {
-        SMBTreeRelease(pTree);
-    }
+    NTSTATUS status = 0;
+    uint32_t packetByteCount = 0;
+    TREE_CONNECT_REQUEST_HEADER *pHeader = NULL;
 
-    return 0;
+    status = RdrAllocateContextPacket(
+        pContext,
+        1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+                    pContext->Packet.pRawBuffer,
+                    pContext->Packet.bufferLen,
+                    COM_TREE_CONNECT_ANDX,
+                    0,
+                    0,
+                    0,
+                    gRdrRuntime.SysPid,
+                    pTree->pSession->uid,
+                    0,
+                    TRUE,
+                    &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pData = pContext->Packet.pParams + sizeof(TREE_CONNECT_REQUEST_HEADER);
+    pContext->Packet.bufferUsed += sizeof(TREE_CONNECT_REQUEST_HEADER);
+    /* If most commands have word counts which are easy to compute, this
+       should be folded into a parameter to SMBPacketMarshallHeader() */
+    pContext->Packet.pSMBHeader->wordCount = 4;
+
+    pHeader = (TREE_CONNECT_REQUEST_HEADER *) pContext->Packet.pParams;
+
+    pHeader->flags = 0;
+    pHeader->passwordLength = 1;    /* strlen("") + terminating NULL */
+
+    status = MarshallTreeConnectRequestData(
+                    pContext->Packet.pData,
+                    pContext->Packet.bufferLen - pContext->Packet.bufferUsed,
+                    (pContext->Packet.pData - (uint8_t *) pContext->Packet.pSMBHeader) % 2,
+                    &packetByteCount,
+                    pwszPath,
+                    "?????");
+    BAIL_ON_NT_STATUS(status);
+
+    assert(packetByteCount <= UINT16_MAX);
+    pHeader->byteCount = (uint16_t) packetByteCount;
+    pContext->Packet.bufferUsed += packetByteCount;
+
+    // byte order conversions
+    SMB_HTOL16_INPLACE(pHeader->flags);
+    SMB_HTOL16_INPLACE(pHeader->passwordLength);
+    SMB_HTOL16_INPLACE(pHeader->byteCount);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pTree->pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+RdrTreeConnect(
+    PCWSTR pwszHostname,
+    PCSTR pszSharename,
+    PIO_CREDS pCreds,
+    uid_t Uid,
+    PRDR_OP_CONTEXT pContinue
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PRDR_OP_CONTEXT pContext = NULL;
+
+    status = RdrCreateContext(pContinue->pIrp, &pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    /* These parameters might be temporary allocations,
+       so we need to copy them */
+    status = LwRtlWC16StringDuplicate(
+        &pContext->State.TreeConnect.pwszHostname,
+        pwszHostname);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LwRtlCStringDuplicate(
+        &pContext->State.TreeConnect.pszSharename,
+        pszSharename);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LwIoCopyCreds(
+        pCreds,
+        &pContext->State.TreeConnect.pCreds);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->State.TreeConnect.Uid = Uid;
+    pContext->State.TreeConnect.pContinue = pContinue;
+    pContext->Continue = RdrTreeConnectSessionSetup;
+
+    status = LwRtlQueueWorkItem(
+        gRdrRuntime.pThreadPool,
+        RdrAcquireSessionWorkItem,
+        pContext,
+        0);
+    BAIL_ON_NT_STATUS(status);
+
+    status = STATUS_PENDING;
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
 }

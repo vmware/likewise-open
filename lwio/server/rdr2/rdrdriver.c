@@ -365,7 +365,6 @@ RdrContinueContextList(
     PVOID pParam
     )
 {
-    PLW_LIST_LINKS pElement = NULL;
     PRDR_OP_CONTEXT pContext = NULL;
     PLW_LIST_LINKS pLink = NULL;
     PLW_LIST_LINKS pNext = NULL;
@@ -373,12 +372,13 @@ RdrContinueContextList(
     for (pLink = pList->Next; pLink != pList; pLink = pNext)
     {
         pNext = pLink->Next;
-        pElement = LwListRemoveHead(pLink);
-        pContext = LW_STRUCT_FROM_FIELD(pElement, RDR_OP_CONTEXT, Link);
+        pContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
 
-        if (!RdrContinueContext(pContext, status, pParam))
+        LwListRemove(pLink);
+
+        if (RdrContinueContext(pContext, status, pParam))
         {
-            LwListRemove(pLink);
+            LwListInsertBefore(pNext, pLink);
         }
     }
 }
@@ -397,8 +397,13 @@ RdrNotifyContextList(
     BOOLEAN bWasLocked = bLocked;
 
     LWIO_LOCK_MUTEX(bLocked, pMutex);
-    List = *pList;
-    LwListInit(pList);
+
+    LwListInit(&List);
+
+    while ((pLink = LwListRemoveHead(pList)))
+    {
+        LwListInsertTail(&List, pLink);
+    }
 
     LWIO_UNLOCK_MUTEX(bLocked, pMutex);
     RdrContinueContextList(&List, status, pParam);

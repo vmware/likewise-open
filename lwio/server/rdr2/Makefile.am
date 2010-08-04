@@ -34,7 +34,6 @@ librdr2_sys_la_SOURCES =   \
     smb_logoff.c          \
     smb_negotiate.c       \
     smb_session_setup.c   \
-    smb_tree_connect.c    \
     smb_tree_disconnect.c \
     smb_write.c           \
     socket.c              \
