@@ -75,7 +75,6 @@
 #include "rdrstructs.h"
 #include "writefile.h"
 #include "getsesskey.h"
-#include "smb_negotiate.h"
 #include "smb_write.h"
 #include "smb_tree_disconnect.h"
 #include "smb_logoff.h"

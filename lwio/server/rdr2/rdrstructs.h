@@ -64,7 +64,6 @@ typedef struct _RDR_OP_CONTEXT
                 struct _SMB_SESSION* pSession;
                 struct _SMB_SOCKET* pSocket;
             };
-            PWSTR pwszHostname;
             PSTR pszSharename;
             PIO_CREDS pCreds;
             uid_t Uid;
@@ -83,11 +82,10 @@ typedef enum _RDR_SOCKET_STATE
     RDR_SOCKET_STATE_CONNECTING,
     RDR_SOCKET_STATE_NEGOTIATING,
     RDR_SOCKET_STATE_READY,
-    RDR_SOCKET_STATE_TEARDOWN,
     RDR_SOCKET_STATE_ERROR
 } RDR_SOCKET_STATE;
 
-typedef struct
+typedef struct _SMB_SOCKET
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
@@ -137,6 +135,7 @@ typedef struct
     PSMB_PACKET pOutgoing; /* Outgoing packet */
     size_t OutgoingWritten;
     LW_LIST_LINKS PendingSend; /* List of RDR_OP_CONTEXTs with packets that need to be sent */
+    LW_LIST_LINKS StateWaiters;
     SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
     USHORT usNextMid;
     unsigned volatile bReadBlocked:1;

@@ -156,6 +156,7 @@ SMBSocketCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     LwListInit(&pSocket->PendingSend);
+    LwListInit(&pSocket->StateWaiters);
 
     pSocket->bUseSignedMessagesIfSupported = bUseSignedMessagesIfSupported;
 
@@ -1133,11 +1134,6 @@ SMBSocketConnect(
 
     /* Let the task wait for the connect() to complete before proceeding */
     LwRtlWakeTask(pSocket->pTask);
-
-    while (pSocket->state < RDR_SOCKET_STATE_NEGOTIATING)
-    {
-        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
-    }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
