@@ -1241,18 +1241,70 @@ SMBSocketInvalidate(
 VOID
 SMBSocketInvalidate_InLock(
     PSMB_SOCKET pSocket,
-    NTSTATUS ntStatus
+    NTSTATUS status
     )
 {
     BOOLEAN bInGlobalLock = FALSE;
+    PLW_LIST_LINKS pLink = NULL;
+    PRDR_OP_CONTEXT pContext = NULL;
+    SMB_HASH_ITERATOR iter = {0};
+    SMB_HASH_ENTRY* pEntry = NULL;
+    PSMB_RESPONSE pResponse = NULL;
+    BOOLEAN bLocked = TRUE;
+
     pSocket->state = RDR_SOCKET_STATE_ERROR;
-    pSocket->error = ntStatus;
+    pSocket->error = status;
 
     LWIO_LOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
     RdrSocketUnlink(pSocket);
     LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
 
     pthread_cond_broadcast(&pSocket->event);
+
+    while ((pLink = LwListTraverse(&pSocket->PendingSend, pLink)))
+    {
+        pContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
+
+        if (RdrSocketFindResponseByMid(pSocket, pContext->usMid, &pResponse) == STATUS_SUCCESS)
+        {
+            SMBHashRemoveKey(pSocket->pResponseHash, &pContext->usMid);
+
+            pResponse->pSocket = NULL;
+            SMBResponseFree(pResponse);
+        }
+    }
+
+    RdrNotifyContextList(
+        &pSocket->PendingSend,
+        TRUE,
+        &pSocket->mutex,
+        status,
+        NULL);
+
+    RdrNotifyContextList(
+        &pSocket->StateWaiters,
+        TRUE,
+        &pSocket->mutex,
+        status,
+        pSocket);
+
+
+    if (SMBHashGetIterator(pSocket->pResponseHash, &iter))
+    {
+        abort();
+    }
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+    while ((pEntry = SMBHashNext(&iter)))
+    {
+        pResponse = pEntry->pValue;
+
+        RdrContinueContext(pResponse->pContext, status, NULL);
+
+        pResponse->pSocket = NULL;
+        SMBResponseFree(pResponse);
+    }
+    LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
 }
 
 VOID
