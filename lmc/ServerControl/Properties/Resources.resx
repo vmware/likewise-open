@@ -550,19 +550,19 @@ The domain controller cannot be contacted.</value>
     <value>..\Resources\Reports.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="LAC_Help" xml:space="preserve">
-    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2926175</value>
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html</value>
   </data>
   <data name="LMC_CellManager_Help" xml:space="preserve">
-    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2829393</value>
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#CellManager</value>
   </data>
   <data name="LMC_GPMC_Help" xml:space="preserve">
-    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2895771</value>
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/group-policy-guide.html</value>
   </data>
   <data name="LMC_GPOE_Help" xml:space="preserve">
-    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2895771</value>
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/group-policy-guide.html</value>
   </data>
   <data name="LMC_Help" xml:space="preserve">
-    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2926175</value>
+    <value>http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#AboutConsole</value>
   </data>
   <data name="Folder" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Folder.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
