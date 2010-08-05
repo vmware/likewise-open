@@ -71,7 +71,6 @@ SMBSessionCreate(
 {
     NTSTATUS ntStatus = 0;
     SMB_SESSION *pSession = NULL;
-    BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroySetupCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
 
@@ -84,11 +83,6 @@ SMBSessionCreate(
 
     pthread_mutex_init(&pSession->mutex, NULL);
     bDestroyMutex = TRUE;
-
-    ntStatus = pthread_cond_init(&pSession->event, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bDestroyCondition = TRUE;
 
     pSession->refCount = 1;
 
@@ -123,11 +117,6 @@ error:
         SMBHashSafeFree(&pSession->pTreeHashByTID);
 
         SMBHashSafeFree(&pSession->pTreeHashByPath);
-
-        if (bDestroyCondition)
-        {
-            pthread_cond_destroy(&pSession->event);
-        }
 
         if (bDestroyMutex)
         {
@@ -333,8 +322,6 @@ SMBSessionFree(
 {
     assert(!pSession->refCount);
 
-    pthread_cond_destroy(&pSession->event);
-
     SMBHashSafeFree(&pSession->pTreeHashByPath);
     SMBHashSafeFree(&pSession->pTreeHashByTID);
 
@@ -384,9 +371,6 @@ SMBSessionInvalidate(
         pSession->bParentLink = FALSE;
     }
     LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
-
-    pthread_cond_broadcast(&pSession->event);
-
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 
@@ -401,8 +385,6 @@ SMBSessionSetState(
     LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     pSession->state = state;
-
-    pthread_cond_broadcast(&pSession->event);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
@@ -477,27 +459,4 @@ error:
     *ppTree = NULL;
 
     goto cleanup;
-}
-
-NTSTATUS
-SMBSessionWaitReady(
-    PSMB_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    while (pSession->state < RDR_SESSION_STATE_READY)
-    {
-        if (pSession->state == RDR_SESSION_STATE_ERROR)
-        {
-            ntStatus = pSession->error;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pthread_cond_wait(&pSession->event, &pSession->mutex);
-    }
-
-error:
-
-    return ntStatus;
 }

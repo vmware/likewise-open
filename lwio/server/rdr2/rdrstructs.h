@@ -157,7 +157,6 @@ typedef struct _SMB_SESSION
 
     RDR_SESSION_STATE volatile state;    /* Session state : valid, invalid, etc */
     NTSTATUS volatile error;
-    pthread_cond_t event;                /* Signals waiting threads on state change */
     int32_t volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink;        /* Whether session is linked to by parent (socket) */
 

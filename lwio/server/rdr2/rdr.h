@@ -76,7 +76,6 @@
 #include "writefile.h"
 #include "getsesskey.h"
 #include "smb_negotiate.h"
-#include "smb_session_setup.h"
 #include "smb_write.h"
 #include "smb_tree_disconnect.h"
 #include "smb_logoff.h"
@@ -357,16 +356,6 @@ RdrReleaseFile(
 
 NTSTATUS
 SMBSocketWaitReady(
-    PSMB_SOCKET pSocket
-    );
-
-NTSTATUS
-SMBSessionWaitReady(
-    PSMB_SESSION pSession
-    );
-
-NTSTATUS
-SMBSocketWaitSessionSetup(
     PSMB_SOCKET pSocket
     );
 
