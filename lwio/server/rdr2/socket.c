@@ -919,7 +919,9 @@ SMBSocketFindAndSignalResponse(
     {
         ntStatus = SMBPacketDecodeHeader(
             pPacket,
-            pResponse->pContext->Packet.haveSignature && !pSocket->bIgnoreServerSignatures,
+            (pResponse->pContext->Packet.haveSignature &&
+             !pSocket->bIgnoreServerSignatures &&
+             pSocket->pSessionKey != NULL),
             pResponse->pContext->Packet.sequence + 1,
             pSocket->pSessionKey,
             pSocket->dwSessionKeyLength);

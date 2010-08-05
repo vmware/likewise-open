@@ -80,6 +80,8 @@ SMBSessionCreate(
                 (PVOID*)&pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pSession->StateWaiters);
+
     pthread_mutex_init(&pSession->mutex, NULL);
     bDestroyMutex = TRUE;
 

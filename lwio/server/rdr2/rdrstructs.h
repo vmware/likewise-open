@@ -58,11 +58,19 @@ typedef struct _RDR_OP_CONTEXT
         } Create;
         struct
         {
-            struct _SMB_TREE* pTree;
+            union
+            {
+                struct _SMB_TREE* pTree;
+                struct _SMB_SESSION* pSession;
+                struct _SMB_SOCKET* pSocket;
+            };
             PWSTR pwszHostname;
             PSTR pszSharename;
             PIO_CREDS pCreds;
             uid_t Uid;
+            PSMB_PACKET pPacket;
+            PSTR pszCachePath;
+            HANDLE hGssContext;
             struct _RDR_OP_CONTEXT* pContinue;
         } TreeConnect;
     } State;
@@ -140,11 +148,10 @@ typedef enum _RDR_SESSION_STATE
     RDR_SESSION_STATE_NOT_READY,
     RDR_SESSION_STATE_INITIALIZING,
     RDR_SESSION_STATE_READY,
-    RDR_SESSION_STATE_TEARDOWN,
     RDR_SESSION_STATE_ERROR
 } RDR_SESSION_STATE;
 
-typedef struct
+typedef struct _SMB_SESSION
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
@@ -170,6 +177,7 @@ typedef struct
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
     PLW_TASK pTimeout;
+    LW_LIST_LINKS StateWaiters;
 } SMB_SESSION, *PSMB_SESSION;
 
 typedef enum _RDR_TREE_STATE
