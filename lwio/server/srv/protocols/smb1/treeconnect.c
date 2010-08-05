@@ -204,16 +204,26 @@ SrvProcessTreeConnectAndX(
         if (pRequestHeader->flags & 0x1)
         {
             NTSTATUS ntStatus2 = 0;
+            PLWIO_SRV_TREE pTree = NULL;
 
-            ntStatus2 = SrvSessionRemoveTree(
+            ntStatus2 = SrvSessionFindTree(
                             pSession,
-                            pSmbRequest->pHeader->tid);
+                            pSmbRequest->pHeader->tid,
+                            &pTree);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             if (ntStatus2)
             {
                 LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u]. [code:%d]",
                                 pSmbRequest->pHeader->tid,
                                 pSession->uid,
                                 ntStatus2);
+            }
+
+            if (pTree)
+            {
+                SrvTreeRundown(pTree);
+                SrvTreeRelease(pTree);
             }
         }
 
@@ -270,8 +280,6 @@ SrvProcessTreeConnectAndX(
                             &pTConState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pTConState->bRemoveTreeFromSession = TRUE;
-
             pTConState->stage =
                     SRV_TREE_CONNECT_STAGE_SMB_V1_CREATE_TREE_ROOT_HANDLE;
 
@@ -323,9 +331,9 @@ SrvProcessTreeConnectAndX(
 
         case SRV_TREE_CONNECT_STAGE_SMB_V1_DONE:
 
-            pTConState->bRemoveTreeFromSession = FALSE;
-
-            pCtxSmb1->pTree = SrvTreeAcquire(pTConState->pTree);
+            // transfer tree so we do not run it down
+            pCtxSmb1->pTree = pTConState->pTree;
+            pTConState->pTree = NULL;
 
             break;
     }
@@ -1122,30 +1130,15 @@ SrvFreeTreeConnectState(
         SrvFreeMemory(pTConState->pVolumeInfo);
     }
 
-    if (pTConState->bRemoveTreeFromSession)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        ntStatus2 = SrvSessionRemoveTree(
-                        pTConState->pSession,
-                        pTConState->pTree->tid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u][code:%d]",
-                            pTConState->pTree->tid,
-                            pTConState->pSession->uid,
-                            ntStatus2);
-        }
-    }
-
     if (pTConState->pSession)
     {
         SrvSessionRelease(pTConState->pSession);
     }
 
+    // if non-NULL, it is left over and must be run down
     if (pTConState->pTree)
     {
-        SrvTreeRelease(pTConState->pTree);
+        SrvTreeRundown(pTConState->pTree);
     }
 
     if (pTConState->pMutex)

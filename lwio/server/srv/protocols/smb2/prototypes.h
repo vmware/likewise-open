@@ -103,9 +103,9 @@ SrvProcessCreate_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
-NTSTATUS
+VOID
 SrvCancelCreate_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    PLWIO_ASYNC_STATE pAsyncState
     );
 
 // echo.c
@@ -229,9 +229,9 @@ SrvProcessLock_SMB_V2(
     PSRV_EXEC_CONTEXT pContext
     );
 
-NTSTATUS
+VOID
 SrvCancelLockRequest_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    PLWIO_ASYNC_STATE pAsyncState
     );
 
 VOID
@@ -265,14 +265,9 @@ SrvProcessNotifyCompletion_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
-NTSTATUS
-SrvCancelChangeNotify_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
 VOID
-SrvCancelNotifyState_SMB_V2(
-    HANDLE hNotifyState
+SrvCancelChangeNotify_SMB_V2(
+    PLWIO_ASYNC_STATE pAsyncState
     );
 
 // notify_state.c

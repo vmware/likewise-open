@@ -624,15 +624,6 @@ SrvProtocolCloseFile_SMB_V1(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvFileResetOplockState(pFile);
-
-    ntStatus = SrvTreeRemoveFile(
-                    pTree,
-                    pFile->fid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SrvFileCancelAsyncOperations(pTree, pFile);
-
     SrvFileRundown(pFile);
 
 error:

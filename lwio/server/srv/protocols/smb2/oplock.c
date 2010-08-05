@@ -438,6 +438,14 @@ SrvProcessOplockBreak_SMB_V2(
                         ucOplockLevel);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+    else
+    {
+        // Client is trying to ack an oplock that is no longer
+        // valid (due to rundown or it never had one).
+
+        ntStatus = STATUS_INVALID_OPLOCK_PROTOCOL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
@@ -1204,21 +1212,6 @@ SrvReleaseOplockStateAsync_SMB_V2(
         }
 
         pOplockState->pAcb = NULL;
-    }
-}
-
-VOID
-SrvOplock2StateRundown(
-    PLWIO_SRV_FILE_2 pFile
-    )
-{
-    PSRV_OPLOCK_STATE_SMB_V2 pOplockState  = NULL;
-
-    pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)SrvFile2RemoveOplockState(pFile);
-
-    if (pOplockState)
-    {
-        SrvReleaseOplockState_SMB_V2(pOplockState);
     }
 }
 

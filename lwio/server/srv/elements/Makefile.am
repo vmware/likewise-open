@@ -9,6 +9,7 @@ libsrvelements_la_SOURCES = \
     resources.c     \
     srvasyncstate.c \
     srvconnection.c \
+    srvenum.c       \
     srvfile.c       \
     srvfile2.c      \
     srvfinder.c     \

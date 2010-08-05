@@ -755,8 +755,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V2
     struct sockaddr               clientAddress;
     ULONG                         ulClientAddressLength;
 
-    BOOLEAN                       bRemoveTreeFromSession;
-
 } SRV_TREE_CONNECT_STATE_SMB_V2, *PSRV_TREE_CONNECT_STATE_SMB_V2;
 
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
@@ -856,7 +854,6 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
 
     PLWIO_SRV_TREE_2             pTree;
     PLWIO_SRV_FILE_2             pFile;
-    BOOLEAN                      bRemoveFileFromTree;
 
     ULONG64                      ullAsyncId;
 

@@ -50,6 +50,19 @@
 #include "includes.h"
 
 static
+BOOLEAN
+SrvTree2IsInParent_inlock(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+static
+NTSTATUS
+SrvTree2AddFile_inlock(
+    PLWIO_SRV_TREE_2 pTree,
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+static
 NTSTATUS
 SrvTree2AcquireFileId_inlock(
    PLWIO_SRV_TREE_2 pTree,
@@ -76,16 +89,34 @@ SrvTree2Free(
     );
 
 static
-NTSTATUS
-SrvTree2RundownFileRbTreeVisit(
-    PVOID    pKey,
-    PVOID    pData,
-    PVOID    pUserData,
-    PBOOLEAN pbContinue
+BOOLEAN
+SrvTree2IsRundown_inlock(
+    PLWIO_SRV_TREE_2 pTree
     );
+
+static
+VOID
+SrvTree2SetRundown_inlock(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+static
+BOOLEAN
+SrvTree2GatherRundownFileListCallback(
+    PLWIO_SRV_FILE_2 pFile,
+    PVOID pContext
+    );
+
+static
+VOID
+SrvTree2RundownFileList(
+    PLWIO_SRV_FILE_2 pRundownList
+    );
+
 
 NTSTATUS
 SrvTree2Create(
+    PLWIO_SRV_SESSION_2 pSession,
     ULONG             ulTid,
     PSRV_SHARE_INFO   pShareInfo,
     PLWIO_SRV_TREE_2* ppTree
@@ -104,7 +135,12 @@ SrvTree2Create(
     pthread_rwlock_init(&pTree->mutex, NULL);
     pTree->pMutex = &pTree->mutex;
 
+    pTree->pSession = pSession;;
+    SrvSession2Acquire(pSession);
+
     pTree->ulTid = ulTid;
+    pTree->ullUid = pSession->ullUid;
+    pTree->ulConnectionResourceId = pSession->ulConnectionResourceId;
 
     LWIO_LOG_DEBUG("Associating Tree [object:0x%x][tid:%u]",
                     pTree,
@@ -140,6 +176,56 @@ error:
     }
 
     goto cleanup;
+}
+
+BOOLEAN
+SrvTree2IsInParent(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    BOOLEAN bIsInParent = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+    bIsInParent = SrvTree2IsInParent_inlock(pTree);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    return bIsInParent;
+}
+
+static
+BOOLEAN
+SrvTree2IsInParent_inlock(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    return IsSetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_IN_PARENT);
+}
+
+VOID
+SrvTree2SetInParent(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+    LWIO_ASSERT(!IsSetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_IN_PARENT));
+    SetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_IN_PARENT);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+}
+
+VOID
+SrvTree2ClearInParent(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+    LWIO_ASSERT(IsSetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_IN_PARENT));
+    ClearFlag(pTree->objectFlags, SRV_OBJECT_FLAG_IN_PARENT);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 }
 
 NTSTATUS
@@ -219,6 +305,7 @@ SrvTree2CreateFile(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFile2Create(
+                    pTree,
                     &fid,
                     pwszFilename,
                     phFile,
@@ -232,20 +319,8 @@ SrvTree2CreateFile(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlRBTreeAdd(
-                    pTree->pFileCollection,
-                    &pFile->fid,
-                    pFile);
+    ntStatus = SrvTree2AddFile_inlock(pTree, pFile);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    InterlockedIncrement(&pFile->refcount);
-
-    pFile->resource.pAttributes->treeId.usTid     = pTree->ulTid;
-    pFile->resource.pAttributes->sessionId.ullUid = pTree->ullUid;
-    pFile->resource.pAttributes->ulConnectionResourceId =
-                                                pTree->ulConnectionResourceId;
-
-    pTree->ulNumOpenFiles++;
 
     *ppFile = pFile;
 
@@ -257,12 +332,46 @@ cleanup:
 
 error:
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
     *ppFile = NULL;
 
     if (pFile)
     {
+        SrvFile2Rundown(pFile);
         SrvFile2Release(pFile);
     }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvTree2AddFile_inlock(
+    PLWIO_SRV_TREE_2 pTree,
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    ntStatus = LwRtlRBTreeAdd(
+                    pTree->pFileCollection,
+                    &pFile->fid,
+                    pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Reference from parent
+    SrvFile2Acquire(pFile);
+    SrvFile2SetInParent(pFile);
+
+    pTree->lruFile[pFile->fid.ullVolatileId % SRV_LRU_CAPACITY] = pFile;
+    pTree->ulNumOpenFiles++;
+
+cleanup:
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -270,27 +379,34 @@ error:
 NTSTATUS
 SrvTree2RemoveFile(
     PLWIO_SRV_TREE_2 pTree,
-    PSMB2_FID        pFid
+    PLWIO_SRV_FILE_2 pFile
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_FILE_2 pFile = NULL;
+    PLWIO_SRV_FILE_2 pCachedFile = NULL;
+    PSMB2_FID pFid = &pFile->fid;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ];
-    if (pFile &&
-        (pFile->fid.ullPersistentId == pFid->ullPersistentId) &&
-        (pFile->fid.ullVolatileId == pFid->ullVolatileId))
+    if (SrvFile2IsInParent(pFile))
     {
-        pTree->lruFile[ pFile->fid.ullVolatileId % SRV_LRU_CAPACITY ] = NULL;
+        pCachedFile = pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ];
+        if (pCachedFile &&
+            (pCachedFile->fid.ullPersistentId == pFid->ullPersistentId) &&
+            (pCachedFile->fid.ullVolatileId == pFid->ullVolatileId))
+        {
+            pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ] = NULL;
+        }
+
+        // removal automatically releases reference
+        ntStatus = LwRtlRBTreeRemove(pTree->pFileCollection, pFid);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvFile2ClearInParent(pFile);
+
+        pTree->ulNumOpenFiles--;
     }
-
-    ntStatus = LwRtlRBTreeRemove(pTree->pFileCollection, pFid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pTree->ulNumOpenFiles--;
 
 cleanup:
 
@@ -353,16 +469,37 @@ SrvTree2Rundown(
     )
 {
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bDoRundown = FALSE;
+    BOOLEAN bIsInParent = FALSE;
+    PLWIO_SRV_FILE_2 pRundownFileList = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    LwRtlRBTreeTraverse(
-            pTree->pFileCollection,
-            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-            SrvTree2RundownFileRbTreeVisit,
-            NULL);
+    if (!SrvTree2IsRundown_inlock(pTree))
+    {
+        SrvTree2SetRundown_inlock(pTree);
+
+        bDoRundown = TRUE;
+        bIsInParent = SrvTree2IsInParent_inlock(pTree);
+
+        SrvEnumFile2Collection(
+                pTree->pFileCollection,
+                SrvTree2GatherRundownFileListCallback,
+                &pRundownFileList);
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    if (bIsInParent)
+    {
+        SrvSession2RemoveTree(pTree->pSession, pTree);
+    }
+
+    if (bDoRundown)
+    {
+        // Cannot rundown with lock held as they self-remove
+        SrvTree2RundownFileList(pRundownFileList);
+    }
 }
 
 static
@@ -469,6 +606,9 @@ SrvTree2Free(
                     pTree,
                     pTree->ulTid);
 
+    // Cannot be in the parent since parent would have a reference.
+    LWIO_ASSERT(!SrvTree2IsInParent_inlock(pTree));
+
     if (pTree->pMutex)
     {
         pthread_rwlock_destroy(&pTree->mutex);
@@ -490,30 +630,65 @@ SrvTree2Free(
         SrvShareReleaseInfo(pTree->pShareInfo);
     }
 
+    // Release parent at the end
+    if (pTree->pSession)
+    {
+        SrvSession2Release(pTree->pSession);
+    }
+
     SrvFreeMemory(pTree);
 }
 
 static
-NTSTATUS
-SrvTree2RundownFileRbTreeVisit(
-    PVOID    pKey,
-    PVOID    pData,
-    PVOID    pUserData,
-    PBOOLEAN pbContinue
+BOOLEAN
+SrvTree2IsRundown_inlock(
+    PLWIO_SRV_TREE_2 pTree
     )
 {
-    PLWIO_SRV_FILE_2 pFile = (PLWIO_SRV_FILE_2)pData;
-
-    if (pFile)
-    {
-        SrvFile2Rundown(pFile);
-    }
-
-    *pbContinue = TRUE;
-
-    return STATUS_SUCCESS;
+    return IsSetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_RUNDOWN);
 }
 
+static
+VOID
+SrvTree2SetRundown_inlock(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    LWIO_ASSERT(!IsSetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_RUNDOWN));
+    SetFlag(pTree->objectFlags, SRV_OBJECT_FLAG_RUNDOWN);
+}
+
+static
+BOOLEAN
+SrvTree2GatherRundownFileListCallback(
+    PLWIO_SRV_FILE_2 pFile,
+    PVOID pContext
+    )
+{
+    PLWIO_SRV_FILE_2* ppRundownList = (PLWIO_SRV_FILE_2*) pContext;
+
+    LWIO_ASSERT(!pFile->pRundownNext);
+    pFile->pRundownNext = *ppRundownList;
+    *ppRundownList = SrvFile2Acquire(pFile);
+
+    return TRUE;
+}
+
+static
+VOID
+SrvTree2RundownFileList(
+    PLWIO_SRV_FILE_2 pRundownList
+    )
+{
+    while (pRundownList)
+    {
+        PLWIO_SRV_FILE_2 pFile = pRundownList;
+
+        pRundownList = pFile->pRundownNext;
+        SrvFile2Rundown(pFile);
+        SrvFile2Release(pFile);
+    }
+}
 
 
 /*

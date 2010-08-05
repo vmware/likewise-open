@@ -111,11 +111,6 @@ SrvProcessTreeDisconnect_SMB_V2(
 
     SrvTree2Rundown(pTree);
 
-    ntStatus = SrvSession2RemoveTree(
-                    pSession,
-                    pSmbRequest->pHeader->ulTid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SrvCreditorAdjustCredits(
                     pExecContext->pConnection->pCreditor,
                     pSmbRequest->pHeader->ullCommandSequence,

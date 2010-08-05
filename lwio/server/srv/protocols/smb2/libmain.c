@@ -337,13 +337,6 @@ SrvProtocolCloseFile_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvFile2ResetOplockState(pFile);
-
-    ntStatus = SrvTree2RemoveFile(
-                    pTree,
-                    &pFile->fid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     SrvFile2Rundown(pFile);
 
 error:

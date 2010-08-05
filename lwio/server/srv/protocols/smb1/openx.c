@@ -240,7 +240,7 @@ SrvProcessOpenAndX(
                             &pOpenState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pOpenState->bRemoveFileFromTree = TRUE;
+            pOpenState->pFile->pfnCancelAsyncOperationsFile = SrvCancelFileAsyncOperations;
 
             pOpenState->stage = SRV_OPEN_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
 
@@ -297,8 +297,6 @@ SrvProcessOpenAndX(
 
         case SRV_OPEN_STAGE_SMB_V1_DONE:
 
-            pOpenState->bRemoveFileFromTree = FALSE;
-
             if (pOpenState->pRequestHeader->usDesiredAccess & FILE_READ_DATA)
             {
                 pOpenState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
@@ -312,7 +310,9 @@ SrvProcessOpenAndX(
                 pOpenState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
             }
 
-            pCtxSmb1->pFile = SrvFileAcquire(pOpenState->pFile);
+            // transfer file so we do not run it down
+            pCtxSmb1->pFile = pOpenState->pFile;
+            pOpenState->pFile = NULL;
 
             break;
     }
@@ -1172,26 +1172,10 @@ SrvFreeOpenState(
         IoCloseFile(pOpenState->hFile);
     }
 
-    if (pOpenState->bRemoveFileFromTree)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        SrvFileResetOplockState(pOpenState->pFile);
-
-        ntStatus2 = SrvTreeRemoveFile(
-                        pOpenState->pTree,
-                        pOpenState->pFile->fid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
-                            pOpenState->pTree->tid,
-                            pOpenState->pFile->fid,
-                            ntStatus2);
-        }
-    }
-
     if (pOpenState->pFile)
     {
+        SrvFileResetOplockState(pOpenState->pFile);
+        SrvFileRundown(pOpenState->pFile);
         SrvFileRelease(pOpenState->pFile);
     }
 

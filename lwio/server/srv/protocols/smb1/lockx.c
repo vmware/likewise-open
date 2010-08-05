@@ -477,6 +477,14 @@ SrvProcessLockAndX(
                                    FALSE);
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
+                else
+                {
+                    // Client is trying to ack an oplock that is no longer
+                    // valid (due to rundown or it never had one).
+
+                    ntStatus = STATUS_INVALID_OPLOCK_PROTOCOL;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
 
                 goto cleanup;
             }
@@ -1579,10 +1587,9 @@ SrvExecuteLockCancellation(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTreeRemoveAsyncState(
-                    pCtxSmb1->pTree,
-                    pLockStateToCancel->ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
+    SrvTreeRemoveAsyncState(
+            pCtxSmb1->pTree,
+            pLockStateToCancel->ullAsyncId);
 
     ntStatus = SrvUnregisterBRLState(pBRLStateList, pLockStateToCancel);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1709,7 +1716,7 @@ SrvClearLockAsyncState_inlock(
         PSRV_BYTE_RANGE_LOCK_STATE_LIST pBRLStateList =
             (PSRV_BYTE_RANGE_LOCK_STATE_LIST)pFile->hCancellableBRLStateList;
 
-        ntStatus2 = SrvTreeRemoveAsyncState(pTree, pLockState->ullAsyncId);
+        SrvTreeRemoveAsyncState(pTree, pLockState->ullAsyncId);
 
         pLockState->ullAsyncId = 0;
 
