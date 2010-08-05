@@ -184,6 +184,9 @@ SrvBuildNegotiateResponse_SMB_V2(
     ULONG       ulNegHintsLength = 0;
     SRV_MESSAGE_SMB_V2 response  = {0};
 
+    ntStatus = SrvCreditorAcquireCredit(pConnection->pCreditor, 0);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
                     &pSmbResponse);
@@ -267,6 +270,15 @@ SrvMarshalNegotiateResponse_SMB_V2(
     ULONG  ulBytesUsed      = 0;
     ULONG  ulTotalBytesUsed = 0;
     LONG64 llCurTime        = 0LL;
+    USHORT usCreditsGranted = 0;
+
+    ntStatus = SrvCreditorAdjustCredits(
+                    pConnection->pCreditor,
+                    0,
+                    0,
+                    1,
+                    &usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
@@ -274,7 +286,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
                 ulBytesAvailable,
                 COM2_NEGOTIATE,
                 1, /* usEpoch      */
-                SrvCreditorGetCredits(pConnection->pCreditor, 1),
+                usCreditsGranted,
                 0, /* usPid        */
                 0, /* ullMid       */
                 0, /* usTid        */

@@ -941,15 +941,21 @@ SrvBuildSetInfoCommonResponse_SMB_V2(
     ULONG ulTotalBytesUsed = 0;
     PSMB2_SET_INFO_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_SETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,

@@ -262,15 +262,21 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
@@ -393,15 +399,21 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
@@ -524,15 +536,21 @@ SrvBuildFileSystemFullInfoResponse_SMB_V2(
 
     pFSSizeInfo = (PFILE_FS_SIZE_INFORMATION)pGetInfoState->pData2;
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
@@ -650,15 +668,21 @@ SrvBuildFileSystemSizeInfoResponse_SMB_V2(
 
     pFSSizeInfo = (PFILE_FS_SIZE_INFORMATION)pGetInfoState->pData2;
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_GETINFO,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,

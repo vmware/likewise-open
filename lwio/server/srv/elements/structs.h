@@ -118,6 +118,38 @@ typedef struct _SRV_ELEMENTS_ENUM_RESOURCES
 
 } SRV_ELEMENTS_ENUM_RESOURCES, *PSRV_ELEMENTS_ENUM_RESOURCES;
 
+typedef struct _SRV_DEBITOR
+{
+    ULONG64 ullSequence;
+
+    struct _SRV_DEBITOR* pPrev;
+    struct _SRV_DEBITOR* pNext;
+
+} SRV_DEBITOR, *PSRV_DEBITOR;
+
+typedef struct _SRV_CREDITOR
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    ULONG64 ullNextAvblId;
+
+    BOOLEAN bInitialized;
+
+    PSRV_DEBITOR pAvbl_head;    // Available sequences
+    PSRV_DEBITOR pAvbl_tail;
+
+    PSRV_DEBITOR pInterim_head; // Interim sequences
+    PSRV_DEBITOR pInterim_tail;
+
+    PSRV_DEBITOR pInUse_head;   // Non-interim sequences being processed
+    PSRV_DEBITOR pInUse_tail;
+
+    USHORT  usCreditLimit;  // how many credits can be acquired from global pool
+    USHORT  usTotalCredits; // total number of currently available credits
+
+} SRV_CREDITOR;
+
 typedef struct _SRV_ELEMENTS_CONFIG
 {
     BOOLEAN bShareNameEcpEnabled;

@@ -466,15 +466,21 @@ SrvBuildCloseResponse_SMB_V2(
 
     pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_CLOSE,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,

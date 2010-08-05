@@ -1242,6 +1242,8 @@ typedef struct __SRV_MESSAGE_SMB_V2
     ULONG        ulMessageSize;
     ULONG        ulZctMessageSize;
 
+    ULONG        ulVisit;
+
     ULONG        ulBytesAvailable;
 
 } SRV_MESSAGE_SMB_V2, *PSRV_MESSAGE_SMB_V2;
