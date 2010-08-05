@@ -417,15 +417,21 @@ SrvProcessFind_SMB_V2(
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_FIND,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pTree->ulTid,

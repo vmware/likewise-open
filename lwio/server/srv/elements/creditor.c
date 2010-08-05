@@ -45,9 +45,29 @@
  *        Credit Management
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
 #include "includes.h"
+
+static
+NTSTATUS
+SrvCreditorAdjustAsyncCredits(
+    PSRV_CREDITOR pCreditor,
+    ULONG64       ullSequence,
+    ULONG64       ullAsyncId,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    );
+
+static
+NTSTATUS
+SrvCreditorAdjustNormalCredits(
+    PSRV_CREDITOR pCreditor,
+    ULONG64       ullSequence,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    );
 
 static
 NTSTATUS
@@ -56,15 +76,63 @@ SrvCreditorInitialize_inlock(
     );
 
 static
+VOID
+SrvCreditorMoveDebitor(
+    PSRV_DEBITOR  pDebitor,
+    PSRV_DEBITOR* ppFromListHead,
+    PSRV_DEBITOR* ppFromListTail,
+    PSRV_DEBITOR* ppToListHead,
+    PSRV_DEBITOR* ppToListTail
+    );
+
+static
+VOID
+SrvCreditorAttachDebitor(
+    PSRV_DEBITOR  pDebitor,
+    PSRV_DEBITOR* ppListHead,
+    PSRV_DEBITOR* ppListTail
+    );
+
+static
+VOID
+SrvCreditorDetachDebitor(
+    PSRV_DEBITOR  pDebitor,
+    PSRV_DEBITOR* ppListHead,
+    PSRV_DEBITOR* ppListTail
+    );
+
+static
 NTSTATUS
-SrvCreditorAcquireCredits(
+SrvCreditorGrantNewCredits_inlock(
+    PSRV_CREDITOR pCreditor,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    );
+
+static
+NTSTATUS
+SrvCreditorFindDebitor_inlock(
+    PSRV_DEBITOR  pDebitorList,
+    ULONG64       ullSequence,
+    PSRV_DEBITOR* ppDebitor
+    );
+
+static
+VOID
+SrvCreditorFreeDebitorList(
+    PSRV_DEBITOR pDebitorList
+    );
+
+static
+NTSTATUS
+SrvCreditorAcquireGlobalCredits(
     USHORT  usCreditsRequested,
     PUSHORT pusCreditsGranted
     );
 
 static
 VOID
-SrvCreditorReturnCredits(
+SrvCreditorReturnGlobalCredits(
     USHORT usCredits
     );
 
@@ -100,63 +168,282 @@ error:
     goto cleanup;
 }
 
-USHORT
-SrvCreditorGetCredits(
+NTSTATUS
+SrvCreditorAcquireCredit(
     PSRV_CREDITOR pCreditor,
-    USHORT        usCreditsRequested
+    ULONG64       ullSequence
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    USHORT  usCreditsGranted = 1;
-    BOOLEAN bInLock = FALSE;
+    BOOLEAN  bInLock  = FALSE;
+    PSRV_DEBITOR pDebitor = NULL;
 
-    if (pCreditor)
+    if (ullSequence == UINT64_MAX)
     {
-        LWIO_LOCK_MUTEX(bInLock, &pCreditor->mutex);
-
-        ntStatus = SrvCreditorInitialize_inlock(pCreditor);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if ((usCreditsRequested > pCreditor->usCreditsAcquired) &&
-            (pCreditor->usCreditLimit > pCreditor->usCreditsAcquired))
-        {
-            USHORT   usNewCreditsGranted = 0;
-            USHORT   usCreditsToAcquire =
-                        (SMB_MIN(usCreditsRequested, pCreditor->usCreditLimit) -
-                                pCreditor->usCreditsAcquired);
-
-            ntStatus = SrvCreditorAcquireCredits(
-                            usCreditsToAcquire,
-                            &usNewCreditsGranted);
-            if (ntStatus == STATUS_SUCCESS)
-            {
-                pCreditor->usCreditsAcquired += usNewCreditsGranted;
-
-                usCreditsGranted = pCreditor->usCreditsAcquired;
-
-                LWIO_LOG_DEBUG("Acquired new credits (%u). Current credits (%u).",
-                               usCreditsToAcquire,
-                               pCreditor->usCreditsAcquired);
-            }
-            else
-            {
-                LWIO_LOG_DEBUG("Failed to acquire additional credits (%u). "
-                               "Current credits: (%u)",
-                               usCreditsToAcquire,
-                               pCreditor->usCreditsAcquired);
-            }
-        }
-
-        LWIO_UNLOCK_MUTEX(bInLock, &pCreditor->mutex);
+        goto cleanup;
     }
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreditor->mutex);
+
+    ntStatus = SrvCreditorInitialize_inlock(pCreditor);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvCreditorFindDebitor_inlock(
+                    pCreditor->pAvbl_head,
+                    ullSequence,
+                    &pDebitor);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Move from the available to the in-use list
+    SrvCreditorMoveDebitor(
+            pDebitor,
+            &pCreditor->pAvbl_head,
+            &pCreditor->pAvbl_tail,
+            &pCreditor->pInUse_head,
+            &pCreditor->pInUse_tail);
 
 cleanup:
 
-    return usCreditsGranted;
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreditor->mutex);
+
+    return ntStatus;
 
 error:
 
-    usCreditsGranted = 0;
+    switch (ntStatus)
+    {
+        case STATUS_NOT_FOUND:
+
+                ntStatus = STATUS_INVALID_PARAMETER;
+
+                break;
+
+        default:
+
+            break;
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvCreditorAdjustCredits(
+    PSRV_CREDITOR pCreditor,
+    ULONG64       ullSequence,
+    ULONG64       ullAsyncId,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    USHORT   usCreditsGranted = 0;
+
+    if (pCreditor && (ullSequence != UINT64_MAX))
+    {
+        if (ullAsyncId)
+        {
+            ntStatus = SrvCreditorAdjustAsyncCredits(
+                            pCreditor,
+                            ullSequence,
+                            ullAsyncId,
+                            usCreditsRequested,
+                            &usCreditsGranted);
+        }
+        else
+        {
+            ntStatus = SrvCreditorAdjustNormalCredits(
+                            pCreditor,
+                            ullSequence,
+                            usCreditsRequested,
+                            &usCreditsGranted);
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pusCreditsGranted = usCreditsGranted;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pusCreditsGranted = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvCreditorAdjustAsyncCredits(
+    PSRV_CREDITOR pCreditor,
+    ULONG64       ullSequence,
+    ULONG64       ullAsyncId,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    USHORT   usCreditsGranted = 0;
+    USHORT   usNewCreditsGranted = 0;
+    PSRV_DEBITOR pDebitor = NULL;
+    PSRV_DEBITOR pNewDebitor = NULL;
+    BOOLEAN  bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreditor->mutex);
+
+    ntStatus = SrvCreditorInitialize_inlock(pCreditor);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvCreditorFindDebitor_inlock(
+                    pCreditor->pInUse_head,
+                    ullSequence,
+                    &pDebitor);
+    switch (ntStatus)
+    {
+        case STATUS_SUCCESS:
+
+            // sending interim response. need to assign credits here.
+
+            // Move from in-use list to the interim list
+            SrvCreditorMoveDebitor(
+                    pDebitor,
+                    &pCreditor->pInUse_head,
+                    &pCreditor->pInUse_tail,
+                    &pCreditor->pInterim_head,
+                    &pCreditor->pInterim_tail);
+
+            // Replenish the current credit
+
+            ntStatus = SrvAllocateMemory(
+                            sizeof(SRV_DEBITOR),
+                            (PVOID*)&pNewDebitor);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNewDebitor->ullSequence = pCreditor->ullNextAvblId++;
+
+            // Attach to the end of the available list
+            SrvCreditorAttachDebitor(
+                    pNewDebitor,
+                    &pCreditor->pAvbl_head,
+                    &pCreditor->pAvbl_tail);
+
+            usCreditsGranted++;
+
+            if (usCreditsRequested > usCreditsGranted) // allocate more credits?
+            {
+                ntStatus = SrvCreditorGrantNewCredits_inlock(
+                                pCreditor,
+                                usCreditsRequested - 1,
+                                &usNewCreditsGranted);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                usCreditsGranted += usNewCreditsGranted;
+            }
+
+            break;
+
+        case STATUS_NOT_FOUND:
+
+            // sending actual response (after interim response)
+            // just cleanup and don't assign any credits
+
+            ntStatus = SrvCreditorFindDebitor_inlock(
+                                pCreditor->pInterim_head,
+                                ullSequence,
+                                &pDebitor);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvCreditorDetachDebitor(
+                    pDebitor,
+                    &pCreditor->pInterim_head,
+                    &pCreditor->pInterim_tail);
+
+            SrvCreditorFreeDebitorList(pDebitor);
+
+            break;
+
+        default: // some other issue
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pusCreditsGranted = usCreditsGranted;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreditor->mutex);
+
+    return ntStatus;
+
+error:
+
+    *pusCreditsGranted = usCreditsGranted;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvCreditorAdjustNormalCredits(
+    PSRV_CREDITOR pCreditor,
+    ULONG64       ullSequence,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    USHORT   usCreditsGranted = 0;
+    USHORT   usNewCreditsGranted = 0;
+    PSRV_DEBITOR pDebitor = NULL;
+    BOOLEAN  bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreditor->mutex);
+
+    ntStatus = SrvCreditorInitialize_inlock(pCreditor);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvCreditorFindDebitor_inlock(
+                    pCreditor->pInUse_head,
+                    ullSequence,
+                    &pDebitor);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDebitor->ullSequence = pCreditor->ullNextAvblId++;
+
+    // Move from in-use list to the available list
+    SrvCreditorMoveDebitor(
+            pDebitor,
+            &pCreditor->pInUse_head,
+            &pCreditor->pInUse_tail,
+            &pCreditor->pAvbl_head,
+            &pCreditor->pAvbl_tail);
+
+    usCreditsGranted++; // we replenished the current credit
+
+    if (usCreditsRequested > usCreditsGranted) // allocate more credits?
+    {
+        ntStatus = SrvCreditorGrantNewCredits_inlock(
+                        pCreditor,
+                        usCreditsRequested - 1,
+                        &usNewCreditsGranted);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        usCreditsGranted += usNewCreditsGranted;
+    }
+
+    *pusCreditsGranted = usCreditsGranted;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreditor->mutex);
+
+    return ntStatus;
+
+error:
+
+    *pusCreditsGranted = usCreditsGranted;
 
     goto cleanup;
 }
@@ -168,13 +455,256 @@ SrvCreditorInitialize_inlock(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    USHORT   usCreditsGranted = 0;
+    PSRV_DEBITOR pDebitor = NULL;
 
     if (!pCreditor->bInitialized)
     {
         pCreditor->usCreditLimit = SrvElementsConfigGetClientCreditLimit();
+
+        ntStatus = SrvCreditorAcquireGlobalCredits(1, &usCreditsGranted);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvAllocateMemory(sizeof(SRV_DEBITOR), (PVOID*)&pDebitor);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // The first available sequence must be 0
+        pCreditor->ullNextAvblId = pCreditor->ullNextAvblId++;
+
+        SrvCreditorAttachDebitor(
+                pDebitor,
+                &pCreditor->pAvbl_head,
+                &pCreditor->pAvbl_tail);
+
+        pCreditor->usTotalCredits += usCreditsGranted;
+
+        pCreditor->bInitialized = TRUE;
     }
 
+cleanup:
+
     return ntStatus;
+
+error:
+
+    if (pDebitor)
+    {
+        SrvCreditorFreeDebitorList(pDebitor);
+    }
+
+    if (usCreditsGranted)
+    {
+        SrvCreditorReturnGlobalCredits(usCreditsGranted);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvCreditorMoveDebitor(
+    PSRV_DEBITOR  pDebitor,
+    PSRV_DEBITOR* ppFromListHead,
+    PSRV_DEBITOR* ppFromListTail,
+    PSRV_DEBITOR* ppToListHead,
+    PSRV_DEBITOR* ppToListTail
+    )
+{
+    SrvCreditorDetachDebitor(
+            pDebitor,
+            ppFromListHead,
+            ppFromListTail);
+
+    SrvCreditorAttachDebitor(
+            pDebitor,
+            ppToListHead,
+            ppToListTail);
+}
+
+static
+VOID
+SrvCreditorAttachDebitor(
+    PSRV_DEBITOR  pDebitor,
+    PSRV_DEBITOR* ppListHead,
+    PSRV_DEBITOR* ppListTail
+    )
+{
+    if (!*ppListHead)
+    {
+        *ppListHead = *ppListTail = pDebitor;
+        pDebitor->pPrev = NULL;
+    }
+    else
+    {
+        (*ppListTail)->pNext = pDebitor;
+        pDebitor->pPrev = *ppListTail;
+        *ppListTail = pDebitor;
+    }
+    pDebitor->pNext = NULL;
+}
+
+static
+VOID
+SrvCreditorDetachDebitor(
+    PSRV_DEBITOR  pDebitor,
+    PSRV_DEBITOR* ppListHead,
+    PSRV_DEBITOR* ppListTail
+    )
+{
+    if (!pDebitor->pPrev && !pDebitor->pNext) // at head of list and only item
+    {
+        *ppListHead = *ppListTail = NULL;
+    }
+    else if (!pDebitor->pPrev) // at head of list
+    {
+        (*ppListHead) = pDebitor->pNext;
+        (*ppListHead)->pPrev = NULL;
+    }
+    else if (!pDebitor->pNext) // at tail of list
+    {
+        *ppListTail = pDebitor->pPrev;
+        (*ppListTail)->pNext = NULL;
+    }
+    else
+    {
+        pDebitor->pPrev->pNext = pDebitor->pNext;
+        pDebitor->pNext->pPrev = pDebitor->pPrev;
+    }
+
+    pDebitor->pPrev = pDebitor->pNext = NULL;
+}
+
+static
+NTSTATUS
+SrvCreditorGrantNewCredits_inlock(
+    PSRV_CREDITOR pCreditor,
+    USHORT        usCreditsRequested,
+    PUSHORT       pusCreditsGranted
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    USHORT   usCreditsGranted = 0;
+    PSRV_DEBITOR pDebitorList = NULL;
+
+    if (pCreditor->usCreditLimit > pCreditor->usTotalCredits)
+    {
+        USHORT usCreditsToAcquire = usCreditsRequested;
+        if ((usCreditsToAcquire + pCreditor->usTotalCredits) >
+            pCreditor->usCreditLimit)
+        {
+            usCreditsToAcquire = pCreditor->usCreditLimit -
+                                 pCreditor->usTotalCredits;
+        }
+
+        ntStatus = SrvCreditorAcquireGlobalCredits(
+                        usCreditsToAcquire,
+                        &usCreditsGranted);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            PSRV_DEBITOR pDebitor = NULL;
+            USHORT       iDebitor = 0;
+
+            for (;iDebitor < usCreditsGranted; iDebitor++)
+            {
+                ntStatus = SrvAllocateMemory(
+                                    sizeof(SRV_DEBITOR),
+                                    (PVOID*)&pDebitor);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                pDebitor->pNext = pDebitorList;
+                if (pDebitorList)
+                {
+                    pDebitorList->pPrev = pDebitor;
+                }
+                pDebitorList = pDebitor;
+            }
+
+            // no more errors
+            for (pDebitor = pDebitorList; pDebitor; pDebitor = pDebitor->pNext)
+            {
+                pDebitor->ullSequence = pCreditor->ullNextAvblId++;
+            }
+
+            if (!pCreditor->pAvbl_head)
+            {
+                pCreditor->pAvbl_head = pCreditor->pAvbl_tail = pDebitorList;
+            }
+            else
+            {
+                pCreditor->pAvbl_tail->pNext = pDebitorList;
+                pDebitorList->pPrev = pCreditor->pAvbl_tail;
+
+                while (pDebitorList->pNext)
+                {
+                    pDebitorList = pDebitorList->pNext;
+                }
+
+                pCreditor->pAvbl_tail = pDebitorList;
+            }
+
+            pCreditor->usTotalCredits += usCreditsGranted;
+        }
+    }
+
+    *pusCreditsGranted = usCreditsGranted;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pusCreditsGranted = 0;
+
+    if (usCreditsGranted)
+    {
+        SrvCreditorReturnGlobalCredits(usCreditsGranted);
+    }
+
+    if (pDebitorList)
+    {
+        SrvCreditorFreeDebitorList(pDebitorList);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvCreditorFindDebitor_inlock(
+    PSRV_DEBITOR  pDebitorList,
+    ULONG64       ullSequence,
+    PSRV_DEBITOR* ppDebitor
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_DEBITOR pCandidate = NULL;
+
+    for (; !pCandidate && pDebitorList; pDebitorList = pDebitorList->pNext)
+    {
+        if (pDebitorList->ullSequence == ullSequence)
+        {
+            pCandidate = pDebitorList;
+        }
+    }
+
+    if (!pCandidate)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppDebitor = pCandidate;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppDebitor = NULL;
+
+    goto cleanup;
 }
 
 VOID
@@ -182,9 +712,24 @@ SrvCreditorFree(
     PSRV_CREDITOR pCreditor
     )
 {
-    if (pCreditor->usCreditsAcquired)
+    if (pCreditor->usTotalCredits)
     {
-        SrvCreditorReturnCredits(pCreditor->usCreditsAcquired);
+        SrvCreditorReturnGlobalCredits(pCreditor->usTotalCredits);
+    }
+
+    if (pCreditor->pAvbl_head)
+    {
+        SrvCreditorFreeDebitorList(pCreditor->pAvbl_head);
+    }
+
+    if (pCreditor->pInterim_head)
+    {
+        SrvCreditorFreeDebitorList(pCreditor->pInterim_head);
+    }
+
+    if (pCreditor->pInUse_head)
+    {
+        SrvCreditorFreeDebitorList(pCreditor->pInUse_head);
     }
 
     if (pCreditor->pMutex)
@@ -197,8 +742,24 @@ SrvCreditorFree(
 }
 
 static
+VOID
+SrvCreditorFreeDebitorList(
+    PSRV_DEBITOR pDebitorList
+    )
+{
+    while (pDebitorList)
+    {
+        PSRV_DEBITOR pDebitor = pDebitorList;
+
+        pDebitorList = pDebitorList->pNext;
+
+        SrvFreeMemory(pDebitor);
+    }
+}
+
+static
 NTSTATUS
-SrvCreditorAcquireCredits(
+SrvCreditorAcquireGlobalCredits(
     USHORT  usCreditsRequested,
     PUSHORT pusCreditsGranted
     )
@@ -211,7 +772,7 @@ SrvCreditorAcquireCredits(
 
     if (!gSrvElements.ulGlobalCreditLimit)
     {
-        ntStatus = STATUS_TOO_MANY_CONTEXT_IDS;
+        ntStatus = STATUS_INSUFF_SERVER_RESOURCES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -242,7 +803,7 @@ error:
 
 static
 VOID
-SrvCreditorReturnCredits(
+SrvCreditorReturnGlobalCredits(
     USHORT usCredits
     )
 {

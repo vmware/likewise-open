@@ -144,15 +144,21 @@ SrvBuildLogoffResponse_SMB_V2(
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pExecContext->ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
                     COM2_LOGOFF,
                     pSmbRequest->pHeader->usEpoch,
-                    SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                    pExecContext->usCreditsGranted,
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,

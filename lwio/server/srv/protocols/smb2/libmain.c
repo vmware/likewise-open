@@ -377,6 +377,28 @@ SrvProcessRequestSpecific_SMB_V2(
                     pSmbRequest->pHeader->ulFlags,
                     pSmbRequest->pHeader->ulChainOffset);
 
+    if (!pSmbRequest->ulVisit++ &&
+        !pExecContext->bInternal &&
+        (pSmbRequest->pHeader->command != COM2_CANCEL))
+    {
+        pExecContext->usCreditsGranted = 0;
+
+        // Only check on first iteration
+        // No credit? No Processing.
+        ntStatus = SrvCreditorAcquireCredit(
+                        pExecContext->pConnection->pCreditor,
+                        pSmbRequest->pHeader->ullCommandSequence);
+        if (ntStatus != STATUS_SUCCESS)
+        {
+            LWIO_LOG_DEBUG(
+                    "Failed to acquire credit for processing. (status: 0X%X)",
+                    ntStatus);
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
     if (!iMsg &&
         LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
     {
@@ -773,13 +795,21 @@ SrvBuildInterimResponse_SMB_V2(
     pOutBuffer = pInterimResponse->pRawBuffer + sizeof(NETBIOS_HEADER);
     ulBytesAvailable = pInterimResponse->bufferLen - sizeof(NETBIOS_HEADER);
 
+    ntStatus = SrvCreditorAdjustCredits(
+                    pExecContext->pConnection->pCreditor,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    ullAsyncId,
+                    pSmbRequest->pHeader->usCredits,
+                    &pExecContext->usCreditsGranted);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
                 ulOffset,
                 ulBytesAvailable,
                 pSmbRequest->pHeader->command,
                 pSmbRequest->pHeader->usEpoch,
-                1, /* credits */
+                pExecContext->usCreditsGranted,
                 pSmbRequest->pHeader->ulPid,
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,

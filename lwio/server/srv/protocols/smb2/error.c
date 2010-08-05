@@ -97,15 +97,24 @@ SrvBuildErrorResponse_SMB_V2(
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
+    if (!pExecContext->usCreditsGranted)
+    {
+        // Try to assign credits on error
+        SrvCreditorAdjustCredits(
+            pExecContext->pConnection->pCreditor,
+            pSmbRequest->pHeader->ullCommandSequence,
+            ullAsyncId,
+            pSmbRequest->pHeader->usCredits,
+            &pExecContext->usCreditsGranted);
+    }
+
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
                 ulOffset,
                 ulBytesAvailable,
                 pSmbRequest->pHeader->command,
                 pSmbRequest->pHeader->usEpoch,
-                SrvCreditorGetCredits(
-						pExecContext->pConnection->pCreditor,
-						pSmbRequest->pHeader->usCredits),
+                pExecContext->usCreditsGranted,
                 pSmbRequest->pHeader->ulPid,
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,
