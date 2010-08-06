@@ -315,26 +315,33 @@ SrvCreditorAdjustAsyncCredits(
 
             // Replenish the current credit
 
-            ntStatus = SrvAllocateMemory(
-                            sizeof(SRV_DEBITOR),
-                            (PVOID*)&pNewDebitor);
-            BAIL_ON_NT_STATUS(ntStatus);
+            if (usCreditsRequested || pCreditor->usTotalCredits == 1)
+            {
+                ntStatus = SrvAllocateMemory(
+                                sizeof(SRV_DEBITOR),
+                                (PVOID*)&pNewDebitor);
+                BAIL_ON_NT_STATUS(ntStatus);
 
-            pNewDebitor->ullSequence = pCreditor->ullNextAvblId++;
+                pNewDebitor->ullSequence = pCreditor->ullNextAvblId++;
 
-            // Attach to the end of the available list
-            SrvCreditorAttachDebitor(
-                    pNewDebitor,
-                    &pCreditor->pAvbl_head,
-                    &pCreditor->pAvbl_tail);
+                // Attach to the end of the available list
+                SrvCreditorAttachDebitor(
+                        pNewDebitor,
+                        &pCreditor->pAvbl_head,
+                        &pCreditor->pAvbl_tail);
 
-            usCreditsGranted++;
+                usCreditsGranted++;
+            }
+            else
+            {
+                --pCreditor->usTotalCredits;
+            }
 
             if (usCreditsRequested > usCreditsGranted) // allocate more credits?
             {
                 ntStatus = SrvCreditorGrantNewCredits_inlock(
                                 pCreditor,
-                                usCreditsRequested - 1,
+                                usCreditsRequested - usCreditsGranted,
                                 &usNewCreditsGranted);
                 BAIL_ON_NT_STATUS(ntStatus);
 
@@ -379,6 +386,19 @@ cleanup:
 
 error:
 
+    switch (ntStatus)
+    {
+        case STATUS_NOT_FOUND:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+
+        default:
+
+            break;
+    }
+
     *pusCreditsGranted = usCreditsGranted;
 
     goto cleanup;
@@ -412,21 +432,35 @@ SrvCreditorAdjustNormalCredits(
 
     pDebitor->ullSequence = pCreditor->ullNextAvblId++;
 
-    // Move from in-use list to the available list
-    SrvCreditorMoveDebitor(
-            pDebitor,
-            &pCreditor->pInUse_head,
-            &pCreditor->pInUse_tail,
-            &pCreditor->pAvbl_head,
-            &pCreditor->pAvbl_tail);
+    if (usCreditsRequested || pCreditor->usTotalCredits == 1)
+    {
+        // Move from in-use list to the available list
+        SrvCreditorMoveDebitor(
+                pDebitor,
+                &pCreditor->pInUse_head,
+                &pCreditor->pInUse_tail,
+                &pCreditor->pAvbl_head,
+                &pCreditor->pAvbl_tail);
 
-    usCreditsGranted++; // we replenished the current credit
+        usCreditsGranted++; // we replenished the current credit
+    }
+    else
+    {
+        SrvCreditorDetachDebitor(
+                    pDebitor,
+                    &pCreditor->pInUse_head,
+                    &pCreditor->pInUse_tail);
+
+        SrvCreditorFreeDebitorList(pDebitor);
+
+        --pCreditor->usTotalCredits;
+    }
 
     if (usCreditsRequested > usCreditsGranted) // allocate more credits?
     {
         ntStatus = SrvCreditorGrantNewCredits_inlock(
                         pCreditor,
-                        usCreditsRequested - 1,
+                        usCreditsRequested - usCreditsGranted,
                         &usNewCreditsGranted);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -442,6 +476,19 @@ cleanup:
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_NOT_FOUND:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+
+        default:
+
+            break;
+    }
 
     *pusCreditsGranted = usCreditsGranted;
 
