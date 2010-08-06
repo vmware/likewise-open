@@ -52,6 +52,12 @@
 #include "rdr.h"
 
 static
+VOID
+SMBSessionFree(
+    PSMB_SESSION pSession
+    );
+
+static
 int
 SMBSessionHashTreeCompareByTID(
     PCVOID vp1,
@@ -206,21 +212,6 @@ RdrSessionRevive(
     }
 }
 
-VOID
-SMBSessionAddReference(
-    PSMB_SESSION pSession
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
-
-    pSession->refCount++;
-    RdrSessionRevive(pSession);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
-}
-
 static
 BOOLEAN
 RdrLogoffComplete(
@@ -351,6 +342,7 @@ SMBSessionRelease(
     }
 }
 
+static
 VOID
 SMBSessionFree(
     PSMB_SESSION pSession
@@ -413,93 +405,6 @@ SMBSessionInvalidate(
     }
     LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-}
-
-VOID
-SMBSessionSetState(
-    PSMB_SESSION pSession,
-    SMB_RESOURCE_STATE state
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    pSession->state = state;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-}
-
-NTSTATUS
-SMBSessionFindTreeByPath(
-    IN PSMB_SESSION pSession,
-    IN PCSTR pszPath,
-    OUT PSMB_TREE* ppTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    PSMB_TREE pTree = NULL;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    ntStatus = SMBHashGetValue(
-                pSession->pTreeHashByPath,
-                pszPath,
-                (PVOID *) &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBTreeAddReference(pTree);
-
-    *ppTree = pTree;
-
-cleanup:
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppTree = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMBSessionFindTreeById(
-    PSMB_SESSION pSession,
-    uint16_t     tid,
-    PSMB_TREE*   ppTree
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    PSMB_TREE pTree = NULL;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
-
-    ntStatus = SMBHashGetValue(
-                    pSession->pTreeHashByTID,
-                    &tid,
-                    (PVOID *) &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pTree->refCount++;
-
-    *ppTree = pTree;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppTree = NULL;
-
-    goto cleanup;
 }
 
 NTSTATUS

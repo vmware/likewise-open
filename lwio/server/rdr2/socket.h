@@ -49,69 +49,15 @@ RdrSocketRevive(
     );
 
 VOID
-SMBSocketAddReference(
-    PSMB_SOCKET pSocket
-    );
-
-VOID
 SMBSocketInvalidate(
     PSMB_SOCKET    pSocket,
     NTSTATUS ntStatus
-    );
-
-VOID
-SMBSocketInvalidate_InLock(
-    PSMB_SOCKET pSocket,
-    NTSTATUS ntStatus
-    );
-
-VOID
-SMBSocketSetState(
-    PSMB_SOCKET        pSocket,
-    RDR_SOCKET_STATE   state
-    );
-
-RDR_SOCKET_STATE
-SMBSocketGetState(
-    PSMB_SOCKET        pSocket
-    );
-
-ULONG
-SMBSocketGetNextSequence(
-    PSMB_SOCKET pSocket
     );
 
 NTSTATUS
 SMBSocketSend(
     IN PSMB_SOCKET pSocket,
     IN PSMB_PACKET pPacket
-    );
-
-NTSTATUS
-SMBSocketQueue(
-    IN PSMB_SOCKET pSocket,
-    IN PRDR_OP_CONTEXT pContext
-    );
-
-NTSTATUS
-SMBSocketReceiveAndUnmarshall(
-    IN PSMB_SOCKET pSocket,
-    OUT PSMB_PACKET pPacket
-    );
-
-NTSTATUS
-SMBSocketRead(
-    PSMB_SOCKET pSocket,
-    uint8_t    *buffer,
-    uint32_t    dwLen,
-    uint32_t   *actualLen
-    );
-
-NTSTATUS
-SMBSocketFindSessionByPrincipal(
-    IN PSMB_SOCKET pSocket,
-    IN PCSTR pszPrincipal,
-    OUT PSMB_SESSION* ppSession
     );
 
 VOID
@@ -123,11 +69,6 @@ VOID
 RdrSocketSetIgnoreServerSignatures(
     PSMB_SOCKET pSocket,
     BOOLEAN bValue
-    );
-
-BOOLEAN
-RdrSocketGetIgnoreServerSignatures(
-    PSMB_SOCKET pSocket
     );
 
 VOID

@@ -52,6 +52,29 @@
 #include "rdr.h"
 
 static
+VOID
+SMBSocketInvalidate_InLock(
+    PSMB_SOCKET pSocket,
+    NTSTATUS status
+    );
+
+static
+NTSTATUS
+SMBSocketReceiveAndUnmarshall(
+    IN PSMB_SOCKET pSocket,
+    OUT PSMB_PACKET pPacket
+    );
+
+static
+NTSTATUS
+SMBSocketRead(
+    PSMB_SOCKET pSocket,
+    uint8_t    *buffer,
+    uint32_t    dwLen,
+    uint32_t   *actualLen
+    );
+
+static
 int
 SMBSocketHashSessionCompareByUID(
     PCVOID vp1,
@@ -375,24 +398,6 @@ SMBSocketGetNextSequence_inlock(
     return dwSequence;
 }
 
-ULONG
-SMBSocketGetNextSequence(
-    PSMB_SOCKET pSocket
-    )
-{
-    DWORD dwSequence = 0;
-
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    dwSequence = SMBSocketGetNextSequence_inlock(pSocket);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return dwSequence;
-}
-
 VOID
 SMBSocketBeginSequence(
     PSMB_SOCKET pSocket
@@ -549,6 +554,7 @@ error:
     goto cleanup;
 }
 
+static
 NTSTATUS
 SMBSocketQueue(
     IN PSMB_SOCKET pSocket,
@@ -997,21 +1003,6 @@ RdrSocketRevive(
     }
 }
 
-VOID
-SMBSocketAddReference(
-    PSMB_SOCKET pSocket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
-
-    pSocket->refCount++;
-    RdrSocketRevive(pSocket);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
-}
-
 static
 VOID
 RdrSocketUnlink(
@@ -1165,6 +1156,7 @@ error:
     goto cleanup;
 }
 
+static
 NTSTATUS
 SMBSocketRead(
     PSMB_SOCKET pSocket,
@@ -1243,6 +1235,7 @@ SMBSocketInvalidate(
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
+static
 VOID
 SMBSocketInvalidate_InLock(
     PSMB_SOCKET pSocket,
@@ -1310,74 +1303,6 @@ SMBSocketInvalidate_InLock(
         SMBResponseFree(pResponse);
     }
     LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
-}
-
-VOID
-SMBSocketSetState(
-    PSMB_SOCKET        pSocket,
-    RDR_SOCKET_STATE   state
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    pSocket->state = state;
-
-    pthread_cond_broadcast(&pSocket->event);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-}
-
-RDR_SOCKET_STATE
-SMBSocketGetState(
-    PSMB_SOCKET        pSocket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-    RDR_SOCKET_STATE socketState = RDR_SOCKET_STATE_ERROR;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    socketState = pSocket->state;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return socketState;
-}
-
-NTSTATUS
-SMBSocketFindSessionByPrincipal(
-    IN PSMB_SOCKET pSocket,
-    IN PCSTR pszPrincipal,
-    OUT PSMB_SESSION* ppSession
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    PSMB_SESSION pSession = NULL;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    ntStatus = SMBHashGetValue(
-                    pSocket->pSessionHashByPrincipal,
-                    pszPrincipal,
-                    (PVOID *) &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBSessionAddReference(pSession);
-
-    *ppSession = pSession;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
 }
 
 VOID
@@ -1530,24 +1455,6 @@ RdrSocketSetIgnoreServerSignatures(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
-
-BOOLEAN
-RdrSocketGetIgnoreServerSignatures(
-    PSMB_SOCKET pSocket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-    BOOLEAN bValue = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    bValue = pSocket->bIgnoreServerSignatures;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return bValue;
-}
-
 
 static
 NTSTATUS

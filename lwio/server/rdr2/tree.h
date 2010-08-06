@@ -29,11 +29,6 @@ RdrTreeRevive(
     );
 
 VOID
-SMBTreeAddReference(
-    PSMB_TREE pTree
-    );
-
-VOID
 SMBTreeRelease(
     PSMB_TREE pTree
     );
@@ -44,18 +39,7 @@ SMBTreeCreate(
     );
 
 NTSTATUS
-SMBTreeSetState(
-    PSMB_TREE pTree,
-    SMB_RESOURCE_STATE state
-    );
-
-NTSTATUS
 SMBTreeInvalidate(
     PSMB_TREE      pTree,
     NTSTATUS ntStatus
-    );
-
-VOID
-SMBTreeFree(
-    PSMB_TREE pTree
     );

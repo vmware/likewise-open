@@ -50,6 +50,12 @@
 #include "rdr.h"
 
 static
+VOID
+SMBTreeFree(
+    PSMB_TREE pTree
+    );
+
+static
 NTSTATUS
 SMBTreeDestroyContents(
     PSMB_TREE pTree
@@ -142,39 +148,6 @@ RdrTreeRevive(
         LwRtlCancelTask(pTree->pTimeout);
         LwRtlReleaseTask(&pTree->pTimeout);
     }
-}
-
-VOID
-SMBTreeAddReference(
-    PSMB_TREE pTree
-    )
-{
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
-
-    pTree->refCount++;
-    RdrTreeRevive(pTree);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
-}
-
-NTSTATUS
-SMBTreeSetState(
-    PSMB_TREE pTree,
-    SMB_RESOURCE_STATE state
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
-
-    pTree->state = state;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
-
-    return ntStatus;
 }
 
 static
@@ -348,6 +321,7 @@ SMBTreeRelease(
     }
 }
 
+static
 VOID
 SMBTreeFree(
     PSMB_TREE pTree
