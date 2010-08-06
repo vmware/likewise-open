@@ -120,11 +120,6 @@ SMBSocketRelease(
     );
 
 VOID
-SMBSocketFree(
-    PSMB_SOCKET pSocket
-    );
-
-VOID
 RdrSocketSetIgnoreServerSignatures(
     PSMB_SOCKET pSocket,
     BOOLEAN bValue

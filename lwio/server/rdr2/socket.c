@@ -108,6 +108,18 @@ RdrEaiToNtStatus(
     );
 
 static
+VOID
+SMBSocketFreeContents(
+    PSMB_SOCKET pSocket
+    );
+
+static
+VOID
+SMBSocketFree(
+    PSMB_SOCKET pSocket
+    );
+
+static
 int
 RdrSocketHashResponseCompare(
     PCVOID vp1,
@@ -686,6 +698,7 @@ SMBSocketTask(
 {
     NTSTATUS ntStatus = 0;
     PSMB_SOCKET pSocket = (PSMB_SOCKET) pContext;
+    BOOLEAN bGlobalLock = FALSE;
     BOOLEAN bInLock = FALSE;
     int err = 0;
     SOCKLEN_T len = sizeof(err);
@@ -695,6 +708,12 @@ SMBSocketTask(
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
+        /* If we are being explicitly cancelled,
+           we are charged with cleaning up the socket */
+        LWIO_LOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
+        SMBSocketFreeContents(pSocket);
+        LWIO_UNLOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
+
         *pWaitMask = LW_TASK_EVENT_COMPLETE;
         goto cleanup;
     }
@@ -1009,27 +1028,6 @@ RdrSocketUnlink(
 
 static
 VOID
-RdrSocketReap(
-    PVOID pContext
-    )
-{
-    BOOLEAN bLocked = FALSE;
-    PSMB_SOCKET pSocket = pContext;
-
-    LWIO_LOCK_MUTEX(bLocked, &gRdrRuntime.socketHashLock);
-
-    if (pSocket->refCount == 0)
-    {
-        RdrSocketUnlink(pSocket);
-        LWIO_UNLOCK_MUTEX(bLocked, &gRdrRuntime.socketHashLock);
-        SMBSocketFree(pSocket);
-    }
-
-    LWIO_UNLOCK_MUTEX(bLocked, &gRdrRuntime.socketHashLock);
-}
-
-static
-VOID
 RdrSocketTimeout(
     PLW_TASK pTask,
     LW_PVOID pContext,
@@ -1039,6 +1037,7 @@ RdrSocketTimeout(
     )
 {
     PSMB_SOCKET pSocket = pContext;
+    BOOLEAN bInLock = FALSE;
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
@@ -1051,8 +1050,12 @@ RdrSocketTimeout(
     }
     else if (WakeMask & LW_TASK_EVENT_TIME)
     {
-        if (LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrSocketReap, pSocket, 0) == STATUS_SUCCESS)
+        LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+
+        if (pSocket->refCount == 0)
         {
+            RdrSocketUnlink(pSocket);
+            SMBSocketFree(pSocket);
             *pWaitMask = LW_TASK_EVENT_COMPLETE;
         }
         else
@@ -1060,6 +1063,8 @@ RdrSocketTimeout(
             *pWaitMask = LW_TASK_EVENT_TIME;
             *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
         }
+
+        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
     }
 }
 
@@ -1395,8 +1400,8 @@ SMBSocketRelease(
         if (pSocket->state != RDR_SOCKET_STATE_READY)
         {
             RdrSocketUnlink(pSocket);
-            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             SMBSocketFree(pSocket);
+            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
         }
         else
         {
@@ -1413,9 +1418,10 @@ SMBSocketRelease(
             }
             else
             {
+                LWIO_LOG_VERBOSE("Could not start timer for socket %p; closing immediately", pSocket);
                 RdrSocketUnlink(pSocket);
-                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
                 SMBSocketFree(pSocket);
+                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             }
         }
     }
@@ -1423,7 +1429,6 @@ SMBSocketRelease(
     {
         LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
     }
-
 }
 
 NTSTATUS
@@ -1449,16 +1454,35 @@ error:
     return ntStatus;
 }
 
+static
 VOID
 SMBSocketFree(
     PSMB_SOCKET pSocket
     )
 {
-    assert(!pSocket->refCount);
+    /*
+     * If the task for the socket is alive, cancel it and let
+     * it finish freeing the socket after it has cleaned up.
+     * Otherwise, free the contents immediately.
+     */
+    if (pSocket->pTask)
+    {
+        LwRtlCancelTask(pSocket->pTask);
+        LwRtlReleaseTask(&pSocket->pTask);
+    }
+    else
+    {
+        SMBSocketFreeContents(pSocket);
+    }
+}
 
-    LwRtlCancelTask(pSocket->pTask);
-    LwRtlWaitTask(pSocket->pTask);
-    LwRtlReleaseTask(&pSocket->pTask);
+static
+VOID
+SMBSocketFreeContents(
+    PSMB_SOCKET pSocket
+    )
+{
+    assert(!pSocket->refCount);
 
     if ((pSocket->fd >= 0) && (close(pSocket->fd) < 0))
     {
@@ -1471,7 +1495,6 @@ SMBSocketFree(
     LWIO_SAFE_FREE_MEMORY(pSocket->pwszCanonicalName);
     LWIO_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
 
-    /* @todo: assert that the session hashes are empty */
     SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
     SMBHashSafeFree(&pSocket->pSessionHashByUID);
 
@@ -1490,7 +1513,6 @@ SMBSocketFree(
         LwRtlReleaseTask(&pSocket->pTimeout);
     }
 
-    /* @todo: use allocator */
     SMBFreeMemory(pSocket);
 }
 
