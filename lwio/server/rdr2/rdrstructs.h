@@ -176,6 +176,7 @@ typedef struct _SMB_SESSION
     DWORD  dwSessionKeyLength;
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
+    PRDR_OP_CONTEXT pLogoffContext;
 } SMB_SESSION, *PSMB_SESSION;
 
 typedef enum _RDR_TREE_STATE

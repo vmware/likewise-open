@@ -64,20 +64,27 @@ SMBSessionHashTreeByTID(
     PCVOID vp
     );
 
+static
+NTSTATUS
+RdrTransceiveLogoff(
+    PRDR_OP_CONTEXT pContext,
+    PSMB_SESSION pSession
+    );
+
 NTSTATUS
 SMBSessionCreate(
     PSMB_SESSION* ppSession
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS status = 0;
     SMB_SESSION *pSession = NULL;
     BOOLEAN bDestroySetupCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
 
-    ntStatus = SMBAllocateMemory(
+    status = SMBAllocateMemory(
                 sizeof(SMB_SESSION),
                 (PVOID*)&pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     LwListInit(&pSession->StateWaiters);
 
@@ -86,29 +93,36 @@ SMBSessionCreate(
 
     pSession->refCount = 1;
 
-    ntStatus = SMBHashCreate(
+    status = SMBHashCreate(
                 19,
                 SMBHashCaselessStringCompare,
                 SMBHashCaselessString,
                 NULL,
                 &pSession->pTreeHashByPath);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
-    ntStatus = SMBHashCreate(
+    status = SMBHashCreate(
                 19,
                 &SMBSessionHashTreeCompareByTID,
                 &SMBSessionHashTreeByTID,
                 NULL,
                 &pSession->pTreeHashByTID);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     bDestroySetupCondition = TRUE;
+
+    /* Pre-allocate resources to send a logoff */
+    status = RdrCreateContext(NULL, &pSession->pLogoffContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrAllocateContextPacket(pSession->pLogoffContext, 64 * 1024);
+    BAIL_ON_NT_STATUS(status);
 
     *ppSession = pSession;
 
 cleanup:
 
-    return ntStatus;
+    return status;
 
 error:
 
@@ -208,43 +222,41 @@ SMBSessionAddReference(
 }
 
 static
-VOID
-RdrSessionReap(
-    PVOID pContext
+BOOLEAN
+RdrLogoffComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-    PSMB_SESSION pSession = pContext;
-    PSMB_SOCKET pSocket = pSession->pSocket;
+    PSMB_PACKET pPacket = pParam;
+    PSMB_SESSION pSession = pContext->State.TreeConnect.pSession;
 
-    LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
-
-    if (pSession->refCount == 0)
+    if (pPacket)
     {
-        RdrSessionUnlink(pSession);
-        LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
-        status = Logoff(pSession);
-        SMBSessionFree(pSession);
-        BAIL_ON_NT_STATUS(status);
+        SMBPacketRelease(gRdrRuntime.hPacketAllocator, pPacket);
     }
 
-error:
+    SMBSessionFree(pSession);
 
-    LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+    /* We don't explicitly free pContext because SMBSessionFree() does it */
+    return FALSE;
 }
 
 static
 VOID
 RdrSessionTimeout(
     PLW_TASK pTask,
-    LW_PVOID pContext,
+    LW_PVOID _pSession,
     LW_TASK_EVENT_MASK WakeMask,
     LW_TASK_EVENT_MASK* pWaitMask,
     LW_LONG64* pllTime
     )
 {
-    PSMB_SESSION pSession = pContext;
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB_SESSION pSession = _pSession;
+    BOOLEAN bLocked = FALSE;
+    PRDR_OP_CONTEXT pContext = NULL;
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
@@ -257,8 +269,25 @@ RdrSessionTimeout(
     }
     else if (WakeMask & LW_TASK_EVENT_TIME)
     {
-        if (LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrSessionReap, pSession, 0) == STATUS_SUCCESS)
+        LWIO_LOCK_MUTEX(bLocked, &pSession->pSocket->mutex);
+
+        if (pSession->refCount == 0)
         {
+            RdrSessionUnlink(pSession);
+
+            pContext = pSession->pLogoffContext;
+            pContext->Continue = RdrLogoffComplete;
+            pContext->State.TreeConnect.pSession = pSession;
+
+            LWIO_UNLOCK_MUTEX(bLocked, &pSession->pSocket->mutex);
+
+            status = RdrTransceiveLogoff(pContext, pSession);
+            if (status != STATUS_PENDING)
+            {
+                /* Give up and free the session now */
+                SMBSessionFree(pSession);
+            }
+
             *pWaitMask = LW_TASK_EVENT_COMPLETE;
         }
         else
@@ -267,6 +296,10 @@ RdrSessionTimeout(
             *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
         }
     }
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pSession->pSocket->mutex);
+
+    return;
 }
 
 VOID
@@ -275,6 +308,8 @@ SMBSessionRelease(
     )
 {
     BOOLEAN bInLock = FALSE;
+    LW_TASK_EVENT_MASK dummy = 0;
+    LONG64 llDummy = 0;
 
     LWIO_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
@@ -291,6 +326,9 @@ SMBSessionRelease(
         else
         {
             LWIO_LOG_VERBOSE("Session %p is eligible for reaping", pSession);
+
+            LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+
             if (LwRtlCreateTask(
                     gRdrRuntime.pThreadPool,
                     &pSession->pTimeout,
@@ -299,13 +337,11 @@ SMBSessionRelease(
                     pSession) == STATUS_SUCCESS)
             {
                 LwRtlWakeTask(pSession->pTimeout);
-                LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             }
             else
             {
-                RdrSessionUnlink(pSession);
-                LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
-                SMBSessionFree(pSession);
+                LWIO_LOG_ERROR("Could not create timer for session %p; logging off immediately");
+                RdrSessionTimeout(NULL, pSession, LW_TASK_EVENT_TIME, &dummy, &llDummy);
             }
         }
     }
@@ -334,6 +370,11 @@ SMBSessionFree(
     {
         LwRtlCancelTask(pSession->pTimeout);
         LwRtlReleaseTask(&pSession->pTimeout);
+    }
+
+    if (pSession->pLogoffContext)
+    {
+        RdrFreeContext(pSession->pLogoffContext);
     }
 
     if (pSession->pSocket)
@@ -558,5 +599,50 @@ error:
 
     *ppSession = NULL;
 
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrTransceiveLogoff(
+    PRDR_OP_CONTEXT pContext,
+    PSMB_SESSION pSession
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SMBPacketMarshallHeader(
+                pContext->Packet.pRawBuffer,
+                pContext->Packet.bufferLen,
+                COM_LOGOFF_ANDX,
+                0,
+                0,
+                0,
+                gRdrRuntime.SysPid,
+                pSession->uid,
+                0,
+                TRUE,
+                &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pSMBHeader->wordCount = 2;
+
+    pContext->Packet.pData = pContext->Packet.pParams;
+    pContext->Packet.bufferUsed += sizeof(uint16_t); /* ByteCount */
+    memset(pContext->Packet.pData, 0, sizeof(uint16_t));
+
+    // no byte order conversions necessary (due to zeros)
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
     goto cleanup;
 }
