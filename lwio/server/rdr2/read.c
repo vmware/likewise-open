@@ -222,7 +222,7 @@ RdrFinishReadFile(
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (pResponsePacket->pSMBHeader->command != COM_READ_ANDX ||
-            pResponsePacket->pNetBIOSHeader->len - (pResponsePacket->pParams - pResponsePacket->pRawBuffer) <
+            pResponsePacket->bufferUsed - (pResponsePacket->pParams - pResponsePacket->pRawBuffer) <
             sizeof(READ_ANDX_RESPONSE_HEADER))
         {
             ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
