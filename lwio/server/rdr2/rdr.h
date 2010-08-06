@@ -333,9 +333,4 @@ RdrReleaseFile(
     PRDR_CCB pFile
     );
 
-NTSTATUS
-RdrSocketWaitReady(
-    PRDR_SOCKET pSocket
-    );
-
 #endif /* __RDR_H__ */

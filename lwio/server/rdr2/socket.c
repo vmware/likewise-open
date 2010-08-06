@@ -1356,29 +1356,6 @@ RdrSocketRelease(
     }
 }
 
-NTSTATUS
-RdrSocketWaitReady(
-    PRDR_SOCKET pSocket
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    while (pSocket->state != RDR_SOCKET_STATE_READY)
-    {
-        if (pSocket->state == RDR_SOCKET_STATE_ERROR)
-        {
-            ntStatus = pSocket->error;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
-    }
-
-error:
-
-    return ntStatus;
-}
-
 static
 VOID
 RdrSocketFree(
