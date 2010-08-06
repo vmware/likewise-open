@@ -202,6 +202,7 @@ typedef struct _SMB_TREE
     PSTR pszPath;               /* For hashing */
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
+    PRDR_OP_CONTEXT pDisconnectContext;
 } SMB_TREE, *PSMB_TREE;
 
 typedef struct

@@ -55,34 +55,48 @@ SMBTreeDestroyContents(
     PSMB_TREE pTree
     );
 
+static
+NTSTATUS
+RdrTransceiveTreeDisconnect(
+    PRDR_OP_CONTEXT pContext,
+    PSMB_TREE pTree
+    );
+
 NTSTATUS
 SMBTreeCreate(
     PSMB_TREE* ppTree
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS status = 0;
     PSMB_TREE pTree = NULL;
     BOOLEAN bDestroyMutex = FALSE;
     pthread_mutexattr_t mutexAttr;
     pthread_mutexattr_t* pMutexAttr = NULL;
 
-    ntStatus = SMBAllocateMemory(
+    status = SMBAllocateMemory(
                 sizeof(SMB_TREE),
                 (PVOID*)&pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     LwListInit(&pTree->StateWaiters);
 
-    ntStatus = pthread_mutexattr_init(&mutexAttr);
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = pthread_mutexattr_init(&mutexAttr);
+    BAIL_ON_NT_STATUS(status);
 
     pMutexAttr = &mutexAttr;
 
-    ntStatus = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = pthread_mutexattr_settype(pMutexAttr, PTHREAD_MUTEX_RECURSIVE);
+    BAIL_ON_NT_STATUS(status);
 
     pthread_mutex_init(&pTree->mutex, pMutexAttr);
     bDestroyMutex = TRUE;
+
+    /* Pre-allocate resources to send a tree disconnect */
+    status = RdrCreateContext(NULL, &pTree->pDisconnectContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrAllocateContextPacket(pTree->pDisconnectContext, 64 * 1024);
+    BAIL_ON_NT_STATUS(status);
 
     pTree->refCount = 1;
     pTree->pSession = NULL;
@@ -98,7 +112,7 @@ cleanup:
         pthread_mutexattr_destroy(pMutexAttr);
     }
 
-    return ntStatus;
+    return status;
 
 error:
 
@@ -205,43 +219,41 @@ SMBTreeInvalidate(
 }
 
 static
-VOID
-RdrTreeReap(
-    PVOID pContext
+BOOLEAN
+RdrTreeDisconnectComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-    PSMB_TREE pTree = pContext;
-    PSMB_SESSION pSession = pTree->pSession;
+    PSMB_PACKET pPacket = pParam;
+    PSMB_TREE pTree = pContext->State.TreeConnect.pTree;
 
-    LWIO_LOCK_MUTEX(bLocked, &pSession->mutex);
-
-    if (pTree->refCount == 0)
+    if (pPacket)
     {
-        RdrTreeUnlink(pTree);
-        LWIO_UNLOCK_MUTEX(bLocked, &pSession->mutex);
-        status = TreeDisconnect(pTree);
-        SMBTreeFree(pTree);
-        BAIL_ON_NT_STATUS(status);
+        SMBPacketRelease(gRdrRuntime.hPacketAllocator, pPacket);
     }
 
-error:
+    SMBTreeFree(pTree);
 
-    LWIO_UNLOCK_MUTEX(bLocked, &pSession->mutex);
+    /* We don't explicitly free pContext because SMBTreeFree() does it */
+    return FALSE;
 }
 
 static
 VOID
 RdrTreeTimeout(
     PLW_TASK pTask,
-    LW_PVOID pContext,
+    LW_PVOID _pTree,
     LW_TASK_EVENT_MASK WakeMask,
     LW_TASK_EVENT_MASK* pWaitMask,
     LW_LONG64* pllTime
     )
 {
-    PSMB_TREE pTree = pContext;
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB_TREE pTree = _pTree;
+    BOOLEAN bLocked = FALSE;
+    PRDR_OP_CONTEXT pContext = NULL;
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
@@ -254,8 +266,25 @@ RdrTreeTimeout(
     }
     else if (WakeMask & LW_TASK_EVENT_TIME)
     {
-        if (LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrTreeReap, pTree, 0) == STATUS_SUCCESS)
+        LWIO_LOCK_MUTEX(bLocked, &pTree->pSession->mutex);
+
+        if (pTree->refCount == 0)
         {
+            RdrTreeUnlink(pTree);
+
+            pContext = pTree->pDisconnectContext;
+            pContext->Continue = RdrTreeDisconnectComplete;
+            pContext->State.TreeConnect.pTree = pTree;
+
+            LWIO_UNLOCK_MUTEX(bLocked, &pTree->pSession->mutex);
+
+            status = RdrTransceiveTreeDisconnect(pContext, pTree);
+            if (status != STATUS_PENDING)
+            {
+                /* Give up and free the tree now */
+                SMBTreeFree(pTree);
+            }
+
             *pWaitMask = LW_TASK_EVENT_COMPLETE;
         }
         else
@@ -264,6 +293,10 @@ RdrTreeTimeout(
             *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
         }
     }
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pTree->pSession->mutex);
+
+    return;
 }
 
 VOID
@@ -272,6 +305,8 @@ SMBTreeRelease(
     )
 {
     BOOLEAN bInLock = FALSE;
+    LW_TASK_EVENT_MASK dummy = 0;
+    LONG64 llDummy = 0;
 
     LWIO_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
@@ -289,6 +324,8 @@ SMBTreeRelease(
         {
             LWIO_LOG_VERBOSE("Tree %p is eligible for reaping", pTree);
 
+            LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+
             if (LwRtlCreateTask(
                     gRdrRuntime.pThreadPool,
                     &pTree->pTimeout,
@@ -297,13 +334,11 @@ SMBTreeRelease(
                     pTree) == STATUS_SUCCESS)
             {
                 LwRtlWakeTask(pTree->pTimeout);
-                LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
             }
             else
             {
-                RdrTreeUnlink(pTree);
-                LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
-                SMBTreeFree(pTree);
+                LWIO_LOG_ERROR("Could not create timer for tree %p; disconnecting immediately");
+                RdrTreeTimeout(NULL, pTree, LW_TASK_EVENT_TIME, &dummy, &llDummy);
             }
         }
     }
@@ -346,5 +381,57 @@ SMBTreeDestroyContents(
         LwRtlReleaseTask(&pTree->pTimeout);
     }
 
+    if (pTree->pDisconnectContext)
+    {
+        RdrFreeContext(pTree->pDisconnectContext);
+    }
+
     return 0;
+}
+
+static
+NTSTATUS
+RdrTransceiveTreeDisconnect(
+    PRDR_OP_CONTEXT pContext,
+    PSMB_TREE pTree
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    /* Packet should have been pre-allocated */
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_TREE_DISCONNECT,
+        0,
+        0,
+        pTree->tid,
+        gRdrRuntime.SysPid,
+        pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pSMBHeader->wordCount = 0;
+
+    pContext->Packet.pData = pContext->Packet.pParams;          /* ByteCount */
+    pContext->Packet.bufferUsed += sizeof(uint16_t);
+    memset(pContext->Packet.pData, 0, sizeof(uint16_t));
+
+    // no byte order conversions necessary (due to zeros)
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pTree->pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
 }

@@ -29,7 +29,6 @@ librdr2_sys_la_SOURCES =  \
     findnext2.c           \
     session.c             \
     smb_logoff.c          \
-    smb_tree_disconnect.c \
     smb_write.c           \
     socket.c              \
     tree.c                \

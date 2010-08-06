@@ -76,7 +76,6 @@
 #include "writefile.h"
 #include "getsesskey.h"
 #include "smb_write.h"
-#include "smb_tree_disconnect.h"
 #include "smb_logoff.h"
 #include "socket.h"
 #include "tree.h"
