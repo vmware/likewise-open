@@ -53,6 +53,11 @@ typedef struct _RDR_OP_CONTEXT
         } Read;
         struct
         {
+            LONG64 llByteOffset;
+            LONG64 llTotalBytesWritten;
+        } Write;
+        struct
+        {
             struct _RDR_CCB* pFile;
             PWSTR pwszFilename;
         } Create;

@@ -73,9 +73,7 @@
 #include "iodriver.h"
 
 #include "structs.h"
-#include "writefile.h"
 #include "getsesskey.h"
-#include "smb_write.h"
 #include "socket.h"
 #include "tree.h"
 #include "session.h"

@@ -28,10 +28,8 @@ librdr2_sys_la_SOURCES =  \
     findfirst2.c          \
     findnext2.c           \
     session.c             \
-    smb_write.c           \
     socket.c              \
     tree.c                \
-    writefile.c           \
     driver.c              \
     create.c              \
     read.c                \
