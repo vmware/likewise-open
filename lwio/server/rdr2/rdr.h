@@ -328,17 +328,6 @@ RdrTransactQueryFsInfo(
     PULONG pulInfoLengthUsed
     );
 
-NTSTATUS
-RdrTransactReadFile(
-    PRDR_TREE pTree,
-    USHORT usFid,
-    ULONG64 ullFileReadOffset,
-    PBYTE pReadBuffer,
-    USHORT usReadLen,
-    USHORT usMinReadLen,
-    PUSHORT pusBytesRead
-    );
-
 void
 RdrReleaseFile(
     PRDR_CCB pFile
