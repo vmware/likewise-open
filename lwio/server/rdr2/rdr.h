@@ -81,11 +81,7 @@
 #include "socket.h"
 #include "tree.h"
 #include "session.h"
-#include "response.h"
-
-#include "client_socket.h"
-#include "client_session.h"
-#include "client_tree.h"
+#include "connect.h"
 
 #include "externs.h"
 

@@ -16,10 +16,8 @@ DRIVER_LDFLAGS = -module -shared -avoid-version -export-symbols $(srcdir)/rdr.sy
 ADDITIONAL_LIBS += $(NOINST_DEP_LIBS)
 endif
 
-librdr2_sys_la_SOURCES =   \
-    client_session.c      \
-    client_socket.c       \
-    client_tree.c         \
+librdr2_sys_la_SOURCES =  \
+    connect.c             \
     getsesskey.c          \
     globals.c             \
     queryinfofile.c       \
@@ -29,7 +27,6 @@ librdr2_sys_la_SOURCES =   \
     queryfsinfo.c         \
     findfirst2.c          \
     findnext2.c           \
-    response.c            \
     session.c             \
     smb_logoff.c          \
     smb_tree_disconnect.c \

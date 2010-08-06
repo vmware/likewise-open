@@ -1712,3 +1712,215 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+_FindOrCreateSocket(
+    IN PCWSTR pwszHostname,
+    OUT PSMB_SOCKET* ppSocket
+    );
+
+NTSTATUS
+RdrSocketInit(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    assert(!gRdrRuntime.pSocketHashByName);
+
+    ntStatus = SMBHashCreate(
+                    19,
+                    SMBHashCaselessWc16StringCompare,
+                    SMBHashCaselessWc16String,
+                    NULL,
+                    &gRdrRuntime.pSocketHashByName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
+SMBSrvClientSocketCreate(
+    IN PCWSTR pwszHostname,
+    OUT PSMB_SOCKET* ppSocket
+    )
+{
+    return _FindOrCreateSocket(pwszHostname, ppSocket);
+}
+
+static
+NTSTATUS
+_FindOrCreateSocket(
+    IN PCWSTR pwszHostname,
+    OUT PSMB_SOCKET* ppSocket
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    PSMB_SOCKET pSocket = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+
+    ntStatus = SMBHashGetValue(
+        gRdrRuntime.pSocketHashByName,
+        pwszHostname,
+        (PVOID *) &pSocket);
+
+    if (!ntStatus)
+    {
+        pSocket->refCount++;
+        RdrSocketRevive(pSocket);
+    }
+    else
+    {
+        ntStatus = SMBSocketCreate(
+            pwszHostname,
+            gRdrRuntime.config.bSignMessagesIfSupported,
+            &pSocket);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMBHashSetValue(
+            gRdrRuntime.pSocketHashByName,
+            pSocket->pwszHostname,
+            pSocket);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSocket->bParentLink = TRUE;
+    }
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+
+    *ppSocket = pSocket;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+
+    return ntStatus;
+
+error:
+
+    *ppSocket = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMBSrvClientSocketAddSessionByUID(
+    PSMB_SOCKET  pSocket,
+    PSMB_SESSION pSession
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    ntStatus = SMBHashSetValue(
+                    pSocket->pSessionHashByUID,
+                    &pSession->uid,
+                    pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSession->bParentLink = TRUE;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+RdrSocketShutdown(
+    VOID
+    )
+{
+    SMBHashSafeFree(&gRdrRuntime.pSocketHashByName);
+
+    return 0;
+}
+
+NTSTATUS
+SMBResponseCreate(
+    uint16_t       wMid,
+    SMB_RESPONSE **ppResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_RESPONSE pResponse = NULL;
+    BOOLEAN bDestroyCondition = FALSE;
+
+    ntStatus = SMBAllocateMemory(
+                    sizeof(SMB_RESPONSE),
+                    (PVOID*)&pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pResponse->state = SMB_RESOURCE_STATE_INITIALIZING;
+
+    ntStatus = pthread_cond_init(&pResponse->event, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    bDestroyCondition = TRUE;
+
+    pResponse->mid = wMid;
+    pResponse->pPacket = NULL;
+
+    *ppResponse = pResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (bDestroyCondition)
+    {
+        pthread_cond_destroy(&pResponse->event);
+    }
+
+    LWIO_SAFE_FREE_MEMORY(pResponse);
+
+    *ppResponse = NULL;
+
+    goto cleanup;
+}
+
+VOID
+SMBResponseFree(
+    PSMB_RESPONSE pResponse
+    )
+{
+    if (pResponse->pSocket)
+    {
+        RdrSocketRemoveResponse(pResponse->pSocket, pResponse);
+    }
+
+    pthread_cond_destroy(&pResponse->event);
+
+    SMBFreeMemory(pResponse);
+}
+
+VOID
+SMBResponseInvalidate_InLock(
+    PSMB_RESPONSE pResponse,
+    NTSTATUS ntStatus
+    )
+{
+    pResponse->state = SMB_RESOURCE_STATE_INVALID;
+    pResponse->error = ntStatus;
+
+    if (pResponse->pContext)
+    {
+        RdrContinueContext(pResponse->pContext, ntStatus, NULL);
+    }
+
+    pthread_cond_broadcast(&pResponse->event);
+}

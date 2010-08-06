@@ -179,4 +179,43 @@ RdrSocketCancel(
     IN PRDR_OP_CONTEXT pContext
     );
 
+NTSTATUS
+SMBSrvClientSocketAddSessionByUID(
+    PSMB_SOCKET  pSocket,
+    PSMB_SESSION pSession
+    );
+
+NTSTATUS
+SMBSrvClientSocketCreate(
+    IN PCWSTR pwszHostname,
+    OUT PSMB_SOCKET* ppSocket
+    );
+
+NTSTATUS
+RdrSocketInit(
+    VOID
+    );
+
+NTSTATUS
+RdrSocketShutdown(
+    VOID
+    );
+
+NTSTATUS
+SMBResponseCreate(
+    uint16_t       wMid,
+    SMB_RESPONSE **ppResponse
+    );
+
+VOID
+SMBResponseFree(
+    PSMB_RESPONSE pResponse
+    );
+
+VOID
+SMBResponseInvalidate_InLock(
+    PSMB_RESPONSE pResponse,
+    NTSTATUS ntStatus
+    );
+
 #endif /* __SOCKET_H__ */
