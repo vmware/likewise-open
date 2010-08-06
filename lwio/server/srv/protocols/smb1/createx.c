@@ -247,7 +247,7 @@ SrvProcessNTCreateAndX(
                             &pCreateState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->bRemoveFileFromTree = TRUE;
+            pCreateState->pFile->pfnCancelAsyncOperationsFile = SrvCancelFileAsyncOperations;
 
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
 
@@ -304,8 +304,6 @@ SrvProcessNTCreateAndX(
 
         case SRV_CREATE_STAGE_SMB_V1_DONE:
 
-            pCreateState->bRemoveFileFromTree = FALSE;
-
             if (pCreateState->pRequestHeader->desiredAccess & FILE_READ_DATA)
             {
                 pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
@@ -319,7 +317,9 @@ SrvProcessNTCreateAndX(
                 pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
             }
 
-            pCtxSmb1->pFile = SrvFileAcquire(pCreateState->pFile);
+            // transfer file so we do not run it down
+            pCtxSmb1->pFile = pCreateState->pFile;
+            pCreateState->pFile = NULL;
 
             break;
     }
@@ -1070,26 +1070,10 @@ SrvFreeCreateState(
         IoCloseFile(pCreateState->hFile);
     }
 
-    if (pCreateState->bRemoveFileFromTree)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        SrvFileResetOplockState(pCreateState->pFile);
-
-        ntStatus2 = SrvTreeRemoveFile(
-                        pCreateState->pTree,
-                        pCreateState->pFile->fid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
-                            pCreateState->pTree->tid,
-                            pCreateState->pFile->fid,
-                            ntStatus2);
-        }
-    }
-
     if (pCreateState->pFile)
     {
+        SrvFileResetOplockState(pCreateState->pFile);
+        SrvFileRundown(pCreateState->pFile);
         SrvFileRelease(pCreateState->pFile);
     }
 

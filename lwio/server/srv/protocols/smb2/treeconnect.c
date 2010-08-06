@@ -238,8 +238,6 @@ SrvProcessTreeConnect_SMB_V2(
                             &pTConState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pTConState->bRemoveTreeFromSession = TRUE;
-
             // intentional fall through
 
         case SRV_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE:
@@ -267,9 +265,9 @@ SrvProcessTreeConnect_SMB_V2(
 
         case SRV_TREE_CONNECT_STAGE_SMB_V2_DONE:
 
-            pCtxSmb2->pTree = SrvTree2Acquire(pTConState->pTree);
-
-            pTConState->bRemoveTreeFromSession = FALSE;
+            // transfer tree so we do not run it down
+            pCtxSmb2->pTree = pTConState->pTree;
+            pTConState->pTree = NULL;
 
             break;
     }
@@ -877,31 +875,15 @@ SrvFreeTreeConnectState_SMB_V2(
         SrvFreeMemory(pTConState->pwszPath);
     }
 
-    if (pTConState->bRemoveTreeFromSession)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        ntStatus2 = SrvSession2RemoveTree(
-                        pTConState->pSession,
-                        pTConState->pTree->ulTid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR(
-                    "Failed to remove tid [%u] from session [uid=%u][code:%d]",
-                    pTConState->pTree->ulTid,
-                    pTConState->pSession->ullUid,
-                    ntStatus2);
-        }
-    }
-
     if (pTConState->pSession)
     {
         SrvSession2Release(pTConState->pSession);
     }
 
+    // if non-NULL, it is left over and must be run down
     if (pTConState->pTree)
     {
-        SrvTree2Release(pTConState->pTree);
+        SrvTree2Rundown(pTConState->pTree);
     }
 
     if (pTConState->pMutex)

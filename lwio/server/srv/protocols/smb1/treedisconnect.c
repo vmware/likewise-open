@@ -79,9 +79,6 @@ SrvProcessTreeDisconnectAndX(
 
     SrvTreeRundown(pTree);
 
-    ntStatus = SrvSessionRemoveTree(pSession, pSmbRequest->pHeader->tid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     if (!pSmbResponse->ulSerialNum)
     {
         ntStatus = SrvMarshalHeader_SMB_V1(

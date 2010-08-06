@@ -131,19 +131,19 @@ SrvProcessCancel_SMB_V2(
     {
         case COM2_NOTIFY:
 
-            ntStatus = SrvCancelChangeNotify_SMB_V2(pExecContext);
+            SrvCancelChangeNotify_SMB_V2(pAsyncState);
 
             break;
 
         case COM2_CREATE:
 
-            ntStatus = SrvCancelCreate_SMB_V2(pExecContext);
+            SrvCancelCreate_SMB_V2(pAsyncState);
 
             break;
 
         case COM2_LOCK:
 
-            ntStatus = SrvCancelLockRequest_SMB_V2(pExecContext);
+            SrvCancelLockRequest_SMB_V2(pAsyncState);
 
             break;
 

@@ -199,8 +199,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     struct sockaddr                clientAddress;
     ULONG                          ulClientAddressLength;
 
-    BOOLEAN                        bRemoveTreeFromSession;
-
 } SRV_TREE_CONNECT_STATE_SMB_V1, *PSRV_TREE_CONNECT_STATE_SMB_V1;
 
 typedef enum
@@ -255,7 +253,6 @@ typedef struct _SRV_CREATE_STATE_SMB_V1
     PLWIO_SRV_TREE          pTree;
     PLWIO_SRV_FILE          pFile;
     PLWIO_SRV_FILE          pRootDirectory;
-    BOOLEAN                 bRemoveFileFromTree;
 
 } SRV_CREATE_STATE_SMB_V1, *PSRV_CREATE_STATE_SMB_V1;
 
@@ -315,7 +312,6 @@ typedef struct _SRV_OPEN_STATE_SMB_V1
 
     PLWIO_SRV_TREE               pTree;
     PLWIO_SRV_FILE               pFile;
-    BOOLEAN                      bRemoveFileFromTree;
 
 } SRV_OPEN_STATE_SMB_V1, *PSRV_OPEN_STATE_SMB_V1;
 
@@ -1053,7 +1049,6 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
     PIO_ECP_LIST                   pEcpList;
     ULONG                          ulCreateAction;
     UCHAR                          ucOplockLevel;
-    BOOLEAN                        bRemoveFileFromTree;
 
     FILE_BASIC_INFORMATION         fileBasicInfo;
     PFILE_BASIC_INFORMATION        pFileBasicInfo;

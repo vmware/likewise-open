@@ -523,12 +523,9 @@ SrvProtocolProcessCandidateSession(
     {
         BOOLEAN bIsMatch = FALSE;
 
-        ntStatus = SrvSessionCheckPrincipal(
+        bIsMatch = SrvSessionIsMatchPrincipal(
                         pSession,
-                        pSessionEnumQuery->pwszUsername,
-                        &bIsMatch);
-        BAIL_ON_NT_STATUS(ntStatus);
-
+                        pSessionEnumQuery->pwszUsername);
         if (!bIsMatch)
         {
             pSession = NULL;
@@ -718,12 +715,9 @@ SrvProtocolProcessCandidateSession2(
     {
         BOOLEAN bIsMatch = FALSE;
 
-        ntStatus = SrvSession2CheckPrincipal(
+        bIsMatch = SrvSession2IsMatchPrincipal(
                         pSession,
-                        pSessionEnumQuery->pwszUsername,
-                        &bIsMatch);
-        BAIL_ON_NT_STATUS(ntStatus);
-
+                        pSessionEnumQuery->pwszUsername);
         if (!bIsMatch)
         {
             pSession = NULL;

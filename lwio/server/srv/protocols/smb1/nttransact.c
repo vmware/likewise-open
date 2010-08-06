@@ -1702,10 +1702,14 @@ SrvProcessChangeNotifyCompletion(
                     pSmbRequest->pHeader->mid);
 
     ntStatus = SrvTreeFindAsyncState(pTree, ullNotifyId, &pAsyncState);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        // The request must have been rundown.
+        ntStatus = STATUS_CANCELLED;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTreeRemoveAsyncState(pTree, ullNotifyId);
-    BAIL_ON_NT_STATUS(ntStatus);
+    SrvTreeRemoveAsyncState(pTree, ullNotifyId);
 
     pNotifyState = (PSRV_CHANGE_NOTIFY_STATE_SMB_V1)pAsyncState->hAsyncState;
 
@@ -1715,11 +1719,7 @@ SrvProcessChangeNotifyCompletion(
     {
         case STATUS_CANCELLED:
 
-            ntStatus = SrvBuildErrorResponse_SMB_V1(
-                            pConnection,
-                            pSmbRequest->pHeader,
-                            pSmbRequest->pHeader->error,
-                            pSmbResponse);
+            ntStatus = STATUS_CANCELLED;
 
             break;
 
@@ -1765,6 +1765,13 @@ cleanup:
     return ntStatus;
 
 error:
+
+    // Need to build error response here since exec context is internal.
+    ntStatus = SrvBuildErrorResponse_SMB_V1(
+                    pConnection,
+                    pSmbRequest->pHeader,
+                    ntStatus,
+                    pSmbResponse);
 
     goto cleanup;
 }
@@ -2110,7 +2117,7 @@ SrvProcessNtTransactCreate(
                             &pNTTransactState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pNTTransactState->bRemoveFileFromTree = TRUE;
+            pNTTransactState->pFile->pfnCancelAsyncOperationsFile = SrvCancelFileAsyncOperations;
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_QUERY_INFO;
 
@@ -2167,8 +2174,6 @@ SrvProcessNtTransactCreate(
 
         case SRV_NTTRANSACT_STAGE_SMB_V1_DONE:
 
-            pNTTransactState->bRemoveFileFromTree = FALSE;
-
             if (pNTTransactState->pNtTransactCreateHeader->ulDesiredAccess & FILE_READ_DATA)
             {
                 pNTTransactState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
@@ -2182,7 +2187,9 @@ SrvProcessNtTransactCreate(
                 pNTTransactState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
             }
 
-            pCtxSmb1->pFile = SrvFileAcquire(pNTTransactState->pFile);
+            // transfer file so we do not run it down
+            pCtxSmb1->pFile = pNTTransactState->pFile;
+            pNTTransactState->pFile = NULL;
 
             break;
 
@@ -3066,26 +3073,13 @@ SrvFreeNTTransactState(
         IoCloseFile(pNTTransactState->hFile);
     }
 
-    if (pNTTransactState->bRemoveFileFromTree)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        SrvFileResetOplockState(pNTTransactState->pFile);
-
-        ntStatus2 = SrvTreeRemoveFile(
-                        pNTTransactState->pTree,
-                        pNTTransactState->pFile->fid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
-                            pNTTransactState->pTree->tid,
-                            pNTTransactState->pFile->fid,
-                            ntStatus2);
-        }
-    }
-
     if (pNTTransactState->pFile)
     {
+        if (pNTTransactState->pRequestHeader->usFunction == SMB_SUB_COMMAND_NT_TRANSACT_CREATE)
+        {
+            // left over from create, so run it down
+            SrvFileRundown(pNTTransactState->pFile);
+        }
         SrvFileRelease(pNTTransactState->pFile);
     }
 

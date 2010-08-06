@@ -50,6 +50,13 @@
 #include "includes.h"
 
 static
+inline
+BOOLEAN
+SrvConnectionIsInvalid_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+static
 NTSTATUS
 SrvConnectionCountSessions(
     PVOID    pKey,
@@ -69,23 +76,24 @@ SrvConnection2CountSessions(
 
 static
 NTSTATUS
+SrvConnectionAddSession_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION pSession
+    );
+
+static
+NTSTATUS
+SrvConnection2AddSession_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+static
+NTSTATUS
 SrvConnection2AcquireAsyncId_inlock(
    PLWIO_SRV_CONNECTION pConnection,
    PULONG64             pullAsyncId
    );
-
-static
-NTSTATUS
-SrvConnectionDeleteAllSessions(
-    PLWIO_SRV_CONNECTION pConnection
-    );
-
-static
-NTSTATUS
-SrvConnectionDeleteSessionsSelective(
-    PLWIO_SRV_CONNECTION pConnection,
-    PWSTR                pwszUsername
-    );
 
 static
 NTSTATUS
@@ -210,41 +218,42 @@ SrvConnection2AsyncStateRelease(
 
 static
 VOID
-SrvConnectionRundown_inlock(
+SrvConnectionRundown(
     PLWIO_SRV_CONNECTION pConnection
     );
 
 static
-NTSTATUS
-SrvConnectionRundownAllSessions_inlock(
-    PLWIO_SRV_CONNECTION pConnection
+BOOLEAN
+SrvConnectionGatherRundownSessionListCallback(
+    PLWIO_SRV_SESSION pSession,
+    PVOID pContext
     );
 
 static
-NTSTATUS
-SrvConnectionRundownSessionRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
+BOOLEAN
+SrvConnection2GatherRundownSessionListCallback(
+    PLWIO_SRV_SESSION_2 pSession,
+    PVOID pContext
+    );
+
+
+static
+VOID
+SrvConnectionRundownSessionList(
+    PLWIO_SRV_SESSION pRundownList
     );
 
 static
-NTSTATUS
-SrvConnection2RundownSessionRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
+VOID
+SrvConnection2RundownSessionList(
+    PLWIO_SRV_SESSION_2 pRundownList
     );
 
 static
-NTSTATUS
-SrvConnection2RundownAsyncStatesRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
+BOOLEAN
+SrvConnectionRundownAsyncStateCallback(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
     );
 
 NTSTATUS
@@ -395,51 +404,87 @@ SrvConnectionSetProtocolVersion_inlock(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWRTL_RB_TREE pNewSessionCollection = NULL;
 
     if (protoVer != pConnection->protocolVer)
     {
-        if (pConnection->pSessionCollection)
+        if (SrvConnectionIsInvalid_inlock(pConnection))
         {
-            LwRtlRBTreeFree(pConnection->pSessionCollection);
-            pConnection->pSessionCollection = NULL;
+            ntStatus = STATUS_CONNECTION_DISCONNECTED;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
-        pConnection->ullSessionCount = 0;
+
+        if (pConnection->ullSessionCount)
+        {
+            LWIO_LOG_ERROR("Attempting to change protocol version after establishing a session");
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         pConnection->protocolVer = protoVer;
+
+        // Replace existing session collection with new one of appropriate
+        // type.  This is needed because the collection needs compare/free
+        // functions that match the session type.
 
         switch (protoVer)
         {
             case SMB_PROTOCOL_VERSION_1:
 
-                pConnection->ulSequence = 0;
-                pConnection->usNextAvailableUid = 0;
+                LWIO_ASSERT(!pConnection->ulSequence);
+                LWIO_ASSERT(!pConnection->usNextAvailableUid);
 
                 ntStatus = SrvConnectionCreateSessionCollection(
-                                &pConnection->pSessionCollection);
+                                &pNewSessionCollection);
+                BAIL_ON_NT_STATUS(ntStatus);
 
                 break;
 
             case SMB_PROTOCOL_VERSION_2:
 
-                pConnection->ullNextAvailableUid = 0;
+                LWIO_ASSERT(!pConnection->ullNextAvailableUid);
 
                 ntStatus = SrvConnection2CreateSessionCollection(
-                                &pConnection->pSessionCollection);
+                                &pNewSessionCollection);
+                BAIL_ON_NT_STATUS(ntStatus);
 
                 break;
 
             default:
 
                 ntStatus = STATUS_INVALID_PARAMETER_2;
+                BAIL_ON_NT_STATUS(ntStatus);
 
                 break;
         }
-        BAIL_ON_NT_STATUS(ntStatus);
+
+        LwRtlRBTreeFree(pConnection->pSessionCollection);
+        pConnection->pSessionCollection = pNewSessionCollection;
+        pNewSessionCollection = NULL;
     }
+
+cleanup:
+
+    if (pNewSessionCollection)
+    {
+        LwRtlRBTreeFree(pNewSessionCollection);
+    }
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    goto cleanup;
+}
+
+static
+inline
+BOOLEAN
+SrvConnectionIsInvalid_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    return pConnection->state == LWIO_SRV_CONN_STATE_INVALID;
 }
 
 BOOLEAN
@@ -452,7 +497,7 @@ SrvConnectionIsInvalid(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    bInvalid = pConnection->state == LWIO_SRV_CONN_STATE_INVALID;
+    bInvalid = SrvConnectionIsInvalid_inlock(pConnection);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
@@ -473,15 +518,19 @@ SrvConnectionSetInvalid(
     {
         bDisconnect = TRUE;
         pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
-        SrvConnectionRundown_inlock(pConnection);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
-    // Call disconnect w/o lock held.
-    if (bDisconnect && pConnection->pSocket)
+    if (bDisconnect)
     {
-        pConnection->pSocketDispatch->pfnDisconnect(pConnection->pSocket);
+        SrvConnectionRundown(pConnection);
+
+        // Call disconnect w/o lock held.
+        if (pConnection->pSocket)
+        {
+            pConnection->pSocketDispatch->pfnDisconnect(pConnection->pSocket);
+        }
     }
 }
 
@@ -742,24 +791,14 @@ SrvConnectionCountSessions(
     PBOOLEAN pbContinue
     )
 {
-    NTSTATUS                ntStatus          = STATUS_SUCCESS;
     PLWIO_SRV_SESSION       pSession          = (PLWIO_SRV_SESSION)pData;
     PSRV_SESSION_ENUM_QUERY pSessionEnumQuery =
                                 (PSRV_SESSION_ENUM_QUERY)pUserData;
     BOOLEAN                 bIsMatch          = FALSE;
 
-    if (!pSessionEnumQuery->pwszUsername)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvSessionCheckPrincipal(
+    bIsMatch = SrvSessionIsMatchPrincipal(
                     pSession,
-                    pSessionEnumQuery->pwszUsername,
-                    &bIsMatch);
-    BAIL_ON_NT_STATUS(ntStatus);
-
+                    pSessionEnumQuery->pwszUsername);
     if (bIsMatch)
     {
         pSessionEnumQuery->ullSessionCount++;
@@ -767,15 +806,7 @@ SrvConnectionCountSessions(
 
     *pbContinue = TRUE;
 
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pbContinue = FALSE;
-
-    goto cleanup;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
@@ -833,24 +864,14 @@ SrvConnection2CountSessions(
     PBOOLEAN pbContinue
     )
 {
-    NTSTATUS                ntStatus          = STATUS_SUCCESS;
     PLWIO_SRV_SESSION_2     pSession          = (PLWIO_SRV_SESSION_2)pData;
     PSRV_SESSION_ENUM_QUERY pSessionEnumQuery =
                                 (PSRV_SESSION_ENUM_QUERY)pUserData;
     BOOLEAN                 bIsMatch          = FALSE;
 
-    if (!pSessionEnumQuery->pwszUsername)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SrvSession2CheckPrincipal(
+    bIsMatch = SrvSession2IsMatchPrincipal(
                     pSession,
-                    pSessionEnumQuery->pwszUsername,
-                    &bIsMatch);
-    BAIL_ON_NT_STATUS(ntStatus);
-
+                    pSessionEnumQuery->pwszUsername);
     if (bIsMatch)
     {
         pSessionEnumQuery->ullSessionCount++;
@@ -858,41 +879,39 @@ SrvConnection2CountSessions(
 
     *pbContinue = TRUE;
 
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pbContinue = FALSE;
-
-    goto cleanup;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
 SrvConnectionRemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
-    USHORT              uid
+    PLWIO_SRV_SESSION pSession
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pCachedSession = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    pSession = pConnection->lruSession[ uid % SRV_LRU_CAPACITY ];
-    if (pSession && (pSession->uid == uid))
+    if (SrvSessionIsInParent(pSession))
     {
-        pConnection->lruSession[ uid % SRV_LRU_CAPACITY ] = NULL;
+        pCachedSession = pConnection->lruSession[ pSession->uid % SRV_LRU_CAPACITY ];
+        if (pCachedSession && (pCachedSession->uid == pSession->uid))
+        {
+            pConnection->lruSession[ pSession->uid % SRV_LRU_CAPACITY ] = NULL;
+        }
+
+        // removal automatically releases reference
+        ntStatus = LwRtlRBTreeRemove(
+                        pConnection->pSessionCollection,
+                        &pSession->uid);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvSessionClearInParent(pSession);
+
+        pConnection->ullSessionCount--;
     }
-
-    ntStatus = LwRtlRBTreeRemove(
-                    pConnection->pSessionCollection,
-                    &uid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pConnection->ullSessionCount--;
 
 cleanup:
 
@@ -901,6 +920,10 @@ cleanup:
     return ntStatus;
 
 error:
+
+    LWIO_LOG_ERROR("Cannot fail!, status = 0x%08X (%s)",
+                   ntStatus, LwNtStatusToName(ntStatus));
+    LWIO_ASSERT_MSG(FALSE, "Cannot fail");
 
     goto cleanup;
 }
@@ -908,27 +931,33 @@ error:
 NTSTATUS
 SrvConnection2RemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
-    ULONG64              ullUid
+    PLWIO_SRV_SESSION_2 pSession
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_SRV_SESSION_2 pCachedSession = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    pSession = pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ];
-    if (pSession && (pSession->ullUid == ullUid))
+    if (SrvSession2IsInParent(pSession))
     {
-        pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ] = NULL;
+        pCachedSession = pConnection->lruSession2[ pSession->ullUid % SRV_LRU_CAPACITY ];
+        if (pCachedSession && (pCachedSession->ullUid == pSession->ullUid))
+        {
+            pConnection->lruSession2[ pSession->ullUid % SRV_LRU_CAPACITY ] = NULL;
+        }
+
+        // removal automatically releases reference
+        ntStatus = LwRtlRBTreeRemove(
+                        pConnection->pSessionCollection,
+                        &pSession->ullUid);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvSession2ClearInParent(pSession);
+
+        pConnection->ullSessionCount--;
     }
-
-    ntStatus = LwRtlRBTreeRemove(
-                    pConnection->pSessionCollection,
-                    &ullUid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pConnection->ullSessionCount--;
 
 cleanup:
 
@@ -937,6 +966,10 @@ cleanup:
     return ntStatus;
 
 error:
+
+    LWIO_LOG_ERROR("Cannot fail!, status = 0x%08X (%s)",
+                   ntStatus, LwNtStatusToName(ntStatus));
+    LWIO_ASSERT_MSG(FALSE, "Cannot fail");
 
     goto cleanup;
 }
@@ -954,27 +987,25 @@ SrvConnectionCreateSession(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
+    if (SrvConnectionIsInvalid_inlock(pConnection))
+    {
+        ntStatus = STATUS_CONNECTION_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvConnectionAcquireSessionId_inlock(
                     pConnection,
                     &uid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSessionCreate(
+                    pConnection,
                     uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlRBTreeAdd(
-                    pConnection->pSessionCollection,
-                    &pSession->uid,
-                    pSession);
+    ntStatus = SrvConnectionAddSession_inlock(pConnection, pSession);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    InterlockedIncrement(&pSession->refcount);
-
-    pSession->ulConnectionResourceId = pConnection->resource.ulResourceId;
-
-    pConnection->ullSessionCount++;
 
     *ppSession = pSession;
 
@@ -986,10 +1017,13 @@ cleanup:
 
 error:
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
     *ppSession = NULL;
 
     if (pSession)
     {
+        SrvSessionRundown(pSession);
         SrvSessionRelease(pSession);
     }
 
@@ -1009,27 +1043,25 @@ SrvConnection2CreateSession(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
+    if (SrvConnectionIsInvalid_inlock(pConnection))
+    {
+        ntStatus = STATUS_CONNECTION_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvConnection2AcquireSessionId_inlock(
                     pConnection,
                     &ullUid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2Create(
+                    pConnection,
                     ullUid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlRBTreeAdd(
-                    pConnection->pSessionCollection,
-                    &pSession->ullUid,
-                    pSession);
+    ntStatus = SrvConnection2AddSession_inlock(pConnection, pSession);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    InterlockedIncrement(&pSession->refcount);
-
-    pSession->ulConnectionResourceId = pConnection->resource.ulResourceId;
-
-    pConnection->ullSessionCount++;
 
     *ppSession = pSession;
 
@@ -1041,15 +1073,80 @@ cleanup:
 
 error:
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
     *ppSession = NULL;
 
     if (pSession)
     {
+        SrvSession2Rundown(pSession);
         SrvSession2Release(pSession);
     }
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvConnectionAddSession_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION pSession
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    ntStatus = LwRtlRBTreeAdd(
+                    pConnection->pSessionCollection,
+                    &pSession->uid,
+                    pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Reference from parent
+    SrvSessionAcquire(pSession);
+    SrvSessionSetInParent(pSession);
+
+    pConnection->lruSession[pSession->uid % SRV_LRU_CAPACITY] = pSession;
+    pConnection->ullSessionCount++;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnection2AddSession_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION_2 pSession
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    ntStatus = LwRtlRBTreeAdd(
+                    pConnection->pSessionCollection,
+                    &pSession->ullUid,
+                    pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvSession2Acquire(pSession);
+    SrvSession2SetInParent(pSession);
+
+    pConnection->lruSession2[pSession->ullUid % SRV_LRU_CAPACITY] = pSession;
+    pConnection->ullSessionCount++;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
 
 NTSTATUS
 SrvConnection2CreateAsyncState(
@@ -1066,6 +1163,12 @@ SrvConnection2CreateAsyncState(
     ULONG64           ullAsyncId  = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    if (SrvConnectionIsInvalid_inlock(pConnection))
+    {
+        ntStatus = STATUS_CONNECTION_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvConnection2AcquireAsyncId_inlock(
                     pConnection,
@@ -1204,7 +1307,7 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvConnection2RemoveAsyncState(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullAsyncId
@@ -1218,10 +1321,14 @@ SrvConnection2RemoveAsyncState(
     ntStatus = LwRtlRBTreeRemove(
                     pConnection->pAsyncStateCollection,
                     &ullAsyncId);
+    if ((ntStatus != STATUS_SUCCESS) && (ntStatus != STATUS_NOT_FOUND))
+    {
+        LWIO_LOG_ERROR("Unexpected error removing async state, "
+                       "status = 0x%08X (%s)",
+                       ntStatus, LwNtStatusToName(ntStatus));
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-
-    return ntStatus;
 }
 
 NTSTATUS
@@ -1287,56 +1394,6 @@ error:
 
 NTSTATUS
 SrvConnectionDeleteSessions(
-    PLWIO_SRV_CONNECTION pConnection,
-    PWSTR                pwszUsername
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    if (IsNullOrEmptyString(pwszUsername))
-    {
-        ntStatus = SrvConnectionDeleteAllSessions(pConnection);
-    }
-    else
-    {
-        ntStatus = SrvConnectionDeleteSessionsSelective(
-                        pConnection,
-                        pwszUsername);
-    }
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvConnectionDeleteAllSessions(
-    PLWIO_SRV_CONNECTION pConnection
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
-
-    ntStatus = SrvConnectionRundownAllSessions_inlock(pConnection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LwRtlRBTreeRemoveAll(pConnection->pSessionCollection);
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvConnectionDeleteSessionsSelective(
     PLWIO_SRV_CONNECTION pConnection,
     PWSTR                pwszUsername
     )
@@ -1439,12 +1496,9 @@ SrvConnectionSelectCandidateSession(
     BOOLEAN                bIsMatch = FALSE;
     PSRV_SESSION_DEL_QUERY pSessionDelQuery = (PSRV_SESSION_DEL_QUERY)pUserData;
 
-    ntStatus = SrvSessionCheckPrincipal(
+    bIsMatch = SrvSessionIsMatchPrincipal(
                     pSession,
-                    pSessionDelQuery->pwszUsername,
-                    &bIsMatch);
-    BAIL_ON_NT_STATUS(ntStatus);
-
+                    pSessionDelQuery->pwszUsername);
     if (bIsMatch)
     {
         ntStatus = LwRtlRBTreeAdd(
@@ -1483,12 +1537,9 @@ SrvConnection2SelectCandidateSession(
     PSRV_SESSION_DEL_QUERY pSessionDelQuery = (PSRV_SESSION_DEL_QUERY)pUserData;
     BOOLEAN bIsMatch = FALSE;
 
-    ntStatus = SrvSession2CheckPrincipal(
+    bIsMatch = SrvSession2IsMatchPrincipal(
                     pSession,
-                    pSessionDelQuery->pwszUsername,
-                    &bIsMatch);
-    BAIL_ON_NT_STATUS(ntStatus);
-
+                    pSessionDelQuery->pwszUsername);
     if (bIsMatch)
     {
         ntStatus = LwRtlRBTreeAdd(
@@ -1522,30 +1573,13 @@ SrvConnectionDeleteSession(
     PBOOLEAN pbContinue
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_SESSION pSession  = (PLWIO_SRV_SESSION)pData;
-    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pUserData;
 
     SrvSessionRundown(pSession);
 
-    ntStatus = SrvConnectionRemoveSession(pConnection, pSession->uid);
-    if (ntStatus == STATUS_NOT_FOUND)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
     *pbContinue = TRUE;
 
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pbContinue = FALSE;
-
-    goto cleanup;
+    return STATUS_SUCCESS;
 }
 
 static
@@ -1557,30 +1591,13 @@ SrvConnection2DeleteSession(
     PBOOLEAN pbContinue
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_SESSION_2 pSession  = (PLWIO_SRV_SESSION_2)pData;
-    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pUserData;
 
     SrvSession2Rundown(pSession);
 
-    ntStatus = SrvConnection2RemoveSession(pConnection, pSession->ullUid);
-    if (ntStatus == STATUS_NOT_FOUND)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
     *pbContinue = TRUE;
 
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pbContinue = FALSE;
-
-    goto cleanup;
+    return STATUS_SUCCESS;
 }
 
 PLWIO_SRV_CONNECTION
@@ -1964,190 +1981,129 @@ SrvConnection2AsyncStateRelease(
 
 static
 VOID
-SrvConnectionRundown_inlock(
+SrvConnectionRundown(
     PLWIO_SRV_CONNECTION pConnection
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+    PLWIO_SRV_SESSION pRundownSessionList = NULL;
+    PLWIO_SRV_SESSION_2 pRundownSession2List = NULL;
 
-    ntStatus = SrvConnectionRundownAllSessions_inlock(pConnection);
-    BAIL_ON_NT_STATUS(ntStatus);
+    // TODO: Merge with SrvConnectionSetInvalid()
 
-    if (pConnection->pAsyncStateCollection)
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    LWIO_ASSERT(SrvConnectionIsInvalid_inlock(pConnection));
+
+    switch (pConnection->protocolVer)
     {
-        ntStatus = LwRtlRBTreeTraverse(
-                        pConnection->pAsyncStateCollection,
-                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                        &SrvConnection2RundownAsyncStatesRbTreeVisit,
-                        NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
+        case SMB_PROTOCOL_VERSION_1:
+            SrvEnumSessionCollection(
+                    pConnection->pSessionCollection,
+                    SrvConnectionGatherRundownSessionListCallback,
+                    &pRundownSessionList);
+            break;
+        case SMB_PROTOCOL_VERSION_2:
+            SrvEnumSession2Collection(
+                    pConnection->pSessionCollection,
+                    SrvConnection2GatherRundownSessionListCallback,
+                    &pRundownSession2List);
+            break;
+        default:
+            break;
     }
 
-cleanup:
+    SrvEnumAsyncStateCollection(
+            pConnection->pAsyncStateCollection,
+            SrvConnectionRundownAsyncStateCallback,
+            NULL);
 
-    return;
+    LwRtlRBTreeRemoveAll(pConnection->pAsyncStateCollection);
 
-error:
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
-    LWIO_LOG_ERROR("Connection run down failed [status: %s = 0x%08X (%d)]",
-                   LwNtStatusToName(ntStatus),
-                   ntStatus,
-                   ntStatus);
-
-    goto cleanup;
+    // Cannot rundown with lock held as they self-remove
+    SrvConnectionRundownSessionList(pRundownSessionList);
+    SrvConnection2RundownSessionList(pRundownSession2List);
 }
 
 static
-NTSTATUS
-SrvConnectionRundownAllSessions_inlock(
-    PLWIO_SRV_CONNECTION pConnection
+BOOLEAN
+SrvConnectionGatherRundownSessionListCallback(
+    PLWIO_SRV_SESSION pSession,
+    PVOID pContext
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION* ppRundownList = (PLWIO_SRV_SESSION*) pContext;
 
-    if (pConnection->pSessionCollection)
-    {
-        switch (pConnection->protocolVer)
-        {
-            case SMB_PROTOCOL_VERSION_1:
+    LWIO_ASSERT(!pSession->pRundownNext);
+    pSession->pRundownNext = *ppRundownList;
 
-                ntStatus = LwRtlRBTreeTraverse(
-                                pConnection->pSessionCollection,
-                                LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                                &SrvConnectionRundownSessionRbTreeVisit,
-                                NULL);
-                break;
+    SrvSessionAcquire(pSession);
+    *ppRundownList = pSession;
 
-            case SMB_PROTOCOL_VERSION_2:
-
-                ntStatus = LwRtlRBTreeTraverse(
-                                pConnection->pSessionCollection,
-                                LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                                &SrvConnection2RundownSessionRbTreeVisit,
-                                NULL);
-                break;
-
-            default:
-
-                ntStatus = STATUS_INTERNAL_ERROR;
-
-                break;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-error:
-
-    return ntStatus;
+    return TRUE;
 }
 
 static
-NTSTATUS
-SrvConnectionRundownSessionRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
+BOOLEAN
+SrvConnection2GatherRundownSessionListCallback(
+    PLWIO_SRV_SESSION_2 pSession,
+    PVOID pContext
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION pSession = (PLWIO_SRV_SESSION)pData;
-    PWSTR pwszUsername = (PWSTR)pUserData;
+    PLWIO_SRV_SESSION_2* ppRundownList = (PLWIO_SRV_SESSION_2*) pContext;
 
-    if (!IsNullOrEmptyString(pwszUsername))
+    LWIO_ASSERT(!pSession->pRundownNext);
+    pSession->pRundownNext = *ppRundownList;
+
+    SrvSession2Acquire(pSession);
+    *ppRundownList = pSession;
+
+    return TRUE;
+}
+
+static
+VOID
+SrvConnectionRundownSessionList(
+    PLWIO_SRV_SESSION pRundownList
+    )
+{
+    while (pRundownList)
     {
-        BOOLEAN bIsMatch = FALSE;
+        PLWIO_SRV_SESSION pSession = pRundownList;
+        pRundownList = pSession->pRundownNext;
 
-        ntStatus = SrvSessionCheckPrincipal(pSession, pwszUsername, &bIsMatch);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (!bIsMatch)
-        {
-            pSession = NULL;
-        }
-    }
-
-    if (pSession)
-    {
         SrvSessionRundown(pSession);
+        SrvSessionRelease(pSession);
     }
-
-    *pbContinue = TRUE;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pbContinue = FALSE;
-
-    goto cleanup;
 }
 
 static
-NTSTATUS
-SrvConnection2RundownSessionRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
+VOID
+SrvConnection2RundownSessionList(
+    PLWIO_SRV_SESSION_2 pRundownList
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
-    PWSTR pwszUsername = (PWSTR)pUserData;
-
-    if (!IsNullOrEmptyString(pwszUsername))
+    while (pRundownList)
     {
-        BOOLEAN bIsMatch = FALSE;
+        PLWIO_SRV_SESSION_2 pSession = pRundownList;
+        pRundownList = pSession->pRundownNext;
 
-        ntStatus = SrvSession2CheckPrincipal(pSession, pwszUsername, &bIsMatch);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (!bIsMatch)
-        {
-            pSession = NULL;
-        }
-    }
-
-    if (pSession)
-    {
         SrvSession2Rundown(pSession);
+        SrvSession2Release(pSession);
     }
-
-    *pbContinue = TRUE;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pbContinue = FALSE;
-
-    goto cleanup;
 }
 
 static
-NTSTATUS
-SrvConnection2RundownAsyncStatesRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
+BOOLEAN
+SrvConnectionRundownAsyncStateCallback(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
     )
 {
-    PLWIO_ASYNC_STATE pAsyncState = (PLWIO_ASYNC_STATE)pData;
+    SrvAsyncStateCancel(pAsyncState);
 
-    if (pAsyncState)
-    {
-        SrvAsyncStateCancel(pAsyncState);
-    }
-
-    *pbContinue = TRUE;
-
-    return STATUS_SUCCESS;
+    return TRUE;
 }
-
 

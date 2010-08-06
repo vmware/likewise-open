@@ -65,8 +65,7 @@ SrvProcessCloseAndX(
     );
 
 VOID
-SrvFileCancelAsyncOperations(
-    PLWIO_SRV_TREE pTree,
+SrvCancelFileAsyncOperations(
     PLWIO_SRV_FILE pFile
     );
 

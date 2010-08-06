@@ -51,13 +51,32 @@
 #include "includes.h"
 
 static
+BOOLEAN
+SrvFile2IsInParent_inlock(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+static
 VOID
 SrvFile2Free(
     PLWIO_SRV_FILE_2 pFile
     );
 
+static
+BOOLEAN
+SrvFile2IsRundown_inlock(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+static
+VOID
+SrvFile2SetRundown_inlock(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
 NTSTATUS
 SrvFile2Create(
+    PLWIO_SRV_TREE_2        pTree,
     PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
@@ -88,6 +107,9 @@ SrvFile2Create(
     pthread_rwlock_init(&pFile->mutex, NULL);
     pFile->pMutex = &pFile->mutex;
 
+    pFile->pTree = pTree;
+    SrvTree2Acquire(pTree);
+
     ntStatus = SrvAllocateStringW(pwszFilename, &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -107,6 +129,10 @@ SrvFile2Create(
     pFile->resource.pAttributes                  = &pFile->resourceAttrs;
     pFile->resource.pAttributes->protocolVersion = SMB_PROTOCOL_VERSION_2;
     pFile->resource.pAttributes->fileId.pFid2    = &pFile->fid;
+    pFile->resource.pAttributes->treeId.usTid     = pTree->ulTid;
+    pFile->resource.pAttributes->sessionId.ullUid = pTree->ullUid;
+    pFile->resource.pAttributes->ulConnectionResourceId =
+                                                pTree->ulConnectionResourceId;
 
     LWIO_LOG_DEBUG( "Associating file [object:0x%x]"
                     "[fid: (persistent:%08X)(volatile:%08X)]",
@@ -134,6 +160,56 @@ error:
     goto cleanup;
 }
 
+BOOLEAN
+SrvFile2IsInParent(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bIsInParent = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+    bIsInParent = SrvFile2IsInParent_inlock(pFile);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return bIsInParent;
+}
+
+static
+BOOLEAN
+SrvFile2IsInParent_inlock(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    return IsSetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_IN_PARENT);
+}
+
+VOID
+SrvFile2SetInParent(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+    LWIO_ASSERT(!IsSetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_IN_PARENT));
+    SetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_IN_PARENT);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+VOID
+SrvFile2ClearInParent(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+    LWIO_ASSERT(IsSetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_IN_PARENT));
+    ClearFlag(pFile->objectFlags, SRV_OBJECT_FLAG_IN_PARENT);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
 NTSTATUS
 SrvFile2SetOplockState(
     PLWIO_SRV_FILE_2               pFile,
@@ -153,12 +229,24 @@ SrvFile2SetOplockState(
         pFile->pfnFreeOplockState = NULL;
     }
 
+    if (SrvFile2IsRundown_inlock(pFile))
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     pFile->hOplockState       = hOplockState;
     pFile->pfnFreeOplockState = pfnFreeOplockState;
+
+cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 HANDLE
@@ -330,19 +418,44 @@ SrvFile2Rundown(
     PLWIO_SRV_FILE_2 pFile
     )
 {
-    if (pFile->resource.ulResourceId)
-    {
-        PSRV_RESOURCE pResource = NULL;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bDoRundown = FALSE;
+    BOOLEAN bIsInParent = FALSE;
 
-        SrvElementsUnregisterResource(pFile->resource.ulResourceId, &pResource);
-        pFile->resource.ulResourceId = 0;
-    }
-    if (pFile->hFile)
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    if (!SrvFile2IsRundown_inlock(pFile))
     {
-        IoCancelFile(pFile->hFile);
+        SrvFile2SetRundown_inlock(pFile);
+
+        bDoRundown = TRUE;
+        bIsInParent = SrvFile2IsInParent_inlock(pFile);
     }
 
-    SrvOplock2StateRundown(pFile);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    if (bIsInParent)
+    {
+        SrvTree2RemoveFile(pFile->pTree, pFile);
+    }
+
+    if (bDoRundown)
+    {
+        if (pFile->resource.ulResourceId)
+        {
+            PSRV_RESOURCE pResource = NULL;
+
+            SrvElementsUnregisterResource(pFile->resource.ulResourceId, &pResource);
+            pFile->resource.ulResourceId = 0;
+        }
+
+        if (pFile->hFile)
+        {
+            IoCancelForRundownFile(pFile->hFile);
+        }
+
+        SrvFile2ResetOplockState(pFile);
+    }
 }
 
 static
@@ -356,6 +469,9 @@ SrvFile2Free(
                     pFile,
                     pFile->fid.ullPersistentId,
                     pFile->fid.ullVolatileId);
+
+    // Cannot be in the parent since parent would have a reference.
+    LWIO_ASSERT(!SrvFile2IsInParent_inlock(pFile));
 
     if (pFile->pMutex)
     {
@@ -375,6 +491,11 @@ SrvFile2Free(
 
     if (pFile->hFile)
     {
+        // TODO: Use IoAsyncCloseFile here and other Srv*Free()
+        // and SrvFile*() functions -- with callback that just
+        // frees IOSB -- but make sure to pre-allocate IOSB
+        // when SRV_FILE_2 is created.  Or add IoNoWaitCloseFile()
+        // to iomgr.
         IoCloseFile(pFile->hFile);
     }
 
@@ -406,8 +527,34 @@ SrvFile2Free(
         pFile->resource.ulResourceId = 0;
     }
 
+    // Release parent at the end
+    if (pFile->pTree)
+    {
+        SrvTree2Release(pFile->pTree);
+    }
+
     SrvFreeMemory(pFile);
 }
+
+static
+BOOLEAN
+SrvFile2IsRundown_inlock(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    return IsSetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_RUNDOWN);
+}
+
+static
+VOID
+SrvFile2SetRundown_inlock(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    LWIO_ASSERT(!IsSetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_RUNDOWN));
+    SetFlag(pFile->objectFlags, SRV_OBJECT_FLAG_RUNDOWN);
+}
+
 
 /*
 local variables:

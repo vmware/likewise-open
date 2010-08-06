@@ -50,6 +50,12 @@
 #include "includes.h"
 
 static
+VOID
+SrvCancelNotifyState_SMB_V2(
+    HANDLE hNotifyState
+    );
+
+static
 NTSTATUS
 SrvBuildNotifyRequestState_SMB_V2(
     PSMB2_NOTIFY_CHANGE_HEADER         pRequestHeader,
@@ -277,10 +283,9 @@ SrvProcessNotify_SMB_V2(
 
                     // completed synchronously; remove asynchronous state
                     //
-                    ntStatus = SrvConnection2RemoveAsyncState(
-                                    pConnection,
-                                    pAsyncState->ullAsyncId);
-                    BAIL_ON_NT_STATUS(ntStatus);
+                    SrvConnection2RemoveAsyncState(
+                            pConnection,
+                            pAsyncState->ullAsyncId);
 
                     pNotifyState->ullAsyncId = 0LL;
 
@@ -407,10 +412,14 @@ SrvProcessNotifyCompletion_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        // The request must have been rundown.
+        ntStatus = STATUS_CANCELLED;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2RemoveAsyncState(pConnection, ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
+    SrvConnection2RemoveAsyncState(pConnection, ullAsyncId);
 
     pNotifyState = (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
 
@@ -427,10 +436,7 @@ SrvProcessNotifyCompletion_SMB_V2(
     {
         case STATUS_CANCELLED:
 
-            ntStatus = SrvBuildErrorResponse_SMB_V2(
-                            pExecContext,
-                            pNotifyState->ullAsyncId,
-                            pSmbRequest->pHeader->error);
+            ntStatus = STATUS_CANCELLED;
 
             break;
 
@@ -480,56 +486,32 @@ cleanup:
 
 error:
 
+    // Need to build error response here since exec context is internal.
+    ntStatus = SrvBuildErrorResponse_SMB_V2(
+                    pExecContext,
+                    ullAsyncId,
+                    ntStatus);
+
     goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvCancelChangeNotify_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    PLWIO_ASYNC_STATE pAsyncState
     )
 {
-    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    BOOLEAN                    bInLock      = FALSE;
-    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
-    ULONG64                    ullAsyncId   = 0LL;
-    PSRV_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
-
-    ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pNotifyState = (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
+    BOOLEAN bInLock = FALSE;
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState =
+                        (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
     SrvCancelNotifyState_SMB_V2_inlock(pNotifyState);
 
-cleanup:
-
-    if (pNotifyState)
-    {
-        LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
-    }
-
-    if (pAsyncState)
-    {
-        SrvAsyncStateRelease(pAsyncState);
-    }
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
+    LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
 }
 
+static
 VOID
 SrvCancelNotifyState_SMB_V2(
     HANDLE hNotifyState

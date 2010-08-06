@@ -98,7 +98,127 @@ SrvElementsResourcesShutdown(
     VOID
     );
 
-// srvtimer.h
+// srvenum.c
+
+VOID
+SrvEnumSessionCollection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_SESSION_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+VOID
+SrvEnumTreeCollection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_TREE_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+VOID
+SrvEnumFileCollection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_FILE_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+VOID
+SrvEnumSession2Collection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_SESSION_2_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+VOID
+SrvEnumTree2Collection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_TREE_2_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+VOID
+SrvEnumFile2Collection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_FILE_2_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+VOID
+SrvEnumAsyncStateCollection(
+    PLWRTL_RB_TREE pCollection,
+    PFN_SRV_ASYNC_STATE_ENUM_CALLBACK pfnEnumCallback,
+    PVOID pContext
+    );
+
+// srvfile.c
+
+BOOLEAN
+SrvFileIsInParent(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileSetInParent(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileClearInParent(
+    PLWIO_SRV_FILE pFile
+    );
+
+// srvfile2.c
+
+BOOLEAN
+SrvFile2IsInParent(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2SetInParent(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2ClearInParent(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+
+// srvsession.c
+
+BOOLEAN
+SrvSessionIsInParent(
+    PLWIO_SRV_SESSION pSession
+    );
+
+VOID
+SrvSessionSetInParent(
+    PLWIO_SRV_SESSION pSession
+    );
+
+VOID
+SrvSessionClearInParent(
+    PLWIO_SRV_SESSION pSession
+    );
+
+// srvsession2.c
+
+BOOLEAN
+SrvSession2IsInParent(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+VOID
+SrvSession2SetInParent(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+VOID
+SrvSession2ClearInParent(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+// srvtimer.c
 
 NTSTATUS
 SrvTimerInit(
@@ -130,4 +250,39 @@ VOID
 SrvTimerFreeContents(
     PSRV_TIMER pTimer
     );
+
+// srvtree.c
+
+BOOLEAN
+SrvTreeIsInParent(
+    PLWIO_SRV_TREE pTree
+    );
+
+VOID
+SrvTreeSetInParent(
+    PLWIO_SRV_TREE pTree
+    );
+
+VOID
+SrvTreeClearInParent(
+    PLWIO_SRV_TREE pTree
+    );
+
+// srvtree2.c
+
+BOOLEAN
+SrvTree2IsInParent(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+VOID
+SrvTree2SetInParent(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+VOID
+SrvTree2ClearInParent(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
 

@@ -71,11 +71,6 @@ SrvProcessLogoffAndX(
 
     SrvSessionRundown(pSession);
 
-    ntStatus = SrvConnectionRemoveSession(
-                    pConnection,
-                    pSmbRequest->pHeader->uid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     if (!pSmbResponse->ulSerialNum)
     {
         ntStatus = SrvMarshalHeader_SMB_V1(

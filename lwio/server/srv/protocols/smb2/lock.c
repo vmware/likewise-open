@@ -421,29 +421,14 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvCancelLockRequest_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    PLWIO_ASYNC_STATE pAsyncState
     )
 {
-    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    BOOLEAN                    bInLock      = FALSE;
-    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
-    ULONG64                    ullAsyncId   = 0LL;
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockState = NULL;
-
-    ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pLockState = (PSRV_LOCK_REQUEST_STATE_SMB_V2)pAsyncState->hAsyncState;
+    BOOLEAN bInLock = FALSE;
+    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockState =
+                (PSRV_LOCK_REQUEST_STATE_SMB_V2)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockState->mutex);
 
@@ -451,23 +436,7 @@ SrvCancelLockRequest_SMB_V2(
 
     SrvCancelLockRequestStateHandle_SMB_V2_inlock(pLockState);
 
-cleanup:
-
-    if (pLockState)
-    {
-        LWIO_UNLOCK_MUTEX(bInLock, &pLockState->mutex);
-    }
-
-    if (pAsyncState)
-    {
-        SrvAsyncStateRelease(pAsyncState);
-    }
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockState->mutex);
 }
 
 static

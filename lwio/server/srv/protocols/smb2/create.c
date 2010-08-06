@@ -327,10 +327,9 @@ SrvProcessCreate_SMB_V2(
 
                     // completed synchronously; remove asynchronous state
                     //
-                    ntStatus = SrvConnection2RemoveAsyncState(
-                                    pConnection,
-                                    pCreateState->ullAsyncId);
-                    BAIL_ON_NT_STATUS(ntStatus);
+                    SrvConnection2RemoveAsyncState(
+                            pConnection,
+                            pCreateState->ullAsyncId);
 
                     pCreateState->ullAsyncId = 0LL;
 
@@ -367,8 +366,6 @@ SrvProcessCreate_SMB_V2(
                             pCreateState->pRequestHeader->ulCreateOptions,
                             &pCreateState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            pCreateState->bRemoveFileFromTree = TRUE;
 
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO;
 
@@ -411,10 +408,9 @@ SrvProcessCreate_SMB_V2(
 
             if (pCreateState->ullAsyncId)
             {
-                ntStatus = SrvConnection2RemoveAsyncState(
-                                pConnection,
-                                pCreateState->ullAsyncId);
-                BAIL_ON_NT_STATUS(ntStatus);
+                SrvConnection2RemoveAsyncState(
+                        pConnection,
+                        pCreateState->ullAsyncId);
             }
 
             ntStatus = SrvElementsRegisterResource(
@@ -427,8 +423,6 @@ SrvProcessCreate_SMB_V2(
             // intentional fall through
 
         case SRV_CREATE_STAGE_SMB_V2_DONE:
-
-            pCreateState->bRemoveFileFromTree = FALSE;
 
             if (pCreateState->pRequestHeader->ulDesiredAccess & FILE_READ_DATA)
             {
@@ -443,7 +437,9 @@ SrvProcessCreate_SMB_V2(
                 pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
             }
 
-            pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
+            // transfer file so we do not run it down
+            pCtxSmb2->pFile = pCreateState->pFile;
+            pCreateState->pFile = NULL;
 
             pCtxSmb2->bFileOpened = TRUE;
 
@@ -510,54 +506,20 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvCancelCreate_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    PLWIO_ASYNC_STATE pAsyncState
     )
 {
-    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    BOOLEAN                    bInLock      = FALSE;
-    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
-    ULONG64                    ullAsyncId   = 0LL;
-    PSRV_CREATE_STATE_SMB_V2   pCreateState = NULL;
-
-    ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvConnection2FindAsyncState(
-                    pConnection,
-                    ullAsyncId,
-                    &pAsyncState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pAsyncState->hAsyncState;
+    BOOLEAN bInLock = FALSE;
+    PSRV_CREATE_STATE_SMB_V2 pCreateState =
+                (PSRV_CREATE_STATE_SMB_V2)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
     SrvCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
 
-cleanup:
-
-    if (pCreateState)
-    {
-        LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
-    }
-
-    if (pAsyncState)
-    {
-        SrvAsyncStateRelease(pAsyncState);
-    }
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
 }
 
 static
@@ -1300,31 +1262,13 @@ SrvFreeCreateState_SMB_V2(
         IoCloseFile(pCreateState->hFile);
     }
 
-    if (pCreateState->bRemoveFileFromTree)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        SrvFile2ResetOplockState(pCreateState->pFile);
-
-        ntStatus2 = SrvTree2RemoveFile(
-                        pCreateState->pTree,
-                        &pCreateState->pFile->fid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%u]"
-                            "[Fid:persistent(%0x08X) volatile(%0x08X)][code:%d]",
-                           pCreateState->pTree->ulTid,
-                           pCreateState->pFile->fid.ullPersistentId,
-                           pCreateState->pFile->fid.ullVolatileId,
-                           ntStatus2);
-        }
-    }
-
     SRV_SAFE_FREE_MEMORY(pCreateState->pwszFilename);
     SRV_SAFE_FREE_MEMORY(pCreateState->pCreateContexts);
 
     if (pCreateState->pFile)
     {
+        SrvFile2ResetOplockState(pCreateState->pFile);
+        SrvFile2Rundown(pCreateState->pFile);
         SrvFile2Release(pCreateState->pFile);
     }
 

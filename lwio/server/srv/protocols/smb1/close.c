@@ -235,12 +235,11 @@ SrvProcessCloseAndX(
 
         case SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE:
 
-            SrvFileResetOplockState(pCloseState->pFile);
+            // TODO: Call IoRundownFile() asynchronously since that
+            //       sends close to file system while keeping handle around
+            //       (until IoCloseFile() is called).
 
-            ntStatus = SrvTreeRemoveFile(
-                            pCtxSmb1->pTree,
-                            pCloseState->pFile->fid);
-            BAIL_ON_NT_STATUS(ntStatus);
+            SrvFileRundown(pCloseState->pFile);
 
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE;
 
@@ -259,11 +258,6 @@ SrvProcessCloseAndX(
 
             if (pCtxSmb1->pFile)
             {
-                SrvFileCancelAsyncOperations(
-                        pCtxSmb1->pTree,
-                        pCtxSmb1->pFile);
-
-                SrvFileRundown(pCtxSmb1->pFile);
                 SrvFileRelease(pCtxSmb1->pFile);
                 pCtxSmb1->pFile = NULL;
             }
@@ -463,8 +457,7 @@ error:
 }
 
 VOID
-SrvFileCancelAsyncOperations(
-    PLWIO_SRV_TREE pTree,
+SrvCancelFileAsyncOperations(
     PLWIO_SRV_FILE pFile
     )
 {
@@ -489,7 +482,7 @@ SrvFileCancelAsyncOperations(
         }
 
         ntStatus = SrvTreeFindAsyncState(
-                        pTree,
+                        pFile->pTree,
                         pCursor->ullAsyncId,
                         &pAsyncState);
         if (ntStatus == STATUS_NOT_FOUND)

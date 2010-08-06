@@ -72,6 +72,62 @@ typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE_LIST)(HANDLE hBRLStateList);
 typedef VOID (*PFN_LWIO_SRV_CANCEL_ASYNC_STATE)(HANDLE hAsyncState);
 typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
 
+typedef ULONG SRV_OBJECT_FLAGS, *PSRV_OBJECT_FLAGS;
+
+#define SRV_OBJECT_FLAG_RUNDOWN     0x00000001
+#define SRV_OBJECT_FLAG_IN_PARENT   0x00000002
+
+typedef struct _SRV_CONNECTION* PLWIO_SRV_CONNECTION;
+typedef struct _LWIO_SRV_SESSION* PLWIO_SRV_SESSION;
+typedef struct _LWIO_SRV_TREE* PLWIO_SRV_TREE;
+typedef struct _LWIO_SRV_FILE* PLWIO_SRV_FILE;
+typedef struct _LWIO_SRV_SESSION_2* PLWIO_SRV_SESSION_2;
+typedef struct _LWIO_SRV_TREE_2* PLWIO_SRV_TREE_2;
+typedef struct _LWIO_SRV_FILE_2* PLWIO_SRV_FILE_2;
+typedef struct _LWIO_ASYNC_STATE* PLWIO_ASYNC_STATE;
+
+typedef BOOLEAN (*PFN_SRV_CONNECTION_ENUM_CALLBACK)(
+    PLWIO_SRV_CONNECTION pConnection,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_SESSION_ENUM_CALLBACK)(
+    PLWIO_SRV_SESSION pSession,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_SESSION_2_ENUM_CALLBACK)(
+    PLWIO_SRV_SESSION_2 pSession,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_TREE_ENUM_CALLBACK)(
+    PLWIO_SRV_TREE pTree,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_TREE_2_ENUM_CALLBACK)(
+    PLWIO_SRV_TREE_2 pTree,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_FILE_ENUM_CALLBACK)(
+    PLWIO_SRV_FILE pFile,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_FILE_2_ENUM_CALLBACK)(
+    PLWIO_SRV_FILE_2 pFile,
+    PVOID pContext
+    );
+
+typedef BOOLEAN (*PFN_SRV_ASYNC_STATE_ENUM_CALLBACK)(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
+    );
+
+typedef VOID (*PFN_SRV_FILE_CANCEL_ASYNC_OPERATIONS)(PLWIO_SRV_FILE pFile);
+
 typedef struct __SMB2_FID
 {
     ULONG64 ullPersistentId;
@@ -150,7 +206,7 @@ typedef struct _LWIO_ASYNC_STATE
     PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState;
     PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState;
 
-} LWIO_ASYNC_STATE, *PLWIO_ASYNC_STATE;
+} LWIO_ASYNC_STATE;
 
 typedef struct _LWIO_SRV_FILE
 {
@@ -158,6 +214,11 @@ typedef struct _LWIO_SRV_FILE
     pthread_rwlock_t*       pMutex;
 
     LONG                    refcount;
+
+    // Parent
+    PLWIO_SRV_TREE          pTree;
+    SRV_OBJECT_FLAGS        objectFlags;
+    PLWIO_SRV_FILE          pRundownNext;
 
     USHORT                  fid;
 
@@ -188,7 +249,9 @@ typedef struct _LWIO_SRV_FILE
 
     ULONG64                        ullLastFailedLockOffset;
 
-} LWIO_SRV_FILE, *PLWIO_SRV_FILE;
+    PFN_SRV_FILE_CANCEL_ASYNC_OPERATIONS pfnCancelAsyncOperationsFile;
+
+} LWIO_SRV_FILE;
 
 typedef struct _LWIO_SRV_SEARCH_SPACE_2
 {
@@ -212,6 +275,11 @@ typedef struct _LWIO_SRV_FILE_2
     pthread_rwlock_t*       pMutex;
 
     LONG                    refcount;
+
+    // Parent
+    PLWIO_SRV_TREE_2        pTree;
+    SRV_OBJECT_FLAGS        objectFlags;
+    PLWIO_SRV_FILE_2        pRundownNext;
 
     SMB2_FID                fid;
 
@@ -242,7 +310,7 @@ typedef struct _LWIO_SRV_FILE_2
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
 
-} LWIO_SRV_FILE_2, *PLWIO_SRV_FILE_2;
+} LWIO_SRV_FILE_2;
 
 typedef struct _LWIO_SRV_TREE
 {
@@ -250,6 +318,11 @@ typedef struct _LWIO_SRV_TREE
 
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
+
+    // Parent
+    PLWIO_SRV_SESSION pSession;
+    SRV_OBJECT_FLAGS  objectFlags;
+    PLWIO_SRV_TREE    pRundownNext;
 
     USHORT            tid;
     USHORT            uid;
@@ -269,7 +342,7 @@ typedef struct _LWIO_SRV_TREE
 
     USHORT            nextAvailableFid;
 
-} LWIO_SRV_TREE, *PLWIO_SRV_TREE;
+} LWIO_SRV_TREE;
 
 typedef struct _LWIO_SRV_TREE_2
 {
@@ -277,6 +350,11 @@ typedef struct _LWIO_SRV_TREE_2
 
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
+
+    // Parent
+    PLWIO_SRV_SESSION_2 pSession;
+    SRV_OBJECT_FLAGS  objectFlags;
+    PLWIO_SRV_TREE_2  pRundownNext;
 
     ULONG             ulTid;
     ULONG64           ullUid;
@@ -294,7 +372,7 @@ typedef struct _LWIO_SRV_TREE_2
 
     ULONG64           ullNextAvailableFid;
 
-} LWIO_SRV_TREE_2, *PLWIO_SRV_TREE_2;
+} LWIO_SRV_TREE_2;
 
 typedef struct _LWIO_SRV_SESSION
 {
@@ -302,6 +380,11 @@ typedef struct _LWIO_SRV_SESSION
 
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
+
+    // Parent
+    PLWIO_SRV_CONNECTION pConnection;
+    SRV_OBJECT_FLAGS  objectFlags;
+    PLWIO_SRV_SESSION pRundownNext;
 
     USHORT            uid;
 
@@ -328,7 +411,7 @@ typedef struct _LWIO_SRV_SESSION
     PVOID             pOEMSession;
     ULONG             ulOEMSessionLength;
 
-} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
+} LWIO_SRV_SESSION;
 
 typedef struct _LWIO_SRV_SESSION_2
 {
@@ -336,6 +419,11 @@ typedef struct _LWIO_SRV_SESSION_2
 
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
+
+    // Parent
+    PLWIO_SRV_CONNECTION pConnection;
+    SRV_OBJECT_FLAGS     objectFlags;
+    PLWIO_SRV_SESSION_2  pRundownNext;
 
     ULONG64           ullUid;
 
@@ -362,7 +450,7 @@ typedef struct _LWIO_SRV_SESSION_2
     PVOID             pOEMSession;
     ULONG             ulOEMSessionLength;
 
-} LWIO_SRV_SESSION_2, *PLWIO_SRV_SESSION_2;
+} LWIO_SRV_SESSION_2;
 
 typedef enum
 {
@@ -508,7 +596,7 @@ typedef struct _SRV_CONNECTION
 
     PSRV_CREDITOR       pCreditor;
 
-} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
+} LWIO_SRV_CONNECTION;
 
 typedef struct _SRV_FINDER_REPOSITORY
 {
@@ -874,7 +962,7 @@ SrvConnection2FindAsyncState(
     PLWIO_ASYNC_STATE*   ppAsyncState
     );
 
-NTSTATUS
+VOID
 SrvConnection2RemoveAsyncState(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullAsyncId
@@ -921,13 +1009,13 @@ SrvConnectionRelease(
 NTSTATUS
 SrvConnectionRemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
-    USHORT              uid
+    PLWIO_SRV_SESSION pSession
     );
 
 NTSTATUS
 SrvConnection2RemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
-    ULONG64              ullUid
+    PLWIO_SRV_SESSION_2 pSession
     );
 
 VOID
@@ -953,6 +1041,7 @@ SrvConnectionIsSigningActive_inlock(
 
 NTSTATUS
 SrvSessionCreate(
+    PLWIO_SRV_CONNECTION pConnection,
     USHORT            uid,
     PLWIO_SRV_SESSION* ppSession
     );
@@ -967,7 +1056,7 @@ SrvSessionFindTree(
 NTSTATUS
 SrvSessionRemoveTree(
     PLWIO_SRV_SESSION pSession,
-    USHORT           tid
+    PLWIO_SRV_TREE pTree
     );
 
 NTSTATUS
@@ -983,11 +1072,10 @@ SrvSessionSetPrincipalName(
     PCSTR             pszClientPrincipal
     );
 
-NTSTATUS
-SrvSessionCheckPrincipal(
+BOOLEAN
+SrvSessionIsMatchPrincipal(
     PLWIO_SRV_SESSION pSession,
-    PCWSTR            pwszClientPrincipal,
-    PBOOLEAN          pbIsMatch
+    PCWSTR            pwszClientPrincipal
     );
 
 NTSTATUS
@@ -1025,6 +1113,7 @@ SrvSessionRundown(
 
 NTSTATUS
 SrvSession2Create(
+    PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullUid,
     PLWIO_SRV_SESSION_2* ppSession
     );
@@ -1039,7 +1128,7 @@ SrvSession2FindTree(
 NTSTATUS
 SrvSession2RemoveTree(
     PLWIO_SRV_SESSION_2 pSession,
-    ULONG               ulTid
+    PLWIO_SRV_TREE_2 pTree
     );
 
 NTSTATUS
@@ -1055,11 +1144,10 @@ SrvSession2SetPrincipalName(
     PCSTR               pszClientPrincipal
     );
 
-NTSTATUS
-SrvSession2CheckPrincipal(
+BOOLEAN
+SrvSession2IsMatchPrincipal(
     PLWIO_SRV_SESSION_2 pSession,
-    PCWSTR              pwszClientPrincipal,
-    PBOOLEAN            pbIsMatch
+    PCWSTR              pwszClientPrincipal
     );
 
 NTSTATUS
@@ -1098,9 +1186,10 @@ SrvSession2Rundown(
 
 NTSTATUS
 SrvTreeCreate(
+    PLWIO_SRV_SESSION pSession,
     USHORT            tid,
     PSRV_SHARE_INFO   pShareInfo,
-    PLWIO_SRV_TREE*    ppTree
+    PLWIO_SRV_TREE*   ppTree
     );
 
 NTSTATUS
@@ -1128,7 +1217,7 @@ SrvTreeCreateFile(
 NTSTATUS
 SrvTreeRemoveFile(
     PLWIO_SRV_TREE pTree,
-    USHORT        fid
+    PLWIO_SRV_FILE pFile
     );
 
 NTSTATUS
@@ -1144,7 +1233,7 @@ SrvTreeFindAsyncState(
     PLWIO_ASYNC_STATE* ppAsyncState
     );
 
-NTSTATUS
+VOID
 SrvTreeRemoveAsyncState(
     PLWIO_SRV_TREE pTree,
     ULONG64        ullAsyncId
@@ -1178,6 +1267,7 @@ SrvTreeRundown(
 
 NTSTATUS
 SrvTree2Create(
+    PLWIO_SRV_SESSION_2 pSession,
     ULONG             ulTid,
     PSRV_SHARE_INFO   pShareInfo,
     PLWIO_SRV_TREE_2* ppTree
@@ -1208,7 +1298,7 @@ SrvTree2CreateFile(
 NTSTATUS
 SrvTree2RemoveFile(
     PLWIO_SRV_TREE_2 pTree,
-    PSMB2_FID        pFid
+    PLWIO_SRV_FILE_2 pFile
     );
 
 BOOLEAN
@@ -1277,6 +1367,7 @@ SrvIoPrepareAbeEcpList(
 
 NTSTATUS
 SrvFileCreate(
+    PLWIO_SRV_TREE          pTree,
     USHORT                  fid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
@@ -1357,6 +1448,7 @@ SrvFileRundown(
 
 NTSTATUS
 SrvFile2Create(
+    PLWIO_SRV_TREE_2        pTree,
     PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
