@@ -60,7 +60,7 @@ RdrWriteFileEx(
 {
     NTSTATUS ntStatus = 0;
     DWORD dwNumBytesWritten = 0;
-    PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
+    PRDR_CCB pFile = (PRDR_CCB)hFile;
     BOOLEAN bFileIsLocked = FALSE;
     ULONG ulWriteMax = 0;
 

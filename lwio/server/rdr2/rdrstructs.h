@@ -53,16 +53,16 @@ typedef struct _RDR_OP_CONTEXT
         } Read;
         struct
         {
-            struct _SMB_CLIENT_FILE_HANDLE* pFile;
+            struct _RDR_CCB* pFile;
             PWSTR pwszFilename;
         } Create;
         struct
         {
             union
             {
-                struct _SMB_TREE* pTree;
-                struct _SMB_SESSION* pSession;
-                struct _SMB_SOCKET* pSocket;
+                struct _RDR_TREE* pTree;
+                struct _RDR_SESSION* pSession;
+                struct _RDR_SOCKET* pSocket;
             };
             PSTR pszSharename;
             PIO_CREDS pCreds;
@@ -85,7 +85,7 @@ typedef enum _RDR_SOCKET_STATE
     RDR_SOCKET_STATE_ERROR
 } RDR_SOCKET_STATE;
 
-typedef struct _SMB_SOCKET
+typedef struct _RDR_SOCKET
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
@@ -140,7 +140,7 @@ typedef struct _SMB_SOCKET
     USHORT usNextMid;
     unsigned volatile bReadBlocked:1;
     unsigned volatile bWriteBlocked:1;
-} SMB_SOCKET, *PSMB_SOCKET;
+} RDR_SOCKET, *PRDR_SOCKET;
 
 typedef enum _RDR_SESSION_STATE
 {
@@ -150,7 +150,7 @@ typedef enum _RDR_SESSION_STATE
     RDR_SESSION_STATE_ERROR
 } RDR_SESSION_STATE;
 
-typedef struct _SMB_SESSION
+typedef struct _RDR_SESSION
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
@@ -159,7 +159,7 @@ typedef struct _SMB_SESSION
     int32_t volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink;        /* Whether session is linked to by parent (socket) */
 
-    SMB_SOCKET *pSocket;        /* Back pointer to parent socket */
+    RDR_SOCKET *pSocket;        /* Back pointer to parent socket */
 
     USHORT uid;
 
@@ -177,7 +177,7 @@ typedef struct _SMB_SESSION
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
     PRDR_OP_CONTEXT pLogoffContext;
-} SMB_SESSION, *PSMB_SESSION;
+} RDR_SESSION, *PRDR_SESSION;
 
 typedef enum _RDR_TREE_STATE
 {
@@ -187,7 +187,7 @@ typedef enum _RDR_TREE_STATE
     RDR_TREE_STATE_ERROR
 } RDR_TREE_STATE;
 
-typedef struct _SMB_TREE
+typedef struct _RDR_TREE
 {
     pthread_mutex_t mutex;      /* Locks both the structure and the hash */
                                 /* responses are inserted and removed so often
@@ -198,33 +198,33 @@ typedef struct _SMB_TREE
     int32_t volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink; /* Whether tree is linked to by parent (session) */
 
-    SMB_SESSION *pSession;      /* Back pointer to parent session */
+    RDR_SESSION *pSession;      /* Back pointer to parent session */
     uint16_t tid;
     PSTR pszPath;               /* For hashing */
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
     PRDR_OP_CONTEXT pDisconnectContext;
-} SMB_TREE, *PSMB_TREE;
+} RDR_TREE, *PRDR_TREE;
 
 typedef struct
 {
-    PSMB_SOCKET pSocket;
+    PRDR_SOCKET pSocket;
     SMB_RESOURCE_STATE volatile state;   /* Response state: valid, invalid, etc. */
     NTSTATUS volatile error;
     pthread_cond_t event;
     uint16_t mid;               /* Multiplex ID (MID) for the response */
     PSMB_PACKET pPacket; /* Pointer to response packet; response owner must free */
     PRDR_OP_CONTEXT pContext;
-} SMB_RESPONSE, *PSMB_RESPONSE;
+} RDR_RESPONSE, *PRDR_RESPONSE;
 
-typedef struct _SMB_CLIENT_FILE_HANDLE
+typedef struct _RDR_CCB
 {
     pthread_mutex_t     mutex;
     pthread_mutex_t*    pMutex;
 
     PWSTR     pwszPath;
 
-    PSMB_TREE pTree;
+    PRDR_TREE pTree;
 
     USHORT usFileType;
     uint16_t  fid;
@@ -242,7 +242,7 @@ typedef struct _SMB_CLIENT_FILE_HANDLE
         ULONG          ulBufferCapacity;
         ULONG          ulBufferLength;
     } find;
-} SMB_CLIENT_FILE_HANDLE, *PSMB_CLIENT_FILE_HANDLE;
+} RDR_CCB, *PRDR_CCB;
 
 typedef struct _RDR_CONFIG
 {

@@ -32,7 +32,7 @@
 
 uint32_t
 WireWriteFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     uint16_t  fid,
     uint64_t  llFileWriteOffset,
     uint16_t  writeMode,
@@ -47,7 +47,7 @@ WireWriteFile(
     uint32_t packetByteCount = 0;
     WRITE_ANDX_REQUEST_HEADER_WC_14 *pRequestHeader = NULL;
     WRITE_ANDX_RESPONSE_HEADER *pResponseHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     SMB_PACKET *pResponsePacket = NULL;
     uint16_t wMid = 0;
     uint16_t wNumBytesWriteable = 0;
@@ -148,7 +148,7 @@ WireWriteFile(
 
     /* @todo: on send packet error, the response must be removed from the
        tree. */
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(

@@ -30,7 +30,7 @@
 
 uint32_t
 WireWriteFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     uint16_t  fid,
     uint64_t  llFileWriteOffset,
     uint16_t  writeMode,

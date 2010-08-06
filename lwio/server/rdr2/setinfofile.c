@@ -62,7 +62,7 @@ RdrMarshalFileDispositionInfo(
    theory we need to handle multi-packet transactions */
 NTSTATUS
 RdrTransactSetInfoFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     SMB_INFO_LEVEL infoLevel,
     PVOID pInfo,
@@ -72,7 +72,7 @@ RdrTransactSetInfoFile(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_PACKET packet = {0};
     TRANSACTION_REQUEST_HEADER *pHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     USHORT usSetup = SMB_SUB_COMMAND_TRANS2_SET_FILE_INFORMATION;
@@ -174,7 +174,7 @@ RdrTransactSetInfoFile(
     ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(

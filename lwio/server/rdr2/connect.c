@@ -34,16 +34,16 @@ static
 NTSTATUS
 RdrTransceiveTreeConnect(
     PRDR_OP_CONTEXT pContext,
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     PCWSTR pwszPath
     );
 
 static
 NTSTATUS
 SMBSrvClientTreeCreate(
-    IN OUT PSMB_SESSION* ppSession,
+    IN OUT PRDR_SESSION* ppSession,
     IN PCSTR pszPath,
-    OUT PSMB_TREE* ppTree
+    OUT PRDR_TREE* ppTree
     );
 
 static
@@ -72,7 +72,7 @@ static
 NTSTATUS
 RdrTransceiveSessionSetup(
     PRDR_OP_CONTEXT pContext,
-    PSMB_SESSION pSession,
+    PRDR_SESSION pSession,
     PBYTE pBlob,
     DWORD dwBlobLength
     );
@@ -122,7 +122,7 @@ RdrFinishTreeConnect(
     PVOID pParam
     )
 {
-    PSMB_TREE pTree = pContext->State.TreeConnect.pTree;
+    PRDR_TREE pTree = pContext->State.TreeConnect.pTree;
     PSMB_PACKET pResponsePacket = pParam;
     BOOLEAN bTreeLocked = FALSE;
 
@@ -166,8 +166,8 @@ RdrNegotiateComplete(
     PVOID pParam
     )
 {
-    PSMB_SOCKET pSocket = pParam;
-    PSMB_SESSION pSession = NULL;
+    PRDR_SOCKET pSocket = pParam;
+    PRDR_SESSION pSession = NULL;
     BOOLEAN bSessionLocked = FALSE;
     BOOLEAN bFreeContext = FALSE;
     PIO_CREDS pCreds = pContext->State.TreeConnect.pCreds;
@@ -255,14 +255,14 @@ error:
     if (status != STATUS_PENDING && pSession)
     {
         LWIO_UNLOCK_MUTEX(bSessionLocked, &pSession->mutex);
-        SMBSessionInvalidate(pSession, status);
-        SMBSessionRelease(pSession);
+        RdrSessionInvalidate(pSession, status);
+        RdrSessionRelease(pSession);
     }
 
    if (status != STATUS_PENDING && pSocket)
     {
-        SMBSocketInvalidate(pSocket, status);
-        SMBSocketRelease(pSocket);
+        RdrSocketInvalidate(pSocket, status);
+        RdrSocketRelease(pSocket);
     }
 
     goto cleanup;
@@ -276,7 +276,7 @@ RdrProcessNegotiateResponse(
     PVOID pParam
     )
 {
-    PSMB_SOCKET pSocket = pContext->State.TreeConnect.pSocket;
+    PRDR_SOCKET pSocket = pContext->State.TreeConnect.pSocket;
     PSMB_PACKET pPacket = pParam;
     BOOLEAN bSocketLocked = FALSE;
     BOOLEAN bFreeContext = FALSE;
@@ -373,8 +373,8 @@ error:
     if (status != STATUS_PENDING && pSocket)
     {
         LWIO_UNLOCK_MUTEX(bSocketLocked, &pSocket->mutex);
-        SMBSocketInvalidate(pSocket, status);
-        SMBSocketRelease(pSocket);
+        RdrSocketInvalidate(pSocket, status);
+        RdrSocketRelease(pSocket);
     }
 
     /* FIXME: free packet */
@@ -390,7 +390,7 @@ RdrProcessSessionSetupResponse(
     PVOID pParam
     )
 {
-    PSMB_SESSION pSession = pContext->State.TreeConnect.pSession;
+    PRDR_SESSION pSession = pContext->State.TreeConnect.pSession;
     PSMB_PACKET pPacket = pParam;
     BOOLEAN bSessionLocked = FALSE;
     BOOLEAN bFreeContext = FALSE;
@@ -451,8 +451,8 @@ error:
     if (status != STATUS_PENDING && pSession)
     {
         LWIO_UNLOCK_MUTEX(bSessionLocked, &pSession->mutex);
-        SMBSessionInvalidate(pSession, status);
-        SMBSessionRelease(pSession);
+        RdrSessionInvalidate(pSession, status);
+        RdrSessionRelease(pSession);
     }
 
     /* FIXME: free packet */
@@ -468,8 +468,8 @@ RdrNegotiateGssContextWorkItem(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PRDR_OP_CONTEXT pContext = pParam;
-    PSMB_SESSION pSession = pContext->State.TreeConnect.pSession;
-    PSMB_SOCKET pSocket = pSession->pSocket;
+    PRDR_SESSION pSession = pContext->State.TreeConnect.pSession;
+    PRDR_SOCKET pSocket = pSession->pSocket;
     PSMB_PACKET pPacket = pContext->State.TreeConnect.pPacket;
     PWSTR pwszNativeOS = NULL;
     PWSTR pwszNativeLanman = NULL;
@@ -557,7 +557,7 @@ RdrNegotiateGssContextWorkItem(
 
             memcpy(pSocket->pSessionKey, pSession->pSessionKey, pSession->dwSessionKeyLength);
             pSocket->dwSessionKeyLength = pSession->dwSessionKeyLength;
-            SMBSocketBeginSequence(pSocket);
+            RdrSocketBeginSequence(pSocket);
         }
 
         status = SMBSrvClientSocketAddSessionByUID(pSocket, pSession);
@@ -606,8 +606,8 @@ RdrSessionSetupComplete(
     PVOID pParam
     )
 {
-    PSMB_SESSION pSession = pParam;
-    PSMB_TREE pTree = NULL;
+    PRDR_SESSION pSession = pParam;
+    PRDR_TREE pTree = NULL;
     BOOLEAN bTreeLocked = FALSE;
     BOOLEAN bFreeContext = FALSE;
     PWSTR pwszPath = NULL;
@@ -676,8 +676,8 @@ error:
     if (status != STATUS_PENDING && pTree)
     {
         LWIO_UNLOCK_MUTEX(bTreeLocked, &pTree->mutex);
-        SMBTreeInvalidate(pTree, status);
-        SMBTreeRelease(pTree);
+        RdrTreeInvalidate(pTree, status);
+        RdrTreeRelease(pTree);
     }
 
     goto cleanup;
@@ -686,15 +686,15 @@ error:
 static
 NTSTATUS
 SMBSrvClientTreeCreate(
-    IN OUT PSMB_SESSION* ppSession,
+    IN OUT PRDR_SESSION* ppSession,
     IN PCSTR pszPath,
-    OUT PSMB_TREE* ppTree
+    OUT PRDR_TREE* ppTree
     )
 {
     DWORD     ntStatus = 0;
-    PSMB_TREE pTree = NULL;
+    PRDR_TREE pTree = NULL;
     BOOLEAN   bInLock = FALSE;
-    PSMB_SESSION pSession = *ppSession;
+    PRDR_SESSION pSession = *ppSession;
 
     LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
@@ -707,12 +707,12 @@ SMBSrvClientTreeCreate(
     {
         pTree->refCount++;
         RdrTreeRevive(pTree);
-        SMBSessionRelease(pSession);
+        RdrSessionRelease(pSession);
         *ppSession = NULL;
     }
     else
     {
-        ntStatus = SMBTreeCreate(&pTree);
+        ntStatus = RdrTreeCreate(&pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pTree->pSession = pSession;
@@ -750,7 +750,7 @@ error:
 
     if (pTree)
     {
-        SMBTreeRelease(pTree);
+        RdrTreeRelease(pTree);
     }
 
     goto cleanup;
@@ -760,7 +760,7 @@ static
 NTSTATUS
 RdrTransceiveNegotiate(
     PRDR_OP_CONTEXT pContext,
-    PSMB_SOCKET pSocket
+    PRDR_SOCKET pSocket
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -827,7 +827,7 @@ static
 NTSTATUS
 RdrTransceiveTreeConnect(
     PRDR_OP_CONTEXT pContext,
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     PCWSTR pwszPath
     )
 {
@@ -902,7 +902,7 @@ static
 NTSTATUS
 RdrTransceiveSessionSetup(
     PRDR_OP_CONTEXT pContext,
-    PSMB_SESSION pSession,
+    PRDR_SESSION pSession,
     PBYTE pBlob,
     DWORD dwBlobLength
     )
@@ -913,7 +913,7 @@ RdrTransceiveSessionSetup(
     WCHAR nativeLanMan[] = {'L','i','k','e','w','i','s','e',' ','C','I','F','S','\0'};
     WCHAR nativeDomain[] = {'W','O','R','K','G','R','O','U','P','\0'};
     SESSION_SETUP_REQUEST_HEADER_WC_12 *pHeader = NULL;
-    PSMB_SOCKET pSocket = pSession->pSocket;
+    PRDR_SOCKET pSocket = pSession->pSocket;
 
     status = RdrAllocateContextPacket(pContext, 1024*64);
     BAIL_ON_NT_STATUS(status);
@@ -999,7 +999,7 @@ RdrTreeConnect(
     NTSTATUS status = STATUS_SUCCESS;
     PRDR_OP_CONTEXT pContext = NULL;
     BOOLEAN bSocketLocked = FALSE;
-    PSMB_SOCKET pSocket = NULL;
+    PRDR_SOCKET pSocket = NULL;
 
     status = RdrCreateContext(pContinue->pIrp, &pContext);
     BAIL_ON_NT_STATUS(status);
@@ -1032,7 +1032,7 @@ RdrTreeConnect(
         pSocket->state = RDR_SOCKET_STATE_CONNECTING;
         LWIO_UNLOCK_MUTEX(bSocketLocked, &pSocket->mutex);
 
-        status = SMBSocketConnect(pSocket);
+        status = RdrSocketConnect(pSocket);
         BAIL_ON_NT_STATUS(status);
 
         pContext->Continue = RdrProcessNegotiateResponse;
@@ -1074,8 +1074,8 @@ error:
     if (status != STATUS_PENDING && pSocket)
     {
         LWIO_UNLOCK_MUTEX(bSocketLocked, &pSocket->mutex);
-        SMBSocketInvalidate(pSocket, status);
-        SMBSocketRelease(pSocket);
+        RdrSocketInvalidate(pSocket, status);
+        RdrSocketRelease(pSocket);
     }
 
     goto cleanup;

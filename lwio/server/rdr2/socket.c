@@ -53,22 +53,22 @@
 
 static
 VOID
-SMBSocketInvalidate_InLock(
-    PSMB_SOCKET pSocket,
+RdrSocketInvalidate_InLock(
+    PRDR_SOCKET pSocket,
     NTSTATUS status
     );
 
 static
 NTSTATUS
-SMBSocketReceiveAndUnmarshall(
-    IN PSMB_SOCKET pSocket,
+RdrSocketReceiveAndUnmarshall(
+    IN PRDR_SOCKET pSocket,
     OUT PSMB_PACKET pPacket
     );
 
 static
 NTSTATUS
-SMBSocketRead(
-    PSMB_SOCKET pSocket,
+RdrSocketRead(
+    PRDR_SOCKET pSocket,
     uint8_t    *buffer,
     uint32_t    dwLen,
     uint32_t   *actualLen
@@ -76,40 +76,40 @@ SMBSocketRead(
 
 static
 int
-SMBSocketHashSessionCompareByUID(
+RdrSocketHashSessionCompareByUID(
     PCVOID vp1,
     PCVOID vp2
     );
 
 static
 size_t
-SMBSocketHashSessionByUID(
+RdrSocketHashSessionByUID(
     PCVOID vp
     );
 
 static
 int
-SMBSocketHashSessionCompareByKey(
+RdrSocketHashSessionCompareByKey(
     PCVOID vp1,
     PCVOID vp2
     );
 
 static
 size_t
-SMBSocketHashSessionByKey(
+RdrSocketHashSessionByKey(
     PCVOID vp
     );
 
 static
 NTSTATUS
-SMBSocketSendData(
-    IN PSMB_SOCKET pSocket,
+RdrSocketSendData(
+    IN PRDR_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     );
 
 static
 VOID
-SMBSocketTask(
+RdrSocketTask(
     PLW_TASK pTask,
     LW_PVOID pContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -119,8 +119,8 @@ SMBSocketTask(
 
 static
 NTSTATUS
-SMBSocketFindAndSignalResponse(
-    PSMB_SOCKET pSocket,
+RdrSocketFindAndSignalResponse(
+    PRDR_SOCKET pSocket,
     PSMB_PACKET pPacket
     );
 
@@ -132,14 +132,14 @@ RdrEaiToNtStatus(
 
 static
 VOID
-SMBSocketFreeContents(
-    PSMB_SOCKET pSocket
+RdrSocketFreeContents(
+    PRDR_SOCKET pSocket
     );
 
 static
 VOID
-SMBSocketFree(
-    PSMB_SOCKET pSocket
+RdrSocketFree(
+    PRDR_SOCKET pSocket
     );
 
 static
@@ -172,21 +172,21 @@ RdrSocketHashResponse(
 }
 
 NTSTATUS
-SMBSocketCreate(
+RdrSocketCreate(
     IN PCWSTR pwszHostname,
     IN BOOLEAN bUseSignedMessagesIfSupported,
-    OUT PSMB_SOCKET* ppSocket
+    OUT PRDR_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
-    SMB_SOCKET *pSocket = NULL;
+    RDR_SOCKET *pSocket = NULL;
     BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     PWSTR pwszCanonicalName = NULL;
     PWSTR pwszCursor = NULL;
 
     ntStatus = SMBAllocateMemory(
-                sizeof(SMB_SOCKET),
+                sizeof(RDR_SOCKET),
                 (PVOID*)&pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -236,16 +236,16 @@ SMBSocketCreate(
 
     ntStatus = SMBHashCreate(
                     19,
-                    SMBSocketHashSessionCompareByKey,
-                    SMBSocketHashSessionByKey,
+                    RdrSocketHashSessionCompareByKey,
+                    RdrSocketHashSessionByKey,
                     NULL,
                     &pSocket->pSessionHashByPrincipal);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBHashCreate(
                     19,
-                    SMBSocketHashSessionCompareByUID,
-                    SMBSocketHashSessionByUID,
+                    RdrSocketHashSessionCompareByUID,
+                    RdrSocketHashSessionByUID,
                     NULL,
                     &pSocket->pSessionHashByUID);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -262,7 +262,7 @@ SMBSocketCreate(
         gRdrRuntime.pThreadPool,
         &pSocket->pTask,
         gRdrRuntime.pReaderTaskGroup,
-        SMBSocketTask,
+        RdrSocketTask,
         pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -303,7 +303,7 @@ error:
 
 static
 int
-SMBSocketHashSessionCompareByUID(
+RdrSocketHashSessionCompareByUID(
     PCVOID vp1,
     PCVOID vp2
     )
@@ -325,7 +325,7 @@ SMBSocketHashSessionCompareByUID(
 
 static
 size_t
-SMBSocketHashSessionByUID(
+RdrSocketHashSessionByUID(
     PCVOID vp
     )
 {
@@ -334,7 +334,7 @@ SMBSocketHashSessionByUID(
 
 static
 int
-SMBSocketHashSessionCompareByKey(
+RdrSocketHashSessionCompareByKey(
     PCVOID vp1,
     PCVOID vp2
     )
@@ -348,7 +348,7 @@ SMBSocketHashSessionCompareByKey(
 
 static
 size_t
-SMBSocketHashSessionByKey(
+RdrSocketHashSessionByKey(
     PCVOID vp
     )
 {
@@ -359,8 +359,8 @@ SMBSocketHashSessionByKey(
 
 static
 BOOLEAN
-SMBSocketIsSignatureRequired(
-    IN PSMB_SOCKET pSocket
+RdrSocketIsSignatureRequired(
+    IN PRDR_SOCKET pSocket
     )
 {
     BOOLEAN bIsRequired = FALSE;
@@ -384,8 +384,8 @@ SMBSocketIsSignatureRequired(
 
 static
 ULONG
-SMBSocketGetNextSequence_inlock(
-    PSMB_SOCKET pSocket
+RdrSocketGetNextSequence_inlock(
+    PRDR_SOCKET pSocket
     )
 {
     DWORD dwSequence = 0;
@@ -399,8 +399,8 @@ SMBSocketGetNextSequence_inlock(
 }
 
 VOID
-SMBSocketBeginSequence(
-    PSMB_SOCKET pSocket
+RdrSocketBeginSequence(
+    PRDR_SOCKET pSocket
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -414,8 +414,8 @@ SMBSocketBeginSequence(
 
 static
 NTSTATUS
-SMBSocketSendData(
-    IN PSMB_SOCKET pSocket,
+RdrSocketSendData(
+    IN PRDR_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     )
 {
@@ -455,8 +455,8 @@ error:
 
 static
 NTSTATUS
-SMBSocketPrepareSend(
-    IN PSMB_SOCKET pSocket,
+RdrSocketPrepareSend(
+    IN PRDR_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     )
 {
@@ -465,7 +465,7 @@ SMBSocketPrepareSend(
 
     if (pPacket->allowSignature)
     {
-        bIsSignatureRequired = SMBSocketIsSignatureRequired(pSocket);
+        bIsSignatureRequired = RdrSocketIsSignatureRequired(pSocket);
     }
 
     if (bIsSignatureRequired)
@@ -479,7 +479,7 @@ SMBSocketPrepareSend(
 
     if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
     {
-        pPacket->sequence = SMBSocketGetNextSequence_inlock(pSocket);
+        pPacket->sequence = RdrSocketGetNextSequence_inlock(pSocket);
     }
 
     if (bIsSignatureRequired)
@@ -504,8 +504,8 @@ error:
 }
 
 NTSTATUS
-SMBSocketSend(
-    IN PSMB_SOCKET pSocket,
+RdrSocketSend(
+    IN PRDR_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     )
 {
@@ -526,7 +526,7 @@ SMBSocketSend(
         pthread_cond_wait(&pSocket->event, &pSocket->mutex);
     }
 
-    ntStatus = SMBSocketPrepareSend(pSocket, pPacket);
+    ntStatus = RdrSocketPrepareSend(pSocket, pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LwRtlWakeTask(pSocket->pTask);
@@ -556,8 +556,8 @@ error:
 
 static
 NTSTATUS
-SMBSocketQueue(
-    IN PSMB_SOCKET pSocket,
+RdrSocketQueue(
+    IN PRDR_SOCKET pSocket,
     IN PRDR_OP_CONTEXT pContext
     )
 {
@@ -576,12 +576,12 @@ SMBSocketQueue(
 
 NTSTATUS
 RdrSocketTransceive(
-    IN PSMB_SOCKET pSocket,
+    IN PRDR_SOCKET pSocket,
     IN PRDR_OP_CONTEXT pContext
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSMB_RESPONSE pResponse = NULL;
+    PRDR_RESPONSE pResponse = NULL;
     PSMB_PACKET pPacket = &pContext->Packet;
     USHORT usMid = 0;
 
@@ -598,7 +598,7 @@ RdrSocketTransceive(
     status = RdrSocketAddResponse(pSocket, pResponse);
     BAIL_ON_NT_STATUS(status);
 
-    status = SMBSocketQueue(pSocket, pContext);
+    status = RdrSocketQueue(pSocket, pContext);
     BAIL_ON_NT_STATUS(status);
 
     status = STATUS_PENDING;
@@ -618,8 +618,8 @@ error:
 }
 
 NTSTATUS
-SMBSocketReceiveAndUnmarshall(
-    IN PSMB_SOCKET pSocket,
+RdrSocketReceiveAndUnmarshall(
+    IN PRDR_SOCKET pSocket,
     OUT PSMB_PACKET pPacket
     )
 {
@@ -630,7 +630,7 @@ SMBSocketReceiveAndUnmarshall(
     {
         while (pPacket->bufferUsed < sizeof(NETBIOS_HEADER))
         {
-            ntStatus = SMBSocketRead(
+            ntStatus = RdrSocketRead(
                 pSocket,
                 pPacket->pRawBuffer + pPacket->bufferUsed,
                 sizeof(NETBIOS_HEADER) - pPacket->bufferUsed,
@@ -658,7 +658,7 @@ SMBSocketReceiveAndUnmarshall(
 
     while (pPacket->bufferUsed < pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER))
     {
-        ntStatus = SMBSocketRead(
+        ntStatus = RdrSocketRead(
             pSocket,
             pPacket->pRawBuffer + pPacket->bufferUsed,
             pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER) - pPacket->bufferUsed,
@@ -694,7 +694,7 @@ error:
 
 static
 VOID
-SMBSocketTask(
+RdrSocketTask(
     PLW_TASK pTask,
     LW_PVOID pContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -703,7 +703,7 @@ SMBSocketTask(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SOCKET pSocket = (PSMB_SOCKET) pContext;
+    PRDR_SOCKET pSocket = (PRDR_SOCKET) pContext;
     BOOLEAN bGlobalLock = FALSE;
     BOOLEAN bInLock = FALSE;
     int err = 0;
@@ -717,7 +717,7 @@ SMBSocketTask(
         /* If we are being explicitly cancelled,
            we are charged with cleaning up the socket */
         LWIO_LOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
-        SMBSocketFreeContents(pSocket);
+        RdrSocketFreeContents(pSocket);
         LWIO_UNLOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
 
         *pWaitMask = LW_TASK_EVENT_COMPLETE;
@@ -790,7 +790,7 @@ SMBSocketTask(
     {
         pLink = LwListRemoveHead(&pSocket->PendingSend);
         pIrpContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
-        ntStatus = SMBSocketPrepareSend(pSocket, &pIrpContext->Packet);
+        ntStatus = RdrSocketPrepareSend(pSocket, &pIrpContext->Packet);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -811,12 +811,12 @@ SMBSocketTask(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pSocket->pPacket);
+        ntStatus = RdrSocketReceiveAndUnmarshall(pSocket, pSocket->pPacket);
         switch(ntStatus)
         {
         case STATUS_SUCCESS:
             /* This function should free packet and socket memory on error */
-            ntStatus = SMBSocketFindAndSignalResponse(pSocket, pSocket->pPacket);
+            ntStatus = RdrSocketFindAndSignalResponse(pSocket, pSocket->pPacket);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pSocket->pPacket = NULL;
@@ -833,7 +833,7 @@ SMBSocketTask(
 
     if (!pSocket->bWriteBlocked && pSocket->pOutgoing)
     {
-        ntStatus = SMBSocketSendData(pSocket, pSocket->pOutgoing);
+        ntStatus = RdrSocketSendData(pSocket, pSocket->pOutgoing);
         switch (ntStatus)
         {
         case STATUS_SUCCESS:
@@ -872,7 +872,7 @@ error:
     if (ntStatus != STATUS_PENDING)
     {
         LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-        SMBSocketInvalidate_InLock(pSocket, ntStatus);
+        RdrSocketInvalidate_InLock(pSocket, ntStatus);
         *pWaitMask = LW_TASK_EVENT_COMPLETE;
     }
 
@@ -882,13 +882,13 @@ error:
 static
 NTSTATUS
 RdrSocketFindResponseByMid(
-    PSMB_SOCKET pSocket,
+    PRDR_SOCKET pSocket,
     USHORT usMid,
-    PSMB_RESPONSE* ppResponse
+    PRDR_RESPONSE* ppResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_RESPONSE pResponse = NULL;
+    PRDR_RESPONSE pResponse = NULL;
 
     ntStatus = SMBHashGetValue(
         pSocket->pResponseHash,
@@ -911,13 +911,13 @@ error:
 
 static
 NTSTATUS
-SMBSocketFindAndSignalResponse(
-    PSMB_SOCKET pSocket,
+RdrSocketFindAndSignalResponse(
+    PRDR_SOCKET pSocket,
     PSMB_PACKET pPacket
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_RESPONSE pResponse = NULL;
+    PRDR_RESPONSE pResponse = NULL;
     USHORT usMid = SMB_LTOH16(pPacket->pSMBHeader->mid);
     BOOLEAN bLocked = TRUE;
     BOOLEAN bKeep = FALSE;
@@ -984,7 +984,7 @@ error:
 
 VOID
 RdrSocketCancel(
-    IN PSMB_SOCKET pSocket,
+    IN PRDR_SOCKET pSocket,
     IN PRDR_OP_CONTEXT pContext
     )
 {
@@ -993,7 +993,7 @@ RdrSocketCancel(
 
 VOID
 RdrSocketRevive(
-    PSMB_SOCKET pSocket
+    PRDR_SOCKET pSocket
     )
 {
     if (pSocket->pTimeout)
@@ -1006,7 +1006,7 @@ RdrSocketRevive(
 static
 VOID
 RdrSocketUnlink(
-    PSMB_SOCKET pSocket
+    PRDR_SOCKET pSocket
     )
 {
     if (pSocket->bParentLink)
@@ -1027,7 +1027,7 @@ RdrSocketTimeout(
     LW_LONG64* pllTime
     )
 {
-    PSMB_SOCKET pSocket = pContext;
+    PRDR_SOCKET pSocket = pContext;
     BOOLEAN bInLock = FALSE;
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
@@ -1046,7 +1046,7 @@ RdrSocketTimeout(
         if (pSocket->refCount == 0)
         {
             RdrSocketUnlink(pSocket);
-            SMBSocketFree(pSocket);
+            RdrSocketFree(pSocket);
             *pWaitMask = LW_TASK_EVENT_COMPLETE;
         }
         else
@@ -1060,8 +1060,8 @@ RdrSocketTimeout(
 }
 
 NTSTATUS
-SMBSocketConnect(
-    PSMB_SOCKET pSocket
+RdrSocketConnect(
+    PRDR_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -1151,15 +1151,15 @@ error:
         close(fd);
     }
 
-    SMBSocketInvalidate(pSocket, ntStatus);
+    RdrSocketInvalidate(pSocket, ntStatus);
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SMBSocketRead(
-    PSMB_SOCKET pSocket,
+RdrSocketRead(
+    PRDR_SOCKET pSocket,
     uint8_t *buffer,
     uint32_t len,
     uint32_t *actualLen
@@ -1214,15 +1214,15 @@ error:
 
     if (ntStatus != STATUS_PENDING)
     {
-        SMBSocketInvalidate(pSocket, ntStatus);
+        RdrSocketInvalidate(pSocket, ntStatus);
     }
 
     goto cleanup;
 }
 
 VOID
-SMBSocketInvalidate(
-    PSMB_SOCKET pSocket,
+RdrSocketInvalidate(
+    PRDR_SOCKET pSocket,
     NTSTATUS ntStatus
     )
 {
@@ -1230,15 +1230,15 @@ SMBSocketInvalidate(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    SMBSocketInvalidate_InLock(pSocket, ntStatus);
+    RdrSocketInvalidate_InLock(pSocket, ntStatus);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
 static
 VOID
-SMBSocketInvalidate_InLock(
-    PSMB_SOCKET pSocket,
+RdrSocketInvalidate_InLock(
+    PRDR_SOCKET pSocket,
     NTSTATUS status
     )
 {
@@ -1247,7 +1247,7 @@ SMBSocketInvalidate_InLock(
     PRDR_OP_CONTEXT pContext = NULL;
     SMB_HASH_ITERATOR iter = {0};
     SMB_HASH_ENTRY* pEntry = NULL;
-    PSMB_RESPONSE pResponse = NULL;
+    PRDR_RESPONSE pResponse = NULL;
     BOOLEAN bLocked = TRUE;
 
     pSocket->state = RDR_SOCKET_STATE_ERROR;
@@ -1306,8 +1306,8 @@ SMBSocketInvalidate_InLock(
 }
 
 VOID
-SMBSocketRelease(
-    PSMB_SOCKET pSocket
+RdrSocketRelease(
+    PRDR_SOCKET pSocket
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -1325,7 +1325,7 @@ SMBSocketRelease(
         if (pSocket->state != RDR_SOCKET_STATE_READY)
         {
             RdrSocketUnlink(pSocket);
-            SMBSocketFree(pSocket);
+            RdrSocketFree(pSocket);
             LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
         }
         else
@@ -1345,7 +1345,7 @@ SMBSocketRelease(
             {
                 LWIO_LOG_VERBOSE("Could not start timer for socket %p; closing immediately", pSocket);
                 RdrSocketUnlink(pSocket);
-                SMBSocketFree(pSocket);
+                RdrSocketFree(pSocket);
                 LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             }
         }
@@ -1357,8 +1357,8 @@ SMBSocketRelease(
 }
 
 NTSTATUS
-SMBSocketWaitReady(
-    PSMB_SOCKET pSocket
+RdrSocketWaitReady(
+    PRDR_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -1381,8 +1381,8 @@ error:
 
 static
 VOID
-SMBSocketFree(
-    PSMB_SOCKET pSocket
+RdrSocketFree(
+    PRDR_SOCKET pSocket
     )
 {
     /*
@@ -1397,14 +1397,14 @@ SMBSocketFree(
     }
     else
     {
-        SMBSocketFreeContents(pSocket);
+        RdrSocketFreeContents(pSocket);
     }
 }
 
 static
 VOID
-SMBSocketFreeContents(
-    PSMB_SOCKET pSocket
+RdrSocketFreeContents(
+    PRDR_SOCKET pSocket
     )
 {
     assert(!pSocket->refCount);
@@ -1443,7 +1443,7 @@ SMBSocketFreeContents(
 
 VOID
 RdrSocketSetIgnoreServerSignatures(
-    PSMB_SOCKET pSocket,
+    PRDR_SOCKET pSocket,
     BOOLEAN bValue
     )
 {
@@ -1480,7 +1480,7 @@ RdrEaiToNtStatus(
 
 NTSTATUS
 RdrSocketAcquireMid(
-    PSMB_SOCKET pSocket,
+    PRDR_SOCKET pSocket,
     USHORT* pusMid
     )
 {
@@ -1500,8 +1500,8 @@ RdrSocketAcquireMid(
 
 NTSTATUS
 RdrSocketAddResponse(
-    PSMB_SOCKET pSocket,
-    PSMB_RESPONSE pResponse
+    PRDR_SOCKET pSocket,
+    PRDR_RESPONSE pResponse
     )
 {
     NTSTATUS ntStatus = 0;
@@ -1537,8 +1537,8 @@ error:
 
 NTSTATUS
 RdrSocketRemoveResponse(
-    PSMB_SOCKET pSocket,
-    PSMB_RESPONSE pResponse
+    PRDR_SOCKET pSocket,
+    PRDR_RESPONSE pResponse
     )
 {
     NTSTATUS ntStatus = 0;
@@ -1568,10 +1568,10 @@ error:
 
 NTSTATUS
 RdrSocketReceiveResponse(
-    IN PSMB_SOCKET pSocket,
+    IN PRDR_SOCKET pSocket,
     IN BOOLEAN bVerifySignature,
     IN DWORD dwExpectedSequence,
-    IN PSMB_RESPONSE pResponse,
+    IN PRDR_RESPONSE pResponse,
     OUT PSMB_PACKET* ppResponsePacket
     )
 {
@@ -1603,7 +1603,7 @@ retry_wait:
             }
 
             ntStatus = STATUS_IO_TIMEOUT;
-            SMBSocketInvalidate(pSocket, ntStatus);
+            RdrSocketInvalidate(pSocket, ntStatus);
             SMBResponseInvalidate_InLock(pResponse, ntStatus);
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1645,7 +1645,7 @@ static
 NTSTATUS
 _FindOrCreateSocket(
     IN PCWSTR pwszHostname,
-    OUT PSMB_SOCKET* ppSocket
+    OUT PRDR_SOCKET* ppSocket
     );
 
 NTSTATUS
@@ -1673,7 +1673,7 @@ error:
 NTSTATUS
 SMBSrvClientSocketCreate(
     IN PCWSTR pwszHostname,
-    OUT PSMB_SOCKET* ppSocket
+    OUT PRDR_SOCKET* ppSocket
     )
 {
     return _FindOrCreateSocket(pwszHostname, ppSocket);
@@ -1683,12 +1683,12 @@ static
 NTSTATUS
 _FindOrCreateSocket(
     IN PCWSTR pwszHostname,
-    OUT PSMB_SOCKET* ppSocket
+    OUT PRDR_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
 
-    PSMB_SOCKET pSocket = NULL;
+    PRDR_SOCKET pSocket = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
@@ -1705,7 +1705,7 @@ _FindOrCreateSocket(
     }
     else
     {
-        ntStatus = SMBSocketCreate(
+        ntStatus = RdrSocketCreate(
             pwszHostname,
             gRdrRuntime.config.bSignMessagesIfSupported,
             &pSocket);
@@ -1739,8 +1739,8 @@ error:
 
 NTSTATUS
 SMBSrvClientSocketAddSessionByUID(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
+    PRDR_SOCKET  pSocket,
+    PRDR_SESSION pSession
     )
 {
     NTSTATUS ntStatus = 0;
@@ -1780,15 +1780,15 @@ RdrSocketShutdown(
 NTSTATUS
 SMBResponseCreate(
     uint16_t       wMid,
-    SMB_RESPONSE **ppResponse
+    RDR_RESPONSE **ppResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_RESPONSE pResponse = NULL;
+    PRDR_RESPONSE pResponse = NULL;
     BOOLEAN bDestroyCondition = FALSE;
 
     ntStatus = SMBAllocateMemory(
-                    sizeof(SMB_RESPONSE),
+                    sizeof(RDR_RESPONSE),
                     (PVOID*)&pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1824,7 +1824,7 @@ error:
 
 VOID
 SMBResponseFree(
-    PSMB_RESPONSE pResponse
+    PRDR_RESPONSE pResponse
     )
 {
     if (pResponse->pSocket)
@@ -1839,7 +1839,7 @@ SMBResponseFree(
 
 VOID
 SMBResponseInvalidate_InLock(
-    PSMB_RESPONSE pResponse,
+    PRDR_RESPONSE pResponse,
     NTSTATUS ntStatus
     )
 {

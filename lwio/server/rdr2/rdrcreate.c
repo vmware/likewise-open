@@ -72,7 +72,7 @@ static
 NTSTATUS
 RdrTransceiveCreate(
     PRDR_OP_CONTEXT pContext,
-    PSMB_CLIENT_FILE_HANDLE pFile,
+    PRDR_CCB pFile,
     PCWSTR pwszPath,
     ACCESS_MASK desiredAccess,
     LONG64 llAllocationSize,
@@ -104,7 +104,7 @@ RdrCreateTreeConnect(
     PIO_CREDS pCreds = IoSecurityGetCredentials(pIrp->Args.Create.SecurityContext);
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcessInfo =
         IoSecurityGetProcessInfo(pIrp->Args.Create.SecurityContext);
-    PSMB_TREE pTree = NULL;
+    PRDR_TREE pTree = NULL;
     PWSTR pwszServer = NULL;
     PSTR pszShare = NULL;
     PSTR pszFilename = NULL;
@@ -146,7 +146,7 @@ error:
 
     if (status != STATUS_PENDING && pTree)
     {
-        SMBTreeRelease(pTree);
+        RdrTreeRelease(pTree);
         pTree = NULL;
     }
 
@@ -161,7 +161,7 @@ RdrCreateTreeConnected(
     PVOID pParam
     )
 {
-    PSMB_TREE pTree = pParam;
+    PRDR_TREE pTree = pParam;
     PIRP pIrp = pContext->pIrp;
     ACCESS_MASK DesiredAccess = pIrp->Args.Create.DesiredAccess;
     LONG64 AllocationSize = pIrp->Args.Create.AllocationSize;
@@ -169,12 +169,12 @@ RdrCreateTreeConnected(
     FILE_CREATE_DISPOSITION CreateDisposition = pIrp->Args.Create.CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions = pIrp->Args.Create.CreateOptions;
     FILE_ATTRIBUTES FileAttributes =  pIrp->Args.Create.FileAttributes;
-    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
+    PRDR_CCB pFile = NULL;
 
     BAIL_ON_NT_STATUS(status);
 
     status = SMBAllocateMemory(
-        sizeof(SMB_CLIENT_FILE_HANDLE),
+        sizeof(RDR_CCB),
         (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(status);
 
@@ -232,7 +232,7 @@ RdrFinishCreate(
     PVOID pParam
     )
 {
-    PSMB_CLIENT_FILE_HANDLE pFile = pContext->State.Create.pFile;
+    PRDR_CCB pFile = pContext->State.Create.pFile;
     PSMB_PACKET pPacket = pParam;
     PCREATE_RESPONSE_HEADER pResponseHeader = NULL;
 
@@ -489,7 +489,7 @@ static
 NTSTATUS
 RdrTransceiveCreate(
     PRDR_OP_CONTEXT pContext,
-    PSMB_CLIENT_FILE_HANDLE pFile,
+    PRDR_CCB pFile,
     PCWSTR pwszPath,
     ACCESS_MASK desiredAccess,
     LONG64 llAllocationSize,

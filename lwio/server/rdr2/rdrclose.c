@@ -74,7 +74,7 @@ RdrClose(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+    PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
     PCLOSE_REQUEST_HEADER pHeader = NULL;
     PRDR_OP_CONTEXT pContext = NULL;
 
@@ -155,7 +155,7 @@ RdrFinishClose(
 {
     PSMB_PACKET pPacket = pParam;
     PIRP pIrp = pContext->pIrp;
-    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+    PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
 
     if (status == STATUS_SUCCESS)
     {
@@ -179,12 +179,12 @@ RdrFinishClose(
 
 void
 RdrReleaseFile(
-    PSMB_CLIENT_FILE_HANDLE pFile
+    PRDR_CCB pFile
     )
 {
     if (pFile->pTree)
     {
-        SMBTreeRelease(pFile->pTree);
+        RdrTreeRelease(pFile->pTree);
     }
 
     if (pFile->pMutex)

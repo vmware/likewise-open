@@ -70,7 +70,7 @@ RdrCancelReadFile(
     )
 {
     PRDR_OP_CONTEXT pContext = _pContext;
-    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+    PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
 
     RdrSocketCancel(pFile->pTree->pSession->pSocket, pContext);
 }
@@ -82,7 +82,7 @@ RdrRead(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+    PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
     PRDR_OP_CONTEXT pContext = NULL;
 
     ntStatus = RdrCreateContext(
@@ -125,7 +125,7 @@ static
 NTSTATUS
 RdrTransceiveReadFile(
     PRDR_OP_CONTEXT pContext,
-    PSMB_CLIENT_FILE_HANDLE pFile,
+    PRDR_CCB pFile,
     ULONG64 ullFileReadOffset,
     USHORT usReadLen
     )
@@ -210,7 +210,7 @@ RdrFinishReadFile(
     USHORT usBytesRead = 0;
     PBYTE pBuffer = pContext->pIrp->Args.ReadWrite.Buffer;
     ULONG ulLength = pContext->pIrp->Args.ReadWrite.Length;
-    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pContext->pIrp->FileHandle);
+    PRDR_CCB pFile = IoFileGetContext(pContext->pIrp->FileHandle);
     ULONG ulReadMax = 0;
     ULONG ulReadLength = 0;
 

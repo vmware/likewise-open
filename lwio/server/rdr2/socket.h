@@ -32,99 +32,99 @@
 #define __SOCKET_H__
 
 NTSTATUS
-SMBSocketCreate(
+RdrSocketCreate(
     IN PCWSTR pwszHostname,
     IN BOOLEAN bUseSignedMessagesIfSupported,
-    OUT PSMB_SOCKET* ppSocket
+    OUT PRDR_SOCKET* ppSocket
     );
 
 NTSTATUS
-SMBSocketConnect(
-    PSMB_SOCKET      pSocket
+RdrSocketConnect(
+    PRDR_SOCKET      pSocket
     );
 
 VOID
 RdrSocketRevive(
-    PSMB_SOCKET pSocket
+    PRDR_SOCKET pSocket
     );
 
 VOID
-SMBSocketInvalidate(
-    PSMB_SOCKET    pSocket,
+RdrSocketInvalidate(
+    PRDR_SOCKET    pSocket,
     NTSTATUS ntStatus
     );
 
 NTSTATUS
-SMBSocketSend(
-    IN PSMB_SOCKET pSocket,
+RdrSocketSend(
+    IN PRDR_SOCKET pSocket,
     IN PSMB_PACKET pPacket
     );
 
 VOID
-SMBSocketRelease(
-    PSMB_SOCKET pSocket
+RdrSocketRelease(
+    PRDR_SOCKET pSocket
     );
 
 VOID
 RdrSocketSetIgnoreServerSignatures(
-    PSMB_SOCKET pSocket,
+    PRDR_SOCKET pSocket,
     BOOLEAN bValue
     );
 
 VOID
-SMBSocketBeginSequence(
-    PSMB_SOCKET pSocket
+RdrSocketBeginSequence(
+    PRDR_SOCKET pSocket
     );
 
 NTSTATUS
 RdrSocketAcquireMid(
-    PSMB_SOCKET pSocket,
+    PRDR_SOCKET pSocket,
     USHORT* pusMid
     );
 
 NTSTATUS
 RdrSocketAddResponse(
-    PSMB_SOCKET pSocket,
-    PSMB_RESPONSE pResponse
+    PRDR_SOCKET pSocket,
+    PRDR_RESPONSE pResponse
     );
 
 NTSTATUS
 RdrSocketRemoveResponse(
-    PSMB_SOCKET pSocket,
-    PSMB_RESPONSE pResponse
+    PRDR_SOCKET pSocket,
+    PRDR_RESPONSE pResponse
     );
 
 NTSTATUS
 RdrSocketReceiveResponse(
-    IN PSMB_SOCKET pSocket,
+    IN PRDR_SOCKET pSocket,
     IN BOOLEAN bVerifySignature,
     IN DWORD dwExpectedSequence,
-    IN PSMB_RESPONSE pResponse,
+    IN PRDR_RESPONSE pResponse,
     OUT PSMB_PACKET* ppResponsePacket
     );
 
 NTSTATUS
 RdrSocketTransceive(
-    IN OUT PSMB_SOCKET pSocket,
+    IN OUT PRDR_SOCKET pSocket,
     IN PRDR_OP_CONTEXT pContext
     );
 
 VOID
 RdrSocketCancel(
-    IN PSMB_SOCKET pSocket,
+    IN PRDR_SOCKET pSocket,
     IN PRDR_OP_CONTEXT pContext
     );
 
 NTSTATUS
 SMBSrvClientSocketAddSessionByUID(
-    PSMB_SOCKET  pSocket,
-    PSMB_SESSION pSession
+    PRDR_SOCKET  pSocket,
+    PRDR_SESSION pSession
     );
 
 NTSTATUS
 SMBSrvClientSocketCreate(
     IN PCWSTR pwszHostname,
-    OUT PSMB_SOCKET* ppSocket
+    OUT PRDR_SOCKET* ppSocket
     );
 
 NTSTATUS
@@ -140,17 +140,17 @@ RdrSocketShutdown(
 NTSTATUS
 SMBResponseCreate(
     uint16_t       wMid,
-    SMB_RESPONSE **ppResponse
+    RDR_RESPONSE **ppResponse
     );
 
 VOID
 SMBResponseFree(
-    PSMB_RESPONSE pResponse
+    PRDR_RESPONSE pResponse
     );
 
 VOID
 SMBResponseInvalidate_InLock(
-    PSMB_RESPONSE pResponse,
+    PRDR_RESPONSE pResponse,
     NTSTATUS ntStatus
     );
 

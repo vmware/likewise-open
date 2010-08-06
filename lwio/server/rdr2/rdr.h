@@ -242,7 +242,7 @@ RdrCallQueryInformationFile(
 
 NTSTATUS
 RdrTransactFindFirst2(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchAttrs,
     USHORT usSearchCount,
     USHORT usFlags,
@@ -261,7 +261,7 @@ RdrTransactFindFirst2(
 
 NTSTATUS
 RdrTransactFindNext2(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchId,
     USHORT usSearchCount,
     SMB_INFO_LEVEL infoLevel,
@@ -279,7 +279,7 @@ RdrTransactFindNext2(
 
 NTSTATUS
 RdrTransactSetInfoFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     SMB_INFO_LEVEL infoLevel,
     PVOID pInfo,
@@ -288,7 +288,7 @@ RdrTransactSetInfoFile(
 
 NTSTATUS
 RdrTransactRenameFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchAttributes,
     PCWSTR pwszSourceFile,
     PCWSTR pwszDestFile
@@ -296,7 +296,7 @@ RdrTransactRenameFile(
 
 NTSTATUS
 RdrTransactNTRenameFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchAttributes,
     USHORT usInfoLevel,
     ULONG ulClusterCount,
@@ -306,7 +306,7 @@ RdrTransactNTRenameFile(
 
 NTSTATUS
 RdrTransactTrans2RenameFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     USHORT usFlags,
     PCWSTR pwszPath
@@ -314,7 +314,7 @@ RdrTransactTrans2RenameFile(
 
 NTSTATUS
 RdrTransactNtTransQuerySecurityDesc(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     SECURITY_INFORMATION securityInformation,
     PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
@@ -324,7 +324,7 @@ RdrTransactNtTransQuerySecurityDesc(
 
 NTSTATUS
 RdrTransactQueryFsInfo(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     SMB_INFO_LEVEL infoLevel,
     PVOID pInfo,
     ULONG ulInfoLength,
@@ -333,7 +333,7 @@ RdrTransactQueryFsInfo(
 
 NTSTATUS
 RdrTransactReadFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     ULONG64 ullFileReadOffset,
     PBYTE pReadBuffer,
@@ -344,12 +344,12 @@ RdrTransactReadFile(
 
 void
 RdrReleaseFile(
-    PSMB_CLIENT_FILE_HANDLE pFile
+    PRDR_CCB pFile
     );
 
 NTSTATUS
-SMBSocketWaitReady(
-    PSMB_SOCKET pSocket
+RdrSocketWaitReady(
+    PRDR_SOCKET pSocket
     );
 
 #endif /* __RDR_H__ */

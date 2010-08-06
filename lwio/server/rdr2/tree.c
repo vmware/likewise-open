@@ -51,36 +51,36 @@
 
 static
 VOID
-SMBTreeFree(
-    PSMB_TREE pTree
+RdrTreeFree(
+    PRDR_TREE pTree
     );
 
 static
 NTSTATUS
-SMBTreeDestroyContents(
-    PSMB_TREE pTree
+RdrTreeDestroyContents(
+    PRDR_TREE pTree
     );
 
 static
 NTSTATUS
 RdrTransceiveTreeDisconnect(
     PRDR_OP_CONTEXT pContext,
-    PSMB_TREE pTree
+    PRDR_TREE pTree
     );
 
 NTSTATUS
-SMBTreeCreate(
-    PSMB_TREE* ppTree
+RdrTreeCreate(
+    PRDR_TREE* ppTree
     )
 {
     NTSTATUS status = 0;
-    PSMB_TREE pTree = NULL;
+    PRDR_TREE pTree = NULL;
     BOOLEAN bDestroyMutex = FALSE;
     pthread_mutexattr_t mutexAttr;
     pthread_mutexattr_t* pMutexAttr = NULL;
 
     status = SMBAllocateMemory(
-                sizeof(SMB_TREE),
+                sizeof(RDR_TREE),
                 (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(status);
 
@@ -129,7 +129,7 @@ error:
 
     if (pTree)
     {
-        SMBTreeDestroyContents(pTree);
+        RdrTreeDestroyContents(pTree);
     }
     LWIO_SAFE_FREE_MEMORY(pTree);
 
@@ -140,7 +140,7 @@ error:
 
 VOID
 RdrTreeRevive(
-    PSMB_TREE pTree
+    PRDR_TREE pTree
     )
 {
     if (pTree->pTimeout)
@@ -153,7 +153,7 @@ RdrTreeRevive(
 static
 VOID
 RdrTreeUnlink(
-    PSMB_TREE pTree
+    PRDR_TREE pTree
     )
 {
     if (pTree->bParentLink)
@@ -169,8 +169,8 @@ RdrTreeUnlink(
 }
 
 NTSTATUS
-SMBTreeInvalidate(
-    PSMB_TREE pTree,
+RdrTreeInvalidate(
+    PRDR_TREE pTree,
     NTSTATUS ntStatus
     )
 {
@@ -200,16 +200,16 @@ RdrTreeDisconnectComplete(
     )
 {
     PSMB_PACKET pPacket = pParam;
-    PSMB_TREE pTree = pContext->State.TreeConnect.pTree;
+    PRDR_TREE pTree = pContext->State.TreeConnect.pTree;
 
     if (pPacket)
     {
         SMBPacketRelease(gRdrRuntime.hPacketAllocator, pPacket);
     }
 
-    SMBTreeFree(pTree);
+    RdrTreeFree(pTree);
 
-    /* We don't explicitly free pContext because SMBTreeFree() does it */
+    /* We don't explicitly free pContext because RdrTreeFree() does it */
     return FALSE;
 }
 
@@ -224,7 +224,7 @@ RdrTreeTimeout(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSMB_TREE pTree = _pTree;
+    PRDR_TREE pTree = _pTree;
     BOOLEAN bLocked = FALSE;
     PRDR_OP_CONTEXT pContext = NULL;
 
@@ -255,7 +255,7 @@ RdrTreeTimeout(
             if (status != STATUS_PENDING)
             {
                 /* Give up and free the tree now */
-                SMBTreeFree(pTree);
+                RdrTreeFree(pTree);
             }
 
             *pWaitMask = LW_TASK_EVENT_COMPLETE;
@@ -273,8 +273,8 @@ RdrTreeTimeout(
 }
 
 VOID
-SMBTreeRelease(
-    SMB_TREE *pTree
+RdrTreeRelease(
+    RDR_TREE *pTree
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -291,7 +291,7 @@ SMBTreeRelease(
         {
             RdrTreeUnlink(pTree);
             LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
-            SMBTreeFree(pTree);
+            RdrTreeFree(pTree);
         }
         else
         {
@@ -323,19 +323,19 @@ SMBTreeRelease(
 
 static
 VOID
-SMBTreeFree(
-    PSMB_TREE pTree
+RdrTreeFree(
+    PRDR_TREE pTree
     )
 {
     assert(!pTree->refCount);
 
     pthread_mutex_destroy(&pTree->mutex);
 
-    SMBTreeDestroyContents(pTree);
+    RdrTreeDestroyContents(pTree);
 
     if (pTree->pSession)
     {
-        SMBSessionRelease(pTree->pSession);
+        RdrSessionRelease(pTree->pSession);
     }
 
     SMBFreeMemory(pTree);
@@ -343,8 +343,8 @@ SMBTreeFree(
 
 static
 NTSTATUS
-SMBTreeDestroyContents(
-    PSMB_TREE pTree
+RdrTreeDestroyContents(
+    PRDR_TREE pTree
     )
 {
     LWIO_SAFE_FREE_MEMORY(pTree->pszPath);
@@ -367,7 +367,7 @@ static
 NTSTATUS
 RdrTransceiveTreeDisconnect(
     PRDR_OP_CONTEXT pContext,
-    PSMB_TREE pTree
+    PRDR_TREE pTree
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

@@ -27,7 +27,7 @@
 
 NTSTATUS
 RdrTransactNtTransQuerySecurityDesc(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     SECURITY_INFORMATION securityInformation,
     PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
@@ -40,7 +40,7 @@ RdrTransactNtTransQuerySecurityDesc(
     uint32_t packetByteCount = 0;
     NT_TRANSACTION_REQUEST_HEADER *pHeader = NULL;
     PNT_TRANSACTION_SECONDARY_RESPONSE_HEADER pResponseHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     USHORT usSetup[0];
@@ -140,7 +140,7 @@ RdrTransactNtTransQuerySecurityDesc(
 
         if (!pResponsePacket)
         {
-            ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+            ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 

@@ -80,7 +80,7 @@ RdrCommonQuerySecurity(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
+    PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
 
     ntStatus = RdrTransactNtTransQuerySecurityDesc(
         pFile->pTree,

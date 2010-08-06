@@ -98,7 +98,7 @@ RdrCommonSetInformation(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_INFO_LEVEL infoLevel = 0;
-    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
+    PRDR_CCB pFile = NULL;
 
     switch (pIrp->Args.QuerySetInformation.FileInformationClass)
     {
@@ -143,7 +143,7 @@ RdrCommonRename(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
+    PRDR_CCB pFile = NULL;
     PFILE_RENAME_INFORMATION pRenameInfo = NULL;
     PWSTR pwszNewFilePath = NULL;
 

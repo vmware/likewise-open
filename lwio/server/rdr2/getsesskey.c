@@ -38,8 +38,8 @@ RdrGetSessionKey(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
-    PSMB_SESSION pSession = NULL;
+    PRDR_CCB pFile = (PRDR_CCB)hFile;
+    PRDR_SESSION pSession = NULL;
     PBYTE pSessionKey = NULL;
     BOOLEAN bInLock = FALSE;
 

@@ -28,7 +28,7 @@
 
 NTSTATUS
 RdrTransactRenameFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchAttributes,
     PCWSTR pwszSourceFile,
     PCWSTR pwszDestFile
@@ -37,7 +37,7 @@ RdrTransactRenameFile(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_PACKET packet = {0};
     PSMB_RENAME_REQUEST_HEADER pHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     PBYTE pCursor = NULL;
@@ -120,7 +120,7 @@ RdrTransactRenameFile(
     ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(
@@ -164,7 +164,7 @@ error:
 
 NTSTATUS
 RdrTransactNTRenameFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchAttributes,
     USHORT usInfoLevel,
     ULONG ulClusterCount,
@@ -175,7 +175,7 @@ RdrTransactNTRenameFile(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_PACKET packet = {0};
     PSMB_NT_RENAME_REQUEST_HEADER pHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     PBYTE pCursor = NULL;
@@ -260,7 +260,7 @@ RdrTransactNTRenameFile(
     ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(
@@ -304,7 +304,7 @@ error:
 
 NTSTATUS
 RdrTransactTrans2RenameFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     USHORT usFlags,
     PCWSTR pwszPath
@@ -314,7 +314,7 @@ RdrTransactTrans2RenameFile(
     SMB_PACKET packet = {0};
     uint32_t packetByteCount = 0;
     NT_TRANSACTION_REQUEST_HEADER *pHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     USHORT usSetup[0];
@@ -407,7 +407,7 @@ RdrTransactTrans2RenameFile(
     ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(

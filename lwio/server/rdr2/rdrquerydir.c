@@ -65,7 +65,7 @@ RdrFileSpecToSearchPattern(
 static
 NTSTATUS
 RdrUnmarshalFindResults(
-    PSMB_CLIENT_FILE_HANDLE pHandle,
+    PRDR_CCB pHandle,
     BOOLEAN bReturnSingleEntry,
     PVOID pFileInformation,
     ULONG ulLength,
@@ -76,7 +76,7 @@ RdrUnmarshalFindResults(
 static
 NTSTATUS
 RdrUnmarshalFileBothDirectoryInformation(
-    PSMB_CLIENT_FILE_HANDLE pHandle,
+    PRDR_CCB pHandle,
     PVOID pFileInformation,
     ULONG ulLength,
     PULONG pulLengthUsed,
@@ -111,7 +111,7 @@ RdrCommonQueryDirectory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_CLIENT_FILE_HANDLE pHandle = NULL;
+    PRDR_CCB pHandle = NULL;
     SMB_INFO_LEVEL infoLevel = 0;
     PWSTR pwszPattern = NULL;
 
@@ -268,7 +268,7 @@ error:
 static
 NTSTATUS
 RdrUnmarshalFindResults(
-    PSMB_CLIENT_FILE_HANDLE pHandle,
+    PRDR_CCB pHandle,
     BOOLEAN bReturnSingleEntry,
     PVOID pFileInformation,
     ULONG ulLength,
@@ -325,7 +325,7 @@ error:
 static
 NTSTATUS
 RdrUnmarshalFileBothDirectoryInformation(
-    PSMB_CLIENT_FILE_HANDLE pHandle,
+    PRDR_CCB pHandle,
     PVOID pFileInformation,
     ULONG ulLength,
     PULONG pulLengthUsed,

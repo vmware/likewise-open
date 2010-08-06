@@ -25,21 +25,21 @@
 
 VOID
 RdrTreeRevive(
-    PSMB_TREE pTree
+    PRDR_TREE pTree
     );
 
 VOID
-SMBTreeRelease(
-    PSMB_TREE pTree
+RdrTreeRelease(
+    PRDR_TREE pTree
     );
 
 NTSTATUS
-SMBTreeCreate(
-    PSMB_TREE* ppTree
+RdrTreeCreate(
+    PRDR_TREE* ppTree
     );
 
 NTSTATUS
-SMBTreeInvalidate(
-    PSMB_TREE      pTree,
+RdrTreeInvalidate(
+    PRDR_TREE      pTree,
     NTSTATUS ntStatus
     );

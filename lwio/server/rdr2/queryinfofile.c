@@ -60,7 +60,7 @@ RdrUnmarshalQueryFileStandardInfoReply(
 static
 NTSTATUS
 RdrTransactQueryInfoFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     SMB_INFO_LEVEL infoLevel,
     PVOID pInfo,
@@ -79,7 +79,7 @@ RdrCallQueryInformationFile(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_INFO_LEVEL infoLevel = 0;
-    PSMB_CLIENT_FILE_HANDLE pFile = hFile;
+    PRDR_CCB pFile = hFile;
 
     switch (fileInformationClass)
     {
@@ -115,7 +115,7 @@ error:
 static
 NTSTATUS
 RdrTransactQueryInfoFile(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usFid,
     SMB_INFO_LEVEL infoLevel,
     PVOID pInfo,
@@ -126,7 +126,7 @@ RdrTransactQueryInfoFile(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB_PACKET packet = {0};
     TRANSACTION_REQUEST_HEADER *pHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     USHORT usSetup = SMB_SUB_COMMAND_TRANS2_QUERY_FILE_INFORMATION;
@@ -218,7 +218,7 @@ RdrTransactQueryInfoFile(
     ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(

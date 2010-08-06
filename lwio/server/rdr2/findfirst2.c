@@ -28,7 +28,7 @@
 
 NTSTATUS
 RdrTransactFindFirst2(
-    PSMB_TREE pTree,
+    PRDR_TREE pTree,
     USHORT usSearchAttrs,
     USHORT usSearchCount,
     USHORT usFlags,
@@ -50,7 +50,7 @@ RdrTransactFindFirst2(
     uint32_t packetByteCount = 0;
     TRANSACTION_REQUEST_HEADER *pHeader = NULL;
     TRANSACTION_SECONDARY_RESPONSE_HEADER *pResponseHeader = NULL;
-    SMB_RESPONSE *pResponse = NULL;
+    RDR_RESPONSE *pResponse = NULL;
     PSMB_PACKET pResponsePacket = NULL;
     USHORT usMid = 0;
     USHORT usSetup = SMB_SUB_COMMAND_TRANS2_FIND_FIRST2;
@@ -164,7 +164,7 @@ RdrTransactFindFirst2(
     ntStatus = RdrSocketAddResponse(pTree->pSession->pSocket, pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSocketSend(pTree->pSession->pSocket, &packet);
+    ntStatus = RdrSocketSend(pTree->pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketReceiveResponse(

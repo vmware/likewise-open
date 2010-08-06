@@ -24,30 +24,30 @@
  */
 
 NTSTATUS
-SMBSessionCreate(
-    PSMB_SESSION* ppSession
+RdrSessionCreate(
+    PRDR_SESSION* ppSession
     );
 
 VOID
 RdrSessionRevive(
-    PSMB_SESSION pSession
+    PRDR_SESSION pSession
     );
 
 VOID
-SMBSessionInvalidate(
-    PSMB_SESSION   pSession,
+RdrSessionInvalidate(
+    PRDR_SESSION   pSession,
     NTSTATUS ntStatus
     );
 
 VOID
-SMBSessionRelease(
-    PSMB_SESSION pSession
+RdrSessionRelease(
+    PRDR_SESSION pSession
     );
 
 NTSTATUS
 SMBSrvClientSessionCreate(
-    IN OUT PSMB_SOCKET* ppSocket,
+    IN OUT PRDR_SOCKET* ppSocket,
     PIO_CREDS pCreds,
     IN uid_t uid,
-    OUT PSMB_SESSION* ppSession
+    OUT PRDR_SESSION* ppSession
     );
