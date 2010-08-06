@@ -32,18 +32,18 @@ librdr2_sys_la_SOURCES =  \
     socket.c              \
     tree.c                \
     writefile.c           \
-    rdrdriver.c           \
-    rdrcreate.c           \
-    rdrread.c             \
-    rdrwrite.c            \
-    rdrsetinfo.c          \
-    rdrqueryinfo.c        \
-    rdrquerydir.c         \
-    rdrdeviceio.c         \
-    rdrfsctl.c            \
-    rdrsecurity.c         \
-    rdrqueryfs.c          \
-    rdrclose.c
+    driver.c              \
+    create.c              \
+    read.c                \
+    write.c               \
+    setinfo.c             \
+    queryinfo.c           \
+    querydir.c            \
+    deviceio.c            \
+    fsctl.c               \
+    security.c            \
+    queryfs.c             \
+    close.c
 
 librdr2_sys_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \

@@ -72,7 +72,7 @@
 #include <lwio/io-types.h>
 #include "iodriver.h"
 
-#include "rdrstructs.h"
+#include "structs.h"
 #include "writefile.h"
 #include "getsesskey.h"
 #include "smb_write.h"
@@ -80,7 +80,6 @@
 #include "tree.h"
 #include "session.h"
 #include "connect.h"
-
 #include "externs.h"
 
 #define RDR_IDLE_TIMEOUT 10
@@ -192,8 +191,6 @@ RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
-
-#include "rdrcreate.h"
 
 NTSTATUS
 RdrWriteFileEx(
