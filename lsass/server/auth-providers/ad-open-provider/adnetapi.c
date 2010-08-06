@@ -254,8 +254,17 @@ AD_NetUserChangePassword(
     BAIL_ON_INVALID_STRING(pszDomainName);
     BAIL_ON_INVALID_STRING(pszLoginId);
 
-    dwError = LsaSetSMBAnonymousCreds(
+    dwError = LsaSetSMBCreds(
+                    pszDomainName,
+                    pszUserPrincipalName,
+                    pszOldPassword,
+                    FALSE,
                     &pFreeInfo);
+    if (dwError == LW_ERROR_PASSWORD_EXPIRED)
+    {
+        dwError = LsaSetSMBAnonymousCreds(
+                        &pFreeInfo);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMbsToWc16s(
