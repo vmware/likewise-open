@@ -122,7 +122,7 @@ RegUtilSetValue(
     IN PCSTR pszKeyName,
     IN PCSTR pszValueName,
     IN REG_DATA_TYPE valueType,
-    IN PVOID pData,
+    IN PCVOID pData,
     IN DWORD dwDataLen
     );
 
