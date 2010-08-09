@@ -228,9 +228,8 @@ error:
 }
 
 
-static
 NET_API_STATUS
-NetJoinDomainLocalInternal(
+NetJoinDomainLocal(
     const wchar16_t *machine,
     const wchar16_t *machine_dns_domain,
     const wchar16_t *domain,
@@ -240,8 +239,7 @@ NetJoinDomainLocalInternal(
     UINT32 options,
     const wchar16_t *osname,
     const wchar16_t *osver,
-    const wchar16_t *ospack,
-    BOOLEAN is_retry
+    const wchar16_t *ospack
     )
 {
     const UINT32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS |
@@ -292,7 +290,7 @@ NetJoinDomainLocalInternal(
     BAIL_ON_NO_MEMORY(machname);
     wc16supper(machname);
 
-    err = NetpGetRwDcName(domain, is_retry, &domain_controller_name);
+    err = NetpGetRwDcName(domain, TRUE, &domain_controller_name);
     BAIL_ON_WINERR_ERROR(err);
 
     if (account && password)
@@ -619,14 +617,6 @@ cleanup:
     SAFE_FREE(ospack_attr_val[0]);
     SAFE_FREE(domain_controller_name);
 
-    if (err && !is_retry)
-    {
-        err = NetJoinDomainLocalInternal(machine, machine_dns_domain,
-                                         domain, account_ou,
-                                         account, password, options,
-                                         osname, osver, ospack, TRUE);
-    }
-
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
@@ -636,24 +626,6 @@ cleanup:
 
 error:
     goto cleanup;
-}
-
-
-NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
-                                  const wchar16_t *machine_dns_domain,
-                                  const wchar16_t *domain,
-                                  const wchar16_t *account_ou,
-                                  const wchar16_t *account,
-                                  const wchar16_t *password,
-                                  UINT32 options,
-                                  const wchar16_t *osname,
-                                  const wchar16_t *osver,
-                                  const wchar16_t *ospack)
-{
-    return NetJoinDomainLocalInternal(machine, machine_dns_domain,
-                                      domain, account_ou,
-                                      account, password, options,
-                                      osname, osver, ospack, FALSE);
 }
 
 
