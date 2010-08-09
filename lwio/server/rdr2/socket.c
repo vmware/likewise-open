@@ -760,7 +760,7 @@ RdrSocketTask(
             if (WakeMask & LW_TASK_EVENT_TIME)
             {
                 /* We timed out, give up */
-                ntStatus = STATUS_TIMEOUT;
+                ntStatus = STATUS_IO_TIMEOUT;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else
