@@ -247,8 +247,7 @@ LsaSrvAuthenticateUserEx(
     if (pLoginInfo->nameType == NameType_UPN)
     {
         /* If they gave us a UPN, our domain MUST be NULL */
-        LW_SAFE_FREE_MEMORY(localUserParams.pszDomain);
-        // localUserParams.pszDomain = NULL;
+        localUserParams.pszDomain = NULL;
     }
 
     /* Do the NTLM authentication */
