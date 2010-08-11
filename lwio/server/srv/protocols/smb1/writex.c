@@ -936,6 +936,22 @@ SrvFreeWriteXState(
     PSRV_WRITEX_STATE_SMB_V1 pWriteState
     )
 {
+    if (pWriteState->zct.pZct)
+    {
+        LwZctDestroy(&pWriteState->zct.pZct);
+    }
+
+    if (pWriteState->zct.pPadding)
+    {
+        SrvFreeMemory(pWriteState->zct.pPadding);
+    }
+
+    if (pWriteState->zct.pPausedConnection)
+    {
+        SrvProtocolTransportResumeFromZct(pWriteState->zct.pPausedConnection);
+        SrvConnectionRelease(pWriteState->zct.pPausedConnection);
+    }
+
     if (pWriteState->pAcb && pWriteState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pWriteState->pAcb->AsyncCancelContext);
