@@ -55,13 +55,59 @@ typedef enum _PVFS_WILDCARD_TYPE {
     PVFS_WILDCARD_TYPE_SPLAT_DOT
 } PVFS_WILDCARD_TYPE;
 
+typedef struct _PVFS_WILDCARD_STATE_ENTRY
+{
+    LW_LIST_LINKS StackLinks;
+    PSTR pszPattern;
+    PSTR pszInputString;
+
+} PVFS_WILDCARD_STATE_ENTRY, *PPVFS_WILDCARD_STATE_ENTRY;
+
 /* Forward declarations */
 
-static PVFS_WILDCARD_TYPE
+static
+BOOLEAN
+PvfsCStringOnlyContainsChars(
+    IN PCSTR pszString,
+    IN PCSTR pszAllowedCharacters
+    );
+
+static
+PSTR
+PvfsWildcardEatString(
+    PSTR pszString,
+    PSTR pszMatch
+    );
+
+static
+PVFS_WILDCARD_TYPE
 NextMatchState(
     PSTR *ppszPattern,
     PDWORD pdwCount
     );
+
+static
+NTSTATUS
+PvfsWildcardStackPush(
+    IN OUT PLW_LIST_LINKS pStack,
+    IN PSTR pszInputString,
+    IN PSTR pszPattern
+    );
+
+static
+NTSTATUS
+PvfsWildcardStackPop(
+    IN OUT PLW_LIST_LINKS pStack,
+    OUT PSTR *ppszInputString,
+    OUT PSTR *ppszPattern
+    );
+
+static
+VOID
+PvfsWildcardStackDestroy(
+    PLW_LIST_LINKS pStack
+    );
+
 
 /* Code */
 
@@ -77,22 +123,23 @@ PvfsWildcardMatch(
     IN BOOLEAN bCaseSensitive
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     PSTR pszString = NULL;
     PSTR pszMatch  = NULL;
     PSTR pszPathUpper = NULL;
     PSTR pszPatternUpper = NULL;
     BOOLEAN bMatched = FALSE;
+    LW_LIST_LINKS Stack;
 
-    /* Quick check for an exact match */
+    // Quick check for an exact match
 
     if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
     {
         return RtlCStringIsEqual(pszPathname, pszPattern, bCaseSensitive);
     }
 
-    /* If we have a case insensitive search, upper case the
-       Pathname and Pattern for easier comparison */
+    // If we have a case insensitive search, upper case the Pathname
+    // and Pattern for easier comparison
 
     pszString = pszPathname;
     pszMatch = pszPattern;
@@ -112,62 +159,70 @@ PvfsWildcardMatch(
     }
 
 
-    /* Enter state machine */
+    // Enter state machine
 
+    LwListInit(&Stack);
 
-    for (/* already performed init */;
-         PVFS_CSTRING_NON_NULL(pszString) && PVFS_CSTRING_NON_NULL(pszMatch);
-         pszString++)
+reset_state:
+    while (PVFS_CSTRING_NON_NULL(pszString) && PVFS_CSTRING_NON_NULL(pszMatch))
     {
         PVFS_WILDCARD_TYPE eState = 0;
         CHAR cSrc = '\0';
         CHAR cMatch = '\0';
         DWORD dwCount = 0;
 
-        /* Save the current CHAR */
+        // Save the current CHAR
 
         cSrc = *pszString;
         cMatch = *pszMatch;
 
-        /* Consumes the pattern from pszMatch */
+        // Consumes the pattern from pszMatch
 
         eState = NextMatchState(&pszMatch, &dwCount);
 
-        switch (eState) {
+        switch (eState)
+        {
         case PVFS_WILDCARD_TYPE_NONE:
-            if (cSrc != cMatch) {
+            if (cSrc != cMatch)
+            {
                 ntError = STATUS_NO_MATCH;
-                BAIL_ON_NT_STATUS(ntError);
+                pszString = NULL;
+            }
+            else
+            {
+                pszString++;
             }
             break;
 
         case PVFS_WILDCARD_TYPE_SPLAT:
         {
-            PSTR pszCursor = NULL;
-
-            /* We are done if this is the last character
-               in the pattern */
-            if (!PVFS_CSTRING_NON_NULL(pszMatch)) {
+            // We are done if this is the last character in the pattern
+            if (!PVFS_CSTRING_NON_NULL(pszMatch))
+            {
                 pszString = NULL;
-                goto cleanup;
             }
-
-            /* If we don't find a match for the next character
-               in the pattern, then fail */
-            if ((pszCursor = strchr(pszString, *pszMatch)) == NULL) {
-                ntError = STATUS_NO_MATCH;
-                BAIL_ON_NT_STATUS(ntError);
+            else
+            {
+                // Be greedy - Consume as much of the string using the '*'
+                // as possible.  This will require a stack in order to backtrack
+                // on a failure.
+                pszString = PvfsWildcardEatString(pszString, pszMatch);
+                if (!pszString)
+                {
+                    ntError = STATUS_NO_MATCH;
+                }
+                else
+                {
+                    // Add next character past "String" match and the previously
+                    // match "Pattern" state (so we pick up the '*' when we pop
+                    // the stack
+                    ntError = PvfsWildcardStackPush(
+                                  &Stack,
+                                  pszString+1,
+                                  pszMatch-1);
+                    BAIL_ON_NT_STATUS(ntError);
+                }
             }
-
-            /* Have to consume at least one character here */
-            if (pszString == pszCursor) {
-                ntError = STATUS_NO_MATCH;
-                BAIL_ON_NT_STATUS(ntError);
-            }
-            /* Set to the previous character so that pszString is
-               incremented properly next pass of the loop */
-            pszString = pszCursor-1;
-
             break;
         }
 
@@ -175,42 +230,46 @@ PvfsWildcardMatch(
         {
             DWORD i = 0;
 
-            /* Consume dwCount characters */
+            // Consume dwCount characters
             for (i=0;
-                 (i<(dwCount-1)) && PVFS_CSTRING_NON_NULL(pszString);
+                 (i<dwCount) && PVFS_CSTRING_NON_NULL(pszString);
                  i++, pszString++)
             {
-                /* no loop body */;
-            }
-            if (*pszString == '\0') {
-                /* backup so pszString incrent in outer loop
-                   works out */
-                pszString--;
+                // no loop body
+                ;
             }
             break;
         }
 
         case PVFS_WILDCARD_TYPE_DOT:
-            /* For now deal with the '.' as just another character */
-            if (cSrc != cMatch) {
+            // For now deal with the '.' as just another character
+            if (cSrc != cMatch)
+            {
                 ntError = STATUS_NO_MATCH;
-                BAIL_ON_NT_STATUS(ntError);
+                pszString = NULL;
             }
+            else
+            {
+                pszString++;
+            }
+
             break;
 
         case PVFS_WILDCARD_TYPE_SPLAT_DOT:
         {
             PSTR pszCursor = NULL;
 
-            /* Similar to "A*B" except we search for the '.' from
-               the end. */
+            // Similar to "A*B" except we search for the '.' from the end
 
-            if ((pszCursor = strrchr(pszString, '.')) == NULL) {
+            if ((pszCursor = strrchr(pszString, '.')) == NULL)
+            {
                 ntError = STATUS_NO_MATCH;
-                BAIL_ON_NT_STATUS(ntError);
+                pszString = NULL;
             }
-            pszString = pszCursor;
-
+            else
+            {
+                pszString = pszCursor + 1;
+            }
             break;
         }
 
@@ -218,39 +277,60 @@ PvfsWildcardMatch(
         {
             DWORD i = 0;
 
-            /* We can match 0 - dwCount characters up to the last '.'
-               This is really a hold over from DOS 8.3 filenames */
+            // We can match 0 - dwCount characters up to the last '.'
+            // This is really a hold over from DOS 8.3 filenames
 
             for (i=0;
                  i<dwCount && PVFS_CSTRING_NON_NULL(pszString) && (*pszString != '.');
                  i++, pszString++)
             {
-                /* no loop body */;
+                // no loop body
+                ;
             }
 
-            /* If we any path lefft, it better be on '.' for a match */
+            // If we any path left, it better be on '.' for a match
 
-            if (pszString && *pszString != '.') {
+            if (*pszString == '.')
+            {
+                pszString++;
+            }
+            else
+            {
                 ntError = STATUS_NO_MATCH;
-                BAIL_ON_NT_STATUS(ntError);
+                pszString = NULL;
             }
 
             break;
         }
 
-        }
-    }
+        }    // end of switch {...}
+    }        // end of for {...}
 
-cleanup:
-    /* We matched if pszString is empty AND either pszMatch is empty
-       OR only contains wildcard characters */
+    // We matched if pszString is empty AND either pszMatch is empty
+    // OR only contains wildcard characters
 
-    if (!PVFS_CSTRING_NON_NULL(pszString) &&
+    if ((ntError == STATUS_SUCCESS) &&
+        !PVFS_CSTRING_NON_NULL(pszString) &&
         (!PVFS_CSTRING_NON_NULL(pszMatch) ||
-         (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))))
+         PvfsCStringOnlyContainsChars(pszMatch, "?*")))
     {
         bMatched = TRUE;
     }
+    else if (!LwListIsEmpty(&Stack))
+    {
+        // Pop back to the earlier state, consume one character (*from '*')
+        // and try another path
+        ntError = PvfsWildcardStackPop(&Stack, &pszString, &pszMatch);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pszString++;
+        goto reset_state;
+    }
+
+
+cleanup:
+
+    PvfsWildcardStackDestroy(&Stack);
 
     if (!bCaseSensitive)
     {
@@ -258,9 +338,7 @@ cleanup:
         PVFS_FREE(&pszPatternUpper);
     }
 
-
-    /* If we have any string left to parse, we don't
-       have a match */
+    // If we have any string left to parse, we don't have a match
 
     return bMatched;
 
@@ -268,13 +346,52 @@ error:
     goto cleanup;
 }
 
-/********************************************************
- Five trnsitions in state machine are the valie
- wildcard patterns ('*' '?' '*.' '?.' '.' and 'none).
- Consume the next token from the Pattern.
- *******************************************************/
+/***********************************************************************
+************************************************************************/
 
-static PVFS_WILDCARD_TYPE
+static
+BOOLEAN
+PvfsCStringOnlyContainsChars(
+    IN PCSTR pszString,
+    IN PCSTR pszAllowedCharacters
+    )
+{
+    BOOLEAN bResult = TRUE;
+    PCSTR pszInputCursor = pszString;
+    PCSTR pszMatchCursor = pszAllowedCharacters;
+
+    for (pszInputCursor = pszString;
+         *pszInputCursor && bResult;
+         pszInputCursor++)
+    {
+        // Guilty unilt proven innocent
+        bResult = FALSE;
+
+        // Must check all allowed characters until we get a
+        // single match or have compared them all
+        for (pszMatchCursor = pszAllowedCharacters;
+             *pszMatchCursor;
+             pszMatchCursor++)
+        {
+            if (*pszInputCursor ==*pszMatchCursor)
+            {
+                bResult = TRUE;
+                break;
+            }
+        }
+    }
+
+    return bResult;
+}
+
+
+/***********************************************************************
+ Five transitions in state machine are the value wildcard patterns ('*'
+ '?' '*.' '?.' '.' and 'none).  Consume the next token from the Pattern.
+************************************************************************/
+
+static
+PVFS_WILDCARD_TYPE
 NextMatchState(
     PSTR *ppszPattern,
     PDWORD pdwCount
@@ -372,6 +489,140 @@ NextMatchState(
     return Type;
 }
 
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+PSTR
+PvfsWildcardEatString(
+    PSTR pszString,
+    PSTR pszMatch
+    )
+{
+    PSTR pszMatchCursor = NULL;
+    PSTR pszStringCursor = pszString;
+    CHAR cSaved = '\0';
+
+    // Find the first non-wildcard character in the patternbt
+
+    pszMatchCursor = pszMatch;
+    while (*pszMatchCursor)
+    {
+        switch (*pszMatchCursor)
+        {
+        case '*':
+        case '?':
+            cSaved = *pszMatchCursor;
+            *pszMatchCursor = '\0';
+            break;
+        default:
+            pszMatchCursor++;
+            break;
+        }
+    }
+
+
+    if (*pszMatch != '\0')
+    {
+        // We have any non-wildcard pattern to match, find the needle
+        // in the haystack
+#if 0
+        while (pszString)
+        {
+            pszString = strstr(pszString, pszMatch);
+            if (pszString && *pszString)
+            {
+                pszStringCursor = pszString;
+                pszString++;
+            }
+        }
+#else
+        pszStringCursor = strstr(pszString, pszMatch);
+#endif
+    }
+
+    *pszMatchCursor = cSaved;
+
+    return pszStringCursor;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsWildcardStackPush(
+    IN OUT PLW_LIST_LINKS pStack,
+    IN PSTR pszInputString,
+    IN PSTR pszPattern
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_WILDCARD_STATE_ENTRY pState = NULL;
+
+    ntError = PvfsAllocateMemory((PVOID*)&pState, sizeof(*pState), TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pState->pszInputString = pszInputString;
+    pState->pszPattern = pszPattern;
+
+    LwListInsertAfter(pStack, &pState->StackLinks);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+PvfsWildcardStackPop(
+    IN OUT PLW_LIST_LINKS pStack,
+    OUT PSTR *ppszInputString,
+    OUT PSTR *ppszPattern
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PLW_LIST_LINKS pStateLink = NULL;
+    PPVFS_WILDCARD_STATE_ENTRY pState = NULL;
+
+    pStateLink = LwListRemoveAfter(pStack);
+
+    pState = LW_STRUCT_FROM_FIELD(
+                 pStateLink,
+                 PVFS_WILDCARD_STATE_ENTRY,
+                 StackLinks);
+
+    *ppszInputString = pState->pszInputString;
+    *ppszPattern     = pState->pszPattern;
+
+    PvfsFreeMemory((PVOID*)&pState);
+
+    return ntError;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+VOID
+PvfsWildcardStackDestroy(
+    PLW_LIST_LINKS pStack
+    )
+{
+    PSTR a = NULL;
+    PSTR b = NULL;
+
+    while (!LwListIsEmpty(pStack))
+    {
+        PvfsWildcardStackPop(pStack, &a, &b);
+    }
+}
 
 /*
 local variables:
