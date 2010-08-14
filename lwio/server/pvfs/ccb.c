@@ -122,6 +122,7 @@ PvfsFreeCCB(
 {
     if (pCCB->pFcb)
     {
+        PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
         PvfsReleaseFCB(&pCCB->pFcb);
     }
 

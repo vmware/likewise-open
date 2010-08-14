@@ -60,6 +60,7 @@ PvfsClose(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
+    PPVFS_FCB pFcb = NULL;
 
     /* make sure we have a proper CCB */
 
@@ -77,14 +78,6 @@ PvfsClose(
 
         PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
     }
-
-    /* Explicitly remove the CCB from the FCB list to force
-       rundown that it triggered by closing the last open handle.
-       Events like an async IRP cancellation could be running
-       in the background maintaining a valid reference to the CCB
-       that would other prevent the final PvfsFreeCCB() call */
-
-    PvfsRemoveCCBFromFCB(pCcb->pFcb, pCcb);
 
     if (PVFS_IS_DIR(pCcb))
     {
@@ -120,10 +113,20 @@ PvfsClose(
         }
     }
 
+    /* Explicitly remove the CCB from the FCB list to force
+       rundown that it triggered by closing the last open handle.
+       Events like an async IRP cancellation could be running
+       in the background maintaining a valid reference to the CCB
+       that would other prevent the final PvfsFreeCCB() call */
+
+    pFcb = pCcb->pFcb;
+    pCcb->pFcb = NULL;
+
+    PvfsRemoveCCBFromFCB(pFcb, pCcb);
+
     /* Close the fd */
 
     ntError = PvfsSysClose(pCcb->fd);
-
 
     /* Technically, it would be more proper to do this in the utility
        functions in PvfsFreeFCB, but we will end up with memory corruption
@@ -133,7 +136,7 @@ PvfsClose(
     if (pCcb->ChangeEvent != 0)
     {
         PvfsNotifyScheduleFullReport(
-            pCcb->pFcb,
+            pFcb,
             pCcb->ChangeEvent,
             FILE_ACTION_MODIFIED,
             pCcb->pszFilename);
@@ -144,14 +147,13 @@ PvfsClose(
 cleanup:
     /* This is the final Release that will free the memory */
 
+    if (pFcb)
+    {
+        PvfsReleaseFCB(&pFcb);
+    }
 
     if (pCcb)
     {
-        if (pCcb->pFcb)
-        {
-            PvfsReleaseFCB(&pCcb->pFcb);
-        }
-
         PvfsReleaseCCB(pCcb);
     }
 
