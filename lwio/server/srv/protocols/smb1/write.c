@@ -1163,12 +1163,26 @@ SrvDetectZctWrite_SMB_V1(
                     pConnection,
                     pPacket->pSMBHeader->uid,
                     &pSession);
+    if (STATUS_INVALID_HANDLE == ntStatus)
+    {
+        // TODO: Perhaps short-circuit
+        bCanTryZct = FALSE;
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSessionFindTree(
                     pSession,
                     pPacket->pSMBHeader->tid,
                     &pTree);
+    if (STATUS_INVALID_HANDLE == ntStatus)
+    {
+        // TODO: Perhaps short-circuit
+        bCanTryZct = FALSE;
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTreeFindFile(
