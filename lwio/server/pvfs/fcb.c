@@ -1219,6 +1219,7 @@ PvfsRenameFCB(
     BOOLEAN bCurrentBucketLocked = FALSE;
     BOOLEAN bFcbRwLocked = FALSE;
     BOOLEAN bCcbLocked = FALSE;
+    BOOLEAN bRenameLock = FALSE;
 
     ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
@@ -1232,7 +1233,12 @@ PvfsRenameFCB(
     ntError = PvfsFcbTableGetBucket(&pTargetBucket, &gFcbTable, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Locks - pTargetBucket(Excl) */
+    /* Locks - gFcbTable(Excl) */
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bRenameLock, &gFcbTable.rwLock);
+
+    /* Locks - gFcbTable(Excl),
+               pTargetBucket(Excl) */
+
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTargetBucketLocked, &pTargetBucket->rwLock);
 
     ntError = PvfsFcbTableLookup_inlock(
@@ -1257,11 +1263,12 @@ PvfsRenameFCB(
             }
             LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pTargetFcb->ControlBlock);
         }
-
-        PvfsReleaseFCB(&pTargetFcb);
     }
 
-    /* Locks - pTargetBucket(Excl), pFcb->rwLock(Excl) */
+    /* Locks - gFcbTable(Excl),
+               pTargetBucket(Excl),
+               pFcb->rwLock(Excl) */
+
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->rwLock);
 
     ntError = PvfsSysRename(pCcb->pFcb->pszFilename, pszNewFilename);
@@ -1284,8 +1291,10 @@ PvfsRenameFCB(
     pFcb->pBucket = NULL;
     LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
 
-    /* Locks - pTargetBucket(Excl), pFcb->rwLock(Excl), pCurrentBucket(Excl) */
-    /* WARNING - Potential Deadly Embrace!!! */
+    /* Locks - gFcbTable(Excl)
+               pTargetBucket(Excl)
+               pFcb->rwLock(Excl),
+               pCurrentBucket(Excl) */
 
     if (pCurrentBucket != pTargetBucket)
     {
@@ -1310,7 +1319,11 @@ PvfsRenameFCB(
         pNewParentFcb = NULL;
     }
 
-    /* Locks - pTargetBucket(Excl), pFcb->rwLock(Excl), pFcb->ControlBlock */
+    /* Locks - gFcbTable(Excl),
+               pTargetBucket(Excl),
+               pFcb->rwLock(Excl),
+               pFcb->ControlBlock */
+
     LWIO_LOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
     ntError = PvfsFcbTableAdd_inlock(pTargetBucket, pFcb);
     if (ntError == STATUS_SUCCESS)
@@ -1336,6 +1349,7 @@ PvfsRenameFCB(
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bRenameLock, &gFcbTable.rwLock);
     LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->rwLock);
     LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->ControlBlock);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
@@ -1348,6 +1362,11 @@ cleanup:
     if (pOldParentFcb)
     {
         PvfsReleaseFCB(&pOldParentFcb);
+    }
+
+    if (pTargetFcb)
+    {
+        PvfsReleaseFCB(&pTargetFcb);
     }
 
     return ntError;
