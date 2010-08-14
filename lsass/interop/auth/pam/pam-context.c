@@ -302,10 +302,9 @@ LsaPamCleanupDataString(
     int pam_end_status
     )
 {
-    if (data)
-    {
-        LwFreeString((PSTR) data);
-    }
+    PSTR pStr = data;
+
+    LW_SECURE_FREE_STRING(pStr);
 }
 
 DWORD

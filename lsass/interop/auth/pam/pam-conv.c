@@ -135,7 +135,10 @@ error:
 
     if (ppszResponse != NULL)
     {
-        *ppszResponse = NULL;
+        for (i = 0; i < numMessages; ++i)
+        {
+            LW_SECURE_FREE_STRING(pResponses[i].resp);
+        }
     }
 
     LW_SAFE_CLEAR_FREE_STRING(pszResponse);
