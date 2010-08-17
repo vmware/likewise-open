@@ -58,6 +58,12 @@ PvfsSetFileFsControlInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+static
+NTSTATUS
+PvfsControlInfoSanityCheck(
+    PIRP pIrp,
+    ACCESS_MASK desiredAccessMask
+    );
 
 /* File Globals */
 
@@ -105,18 +111,13 @@ PvfsQueryFileFsControlInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
     PFILE_FS_CONTROL_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_VOLUME_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetVolumeInformation;
 
-    /* Sanity checks */
-
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    ntError = PvfsControlInfoSanityCheck(pIrp, FILE_GENERIC_READ);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FsInformation, ntError);
-
-    /* TODO: access check??? */
 
     if (Args.Length < sizeof(*pFileInfo))
     {
@@ -134,9 +135,6 @@ PvfsQueryFileFsControlInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
 
     return ntError;
 
@@ -152,18 +150,15 @@ PvfsSetFileFsControlInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
     PFILE_FS_CONTROL_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_VOLUME_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetVolumeInformation;
 
-    /* Sanity checks */
-
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    ntError = PvfsControlInfoSanityCheck(
+                    pIrp,
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FsInformation, ntError);
-
-    /* TODO: access check??? */
 
     if (Args.Length < sizeof(*pFileInfo))
     {
@@ -181,9 +176,6 @@ PvfsSetFileFsControlInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
 
     return ntError;
 
@@ -191,6 +183,42 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+PvfsControlInfoSanityCheck(
+    PIRP pIrp,
+    ACCESS_MASK desiredAccessMask
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB pCcb = NULL;
+
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!PVFS_IS_DIR(pCcb) || !pCcb->bQuotaFile)
+    {
+        ntError = STATUS_INVALID_INFO_CLASS;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, desiredAccessMask);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+
+    goto cleanup;
+}
 
 /*
 local variables:

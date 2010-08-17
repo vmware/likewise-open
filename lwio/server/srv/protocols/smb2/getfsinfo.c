@@ -95,7 +95,25 @@ SrvGetFileSystemSizeInfo_SMB_V2(
 
 static
 NTSTATUS
+SrvGetFileSystemControlInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildFileSystemSizeInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildFileSystemInfoResponseGeneric_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildFileSystemControlInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
@@ -153,9 +171,14 @@ SrvGetFileSystemInfo_SMB_V2(
 
             break;
 
+        case SMB2_FS_INFO_CLASS_CONTROL:
+
+            ntStatus = SrvGetFileSystemControlInfo_SMB_V2(pExecContext);
+
+            break;
+
         case SMB_FS_INFO_CLASS_OBJECTID:
         case SMB2_FS_INFO_CLASS_DEVICE:
-        case SMB2_FS_INFO_CLASS_QUOTA:
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -209,9 +232,14 @@ SrvBuildFileSystemInfoResponse_SMB_V2(
 
             break;
 
+        case SMB2_FS_INFO_CLASS_CONTROL:
+
+            ntStatus = SrvBuildFileSystemControlInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
         case SMB_FS_INFO_CLASS_OBJECTID:
         case SMB2_FS_INFO_CLASS_DEVICE:
-        case SMB2_FS_INFO_CLASS_QUOTA:
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -650,6 +678,15 @@ SrvBuildFileSystemSizeInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
+    return SrvBuildFileSystemInfoResponseGeneric_SMB_V2(pExecContext);
+}
+
+static
+NTSTATUS
+SrvBuildFileSystemInfoResponseGeneric_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
     NTSTATUS                    ntStatus = STATUS_SUCCESS;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
@@ -661,12 +698,9 @@ SrvBuildFileSystemSizeInfoResponse_SMB_V2(
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
     ULONG ulTotalBytesUsed = 0;
-    PFILE_FS_SIZE_INFORMATION      pFSSizeInfo = NULL;
     PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
-
-    pFSSizeInfo = (PFILE_FS_SIZE_INFORMATION)pGetInfoState->pData2;
 
     ntStatus = SrvCreditorAdjustCredits(
                     pExecContext->pConnection->pCreditor,
@@ -755,6 +789,27 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemControlInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return SrvGetFileSystemInfoGeneric_SMB_V2(
+            pExecContext,
+            sizeof(FILE_FS_CONTROL_INFORMATION),
+            FileFsControlInformation);
+}
+
+static
+NTSTATUS
+SrvBuildFileSystemControlInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return SrvBuildFileSystemInfoResponseGeneric_SMB_V2(pExecContext);
 }
 
 static

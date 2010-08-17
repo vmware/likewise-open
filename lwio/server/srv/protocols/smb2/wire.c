@@ -1291,13 +1291,17 @@ error:
 NTSTATUS
 SMB2UnmarshalGetInfoRequest(
     IN     PSRV_MESSAGE_SMB_V2            pSmbRequest,
-    IN OUT PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
+    IN OUT PSMB2_GET_INFO_REQUEST_HEADER* ppHeader,
+    OUT    PBYTE*                         ppInputBuffer,
+    OUT    PULONG                         pulInputBufferLength
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PBYTE pDataCursor = pSmbRequest->pBuffer + pSmbRequest->ulHeaderSize;
     ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->ulHeaderSize;
     PSMB2_GET_INFO_REQUEST_HEADER pHeader = NULL; // Do not free
+    PBYTE pInputBuffer = NULL;
+    ULONG ulInputBufferLength = 0;
 
     if (ulBytesAvailable < sizeof(SMB2_GET_INFO_REQUEST_HEADER))
     {
@@ -1307,7 +1311,22 @@ SMB2UnmarshalGetInfoRequest(
 
     pHeader = (PSMB2_GET_INFO_REQUEST_HEADER)pDataCursor;
 
+    if (pHeader->ulInputBufferLen)
+    {
+        if ((pHeader->usInputBufferOffset + pHeader->ulInputBufferLen) >
+            pSmbRequest->ulMessageSize)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pInputBuffer = pSmbRequest->pBuffer + pHeader->usInputBufferOffset;
+        ulInputBufferLength = pHeader->ulInputBufferLen;
+    }
+
     *ppHeader = pHeader;
+    *ppInputBuffer = pInputBuffer;
+    *pulInputBufferLength = ulInputBufferLength;
 
 cleanup:
 
@@ -1316,6 +1335,8 @@ cleanup:
 error:
 
     *ppHeader = NULL;
+    *ppInputBuffer = NULL;
+    *pulInputBufferLength = 0;
 
     goto cleanup;
 }

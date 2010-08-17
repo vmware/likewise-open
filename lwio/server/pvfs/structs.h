@@ -57,6 +57,10 @@
      FILE_VOLUME_QUOTAS)
 
 #define PVFS_NTFS_QUOTA_FILENAME    "$Extend\\$Quota:$Q:$INDEX_ALLOCATION"
+#define PVFS_NTFS_QUOTA_FILENAME_W  \
+     {'$','E','x','t','e','n','d','\\','$','Q','u','o','t','a',':','$','Q',':',\
+     '$','I','N','D','E','X','_','A','L','L','O','C','A','T','I','O','N',0}
+#define PVFS_NTFS_C_SHARE_W         {'C','$',0}
 #define PVFS_UNIX_QUOTA_FILENAME    ".Quota.sys"
 
 /* HP-UX does not use blksize_t type for st_blksize
@@ -380,9 +384,11 @@ struct _PVFS_CCB
 
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;
+    PWSTR pwszShareName;
     FILE_CREATE_OPTIONS CreateOptions;
     FILE_SHARE_FLAGS ShareFlags;
     ACCESS_MASK AccessGranted;
+    BOOLEAN bQuotaFile;
 
     PACCESS_TOKEN pUserToken;
 
@@ -567,6 +573,19 @@ struct _PVFS_ZCT_CONTEXT
 #endif
     };
 };
+
+/* Quota */
+
+typedef struct _PVFS_QUOTA_ENTRY
+{
+    ULONG SidLength;
+    LONG64 ChangeTime;
+    LONG64 QuotaUsed;
+    LONG64 QuotaThreshold;
+    LONG64 QuotaLimit;
+    BYTE Sid[SID_MAX_SIZE];
+    struct _PVFS_QUOTA_ENTRY* pNext;
+} PVFS_QUOTA_ENTRY, *PPVFS_QUOTA_ENTRY;
 
 
 #endif    /* _PVFS_STRUCTS_H */

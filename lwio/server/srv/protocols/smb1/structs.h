@@ -73,6 +73,23 @@ typedef struct
 } __attribute__((__packed__)) SMB_NOTIFY_CHANGE_HEADER,
                              *PSMB_NOTIFY_CHANGE_HEADER;
 
+typedef struct
+{
+    USHORT  usFid;
+    BOOLEAN bReturnSingleEntry;
+    BOOLEAN bRestartScan;
+    ULONG   ulSidListLength;
+    ULONG   ulStartSidLength;
+    ULONG   ulStartSidOffset;
+} __attribute__((__packed__)) SMB_QUERY_QUOTA_HEADER,
+                             *PSMB_QUERY_QUOTA_HEADER;
+
+typedef struct
+{
+    USHORT  usFid;
+} __attribute__((__packed__)) SMB_SET_QUOTA_HEADER,
+                             *PSMB_SET_QUOTA_HEADER;
+
 typedef USHORT LW_OPLOCK_ACTION;
 
 #define LW_OPLOCK_ACTION_SEND_BREAK  0x0001

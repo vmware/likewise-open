@@ -183,6 +183,18 @@ SrvBuildSecurityInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// getquotainfo.c
+
+NTSTATUS
+SrvGetQuotaInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildQuotaInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // ioctl.c
 
 NTSTATUS
@@ -626,7 +638,9 @@ SMB2MarshalEchoResponse(
 NTSTATUS
 SMB2UnmarshalGetInfoRequest(
     PSRV_MESSAGE_SMB_V2            pSmbRequest,
-    PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
+    PSMB2_GET_INFO_REQUEST_HEADER* ppHeader,
+    PBYTE*                         ppInputBuffer,
+    PULONG                         pulInputBufferLength
     );
 
 NTSTATUS

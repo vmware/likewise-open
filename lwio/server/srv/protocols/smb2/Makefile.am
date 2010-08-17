@@ -13,6 +13,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     getfileinfo.c    \
     getfsinfo.c      \
     getinfo.c        \
+    getquotainfo.c   \
     getsecinfo.c     \
     globals.c        \
     ioctl.c          \

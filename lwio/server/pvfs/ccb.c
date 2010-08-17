@@ -82,10 +82,12 @@ PvfsAllocateCCB(
 
     pCCB->pFcb = NULL;
     pCCB->pszFilename = NULL;
+    pCCB->pwszShareName = NULL;
     pCCB->pDirContext = NULL;
     pCCB->pUserToken = NULL;
     pCCB->EcpFlags = 0;
     pCCB->ChangeEvent = 0;
+    pCCB->bQuotaFile = FALSE;
 
     LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 
@@ -140,6 +142,7 @@ PvfsFreeCCB(
     PvfsListDestroy(&pCCB->pZctContextList);
 
     LwRtlCStringFree(&pCCB->pszFilename);
+    LwRtlWC16StringFree(&pCCB->pwszShareName);
 
     PVFS_FREE(&pCCB->LockTable.ExclusiveLocks.pLocks);
     PVFS_FREE(&pCCB->LockTable.SharedLocks.pLocks);

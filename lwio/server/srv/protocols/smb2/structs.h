@@ -313,6 +313,18 @@ typedef struct __SMB2_GET_INFO_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_GET_INFO_RESPONSE_HEADER,
                              *PSMB2_GET_INFO_RESPONSE_HEADER;
 
+typedef struct __SMB2_QUERY_QUOTA_INFO_HEADER
+{
+    BOOLEAN bReturnSingle;
+    BOOLEAN bRestartScan;
+    USHORT  usReserved;
+    ULONG   ulSidListLength;
+    ULONG   ulStartSidLength;
+    ULONG   ulStartSidOffset;
+
+} __attribute__((__packed__)) SMB2_QUERY_QUOTA_INFO_HEADER,
+                             *PSMB2_QUERY_QUOTA_INFO_HEADER;
+
 typedef struct __SMB2_SET_INFO_REQUEST_HEADER
 {
     USHORT   usLength;
@@ -1005,6 +1017,8 @@ typedef struct _SRV_GET_INFO_STATE_SMB_V2
     PIO_ASYNC_CONTROL_BLOCK       pAcb;
 
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
+    PBYTE                         pInputBuffer;   // Do not free
+    ULONG                         ulInputBufferLength;
 
     PLWIO_SRV_FILE_2              pFile;
 
