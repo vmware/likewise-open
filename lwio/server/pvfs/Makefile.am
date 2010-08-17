@@ -86,6 +86,7 @@ libpvfs_sys_la_SOURCES = \
     notify.c \
     ioctlOpenFileInfo.c \
     listq.c \
+    quota.c \
     zct.c
 
 

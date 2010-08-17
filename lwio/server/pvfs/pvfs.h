@@ -222,6 +222,19 @@ PvfsSetVolumeInformation(
     );
 
 NTSTATUS
+PvfsQueryQuota(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsSetQuota(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+VOID
+PvfsShutdownQuota();
+
+NTSTATUS
 PvfsDispatchLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     );

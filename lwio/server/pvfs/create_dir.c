@@ -64,6 +64,13 @@ PvfsCreateDirOpenIf(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+static
+NTSTATUS
+PvfsCheckQuotaFile(
+    PIRP_ARGS_CREATE pArgs,
+    PPVFS_CCB pCcb
+    );
+
 /* Code */
 
 /**************************************************************
@@ -291,6 +298,9 @@ PvfsCreateDirOpen(
     ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsCheckQuotaFile(&Args, pCreateCtx->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     pCreateCtx->bFileExisted = TRUE;
 
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
@@ -451,7 +461,52 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+PvfsCheckQuotaFile(
+    PIRP_ARGS_CREATE pArgs,
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB pRootCcb = NULL;
+    WCHAR pwszShareName[] = PVFS_NTFS_C_SHARE_W;
+    WCHAR pwszQuotaFileName[] = PVFS_NTFS_QUOTA_FILENAME_W;
 
+    if (pArgs->FileName.RootFileHandle && pArgs->FileName.FileName)
+    {
+        ntError = PvfsAcquireCCB(pArgs->FileName.RootFileHandle, &pRootCcb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (RtlWC16StringIsEqual(
+                        pArgs->FileName.FileName,
+                        pwszQuotaFileName,
+                        TRUE) &&
+            RtlWC16StringIsEqual(
+                        pRootCcb->pwszShareName,
+                        pwszShareName,
+                        TRUE))
+        {
+            // Is the root Quota file
+            pCcb->bQuotaFile = TRUE;
+        }
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+
+    if (pRootCcb)
+    {
+        PvfsReleaseCCB(pRootCcb);
+    }
+
+    return ntError;
+
+error:
+
+    goto cleanup;
+}
 
 /*
 local variables:

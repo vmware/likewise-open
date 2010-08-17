@@ -157,6 +157,24 @@ SrvBuildSetSecurityInfoResponse_SMB_V2(
     );
 
 static
+NTSTATUS
+SrvSetQuotaInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildSetQuotaInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvSetFileSystemControlInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
 VOID
 SrvPrepareSetInfoStateAsync_SMB_V2(
     PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState,
@@ -443,6 +461,12 @@ SrvSetInfo_SMB_V2(
 
             break;
 
+        case SMB2_INFO_TYPE_QUOTA:
+
+            ntStatus = SrvSetQuotaInfo_SMB_V2(pExecContext);
+
+            break;
+
         default:
 
             ntStatus = STATUS_INVALID_INFO_CLASS;
@@ -483,6 +507,12 @@ SrvBuildSetInfoResponse_SMB_V2(
         case SMB2_INFO_TYPE_SECURITY:
 
             ntStatus = SrvBuildSetSecurityInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_INFO_TYPE_QUOTA:
+
+            ntStatus = SrvBuildSetQuotaInfoResponse_SMB_V2(pExecContext);
 
             break;
 
@@ -1015,7 +1045,40 @@ SrvSetFileSystemInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FS_INFO_CLASS_CONTROL:
+
+            ntStatus = SrvSetFileSystemControlInfo_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_VOLUME:
+        case SMB2_FS_INFO_CLASS_ATTRIBUTE:
+        case SMB2_FS_INFO_CLASS_FULL_SIZE:
+        case SMB2_FS_INFO_CLASS_SIZE:
+        case SMB_FS_INFO_CLASS_OBJECTID:
+        case SMB2_FS_INFO_CLASS_DEVICE:
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
 }
 
 static
@@ -1024,7 +1087,78 @@ SrvBuildSetFileSystemInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    return STATUS_NOT_SUPPORTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FS_INFO_CLASS_CONTROL:
+
+            ntStatus = SrvBuildSetInfoCommonResponse_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_VOLUME:
+        case SMB2_FS_INFO_CLASS_ATTRIBUTE:
+        case SMB2_FS_INFO_CLASS_FULL_SIZE:
+        case SMB2_FS_INFO_CLASS_SIZE:
+        case SMB_FS_INFO_CLASS_OBJECTID:
+        case SMB2_FS_INFO_CLASS_DEVICE:
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSetFileSystemControlInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    if (pSetInfoState->pRequestHeader->ulInputBufferLen <
+                    sizeof(FILE_FS_CONTROL_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+    ntStatus = IoSetVolumeInformationFile(
+                    pSetInfoState->pFile->hFile,
+                    pSetInfoState->pAcb,
+                    &pSetInfoState->ioStatusBlock,
+                    (PFILE_FS_CONTROL_INFORMATION)pSetInfoState->pData,
+                    sizeof(FILE_FS_CONTROL_INFORMATION),
+                    FileFsControlInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+error:
+
+    return ntStatus;
 }
 
 static
@@ -1112,6 +1246,86 @@ SrvBuildSetSecurityInfoResponse_SMB_V2(
     switch (pSetInfoState->pRequestHeader->ucInfoClass)
     {
         case SMB2_SEC_INFO_CLASS_BASIC:
+
+            ntStatus = SrvBuildSetInfoCommonResponse_SMB_V2(pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSetQuotaInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FILE_INFO_CLASS_QUOTA:
+
+            if (!pSetInfoState->pRequestHeader->ulInputBufferLen)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+
+            ntStatus = IoSetQuotaInformationFile(
+                        pSetInfoState->pFile->hFile,
+                        pSetInfoState->pAcb,
+                        &pSetInfoState->ioStatusBlock,
+                        (PFILE_QUOTA_INFORMATION)pSetInfoState->pData,
+                        pSetInfoState->pRequestHeader->ulInputBufferLen);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildSetQuotaInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState = NULL;
+
+    pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    switch (pSetInfoState->pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FILE_INFO_CLASS_QUOTA:
 
             ntStatus = SrvBuildSetInfoCommonResponse_SMB_V2(pExecContext);
 

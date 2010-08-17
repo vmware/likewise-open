@@ -52,6 +52,13 @@ PvfsSetMaximalAccessMask(
     PIRP pIrp
     );
 
+static
+NTSTATUS
+PvfsGetEcpShareName(
+    PIO_ECP_LIST pEcpList,
+    PWSTR* ppwszShareName
+    );
+
 /*****************************************************************************
  Main entry to the Create() routine for driver.  Splits work based on the
  CreateOptions.
@@ -448,6 +455,11 @@ PvfsCreateDirDoSysOpen(
             pCreateContext->pCcb->EcpFlags |= PVFS_ECP_ENABLE_ABE;
         }
     }
+
+    ntError = PvfsGetEcpShareName(
+                    pIrp->Args.Create.EcpList,
+                    &pCreateContext->pCcb->pwszShareName);
+    BAIL_ON_NT_STATUS(ntError);
 
     do
     {
@@ -951,6 +963,44 @@ PvfsSetMaximalAccessMask(
     {
         ntError = STATUS_SUCCESS;
     }
+
+error:
+
+    return ntError;
+}
+
+static
+NTSTATUS
+PvfsGetEcpShareName(
+    PIO_ECP_LIST pEcpList,
+    PWSTR* ppwszShareName)
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PUNICODE_STRING pShareName = NULL;
+    ULONG ulEcpSize = 0;
+
+    ntError = IoRtlEcpListFind(
+                  pEcpList,
+                  SRV_ECP_TYPE_SHARE_NAME,
+                  OUT_PPVOID(&pShareName),
+                  &ulEcpSize);
+    if (ntError != STATUS_NOT_FOUND)
+    {
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (ulEcpSize != sizeof(*pShareName))
+        {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError = RtlWC16StringDuplicate(
+                        ppwszShareName,
+                        pShareName->Buffer);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
 
 error:
 

@@ -56,6 +56,8 @@ NTSTATUS
 SrvBuildGetInfoState_SMB_V2(
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
     PLWIO_SRV_FILE_2              pFile,
+    PBYTE                         pInputBuffer,
+    ULONG                         ulInputBufferLength,
     PSRV_GET_INFO_STATE_SMB_V2*   ppGetInfoState
     );
 
@@ -120,6 +122,8 @@ SrvProcessGetInfo_SMB_V2(
         ULONG                      iMsg          = pCtxSmb2->iMsg;
         PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
         PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PBYTE                      pInputBuffer  = NULL;
+        ULONG                      ulInputBufferLength = 0;
 
         ntStatus = SrvConnection2FindSession_SMB_V2(
                         pCtxSmb2,
@@ -138,7 +142,11 @@ SrvProcessGetInfo_SMB_V2(
                         &pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SMB2UnmarshalGetInfoRequest(pSmbRequest, &pRequestHeader);
+        ntStatus = SMB2UnmarshalGetInfoRequest(
+                        pSmbRequest,
+                        &pRequestHeader,
+                        &pInputBuffer,
+                        &ulInputBufferLength);
         BAIL_ON_NT_STATUS(ntStatus);
 
         SRV_LOG_DEBUG(
@@ -180,6 +188,8 @@ SrvProcessGetInfo_SMB_V2(
         ntStatus = SrvBuildGetInfoState_SMB_V2(
                             pRequestHeader,
                             pFile,
+                            pInputBuffer,
+                            ulInputBufferLength,
                             &pGetInfoState);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -277,6 +287,8 @@ NTSTATUS
 SrvBuildGetInfoState_SMB_V2(
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
     PLWIO_SRV_FILE_2              pFile,
+    PBYTE                         pInputBuffer,
+    ULONG                         ulInputBufferLength,
     PSRV_GET_INFO_STATE_SMB_V2*   ppGetInfoState
     )
 {
@@ -298,6 +310,10 @@ SrvBuildGetInfoState_SMB_V2(
     pGetInfoState->pRequestHeader = pRequestHeader;
 
     pGetInfoState->pFile = SrvFile2Acquire(pFile);
+
+    pGetInfoState->pInputBuffer = pInputBuffer;
+
+    pGetInfoState->ulInputBufferLength = ulInputBufferLength;
 
     *ppGetInfoState = pGetInfoState;
 
@@ -350,6 +366,12 @@ SrvQueryInfo_SMB_V2(
 
             break;
 
+        case SMB2_INFO_TYPE_QUOTA:
+
+            ntStatus = SrvGetQuotaInfo_SMB_V2(pExecContext);
+
+            break;
+
         default:
 
             ntStatus = STATUS_INVALID_INFO_CLASS;
@@ -390,6 +412,12 @@ SrvBuildGetInfoResponse_SMB_V2(
         case SMB2_INFO_TYPE_SECURITY:
 
             ntStatus = SrvBuildSecurityInfoResponse_SMB_V2(pExecContext);
+
+            break;
+
+        case SMB2_INFO_TYPE_QUOTA:
+
+            ntStatus = SrvBuildQuotaInfoResponse_SMB_V2(pExecContext);
 
             break;
 

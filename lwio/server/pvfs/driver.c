@@ -146,6 +146,8 @@ PvfsDriverShutdown(
         PvfsSecurityShutdownMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
     }
 
+    PvfsShutdownQuota();
+
     IO_LOG_ENTER_LEAVE("");
 }
 
@@ -262,10 +264,16 @@ PvfsDriverDispatch(
         ntError = PvfsDispatchDeviceIoControl(pIrpCtx);
         break;
 
-    /* Not implemented */
-
     case IRP_TYPE_SET_VOLUME_INFORMATION:
         ntError = PvfsSetVolumeInformation(pIrpCtx);
+        break;
+
+    case IRP_TYPE_QUERY_QUOTA:
+        ntError = PvfsQueryQuota(pIrpCtx);
+        break;
+
+    case IRP_TYPE_SET_QUOTA:
+        ntError = PvfsSetQuota(pIrpCtx);
         break;
 
     default:

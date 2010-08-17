@@ -86,6 +86,30 @@ SrvBuildIOCTLResponse(
 
 static
 NTSTATUS
+SrvExecuteQueryQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildQueryQuotaResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvExecuteSetQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildSetQuotaResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvProcessNotifyChange(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -122,6 +146,18 @@ SrvMarshalChangeNotifyResponse(
 static
 NTSTATUS
 SrvProcessNtTransactCreate(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvProcessNtTransactQueryQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvProcessNtTransactSetQuota(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
@@ -333,6 +369,18 @@ SrvProcessNtTransact(
         case SMB_SUB_COMMAND_NT_TRANSACT_CREATE :
 
             ntStatus = SrvProcessNtTransactCreate(pExecContext);
+
+            break;
+
+        case SMB_SUB_COMMAND_NT_TRANSACT_QUERY_QUOTA :
+
+            ntStatus = SrvProcessNtTransactQueryQuota(pExecContext);
+
+            break;
+
+        case SMB_SUB_COMMAND_NT_TRANSACT_SET_QUOTA :
+
+            ntStatus = SrvProcessNtTransactSetQuota(pExecContext);
 
             break;
 
@@ -1087,6 +1135,539 @@ SrvProcessIOCTL(
 error:
 
     return ntStatus;
+}
+
+static
+NTSTATUS
+SrvProcessNtTransactQueryQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState = NULL;
+    PSMB_QUERY_QUOTA_HEADER    pQueryQuotaHeader = NULL;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    // pNTTransactState->pSetup is ignored here
+
+    if (pNTTransactState->pRequestHeader->ulTotalParameterCount !=
+                                        sizeof(SMB_QUERY_QUOTA_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pQueryQuotaHeader = (PSMB_QUERY_QUOTA_HEADER)pNTTransactState->pParameters;
+
+    switch (pNTTransactState->stage)
+    {
+        case SRV_NTTRANSACT_STAGE_SMB_V1_INITIAL:
+
+            SrvUnmarshallBoolean(&pQueryQuotaHeader->bRestartScan);
+            SrvUnmarshallBoolean(&pQueryQuotaHeader->bReturnSingleEntry);
+
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    "NT Transact (QUERY_QUOTA): "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u),is-return-single-entry(%s),is-restart-scan(%s),"
+                    "sid-list-len(%u),start-sid-len(%u),start-sid-offset(%u)",
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->uid,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader),
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->tid,
+                    pQueryQuotaHeader->usFid,
+                    pQueryQuotaHeader->bReturnSingleEntry ? "TRUE" : "FALSE",
+                    pQueryQuotaHeader->bRestartScan ? "TRUE" : "FALSE",
+                    pQueryQuotaHeader->ulSidListLength,
+                    pQueryQuotaHeader->ulStartSidLength,
+                    pQueryQuotaHeader->ulStartSidOffset);
+
+            ntStatus = SrvTreeFindFile_SMB_V1(
+                            pCtxSmb1,
+                            pNTTransactState->pTree,
+                            pQueryQuotaHeader->usFid,
+                            &pNTTransactState->pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO:
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            ntStatus = SrvExecuteQueryQuota(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = pNTTransactState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvBuildQueryQuotaResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_DONE:
+
+            break;
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_CREATE_COMPLETED:
+        case SRV_NTTRANSACT_STAGE_SMB_V1_QUERY_INFO:
+        case SRV_NTTRANSACT_STAGE_SMB_V1_GET_OPLOCKS:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvExecuteQueryQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState = NULL;
+    PSMB_QUERY_QUOTA_HEADER      pQueryQuotaHeader = NULL;
+    PBYTE                        pStartSid = NULL;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+    pQueryQuotaHeader = (PSMB_QUERY_QUOTA_HEADER)pNTTransactState->pParameters;
+
+    if (!pNTTransactState->pRequestHeader->ulMaxDataCount ||
+        pNTTransactState->pRequestHeader->ulMaxDataCount > UINT16_MAX)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pNTTransactState->pResponseBuffer)
+    {
+        ntStatus = SrvAllocateMemory(
+                        pNTTransactState->pRequestHeader->ulMaxDataCount,
+                        (PVOID*)&pNTTransactState->pResponseBuffer);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pNTTransactState->usResponseBufferLen =
+                        pNTTransactState->pRequestHeader->ulMaxDataCount;
+    }
+    else
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pQueryQuotaHeader->ulStartSidLength != 0)
+    {
+        pStartSid = pNTTransactState->pData + pQueryQuotaHeader->ulStartSidOffset;
+    }
+
+    SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
+
+    ntStatus = IoQueryQuotaInformationFile(
+                        pNTTransactState->pFile->hFile,
+                        pNTTransactState->pAcb,
+                        &pNTTransactState->ioStatusBlock,
+                        (PFILE_QUOTA_INFORMATION)pNTTransactState->pResponseBuffer,
+                        pNTTransactState->usResponseBufferLen,
+                        pQueryQuotaHeader->bReturnSingleEntry,
+                        (PFILE_GET_QUOTA_INFORMATION)pNTTransactState->pData,
+                        pQueryQuotaHeader->ulSidListLength,
+                        (PFILE_GET_QUOTA_INFORMATION)pStartSid,
+                        pQueryQuotaHeader->bRestartScan);
+    switch (ntStatus)
+    {
+        case STATUS_SUCCESS:
+
+            // completed synchronously
+            SrvReleaseNTTransactStateAsync(pNTTransactState);
+
+            break;
+
+        default:
+
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
+    pNTTransactState->usActualResponseLen =
+                            pNTTransactState->ioStatusBlock.BytesTransferred;
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildQueryQuotaResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus     = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION         pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState    = NULL;
+    ULONG                        iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1          pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    ULONG ulPackageBytesUsed   = 0;
+    ULONG ulTotalBytesUsed     = 0;
+    UCHAR ucResponseSetupCount = 0;
+    ULONG ulDataOffset         = 0;
+    ULONG ulParameterOffset    = 0;
+    ULONG ulParams             = 0;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_NT_TRANSACT,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pConnection->serverProperties.Capabilities,
+                        pNTTransactState->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pNTTransactState->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_NT_TRANSACT,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 18 + ucResponseSetupCount;
+    ulParams = pNTTransactState->usActualResponseLen;
+
+    ntStatus = WireMarshallNtTransactionResponse(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &pNTTransactState->usActualResponseLen,
+                    ucResponseSetupCount,
+                    (PBYTE)&ulParams,
+                    sizeof(ulParams),
+                    pNTTransactState->pResponseBuffer,
+                    pNTTransactState->usActualResponseLen,
+                    &ulDataOffset,
+                    &ulParameterOffset,
+                    &ulPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += ulPackageBytesUsed;
+    // ulOffset         += ulPackageBytesUsed;
+    // ulBytesAvailable -= ulPackageBytesUsed;
+    ulTotalBytesUsed += ulPackageBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProcessNtTransactSetQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState = NULL;
+    PSMB_SET_QUOTA_HEADER      pSetQuotaHeader = NULL;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (pNTTransactState->pRequestHeader->ulTotalParameterCount !=
+                                        sizeof(SMB_SET_QUOTA_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pSetQuotaHeader = (PSMB_SET_QUOTA_HEADER)pNTTransactState->pParameters;
+
+    switch (pNTTransactState->stage)
+    {
+        case SRV_NTTRANSACT_STAGE_SMB_V1_INITIAL:
+
+            SRV_LOG_DEBUG(
+                    pExecContext->pLogContext,
+                    SMB_PROTOCOL_VERSION_1,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    "NT Transact (SET_QUOTA): "
+                    "command(%u),uid(%u),mid(%u),pid(%u),tid(%u),"
+                    "file-id(%u)",
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->command,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->uid,
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->mid,
+                    SMB_V1_GET_PROCESS_ID(pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader),
+                    pCtxSmb1->pRequests[pCtxSmb1->iMsg].pHeader->tid,
+                    pSetQuotaHeader->usFid);
+
+            ntStatus = SrvTreeFindFile_SMB_V1(
+                            pCtxSmb1,
+                            pNTTransactState->pTree,
+                            pSetQuotaHeader->usFid,
+                            &pNTTransactState->pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO:
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            ntStatus = SrvExecuteSetQuota(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            ntStatus = pNTTransactState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvBuildSetQuotaResponse(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_DONE;
+
+            // intentional fall through
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_DONE:
+
+            break;
+
+        case SRV_NTTRANSACT_STAGE_SMB_V1_CREATE_COMPLETED:
+        case SRV_NTTRANSACT_STAGE_SMB_V1_QUERY_INFO:
+        case SRV_NTTRANSACT_STAGE_SMB_V1_GET_OPLOCKS:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvExecuteSetQuota(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState = NULL;
+    PSMB_SET_QUOTA_HEADER        pSetQuotaHeader = NULL;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+    pSetQuotaHeader = (PSMB_SET_QUOTA_HEADER)pNTTransactState->pParameters;
+
+    SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
+
+    ntStatus = IoSetQuotaInformationFile(
+                        pNTTransactState->pFile->hFile,
+                        pNTTransactState->pAcb,
+                        &pNTTransactState->ioStatusBlock,
+                        (PFILE_QUOTA_INFORMATION)pNTTransactState->pData,
+                        pNTTransactState->pRequestHeader->ulDataCount);
+    switch (ntStatus)
+    {
+        case STATUS_SUCCESS:
+
+            // completed synchronously
+            SrvReleaseNTTransactStateAsync(pNTTransactState);
+
+            break;
+
+        default:
+
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
+    pNTTransactState->usActualResponseLen =
+                            pNTTransactState->ioStatusBlock.BytesTransferred;
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildSetQuotaResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                     ntStatus     = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION         pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState    = NULL;
+    ULONG                        iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1          pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1          pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE pOutBuffer           = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset             = 0;
+    ULONG ulPackageBytesUsed   = 0;
+    ULONG ulTotalBytesUsed     = 0;
+    UCHAR ucResponseSetupCount = 0;
+    ULONG ulDataOffset         = 0;
+    ULONG ulParameterOffset    = 0;
+
+    pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_NT_TRANSACT,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pConnection->serverProperties.Capabilities,
+                        pNTTransactState->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pNTTransactState->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_NT_TRANSACT,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 18 + ucResponseSetupCount;
+
+    ntStatus = WireMarshallNtTransactionResponse(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    &pNTTransactState->usActualResponseLen,
+                    ucResponseSetupCount,
+                    NULL,
+                    0,
+                    pNTTransactState->pResponseBuffer,
+                    pNTTransactState->usActualResponseLen,
+                    &ulDataOffset,
+                    &ulParameterOffset,
+                    &ulPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += ulPackageBytesUsed;
+    // ulOffset         += ulPackageBytesUsed;
+    // ulBytesAvailable -= ulPackageBytesUsed;
+    ulTotalBytesUsed += ulPackageBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
 }
 
 static

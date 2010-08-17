@@ -168,6 +168,8 @@ DfsDriverDispatch(
     case IRP_TYPE_READ_DIRECTORY_CHANGE:
     case IRP_TYPE_DEVICE_IO_CONTROL:
     case IRP_TYPE_SET_VOLUME_INFORMATION:
+    case IRP_TYPE_QUERY_QUOTA:
+    case IRP_TYPE_SET_QUOTA:
         ntStatus = STATUS_NOT_SUPPORTED;
         break;
 
