@@ -309,7 +309,11 @@ SrvSvcParseArgs(
 
             case PARSE_MODE_LOGFILE:
 
-                strcpy(pServerInfo->szLogFilePath, pArg);
+                strncpy(
+                    pServerInfo->szLogFilePath,
+                    pArg,
+                    sizeof(pServerInfo->szLogFilePath)-1);
+                pServerInfo->szLogFilePath[sizeof(pServerInfo->szLogFilePath)-1] = '\0';
 
                 SrvSvcStripWhitespace(pServerInfo->szLogFilePath, TRUE, TRUE);
 
