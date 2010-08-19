@@ -58,7 +58,7 @@ SrvSvcMarshalSessionInfoResults(
     );
 
 static
-DWORD
+VOID
 SrvSvcFreeSessionInfoResults(
     DWORD              dwInfoLevel,
     srvsvc_NetSessCtr* pInfo
@@ -434,7 +434,7 @@ SrvSvcMarshalSessionInfoResults(
 }
 
 static
-DWORD
+VOID
 SrvSvcFreeSessionInfoResults(
     DWORD              dwInfoLevel,
     srvsvc_NetSessCtr* pInfo
