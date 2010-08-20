@@ -1466,6 +1466,7 @@ NTSTATUS
 SrvFile2SetOplockState(
     PLWIO_SRV_FILE_2               pFile,
     HANDLE                         hOplockState,
+    PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState,
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnReleaseOplockState
     );
 
