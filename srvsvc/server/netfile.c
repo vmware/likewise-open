@@ -58,7 +58,7 @@ SrvSvcMarshalFileInfoResults(
     );
 
 static
-DWORD
+VOID
 SrvSvcFreeFileInfoResults(
     DWORD              dwInfoLevel,
     srvsvc_NetFileCtr* pInfo
@@ -358,7 +358,7 @@ SrvSvcMarshalFileInfoResults(
 }
 
 static
-DWORD
+VOID
 SrvSvcFreeFileInfoResults(
     DWORD              dwInfoLevel,
     srvsvc_NetFileCtr* pInfo

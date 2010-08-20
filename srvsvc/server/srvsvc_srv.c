@@ -391,7 +391,7 @@ cleanup:
 
     raise(SIGTERM);
 
-    return;
+    return NULL;
 
 error:
 
