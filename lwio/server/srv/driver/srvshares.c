@@ -173,12 +173,12 @@ SrvShareDevCtlAdd(
     case 1005:
         pShareInfo1005 = pAddShareInfoParams->info.p1005;
         ulShareFlags   = pShareInfo1005->shi1005_flags;
+        break;
 
     default:
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
         break;
-
     }
 
     pShareList = &gSMBSrvGlobals.shareList;
