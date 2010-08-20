@@ -150,18 +150,16 @@ fi
 %files
 %defattr(-,root,root)
 
-%{_sysconfdir}/likewise/krb5.conf
 %{_sysconfdir}/krb5.conf.default
 %dir /var/lib/likewise/run
 %dir /var/lib/likewise/rpc
 
 %{_sysconfdir}/init.d/*
-%config %{_sysconfdir}/likewise/likewise-krb5-ad.conf
-%config %{_sysconfdir}/likewise/gss/mech
+%config %{_sysconfdir}/likewise/*
 
 %{PrefixDir}/share/likewise/*
 %{PrefixDir}/share/config/*
-%{PrefixDir}/share/dcerpc/
+%{PrefixDir}/share/dce-rpc/
 %{PrefixDir}/share/doc/*
 %{PrefixDir}/data/VERSION
 
