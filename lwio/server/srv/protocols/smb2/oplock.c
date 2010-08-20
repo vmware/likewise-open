@@ -560,6 +560,7 @@ SrvAcknowledgeOplockBreak_SMB_V2(
             ntStatus = SrvFile2SetOplockState(
                            pFile,
                            pOplockState,
+                           &SrvCancelOplockStateHandle_SMB_V2,
                            &SrvReleaseOplockStateHandle_SMB_V2);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -893,6 +894,49 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+VOID
+SrvCancelOplockState_SMB_V2(
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
+
+    if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pOplockState->pAcb->AsyncCancelContext);
+    }
+
+    if (pOplockState->pTimerRequest)
+    {
+        PSRV_OPLOCK_STATE_SMB_V2 pOplockState2 = NULL;
+
+        SrvTimerCancelRequest(
+                pOplockState->pTimerRequest,
+                (PVOID*)&pOplockState2);
+
+        if (pOplockState2)
+        {
+            SrvReleaseOplockState_SMB_V2(pOplockState2);
+        }
+
+        SrvTimerRelease(pOplockState->pTimerRequest);
+        pOplockState->pTimerRequest = NULL;
+    }
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
+}
+
+VOID
+SrvCancelOplockStateHandle_SMB_V2(
+    HANDLE hOplockState
+    )
+{
+    SrvCancelOplockState_SMB_V2((PSRV_OPLOCK_STATE_SMB_V2)hOplockState);
 }
 
 VOID

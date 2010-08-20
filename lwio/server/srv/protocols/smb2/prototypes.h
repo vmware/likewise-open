@@ -354,6 +354,11 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     );
 
 VOID
+SrvCancelOplockStateHandle_SMB_V2(
+    HANDLE hOplockState
+    );
+
+VOID
 SrvReleaseOplockStateHandle_SMB_V2(
     HANDLE hOplockState
     );
@@ -784,3 +789,14 @@ SrvProcessWrite_SMB_V2(
 
 #endif /* __PROTOTYPES_H__ */
 
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
