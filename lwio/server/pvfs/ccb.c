@@ -67,6 +67,8 @@ PvfsAllocateCCB(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
+    InterlockedIncrement(&gPvfsCcbCount);
+
     /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
@@ -103,14 +105,18 @@ PvfsAllocateCCB(
 
     *ppCCB = pCCB;
 
-    InterlockedIncrement(&gPvfsCcbCount);
-
     ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
 
 error:
+    if (pCCB)
+    {
+        PvfsFreeCCB(pCCB);
+    }
+
+
     goto cleanup;
 }
 
