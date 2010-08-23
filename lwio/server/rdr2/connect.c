@@ -100,16 +100,6 @@ RdrFreeTreeConnectContext(
             RTL_FREE(&pContext->State.TreeConnect.pszCachePath);
         }
 
-        if (pContext->State.TreeConnect.hGssContext)
-        {
-            SMBGSSContextFree(pContext->State.TreeConnect.hGssContext);
-        }
-
-        if (pContext->State.TreeConnect.pCreds)
-        {
-            LwIoDeleteCreds(pContext->State.TreeConnect.pCreds);
-        }
-
         RdrFreeContext(pContext);
     }
 }
@@ -204,12 +194,6 @@ RdrNegotiateComplete(
             status = STATUS_ACCESS_DENIED;
             BAIL_ON_NT_STATUS(status);
         }
-
-        status = SMBGSSContextBuild(
-            pSession->pSocket->pwszCanonicalName,
-            pCreds,
-            &pContext->State.TreeConnect.hGssContext);
-        BAIL_ON_NT_STATUS(status);
 
         LWIO_UNLOCK_MUTEX(bSessionLocked, &pSession->mutex);
         RdrProcessSessionSetupResponse(pContext, STATUS_SUCCESS, NULL);
@@ -510,6 +494,15 @@ RdrNegotiateGssContextWorkItem(
         BAIL_ON_NT_STATUS(status);
     }
 
+    if (!pContext->State.TreeConnect.hGssContext)
+    {
+        status = SMBGSSContextBuild(
+            pSocket->pwszCanonicalName,
+            pContext->State.TreeConnect.pCreds,
+            &pContext->State.TreeConnect.hGssContext);
+        BAIL_ON_NT_STATUS(status);
+    }
+
     status = SMBGSSContextNegotiate(
         pContext->State.TreeConnect.hGssContext,
         pInBlob,
@@ -588,6 +581,11 @@ cleanup:
 
     if (status != STATUS_PENDING)
     {
+        if (pContext->State.TreeConnect.hGssContext)
+        {
+            SMBGSSContextFree(pContext->State.TreeConnect.hGssContext);
+        }
+
         RdrContinueContext(pContext, status, NULL);
     }
 
@@ -1012,10 +1010,7 @@ RdrTreeConnect(
         pszSharename);
     BAIL_ON_NT_STATUS(status);
 
-    status = LwIoCopyCreds(
-        pCreds,
-        &pContext->State.TreeConnect.pCreds);
-    BAIL_ON_NT_STATUS(status);
+    pContext->State.TreeConnect.pCreds = pCreds;
 
     status = SMBSrvClientSocketCreate(
         pwszHostname,
