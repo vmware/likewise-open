@@ -298,8 +298,8 @@ AM_CONDITIONAL(ENABLE_SHARE_REPOSITORY_REGISTRY, test x"$share_repository" = x"r
 
 AC_SUBST(SHARE_REPOSITORY_TYPE_DEFINES)
 
-AC_ARG_WITH([drivers], [AC_HELP_STRING([--with-drivers], [list of drivers to build (npfs pvfs dfs srv rdr)])],
-		       [], [with_drivers="npfs pvfs dfs srv rdr"])
+AC_ARG_WITH([drivers], [AC_HELP_STRING([--with-drivers], [list of drivers to build (npfs pvfs srv rdr)])],
+		       [], [with_drivers="npfs pvfs srv rdr"])
 
 _IFS="${IFS}"
 IFS=" ,"
@@ -325,12 +325,6 @@ AM_CONDITIONAL(ENABLE_PVFS, test x"$enable_pvfs" = x"yes")
 if test x"$enable_pvfs" = x"yes"
 then
 	AC_DEFINE([ENABLE_PVFS], [], [Define if pvfs driver should be built])
-fi
-
-AM_CONDITIONAL(ENABLE_DFS, test x"$enable_dfs" = x"yes")
-if test x"$enable_dfs" = x"yes"
-then
-	AC_DEFINE([ENABLE_DFS], [], [Define if dfs driver should be built])
 fi
 
 AM_CONDITIONAL(ENABLE_NPFS, test x"$enable_npfs" = x"yes")
@@ -857,7 +851,6 @@ AC_CONFIG_FILES([Makefile
         server/srvstat/Makefile
         server/npfs/Makefile
         server/pvfs/Makefile
-        server/dfs/Makefile
         server/lwiod/Makefile
         drivers/Makefile
         drivers/iotest/Makefile
