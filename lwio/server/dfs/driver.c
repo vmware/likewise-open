@@ -151,22 +151,29 @@ DfsDriverDispatch(
         ntStatus = DfsClose(pIrpContext);
         break;
 
-    case IRP_TYPE_FS_CONTROL:
-        ntStatus = DfsFsIoControl(pIrpContext);
+    case IRP_TYPE_DEVICE_IO_CONTROL:
+        ntStatus = DfsDeviceIoControl(pIrpContext);
         break;
 
+    case IRP_TYPE_QUERY_INFORMATION:
+        //ntStatus = DfsQueryInformationFile(pIrpContext);
+        break;
+
+    case IRP_TYPE_QUERY_DIRECTORY:
+        //ntStatus = DfsQueryDirectoryInformation(pIrpContext);
+        break;
+
+
+    case IRP_TYPE_FS_CONTROL:
     case IRP_TYPE_FLUSH_BUFFERS:
     case IRP_TYPE_LOCK_CONTROL:
     case IRP_TYPE_READ:
     case IRP_TYPE_WRITE:
     case IRP_TYPE_SET_INFORMATION:
-    case IRP_TYPE_QUERY_INFORMATION:
-    case IRP_TYPE_QUERY_DIRECTORY:
     case IRP_TYPE_QUERY_VOLUME_INFORMATION:
     case IRP_TYPE_QUERY_SECURITY:
     case IRP_TYPE_SET_SECURITY:
     case IRP_TYPE_READ_DIRECTORY_CHANGE:
-    case IRP_TYPE_DEVICE_IO_CONTROL:
     case IRP_TYPE_SET_VOLUME_INFORMATION:
     case IRP_TYPE_QUERY_QUOTA:
     case IRP_TYPE_SET_QUOTA:
@@ -210,7 +217,7 @@ DfsDriverInitialize(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = DfsInitializeFCBTable();
+    // ntStatus = DfsInitializeFCBTable();
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

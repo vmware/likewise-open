@@ -58,7 +58,6 @@
 #include "lwioutils.h"
 #include "lwlist.h"
 
-#include "listq.h"
 #include "structs.h"
 #include "externs.h"
 #include "prototypes.h"

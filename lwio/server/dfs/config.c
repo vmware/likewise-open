@@ -52,20 +52,7 @@ DfsConfigRegistryInit(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PDFS_FCB pFcb = NULL;
 
-    ntStatus = DfsCreateFCB(&pFcb, "/Documents");
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = DfsAddReferralFCB(pFcb, "\\Documents");
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = DfsCreateFCB(&pFcb, "/Documents/Public");
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = DfsAddReferralFCB(
-                   pFcb,
-                   "\\filesrv\\public\\documents");
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

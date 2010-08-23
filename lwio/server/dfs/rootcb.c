@@ -33,84 +33,99 @@
  *
  * Module Name:
  *
- *       fsctl.c
+ *        ccb.c
  *
  * Abstract:
  *
  *        Likewise Distributed File System Driver (DFS)
  *
- *        File System I/O Control handler
+ *        DFS Root Control Block routineus
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "dfs.h"
 
-struct _DFS_FSCTL_DISPATCH_TABLE
-{
-    ULONG FsCtlCode;
-    NTSTATUS (*fn)(
-        IN     PDFS_IRP_CONTEXT pIrpContext,
-        IN     PVOID  InputBuffer,
-        IN     ULONG  InputBufferLength,
-        OUT    PVOID  OutputBuffer,
-        IN OUT PULONG pOutputBufferLength);
 
-} DfsFsCtlHandlerTable[] = {
-    { 0,                             NULL }
-};
-
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
-DfsFsIoControl(
-    PDFS_IRP_CONTEXT  pIrpContext
+DfsAllocateRootCB(
+    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
     )
 {
-    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    IRP_ARGS_IO_FS_CONTROL Args = pIrp->Args.IoFsControl;
-    ULONG FsCtlCode = Args.ControlCode;
-    ULONG i = 0;
-    ULONG TableSize = sizeof(DfsFsCtlHandlerTable) /
-                      sizeof(struct _DFS_FSCTL_DISPATCH_TABLE);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDFS_ROOT_CONTROL_BLOCK pRootCB = NULL;
 
-    /* Loop through the dispatch table.  Levels included in the table
-       but having a NULL handler get NOT_IMPLEMENTED while those not in
-       the table at all get NOT_SUPPORTED. */
+    *ppRootCB = NULL;
 
-    for (i=0; i<TableSize; i++)
-    {
-        if (DfsFsCtlHandlerTable[i].FsCtlCode == FsCtlCode)
-        {
-            if (DfsFsCtlHandlerTable[i].fn == NULL)
-            {
-                ntStatus = STATUS_NOT_IMPLEMENTED;
-                break;
-            }
-
-            ntStatus = DfsFsCtlHandlerTable[i].fn(
-                          pIrpContext,
-                          Args.InputBuffer,
-                          Args.InputBufferLength,
-                          Args.OutputBuffer,
-                          &Args.OutputBufferLength);
-            break;
-        }
-    }
-
-    if (i == TableSize)
-    {
-        ntStatus = STATUS_NOT_SUPPORTED;
-    }
+    ntStatus = DfsAllocateMemory(
+                   (PVOID*)&pRootCB,
+                   sizeof(DFS_ROOT_CONTROL_BLOCK));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pIrp->IoStatusBlock.BytesTransferred = Args.OutputBufferLength;
+    pthread_rwlock_init(&pRootCB->RwLock, NULL);
+
+    pRootCB->RefCount = 1;
+
+    *ppRootCB = pRootCB;
+
+    ntStatus = STATUS_SUCCESS;
 
 cleanup:
     return ntStatus;
 
 error:
     goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+VOID
+DfsFreeRootCB(
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    )
+{
+    LwRtlCStringFree(&pRootCB->pszRootName);
+
+    pthread_rwlock_destroy(&pRootCB->RwLock);
+
+    DfsFreeMemory((PVOID*)&pRootCB);
+
+    return;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+VOID
+DfsReleaseRootCB(
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    )
+{
+    if (InterlockedDecrement(&pRootCB->RefCount) == 0)
+    {
+        DfsFreeRootCB(pRootCB);
+    }
+
+    return;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+PDFS_ROOT_CONTROL_BLOCK
+DfsReferenceRootCB(
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    )
+{
+    InterlockedIncrement(&pRootCB->RefCount);
+
+    return pRootCB;
 }
 
 

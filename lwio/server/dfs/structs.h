@@ -55,16 +55,6 @@ typedef struct _DFS_OBJECT_COUNTER
 
 } DFS_OBJECT_COUNTER, *PDFS_OBJECT_COUNTER;
 
-typedef struct _DFS_FCB_TABLE
-{
-    pthread_rwlock_t rwLock;
-
-    PLWRTL_RB_TREE pFcbTree;
-
-} DFS_FCB_TABLE, *PDFS_FCB_TABLE;
-
-typedef struct _DFS_IRP_CONTEXT DFS_IRP_CONTEXT, *PDFS_IRP_CONTEXT;
-
 #define DFS_IRP_CTX_FLAG_NONE             0x0000
 #define DFS_IRP_CTX_FLAG_CANCELLED        0x0001
 #define DFS_IRP_CTX_FLAG_PENDED           0x0002
@@ -72,7 +62,7 @@ typedef struct _DFS_IRP_CONTEXT DFS_IRP_CONTEXT, *PDFS_IRP_CONTEXT;
 #define DFS_IRP_CTX_FLAG_COMPLETE         0x0008
 #define DFS_IRP_CTX_FLAG_REQUEST_CANCEL   0x0010
 
-struct _DFS_IRP_CONTEXT
+typedef struct _DFS_IRP_CONTEXT
 {
     pthread_mutex_t Mutex;
     LONG RefCount;
@@ -80,38 +70,65 @@ struct _DFS_IRP_CONTEXT
     USHORT Flags;
 
     PIRP pIrp;
-};
+} DFS_IRP_CONTEXT, *PDFS_IRP_CONTEXT;
 
-typedef struct _DFS_FCB
+
+typedef struct _DFS_ROOT_CONTROL_BLOCK
 {
+    pthread_rwlock_t RwLock;
+
     LONG RefCount;
 
-    /* ControlBlock */
-    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
-                                       on an individual FCB */
-    PSTR pszPathname;
-    BOOLEAN bRemoved;
-    /* End of ControlBlock */
+    PSTR pszRootName;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor;
 
-    /* rwCcbLock */
-    pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
-    PDFS_LIST pCcbList;
-    /* End rwCcbLock */
+    // DFS_REFERRAL_TABLE ReferralTable;
 
-} DFS_FCB, *PDFS_FCB;
+} DFS_ROOT_CONTROL_BLOCK, *PDFS_ROOT_CONTROL_BLOCK;
 
-typedef struct _DFS_CCB
+typedef struct _DFS_REFERRAL_CONTROL_BLOCK
 {
-    LW_LIST_LINKS FcbList;
-
-    pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
+    pthread_rwlock_t RwLock;
 
     LONG RefCount;
-    PDFS_FCB pFcb;
 
-    PSTR pszPathname;
+    PSTR ReferralName;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor;
 
-} DFS_CCB, *PDFS_CCB;
+    LW_LIST_LINKS TargetList;
+
+} DFS_REFERRAL_CONTROL_BLOCK, *PDFS_REFERRAL_CONTROL_BLOCK;
+
+typedef struct _DFS_REFERRAL_TARGET
+{
+    LW_LIST_LINKS ReferralLink;
+
+    pthread_mutex_t Mutex;
+
+    LONG RefCount;
+
+    ULONG Ttl;
+
+    PSTR pszTargetPath;
+
+} DFS_REFERRAL_TARGET, *PDFS_REFERRAL_TARGET;
+
+typedef struct _DFS_CREATE_CONTROL_BLOCK
+{
+    pthread_mutex_t Mutex;
+
+    LONG RefCount;
+
+    PSTR pszFilename;
+    ACCESS_MASK GrantedAccess;
+
+
+} DFS_CREATE_CONTROL_BLOCK, *PDFS_CREATE_CONTROL_BLOCK;
+
+
+
+
+
 
 
 #endif    /* _DFS_STRUCTS_H */

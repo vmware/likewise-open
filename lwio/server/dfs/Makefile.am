@@ -14,12 +14,11 @@ libdfs_sys_la_SOURCES = \
     close.c     \
     config.c    \
     create.c    \
-    fcb.c       \
-    fsctrl.c    \
+    deviceio.c  \
     globals.c   \
     irpctx.c    \
-    listq.c     \
-    memory.c
+    memory.c    \
+    rootcb.c
 
 libdfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

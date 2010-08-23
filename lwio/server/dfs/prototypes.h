@@ -79,7 +79,7 @@ DfsFreeMemory(
 
 NTSTATUS
 DfsAllocateIrpContext(
-	PDFS_IRP_CONTEXT *ppIrpContext,
+    PDFS_IRP_CONTEXT *ppIrpContext,
     PIRP pIrp
     );
 
@@ -153,72 +153,12 @@ DfsCreate(
 
 
 //
-// From fsctl.c
+// From deviceio.c
 //
 
 NTSTATUS
-DfsFsIoControl(
+DfsDeviceIoControl(
     PDFS_IRP_CONTEXT  pIrpContext
-    );
-
-
-//
-// From fcb.c
-//
-
-NTSTATUS
-DfsInitializeFCBTable(
-    VOID
-    );
-
-NTSTATUS
-DfsInitializeFCBTable(
-    VOID
-    );
-
-NTSTATUS
-DfsAllocateFCB(
-    PDFS_FCB *ppFcb
-    );
-
-NTSTATUS
-DfsAddReferralFCB(
-    PDFS_FCB pFcb,
-    PSTR pszReferral
-    );
-
-PDFS_FCB
-DfsReferenceFCB(
-    IN PDFS_FCB pFcb
-    );
-
-VOID
-DfsReleaseFCB(
-    PDFS_FCB *ppFcb
-    );
-
-NTSTATUS
-DfsFindFCB(
-    PDFS_FCB *ppFcb,
-    PSTR pszFilename
-    );
-
-NTSTATUS
-DfsCreateFCB(
-    OUT PDFS_FCB *ppFcb,
-    IN  PSTR pszPathname
-    );
-
-NTSTATUS
-DfsAddCCBToFCB(
-    PDFS_FCB pFcb,
-    PDFS_CCB pCcb
-    );
-
-NTSTATUS
-DfsRemoveCCBFromFCB(
-    PDFS_FCB pFcb,
-    PDFS_CCB pCcb
     );
 
 
@@ -228,34 +168,54 @@ DfsRemoveCCBFromFCB(
 
 NTSTATUS
 DfsAllocateCCB(
-    PDFS_CCB *ppCcb
+    PDFS_CREATE_CONTROL_BLOCK *ppCcb
     );
 
-NTSTATUS
+VOID
 DfsFreeCCB(
-    PDFS_CCB pCcb
+    PDFS_CREATE_CONTROL_BLOCK pCcb
     );
 
 VOID
 DfsReleaseCCB(
-    PDFS_CCB pCcb
+    PDFS_CREATE_CONTROL_BLOCK pCcb
     );
 
-PDFS_CCB
+PDFS_CREATE_CONTROL_BLOCK
 DfsReferenceCCB(
-    PDFS_CCB pCcb
+    PDFS_CREATE_CONTROL_BLOCK pCcb
     );
 
 NTSTATUS
 DfsStoreCCB(
     IO_FILE_HANDLE FileHandle,
-    PDFS_CCB pCcb
+    PDFS_CREATE_CONTROL_BLOCK pCcb
     );
 
 NTSTATUS
 DfsAcquireCCB(
     IO_FILE_HANDLE FileHandle,
-    PDFS_CCB * ppCcb
+    PDFS_CREATE_CONTROL_BLOCK * ppCcb
+    );
+
+
+//
+// From rootcb.c
+//
+
+NTSTATUS
+DfsAllocateRootCB(
+    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
+    );
+
+VOID
+DfsReleaseRootCB(
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    );
+
+PDFS_ROOT_CONTROL_BLOCK
+DfsReferenceRootCB(
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
     );
 
 
