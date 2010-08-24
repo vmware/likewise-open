@@ -142,7 +142,7 @@ SrvProdConsEnqueue(
 
     if (bSignalEvent)
     {
-        pthread_cond_broadcast(&pQueue->event);
+        pthread_cond_signal(&pQueue->event);
     }
 
 cleanup:
@@ -185,7 +185,7 @@ SrvProdConsEnqueueFront(
 
     if (bSignalEvent)
     {
-        pthread_cond_broadcast(&pQueue->event);
+        pthread_cond_signal(&pQueue->event);
     }
 
 cleanup:
@@ -228,7 +228,7 @@ SrvProdConsDequeue(
 
     if (bSignalEvent)
     {
-        pthread_cond_broadcast(&pQueue->event);
+        pthread_cond_signal(&pQueue->event);
     }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
@@ -296,7 +296,7 @@ SrvProdConsTimedDequeue(
 
     if (bSignalEvent)
     {
-        pthread_cond_broadcast(&pQueue->event);
+        pthread_cond_signal(&pQueue->event);
     }
 
     *ppItem = pItem;
