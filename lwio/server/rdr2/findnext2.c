@@ -65,11 +65,7 @@ RdrTransactFindNext2(
     USHORT usReplyByteCount = 0;
     USHORT usReplyDataCount = 0;
 
-    ntStatus = SMBPacketBufferAllocate(
-        pTree->pSession->pSocket->hPacketAllocator,
-        1024*64,
-        &packet.pRawBuffer,
-        &packet.bufferLen);
+    ntStatus = RdrAllocatePacketBuffer(&packet, 1024*64);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketAcquireMid(
@@ -216,19 +212,8 @@ RdrTransactFindNext2(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
-
-    if (packet.bufferLen)
-    {
-        SMBPacketBufferFree(pTree->pSession->pSocket->hPacketAllocator,
-                            packet.pRawBuffer,
-                            packet.bufferLen);
-    }
+    RdrFreePacket(pResponsePacket);
+    RTL_FREE(&packet.pRawBuffer);
 
     if (pResponse)
     {

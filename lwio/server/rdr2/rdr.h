@@ -118,6 +118,23 @@ RdrNotifyContextList(
     );
 
 NTSTATUS
+RdrAllocatePacketBuffer(
+    PSMB_PACKET pPacket,
+    ULONG ulSize
+    );
+
+NTSTATUS
+RdrAllocatePacket(
+    ULONG ulSize,
+    PSMB_PACKET* ppPacket
+    );
+
+VOID
+RdrFreePacket(
+    PSMB_PACKET pPacket
+    );
+
+NTSTATUS
 RdrAllocateContextPacket(
     PRDR_OP_CONTEXT pContext,
     ULONG ulSize

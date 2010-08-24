@@ -202,11 +202,7 @@ RdrTreeDisconnectComplete(
     PSMB_PACKET pPacket = pParam;
     PRDR_TREE pTree = pContext->State.TreeConnect.pTree;
 
-    if (pPacket)
-    {
-        SMBPacketRelease(gRdrRuntime.hPacketAllocator, pPacket);
-    }
-
+    RdrFreePacket(pPacket);
     RdrTreeFree(pTree);
 
     /* We don't explicitly free pContext because RdrTreeFree() does it */

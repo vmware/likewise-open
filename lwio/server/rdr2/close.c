@@ -162,12 +162,7 @@ RdrFinishClose(
         status = pPacket->pSMBHeader->error;
     }
 
-    if (pPacket)
-    {
-        SMBPacketRelease(
-            pFile->pTree->pSession->pSocket->hPacketAllocator,
-            pPacket);
-    }
+    RdrFreePacket(pPacket);
 
     pIrp->IoStatusBlock.Status = status;
     IoIrpComplete(pIrp);

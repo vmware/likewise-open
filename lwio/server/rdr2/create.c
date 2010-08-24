@@ -255,12 +255,7 @@ RdrFinishCreate(
 
 cleanup:
 
-    if (pPacket)
-    {
-        SMBPacketRelease(
-            pFile->pTree->pSession->pSocket->hPacketAllocator,
-            pPacket);
-    }
+    RdrFreePacket(pPacket);
 
     pContext->pIrp->IoStatusBlock.Status = status;
     IoIrpComplete(pContext->pIrp);

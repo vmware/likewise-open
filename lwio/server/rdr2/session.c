@@ -223,11 +223,7 @@ RdrLogoffComplete(
     PSMB_PACKET pPacket = pParam;
     PRDR_SESSION pSession = pContext->State.TreeConnect.pSession;
 
-    if (pPacket)
-    {
-        SMBPacketRelease(gRdrRuntime.hPacketAllocator, pPacket);
-    }
-
+    RdrFreePacket(pPacket);
     RdrSessionFree(pSession);
 
     /* We don't explicitly free pContext because RdrSessionFree() does it */

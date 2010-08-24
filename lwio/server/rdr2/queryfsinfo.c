@@ -74,11 +74,7 @@ RdrTransactQueryFsInfo(
     PBYTE pByteCount = NULL;
     ULONG ulRemainingSpace = 0;
 
-    ntStatus = SMBPacketBufferAllocate(
-        pTree->pSession->pSocket->hPacketAllocator,
-        1024*64,
-        &packet.pRawBuffer,
-        &packet.bufferLen);
+    ntStatus = RdrAllocatePacketBuffer(&packet, 1024*64);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketAcquireMid(
@@ -197,19 +193,9 @@ RdrTransactQueryFsInfo(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
+    RdrFreePacket(pResponsePacket);
 
-    if (packet.bufferLen)
-    {
-        SMBPacketBufferFree(pTree->pSession->pSocket->hPacketAllocator,
-                            packet.pRawBuffer,
-                            packet.bufferLen);
-    }
+    RTL_FREE(&packet.pRawBuffer);
 
     if (pResponse)
     {

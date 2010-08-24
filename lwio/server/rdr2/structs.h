@@ -112,8 +112,6 @@ typedef struct _RDR_SOCKET
     uint8_t *pSecurityBlob;     /* Security blob from NEGOTIATE */
     uint32_t securityBlobLen;   /* Security blob len from NEGOTIATE */
 
-    PLWIO_PACKET_ALLOCATOR hPacketAllocator;
-
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
     SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
 
@@ -260,7 +258,6 @@ typedef struct _RDR_GLOBAL_RUNTIME
     RDR_CONFIG        config;
     SMB_HASH_TABLE   *pSocketHashByName;    /* Socket hash by name */
     pthread_mutex_t   socketHashLock;
-    PLWIO_PACKET_ALLOCATOR hPacketAllocator;
     pid_t SysPid;
     PLW_THREAD_POOL pThreadPool;
     PLW_TASK_GROUP pReaderTaskGroup;

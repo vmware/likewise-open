@@ -44,11 +44,7 @@ RdrTransactRenameFile(
     ULONG ulSourceFileLength = 0;
     ULONG ulDestFileLength = 0;
 
-    ntStatus = SMBPacketBufferAllocate(
-        pTree->pSession->pSocket->hPacketAllocator,
-        1024*64,
-        &packet.pRawBuffer,
-        &packet.bufferLen);
+    ntStatus = RdrAllocatePacketBuffer(&packet, 1024*64);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketAcquireMid(pTree->pSession->pSocket, &usMid);
@@ -136,19 +132,8 @@ RdrTransactRenameFile(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
-
-    if (packet.bufferLen)
-    {
-        SMBPacketBufferFree(pTree->pSession->pSocket->hPacketAllocator,
-                            packet.pRawBuffer,
-                            packet.bufferLen);
-    }
+    RdrFreePacket(pResponsePacket);
+    RTL_FREE(&packet.pRawBuffer);
 
     if (pResponse)
     {
@@ -182,11 +167,7 @@ RdrTransactNTRenameFile(
     ULONG ulSourceFileLength = 0;
     ULONG ulDestFileLength = 0;
 
-    ntStatus = SMBPacketBufferAllocate(
-        pTree->pSession->pSocket->hPacketAllocator,
-        1024*64,
-        &packet.pRawBuffer,
-        &packet.bufferLen);
+    ntStatus = RdrAllocatePacketBuffer(&packet, 1024*64);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketAcquireMid(pTree->pSession->pSocket, &usMid);
@@ -276,19 +257,8 @@ RdrTransactNTRenameFile(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
-
-    if (packet.bufferLen)
-    {
-        SMBPacketBufferFree(pTree->pSession->pSocket->hPacketAllocator,
-                            packet.pRawBuffer,
-                            packet.bufferLen);
-    }
+    RdrFreePacket(pResponsePacket);
+    RTL_FREE(&packet.pRawBuffer);
 
     if (pResponse)
     {
@@ -324,11 +294,7 @@ RdrTransactTrans2RenameFile(
     ULONG ulPathLength = LwRtlWC16StringNumChars(pwszPath);
     PBYTE pCursor = NULL;
 
-    ntStatus = SMBPacketBufferAllocate(
-        pTree->pSession->pSocket->hPacketAllocator,
-        1024*64,
-        &packet.pRawBuffer,
-        &packet.bufferLen);
+    ntStatus = RdrAllocatePacketBuffer(&packet, 1024*64);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrSocketAcquireMid(
@@ -423,19 +389,8 @@ RdrTransactTrans2RenameFile(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
-
-    if (packet.bufferLen)
-    {
-        SMBPacketBufferFree(pTree->pSession->pSocket->hPacketAllocator,
-                            packet.pRawBuffer,
-                            packet.bufferLen);
-    }
+    RdrFreePacket(pResponsePacket);
+    RTL_FREE(&packet.pRawBuffer);
 
     if (pResponse)
     {

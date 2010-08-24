@@ -307,12 +307,7 @@ RdrFinishWriteFile(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pFile->pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
+    RdrFreePacket(pResponsePacket);
 
     if (ntStatus != STATUS_PENDING)
     {

@@ -309,12 +309,7 @@ RdrQueryInfoFileComplete(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            gRdrRuntime.hPacketAllocator,
-            pResponsePacket);
-    }
+    RdrFreePacket(pResponsePacket);
 
     if (status != STATUS_PENDING)
     {

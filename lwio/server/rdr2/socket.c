@@ -232,8 +232,6 @@ RdrSocketCreate(
     pSocket->pSecurityBlob = NULL;
     pSocket->securityBlobLen = 0;
 
-    pSocket->hPacketAllocator = gRdrRuntime.hPacketAllocator;
-
     ntStatus = SMBHashCreate(
                     19,
                     RdrSocketHashSessionCompareByKey,
@@ -800,14 +798,7 @@ RdrSocketTask(
     {
         if (!pSocket->pPacket)
         {
-            ntStatus = SMBPacketAllocate(pSocket->hPacketAllocator, &pSocket->pPacket);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            ntStatus = SMBPacketBufferAllocate(
-                pSocket->hPacketAllocator,
-                1024*64,
-                &pSocket->pPacket->pRawBuffer,
-                &pSocket->pPacket->bufferLen);
+            ntStatus = RdrAllocatePacket(1024*64, &pSocket->pPacket);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -931,7 +922,7 @@ RdrSocketFindAndSignalResponse(
     case STATUS_SUCCESS:
         break;
     case STATUS_NOT_FOUND:
-        SMBPacketRelease(pSocket->hPacketAllocator, pPacket);
+        RdrFreePacket(pPacket);
         ntStatus = STATUS_SUCCESS;
         goto cleanup;
     default:
@@ -1400,10 +1391,7 @@ RdrSocketFreeContents(
     SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
     SMBHashSafeFree(&pSocket->pSessionHashByUID);
 
-    if (pSocket->pPacket)
-    {
-        SMBPacketRelease(pSocket->hPacketAllocator, pSocket->pPacket);
-    }
+    RdrFreePacket(pSocket->pPacket);
 
     pthread_mutex_destroy(&pSocket->mutex);
 

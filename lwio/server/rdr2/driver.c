@@ -225,9 +225,6 @@ RdrInitialize(
 
     gRdrRuntime.SysPid = getpid();
 
-    ntStatus = SMBPacketCreateAllocator(1, &gRdrRuntime.hPacketAllocator);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = RdrSocketInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -259,12 +256,6 @@ RdrShutdown(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_destroy(&gRdrRuntime.socketHashLock);
-
-    if (gRdrRuntime.hPacketAllocator != (HANDLE)NULL)
-    {
-        SMBPacketFreeAllocator(gRdrRuntime.hPacketAllocator);
-        gRdrRuntime.hPacketAllocator = NULL;
-    }
 
 error:
 
@@ -301,13 +292,7 @@ RdrFreeContext(
 {
     if (pContext)
     {
-        if (pContext->Packet.bufferLen)
-        {
-            SMBPacketBufferFree(gRdrRuntime.hPacketAllocator,
-                                pContext->Packet.pRawBuffer,
-                                pContext->Packet.bufferLen);
-        }
-
+        RTL_FREE(&pContext->Packet.pRawBuffer);
         RTL_FREE(&pContext);
     }
 }
@@ -330,33 +315,75 @@ RdrContinueContext(
 }
 
 NTSTATUS
-RdrAllocateContextPacket(
-    PRDR_OP_CONTEXT pContext,
+RdrAllocatePacketBuffer(
+    PSMB_PACKET pPacket,
     ULONG ulSize
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (pContext->Packet.pRawBuffer)
-    {
-        SMBPacketBufferFree(
-            gRdrRuntime.hPacketAllocator,
-            pContext->Packet.pRawBuffer,
-            pContext->Packet.bufferLen);
-    }
-
-    status = SMBPacketBufferAllocate(
-        gRdrRuntime.hPacketAllocator,
-        ulSize,
-        &pContext->Packet.pRawBuffer,
-        &pContext->Packet.bufferLen);
+    status = RTL_ALLOCATE(&pPacket->pRawBuffer, BYTE, ulSize);
     BAIL_ON_NT_STATUS(status);
+
+    pPacket->bufferLen = ulSize;
 
 error:
 
     return status;
 }
 
+NTSTATUS
+RdrAllocatePacket(
+    ULONG ulSize,
+    PSMB_PACKET* ppPacket
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB_PACKET pPacket = NULL;
+
+    status = LW_RTL_ALLOCATE_AUTO(&pPacket);
+    BAIL_ON_NT_STATUS(status);
+
+    pPacket->refCount = 1;
+
+    status = RdrAllocatePacketBuffer(pPacket, ulSize);
+    BAIL_ON_NT_STATUS(status);
+
+    *ppPacket = pPacket;
+
+cleanup:
+
+    return status;
+
+error:
+
+    RdrFreePacket(pPacket);
+
+    goto cleanup;
+}
+
+NTSTATUS
+RdrAllocateContextPacket(
+    PRDR_OP_CONTEXT pContext,
+    ULONG ulSize
+    )
+{
+    RTL_FREE(&pContext->Packet.pRawBuffer);
+
+    return RdrAllocatePacketBuffer(&pContext->Packet, ulSize);
+}
+
+VOID
+RdrFreePacket(
+    PSMB_PACKET pPacket
+    )
+{
+    if (pPacket)
+    {
+        RTL_FREE(&pPacket->pRawBuffer);
+        RTL_FREE(&pPacket);
+    }
+}
 
 VOID
 RdrContinueContextList(

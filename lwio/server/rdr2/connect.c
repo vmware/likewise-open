@@ -87,12 +87,7 @@ RdrFreeTreeConnectContext(
     {
         RTL_FREE(&pContext->State.TreeConnect.pszSharename);
 
-        if (pContext->State.TreeConnect.pPacket)
-        {
-            SMBPacketRelease(
-                gRdrRuntime.hPacketAllocator,
-                pContext->State.TreeConnect.pPacket);
-        }
+        RdrFreePacket(pContext->State.TreeConnect.pPacket);
 
         if (pContext->State.TreeConnect.pszCachePath)
         {
@@ -128,12 +123,7 @@ RdrFinishTreeConnect(
 
 cleanup:
 
-    if (pResponsePacket)
-    {
-        SMBPacketRelease(
-            pTree->pSession->pSocket->hPacketAllocator,
-            pResponsePacket);
-    }
+    RdrFreePacket(pResponsePacket);
 
     RdrNotifyContextList(&pTree->StateWaiters, bTreeLocked, &pTree->mutex, status, pTree);
 
