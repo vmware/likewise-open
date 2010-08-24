@@ -308,16 +308,6 @@ RdrTransactTrans2RenameFile(
     );
 
 NTSTATUS
-RdrTransactNtTransQuerySecurityDesc(
-    PRDR_TREE pTree,
-    USHORT usFid,
-    SECURITY_INFORMATION securityInformation,
-    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
-    ULONG ulLength,
-    PULONG ulLengthUsed
-    );
-
-NTSTATUS
 RdrTransactQueryFsInfo(
     PRDR_TREE pTree,
     SMB_INFO_LEVEL infoLevel,
