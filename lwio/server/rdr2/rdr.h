@@ -73,7 +73,6 @@
 #include "iodriver.h"
 
 #include "structs.h"
-#include "getsesskey.h"
 #include "socket.h"
 #include "tree.h"
 #include "session.h"
