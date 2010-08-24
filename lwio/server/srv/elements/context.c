@@ -78,7 +78,10 @@ SrvBuildExecContext(
     pContext->pConnection = SrvConnectionAcquire(pConnection);
 
     pContext->pSmbRequest = pSmbRequest;
-    InterlockedIncrement(&pSmbRequest->refCount);
+    if (pSmbRequest)
+    {
+        InterlockedIncrement(&pSmbRequest->refCount);
+    }
 
     pContext->bInternal = bInternal;
 
@@ -178,6 +181,8 @@ SrvFreeExecContext(
    IN PSRV_EXEC_CONTEXT pContext
    )
 {
+    SrvMpxTrackerRemoveExecContext(pContext);
+
     if (pContext->pProtocolContext)
     {
         pContext->pfnFreeContext(pContext->pProtocolContext);

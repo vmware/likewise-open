@@ -66,6 +66,13 @@ SrvProcessNTCancel(
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId  = 0LL;
 
+    SrvMpxTrackerCancelExecContextById(
+            pConnection->pMpxTracker,
+            SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+            pSmbRequest->pHeader->mid,
+            pSmbRequest->pHeader->uid,
+            pSmbRequest->pHeader->tid);
+
     ntStatus = SrvConnectionFindSession_SMB_V1(
                             pCtxSmb1,
                             pConnection,

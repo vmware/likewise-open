@@ -44,6 +44,8 @@
 #ifndef __ELEMENTSAPI_H__
 #define __ELEMENTSAPI_H__
 
+#include <lwlist.h>
+
 #define SRV_LRU_CAPACITY             64
 
 #define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
@@ -85,6 +87,7 @@ typedef struct _LWIO_SRV_SESSION_2* PLWIO_SRV_SESSION_2;
 typedef struct _LWIO_SRV_TREE_2* PLWIO_SRV_TREE_2;
 typedef struct _LWIO_SRV_FILE_2* PLWIO_SRV_FILE_2;
 typedef struct _LWIO_ASYNC_STATE* PLWIO_ASYNC_STATE;
+typedef struct _SRV_MPX_TRACKER *PSRV_MPX_TRACKER;
 
 typedef BOOLEAN (*PFN_SRV_CONNECTION_ENUM_CALLBACK)(
     PLWIO_SRV_CONNECTION pConnection,
@@ -190,6 +193,30 @@ typedef NTSTATUS (*PFN_ENUM_RESOURCES)(
                     PVOID         pUserData,
                     PBOOLEAN      pbContinue
                     );
+
+typedef ULONG SRV_MPX_TRACKING_FLAGS, *PSRV_MPX_TRACKING_FLAGS;
+
+#define SRV_MPX_TRACKING_FLAG_IN_TRACKER    0x00000001
+#define SRV_MPX_TRACKING_FLAG_CANCELLED     0x00000002
+// for debugging only:
+#define SRV_MPX_TRACKING_FLAG_EXECUTING     0x00000004
+
+typedef struct _SRV_MPX_TRACKING_STATE
+{
+    SRV_MPX_TRACKING_FLAGS flags;
+
+    // Require MID + PID to be unique within tracker (connection).
+    ULONG ulPid;
+    USHORT usMid;
+
+    // Must match UID + TID when doing a cancel.
+    USHORT usUid;
+    USHORT usTid;
+
+    // SRV_MPX_TRACKER's list:
+    LW_LIST_LINKS mpxTrackerListEntry;
+
+} SRV_MPX_TRACKING_STATE, *PSRV_MPX_TRACKING_STATE;
 
 typedef struct _LWIO_ASYNC_STATE
 {
@@ -596,6 +623,8 @@ typedef struct _SRV_CONNECTION
 
     PSRV_CREDITOR       pCreditor;
 
+    PSRV_MPX_TRACKER    pMpxTracker;
+
 } LWIO_SRV_CONNECTION;
 
 typedef struct _SRV_FINDER_REPOSITORY
@@ -723,6 +752,8 @@ typedef struct _SRV_EXEC_CONTEXT
     PSRV_STAT_INFO                     pStatInfo;
 
     PSRV_LOG_CONTEXT                   pLogContext;
+
+    SRV_MPX_TRACKING_STATE             trackingState;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 
@@ -1612,6 +1643,47 @@ VOID
 SrvReleaseExecContext(
    IN PSRV_EXEC_CONTEXT pContext
    );
+
+BOOLEAN
+SrvMpxTrackerIsNtCancelPacket(
+    PSMB_PACKET pPacket
+    );
+
+NTSTATUS
+SrvMpxTrackerAddExecContext_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSRV_EXEC_CONTEXT pContext
+    );
+
+VOID
+SrvMpxTrackerSwapExecContext(
+    PSRV_EXEC_CONTEXT pContext,
+    PSRV_EXEC_CONTEXT pNewContext
+    );
+
+VOID
+SrvMpxTrackerRemoveExecContext(
+    PSRV_EXEC_CONTEXT pContext
+    );
+
+VOID
+SrvMpxTrackerSetExecutingExecContext(
+    PSRV_EXEC_CONTEXT pContext
+    );
+
+BOOLEAN
+SrvMpxTrackerIsCancelledExecContext(
+    PSRV_EXEC_CONTEXT pContext
+    );
+
+VOID
+SrvMpxTrackerCancelExecContextById(
+    PSRV_MPX_TRACKER pTracker,
+    ULONG ulPid,
+    USHORT usMid,
+    USHORT usUid,
+    USHORT usTid
+    );
 
 NTSTATUS
 SrvElementsGetBootTime(

@@ -15,6 +15,7 @@ libsrvelements_la_SOURCES = \
     srvfinder.c     \
     srvgss.c        \
     srvioapi.c      \
+    srvmpxtracker.c \
     srvsession.c    \
     srvsession2.c   \
     srvtimer.c      \

@@ -1600,6 +1600,30 @@ SrvConnection2DeleteSession(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS
+SrvConnectionEnsureMpxTracker_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (!pConnection->pMpxTracker)
+    {
+        ntStatus = SrvMpxTrackerCreate(
+                        &pConnection->pMpxTracker,
+                        pConnection->serverProperties.MaxMpxCount);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
 PLWIO_SRV_CONNECTION
 SrvConnectionAcquire(
     PLWIO_SRV_CONNECTION pConnection
@@ -1629,6 +1653,11 @@ SrvConnectionFree(
     PLWIO_SRV_CONNECTION pConnection
     )
 {
+    if (pConnection->pMpxTracker)
+    {
+        SrvMpxTrackerDestroy(pConnection->pMpxTracker);
+    }
+
     if (pConnection->readerState.pRequestPacket)
     {
         SMBPacketRelease(

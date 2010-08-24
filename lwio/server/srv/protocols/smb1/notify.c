@@ -104,7 +104,12 @@ SrvNotifyCreateState(
 
     pNotifyState->ullNotifyId = SrvAsyncStateBuildId(ulPid, usMid);
 
-    pNotifyState->pConnection = SrvConnectionAcquire(pConnection);
+    ntStatus = SrvBuildExecContext(
+                    pConnection,
+                    NULL,
+                    TRUE,
+                    &pNotifyState->pInternalExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pNotifyState->ulCompletionFilter = ulCompletionFilter;
     pNotifyState->bWatchTree         = bWatchTree;
@@ -250,7 +255,7 @@ SrvNotifyBuildExecContext(
 {
     NTSTATUS                 ntStatus         = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT        pExecContext     = NULL;
-    PSMB_PACKET              pSmbRequest      = NULL;
+    PSMB_PACKET              pSmbRequest      = NULL; // Do not free
     PBYTE                    pParams          = NULL;
     ULONG                    ulParamLength    = 0;
     PBYTE                    pData            = NULL;
@@ -270,26 +275,38 @@ SrvNotifyBuildExecContext(
     ULONG                    ulNumPackageBytesUsed = 0;
     SMB_NOTIFY_CHANGE_HEADER notifyRequestHeader   = {0};
 
+    //
+    // Take the partial internal exec context from the notify state
+    //
+
+    pExecContext = pNotifyState->pInternalExecContext;
+    pNotifyState->pInternalExecContext = NULL;
+
+    //
+    // Put new SMB request packet into new exec context
+    //
+
+    LWIO_ASSERT(!pExecContext->pSmbRequest);
+
     ntStatus = SMBPacketAllocate(
-                    pNotifyState->pConnection->hPacketAllocator,
-                    &pSmbRequest);
+                    pExecContext->pConnection->hPacketAllocator,
+                    &pExecContext->pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pSmbRequest = pExecContext->pSmbRequest;
+
+    //
+    // Fill in rest of information for the exec context
+    //
+
     ntStatus = SMBPacketBufferAllocate(
-                    pNotifyState->pConnection->hPacketAllocator,
+                    pExecContext->pConnection->hPacketAllocator,
                     (64 * 1024) + 4096,
                     &pSmbRequest->pRawBuffer,
                     &pSmbRequest->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvInitPacket_SMB_V1(pSmbRequest, TRUE);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvBuildExecContext(
-                    pNotifyState->pConnection,
-                    pSmbRequest,
-                    TRUE,
-                    &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSmbRequest->sequence = pNotifyState->ulRequestSequence;
@@ -313,12 +330,12 @@ SrvNotifyBuildExecContext(
                     COM_NT_TRANSACT,
                     pNotifyState->ioStatusBlock.Status,
                     FALSE,  /* not a response */
-                    pNotifyState->pConnection->serverProperties.Capabilities,
+                    pExecContext->pConnection->serverProperties.Capabilities,
                     pNotifyState->usTid,
                     pNotifyState->ulPid,
                     pNotifyState->usUid,
                     pNotifyState->usMid,
-                    pNotifyState->pConnection->serverProperties.bRequireSecuritySignatures,
+                    pExecContext->pConnection->serverProperties.bRequireSecuritySignatures,
                     &pHeader,
                     &pWordCount,
                     &pAndXHeader,
@@ -366,13 +383,6 @@ SrvNotifyBuildExecContext(
     *ppExecContext = pExecContext;
 
 cleanup:
-
-    if (pSmbRequest)
-    {
-        SMBPacketRelease(
-                pNotifyState->pConnection->hPacketAllocator,
-                pSmbRequest);
-    }
 
     return ntStatus;
 
@@ -455,9 +465,9 @@ SrvNotifyStateFree(
                     &pNotifyState->pAcb->AsyncCancelContext);
     }
 
-    if (pNotifyState->pConnection)
+    if (pNotifyState->pInternalExecContext)
     {
-        SrvConnectionRelease(pNotifyState->pConnection);
+        SrvReleaseExecContext(pNotifyState->pInternalExecContext);
     }
 
     if (pNotifyState->pBuffer)

@@ -98,6 +98,13 @@ SrvElementsResourcesShutdown(
     VOID
     );
 
+// srvconnection.c
+
+NTSTATUS
+SrvConnectionEnsureMpxTracker_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 // srvenum.c
 
 VOID
@@ -183,6 +190,18 @@ SrvFile2ClearInParent(
     PLWIO_SRV_FILE_2 pFile
     );
 
+// srvmpxtracker.c
+
+NTSTATUS
+SrvMpxTrackerCreate(
+    PSRV_MPX_TRACKER* ppTracker,
+    ULONG ulLimit
+    );
+
+VOID
+SrvMpxTrackerDestroy(
+    PSRV_MPX_TRACKER pTracker
+    );
 
 // srvsession.c
 
@@ -284,5 +303,3 @@ VOID
 SrvTree2ClearInParent(
     PLWIO_SRV_TREE_2 pTree
     );
-
-

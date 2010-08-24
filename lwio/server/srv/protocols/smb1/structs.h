@@ -151,7 +151,7 @@ typedef struct _SRV_CHANGE_NOTIFY_STATE_SMB_V1
     ULONG                   ulCompletionFilter;
     BOOLEAN                 bWatchTree;
 
-    PLWIO_SRV_CONNECTION    pConnection;
+    PSRV_EXEC_CONTEXT       pInternalExecContext;
 
     USHORT                  usUid;
     USHORT                  usTid;

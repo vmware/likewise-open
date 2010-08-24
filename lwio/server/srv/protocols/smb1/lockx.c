@@ -406,6 +406,17 @@ SrvProcessLockAndX(
                 pRequestHeader->ucOplockLevel,
                 pRequestHeader->ulTimeout);
 
+        //
+        // Check for cancel after logging but before any work to avoid
+        // doing extra work in case the request was cancelled before
+        // starting processing.
+        //
+        if (SrvMpxTrackerIsCancelledExecContext(pExecContext))
+        {
+            ntStatus = STATUS_CANCELLED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         ntStatus = SrvTreeFindFile_SMB_V1(
                         pCtxSmb1,
                         pTree,
@@ -540,6 +551,17 @@ SrvProcessLockAndX(
                         }
 
                         break;
+                }
+
+                //
+                // Check for cancel a final time *after* adding the async state
+                // so that a cancel is caught at least here or if async state
+                // is cancelled.
+                //
+                if (SrvMpxTrackerIsCancelledExecContext(pExecContext))
+                {
+                    ntStatus = STATUS_CANCELLED;
+                    BAIL_ON_NT_STATUS(ntStatus);
                 }
 
                 pLockState->stage = SRV_LOCK_STAGE_SMB_V1_ATTEMPT_LOCK;
