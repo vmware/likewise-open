@@ -116,6 +116,8 @@ SrvProtocolExecute(
 
     LWIO_LOCK_MUTEX(bInLock, &pContext->execMutex);
 
+    SrvMpxTrackerSetExecutingExecContext(pContext);
+
     ntStatus = SrvProtocolAddContext(pContext, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 

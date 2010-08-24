@@ -368,6 +368,7 @@ SrvProtocolTransportDriverConnectionNew(
     properties.ulZctReadThreshold = SrvProtocolConfigGetZctReadThreshold();
     properties.ulZctWriteThreshold = SrvProtocolConfigGetZctWriteThreshold();
     properties.MaxRawSize = 64 * 1024;
+    // TODO: Get MaxMpxCount from config.
     properties.MaxMpxCount = 50;
     properties.MaxNumberVCs = 1;
     properties.MaxBufferSize = 16644;
@@ -535,6 +536,7 @@ SrvProtocolTransportDriverConnectionData(
             }
 
             // dispatch packet -- takes a reference
+            // NOTE: Does unlock/lock pConnection if this is SMB1 NT CANCEL.
             ntStatus = SrvProtocolTransportDriverDispatchPacket(
                             pConnection,
                             pPacket);
@@ -1206,6 +1208,11 @@ SrvProtocolTransportDriverDetectPacket(
                         &pZctExecContext->pStatInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvMpxTrackerAddExecContext_inlock(
+                        pConnection,
+                        pZctExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         // pZctExecContext is holding a ref, drop ours
         SMBPacketRelease(
                 pConnection->hPacketAllocator,
@@ -1250,14 +1257,38 @@ SrvProtocolTransportDriverDispatchPacket(
         // Note that building the context takes its own reference on the packet.
         ntStatus = SrvBuildExecContext(pConnection, pPacket, FALSE, &pContext);
         BAIL_ON_NT_STATUS(ntStatus);
-    }
 
-    ntStatus = SrvProtocolTransportDriverSetStatistics(
-                    pConnection,
-                    pPacket->protocolVer,
-                    pPacket->bufferUsed,
-                    &pContext->pStatInfo);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvProtocolTransportDriverSetStatistics(
+                        pConnection,
+                        pPacket->protocolVer,
+                        pPacket->bufferUsed,
+                        &pContext->pStatInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (SrvMpxTrackerIsNtCancelPacket(pPacket))
+        {
+            BOOLEAN bInLock = TRUE;
+            NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+            // Process NT cancel directly.
+            LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+            ntStatus2 = SrvProtocolExecute(pContext);
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+            if (ntStatus2)
+            {
+                LWIO_LOG_ERROR("Failed to process cancel (status = 0x%08x)", ntStatus2);
+            }
+
+            // This does not need to be queued.
+            goto cleanup;
+        }
+        else
+        {
+            ntStatus = SrvMpxTrackerAddExecContext_inlock(pConnection, pContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
 
     ntStatus = SrvProdConsEnqueue(
                     pDriverContext->pGlobals->pWorkQueue,
@@ -1268,14 +1299,14 @@ SrvProtocolTransportDriverDispatchPacket(
 
 cleanup:
 
-    return ntStatus;
-
-error:
-
     if (pContext)
     {
         SrvReleaseExecContext(pContext);
     }
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }

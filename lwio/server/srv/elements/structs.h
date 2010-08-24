@@ -150,6 +150,19 @@ typedef struct _SRV_CREDITOR
 
 } SRV_CREDITOR;
 
+typedef struct _SRV_MPX_TRACKER
+{
+    pthread_mutex_t mutex;
+    pthread_mutex_t* pMutex;
+
+    ULONG ulLimit;
+    ULONG ulCount;
+
+    // List of SRV_MPX_TRACKING_STATE
+    LW_LIST_LINKS list;
+
+} SRV_MPX_TRACKER;
+
 typedef struct _SRV_ELEMENTS_CONFIG
 {
     BOOLEAN bShareNameEcpEnabled;

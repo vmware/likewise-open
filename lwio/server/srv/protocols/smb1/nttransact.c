@@ -2074,6 +2074,17 @@ SrvProcessNotifyChange(
                     pNTTransactState->pNotifyChangeHeader->ulCompletionFilter,
                     pNTTransactState->pNotifyChangeHeader->bWatchTree? "TRUE" : "FALSE");
 
+            //
+            // Check for cancel after logging but before any work to avoid
+            // doing extra work in case the request was cancelled before
+            // starting processing.
+            //
+            if (SrvMpxTrackerIsCancelledExecContext(pExecContext))
+            {
+                ntStatus = STATUS_CANCELLED;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             ntStatus = SrvTreeFindFile_SMB_V1(
                             pCtxSmb1,
                             pNTTransactState->pTree,
@@ -2095,6 +2106,10 @@ SrvProcessNotifyChange(
                             &pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            SrvMpxTrackerSwapExecContext(
+                    pExecContext,
+                    pNotifyState->pInternalExecContext);
+
             ntStatus = SrvAsyncStateCreate(
                             pNotifyState->ullNotifyId,
                             SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE,
@@ -2110,6 +2125,17 @@ SrvProcessNotifyChange(
             BAIL_ON_NT_STATUS(ntStatus);
 
             bUnregisterAsync = TRUE;
+
+            //
+            // Check for cancel a final time *after* adding the async state
+            // so that a cancel is caught at least here or if async state
+            // is cancelled.
+            //
+            if (SrvMpxTrackerIsCancelledExecContext(pExecContext))
+            {
+                ntStatus = STATUS_CANCELLED;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pNTTransactState->stage = SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO;
 
