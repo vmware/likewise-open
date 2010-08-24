@@ -309,6 +309,13 @@ RdrQueryInfoFileComplete(
 
 cleanup:
 
+    if (pResponsePacket)
+    {
+        SMBPacketRelease(
+            gRdrRuntime.hPacketAllocator,
+            pResponsePacket);
+    }
+
     if (status != STATUS_PENDING)
     {
         pContext->pIrp->IoStatusBlock.Status = status;
