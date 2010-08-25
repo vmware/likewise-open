@@ -22,7 +22,6 @@ librdr2_sys_la_SOURCES =  \
     globals.c             \
     setinfofile.c         \
     renamefile.c          \
-    queryfsinfo.c         \
     findfirst2.c          \
     findnext2.c           \
     session.c             \

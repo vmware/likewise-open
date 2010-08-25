@@ -323,15 +323,6 @@ RdrTransactTrans2RenameFile(
     PCWSTR pwszPath
     );
 
-NTSTATUS
-RdrTransactQueryFsInfo(
-    PRDR_TREE pTree,
-    SMB_INFO_LEVEL infoLevel,
-    PVOID pInfo,
-    ULONG ulInfoLength,
-    PULONG pulInfoLengthUsed
-    );
-
 void
 RdrReleaseFile(
     PRDR_CCB pFile
