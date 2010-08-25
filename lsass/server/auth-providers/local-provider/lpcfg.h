@@ -82,6 +82,26 @@ LocalCfgGetMinPwdLength(
     );
 
 DWORD
+LocalCfgGetMinUid(
+    PDWORD pdwMinUid
+    );
+
+DWORD
+LocalCfgGetMinGid(
+    PDWORD pdwMinGid
+    );
+
+DWORD
+LocalCfgGetMaxUid(
+    PDWORD pdwMaxUid
+    );
+
+DWORD
+LocalCfgGetMaxGid(
+    PDWORD pdwMaxGid
+    );
+
+DWORD
 LocalCfgGetPasswordChangeWarningTime(
     PLONG64 pllPasswdChangeWarningTime
     );
@@ -129,6 +149,16 @@ LocalCfgAcceptNTLMv1(
 DWORD
 LocalCfgGetSkeletonDirs(
     PSTR* ppszSkelDirs
+    );
+
+DWORD
+LocalCfgGetMinUid(
+    uid_t* pMinUid
+    );
+
+DWORD
+LocalCfgGetMinGid(
+    gid_t* pMinGid
     );
 
 VOID

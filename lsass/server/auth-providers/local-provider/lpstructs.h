@@ -116,6 +116,10 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     DWORD           dwLockoutThreshold;
     LONG64          llLockoutDuration;
     LONG64          llLockoutWindow;
+    DWORD           dwMinUid;
+    DWORD           dwMaxUid;
+    DWORD           dwMinGid;
+    DWORD           dwMaxGid;
 
     LOCAL_CONFIG    cfg;
 

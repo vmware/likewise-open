@@ -303,9 +303,18 @@ LocalDirValidateGID(
     )
 {
     DWORD dwError = 0;
+    DWORD dwGidMin = LOWEST_GID;
+    DWORD dwGidMax = HIGHEST_GID;
+    DWORD dwGid = (DWORD) gid;
+
+    dwError = LocalCfgGetMinGid(&dwGidMin);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalCfgGetMaxGid(&dwGidMax);
+    BAIL_ON_LSA_ERROR(dwError);
 
     /* Check whether group gid is within permitted range */
-    if (gid < LOWEST_GID) {
+    if (dwGid < dwGidMin || dwGid > dwGidMax) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }

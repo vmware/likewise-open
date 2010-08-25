@@ -81,6 +81,10 @@
 "LockoutThreshold"=dword:00000000
 "LockoutDuration"=dword:00000000
 "LockoutWindow"=dword:00000000
+"MinUid"=dword:000003E8
+"MaxUid"=dword:7FFFFFFF
+"MinGid"=dword:000003E8
+"MaxGid"=dword:7FFFFFFF
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers]
 "LoadOrder"=sza:"lsarpc" "samr" "dssetup" "wkssvc"

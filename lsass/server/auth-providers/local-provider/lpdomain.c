@@ -84,6 +84,14 @@ LocalSyncDomainInfo(
     DWORD dwNewLockoutThreshold = LOCAL_LOCKOUT_THRESHOLD;
     DWORD dwNewLockoutDuration = LOCAL_LOCKOUT_DURATION;
     DWORD dwNewLockoutWindow = LOCAL_LOCKOUT_WINDOW;
+    DWORD dwMinUid = LOWEST_UID;;
+    DWORD dwNewMinUid = LOWEST_UID;;
+    DWORD dwMaxUid = HIGHEST_UID;;
+    DWORD dwNewMaxUid = HIGHEST_UID;;
+    DWORD dwMinGid = LOWEST_GID;;
+    DWORD dwNewMinGid = LOWEST_GID;;
+    DWORD dwMaxGid = HIGHEST_GID;;
+    DWORD dwNewMaxGid = HIGHEST_GID;;
     HANDLE hDirectory = NULL;
     PSTR pszFilterFmt = LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %u";
     DWORD dwDomainObjectClass = LOCAL_OBJECT_CLASS_DOMAIN;
@@ -196,6 +204,46 @@ LocalSyncDomainInfo(
             MAXDWORD,
             NULL,
             &dwNewLockoutWindow,
+            NULL
+        },
+        {
+            "MaxUid",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMaxUid,
+            NULL
+        },
+        {
+            "MaxGid",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMaxGid,
+            NULL
+        },
+        {
+            "MinUid",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMinUid,
+            NULL
+        },
+        {
+            "MinGid",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMinGid,
             NULL
         }
     };
@@ -539,6 +587,34 @@ LocalSyncDomainInfo(
         llLockoutWindow = llNewLockoutWindow;
     }
 
+    /* MaxUid */
+    if (dwMaxUid != dwNewMaxUid)
+    {
+        // Currently not stored in domain database, so we'll just update the global for now
+        dwMaxUid = dwNewMaxUid;
+    }
+
+    /* MaxGid */
+    if (dwMaxGid != dwNewMaxGid)
+    {
+        // Currently not stored in domain database, so we'll just update the global for now
+        dwMaxGid = dwNewMaxGid;
+    }
+
+    /* MinUid */
+    if (dwMinUid != dwNewMinUid)
+    {
+        // Currently not stored in domain database, so we'll just update the global for now
+        dwMinUid = dwNewMinUid;
+    }
+
+    /* MinGid */
+    if (dwMinGid != dwNewMinGid)
+    {
+        // Currently not stored in domain database, so we'll just update the global for now
+        dwMinGid = dwNewMinGid;
+    }
+
     /*
      * Update domain object with current SAM configuration if
      * there was any change found
@@ -581,6 +657,10 @@ LocalSyncDomainInfo(
     pGlobals->dwLockoutThreshold   = dwLockoutThreshold;
     pGlobals->llLockoutDuration    = llLockoutDuration;
     pGlobals->llLockoutWindow      = llLockoutWindow;
+    pGlobals->dwMaxUid             = dwMaxUid;
+    pGlobals->dwMaxGid             = dwMaxGid;
+    pGlobals->dwMinUid             = dwMinUid;
+    pGlobals->dwMinGid             = dwMinGid;
 
 cleanup:
     if (hDirectory)

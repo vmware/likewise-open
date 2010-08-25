@@ -702,9 +702,18 @@ LocalDirValidateUID(
     )
 {
     DWORD dwError = 0;
+    DWORD dwUidMin = LOWEST_UID;
+    DWORD dwUidMax = HIGHEST_UID;
+    DWORD dwUid = (DWORD) uid;
+
+    dwError = LocalCfgGetMinUid(&dwUidMin);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalCfgGetMaxUid(&dwUidMax);
+    BAIL_ON_LSA_ERROR(dwError);
 
     /* Check whether account uid is within permitted range */
-    if (uid < LOWEST_UID) {
+    if (dwUid < dwUidMin || dwUid > dwUidMax) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }

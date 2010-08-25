@@ -216,6 +216,8 @@ typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
 
 #define LOWEST_UID   (1000)
 #define LOWEST_GID   (1000)
+#define HIGHEST_UID  LW_MAXLONG
+#define HIGHEST_GID  LW_MAXLONG
 
 #define LOCAL_MIN_PASSWORD_AGE           (0)
 #define LOCAL_MAX_PASSWORD_AGE           (2419200)  /* 28 days */

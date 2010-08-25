@@ -194,6 +194,86 @@ LocalCfgGetMinPwdLength(
 }
 
 DWORD
+LocalCfgGetMinUid(
+    PDWORD pdwMinUid
+    )
+{
+    DWORD   dwError = 0;
+    DWORD   dwMinUid = LOWEST_UID;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwMinUid = gLPGlobals.dwMinUid;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwMinUid = dwMinUid;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgGetMinGid(
+    PDWORD pdwMinGid
+    )
+{
+    DWORD   dwError = 0;
+    DWORD   dwMinGid = LOWEST_GID;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwMinGid = gLPGlobals.dwMinGid;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwMinGid = dwMinGid;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgGetMaxUid(
+    PDWORD pdwMaxUid
+    )
+{
+    DWORD   dwError = 0;
+    DWORD   dwMaxUid = HIGHEST_UID;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwMaxUid = gLPGlobals.dwMaxUid;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwMaxUid = dwMaxUid;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgGetMaxGid(
+    PDWORD pdwMaxGid
+    )
+{
+    DWORD   dwError = 0;
+    DWORD   dwMaxGid = HIGHEST_GID;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwMaxGid = gLPGlobals.dwMaxGid;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwMaxGid = dwMaxGid;
+
+    return dwError;
+}
+
+DWORD
 LocalCfgGetPasswordChangeWarningTime(
     PLONG64 pllPasswdChangeWarningTime
     )
