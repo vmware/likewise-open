@@ -33,59 +33,69 @@
  *
  * Module Name:
  *
- *        rootcb.c
+ *        reftable.c
  *
  * Abstract:
  *
  *        Likewise Distributed File System Driver (DFS)
  *
- *        DFS Root Control Block routineus
+ *        DFS Referral Control Block Table routineus
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "dfs.h"
 
+static
+int
+DfsReferralTableCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    );
+
+static
+VOID
+DfsReferralTableFreeKey(
+    PVOID pKey
+    );
+
+static
+VOID
+DfsReferralTableFreeData(
+    PVOID pData
+    );
+
 
 /***********************************************************************
  **********************************************************************/
 
-static
-VOID
-DfsFreeRootCB(
-    PDFS_ROOT_CONTROL_BLOCK pRootCB
-    );
-
 NTSTATUS
-DfsAllocateRootCB(
-    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
+DfsReferralTableInitialize(
+    PDFS_REFERRAL_TABLE pReferralTable
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PDFS_ROOT_CONTROL_BLOCK pRootCB = NULL;
 
-    *ppRootCB = NULL;
+    BAIL_ON_INVALID_PTR(pReferralTable, ntStatus);
 
-    ntStatus = DfsAllocateMemory(
-                   (PVOID*)&pRootCB,
-                   sizeof(DFS_ROOT_CONTROL_BLOCK));
+    ntStatus = LwRtlRBTreeCreate(
+                   DfsReferralTableCompare,
+                   DfsReferralTableFreeKey,
+                   DfsReferralTableFreeData,
+                   &pReferralTable->pTable);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pthread_rwlock_init(&pRootCB->RwLock, NULL);
-
-    pRootCB->RefCount = 1;
-
-    *ppRootCB = pRootCB;
-
-    ntStatus = STATUS_SUCCESS;
 
 cleanup:
     return ntStatus;
 
 error:
-    if (pRootCB)
+    if (pReferralTable)
     {
-        DfsFreeRootCB(pRootCB);
+        if (pReferralTable->pTable)
+        {
+            LwRtlRBTreeFree(pReferralTable->pTable);
+            pReferralTable->pTable = NULL;
+        }
     }
 
     goto cleanup;
@@ -96,59 +106,66 @@ error:
  **********************************************************************/
 
 static
-VOID
-DfsFreeRootCB(
-    PDFS_ROOT_CONTROL_BLOCK pRootCB
+int
+DfsCtrlBlockTableCompare(
+    PVOID pKey1,
+    PVOID pKey2
     )
 {
-    if (pRootCB->pRwLock)
-    {
-        pthread_rwlock_destroy(&pRootCB->RwLock);
-        pRootCB->pRwLock = NULL;
-    }
-
-    if (pRootCB->pwszRootName)
-    {
-        LwRtlWC16StringFree(&pRootCB->pwszRootName);
-    }
-
-    DfsFreeMemory((PVOID*)&pRootCB);
-
-    return;
+    return wc16scasecmp((const wchar16_t*)pKey1, (const wchar16_t*)pKey2);
 }
+
 
 /***********************************************************************
  **********************************************************************/
 
+static
 VOID
-DfsReleaseRootCB(
-    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
+DfsReferralTableFreeKey(
+    PVOID pKey
     )
 {
-    PDFS_ROOT_CONTROL_BLOCK pRootCB = *ppRootCB;
-
-    if (InterlockedDecrement(&pRootCB->RefCount) == 0)
-    {
-        DfsFreeRootCB(pRootCB);
-    }
-
-    *ppRootCB = NULL;
-
     return;
 }
+
 
 /***********************************************************************
  **********************************************************************/
 
-PDFS_ROOT_CONTROL_BLOCK
-DfsReferenceRootCB(
-    PDFS_ROOT_CONTROL_BLOCK pRootCB
+static
+VOID
+DfsReferralTableFreeData(
+    PVOID pData
     )
 {
-    InterlockedIncrement(&pRootCB->RefCount);
-
-    return pRootCB;
+    return;
 }
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+DfsReferralTableAdd_inlock(
+    PDFS_REFERRAL_TABLE pReferralTable,
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = LwRtlRBTreeAdd(
+                   pReferralTable->pTable,
+                   pReferralCB->pwszReferralName,
+                   pReferralCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*

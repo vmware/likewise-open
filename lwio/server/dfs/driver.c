@@ -217,7 +217,10 @@ DfsDriverInitialize(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    // ntStatus = DfsInitializeFCBTable();
+    ntStatus = DfsRootCtrlBlockTableInitialize(&gRootCtrlBlockTable);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = DfsConfigReadStandaloneRoots();
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

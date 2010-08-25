@@ -50,7 +50,8 @@
 #include "dfs.h"
 
 extern DFS_OBJECT_COUNTER gDfsObjectCounter;
-// extern DFS_FCB_TABLE gDfsFcbTable;
+DFS_ROOT_CONTROL_BLOCK_TABLE gRootCtrlBlockTable;
+
 
 #endif /* __DFS_EXTERNS_H__ */
 

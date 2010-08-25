@@ -50,6 +50,7 @@
 #include "config.h"
 
 #include <lw/base.h>
+#include <reg/lwntreg.h>
 
 #include "lwiosys.h"
 #include "lwio/lwiofsctl.h"

@@ -47,6 +47,11 @@
 #ifndef _DFS_STRUCTS_H
 #define _DFS_STRUCTS_H
 
+
+#define DFS_CONF_REGISTRY_LOCAL   "HKEY_THIS_MACHINE\\Services\\lwio\\Parameters\\Drivers\\dfs"
+
+#define DFS_CONF_ROOT_STANDALONE  DFS_CONF_REGISTRY_LOCAL"\\Roots\\Standalone"
+
 typedef struct _DFS_OBJECT_COUNTER
 {
     LONG IrpContextCount;
@@ -72,28 +77,50 @@ typedef struct _DFS_IRP_CONTEXT
     PIRP pIrp;
 } DFS_IRP_CONTEXT, *PDFS_IRP_CONTEXT;
 
+typedef struct _DFS_ROOT_CONTROL_BLOCK_TABLE
+{
+    pthread_rwlock_t RwLock;
+    pthread_rwlock_t *pRwLock;
+
+
+    PLWRTL_RB_TREE pTable;
+
+} DFS_ROOT_CONTROL_BLOCK_TABLE, *PDFS_ROOT_CONTROL_BLOCK_TABLE;
+
+typedef struct _DFS_REFERRAL_TABLE
+{
+    // Lock is held by the DFS_ROOT_CONTROL_BLOCK
+    // ADS is to insulate the RootCB from the table implementation
+    // details.
+
+    PLWRTL_RB_TREE pTable;
+
+} DFS_REFERRAL_TABLE, *PDFS_REFERRAL_TABLE;
+
 
 typedef struct _DFS_ROOT_CONTROL_BLOCK
 {
     pthread_rwlock_t RwLock;
+    pthread_rwlock_t *pRwLock;
 
     LONG RefCount;
 
-    PSTR pszRootName;
-    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor;
+    PWSTR pwszRootName;
+    // PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor;
 
-    // DFS_REFERRAL_TABLE ReferralTable;
+    DFS_REFERRAL_TABLE ReferralTable;
 
 } DFS_ROOT_CONTROL_BLOCK, *PDFS_ROOT_CONTROL_BLOCK;
 
 typedef struct _DFS_REFERRAL_CONTROL_BLOCK
 {
     pthread_rwlock_t RwLock;
+    pthread_rwlock_t *pRwLock;
 
     LONG RefCount;
 
-    PSTR ReferralName;
-    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor;
+    PWSTR pwszReferralName;
+    // PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor;
 
     LW_LIST_LINKS TargetList;
 
@@ -124,10 +151,6 @@ typedef struct _DFS_CREATE_CONTROL_BLOCK
 
 
 } DFS_CREATE_CONTROL_BLOCK, *PDFS_CREATE_CONTROL_BLOCK;
-
-
-
-
 
 
 

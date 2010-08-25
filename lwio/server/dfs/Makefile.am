@@ -18,7 +18,9 @@ libdfs_sys_la_SOURCES = \
     globals.c   \
     irpctx.c    \
     memory.c    \
-    rootcb.c
+    refcb.c     \
+    rootcb.c    \
+    roottable.c
 
 libdfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

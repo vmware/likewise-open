@@ -210,7 +210,7 @@ DfsAllocateRootCB(
 
 VOID
 DfsReleaseRootCB(
-    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
     );
 
 PDFS_ROOT_CONTROL_BLOCK
@@ -220,12 +220,63 @@ DfsReferenceRootCB(
 
 
 //
+// From refcb.c
+//
+
+NTSTATUS
+DfsAllocateReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB
+    );
+
+VOID
+DfsReleaseReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB
+    );
+
+PDFS_REFERRAL_CONTROL_BLOCK
+DfsReferenceReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
+    );
+
+
+//
 // From config.c
 //
 
 NTSTATUS
-DfsConfigRegistryInit(
+DfsConfigReadStandaloneRoots(
     VOID
+    );
+
+//
+// From roottable.c
+//
+
+NTSTATUS
+DfsRootCtrlBlockTableInitialize(
+    PDFS_ROOT_CONTROL_BLOCK_TABLE pRootCtrlBlockTable
+    );
+
+NTSTATUS
+DfsRootCtrlBlockTableAdd(
+    PDFS_ROOT_CONTROL_BLOCK_TABLE pRootTable,
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    );
+
+
+//
+// From reftable.c
+//
+
+NTSTATUS
+DfsReferralTableInitialize(
+    PDFS_REFERRAL_TABLE pReferralTable
+    );
+
+NTSTATUS
+DfsReferralTableAdd_inlock(
+    PDFS_REFERRAL_TABLE pReferralTable,
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
     );
 
 

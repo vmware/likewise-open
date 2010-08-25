@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        ccb.c
+ *        refcb.c
  *
  * Abstract:
  *
  *        Likewise Distributed File System Driver (DFS)
  *
- *        Create Control Block routineus
+ *        Referral Control Block routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -50,35 +50,45 @@
 /***********************************************************************
  **********************************************************************/
 
+static
+VOID
+DfsFreeReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
+    );
+
 NTSTATUS
-DfsAllocateCCB(
-    PDFS_CREATE_CONTROL_BLOCK *ppCcb
+DfsAllocateReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PDFS_CREATE_CONTROL_BLOCK pCcb = NULL;
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB = NULL;
 
-    *ppCcb = NULL;
+    *ppReferralCB = NULL;
 
     ntStatus = DfsAllocateMemory(
-                   (PVOID*)&pCcb,
-                   sizeof(DFS_CREATE_CONTROL_BLOCK));
+                   (PVOID*)&pReferralCB,
+                   sizeof(DFS_REFERRAL_CONTROL_BLOCK));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pthread_mutex_init(&pCcb->Mutex, NULL);
+    pthread_rwlock_init(&pReferralCB->RwLock, NULL);
+    pReferralCB->pRwLock = &pReferralCB->RwLock;
 
-    pCcb->RefCount = 1;
+    pReferralCB->RefCount = 1;
 
-    *ppCcb = pCcb;
+    LwListInit(&pReferralCB->TargetList);
 
-    InterlockedIncrement(&gDfsObjectCounter.CcbCount);
-
-    ntStatus = STATUS_SUCCESS;
+    *ppReferralCB = pReferralCB;
 
 cleanup:
     return ntStatus;
 
 error:
+    if (pReferralCB)
+    {
+        DfsFreeReferralCB(pReferralCB);
+    }
+
     goto cleanup;
 }
 
@@ -86,18 +96,24 @@ error:
 /***********************************************************************
  **********************************************************************/
 
+static
 VOID
-DfsFreeCCB(
-    PDFS_CREATE_CONTROL_BLOCK pCcb
+DfsFreeReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
     )
 {
-    LwRtlCStringFree(&pCcb->pszFilename);
+    if (pReferralCB->pRwLock)
+    {
+        pthread_rwlock_destroy(&pReferralCB->RwLock);
+        pReferralCB->pRwLock = NULL;
+    }
 
-    pthread_mutex_destroy(&pCcb->Mutex);
+    if (pReferralCB->pwszReferralName)
+    {
+        LwRtlWC16StringFree(&pReferralCB->pwszReferralName);
+    }
 
-    DfsFreeMemory((PVOID*)&pCcb);
-
-    InterlockedDecrement(&gDfsObjectCounter.CcbCount);
+    DfsFreeMemory((PVOID*)&pReferralCB);
 
     return;
 }
@@ -106,14 +122,18 @@ DfsFreeCCB(
  **********************************************************************/
 
 VOID
-DfsReleaseCCB(
-    PDFS_CREATE_CONTROL_BLOCK pCcb
+DfsReleaseReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB
     )
 {
-    if (InterlockedDecrement(&pCcb->RefCount) == 0)
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB = *ppReferralCB;
+
+    if (InterlockedDecrement(&pReferralCB->RefCount) == 0)
     {
-        DfsFreeCCB(pCcb);
+        DfsFreeReferralCB(pReferralCB);
     }
+
+    *ppReferralCB = NULL;
 
     return;
 }
@@ -121,87 +141,14 @@ DfsReleaseCCB(
 /***********************************************************************
  **********************************************************************/
 
-PDFS_CREATE_CONTROL_BLOCK
-DfsReferenceCCB(
-    PDFS_CREATE_CONTROL_BLOCK pCcb
+PDFS_REFERRAL_CONTROL_BLOCK
+DfsReferenceReferralCB(
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
     )
 {
-    InterlockedIncrement(&pCcb->RefCount);
+    InterlockedIncrement(&pReferralCB->RefCount);
 
-    return pCcb;
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-static NTSTATUS
-DfsAcquireCCBInternal(
-    IO_FILE_HANDLE FileHandle,
-    PDFS_CREATE_CONTROL_BLOCK * ppCcb,
-    BOOLEAN bIncRef
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PDFS_CREATE_CONTROL_BLOCK pCcb = (PDFS_CREATE_CONTROL_BLOCK)IoFileGetContext(FileHandle);
-
-    // DFS_BAIL_ON_INVALID_CCB(pCcb, ntStatus);
-
-    if (bIncRef)
-    {
-        InterlockedIncrement(&pCcb->RefCount);
-    }
-
-    *ppCcb = pCcb;
-
-    return ntStatus;
-}
-
-/***********************************************************************
- **********************************************************************/
-
-NTSTATUS
-DfsAcquireCCB(
-    IO_FILE_HANDLE FileHandle,
-    PDFS_CREATE_CONTROL_BLOCK * ppCcb
-    )
-{
-    return DfsAcquireCCBInternal(FileHandle, ppCcb, TRUE);
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-NTSTATUS
-DfsAcquireCCBClose(
-    IO_FILE_HANDLE FileHandle,
-    PDFS_CREATE_CONTROL_BLOCK * ppCcb
-    )
-{
-    return DfsAcquireCCBInternal(FileHandle, ppCcb, FALSE);
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-NTSTATUS
-DfsStoreCCB(
-    IO_FILE_HANDLE FileHandle,
-    PDFS_CREATE_CONTROL_BLOCK pCcb
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    ntStatus = IoFileSetContext(FileHandle, (PVOID)pCcb);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
+    return pReferralCB;
 }
 
 
