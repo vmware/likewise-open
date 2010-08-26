@@ -207,48 +207,16 @@ RdrSetInformation(
     );
 
 NTSTATUS
-RdrWriteFileEx(
-    HANDLE hFile,
-    DWORD  dwNumBytesToWrite,
-    PVOID  pBuffer,
-    PDWORD pdwNumBytesWritten
-    );
-
-NTSTATUS
-RdrCreateFileEx(
-    PIO_CREDS pSecurityToken,
-    PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcessInfo,
-    PCWSTR pwszPath,
-    ACCESS_MASK desiredAccess,
-    LONG64 llAllocationSize,
-    FILE_ATTRIBUTES fileAttributes,
-    FILE_SHARE_FLAGS shareAccess,
-    FILE_CREATE_DISPOSITION createDisposition,
-    FILE_CREATE_OPTIONS createOptions,
-    PHANDLE phFile
-    );
-
-NTSTATUS
 RdrGetSessionKey(
     HANDLE hFile,
     PDWORD pdwSessionKeyLength,
     PBYTE* ppSessionKey
     );
 
-
 NTSTATUS
 RdrCommonFsctl(
     PRDR_OP_CONTEXT pIrpContext,
     PIRP pIrp
-    );
-
-NTSTATUS
-RdrCallQueryInformationFile(
-    HANDLE hFile,
-    PVOID fileInformation,
-    ULONG ulLength,
-    FILE_INFORMATION_CLASS fileInformationClass,
-    PULONG pulInfoLengthUsed
     );
 
 NTSTATUS
