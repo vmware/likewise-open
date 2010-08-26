@@ -151,16 +151,6 @@ LocalCfgGetSkeletonDirs(
     PSTR* ppszSkelDirs
     );
 
-DWORD
-LocalCfgGetMinUid(
-    uid_t* pMinUid
-    );
-
-DWORD
-LocalCfgGetMinGid(
-    gid_t* pMinGid
-    );
-
 VOID
 LocalCfgFree(
     PLOCAL_CONFIG pConfig
