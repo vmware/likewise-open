@@ -252,43 +252,6 @@ RdrCallQueryInformationFile(
     );
 
 NTSTATUS
-RdrTransactFindFirst2(
-    PRDR_TREE pTree,
-    USHORT usSearchAttrs,
-    USHORT usSearchCount,
-    USHORT usFlags,
-    SMB_INFO_LEVEL infoLevel,
-    ULONG ulSearchStorageType,
-    PCWSTR pwszSearchPattern,
-    PUSHORT pusSearchId,
-    PUSHORT pusSearchCount,
-    PUSHORT pusEndOfSearch,
-    PUSHORT pusEaErrorOffset,
-    PUSHORT pusLastNameOffset,
-    PVOID pResult,
-    ULONG ulResultLength,
-    PULONG pulResultLengthUsed
-    );
-
-NTSTATUS
-RdrTransactFindNext2(
-    PRDR_TREE pTree,
-    USHORT usSearchId,
-    USHORT usSearchCount,
-    SMB_INFO_LEVEL infoLevel,
-    ULONG ulResumeKey,
-    USHORT usFlags,
-    PWSTR pwszFileName,
-    PUSHORT pusSearchCount,
-    PUSHORT pusEndOfSearch,
-    PUSHORT pusEaErrorOffset,
-    PUSHORT pusLastNameOffset,
-    PVOID pResult,
-    ULONG ulResultLength,
-    PULONG pulResultLengthUsed
-    );
-
-NTSTATUS
 RdrTransactSetInfoFile(
     PRDR_TREE pTree,
     USHORT usFid,
