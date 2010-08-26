@@ -833,11 +833,11 @@ SrvCreditorAcquireGlobalCredits(
         gSrvElements.ulGlobalCreditLimit = 0;
     }
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
-
     *pusCreditsGranted = usCreditsGranted;
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
 
     return ntStatus;
 
