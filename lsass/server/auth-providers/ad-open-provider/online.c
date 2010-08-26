@@ -1973,8 +1973,8 @@ AD_FilterExpiredMemberships(
 
         if (pMembership->bIsInPac ||
             pMembership->bIsDomainPrimaryGroup ||
-            ((pMembership->version.tLastUpdated > 0) &&
-             (pMembership->version.tLastUpdated + dwCacheEntryExpirySeconds <= now)))
+            (pMembership->version.tLastUpdated > 0 &&
+             pMembership->version.tLastUpdated + dwCacheEntryExpirySeconds > now))
         {
             // Keep
             if (sOutputCount != sIndex)
