@@ -220,15 +220,6 @@ RdrCommonFsctl(
     );
 
 NTSTATUS
-RdrTransactSetInfoFile(
-    PRDR_TREE pTree,
-    USHORT usFid,
-    SMB_INFO_LEVEL infoLevel,
-    PVOID pInfo,
-    ULONG ulInfoLength
-    );
-
-NTSTATUS
 RdrTransactRenameFile(
     PRDR_TREE pTree,
     USHORT usSearchAttributes,

@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        driver.c
+ *        setinfo.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (RDR)
+ *        Likewise Client Redirector (RDR)
  *
- *        Driver Entry Function
+ *        Set information
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -51,24 +51,71 @@
 
 static
 NTSTATUS
-RdrCommonSetInformation(
-    PRDR_OP_CONTEXT pIrpContext,
-    PIRP pIrp
+RdrTransceiveSetInfo(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+static
+BOOLEAN
+RdrSetInfoComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
     );
 
 static
 NTSTATUS
-RdrCommonRename(
-    PRDR_OP_CONTEXT pIrpContext,
-    PIRP pIrp
+RdrMarshalFileInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
     );
 
 static
 NTSTATUS
-RdrGetFilePath(
-    PCWSTR pwszFullPath,
-    PWSTR* ppwszFilePath
+RdrMarshalFileEndOfFileInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
     );
+
+static
+NTSTATUS
+RdrMarshalFileDispositionInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+static
+NTSTATUS
+RdrMarshalFileRenameInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+static
+VOID
+RdrCancelSetInfo(
+    PIRP pIrp,
+    PVOID pParam
+    )
+{
+}
 
 NTSTATUS
 RdrSetInformation(
@@ -76,27 +123,8 @@ RdrSetInformation(
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    ntStatus = RdrCommonSetInformation(
-        NULL,
-        pIrp
-        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-RdrCommonSetInformation(
-    PRDR_OP_CONTEXT pIrpContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    PRDR_OP_CONTEXT pContext = NULL;
     SMB_INFO_LEVEL infoLevel = 0;
     PRDR_CCB pFile = NULL;
 
@@ -106,151 +134,416 @@ RdrCommonSetInformation(
         infoLevel = SMB_SET_FILE_END_OF_FILE_INFO;
         break;
     case FileRenameInformation:
-        /* Handle this as a special case */
-        ntStatus = RdrCommonRename(
-            pIrpContext,
-            pIrp);
-        goto error;
+        /* FIXME: detect non-in-place renames and
+           use alternate strategy */
+        infoLevel = SMB_SET_FILE_RENAME_INFO;
         break;
     default:
-        ntStatus = STATUS_NOT_IMPLEMENTED;
-        BAIL_ON_NT_STATUS(ntStatus);
+        status = STATUS_NOT_IMPLEMENTED;
+        BAIL_ON_NT_STATUS(status);
         break;
     }
 
     pFile = IoFileGetContext(pIrp->FileHandle);
 
-    ntStatus = RdrTransactSetInfoFile(
-        pFile->pTree,
-        pFile->fid,
+    IoIrpMarkPending(pIrp, RdrCancelSetInfo, pContext);
+
+    status = RdrCreateContext(pIrp, &pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Continue = RdrSetInfoComplete;
+
+    status = RdrTransceiveSetInfo(
+        pContext,
+        pFile,
         infoLevel,
         pIrp->Args.QuerySetInformation.FileInformation,
         pIrp->Args.QuerySetInformation.Length);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
 error:
 
-    pIrp->IoStatusBlock.Status = ntStatus;
+    if (status != STATUS_PENDING)
+    {
+        pIrp->IoStatusBlock.Status = status;
+        IoIrpComplete(pIrp);
+        RdrFreeContext(pContext);
+        status = STATUS_PENDING;
+    }
 
-    return ntStatus;
+    return status;
 }
 
 static
 NTSTATUS
-RdrCommonRename(
-    PRDR_OP_CONTEXT pIrpContext,
-    PIRP pIrp
+RdrTransceiveSetInfo(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PRDR_CCB pFile = NULL;
-    PFILE_RENAME_INFORMATION pRenameInfo = NULL;
-    PWSTR pwszNewFilePath = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    TRANSACTION_REQUEST_HEADER *pHeader = NULL;
+    USHORT usSetup = SMB_SUB_COMMAND_TRANS2_SET_FILE_INFORMATION;
+    SMB_SET_FILE_INFO_HEADER setHeader = {0};
+    PBYTE pRequestParameters = NULL;
+    PBYTE pRequestData = NULL;
+    USHORT usRequestDataCount = 0;
+    PBYTE pCursor = NULL;
+    ULONG ulRemainingSpace = 0;
+    PBYTE pByteCount = NULL;
 
-    pFile = IoFileGetContext(pIrp->FileHandle);
+    status = RdrAllocateContextPacket(pContext, 1024*64);
+    BAIL_ON_NT_STATUS(status);
 
-    pRenameInfo = pIrp->Args.QuerySetInformation.FileInformation;
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_TRANSACTION2,
+        0,
+        0,
+        pFile->pTree->tid,
+        gRdrRuntime.SysPid,
+        pFile->pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
 
-/* FIXME */
-#if 0
-    if (pFile->fid)
-    {
-        ntStatus = RdrTransactCloseFile(
-            pFile->pTree,
-            pFile->fid
-            );
-        BAIL_ON_NT_STATUS(ntStatus);
+    pContext->Packet.pData = pContext->Packet.pParams + sizeof(TRANSACTION_REQUEST_HEADER);
 
-        pFile->fid = 0;
-    }
-#endif
+    pCursor = pContext->Packet.pParams;
+    ulRemainingSpace = pContext->Packet.bufferLen - (pCursor - pContext->Packet.pRawBuffer);
 
-    ntStatus = RdrGetFilePath(
-        pRenameInfo->FileName,
-        &pwszNewFilePath);
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = WireMarshalTrans2RequestSetup(
+        pContext->Packet.pSMBHeader,
+        &pCursor,
+        &ulRemainingSpace,
+        &usSetup,
+        1,
+        &pHeader,
+        &pByteCount);
+    BAIL_ON_NT_STATUS(status);
 
-    ntStatus = RdrTransactRenameFile(
-        pFile->pTree,
-        0x7f, /* FIXME: magic constant */
-        pFile->pwszPath,
-        pwszNewFilePath);
+    pRequestParameters = pCursor;
 
-    RTL_FREE(&pFile->pwszPath);
-    pFile->pwszPath = pwszNewFilePath;
-    pwszNewFilePath = NULL;
+    setHeader.usFid = pFile->fid;
+    setHeader.infoLevel = infoLevel;
 
-error:
+    status = MarshalData(&pCursor, &ulRemainingSpace, (PBYTE) &setHeader, sizeof(setHeader));
+    BAIL_ON_NT_STATUS(status);
 
-    RTL_FREE(&pwszNewFilePath);
+    pRequestData = pCursor;
 
-    return ntStatus;
-}
+    status = RdrMarshalFileInfo(
+        pContext->Packet.pSMBHeader,
+        &pCursor,
+        &ulRemainingSpace,
+        infoLevel,
+        pInfo,
+        ulInfoLength);
+    BAIL_ON_NT_STATUS(status);
 
-static
-NTSTATUS
-RdrGetFilePath(
-    PCWSTR pwszFullPath,
-    PWSTR* ppwszFilePath
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PCWSTR pwszIndex = NULL;
-    USHORT usNumSlashes = 0;
-    PWSTR pwszFilePath = NULL;
-    size_t i = 0;
+    usRequestDataCount = pCursor - pRequestData;
 
-    for (pwszIndex = pwszFullPath; *pwszIndex; pwszIndex++)
-    {
-        if (*pwszIndex == '/')
-        {
-            usNumSlashes++;
-        }
+    pHeader->totalParameterCount = SMB_HTOL16(sizeof(setHeader));
+    pHeader->totalDataCount      = SMB_HTOL16(usRequestDataCount);
+    pHeader->maxParameterCount   = SMB_HTOL16(sizeof(setHeader)); /* FIXME: really? */
+    pHeader->maxDataCount        = SMB_HTOL16(0);
+    pHeader->maxSetupCount       = SMB_HTOL16(0);
+    pHeader->flags               = SMB_HTOL16(0);
+    pHeader->timeout             = SMB_HTOL16(0);
+    pHeader->parameterCount      = SMB_HTOL16(sizeof(setHeader));
+    pHeader->parameterOffset     = SMB_HTOL16(pRequestParameters - (PBYTE) pContext->Packet.pSMBHeader);
+    pHeader->dataCount           = SMB_HTOL16(usRequestDataCount);
+    pHeader->dataOffset          = SMB_HTOL16(pRequestData - (PBYTE) pContext->Packet.pSMBHeader);
+    pHeader->setupCount          = SMB_HTOL8(1);
 
-        if (usNumSlashes == 3)
-        {
-            break;
-        }
-    }
+    /* Update byte count */
+    status = MarshalUshort(&pByteCount, NULL, (pCursor - pByteCount) - 2);
 
-    if (usNumSlashes != 3)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    /* Update used length */
+    pContext->Packet.bufferUsed += (pCursor - pContext->Packet.pParams);
 
-    ntStatus = RTL_ALLOCATE(
-        &pwszFilePath,
-        WCHAR,
-        (LwRtlWC16StringNumChars(pwszIndex) + 1) * sizeof(WCHAR));
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
 
-    for (i = 0; pwszIndex[i]; i++)
-    {
-        switch (pwszIndex[i])
-        {
-        case '/':
-            pwszFilePath[i] = '\\';
-            break;
-        default:
-            pwszFilePath[i] = pwszIndex[i];
-            break;
-        }
-    }
-
-    pwszFilePath[i] = '\0';
-
-    *ppwszFilePath = pwszFilePath;
+    status = RdrSocketTransceive(pFile->pTree->pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
 
-    return ntStatus;
+    return status;
 
 error:
 
-    *ppwszFilePath = NULL;
+    goto cleanup;
+}
 
-    RTL_FREE(&pwszFilePath);
+static
+BOOLEAN
+RdrSetInfoComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    PSMB_PACKET pResponsePacket = pParam;
+
+    BAIL_ON_NT_STATUS(status);
+
+    status = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    RdrFreePacket(pResponsePacket);
+
+    if (status != STATUS_PENDING)
+    {
+        pContext->pIrp->IoStatusBlock.Status = status;
+        IoIrpComplete(pContext->pIrp);
+        RdrFreeContext(pContext);
+    }
+
+    return FALSE;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrMarshalFileInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    switch (infoLevel)
+    {
+    case SMB_SET_FILE_END_OF_FILE_INFO:
+        status = RdrMarshalFileEndOfFileInfo(
+            pSmbHeader,
+            ppCursor,
+            pulRemainingSpace,
+            pInfo,
+            ulInfoLength);
+        BAIL_ON_NT_STATUS(status);
+        break;
+    case SMB_SET_FILE_DISPOSITION_INFO:
+        status = RdrMarshalFileDispositionInfo(
+            pSmbHeader,
+            ppCursor,
+            pulRemainingSpace,
+            pInfo,
+            ulInfoLength);
+        BAIL_ON_NT_STATUS(status);
+        break;
+    case SMB_SET_FILE_RENAME_INFO:
+        status = RdrMarshalFileRenameInfo(
+            pSmbHeader,
+            ppCursor,
+            pulRemainingSpace,
+            pInfo,
+            ulInfoLength);
+        BAIL_ON_NT_STATUS(status);
+        break;
+    default:
+        status = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(status);
+        break;
+    }
+
+error:
+
+    return status;
+}
+
+static
+NTSTATUS
+RdrMarshalFileEndOfFileInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PFILE_END_OF_FILE_INFORMATION pEndInfo = pInfo;
+    PBYTE pCursor = *ppCursor;
+    ULONG ulRemainingSpace = *pulRemainingSpace;
+    PTRANS2_FILE_END_OF_FILE_INFORMATION pEndInfoPacked = (PTRANS2_FILE_END_OF_FILE_INFORMATION) *ppCursor;
+
+    if (ulInfoLength < sizeof(*pEndInfo))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    /* Advance cursor past info structure */
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pEndInfoPacked));
+    BAIL_ON_NT_STATUS(status);
+
+    pEndInfoPacked->EndOfFile = SMB_HTOL64(pEndInfo->EndOfFile);
+
+    *ppCursor = pCursor;
+    *pulRemainingSpace = ulRemainingSpace;
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrMarshalFileDispositionInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PBYTE pCursor = *ppCursor;
+    ULONG ulRemainingSpace = *pulRemainingSpace;
+    PFILE_DISPOSITION_INFORMATION pDispInfo = pInfo;
+    PTRANS2_FILE_DISPOSITION_INFORMATION pDispInfoPacked = (PTRANS2_FILE_DISPOSITION_INFORMATION) pCursor;
+
+    if (ulInfoLength < sizeof(*pDispInfo))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    /* Advance cursor past info structure */
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pDispInfoPacked));
+    BAIL_ON_NT_STATUS(status);
+
+    pDispInfoPacked->bFileIsDeleted = pDispInfo->DeleteFile;
+
+    *ppCursor = pCursor;
+    *pulRemainingSpace = ulRemainingSpace;
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrBareFilename(
+    PWSTR pwszFilename,
+    ULONG ulLength,
+    PWSTR* ppwszBare,
+    PULONG pulBareLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG ulIndex = 0;
+    ULONG ulStartIndex = 0;
+
+    for (ulIndex = 0; ulIndex < ulLength; ulIndex++)
+    {
+        if (pwszFilename[ulIndex] == (WCHAR) '/')
+        {
+            ulStartIndex = ulIndex+1;
+        }
+    }
+
+    *ppwszBare = pwszFilename + ulStartIndex;
+    *pulBareLength = ulLength - ulStartIndex;
+
+    return status;
+}
+
+static
+NTSTATUS
+RdrMarshalFileRenameInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PFILE_RENAME_INFORMATION pRenameInfo = pInfo;
+    PBYTE pCursor = *ppCursor;
+    ULONG ulRemainingSpace = *pulRemainingSpace;
+    PSMB_FILE_RENAME_INFO_HEADER pPacked = (PSMB_FILE_RENAME_INFO_HEADER) *ppCursor;
+    PRDR_CCB pRoot = NULL;
+    PWSTR pwszFileName = NULL;
+    PBYTE pFileName = NULL;
+    ULONG ulFileNameLength = 0;
+
+    if (ulInfoLength < sizeof(*pRenameInfo) - sizeof(WCHAR) || ulInfoLength < sizeof(*pRenameInfo) - sizeof(WCHAR) + pRenameInfo->FileNameLength)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    if (pRenameInfo->RootDirectory)
+    {
+        pRoot = IoFileGetContext(pRenameInfo->RootDirectory);
+    }
+
+    /* Advance cursor past info structure */
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pPacked));
+    BAIL_ON_NT_STATUS(status);
+
+    pPacked->ucReplaceIfExists = pRenameInfo->ReplaceIfExists;
+    memset(pPacked->ucReserved, 0, sizeof(pPacked->ucReserved));
+    pPacked->ulRootDir = pRoot ? pRoot->fid : 0;
+
+    status = RdrBareFilename(
+        pRenameInfo->FileName,
+        pRenameInfo->FileNameLength,
+        &pwszFileName,
+        &ulFileNameLength);
+    BAIL_ON_NT_STATUS(status);
+
+    pPacked->ulFileNameLength = ulFileNameLength * 2;
+
+    status = Align((PBYTE) pSmbHeader, &pCursor, &ulRemainingSpace, sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    pFileName = pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, LwRtlWC16StringNumChars(pwszFileName) * sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    SMB_HTOLWSTR(
+        pFileName,
+        pwszFileName,
+        LwRtlWC16StringNumChars(pwszFileName));
+
+    *ppCursor = pCursor;
+    *pulRemainingSpace = ulRemainingSpace;
+
+cleanup:
+
+    return status;
+
+error:
 
     goto cleanup;
 }
