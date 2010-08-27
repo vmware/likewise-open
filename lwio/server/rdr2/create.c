@@ -184,6 +184,9 @@ RdrCreateTreeConnected(
     pFile->pMutex = &pFile->mutex;
     pFile->pTree = pTree;
 
+    status = LwRtlWC16StringDuplicate(&pFile->pwszPath, pContext->State.Create.pwszFilename);
+    BAIL_ON_NT_STATUS(status);
+
     pContext->Continue = RdrFinishCreate;
 
     pContext->State.Create.pFile = pFile;
