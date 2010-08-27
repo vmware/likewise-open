@@ -281,9 +281,9 @@ RdrFinishWriteFile(
             ulWriteLength = UINT16_MAX;
         }
 
-        if (ulWriteLength > ulLength)
+        if (ulWriteLength > ulLength - pContext->State.Write.llTotalBytesWritten)
         {
-            ulWriteLength = ulLength;
+            ulWriteLength = ulLength - pContext->State.Write.llTotalBytesWritten;
         }
 
         /* If file is a named pipe in message mode and this is the
