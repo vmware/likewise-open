@@ -219,32 +219,6 @@ RdrCommonFsctl(
     PIRP pIrp
     );
 
-NTSTATUS
-RdrTransactRenameFile(
-    PRDR_TREE pTree,
-    USHORT usSearchAttributes,
-    PCWSTR pwszSourceFile,
-    PCWSTR pwszDestFile
-    );
-
-NTSTATUS
-RdrTransactNTRenameFile(
-    PRDR_TREE pTree,
-    USHORT usSearchAttributes,
-    USHORT usInfoLevel,
-    ULONG ulClusterCount,
-    PCWSTR pwszSourceFile,
-    PCWSTR pwszDestFile
-    );
-
-NTSTATUS
-RdrTransactTrans2RenameFile(
-    PRDR_TREE pTree,
-    USHORT usFid,
-    USHORT usFlags,
-    PCWSTR pwszPath
-    );
-
 void
 RdrReleaseFile(
     PRDR_CCB pFile

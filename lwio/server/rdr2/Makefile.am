@@ -20,7 +20,6 @@ librdr2_sys_la_SOURCES =  \
     connect.c             \
     getsesskey.c          \
     globals.c             \
-    renamefile.c          \
     session.c             \
     socket.c              \
     tree.c                \
