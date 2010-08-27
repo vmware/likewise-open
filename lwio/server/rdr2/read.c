@@ -280,9 +280,9 @@ RdrFinishReadFile(
             ulReadLength = UINT16_MAX;
         }
 
-        if (ulReadLength > ulLength)
+        if (ulReadLength > ulLength - pContext->State.Read.llTotalBytesRead)
         {
-            ulReadLength = ulLength;
+            ulReadLength = ulLength - pContext->State.Read.llTotalBytesRead;
         }
 
         pContext->State.Read.usReadLen = (USHORT) ulReadLength;
