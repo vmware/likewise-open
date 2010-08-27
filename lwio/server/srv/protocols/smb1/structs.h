@@ -1155,19 +1155,6 @@ typedef struct _SRV_CHECKDIR_STATE_SMB_V1
 
 } SRV_CHECKDIR_STATE_SMB_V1, *PSRV_CHECKDIR_STATE_SMB_V1;
 
-typedef struct _SRV_TREE_NOTIFY_STATE_REPOSITORY
-{
-    LONG              refCount;
-
-    pthread_mutex_t   mutex;
-    pthread_mutex_t*  pMutex;
-
-    USHORT            usTid;
-
-    PLWRTL_RB_TREE    pNotifyStateCollection;
-
-} SRV_TREE_NOTIFY_STATE_REPOSITORY, *PSRV_TREE_NOTIFY_STATE_REPOSITORY;
-
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V1)(HANDLE hState);
 
 typedef struct __SRV_MESSAGE_SMB_V1
