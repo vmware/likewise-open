@@ -681,6 +681,15 @@ SrvQueryFileOpenInformation(
         SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
     }
 
+    if (!(pOpenState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFileBlockIdleTimeout(pOpenState->pFile);
+    }
+    else
+    {
+        SrvFileUnblockIdleTimeout(pOpenState->pFile);
+    }
+
     if (!pOpenState->pFileStdInfo)
     {
         pOpenState->pFileStdInfo = &pOpenState->fileStdInfo;

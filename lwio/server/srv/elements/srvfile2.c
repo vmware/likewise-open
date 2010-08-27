@@ -415,6 +415,31 @@ SrvFile2Release(
 }
 
 VOID
+SrvFile2BlockIdleTimeout(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    if (!pFile->bIsBlockingIdleTimeout)
+    {
+        SrvConnectionIncrementIdleDisableCount(pFile->pTree->pSession->pConnection);
+        pFile->bIsBlockingIdleTimeout = TRUE;
+    }
+}
+
+VOID
+SrvFile2UnblockIdleTimeout(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    if (pFile->bIsBlockingIdleTimeout)
+    {
+        SrvConnectionDecrementIdleDisableCount(pFile->pTree->pSession->pConnection);
+        pFile->bIsBlockingIdleTimeout = FALSE;
+    }
+}
+
+
+VOID
 SrvFile2Rundown(
     PLWIO_SRV_FILE_2 pFile
     )
@@ -456,6 +481,8 @@ SrvFile2Rundown(
         }
 
         SrvFile2ResetOplockState(pFile);
+
+        SrvFile2UnblockIdleTimeout(pFile);
     }
 }
 
@@ -499,6 +526,8 @@ SrvFile2Free(
         // to iomgr.
         IoCloseFile(pFile->hFile);
     }
+
+    SrvFile2UnblockIdleTimeout(pFile);
 
     if (pFile->pwszFilename)
     {

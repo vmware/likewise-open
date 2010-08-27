@@ -191,6 +191,24 @@ SrvTransportSocketGetFileDescriptor(
     );
 
 ///
+/// Set the socket timeout option.
+///
+/// This will enable/disable timeout on the socket.  If disabled,
+/// the time remaining is ignored.  If the timeout is triggered,
+/// a disconnect will happen (with STATUS_IO_TIMEOUT) resulting
+/// in #PFN_SRV_TRANSPORT_CONNECTION_DONE.
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks held that can also be held by a callback.
+///
+VOID
+SrvTransportSocketSetTimeout(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG SecondsRemaining
+    );
+
+///
 /// Set the socket buffer to use to receive data.
 ///
 /// This will set the buffer into which to receive data.  If a NULL

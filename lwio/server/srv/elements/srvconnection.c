@@ -295,6 +295,10 @@ SrvConnectionCreate(
     ntStatus = SrvCreditorCreate(&pConnection->pCreditor);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwErrnoToNtStatus(pthread_mutex_init(&pConnection->mutexIdleTimeoutDisable, NULL));
+    BAIL_ON_NT_STATUS(ntStatus);
+    pConnection->pMutexIdleTimeoutDisable = &pConnection->mutexIdleTimeoutDisable;
+
     ntStatus = SrvConnectionCreateSessionCollection(
                     &pConnection->pSessionCollection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -590,6 +594,73 @@ SrvConnectionIsSigningActive_inlock(
 {
     return (pConnection->serverProperties.bRequireSecuritySignatures &&
             pConnection->pSessionKey);
+}
+
+static
+VOID
+SrvConnectionResetIdleTimeout_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    BOOLEAN bEnable
+    )
+{
+    pConnection->pSocketDispatch->pfnResetTimeout(
+            pConnection->pSocket,
+            bEnable,
+            pConnection->ulIdleTimeoutSeconds);
+}
+
+VOID
+SrvConnectionResetIdleTimeout(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    if (pConnection->ulIdleTimeoutSeconds)
+    {
+        BOOLEAN bInLock = FALSE;
+        LWIO_LOCK_MUTEX(bInLock, pConnection->pMutexIdleTimeoutDisable);
+        LONG count = InterlockedRead(&pConnection->lIdleTimeoutDisableCount);
+        SrvConnectionResetIdleTimeout_inlock(pConnection, (count == 0) ? TRUE : FALSE);
+        LWIO_UNLOCK_MUTEX(bInLock, pConnection->pMutexIdleTimeoutDisable);
+    }
+}
+
+VOID
+SrvConnectionIncrementIdleDisableCount(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    if (pConnection->ulIdleTimeoutSeconds)
+    {
+        BOOLEAN bInLock = FALSE;
+        LWIO_LOCK_MUTEX(bInLock, pConnection->pMutexIdleTimeoutDisable);
+        LONG count = InterlockedIncrement(&pConnection->lIdleTimeoutDisableCount);
+        if (1 == count)
+        {
+            // Disable
+            SrvConnectionResetIdleTimeout_inlock(pConnection, FALSE);
+        }
+        LWIO_UNLOCK_MUTEX(bInLock, pConnection->pMutexIdleTimeoutDisable);
+    }
+}
+
+VOID
+SrvConnectionDecrementIdleDisableCount(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+
+    if (pConnection->ulIdleTimeoutSeconds)
+    {
+        BOOLEAN bInLock = FALSE;
+        LWIO_LOCK_MUTEX(bInLock, pConnection->pMutexIdleTimeoutDisable);
+        LONG count = InterlockedDecrement(&pConnection->lIdleTimeoutDisableCount);
+        if (0 == count)
+        {
+            // Enable
+            SrvConnectionResetIdleTimeout_inlock(pConnection, TRUE);
+        }
+        LWIO_UNLOCK_MUTEX(bInLock, pConnection->pMutexIdleTimeoutDisable);
+    }
 }
 
 NTSTATUS
@@ -1724,6 +1795,12 @@ SrvConnectionFree(
     {
         pthread_mutex_destroy(&pConnection->mutexSessionSetup);;
         pConnection->pMutexSessionSetup = NULL;
+    }
+
+    if (pConnection->pMutexIdleTimeoutDisable)
+    {
+        pthread_mutex_destroy(&pConnection->mutexIdleTimeoutDisable);
+        pConnection->pMutexIdleTimeoutDisable = NULL;
     }
 
     SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);

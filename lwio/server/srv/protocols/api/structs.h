@@ -81,6 +81,7 @@ typedef struct _SRV_PROTOCOL_CONFIG
     BOOLEAN bRequireSigning;
     ULONG ulZctReadThreshold;
     ULONG ulZctWriteThreshold;
+    ULONG ulIdleTimeout; // seconds
 } SRV_PROTOCOL_CONFIG, *PSRV_PROTOCOL_CONFIG;
 
 typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT

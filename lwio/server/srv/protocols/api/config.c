@@ -118,6 +118,24 @@ SrvProtocolReadConfig(
             MAXULONG,
             &config.ulZctWriteThreshold);
 
+    LwIoReadConfigDword(
+            pReg,
+            "IdleConnectionTimeout",
+            bUsePolicy,
+            0,
+            MAXULONG,
+            &config.ulIdleTimeout);
+
+    if ((config.ulIdleTimeout != 0) &&
+        (config.ulIdleTimeout < SRV_PROTOCOL_CONFIG_DEFAULT_IDLE_TIMEOUT_SECONDS_MIN))
+    {
+        LWIO_LOG_WARNING("Configured idle connection timeout of %u is "
+                         "too small, using %u instead",
+                         config.ulIdleTimeout,
+                         SRV_PROTOCOL_CONFIG_DEFAULT_IDLE_TIMEOUT_SECONDS_MIN);
+        config.ulIdleTimeout = SRV_PROTOCOL_CONFIG_DEFAULT_IDLE_TIMEOUT_SECONDS_MIN;
+    }
+
     ntStatus = SrvProtocolTransferConfigContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -151,6 +169,7 @@ SrvProtocolInitConfig(
     pConfig->bRequireSigning = SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
     pConfig->ulZctReadThreshold = SRV_PROTOCOL_CONFIG_DEFAULT_ZCT_READ_THRESHOLD;
     pConfig->ulZctWriteThreshold = SRV_PROTOCOL_CONFIG_DEFAULT_ZCT_WRITE_THRESHOLD;
+    pConfig->ulIdleTimeout = SRV_PROTOCOL_CONFIG_DEFAULT_IDLE_TIMEOUT_SECONDS;
 
     return ntStatus;
 }
@@ -266,3 +285,21 @@ SrvProtocolConfigGetZctWriteThreshold(
 
     return ulThreshold;
 }
+
+ULONG
+SrvProtocolConfigGetIdleTimeout(
+    VOID
+    )
+{
+    ULONG ulThreshold = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
+
+    ulThreshold = gProtocolApiGlobals.config.ulIdleTimeout;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return ulThreshold;
+}
+

@@ -409,6 +409,30 @@ SrvFileRelease(
 }
 
 VOID
+SrvFileBlockIdleTimeout(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    if (!pFile->bIsBlockingIdleTimeout)
+    {
+        SrvConnectionIncrementIdleDisableCount(pFile->pTree->pSession->pConnection);
+        pFile->bIsBlockingIdleTimeout = TRUE;
+    }
+}
+
+VOID
+SrvFileUnblockIdleTimeout(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    if (pFile->bIsBlockingIdleTimeout)
+    {
+        SrvConnectionDecrementIdleDisableCount(pFile->pTree->pSession->pConnection);
+        pFile->bIsBlockingIdleTimeout = FALSE;
+    }
+}
+
+VOID
 SrvFileRundown(
     PLWIO_SRV_FILE pFile
     )
@@ -455,6 +479,8 @@ SrvFileRundown(
         {
             pFile->pfnCancelAsyncOperationsFile(pFile);
         }
+
+        SrvFileUnblockIdleTimeout(pFile);
     }
 }
 
@@ -511,6 +537,8 @@ SrvFileFree(
         // to iomgr.
         IoCloseFile(pFile->hFile);
     }
+
+    SrvFileUnblockIdleTimeout(pFile);
 
     if (pFile->resource.ulResourceId)
     {

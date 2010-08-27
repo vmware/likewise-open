@@ -93,6 +93,11 @@ SrvProtocolConfigGetZctWriteThreshold(
     VOID
     );
 
+ULONG
+SrvProtocolConfigGetIdleTimeout(
+    VOID
+    );
+
 // negotiate.c
 
 NTSTATUS

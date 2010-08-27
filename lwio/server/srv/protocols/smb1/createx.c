@@ -401,6 +401,15 @@ SrvQueryFileInformation_inlock(
         SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
     }
 
+    if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFileBlockIdleTimeout(pCreateState->pFile);
+    }
+    else
+    {
+        SrvFileUnblockIdleTimeout(pCreateState->pFile);
+    }
+
     if (!pCreateState->pFileStdInfo)
     {
         pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
