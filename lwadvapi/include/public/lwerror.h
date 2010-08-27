@@ -409,6 +409,9 @@
 
 /*Range 40700 - 41200 is reserved for registry specific error*/
 
+#define _LW_ERROR_REG_BASE                                 40700
+#define _LW_ERROR_REG_MAX                                  41200
+
 /* Range 41201 - 41700 is reserved for service manager errors */
 #define LW_ERROR_INVALID_SERVICE_TRANSITION                41201
 #define LW_ERROR_SERVICE_DEPENDENCY_UNMET                  41202
