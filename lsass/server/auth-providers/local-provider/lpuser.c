@@ -372,7 +372,7 @@ LocalDirAddUser(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+    LOCAL_RDLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
 
     if (!pLoginInfo->pszDomain)
     {
@@ -634,7 +634,7 @@ LocalDirAddUser(
                     pwszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+    LOCAL_UNLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
 
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
     BAIL_ON_LSA_ERROR(dwError);
@@ -646,7 +646,7 @@ LocalDirAddUser(
     }
 
 cleanup:
-    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+    LOCAL_UNLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
 
     LsaUtilFreeSecurityObjectList(1, ppObjects);
 
@@ -1148,6 +1148,7 @@ LocalDirDeleteUser(
     DWORD dwNumEntries = 0;
     PSID pUserSid = NULL;
     PSID pDomainSid = NULL;
+    BOOLEAN bLocked = FALSE;
 
     PWSTR pwszAttributes[] = {
         wszAttrNameObjectClass,
@@ -1188,6 +1189,8 @@ LocalDirDeleteUser(
                     &pUserSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    LOCAL_RDLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+
     pDomainSid = gLPGlobals.pLocalDomainSID;
 
     if (LocalDirIsBuiltinAccount(
@@ -1204,6 +1207,8 @@ LocalDirDeleteUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    LOCAL_UNLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+
     if (pEntry)
     {
         DirectoryFreeEntries(pEntry, dwNumEntries);

@@ -379,14 +379,14 @@ LocalDirFindObjectsInternal(
 
             if (!pLoginInfo->pszDomain)
             {
-                LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+                LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.cfgMutex);
 
                 dwError = LwAllocateString(
                                 gLPGlobals.pszNetBIOSName,
                                 &pLoginInfo->pszDomain);
                 BAIL_ON_LSA_ERROR(dwError);
 
-                LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+                LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.cfgMutex);
             }
 
             dwError = LwAllocateStringPrintf(
@@ -493,7 +493,7 @@ LocalDirFindObjectsInternal(
     }
 
 cleanup:
-    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.cfgMutex);
     LW_SAFE_FREE_STRING(pszFilterType);
     LW_SAFE_FREE_STRING(pszFilter);
     LW_SAFE_FREE_MEMORY(pwszFilter);

@@ -198,14 +198,14 @@ LocalDirAddGroup(
 
     if (!pLoginInfo->pszDomain)
     {
-        LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+        LOCAL_LOCK_MUTEX(bLocked, &gLPGlobals.cfgMutex);
 
         dwError = LwAllocateString(
                         gLPGlobals.pszNetBIOSName,
                         &pLoginInfo->pszDomain);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+        LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.cfgMutex);
     }
 
     if (!LocalServicesDomain(pLoginInfo->pszDomain))
@@ -277,7 +277,7 @@ LocalDirAddGroup(
     }
 
 cleanup:
-    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.mutex);
+    LOCAL_UNLOCK_MUTEX(bLocked, &gLPGlobals.cfgMutex);
 
     if (pLoginInfo)
     {
@@ -681,9 +681,12 @@ LocalDirCheckLocalOrBuiltinSid(
     BOOLEAN bIsLocalOrBuiltinSid = FALSE;
     PSID pSid = NULL;
     PSID pBuiltinSid = NULL;
+    BOOLEAN bLocked = FALSE;
 
     dwError = LsaAllocateSidFromCString(&pSid, pszSid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    LOCAL_RDLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
 
     if (RtlIsPrefixSid(gLPGlobals.pLocalDomainSID, pSid))
     {
@@ -703,6 +706,8 @@ LocalDirCheckLocalOrBuiltinSid(
     bIsLocalOrBuiltinSid = FALSE;
 
 cleanup:
+    LOCAL_UNLOCK_RWLOCK(bLocked, &gLPGlobals.rwlock);
+
     LW_SAFE_FREE_MEMORY(pBuiltinSid);
     LW_SAFE_FREE_MEMORY(pSid);
 
