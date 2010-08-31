@@ -17,7 +17,7 @@
  * for more details.  You should have received a copy of the GNU General
  * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
- *
+ *x
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
  * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
@@ -96,7 +96,7 @@ typedef struct _RDR_SOCKET
 
     RDR_SOCKET_STATE volatile state;
     NTSTATUS volatile error;
-    int32_t volatile refCount;      /* Reference count */
+    LONG volatile refCount;      /* Reference count */
     BOOLEAN volatile bParentLink;   /* Whether socket is linked to by parent (global socket table) */
 
     int fd;
@@ -104,12 +104,12 @@ typedef struct _RDR_SOCKET
     PWSTR pwszCanonicalName;      /* Canconical hostname for DNS resolution/GSS principal construction */
     struct sockaddr address;    /* For hashing */
 
-    uint32_t maxBufferSize;     /* Max transmit buffer size */
-    uint32_t maxRawSize;        /* Maximum raw buffer size */
-    uint32_t sessionKey;        /* Socket session key from NEGOTIATE */
-    uint32_t capabilities;      /* Remote server capabilities from NEGOTIATE */
-    uint8_t *pSecurityBlob;     /* Security blob from NEGOTIATE */
-    uint32_t securityBlobLen;   /* Security blob len from NEGOTIATE */
+    ULONG maxBufferSize;     /* Max transmit buffer size */
+    ULONG maxRawSize;        /* Maximum raw buffer size */
+    ULONG sessionKey;        /* Socket session key from NEGOTIATE */
+    ULONG capabilities;      /* Remote server capabilities from NEGOTIATE */
+    PBYTE pSecurityBlob;     /* Security blob from NEGOTIATE */
+    ULONG securityBlobLen;   /* Security blob len from NEGOTIATE */
 
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
     SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
@@ -119,7 +119,7 @@ typedef struct _RDR_SOCKET
 
     BOOLEAN volatile bSessionSetupInProgress;
 
-    uint16_t maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
+    USHORT maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
 
     SMB_SECURITY_MODE securityMode; /* Share or User security */
     BOOLEAN  bPasswordsMustBeEncrypted;
@@ -158,7 +158,7 @@ typedef struct _RDR_SESSION
 
     RDR_SESSION_STATE volatile state;    /* Session state : valid, invalid, etc */
     NTSTATUS volatile error;
-    int32_t volatile refCount;           /* Count of state-change waiters and users */
+    LONG volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink;        /* Whether session is linked to by parent (socket) */
 
     RDR_SOCKET *pSocket;        /* Back pointer to parent socket */
@@ -197,11 +197,11 @@ typedef struct _RDR_TREE
 
     RDR_TREE_STATE volatile state;   /* Tree state: valid, invalid, etc. */
     NTSTATUS volatile error;
-    int32_t volatile refCount;           /* Count of state-change waiters and users */
+    LONG volatile refCount;           /* Count of state-change waiters and users */
     BOOLEAN volatile bParentLink; /* Whether tree is linked to by parent (session) */
 
     RDR_SESSION *pSession;      /* Back pointer to parent session */
-    uint16_t tid;
+    USHORT tid;
     PSTR pszPath;               /* For hashing */
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
@@ -224,7 +224,7 @@ typedef struct _RDR_CCB
     PRDR_TREE pTree;
 
     USHORT usFileType;
-    uint16_t  fid;
+    USHORT fid;
     uint64_t  llOffset;
 
     struct
