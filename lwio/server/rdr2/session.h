@@ -45,7 +45,7 @@ RdrSessionRelease(
     );
 
 NTSTATUS
-SMBSrvClientSessionCreate(
+RdrSessionFindOrCreate(
     IN OUT PRDR_SOCKET* ppSocket,
     PIO_CREDS pCreds,
     IN uid_t uid,

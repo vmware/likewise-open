@@ -96,7 +96,6 @@ typedef struct _RDR_SOCKET
 
     RDR_SOCKET_STATE volatile state;
     NTSTATUS volatile error;
-    pthread_cond_t event;           /* Signals waiting threads on state change */
     int32_t volatile refCount;      /* Reference count */
     BOOLEAN volatile bParentLink;   /* Whether socket is linked to by parent (global socket table) */
 
@@ -211,12 +210,7 @@ typedef struct _RDR_TREE
 
 typedef struct
 {
-    PRDR_SOCKET pSocket;
-    SMB_RESOURCE_STATE volatile state;   /* Response state: valid, invalid, etc. */
-    NTSTATUS volatile error;
-    pthread_cond_t event;
-    uint16_t mid;               /* Multiplex ID (MID) for the response */
-    PSMB_PACKET pPacket; /* Pointer to response packet; response owner must free */
+    USHORT mid;
     PRDR_OP_CONTEXT pContext;
 } RDR_RESPONSE, *PRDR_RESPONSE;
 

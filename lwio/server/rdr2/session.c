@@ -404,7 +404,7 @@ RdrSessionInvalidate(
 }
 
 NTSTATUS
-SMBSrvClientSessionCreate(
+RdrSessionFindOrCreate(
     IN OUT PRDR_SOCKET* ppSocket,
     IN PIO_CREDS pCreds,
     uid_t uid,

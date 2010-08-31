@@ -40,7 +40,7 @@ RdrTransceiveTreeConnect(
 
 static
 NTSTATUS
-SMBSrvClientTreeCreate(
+RdrTreeFindOrCreate(
     IN OUT PRDR_SESSION* ppSession,
     IN PCSTR pszPath,
     OUT PRDR_TREE* ppTree
@@ -154,7 +154,7 @@ RdrNegotiateComplete(
 
     BAIL_ON_NT_STATUS(status);
 
-    status = SMBSrvClientSessionCreate(
+    status = RdrSessionFindOrCreate(
         &pSocket,
         pContext->State.TreeConnect.pCreds,
         pContext->State.TreeConnect.Uid,
@@ -543,7 +543,7 @@ RdrNegotiateGssContextWorkItem(
             RdrSocketBeginSequence(pSocket);
         }
 
-        status = SMBSrvClientSocketAddSessionByUID(pSocket, pSession);
+        status = RdrSocketAddSessionByUID(pSocket, pSession);
         BAIL_ON_NT_STATUS(status);
 
         pSession->state = RDR_SESSION_STATE_READY;
@@ -602,7 +602,7 @@ RdrSessionSetupComplete(
 
     BAIL_ON_NT_STATUS(status);
 
-    status = SMBSrvClientTreeCreate(
+    status = RdrTreeFindOrCreate(
         &pSession,
         pContext->State.TreeConnect.pszSharename,
         &pTree);
@@ -673,7 +673,7 @@ error:
 
 static
 NTSTATUS
-SMBSrvClientTreeCreate(
+RdrTreeFindOrCreate(
     IN OUT PRDR_SESSION* ppSession,
     IN PCSTR pszPath,
     OUT PRDR_TREE* ppTree
@@ -1002,7 +1002,7 @@ RdrTreeConnect(
 
     pContext->State.TreeConnect.pCreds = pCreds;
 
-    status = SMBSrvClientSocketCreate(
+    status = RdrSocketFindOrCreate(
         pwszHostname,
         &pSocket);
     BAIL_ON_NT_STATUS(status);

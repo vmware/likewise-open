@@ -52,6 +52,20 @@
 #include "rdr.h"
 
 static
+NTSTATUS
+RdrSocketAcquireMid(
+    PRDR_SOCKET pSocket,
+    USHORT* pusMid
+    );
+
+static
+NTSTATUS
+RdrSocketAddResponse(
+    PRDR_SOCKET pSocket,
+    PRDR_RESPONSE pResponse
+    );
+
+static
 VOID
 RdrSocketInvalidate_InLock(
     PRDR_SOCKET pSocket,
@@ -63,6 +77,19 @@ NTSTATUS
 RdrSocketReceiveAndUnmarshall(
     IN PRDR_SOCKET pSocket,
     OUT PSMB_PACKET pPacket
+    );
+
+static
+NTSTATUS
+SMBResponseCreate(
+    uint16_t       wMid,
+    RDR_RESPONSE **ppResponse
+    );
+
+static
+VOID
+SMBResponseFree(
+    PRDR_RESPONSE pResponse
     );
 
 static
@@ -180,7 +207,6 @@ RdrSocketCreate(
 {
     NTSTATUS ntStatus = 0;
     RDR_SOCKET *pSocket = NULL;
-    BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
     PWSTR pwszCanonicalName = NULL;
     PWSTR pwszCursor = NULL;
@@ -197,11 +223,6 @@ RdrSocketCreate(
 
     pthread_mutex_init(&pSocket->mutex, NULL);
     bDestroyMutex = TRUE;
-
-    ntStatus = pthread_cond_init(&pSocket->event, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bDestroyCondition = TRUE;
 
     pSocket->refCount = 1;
     pSocket->fd = -1;
@@ -280,11 +301,6 @@ error:
 
         LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
         LWIO_SAFE_FREE_MEMORY(pSocket->pwszCanonicalName);
-
-        if (bDestroyCondition)
-        {
-            pthread_cond_destroy(&pSocket->event);
-        }
 
         if (bDestroyMutex)
         {
@@ -501,57 +517,6 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-RdrSocketSend(
-    IN PRDR_SOCKET pSocket,
-    IN PSMB_PACKET pPacket
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN  bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    /* Wait until packet queue is empty */
-    while (pSocket->pOutgoing || !LwListIsEmpty(&pSocket->PendingSend))
-    {
-        if (pSocket->error)
-        {
-            ntStatus = pSocket->error;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
-    }
-
-    ntStatus = RdrSocketPrepareSend(pSocket, pPacket);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LwRtlWakeTask(pSocket->pTask);
-
-   /* Wait until our packet is fully sent */
-    while (pSocket->pOutgoing == pPacket)
-    {
-        if (pSocket->error)
-        {
-            ntStatus = pSocket->error;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
-    }
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
 static
 NTSTATUS
 RdrSocketQueue(
@@ -750,9 +715,7 @@ RdrSocketTask(
         switch (err)
         {
         case 0:
-            /* Notify thread initiating connect that it can now move on to negotiate */
             pSocket->state = RDR_SOCKET_STATE_NEGOTIATING;
-            pthread_cond_broadcast(&pSocket->event);
             break;
         case EINPROGRESS:
             if (WakeMask & LW_TASK_EVENT_TIME)
@@ -830,7 +793,6 @@ RdrSocketTask(
         case STATUS_SUCCESS:
             pSocket->OutgoingWritten = 0;
             pSocket->pOutgoing = NULL;
-            pthread_cond_broadcast(&pSocket->event);
             *pWaitMask |= LW_TASK_EVENT_YIELD;
             break;
         case STATUS_PENDING:
@@ -929,9 +891,6 @@ RdrSocketFindAndSignalResponse(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pResponse->pPacket = pPacket;
-    pResponse->state = SMB_RESOURCE_STATE_VALID;
-
     if (pResponse->pContext)
     {
         ntStatus = SMBPacketDecodeHeader(
@@ -950,18 +909,9 @@ RdrSocketFindAndSignalResponse(
 
         if (!bKeep)
         {
-            ntStatus = SMBHashRemoveKey(
-                pSocket->pResponseHash,
-                &pResponse->mid);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            pResponse->pSocket = NULL;
+            SMBHashRemoveKey(pSocket->pResponseHash, &pResponse->mid);
             SMBResponseFree(pResponse);
         }
-    }
-    else
-    {
-        pthread_cond_signal(&pResponse->event);
     }
 
 cleanup:
@@ -1248,8 +1198,6 @@ RdrSocketInvalidate_InLock(
     RdrSocketUnlink(pSocket);
     LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
 
-    pthread_cond_broadcast(&pSocket->event);
-
     while ((pLink = LwListTraverse(&pSocket->PendingSend, pLink)))
     {
         pContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
@@ -1257,8 +1205,6 @@ RdrSocketInvalidate_InLock(
         if (RdrSocketFindResponseByMid(pSocket, pContext->usMid, &pResponse) == STATUS_SUCCESS)
         {
             SMBHashRemoveKey(pSocket->pResponseHash, &pContext->usMid);
-
-            pResponse->pSocket = NULL;
             SMBResponseFree(pResponse);
         }
     }
@@ -1287,10 +1233,7 @@ RdrSocketInvalidate_InLock(
     while ((pEntry = SMBHashNext(&iter)))
     {
         pResponse = pEntry->pValue;
-
         RdrContinueContext(pResponse->pContext, status, NULL);
-
-        pResponse->pSocket = NULL;
         SMBResponseFree(pResponse);
     }
     LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
@@ -1382,8 +1325,6 @@ RdrSocketFreeContents(
         LWIO_LOG_ERROR("Failed to close socket [fd:%d]", pSocket->fd);
     }
 
-    pthread_cond_destroy(&pSocket->event);
-
     LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
     LWIO_SAFE_FREE_MEMORY(pSocket->pwszCanonicalName);
     LWIO_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
@@ -1443,6 +1384,7 @@ RdrEaiToNtStatus(
     }
 }
 
+static
 NTSTATUS
 RdrSocketAcquireMid(
     PRDR_SOCKET pSocket,
@@ -1461,8 +1403,7 @@ RdrSocketAcquireMid(
     return ntStatus;
 }
 
-
-
+static
 NTSTATUS
 RdrSocketAddResponse(
     PRDR_SOCKET pSocket,
@@ -1482,8 +1423,6 @@ RdrSocketAddResponse(
                     pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pResponse->pSocket = pSocket;
-
     if (pResponse->pContext)
     {
         pResponse->pContext->usMid = pResponse->mid;
@@ -1499,119 +1438,6 @@ error:
 
     goto cleanup;
 }
-
-NTSTATUS
-RdrSocketRemoveResponse(
-    PRDR_SOCKET pSocket,
-    PRDR_RESPONSE pResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    /* @todo: if we allocate the MID outside of this function, we need to
-       check for a conflict here */
-    ntStatus = SMBHashRemoveKey(
-                    pSocket->pResponseHash,
-                    &pResponse->mid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pResponse->pSocket = NULL;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
-RdrSocketReceiveResponse(
-    IN PRDR_SOCKET pSocket,
-    IN BOOLEAN bVerifySignature,
-    IN DWORD dwExpectedSequence,
-    IN PRDR_RESPONSE pResponse,
-    OUT PSMB_PACKET* ppResponsePacket
-    )
-{
-    NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
-    struct timespec ts = {0, 0};
-    int err = 0;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    while (!(pResponse->state == SMB_RESOURCE_STATE_VALID))
-    {
-        ts.tv_sec = time(NULL) + 30;
-        ts.tv_nsec = 0;
-
-retry_wait:
-
-        /* @todo: always verify non-error state after acquiring mutex */
-        err = pthread_cond_timedwait(
-            &pResponse->event,
-            &pSocket->mutex,
-            &ts);
-        if (err == ETIMEDOUT)
-        {
-            if (time(NULL) < ts.tv_sec)
-            {
-                err = 0;
-                goto retry_wait;
-            }
-
-            ntStatus = STATUS_IO_TIMEOUT;
-            RdrSocketInvalidate(pSocket, ntStatus);
-            SMBResponseInvalidate_InLock(pResponse, ntStatus);
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = SMBHashRemoveKey(
-        pSocket->pResponseHash,
-        &pResponse->mid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pResponse->pSocket = NULL;
-
-    ntStatus = SMBPacketDecodeHeader(
-                    pResponse->pPacket,
-                    bVerifySignature && !pSocket->bIgnoreServerSignatures,
-                    dwExpectedSequence,
-                    pSocket->pSessionKey,
-                    pSocket->dwSessionKeyLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* Could be NULL on error */
-    *ppResponsePacket = pResponse->pPacket;
-    pResponse->pPacket = NULL;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppResponsePacket = NULL;
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-_FindOrCreateSocket(
-    IN PCWSTR pwszHostname,
-    OUT PRDR_SOCKET* ppSocket
-    );
 
 NTSTATUS
 RdrSocketInit(
@@ -1636,17 +1462,7 @@ error:
 }
 
 NTSTATUS
-SMBSrvClientSocketCreate(
-    IN PCWSTR pwszHostname,
-    OUT PRDR_SOCKET* ppSocket
-    )
-{
-    return _FindOrCreateSocket(pwszHostname, ppSocket);
-}
-
-static
-NTSTATUS
-_FindOrCreateSocket(
+RdrSocketFindOrCreate(
     IN PCWSTR pwszHostname,
     OUT PRDR_SOCKET* ppSocket
     )
@@ -1703,7 +1519,7 @@ error:
 }
 
 NTSTATUS
-SMBSrvClientSocketAddSessionByUID(
+RdrSocketAddSessionByUID(
     PRDR_SOCKET  pSocket,
     PRDR_SESSION pSession
     )
@@ -1742,6 +1558,7 @@ RdrSocketShutdown(
     return 0;
 }
 
+static
 NTSTATUS
 SMBResponseCreate(
     uint16_t       wMid,
@@ -1750,22 +1567,13 @@ SMBResponseCreate(
 {
     NTSTATUS ntStatus = 0;
     PRDR_RESPONSE pResponse = NULL;
-    BOOLEAN bDestroyCondition = FALSE;
 
     ntStatus = SMBAllocateMemory(
                     sizeof(RDR_RESPONSE),
                     (PVOID*)&pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pResponse->state = SMB_RESOURCE_STATE_INITIALIZING;
-
-    ntStatus = pthread_cond_init(&pResponse->event, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bDestroyCondition = TRUE;
-
     pResponse->mid = wMid;
-    pResponse->pPacket = NULL;
 
     *ppResponse = pResponse;
 
@@ -1775,11 +1583,6 @@ cleanup:
 
 error:
 
-    if (bDestroyCondition)
-    {
-        pthread_cond_destroy(&pResponse->event);
-    }
-
     LWIO_SAFE_FREE_MEMORY(pResponse);
 
     *ppResponse = NULL;
@@ -1787,34 +1590,11 @@ error:
     goto cleanup;
 }
 
+static
 VOID
 SMBResponseFree(
     PRDR_RESPONSE pResponse
     )
 {
-    if (pResponse->pSocket)
-    {
-        RdrSocketRemoveResponse(pResponse->pSocket, pResponse);
-    }
-
-    pthread_cond_destroy(&pResponse->event);
-
     SMBFreeMemory(pResponse);
-}
-
-VOID
-SMBResponseInvalidate_InLock(
-    PRDR_RESPONSE pResponse,
-    NTSTATUS ntStatus
-    )
-{
-    pResponse->state = SMB_RESOURCE_STATE_INVALID;
-    pResponse->error = ntStatus;
-
-    if (pResponse->pContext)
-    {
-        RdrContinueContext(pResponse->pContext, ntStatus, NULL);
-    }
-
-    pthread_cond_broadcast(&pResponse->event);
 }
