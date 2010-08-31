@@ -92,53 +92,58 @@ typedef enum _RDR_SOCKET_STATE
 
 typedef struct _RDR_SOCKET
 {
-    pthread_mutex_t mutex;      /* Locks the structure */
-
+    pthread_mutex_t mutex;
     RDR_SOCKET_STATE volatile state;
     NTSTATUS volatile error;
-    LONG volatile refCount;      /* Reference count */
-    BOOLEAN volatile bParentLink;   /* Whether socket is linked to by parent (global socket table) */
-
+    /* Reference count */
+    LONG volatile refCount;
+    /* Whether socket is linked to by parent (global socket table) */
+    BOOLEAN volatile bParentLink;
     int fd;
-    PWSTR pwszHostname;         /* Raw hostname, including channel specifier */
-    PWSTR pwszCanonicalName;      /* Canconical hostname for DNS resolution/GSS principal construction */
-    struct sockaddr address;    /* For hashing */
-
-    ULONG maxBufferSize;     /* Max transmit buffer size */
-    ULONG maxRawSize;        /* Maximum raw buffer size */
-    ULONG sessionKey;        /* Socket session key from NEGOTIATE */
-    ULONG capabilities;      /* Remote server capabilities from NEGOTIATE */
-    PBYTE pSecurityBlob;     /* Security blob from NEGOTIATE */
-    ULONG securityBlobLen;   /* Security blob len from NEGOTIATE */
-
-    SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
-    SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
-
+    /* Raw hostname, including channel specifier */
+    PWSTR pwszHostname;
+    /* Canconical hostname for DNS resolution/GSS principal construction */
+    PWSTR pwszCanonicalName;
+    /* Max transmit buffer size */
+    ULONG maxBufferSize;
+    /* Maximum raw buffer size */
+    ULONG maxRawSize;
+    /* Socket session key from NEGOTIATE */
+    ULONG sessionKey;
+    /* Remote server capabilities from NEGOTIATE */
+    ULONG capabilities;
+    /* Security blob from NEGOTIATE */
+    PBYTE pSecurityBlob;
+    /* Security blob len from NEGOTIATE */
+    ULONG securityBlobLen;
+    /* Dependent sessions */
+    SMB_HASH_TABLE *pSessionHashByPrincipal;
+    /* Dependent sessions */
+    SMB_HASH_TABLE *pSessionHashByUID;
     PLW_TASK pTask;
     PLW_TASK pTimeout;
-
-    BOOLEAN volatile bSessionSetupInProgress;
-
-    USHORT maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
-
-    SMB_SECURITY_MODE securityMode; /* Share or User security */
-    BOOLEAN  bPasswordsMustBeEncrypted;
-    BOOLEAN  bSignedMessagesSupported;
-    BOOLEAN  bSignedMessagesRequired;
-    BOOLEAN  bUseSignedMessagesIfSupported;
-    BOOLEAN  bIgnoreServerSignatures;
-    BOOLEAN  bShutdown;
-
-    PBYTE    pSessionKey;
-    DWORD    dwSessionKeyLength;
-
-    DWORD    dwSequence;
-    PSMB_PACKET pPacket; /* Incoming packet */
-    PSMB_PACKET pOutgoing; /* Outgoing packet */
+    /* MaxMpxCount from NEGOTIATE */
+    USHORT maxMpxCount;
+    /* Share or User security */
+    SMB_SECURITY_MODE securityMode;
+    BOOLEAN bPasswordsMustBeEncrypted;
+    BOOLEAN bSignedMessagesSupported;
+    BOOLEAN bSignedMessagesRequired;
+    BOOLEAN bUseSignedMessagesIfSupported;
+    BOOLEAN bIgnoreServerSignatures;
+    PBYTE pSessionKey;
+    DWORD dwSessionKeyLength;
+    DWORD dwSequence;
+    /* Incoming packet */
+    PSMB_PACKET pPacket;
+    /* Outgoing packet */
+    PSMB_PACKET pOutgoing;
     size_t OutgoingWritten;
-    LW_LIST_LINKS PendingSend; /* List of RDR_OP_CONTEXTs with packets that need to be sent */
+    /* List of RDR_OP_CONTEXTs with packets that need to be sent */
+    LW_LIST_LINKS PendingSend;
     LW_LIST_LINKS StateWaiters;
-    SMB_HASH_TABLE *pResponseHash; /* Storage for dependent responses */
+    /* Storage for dependent responses */
+    SMB_HASH_TABLE *pResponseHash;
     USHORT usNextMid;
     unsigned volatile bReadBlocked:1;
     unsigned volatile bWriteBlocked:1;
@@ -154,26 +159,22 @@ typedef enum _RDR_SESSION_STATE
 
 typedef struct _RDR_SESSION
 {
-    pthread_mutex_t mutex;      /* Locks the structure */
-
-    RDR_SESSION_STATE volatile state;    /* Session state : valid, invalid, etc */
+    pthread_mutex_t mutex;
+    RDR_SESSION_STATE volatile state;
     NTSTATUS volatile error;
-    LONG volatile refCount;           /* Count of state-change waiters and users */
-    BOOLEAN volatile bParentLink;        /* Whether session is linked to by parent (socket) */
-
-    RDR_SOCKET *pSocket;        /* Back pointer to parent socket */
-
+    LONG volatile refCount;
+    /* Whether session is linked to by parent (socket) */
+    BOOLEAN volatile bParentLink;
+    /* Back pointer to parent socket */
+    RDR_SOCKET *pSocket;
     USHORT uid;
-
     struct _RDR_SESSION_KEY
     {
         uid_t uid;
         PSTR pszPrincipal;
     } key;
-
-    SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
-    SMB_HASH_TABLE *pTreeHashByTID;     /* Storage for dependent trees */
-
+    SMB_HASH_TABLE *pTreeHashByPath;
+    SMB_HASH_TABLE *pTreeHashByTID;
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
     PLW_TASK pTimeout;
@@ -191,18 +192,16 @@ typedef enum _RDR_TREE_STATE
 
 typedef struct _RDR_TREE
 {
-    pthread_mutex_t mutex;      /* Locks both the structure and the hash */
-                                /* responses are inserted and removed so often
-                                   that a RW lock is probably overkill.*/
-
-    RDR_TREE_STATE volatile state;   /* Tree state: valid, invalid, etc. */
+    pthread_mutex_t mutex;
+    RDR_TREE_STATE volatile state;
     NTSTATUS volatile error;
-    LONG volatile refCount;           /* Count of state-change waiters and users */
-    BOOLEAN volatile bParentLink; /* Whether tree is linked to by parent (session) */
-
-    RDR_SESSION *pSession;      /* Back pointer to parent session */
+    LONG volatile refCount;
+    /* Whether tree is linked to by parent (session) */
+    BOOLEAN volatile bParentLink;
+    /* Back pointer to parent session */
+    RDR_SESSION *pSession;
     USHORT tid;
-    PSTR pszPath;               /* For hashing */
+    PSTR pszPath;
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
     PRDR_OP_CONTEXT pDisconnectContext;
@@ -216,42 +215,38 @@ typedef struct
 
 typedef struct _RDR_CCB
 {
-    pthread_mutex_t     mutex;
-    pthread_mutex_t*    pMutex;
-
-    PWSTR     pwszPath;
-
+    pthread_mutex_t mutex;
+    pthread_mutex_t* pMutex;
+    PWSTR pwszPath;
     PRDR_TREE pTree;
-
     USHORT usFileType;
     USHORT fid;
-    uint64_t  llOffset;
-
+    uint64_t llOffset;
     struct
     {
-        USHORT         usSearchId;
-        USHORT         usSearchCount;
-        USHORT         usLastNameOffset;
-        USHORT         usEndOfSearch;
+        USHORT usSearchId;
+        USHORT usSearchCount;
+        USHORT usLastNameOffset;
+        USHORT usEndOfSearch;
         SMB_INFO_LEVEL infoLevel;
-        PBYTE          pBuffer;
-        PBYTE          pCursor;
-        ULONG          ulBufferCapacity;
-        ULONG          ulBufferLength;
+        PBYTE pBuffer;
+        PBYTE pCursor;
+        ULONG ulBufferCapacity;
+        ULONG ulBufferLength;
     } find;
 } RDR_CCB, *PRDR_CCB;
 
 typedef struct _RDR_CONFIG
 {
-    ULONG   ulNumMaxPackets;
+    ULONG ulNumMaxPackets;
     BOOLEAN bSignMessagesIfSupported;
 } RDR_CONFIG, *PRDR_CONFIG;
 
 typedef struct _RDR_GLOBAL_RUNTIME
 {
-    RDR_CONFIG        config;
-    SMB_HASH_TABLE   *pSocketHashByName;    /* Socket hash by name */
-    pthread_mutex_t   socketHashLock;
+    RDR_CONFIG config;
+    SMB_HASH_TABLE *pSocketHashByName;
+    pthread_mutex_t socketHashLock;
     pid_t SysPid;
     PLW_THREAD_POOL pThreadPool;
     PLW_TASK_GROUP pReaderTaskGroup;

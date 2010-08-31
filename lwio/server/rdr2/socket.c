@@ -1067,7 +1067,6 @@ RdrSocketConnect(
 
     pSocket->fd = fd;
     fd = -1;
-    memcpy(&pSocket->address, &ai->ai_addr, ai->ai_addrlen);
 
     /* Let the task wait for the connect() to complete before proceeding */
     LwRtlWakeTask(pSocket->pTask);
