@@ -17,7 +17,7 @@
  * for more details.  You should have received a copy of the GNU General
  * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
- *x
+ *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
  * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
