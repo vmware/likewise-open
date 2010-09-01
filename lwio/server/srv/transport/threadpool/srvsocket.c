@@ -1,5 +1,25 @@
 #include "includes.h"
 
+// TODO: Replace with real atomic operation (which will not need pSocket).
+static
+inline
+LONG
+SRV_SOCKET_FAKE_INTERLOCKED_EXCHANGE_32(
+    IN PSRV_SOCKET pSocket,
+    IN OUT LONG volatile* pMemory,
+    IN LONG Value
+    )
+{
+    LONG previous = 0;
+
+    LwRtlLockMutex(&pSocket->TerminalMutex);
+    previous = *pMemory;
+    *pMemory = Value;
+    LwRtlUnlockMutex(&pSocket->TerminalMutex);
+
+    return previous;
+}
+
 static
 inline
 VOID
@@ -49,12 +69,6 @@ SRV_SOCKET_UNLOCK_WITH(
 }
 
 static
-VOID
-SrvSocketAcquire(
-    IN PSRV_SOCKET pSocket
-    );
-
-static
 inline
 PSRV_TRANSPORT_PROTOCOL_DISPATCH
 SrvSocketGetDispatch(
@@ -79,6 +93,57 @@ SrvSocketSetDoneStatusIf(
         pSocket->DoneStatus = Status;
     }
 }
+
+static
+inline
+BOOLEAN
+SrvSocketIsProcessing(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    BOOLEAN bIsProcessing = FALSE;
+
+    LwRtlLockMutex(&pSocket->TerminalMutex);
+    if (pSocket->pProcessingThreadId &&
+        pthread_equal(pSocket->ProcessingThreadId, pthread_self()))
+    {
+        bIsProcessing = TRUE;
+    }
+    LwRtlUnlockMutex(&pSocket->TerminalMutex);
+
+    return bIsProcessing;
+}
+
+static
+inline
+VOID
+SrvSocketSetProcessing(
+    IN OUT PSRV_SOCKET pSocket
+    )
+{
+    LwRtlLockMutex(&pSocket->TerminalMutex);
+    pSocket->ProcessingThreadId = pthread_self();
+    pSocket->pProcessingThreadId = &pSocket->ProcessingThreadId;
+    LwRtlUnlockMutex(&pSocket->TerminalMutex);
+}
+
+static
+inline
+VOID
+SrvSocketClearProcessing(
+    IN OUT PSRV_SOCKET pSocket
+    )
+{
+    LwRtlLockMutex(&pSocket->TerminalMutex);
+    pSocket->pProcessingThreadId = NULL;
+    LwRtlUnlockMutex(&pSocket->TerminalMutex);
+}
+
+static
+VOID
+SrvSocketAcquire(
+    IN PSRV_SOCKET pSocket
+    );
 
 static
 VOID
@@ -162,6 +227,9 @@ SrvSocketCreate(
     LwListInit(&pSocket->SendHead);
 
     ntStatus = LwRtlInitializeMutex(&pSocket->Mutex, TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlInitializeMutex(&pSocket->TerminalMutex, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->pListener = pListener;
@@ -260,6 +328,7 @@ SrvSocketFree(
         close(pSocket->fd);
     }
     LwRtlCleanupMutex(&pSocket->Mutex);
+    LwRtlCleanupMutex(&pSocket->TerminalMutex);
     SrvFreeMemory(pSocket);
 }
 
@@ -305,6 +374,47 @@ SrvSocketGetFileDescriptor(
     return pSocket->fd;
 }
 
+VOID
+SrvSocketSetTimeout(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG SecondsRemaining
+    )
+{
+    ULONG resetTimeoutSeconds = 0;
+
+    if (bIsEnabled)
+    {
+        resetTimeoutSeconds = SecondsRemaining;
+        if (resetTimeoutSeconds == 0)
+        {
+            resetTimeoutSeconds = MAXULONG;
+        }
+    }
+    else
+    {
+        resetTimeoutSeconds = MAXULONG;
+    }
+
+    // INVARIANT: resetTimeoutSeconds != 0
+
+    SRV_SOCKET_FAKE_INTERLOCKED_EXCHANGE_32(
+            pSocket,
+            (PLONG)&pSocket->ResetTimeoutSeconds,
+            resetTimeoutSeconds);
+
+    // If not enabling, we can pick up the change on next invocation
+    // of task processing.  However, if enabling, we need to wake the
+    // task immediately so the timeout becomes active.
+
+    if (bIsEnabled)
+    {
+        if (!SrvSocketIsProcessing(pSocket))
+        {
+            LwRtlWakeTask(pSocket->pTask);
+        }
+    }
+}
 
 NTSTATUS
 SrvSocketSetBuffer(
@@ -348,7 +458,10 @@ SrvSocketSetBuffer(
         {
             LWIO_ASSERT(!pSocket->pZct);
             // Notify task that there is a buffer
-            LwRtlWakeTask(pSocket->pTask);
+            if (!SrvSocketIsProcessing(pSocket))
+            {
+                LwRtlWakeTask(pSocket->pTask);
+            }
         }
         SRV_SOCKET_UNLOCK(pSocket);
     }
@@ -1034,6 +1147,12 @@ SrvSocketProcessTask(
     PSRV_SOCKET pSocket = (PSRV_SOCKET) pDataContext;
     BOOLEAN bIsLocked = FALSE;
     LW_TASK_EVENT_MASK waitMask = 0;
+    LONG64 timeoutNanoSeconds = 0;
+    ULONG resetTimeoutSeconds = 0;
+
+    SrvSocketSetProcessing(pSocket);
+
+    SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
 
     // Handle EVENT_CANCEL - this only happens when the socket is closed
     // by the protocol transport driver.
@@ -1042,8 +1161,6 @@ SrvSocketProcessTask(
     // probably by setting a boolean on the listener, waking the group,
     // and checking for that to do a disconnect, which will cause the
     // protocol to close the socket.
-
-    SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
 
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL))
     {
@@ -1099,6 +1216,37 @@ SrvSocketProcessTask(
     ntStatus = SrvSocketProcessTaskRead(pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    //
+    // Handle timeout update/processing
+    //
+
+    resetTimeoutSeconds = SRV_SOCKET_FAKE_INTERLOCKED_EXCHANGE_32(
+                                pSocket,
+                                (PLONG)&pSocket->ResetTimeoutSeconds,
+                                0);
+    if (MAXULONG == resetTimeoutSeconds)
+    {
+        ClearFlag(pSocket->StateMask, SRV_SOCKET_STATE_USE_TIMEOUT);
+        resetTimeoutSeconds = 0;
+    }
+
+    if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_USE_TIMEOUT))
+    {
+        timeoutNanoSeconds = *pllTime;
+        if (IsSetFlag(WakeMask, LW_TASK_EVENT_TIME) &&
+            (timeoutNanoSeconds <= 0))
+        {
+            ntStatus = STATUS_IO_TIMEOUT;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+    if (resetTimeoutSeconds)
+    {
+        SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_USE_TIMEOUT);
+        timeoutNanoSeconds = 1000000000LL * resetTimeoutSeconds;
+    }
+
     // Determine what wait mask is needed.
     if (((pSocket->Size - pSocket->Offset) > 0) || (pSocket->ZctSize > 0))
     {
@@ -1116,6 +1264,11 @@ SrvSocketProcessTask(
             SetFlag(waitMask, LW_TASK_EVENT_YIELD);
         }
     }
+    if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_USE_TIMEOUT))
+    {
+        SetFlag(waitMask, LW_TASK_EVENT_TIME);
+        *pllTime = timeoutNanoSeconds;
+    }
     if (!waitMask)
     {
         waitMask = LW_TASK_EVENT_EXPLICIT;
@@ -1124,6 +1277,14 @@ SrvSocketProcessTask(
 cleanup:
 
     SRV_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
+
+    // Note that the socket is unlocked and released when the task
+    // is cancelled.
+
+    if (pSocket)
+    {
+        SrvSocketClearProcessing(pSocket);
+    }
 
     // waitMask can only be 0 (aka COMPLETE) for EVENT_CANCEL.
     LWIO_ASSERT(waitMask ||

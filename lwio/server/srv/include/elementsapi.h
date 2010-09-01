@@ -278,6 +278,8 @@ typedef struct _LWIO_SRV_FILE
 
     PFN_SRV_FILE_CANCEL_ASYNC_OPERATIONS pfnCancelAsyncOperationsFile;
 
+    BOOLEAN bIsBlockingIdleTimeout;
+
 } LWIO_SRV_FILE;
 
 typedef struct _LWIO_SRV_SEARCH_SPACE_2
@@ -336,6 +338,8 @@ typedef struct _LWIO_SRV_FILE_2
 
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+
+    BOOLEAN bIsBlockingIdleTimeout;
 
 } LWIO_SRV_FILE_2;
 
@@ -530,12 +534,14 @@ typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
 typedef VOID (*PFN_SRV_SOCKET_DISCONNECT)(PLWIO_SRV_SOCKET pSocket);
 typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(PLWIO_SRV_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
 typedef VOID (*PFN_SRV_CONNECTION_IO_COMPLETE)(PVOID pContext, NTSTATUS Status);
+typedef VOID (*PFN_SRV_SOCKET_RESET_TIMEOUT)(PLWIO_SRV_SOCKET pSocket, BOOLEAN bIsEnabled, ULONG ulTimeoutSeconds);
 struct _SRV_EXEC_CONTEXT;
 
 typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
     PFN_SRV_SOCKET_FREE pfnFree;
     PFN_SRV_SOCKET_DISCONNECT pfnDisconnect;
     PFN_SRV_SOCKET_GET_ADDRESS_BYTES pfnGetAddressBytes;
+    PFN_SRV_SOCKET_RESET_TIMEOUT pfnResetTimeout;
 } SRV_CONNECTION_SOCKET_DISPATCH, *PSRV_CONNECTION_SOCKET_DISPATCH;
 
 typedef struct _SRV_CREDITOR *PSRV_CREDITOR;
@@ -617,6 +623,14 @@ typedef struct _SRV_CONNECTION
     ULONG64             ullNextAvailableAsyncId;
 
     PLWRTL_RB_TREE      pAsyncStateCollection;
+
+    // Immutable.
+    ULONG               ulIdleTimeoutSeconds;
+
+    // The following terminal mutex protects the count below it.
+    pthread_mutex_t     mutexIdleTimeoutDisable;
+    pthread_mutex_t*    pMutexIdleTimeoutDisable;
+    LONG                lIdleTimeoutDisableCount;
 
     PVOID               pOEMConnection;
     ULONG               ulOEMConnectionLength;
@@ -1070,6 +1084,21 @@ SrvConnectionIsSigningActive_inlock(
     PLWIO_SRV_CONNECTION pConnection
     );
 
+VOID
+SrvConnectionResetIdleTimeout(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionIncrementIdleDisableCount(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionDecrementIdleDisableCount(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 NTSTATUS
 SrvSessionCreate(
     PLWIO_SRV_CONNECTION pConnection,
@@ -1473,6 +1502,16 @@ SrvFileRelease(
     );
 
 VOID
+SrvFileBlockIdleTimeout(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileUnblockIdleTimeout(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
 SrvFileRundown(
     PLWIO_SRV_FILE pFile
     );
@@ -1549,6 +1588,16 @@ SrvFile2Acquire(
 
 VOID
 SrvFile2Release(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2BlockIdleTimeout(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2UnblockIdleTimeout(
     PLWIO_SRV_FILE_2 pFile
     );
 

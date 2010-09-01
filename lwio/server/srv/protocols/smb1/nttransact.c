@@ -3145,6 +3145,15 @@ SrvQueryNTTransactFileInformation(
         SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
     }
 
+    if (!(pNTTransactState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFileBlockIdleTimeout(pNTTransactState->pFile);
+    }
+    else
+    {
+        SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
+    }
+
     if (!pNTTransactState->pFileStdInfo)
     {
         pNTTransactState->pFileStdInfo = &pNTTransactState->fileStdInfo;

@@ -105,6 +105,28 @@ SrvSocketGetFileDescriptor(
     IN PSRV_SOCKET pSocket
     );
 
+VOID
+SrvSocketSetTimeoutInCallback(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG SecondsRemaining
+    );
+
+VOID
+SrvSocketSetTimeout(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG SecondsRemaining
+    );
+
+NTSTATUS
+SrvSocketSetBufferInCallback(
+    IN PSRV_SOCKET pSocket,
+    IN PVOID pBuffer,
+    IN ULONG Size,
+    IN ULONG Minimum
+    );
+
 NTSTATUS
 SrvSocketSetBuffer(
     IN PSRV_SOCKET pSocket,

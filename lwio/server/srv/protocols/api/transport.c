@@ -141,6 +141,14 @@ SrvProtocolTransportDriverSocketGetAddressBytes(
     );
 
 static
+VOID
+SrvProtocolTransportDriverSocketResetTimeout(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG ulTimeoutSeconds
+    );
+
+static
 NTSTATUS
 SrvProtocolTransportDriverAllocatePacket(
     IN PSRV_CONNECTION pConnection
@@ -235,6 +243,7 @@ SrvProtocolTransportDriverInit(
     pSocketDispatch->pfnFree = SrvProtocolTransportDriverSocketFree;
     pSocketDispatch->pfnDisconnect = SrvProtocolTransportDriverSocketDisconnect;
     pSocketDispatch->pfnGetAddressBytes = SrvProtocolTransportDriverSocketGetAddressBytes;
+    pSocketDispatch->pfnResetTimeout = SrvProtocolTransportDriverSocketResetTimeout;
 
     uuid_generate(pTransportContext->guid);
 
@@ -406,6 +415,8 @@ SrvProtocolTransportDriverConnectionNew(
                     &pProtocolDispatchContext->socketDispatch,
                     &pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pConnection->ulIdleTimeoutSeconds = SrvProtocolConfigGetIdleTimeout();
 
     ntStatus = SrvElementsRegisterResource(&pConnection->resource, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -810,6 +821,19 @@ error:
     addressPartLength = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvProtocolTransportDriverSocketResetTimeout(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG ulTimeoutSeconds
+    )
+{
+    SrvTransportSocketSetTimeout(pSocket,
+                                 bIsEnabled,
+                                 ulTimeoutSeconds);
 }
 
 static
@@ -1221,6 +1245,11 @@ SrvProtocolTransportDriverDetectPacket(
     }
 
 cleanup:
+
+    if (pZctExecContext || pPacketFound)
+    {
+        SrvConnectionResetIdleTimeout(pConnection);
+    }
 
     *pulBytesAvailable = ulBytesAvailable;
     *ppPacket = pPacketFound;

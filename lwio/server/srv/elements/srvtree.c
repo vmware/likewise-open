@@ -348,6 +348,8 @@ SrvTreeCreateFile(
     ntStatus = SrvTreeAddFile_inlock(pTree, pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SrvFileBlockIdleTimeout(pFile);
+
     *ppFile = pFile;
 
 cleanup:

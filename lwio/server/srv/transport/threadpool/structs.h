@@ -34,6 +34,7 @@ typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
 #define SRV_SOCKET_STATE_FD_WRITABLE    0x00000002
 #define SRV_SOCKET_STATE_FD_READABLE    0x00000004
 #define SRV_SOCKET_STATE_DISCONNECTED   0x00000008
+#define SRV_SOCKET_STATE_USE_TIMEOUT    0x00000010
 
 // Transport abstraction for a connection.
 typedef struct _SRV_SOCKET
@@ -84,6 +85,16 @@ typedef struct _SRV_SOCKET
     ULONG ZctSize;
     // Send queue - (SRV_SEND_ITEM.SendLinks)
     LW_LIST_LINKS SendHead;
+
+    // This mutex is used for very quick operations that must not grab
+    // any locks.
+    LW_RTL_MUTEX TerminalMutex;
+
+    ULONG ResetTimeoutSeconds;
+    // Support for SrvSocketWakeIfNeeded - stores thread ID actively
+    // being processed.
+    pthread_t ProcessingThreadId;
+    pthread_t* pProcessingThreadId;
 } SRV_SOCKET;
 
 typedef struct _SRV_SEND_ITEM

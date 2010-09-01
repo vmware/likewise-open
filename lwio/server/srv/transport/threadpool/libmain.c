@@ -170,6 +170,16 @@ SrvTransportSocketGetFileDescriptor(
     return SrvSocketGetFileDescriptor(pSocket);
 }
 
+VOID
+SrvTransportSocketSetTimeout(
+    IN PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsEnabled,
+    IN ULONG SecondsRemaining
+    )
+{
+    SrvSocketSetTimeout(pSocket, bIsEnabled, SecondsRemaining);
+}
+
 NTSTATUS
 SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
