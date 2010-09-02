@@ -55,7 +55,7 @@ static
 BOOLEAN
 RdrFinishWriteFile(
     PRDR_OP_CONTEXT pContext,
-    NTSTATUS ntStatus,
+    NTSTATUS status,
     PVOID pParam
     );
 
@@ -78,14 +78,14 @@ RdrWrite(
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
     PRDR_OP_CONTEXT pContext = NULL;
 
-    ntStatus = RdrCreateContext(
+    status = RdrCreateContext(
         pIrp,
         &pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     pContext->Continue = RdrFinishWriteFile;
 
@@ -102,16 +102,11 @@ RdrWrite(
 
     RdrContinueContext(pContext, STATUS_SUCCESS, NULL);
 
-    ntStatus = STATUS_PENDING;
+    status = STATUS_PENDING;
 
 cleanup:
 
-    if (ntStatus != STATUS_PENDING)
-    {
-        RdrFreeContext(pContext);
-    }
-
-    return ntStatus;
+    return status;
 
 error:
 
@@ -226,7 +221,7 @@ static
 BOOLEAN
 RdrFinishWriteFile(
     PRDR_OP_CONTEXT pContext,
-    NTSTATUS ntStatus,
+    NTSTATUS status,
     PVOID pParam
     )
 {
@@ -240,19 +235,19 @@ RdrFinishWriteFile(
     ULONG ulWriteLength = 0;
     USHORT usWriteMode = 0;
 
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     if (pResponsePacket)
     {
-        ntStatus = pResponsePacket->pSMBHeader->error;
-        BAIL_ON_NT_STATUS(ntStatus);
+        status = pResponsePacket->pSMBHeader->error;
+        BAIL_ON_NT_STATUS(status);
 
         if (pResponsePacket->pSMBHeader->command != COM_WRITE_ANDX ||
             pResponsePacket->bufferUsed - (pResponsePacket->pParams - pResponsePacket->pRawBuffer) <
             sizeof(WRITE_ANDX_RESPONSE_HEADER))
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
+            status = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(status);
         }
 
         pResponseHeader = (PWRITE_ANDX_RESPONSE_HEADER) pResponsePacket->pParams;
@@ -292,14 +287,14 @@ RdrFinishWriteFile(
             usWriteMode |= 0x8;
         }
 
-        ntStatus = RdrTransceiveWriteFile(
+        status = RdrTransceiveWriteFile(
             pContext,
             pFile,
             (ULONG64) pContext->State.Write.llByteOffset,
             pBuffer + pContext->State.Write.llTotalBytesWritten,
             (USHORT) ulWriteLength,
             usWriteMode);
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(status);
     }
 
 
@@ -307,11 +302,11 @@ cleanup:
 
     RdrFreePacket(pResponsePacket);
 
-    if (ntStatus != STATUS_PENDING)
+    if (status != STATUS_PENDING)
     {
-        pContext->pIrp->IoStatusBlock.Status = ntStatus;
+        pContext->pIrp->IoStatusBlock.Status = status;
 
-        if (ntStatus == STATUS_SUCCESS)
+        if (status == STATUS_SUCCESS)
         {
             pContext->pIrp->IoStatusBlock.BytesTransferred = pContext->State.Write.llTotalBytesWritten;
         }

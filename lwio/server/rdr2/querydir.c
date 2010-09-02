@@ -49,13 +49,6 @@
 
 static
 NTSTATUS
-RdrQueryDir(
-    PRDR_OP_CONTEXT pContext,
-    PIRP pIrp
-    );
-
-static
-NTSTATUS
 RdrTransceiveFindFirst2(
     PRDR_OP_CONTEXT pContext,
     PRDR_TREE pTree,
@@ -151,37 +144,10 @@ RdrQueryDirectory(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PRDR_OP_CONTEXT pContext = NULL;
-
-    status = RdrCreateContext(pIrp, &pContext);
-    BAIL_ON_NT_STATUS(status);
-
-    IoIrpMarkPending(pIrp, RdrCancelQueryDirectory, pContext);
-
-    status = RdrQueryDir(pContext, pIrp);
-    BAIL_ON_NT_STATUS(status);
-
-cleanup:
-
-    return status;
-
-error:
-
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-RdrQueryDir(
-    PRDR_OP_CONTEXT pContext,
-    PIRP pIrp
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
     PRDR_CCB pFile = NULL;
     SMB_INFO_LEVEL infoLevel = 0;
     PWSTR pwszPattern = NULL;
+    PRDR_OP_CONTEXT pContext = NULL;
 
     switch (pIrp->Args.QueryDirectory.FileInformationClass)
     {
@@ -195,6 +161,11 @@ RdrQueryDir(
     }
 
     pFile = IoFileGetContext(pIrp->FileHandle);
+
+    status = RdrCreateContext(pIrp, &pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    IoIrpMarkPending(pIrp, RdrCancelQueryDirectory, pContext);
 
     if (pFile->find.pBuffer && pFile->find.usSearchCount == 0)
     {
@@ -256,7 +227,7 @@ RdrQueryDir(
 
 error:
 
-    if (status != STATUS_PENDING)
+    if (status != STATUS_PENDING && pContext)
     {
         RdrQueryDirComplete(pContext, status, pFile);
         status = STATUS_PENDING;

@@ -73,24 +73,24 @@ RdrClose(
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
     PCLOSE_REQUEST_HEADER pHeader = NULL;
     PRDR_OP_CONTEXT pContext = NULL;
 
-    ntStatus = RdrCreateContext(pIrp, &pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = RdrCreateContext(pIrp, &pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    IoIrpMarkPending(pIrp, RdrCancelClose, pContext);
 
     if (pFile->fid)
     {
-        IoIrpMarkPending(pIrp, RdrCancelClose, NULL);
-
-        ntStatus = RdrAllocateContextPacket(
+        status = RdrAllocateContextPacket(
             pContext,
             1024*64);
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(status);
 
-        ntStatus = SMBPacketMarshallHeader(
+        status = SMBPacketMarshallHeader(
             pContext->Packet.pRawBuffer,
             pContext->Packet.bufferLen,
             COM_CLOSE,
@@ -102,7 +102,7 @@ RdrClose(
             0,
             TRUE,
             &pContext->Packet);
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(status);
 
         pContext->Packet.pData = pContext->Packet.pParams + sizeof(CLOSE_REQUEST_HEADER);
         pContext->Packet.bufferUsed += sizeof(CLOSE_REQUEST_HEADER);
@@ -115,15 +115,15 @@ RdrClose(
         pHeader->ulLastWriteTime = SMB_HTOL32(0);
         pHeader->byteCount = SMB_HTOL16(0);
 
-        ntStatus = SMBPacketMarshallFooter(&pContext->Packet);
-        BAIL_ON_NT_STATUS(ntStatus);
+        status = SMBPacketMarshallFooter(&pContext->Packet);
+        BAIL_ON_NT_STATUS(status);
 
         pContext->Continue = RdrFinishClose;
 
-        ntStatus = RdrSocketTransceive(
+        status = RdrSocketTransceive(
             pFile->pTree->pSession->pSocket,
             pContext);
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(status);
     }
     else
     {
@@ -133,12 +133,15 @@ RdrClose(
 
 cleanup:
 
-    if (ntStatus != STATUS_PENDING)
+    if (status != STATUS_PENDING && pContext)
     {
+        pIrp->IoStatusBlock.Status = status;
+        IoIrpComplete(pIrp);
         RdrFreeContext(pContext);
+        status = STATUS_PENDING;
     }
 
-    return ntStatus;
+    return status;
 
 error:
 

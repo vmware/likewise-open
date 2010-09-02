@@ -301,11 +301,12 @@ RdrCreate(
 
 cleanup:
 
-    if (status != STATUS_PENDING)
+    if (status != STATUS_PENDING && pContext)
     {
-        RdrFreeContext(pContext);
         pIrp->IoStatusBlock.Status = status;
         IoIrpComplete(pIrp);
+        RdrFreeContext(pContext);
+        status = STATUS_PENDING;
     }
 
     return status;

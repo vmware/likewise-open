@@ -58,7 +58,7 @@ static
 BOOLEAN
 RdrFinishReadFile(
     PRDR_OP_CONTEXT pContext,
-    NTSTATUS ntStatus,
+    NTSTATUS status,
     PVOID pParam
     );
 
@@ -81,14 +81,14 @@ RdrRead(
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
     PRDR_OP_CONTEXT pContext = NULL;
 
-    ntStatus = RdrCreateContext(
+    status = RdrCreateContext(
         pIrp,
         &pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     pContext->Continue = RdrFinishReadFile;
 
@@ -105,16 +105,11 @@ RdrRead(
 
     RdrContinueContext(pContext, STATUS_SUCCESS, NULL);
 
-    ntStatus = STATUS_PENDING;
+    status = STATUS_PENDING;
 
 cleanup:
 
-    if (ntStatus != STATUS_PENDING)
-    {
-        RdrFreeContext(pContext);
-    }
-
-    return ntStatus;
+    return status;
 
 error:
 
@@ -130,16 +125,16 @@ RdrTransceiveReadFile(
     USHORT usReadLen
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     uint16_t packetByteCount = 0;
     READ_ANDX_REQUEST_HEADER_WC_12 *pRequestHeader = NULL;
 
-    ntStatus = RdrAllocateContextPacket(
+    status = RdrAllocateContextPacket(
         pContext,
         1024*64);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
-    ntStatus = SMBPacketMarshallHeader(
+    status = SMBPacketMarshallHeader(
                 pContext->Packet.pRawBuffer,
                 pContext->Packet.bufferLen,
                 COM_READ_ANDX,
@@ -151,7 +146,7 @@ RdrTransceiveReadFile(
                 0,
                 TRUE,
                 &pContext->Packet);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     pContext->Packet.pData = pContext->Packet.pParams + sizeof(READ_ANDX_REQUEST_HEADER_WC_12);
     pContext->Packet.bufferUsed += sizeof(READ_ANDX_REQUEST_HEADER_WC_12);
@@ -180,17 +175,17 @@ RdrTransceiveReadFile(
     SMB_HTOL32_INPLACE(pRequestHeader->offsetHigh);
     SMB_HTOL16_INPLACE(pRequestHeader->byteCount);
 
-    ntStatus = SMBPacketMarshallFooter(&pContext->Packet);
-    BAIL_ON_NT_STATUS(ntStatus);
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
 
-    ntStatus = RdrSocketTransceive(
+    status = RdrSocketTransceive(
         pFile->pTree->pSession->pSocket,
         pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
 
-    return ntStatus;
+    return status;
 
 error:
 
@@ -201,7 +196,7 @@ static
 BOOLEAN
 RdrFinishReadFile(
     PRDR_OP_CONTEXT pContext,
-    NTSTATUS ntStatus,
+    NTSTATUS status,
     PVOID pParam
     )
 {
@@ -214,19 +209,19 @@ RdrFinishReadFile(
     ULONG ulReadMax = 0;
     ULONG ulReadLength = 0;
 
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_NT_STATUS(status);
 
     if (pResponsePacket)
     {
-        ntStatus = pResponsePacket->pSMBHeader->error;
-        BAIL_ON_NT_STATUS(ntStatus);
+        status = pResponsePacket->pSMBHeader->error;
+        BAIL_ON_NT_STATUS(status);
 
         if (pResponsePacket->pSMBHeader->command != COM_READ_ANDX ||
             pResponsePacket->bufferUsed - (pResponsePacket->pParams - pResponsePacket->pRawBuffer) <
             sizeof(READ_ANDX_RESPONSE_HEADER))
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
+            status = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(status);
         }
 
         pResponseHeader = (PREAD_ANDX_RESPONSE_HEADER) pResponsePacket->pParams;
@@ -243,8 +238,8 @@ RdrFinishReadFile(
             if (usBytesRead > pContext->State.Read.usReadLen ||
                 pResponseHeader->dataOffset + usBytesRead > pResponsePacket->pNetBIOSHeader->len)
             {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-                BAIL_ON_NT_STATUS(ntStatus);
+                status = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(status);
             }
 
             memcpy(pBuffer + pContext->State.Read.llTotalBytesRead,
@@ -262,12 +257,12 @@ RdrFinishReadFile(
         {
             if (pContext->State.Read.llTotalBytesRead == 0)
             {
-                ntStatus = STATUS_END_OF_FILE;
-                BAIL_ON_NT_STATUS(ntStatus);
+                status = STATUS_END_OF_FILE;
+                BAIL_ON_NT_STATUS(status);
             }
             else
             {
-                ntStatus = STATUS_SUCCESS;
+                status = STATUS_SUCCESS;
                 goto cleanup;
             }
         }
@@ -287,12 +282,12 @@ RdrFinishReadFile(
 
         pContext->State.Read.usReadLen = (USHORT) ulReadLength;
 
-        ntStatus = RdrTransceiveReadFile(
+        status = RdrTransceiveReadFile(
             pContext,
             pFile,
             (ULONG64) pContext->State.Read.llByteOffset,
             (USHORT) ulReadLength);
-        BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(status);
     }
 
 
@@ -300,11 +295,11 @@ cleanup:
 
     RdrFreePacket(pResponsePacket);
 
-    if (ntStatus != STATUS_PENDING)
+    if (status != STATUS_PENDING)
     {
-        pContext->pIrp->IoStatusBlock.Status = ntStatus;
+        pContext->pIrp->IoStatusBlock.Status = status;
 
-        if (ntStatus == STATUS_SUCCESS)
+        if (status == STATUS_SUCCESS)
         {
             pContext->pIrp->IoStatusBlock.BytesTransferred = pContext->State.Read.llTotalBytesRead;
         }

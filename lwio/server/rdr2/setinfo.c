@@ -146,10 +146,10 @@ RdrSetInformation(
 
     pFile = IoFileGetContext(pIrp->FileHandle);
 
-    IoIrpMarkPending(pIrp, RdrCancelSetInfo, pContext);
-
     status = RdrCreateContext(pIrp, &pContext);
     BAIL_ON_NT_STATUS(status);
+
+    IoIrpMarkPending(pIrp, RdrCancelSetInfo, pContext);
 
     pContext->Continue = RdrSetInfoComplete;
 
@@ -163,7 +163,7 @@ RdrSetInformation(
 
 error:
 
-    if (status != STATUS_PENDING)
+    if (status != STATUS_PENDING && pContext)
     {
         pIrp->IoStatusBlock.Status = status;
         IoIrpComplete(pIrp);
