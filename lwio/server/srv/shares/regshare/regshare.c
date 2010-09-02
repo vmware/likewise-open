@@ -586,7 +586,7 @@ SrvShareRegEnum(
                       &dataType,
                       pData,
                       &ulMaxValueLen);
-        if (ntStatus == STATUS_NO_MORE_MATCHES)
+        if (ntStatus == STATUS_NO_MORE_ENTRIES)
         {
             ntStatus = STATUS_SUCCESS;
             break;

@@ -103,7 +103,7 @@ DfsConfigReadStandaloneRoots(
                        NULL,
                        NULL,
                        NULL);
-        if (ntStatus == STATUS_NO_MORE_MATCHES)
+        if (ntStatus == STATUS_NO_MORE_ENTRIES)
         {
             ntStatus = STATUS_SUCCESS;
             bFinished = TRUE;
@@ -204,7 +204,7 @@ DfsInitializeRoot(
                        &dwType,
                        pBuffer,
                        &dwBufferSize);
-        if (ntStatus == STATUS_NO_MORE_MATCHES)
+        if (ntStatus == STATUS_NO_MORE_ENTRIES)
         {
             ntStatus = STATUS_SUCCESS;
             bFinished = TRUE;
