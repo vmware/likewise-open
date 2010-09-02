@@ -389,17 +389,16 @@ RdrSessionInvalidate(
     pSession->error = ntStatus;
 
     LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
-    if (pSession->bParentLink)
-    {
-        SMBHashRemoveKey(
-            pSession->pSocket->pSessionHashByPrincipal,
-            &pSession->key);
-        SMBHashRemoveKey(
-            pSession->pSocket->pSessionHashByUID,
-            &pSession->uid);
-        pSession->bParentLink = FALSE;
-    }
+    RdrSessionUnlink(pSession);
     LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+
+    RdrNotifyContextList(
+        &pSession->StateWaiters,
+        bInLock,
+        &pSession->mutex,
+        ntStatus,
+        NULL);
+
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 

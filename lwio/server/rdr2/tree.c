@@ -186,6 +186,13 @@ RdrTreeInvalidate(
     RdrTreeUnlink(pTree);
     LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
 
+    RdrNotifyContextList(
+        &pTree->StateWaiters,
+        bInLock,
+        &pTree->mutex,
+        ntStatus,
+        NULL);
+
     LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
