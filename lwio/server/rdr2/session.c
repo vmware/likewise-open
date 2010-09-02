@@ -45,8 +45,6 @@
  *
  * Author: Kaya Bekiroglu (kaya@likewisesoftware.com)
  *
- * @todo: add error logging code
- * @todo: switch to NT error codes where appropriate
  */
 
 #include "rdr.h"
@@ -370,7 +368,6 @@ RdrSessionFree(
         RdrSocketRelease(pSession->pSocket);
     }
 
-    /* @todo: use allocator */
     SMBFreeMemory(pSession);
 }
 

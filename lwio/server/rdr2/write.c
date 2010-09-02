@@ -153,7 +153,6 @@ RdrTransceiveWriteFile(
     BAIL_ON_NT_STATUS(status);
 
     pContext->Packet.pData = pContext->Packet.pParams + sizeof(WRITE_ANDX_REQUEST_HEADER_WC_14);
-    /* @todo: handle size restart */
     pContext->Packet.bufferUsed += sizeof(WRITE_ANDX_REQUEST_HEADER_WC_14);
 
     pContext->Packet.pSMBHeader->wordCount = 14;
@@ -176,7 +175,6 @@ RdrTransceiveWriteFile(
     }
 
     pRequestHeader->dataLength = usWriteLen;
-    /* @todo: what is this value if CAP_LARGE_WRITEX is set? */
     pRequestHeader->dataLengthHigh = 0;
     pRequestHeader->dataOffset = 0;
     /* only present if wordCount = 14 and not 12 */

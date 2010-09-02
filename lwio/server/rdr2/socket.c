@@ -45,8 +45,6 @@
  *
  * Author: Kaya Bekiroglu (kaya@likewisesoftware.com)
  *
- * @todo: add error logging code
- * @todo: switch to NT error codes where appropriate
  */
 
 #include "rdr.h"
@@ -1419,8 +1417,6 @@ RdrSocketAddResponse(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* @todo: if we allocate the MID outside of this function, we need to
-       check for a conflict here */
     ntStatus = SMBHashSetValue(
                     pSocket->pResponseHash,
                     &pResponse->mid,

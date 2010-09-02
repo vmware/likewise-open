@@ -753,7 +753,6 @@ RdrTransceiveNegotiate(
     uint32_t packetByteCount = 0;
     const uchar8_t *pszDialects[1] = { (uchar8_t *) "NT LM 0.12" };
 
-    /* @todo: make initial length configurable */
     status = RdrAllocateContextPacket(pContext, 1024*64);
     BAIL_ON_NT_STATUS(status);
 
