@@ -337,6 +337,8 @@ cleanup:
         RdrFreeTreeConnectContext(pContext);
     }
 
+    RdrFreePacket(pPacket);
+
     return FALSE;
 
 error:
@@ -347,8 +349,6 @@ error:
         RdrSocketInvalidate(pSocket, status);
         RdrSocketRelease(pSocket);
     }
-
-    /* FIXME: free packet */
 
     goto cleanup;
 }
@@ -415,6 +415,8 @@ cleanup:
         RdrFreeTreeConnectContext(pContext);
     }
 
+    RdrFreePacket(pPacket);
+
     return FALSE;
 
 error:
@@ -425,8 +427,6 @@ error:
         RdrSessionInvalidate(pSession, status);
         RdrSessionRelease(pSession);
     }
-
-    /* FIXME: free packet */
 
     goto cleanup;
 }

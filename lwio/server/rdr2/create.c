@@ -538,7 +538,7 @@ RdrTransceiveCreate(
     pHeader->shareAccess = shareAccess;
     pHeader->createDisposition = createDisposition;
     pHeader->createOptions = createOptions;
-    pHeader->impersonationLevel = 0x2; /* FIXME */
+    pHeader->impersonationLevel = 0x2; /* FIXME: magic constant */
 
     status = WireMarshallCreateRequestData(
                 pContext->Packet.pData,
