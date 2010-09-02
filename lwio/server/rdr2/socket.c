@@ -252,6 +252,8 @@ RdrSocketCreate(
     pSocket->capabilities = 0;
     pSocket->pSecurityBlob = NULL;
     pSocket->securityBlobLen = 0;
+    pSocket->usMaxSlots = 1;
+    pSocket->usUsedSlots = 0;
 
     ntStatus = SMBHashCreate(
                     19,
@@ -506,6 +508,7 @@ RdrSocketPrepareSend(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    pSocket->usUsedSlots++;
     pSocket->pOutgoing = pPacket;
 
 cleanup:
@@ -746,8 +749,8 @@ RdrSocketTask(
         pSocket->bWriteBlocked = FALSE;
     }
 
-    /* FIXME: max mpx count */
-    if (!pSocket->pOutgoing && !LwListIsEmpty(&pSocket->PendingSend))
+    if (!pSocket->pOutgoing && !LwListIsEmpty(&pSocket->PendingSend) &&
+        pSocket->usUsedSlots < pSocket->usMaxSlots)
     {
         pLink = LwListRemoveHead(&pSocket->PendingSend);
         pIrpContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
@@ -890,6 +893,8 @@ RdrSocketFindAndSignalResponse(
     default:
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    pSocket->usUsedSlots--;
 
     if (pResponse->pContext)
     {

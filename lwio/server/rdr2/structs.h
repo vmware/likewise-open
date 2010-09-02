@@ -123,7 +123,8 @@ typedef struct _RDR_SOCKET
     PLW_TASK pTask;
     PLW_TASK pTimeout;
     /* MaxMpxCount from NEGOTIATE */
-    USHORT maxMpxCount;
+    USHORT usMaxSlots;
+    USHORT usUsedSlots;
     /* Share or User security */
     SMB_SECURITY_MODE securityMode;
     BOOLEAN bPasswordsMustBeEncrypted;

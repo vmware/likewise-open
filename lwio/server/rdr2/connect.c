@@ -298,7 +298,7 @@ RdrProcessNegotiateResponse(
     pSocket->bPasswordsMustBeEncrypted = (pHeader->securityMode & 0x2) ? TRUE : FALSE;
     pSocket->bSignedMessagesSupported = (pHeader->securityMode & 0x4) ? TRUE : FALSE;
     pSocket->bSignedMessagesRequired = (pHeader->securityMode & 0x8) ? TRUE : FALSE;
-    pSocket->maxMpxCount = pHeader->maxMpxCount;
+    pSocket->usMaxSlots = pHeader->maxMpxCount;
     pSocket->securityBlobLen = securityBlobLen;
 
     status = SMBAllocateMemory(
