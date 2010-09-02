@@ -294,10 +294,7 @@ RdrProcessNegotiateResponse(
     pSocket->maxRawSize = pHeader->maxRawSize;
     pSocket->sessionKey = pHeader->sessionKey;
     pSocket->capabilities = pHeader->capabilities;
-    pSocket->securityMode = (pHeader->securityMode & 0x1) ? SMB_SECURITY_MODE_USER : SMB_SECURITY_MODE_SHARE;
-    pSocket->bPasswordsMustBeEncrypted = (pHeader->securityMode & 0x2) ? TRUE : FALSE;
-    pSocket->bSignedMessagesSupported = (pHeader->securityMode & 0x4) ? TRUE : FALSE;
-    pSocket->bSignedMessagesRequired = (pHeader->securityMode & 0x8) ? TRUE : FALSE;
+    pSocket->ucSecurityMode = pHeader->securityMode;
     pSocket->usMaxSlots = pHeader->maxMpxCount;
     pSocket->securityBlobLen = securityBlobLen;
 

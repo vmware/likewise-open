@@ -33,6 +33,9 @@
 
 #include "lwlist.h"
 
+#define SECURITY_MODE_SIGNED_MESSAGES_SUPPORTED 0x4
+#define SECURITY_MODE_SIGNED_MESSAGES_REQUIRED 0x8
+
 typedef struct _RDR_OP_CONTEXT
 {
     PIRP pIrp;
@@ -125,13 +128,9 @@ typedef struct _RDR_SOCKET
     /* MaxMpxCount from NEGOTIATE */
     USHORT usMaxSlots;
     USHORT usUsedSlots;
-    /* Share or User security */
-    SMB_SECURITY_MODE securityMode;
-    BOOLEAN bPasswordsMustBeEncrypted;
-    BOOLEAN bSignedMessagesSupported;
-    BOOLEAN bSignedMessagesRequired;
-    BOOLEAN bUseSignedMessagesIfSupported;
-    BOOLEAN bIgnoreServerSignatures;
+    BYTE ucSecurityMode;
+    unsigned bUseSignedMessagesIfSupported:1;
+    unsigned bIgnoreServerSignatures:1;
     PBYTE pSessionKey;
     DWORD dwSessionKeyLength;
     DWORD dwSequence;

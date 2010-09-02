@@ -389,8 +389,8 @@ RdrSocketIsSignatureRequired(
        Note that no known SMB server actually verifies this signature since it
        is meaningless and probably the result of an implementation quirk. */
     if (pSocket->state == RDR_SOCKET_STATE_READY &&
-        (pSocket->bSignedMessagesRequired ||
-         (pSocket->bSignedMessagesSupported && pSocket->bUseSignedMessagesIfSupported)))
+        (pSocket->ucSecurityMode & SECURITY_MODE_SIGNED_MESSAGES_REQUIRED ||
+         (pSocket->ucSecurityMode & SECURITY_MODE_SIGNED_MESSAGES_SUPPORTED && pSocket->bUseSignedMessagesIfSupported)))
     {
         bIsRequired = TRUE;
     }
