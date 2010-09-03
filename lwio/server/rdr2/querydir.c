@@ -149,6 +149,14 @@ RdrQueryDirectory(
     PWSTR pwszPattern = NULL;
     PRDR_OP_CONTEXT pContext = NULL;
 
+    pFile = IoFileGetContext(pIrp->FileHandle);
+
+    if (!pFile->fid)
+    {
+        status = STATUS_ACCESS_VIOLATION;
+        BAIL_ON_NT_STATUS(status);
+    }
+
     switch (pIrp->Args.QueryDirectory.FileInformationClass)
     {
     case FileBothDirectoryInformation:
@@ -159,8 +167,6 @@ RdrQueryDirectory(
         BAIL_ON_NT_STATUS(status);
         break;
     }
-
-    pFile = IoFileGetContext(pIrp->FileHandle);
 
     status = RdrCreateContext(pIrp, &pContext);
     BAIL_ON_NT_STATUS(status);

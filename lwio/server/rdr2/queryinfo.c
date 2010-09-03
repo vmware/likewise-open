@@ -117,6 +117,14 @@ RdrQueryInformation(
     PRDR_CCB pFile = NULL;
     SMB_INFO_LEVEL infoLevel = 0;
 
+    pFile = IoFileGetContext(pIrp->FileHandle);
+
+    if (!pFile->fid)
+    {
+        status = STATUS_ACCESS_VIOLATION;
+        BAIL_ON_NT_STATUS(status);
+    }
+
     switch (pIrp->Args.QuerySetInformation.FileInformationClass)
     {
     case FileBasicInformation:
@@ -130,8 +138,6 @@ RdrQueryInformation(
         BAIL_ON_NT_STATUS(status);
         break;
     }
-
-    pFile = IoFileGetContext(pIrp->FileHandle);
 
     status = RdrCreateContext(pIrp, &pContext);
     BAIL_ON_NT_STATUS(status);

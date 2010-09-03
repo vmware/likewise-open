@@ -82,10 +82,18 @@ RdrWrite(
     PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
     PRDR_OP_CONTEXT pContext = NULL;
 
+    if (!pFile->fid)
+    {
+        status = STATUS_ACCESS_VIOLATION;
+        BAIL_ON_NT_STATUS(status);
+    }
+
     status = RdrCreateContext(
         pIrp,
         &pContext);
     BAIL_ON_NT_STATUS(status);
+
+    IoIrpMarkPending(pIrp, RdrCancelWriteFile, pContext);
 
     pContext->Continue = RdrFinishWriteFile;
 
@@ -98,13 +106,13 @@ RdrWrite(
         pContext->State.Write.llByteOffset = pFile->llOffset;
     }
 
-    IoIrpMarkPending(pIrp, RdrCancelWriteFile, pContext);
-
-    RdrContinueContext(pContext, STATUS_SUCCESS, NULL);
-
-    status = STATUS_PENDING;
-
 cleanup:
+
+    if (pContext)
+    {
+        RdrContinueContext(pContext, status, NULL);
+        status = STATUS_PENDING;
+    }
 
     return status;
 
