@@ -224,4 +224,12 @@ RdrReleaseFile(
     PRDR_CCB pFile
     );
 
+NTSTATUS
+RdrConvertPath(
+    PCWSTR pwszIoPath,
+    PWSTR* ppwszHost,
+    PWSTR* ppwszShare,
+    PWSTR* ppwszFile
+    );
+
 #endif /* __RDR_H__ */

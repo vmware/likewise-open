@@ -99,8 +99,8 @@ RdrSessionCreate(
 
     status = SMBHashCreate(
                 19,
-                SMBHashCaselessStringCompare,
-                SMBHashCaselessString,
+                SMBHashCaselessWc16StringCompare,
+                SMBHashCaselessWc16String,
                 NULL,
                 &pSession->pTreeHashByPath);
     BAIL_ON_NT_STATUS(status);

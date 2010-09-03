@@ -31,7 +31,7 @@
 NTSTATUS
 RdrTreeConnect(
     PCWSTR pwszHostname,
-    PCSTR pszSharename,
+    PCWSTR pszSharename,
     PIO_CREDS pCreds,
     uid_t Uid,
     PRDR_OP_CONTEXT pContinue

@@ -52,15 +52,6 @@
 #include "rdr.h"
 
 static
-NTSTATUS
-ParseSharePath(
-    PCWSTR pwszPath,
-    PWSTR*  ppwszServer,
-    PSTR*   ppszShare,
-    PSTR*   ppszFilename
-    );
-
-static
 BOOLEAN
 RdrFinishCreate(
     PRDR_OP_CONTEXT pContext,
@@ -106,24 +97,18 @@ RdrCreateTreeConnect(
         IoSecurityGetProcessInfo(pIrp->Args.Create.SecurityContext);
     PRDR_TREE pTree = NULL;
     PWSTR pwszServer = NULL;
-    PSTR pszShare = NULL;
-    PSTR pszFilename = NULL;
+    PWSTR pwszShare = NULL;
 
-    status = ParseSharePath(
+    status = RdrConvertPath(
         pFileName->FileName,
         &pwszServer,
-        &pszShare,
-        &pszFilename);
-    BAIL_ON_NT_STATUS(status);
-
-    status = LwRtlWC16StringAllocateFromCString(
-        &pContext->State.Create.pwszFilename,
-        pszFilename);
+        &pwszShare,
+        &pContext->State.Create.pwszFilename);
     BAIL_ON_NT_STATUS(status);
 
     status = RdrTreeConnect(
         pwszServer,
-        pszShare,
+        pwszShare,
         pCreds,
         pProcessInfo->Uid,
         pContext);
@@ -132,8 +117,7 @@ RdrCreateTreeConnect(
 cleanup:
 
     RTL_FREE(&pwszServer);
-    RTL_FREE(&pszShare);
-    RTL_FREE(&pszFilename);
+    RTL_FREE(&pwszShare);
 
     if (status != STATUS_PENDING)
     {
@@ -312,174 +296,6 @@ cleanup:
     return status;
 
 error:
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-ParseSharePath(
-    PCWSTR pwszPath,
-    PWSTR*  ppwszServer,
-    PSTR*   ppszShare,
-    PSTR*   ppszFilename
-    )
-{
-    NTSTATUS status = 0;
-    PSTR  pszPath = NULL;
-    PSTR  pszIndex = NULL;
-    PSTR  pszServer = NULL;
-    PSTR  pszCanonical = NULL;
-    PSTR  pszShare  = NULL;
-    PSTR  pszFilename = NULL;
-    PSTR  pszCursor = NULL;
-    size_t sLen = 0;
-    size_t i = 0;
-    struct in_addr ipAddr;
-
-    memset(&ipAddr, 0, sizeof(ipAddr));
-    status = SMBWc16sToMbs(
-                    pwszPath,
-                    &pszPath);
-    BAIL_ON_NT_STATUS(status);
-
-    SMBStripWhitespace(pszPath, TRUE, TRUE);
-
-    pszIndex = pszPath;
-
-    // Skip optional initial decoration
-    if (!strncmp(pszIndex, "/", sizeof("/") - 1) ||
-        !strncmp(pszIndex, "\\", sizeof("\\") - 1))
-    {
-        pszIndex += 1;
-    }
-
-    if (IsNullOrEmptyString(pszIndex))
-    {
-        status = LWIO_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    // Seek server name
-    sLen = strcspn(pszIndex, "\\/");
-    if (!sLen)
-    {
-        status = LWIO_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = SMBStrndup(
-                    pszIndex,
-                    sLen,
-                    &pszServer);
-    BAIL_ON_NT_STATUS(status);
-
-    status = SMBStrndup(
-                    pszIndex,
-                    sLen,
-                    &pszCanonical);
-    BAIL_ON_NT_STATUS(status);
-
-    for (pszCursor = pszCanonical; *pszCursor; pszCursor++)
-    {
-        if (*pszCursor == '@')
-        {
-            *pszCursor = '\0';
-            break;
-        }
-    }
-
-    pszIndex += sLen;
-
-    // Skip delimiter
-    sLen = strspn(pszIndex, "\\/");
-    if (!sLen)
-    {
-        status = LWIO_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    pszIndex += sLen;
-
-    // Seek share name
-    sLen = strcspn(pszIndex, "\\/");
-    if (!sLen)
-    {
-        status = LWIO_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = SMBAllocateMemory(
-        sizeof("\\\\") - 1 + strlen(pszCanonical) + sizeof("\\") - 1 + sLen + 1,
-        (PVOID*)&pszShare);
-    BAIL_ON_NT_STATUS(status);
-
-    sprintf(pszShare, "\\\\%s\\", pszCanonical);
-    strncat(pszShare, pszIndex, sLen);
-
-    pszIndex += sLen;
-
-    // Skip delimiter
-    sLen = strspn(pszIndex, "\\/");
-    if (!sLen)
-    {
-        SMBAllocateMemory(
-            strlen("\\") + 1,
-            (PVOID*)&pszFilename);
-        BAIL_ON_NT_STATUS(status);
-
-        pszFilename[0] = '\\';
-        pszFilename[1] = '\0';
-    }
-    else
-    {
-        pszIndex += sLen;
-
-        SMBAllocateMemory(
-            strlen(pszIndex) + 2,
-            (PVOID*)&pszFilename);
-        BAIL_ON_NT_STATUS(status);
-
-        pszFilename[0] = '\\';
-
-        for (i = 0; pszIndex[i]; i++)
-        {
-            switch (pszIndex[i])
-            {
-            case '/':
-                pszFilename[1 + i] = '\\';
-                break;
-            default:
-                pszFilename[1 + i] = pszIndex[i];
-            }
-        }
-
-        pszFilename[1 + i] = '\0';
-    }
-
-    status = LwRtlWC16StringAllocateFromCString(ppwszServer, pszServer);
-    BAIL_ON_NT_STATUS(status);
-
-    *ppszShare  = pszShare;
-    *ppszFilename = pszFilename;
-
-cleanup:
-
-    LWIO_SAFE_FREE_STRING(pszCanonical);
-    LWIO_SAFE_FREE_STRING(pszServer);
-    LWIO_SAFE_FREE_STRING(pszPath);
-
-    return status;
-
-error:
-
-    LWIO_SAFE_FREE_STRING(pszServer);
-    LWIO_SAFE_FREE_STRING(pszShare);
-    LWIO_SAFE_FREE_STRING(pszFilename);
-
-    *ppwszServer = NULL;
-    *ppszShare = NULL;
-    *ppszFilename = NULL;
 
     goto cleanup;
 }

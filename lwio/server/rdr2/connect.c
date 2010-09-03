@@ -42,7 +42,7 @@ static
 NTSTATUS
 RdrTreeFindOrCreate(
     IN OUT PRDR_SESSION* ppSession,
-    IN PCSTR pszPath,
+    IN PCWSTR pwszPath,
     OUT PRDR_TREE* ppTree
     );
 
@@ -85,7 +85,7 @@ RdrFreeTreeConnectContext(
 {
     if (pContext)
     {
-        RTL_FREE(&pContext->State.TreeConnect.pszSharename);
+        RTL_FREE(&pContext->State.TreeConnect.pwszSharename);
 
         RdrFreePacket(pContext->State.TreeConnect.pPacket);
 
@@ -595,13 +595,12 @@ RdrSessionSetupComplete(
     PRDR_TREE pTree = NULL;
     BOOLEAN bTreeLocked = FALSE;
     BOOLEAN bFreeContext = FALSE;
-    PWSTR pwszPath = NULL;
 
     BAIL_ON_NT_STATUS(status);
 
     status = RdrTreeFindOrCreate(
         &pSession,
-        pContext->State.TreeConnect.pszSharename,
+        pContext->State.TreeConnect.pwszSharename,
         &pTree);
     BAIL_ON_NT_STATUS(status);
 
@@ -615,12 +614,9 @@ RdrSessionSetupComplete(
         LwListInsertTail(&pTree->StateWaiters, &pContext->State.TreeConnect.pContinue->Link);
         pTree->state = RDR_TREE_STATE_INITIALIZING;
 
-        status = SMBMbsToWc16s(pTree->pszPath, &pwszPath);
-        BAIL_ON_NT_STATUS(status);
-
         pContext->Continue = RdrFinishTreeConnect;
 
-        status = RdrTransceiveTreeConnect(pContext, pTree, pwszPath);
+        status = RdrTransceiveTreeConnect(pContext, pTree, pTree->pwszPath);
         BAIL_ON_NT_STATUS(status);
         break;
     case RDR_TREE_STATE_INITIALIZING:
@@ -652,8 +648,6 @@ cleanup:
         RdrFreeTreeConnectContext(pContext);
     }
 
-    RTL_FREE(&pwszPath);
-
     return FALSE;
 
 error:
@@ -672,7 +666,7 @@ static
 NTSTATUS
 RdrTreeFindOrCreate(
     IN OUT PRDR_SESSION* ppSession,
-    IN PCSTR pszPath,
+    IN PCWSTR pwszPath,
     OUT PRDR_TREE* ppTree
     )
 {
@@ -685,7 +679,7 @@ RdrTreeFindOrCreate(
 
     ntStatus = SMBHashGetValue(
                 pSession->pTreeHashByPath,
-                pszPath,
+                pwszPath,
                 (PVOID *) &pTree);
 
     if (!ntStatus)
@@ -702,15 +696,14 @@ RdrTreeFindOrCreate(
 
         pTree->pSession = pSession;
 
-        ntStatus = SMBStrndup(
-            pszPath,
-            strlen(pszPath) + 1,
-            &pTree->pszPath);
+        ntStatus = RtlWC16StringDuplicate(
+            &pTree->pwszPath,
+            pwszPath);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SMBHashSetValue(
             pSession->pTreeHashByPath,
-            pTree->pszPath,
+            pTree->pwszPath,
             pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -974,7 +967,7 @@ error:
 NTSTATUS
 RdrTreeConnect(
     PCWSTR pwszHostname,
-    PCSTR pszSharename,
+    PCWSTR pwszSharename,
     PIO_CREDS pCreds,
     uid_t Uid,
     PRDR_OP_CONTEXT pContinue
@@ -991,9 +984,9 @@ RdrTreeConnect(
     pContext->State.TreeConnect.Uid = Uid;
     pContext->State.TreeConnect.pContinue = pContinue;
 
-    status = LwRtlCStringDuplicate(
-        &pContext->State.TreeConnect.pszSharename,
-        pszSharename);
+    status = LwRtlWC16StringDuplicate(
+        &pContext->State.TreeConnect.pwszSharename,
+        pwszSharename);
     BAIL_ON_NT_STATUS(status);
 
     pContext->State.TreeConnect.pCreds = pCreds;

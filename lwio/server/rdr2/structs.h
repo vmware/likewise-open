@@ -72,7 +72,7 @@ typedef struct _RDR_OP_CONTEXT
                 struct _RDR_SESSION* pSession;
                 struct _RDR_SOCKET* pSocket;
             };
-            PSTR pszSharename;
+            PWSTR pwszSharename;
             PIO_CREDS pCreds;
             uid_t Uid;
             PSMB_PACKET pPacket;
@@ -201,7 +201,7 @@ typedef struct _RDR_TREE
     /* Back pointer to parent session */
     RDR_SESSION *pSession;
     USHORT tid;
-    PSTR pszPath;
+    PWSTR pwszPath;
     PLW_TASK pTimeout;
     LW_LIST_LINKS StateWaiters;
     PRDR_OP_CONTEXT pDisconnectContext;

@@ -107,7 +107,7 @@ RdrTreeCreate(
     pTree->refCount = 1;
     pTree->pSession = NULL;
     pTree->tid = 0;
-    pTree->pszPath = NULL;
+    pTree->pwszPath = NULL;
 
     *ppTree = pTree;
 
@@ -160,7 +160,7 @@ RdrTreeUnlink(
     {
         SMBHashRemoveKey(
             pTree->pSession->pTreeHashByPath,
-            pTree->pszPath);
+            pTree->pwszPath);
         SMBHashRemoveKey(
             pTree->pSession->pTreeHashByTID,
             &pTree->tid);
@@ -350,7 +350,7 @@ RdrTreeDestroyContents(
     PRDR_TREE pTree
     )
 {
-    LWIO_SAFE_FREE_MEMORY(pTree->pszPath);
+    LWIO_SAFE_FREE_MEMORY(pTree->pwszPath);
 
     if (pTree->pTimeout)
     {
