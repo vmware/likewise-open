@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise SMB Subsystem (LWIO)
+ *        Likewise Rdr Subsystem (LWIO)
  *
  *        Common Socket Code
  *
@@ -79,14 +79,14 @@ RdrSocketReceiveAndUnmarshall(
 
 static
 NTSTATUS
-SMBResponseCreate(
+RdrResponseCreate(
     uint16_t       wMid,
     RDR_RESPONSE **ppResponse
     );
 
 static
 VOID
-SMBResponseFree(
+RdrResponseFree(
     PRDR_RESPONSE pResponse
     );
 
@@ -554,7 +554,7 @@ RdrSocketTransceive(
 
     pPacket->pSMBHeader->mid = usMid;
 
-    status = SMBResponseCreate(usMid, &pResponse);
+    status = RdrResponseCreate(usMid, &pResponse);
     BAIL_ON_NT_STATUS(status);
 
     pResponse->pContext = pContext;
@@ -575,7 +575,7 @@ error:
 
     if (pResponse)
     {
-        SMBResponseFree(pResponse);
+        RdrResponseFree(pResponse);
     }
 
     goto cleanup;
@@ -913,7 +913,7 @@ RdrSocketFindAndSignalResponse(
         if (!bKeep)
         {
             SMBHashRemoveKey(pSocket->pResponseHash, &pResponse->mid);
-            SMBResponseFree(pResponse);
+            RdrResponseFree(pResponse);
         }
     }
 
@@ -1207,7 +1207,7 @@ RdrSocketInvalidate_InLock(
         if (RdrSocketFindResponseByMid(pSocket, pContext->usMid, &pResponse) == STATUS_SUCCESS)
         {
             SMBHashRemoveKey(pSocket->pResponseHash, &pContext->usMid);
-            SMBResponseFree(pResponse);
+            RdrResponseFree(pResponse);
         }
     }
 
@@ -1236,7 +1236,7 @@ RdrSocketInvalidate_InLock(
     {
         pResponse = pEntry->pValue;
         RdrContinueContext(pResponse->pContext, status, NULL);
-        SMBResponseFree(pResponse);
+        RdrResponseFree(pResponse);
     }
     LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
 }
@@ -1560,7 +1560,7 @@ RdrSocketShutdown(
 
 static
 NTSTATUS
-SMBResponseCreate(
+RdrResponseCreate(
     uint16_t       wMid,
     RDR_RESPONSE **ppResponse
     )
@@ -1592,7 +1592,7 @@ error:
 
 static
 VOID
-SMBResponseFree(
+RdrResponseFree(
     PRDR_RESPONSE pResponse
     )
 {
