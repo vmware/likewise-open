@@ -117,6 +117,81 @@ RdrCancelSetInfo(
 {
 }
 
+static
+VOID
+RdrTrimLastPathElement(
+    PWSTR pwszPath
+    )
+{
+    PWSTR pwszSlash = NULL;
+
+    for (pwszSlash = pwszPath + LwRtlWC16StringNumChars(pwszPath);
+         pwszSlash > pwszPath && *pwszSlash != '\\';
+         pwszSlash--);
+
+    if (*pwszSlash == '\\')
+    {
+        *pwszSlash = '\0';
+    }
+}
+
+
+static
+NTSTATUS
+RdrIsInPlaceRename(
+    PRDR_CCB pFile,
+    PFILE_RENAME_INFORMATION pRenameInfo,
+    PBOOLEAN pbIsInPlace
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszShare = NULL;
+    PWSTR pwszFile = NULL;
+    PWSTR pwszExisting = NULL;
+
+    status = RdrConvertPath(
+        pRenameInfo->FileName,
+        NULL,
+        &pwszShare,
+        &pwszFile
+        );
+    BAIL_ON_NT_STATUS(status);
+
+    if (!LwRtlWC16StringIsEqual(pwszShare, pFile->pTree->pwszPath, FALSE))
+    {
+        *pbIsInPlace = FALSE;
+        goto cleanup;
+    }
+
+    status = LwRtlWC16StringDuplicate(&pwszExisting, pFile->pwszPath);
+    BAIL_ON_NT_STATUS(status);
+
+    RdrTrimLastPathElement(pwszFile);
+    RdrTrimLastPathElement(pwszExisting);
+
+    if (!LwRtlWC16StringIsEqual(pwszFile, pwszExisting, FALSE))
+    {
+        *pbIsInPlace = FALSE;
+        goto cleanup;
+    }
+
+    *pbIsInPlace = TRUE;
+
+cleanup:
+
+    RTL_FREE(&pwszShare);
+    RTL_FREE(&pwszFile);
+    RTL_FREE(&pwszExisting);
+
+    return status;
+
+error:
+
+    *pbIsInPlace = FALSE;
+
+    goto cleanup;
+}
+
 NTSTATUS
 RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -127,6 +202,10 @@ RdrSetInformation(
     PRDR_OP_CONTEXT pContext = NULL;
     SMB_INFO_LEVEL infoLevel = 0;
     PRDR_CCB pFile = NULL;
+    PFILE_RENAME_INFORMATION pRenameInfo = NULL;
+    BOOLEAN bIsInPlace = FALSE;
+
+    pFile = IoFileGetContext(pIrp->FileHandle);
 
     switch (pIrp->Args.QuerySetInformation.FileInformationClass)
     {
@@ -134,17 +213,33 @@ RdrSetInformation(
         infoLevel = SMB_SET_FILE_END_OF_FILE_INFO;
         break;
     case FileRenameInformation:
-        /* FIXME: detect non-in-place renames and
-           use alternate strategy */
-        infoLevel = SMB_SET_FILE_RENAME_INFO;
+        pRenameInfo = pIrp->Args.QuerySetInformation.FileInformation;
+        if (pIrp->Args.QuerySetInformation.Length < sizeof(*pRenameInfo) ||
+            pIrp->Args.QuerySetInformation.Length < sizeof(*pRenameInfo) - sizeof(WCHAR) + pRenameInfo->FileNameLength ||
+            pRenameInfo->RootDirectory != NULL)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(status);
+        }
+
+        status = RdrIsInPlaceRename(pFile, pRenameInfo, &bIsInPlace);
+        BAIL_ON_NT_STATUS(status);
+
+        if (bIsInPlace && pFile->pTree->pSession->pSocket->capabilities & CAP_INFOLEVEL_PASSTHRU)
+        {
+            infoLevel = SMB_SET_FILE_RENAME_INFO;
+        }
+        else
+        {
+            status = STATUS_NOT_IMPLEMENTED;
+            BAIL_ON_NT_STATUS(status);
+        }
         break;
     default:
         status = STATUS_NOT_IMPLEMENTED;
         BAIL_ON_NT_STATUS(status);
         break;
     }
-
-    pFile = IoFileGetContext(pIrp->FileHandle);
 
     status = RdrCreateContext(pIrp, &pContext);
     BAIL_ON_NT_STATUS(status);
