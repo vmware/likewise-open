@@ -57,10 +57,15 @@ SrvWorkerIndicateStopContext(
 
 NTSTATUS
 SrvWorkerInit(
-    PLWIO_SRV_WORKER pWorker
+    PLWIO_SRV_WORKER pWorker,
+    ULONG            ulCpu
     )
 {
     NTSTATUS ntStatus = 0;
+    LONG lError = 0;
+    cpu_set_t cpuSet;
+    pthread_attr_t threadAttr;
+    pthread_attr_t* pThreadAttr = NULL;
 
     memset(&pWorker->context, 0, sizeof(pWorker->context));
 
@@ -70,9 +75,37 @@ SrvWorkerInit(
     pWorker->context.bStop = FALSE;
     pWorker->context.workerId = pWorker->workerId;
 
+    // Create threadAttr with affinity to ulCpu, ignoring errors
+    lError = pthread_attr_init(&threadAttr);
+    ntStatus = LwErrnoToNtStatus(lError);
+    if (!NT_SUCCESS(ntStatus))
+    {
+        LWIO_LOG_ERROR("Error initializing pthread_attr_t");
+        ntStatus = STATUS_SUCCESS;
+    }
+    else
+    {
+        CPU_ZERO(&cpuSet);
+        CPU_SET((int)ulCpu, &cpuSet);
+
+        lError = pthread_attr_setaffinity_np(&threadAttr,
+                                             sizeof(cpuSet),
+                                             &cpuSet);
+        ntStatus = LwErrnoToNtStatus(lError);
+        if (!NT_SUCCESS(ntStatus))
+        {
+            LWIO_LOG_ERROR("Error calling pthread_attr_setaffinity_np");
+            ntStatus = STATUS_SUCCESS;
+        }
+        else
+        {
+            pThreadAttr = &threadAttr;
+        }
+    }
+
     ntStatus = pthread_create(
                     &pWorker->worker,
-                    NULL,
+                    pThreadAttr,
                     &SrvWorkerMain,
                     &pWorker->context);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -238,4 +271,3 @@ SrvWorkerIndicateStopContext(
 
     pthread_mutex_unlock(&pContext->mutex);
 }
-

@@ -315,7 +315,8 @@ SrvProcessStatistics(
 
 NTSTATUS
 SrvWorkerInit(
-    PLWIO_SRV_WORKER      pWorker
+    PLWIO_SRV_WORKER pWorker,
+    ULONG            ulCpu
     );
 
 VOID
