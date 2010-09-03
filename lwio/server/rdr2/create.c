@@ -165,7 +165,8 @@ RdrCreateTreeConnected(
     status = LwErrnoToNtStatus(pthread_mutex_init(&pFile->mutex, NULL));
     BAIL_ON_NT_STATUS(status);
 
-    pFile->pMutex = &pFile->mutex;
+    pFile->bMutexInitialized = TRUE;
+
     pFile->pTree = pTree;
     pFile->Params.CreateOptions = CreateOptions;
 

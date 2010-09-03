@@ -207,9 +207,9 @@ RdrReleaseFile(
         RdrTreeRelease(pFile->pTree);
     }
 
-    if (pFile->pMutex)
+    if (pFile->bMutexInitialized)
     {
-        pthread_mutex_destroy(pFile->pMutex);
+        pthread_mutex_destroy(&pFile->mutex);
     }
 
     RTL_FREE(&pFile->pwszPath);

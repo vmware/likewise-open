@@ -148,6 +148,7 @@ RdrQueryDirectory(
     SMB_INFO_LEVEL infoLevel = 0;
     PWSTR pwszPattern = NULL;
     PRDR_OP_CONTEXT pContext = NULL;
+    BOOLEAN bLocked = FALSE;
 
     pFile = IoFileGetContext(pIrp->FileHandle);
 
@@ -172,6 +173,18 @@ RdrQueryDirectory(
     BAIL_ON_NT_STATUS(status);
 
     IoIrpMarkPending(pIrp, RdrCancelQueryDirectory, pContext);
+
+    LWIO_LOCK_MUTEX(bLocked, &pFile->mutex);
+    if (pFile->find.bInProgress)
+    {
+        /* FIXME: better status code? */
+        status = STATUS_DEVICE_BUSY;
+        BAIL_ON_NT_STATUS(status);
+    }
+    else
+    {
+        pFile->find.bInProgress = TRUE;
+    }
 
     if (pFile->find.pBuffer && pFile->find.usSearchCount == 0)
     {
@@ -232,6 +245,8 @@ RdrQueryDirectory(
     }
 
 error:
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pFile->mutex);
 
     if (status != STATUS_PENDING && pContext)
     {
@@ -642,8 +657,11 @@ RdrQueryDirComplete(
     )
 {
     PRDR_CCB pFile = pParam;
+    BOOLEAN bLocked = FALSE;
 
     BAIL_ON_NT_STATUS(status);
+
+    LWIO_LOCK_MUTEX(bLocked, &pFile->mutex);
 
     if (pFile->find.usSearchCount == 0)
     {
@@ -662,6 +680,10 @@ RdrQueryDirComplete(
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
+
+    pFile->find.bInProgress = FALSE;
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pFile->mutex);
 
     pContext->pIrp->IoStatusBlock.Status = status;
 

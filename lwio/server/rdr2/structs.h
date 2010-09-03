@@ -216,7 +216,7 @@ typedef struct
 typedef struct _RDR_CCB
 {
     pthread_mutex_t mutex;
-    pthread_mutex_t* pMutex;
+    unsigned bMutexInitialized:1;
     PWSTR pwszPath;
     PRDR_TREE pTree;
     USHORT usFileType;
@@ -233,6 +233,7 @@ typedef struct _RDR_CCB
         PBYTE pCursor;
         ULONG ulBufferCapacity;
         ULONG ulBufferLength;
+        unsigned bInProgress:1;
     } find;
     struct
     {
