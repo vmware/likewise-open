@@ -169,6 +169,7 @@ PvfsEnumerateDirectory(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     DIR *pDir = NULL;
     struct dirent *pDirEntry = NULL;
+    struct dirent dirEntry = { 0 };
     PSTR pszPattern = NULL;
     BOOLEAN bCaseSensitive = FALSE;
 
@@ -236,9 +237,9 @@ PvfsEnumerateDirectory(
 
     /* Loop through directory entries */
 
-    for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
+    for(ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry);
         pDirEntry && ((Count == -1) || (pCcb->pDirContext->dwNumEntries < Count));
-        ntError = PvfsSysReadDir(pDir, &pDirEntry))
+        ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry))
     {
         /* First check the error return */
         BAIL_ON_NT_STATUS(ntError);
