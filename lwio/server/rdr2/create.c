@@ -167,6 +167,7 @@ RdrCreateTreeConnected(
 
     pFile->pMutex = &pFile->mutex;
     pFile->pTree = pTree;
+    pFile->Params.CreateOptions = CreateOptions;
 
     status = LwRtlWC16StringDuplicate(&pFile->pwszPath, pContext->State.Create.pwszFilename);
     BAIL_ON_NT_STATUS(status);
@@ -175,18 +176,28 @@ RdrCreateTreeConnected(
 
     pContext->State.Create.pFile = pFile;
 
-    status = RdrTransceiveCreate(
-        pContext,
-        pFile,
-        pContext->State.Create.pwszFilename,
-        DesiredAccess,
-        AllocationSize,
-        FileAttributes,
-        ShareAccess,
-        CreateDisposition,
-        CreateOptions);
-    BAIL_ON_NT_STATUS(status);
-
+    if (DesiredAccess == DELETE)
+    {
+        /* If the desired access is precisely DELETE, we can only peform
+           move or delete operations.  Since these are path-based, there is
+           no point in opening a fid */
+        status = IoFileSetContext(pContext->pIrp->FileHandle, pFile);
+        BAIL_ON_NT_STATUS(status);
+    }
+    else
+    {
+        status = RdrTransceiveCreate(
+            pContext,
+            pFile,
+            pContext->State.Create.pwszFilename,
+            DesiredAccess,
+            AllocationSize,
+            FileAttributes,
+            ShareAccess,
+            CreateDisposition,
+            CreateOptions);
+        BAIL_ON_NT_STATUS(status);
+    }
 
 cleanup:
 

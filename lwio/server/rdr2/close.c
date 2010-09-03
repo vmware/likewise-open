@@ -50,6 +50,20 @@
 #include "rdr.h"
 
 static
+NTSTATUS
+RdrTranscieveDelete(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile
+    );
+
+static
+NTSTATUS
+RdrTranscieveDeleteDirectory(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile
+    );
+
+static
 BOOLEAN
 RdrFinishClose(
     PRDR_OP_CONTEXT pContext,
@@ -125,6 +139,19 @@ RdrClose(
             pContext);
         BAIL_ON_NT_STATUS(status);
     }
+    else if (pFile->Params.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        if (pFile->Params.CreateOptions & FILE_DIRECTORY_FILE)
+        {
+            status = RdrTranscieveDeleteDirectory(pContext, pFile);
+            BAIL_ON_NT_STATUS(status);
+        }
+        else
+        {
+            status = RdrTranscieveDelete(pContext, pFile);
+            BAIL_ON_NT_STATUS(status);
+        }
+    }
     else
     {
         RdrReleaseFile(pFile);
@@ -160,14 +187,9 @@ RdrFinishClose(
     PIRP pIrp = pContext->pIrp;
     PRDR_CCB pFile = IoFileGetContext(pIrp->FileHandle);
 
-    if (status == STATUS_SUCCESS)
-    {
-        status = pPacket->pSMBHeader->error;
-    }
-
     RdrFreePacket(pPacket);
 
-    pIrp->IoStatusBlock.Status = status;
+    pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
     IoIrpComplete(pIrp);
     RdrReleaseFile(pFile);
     RdrFreeContext(pContext);
@@ -194,4 +216,167 @@ RdrReleaseFile(
     RTL_FREE(&pFile->find.pBuffer);
 
     SMBFreeMemory(pFile);
+}
+
+static
+NTSTATUS
+RdrTranscieveDelete(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB_DELETE_REQUEST_HEADER pDeleteHeader = {0};
+    PBYTE pCursor = NULL;
+    ULONG ulRemainingSpace = 0;
+    PBYTE pFileName = NULL;
+
+    status = RdrAllocateContextPacket(
+        pContext,
+        1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_DELETE,
+        0,
+        0,
+        pFile->pTree->tid,
+        gRdrRuntime.SysPid,
+        pFile->pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pSMBHeader->wordCount = 1;
+
+    pCursor = pContext->Packet.pParams;
+    ulRemainingSpace = pContext->Packet.bufferLen - (pCursor - pContext->Packet.pRawBuffer);
+
+    pDeleteHeader = (PSMB_DELETE_REQUEST_HEADER) pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pDeleteHeader));
+    BAIL_ON_NT_STATUS(status);
+
+    /* Buffer type */
+    status = MarshalByte(&pCursor, &ulRemainingSpace, 0x4);
+    BAIL_ON_NT_STATUS(status);
+
+    status = Align((PBYTE) pContext->Packet.pSMBHeader, &pCursor, &ulRemainingSpace, sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    pFileName = pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, (LwRtlWC16StringNumChars(pFile->pwszPath) + 1) * sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    SMB_HTOLWSTR(
+        pFileName,
+        pFile->pwszPath,
+        LwRtlWC16StringNumChars(pFile->pwszPath) + 1);
+
+    pDeleteHeader->usSearchAttributes = 0;
+    pDeleteHeader->ByteCount = SMB_HTOL16((pCursor - (PBYTE) pDeleteHeader) - sizeof(*pDeleteHeader));
+
+    pContext->Packet.bufferUsed += (pCursor - pContext->Packet.pParams);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Continue = RdrFinishClose;
+
+    status = RdrSocketTransceive(
+        pFile->pTree->pSession->pSocket,
+        pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrTranscieveDeleteDirectory(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PDELETE_DIRECTORY_REQUEST_HEADER pDeleteHeader = {0};
+    PBYTE pCursor = NULL;
+    ULONG ulRemainingSpace = 0;
+    PBYTE pFileName = NULL;
+
+    status = RdrAllocateContextPacket(
+        pContext,
+        1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_DELETE_DIRECTORY,
+        0,
+        0,
+        pFile->pTree->tid,
+        gRdrRuntime.SysPid,
+        pFile->pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pSMBHeader->wordCount = 0;
+
+    pCursor = pContext->Packet.pParams;
+    ulRemainingSpace = pContext->Packet.bufferLen - (pCursor - pContext->Packet.pRawBuffer);
+
+    pDeleteHeader = (PDELETE_DIRECTORY_REQUEST_HEADER) pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pDeleteHeader));
+    BAIL_ON_NT_STATUS(status);
+
+    pDeleteHeader->ucBufferFormat = 0x4;
+
+    status = Align((PBYTE) pContext->Packet.pSMBHeader, &pCursor, &ulRemainingSpace, sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    pFileName = pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, (LwRtlWC16StringNumChars(pFile->pwszPath) + 1) * sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    SMB_HTOLWSTR(
+        pFileName,
+        pFile->pwszPath,
+        LwRtlWC16StringNumChars(pFile->pwszPath) + 1);
+
+    pDeleteHeader->usByteCount = SMB_HTOL16((pCursor - (PBYTE) pDeleteHeader) - sizeof(USHORT));
+
+    pContext->Packet.bufferUsed += (pCursor - pContext->Packet.pParams);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Continue = RdrFinishClose;
+
+    status = RdrSocketTransceive(
+        pFile->pTree->pSession->pSocket,
+        pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
 }

@@ -234,6 +234,10 @@ typedef struct _RDR_CCB
         ULONG ulBufferCapacity;
         ULONG ulBufferLength;
     } find;
+    struct
+    {
+        FILE_CREATE_OPTIONS CreateOptions;
+    } Params;
 } RDR_CCB, *PRDR_CCB;
 
 typedef struct _RDR_CONFIG

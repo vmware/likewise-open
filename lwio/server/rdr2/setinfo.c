@@ -51,7 +51,27 @@
 
 static
 NTSTATUS
-RdrTransceiveSetInfo(
+RdrTranscieveRenameFile(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_TREE pTree,
+    USHORT usSearchAttributes,
+    PCWSTR pwszSourceFile,
+    PCWSTR pwszDestFile
+    );
+
+static
+NTSTATUS
+RdrTransceiveSetFileInfo(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+static
+NTSTATUS
+RdrTransceiveSetPathInfo(
     PRDR_OP_CONTEXT pContext,
     PRDR_CCB pFile,
     SMB_INFO_LEVEL infoLevel,
@@ -204,6 +224,8 @@ RdrSetInformation(
     PRDR_CCB pFile = NULL;
     PFILE_RENAME_INFORMATION pRenameInfo = NULL;
     BOOLEAN bIsInPlace = FALSE;
+    BOOLEAN bDoRename = FALSE;
+    PWSTR pwszFileName = NULL;
 
     pFile = IoFileGetContext(pIrp->FileHandle);
 
@@ -231,8 +253,7 @@ RdrSetInformation(
         }
         else
         {
-            status = STATUS_NOT_IMPLEMENTED;
-            BAIL_ON_NT_STATUS(status);
+            bDoRename = TRUE;
         }
         break;
     default:
@@ -248,15 +269,48 @@ RdrSetInformation(
 
     pContext->Continue = RdrSetInfoComplete;
 
-    status = RdrTransceiveSetInfo(
-        pContext,
-        pFile,
-        infoLevel,
-        pIrp->Args.QuerySetInformation.FileInformation,
-        pIrp->Args.QuerySetInformation.Length);
-    BAIL_ON_NT_STATUS(status);
+    if (bDoRename)
+    {
+        status = RdrConvertPath(
+            pRenameInfo->FileName,
+            NULL,
+            NULL,
+            &pwszFileName
+            );
+        BAIL_ON_NT_STATUS(status);
+
+        status = RdrTranscieveRenameFile(
+            pContext,
+            pFile->pTree,
+            0,
+            pFile->pwszPath,
+            pwszFileName);
+        BAIL_ON_NT_STATUS(status);
+    }
+    else if (pFile->fid)
+    {
+        status = RdrTransceiveSetFileInfo(
+            pContext,
+            pFile,
+            infoLevel,
+            pIrp->Args.QuerySetInformation.FileInformation,
+            pIrp->Args.QuerySetInformation.Length);
+        BAIL_ON_NT_STATUS(status);
+    }
+    else
+    {
+        status = RdrTransceiveSetPathInfo(
+            pContext,
+            pFile,
+            infoLevel,
+            pIrp->Args.QuerySetInformation.FileInformation,
+            pIrp->Args.QuerySetInformation.Length);
+        BAIL_ON_NT_STATUS(status);
+    }
 
 error:
+
+    RTL_FREE(&pwszFileName);
 
     if (status != STATUS_PENDING && pContext)
     {
@@ -271,7 +325,7 @@ error:
 
 static
 NTSTATUS
-RdrTransceiveSetInfo(
+RdrTransceiveSetFileInfo(
     PRDR_OP_CONTEXT pContext,
     PRDR_CCB pFile,
     SMB_INFO_LEVEL infoLevel,
@@ -404,6 +458,128 @@ cleanup:
     }
 
     return FALSE;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrTransceiveSetPathInfo(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile,
+    SMB_INFO_LEVEL infoLevel,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    TRANSACTION_REQUEST_HEADER *pHeader = NULL;
+    USHORT usSetup = SMB_SUB_COMMAND_TRANS2_SET_PATH_INFORMATION;
+    SMB_SET_PATH_INFO_HEADER setHeader = {0};
+    PBYTE pRequestParameters = NULL;
+    PBYTE pRequestData = NULL;
+    USHORT usRequestDataCount = 0;
+    PBYTE pCursor = NULL;
+    ULONG ulRemainingSpace = 0;
+    PBYTE pByteCount = NULL;
+    PBYTE pFileName = NULL;
+
+    status = RdrAllocateContextPacket(pContext, 1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_TRANSACTION2,
+        0,
+        0,
+        pFile->pTree->tid,
+        gRdrRuntime.SysPid,
+        pFile->pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pData = pContext->Packet.pParams + sizeof(TRANSACTION_REQUEST_HEADER);
+
+    pCursor = pContext->Packet.pParams;
+    ulRemainingSpace = pContext->Packet.bufferLen - (pCursor - pContext->Packet.pRawBuffer);
+
+    status = WireMarshalTrans2RequestSetup(
+        pContext->Packet.pSMBHeader,
+        &pCursor,
+        &ulRemainingSpace,
+        &usSetup,
+        1,
+        &pHeader,
+        &pByteCount);
+    BAIL_ON_NT_STATUS(status);
+
+    pRequestParameters = pCursor;
+
+    setHeader.infoLevel = SMB_HTOL16(infoLevel);
+    setHeader.reserved = 0;
+
+    status = MarshalData(&pCursor, &ulRemainingSpace, (PBYTE) &setHeader, sizeof(setHeader));
+    BAIL_ON_NT_STATUS(status);
+
+    status = Align((PBYTE) pContext->Packet.pSMBHeader, &pCursor, &ulRemainingSpace, sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    pFileName = pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, (LwRtlWC16StringNumChars(pFile->pwszPath) + 1) * sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(status);
+
+    SMB_HTOLWSTR(
+        pFileName,
+        pFile->pwszPath,
+        LwRtlWC16StringNumChars(pFile->pwszPath) + 1);
+
+    pRequestData = pCursor;
+
+    status = RdrMarshalFileInfo(
+        pContext->Packet.pSMBHeader,
+        &pCursor,
+        &ulRemainingSpace,
+        infoLevel,
+        pInfo,
+        ulInfoLength);
+    BAIL_ON_NT_STATUS(status);
+
+    usRequestDataCount = pCursor - pRequestData;
+
+    pHeader->totalParameterCount = SMB_HTOL16(pRequestData - pRequestParameters);
+    pHeader->totalDataCount      = SMB_HTOL16(usRequestDataCount);
+    pHeader->maxParameterCount   = SMB_HTOL16(sizeof(setHeader));
+    pHeader->maxDataCount        = SMB_HTOL16(0);
+    pHeader->maxSetupCount       = SMB_HTOL16(0);
+    pHeader->flags               = SMB_HTOL16(0);
+    pHeader->timeout             = SMB_HTOL16(0);
+    pHeader->parameterCount      = SMB_HTOL16(pRequestData - pRequestParameters);
+    pHeader->parameterOffset     = SMB_HTOL16(pRequestParameters - (PBYTE) pContext->Packet.pSMBHeader);
+    pHeader->dataCount           = SMB_HTOL16(usRequestDataCount);
+    pHeader->dataOffset          = SMB_HTOL16(pRequestData - (PBYTE) pContext->Packet.pSMBHeader);
+    pHeader->setupCount          = SMB_HTOL8(1);
+
+    /* Update byte count */
+    status = MarshalUshort(&pByteCount, NULL, (pCursor - pByteCount) - 2);
+
+    /* Update used length */
+    pContext->Packet.bufferUsed += (pCursor - pContext->Packet.pParams);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pFile->pTree->pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
 
 error:
 
@@ -633,6 +809,97 @@ RdrMarshalFileRenameInfo(
 
     *ppCursor = pCursor;
     *pulRemainingSpace = ulRemainingSpace;
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrTranscieveRenameFile(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_TREE pTree,
+    USHORT usSearchAttributes,
+    PCWSTR pwszSourceFile,
+    PCWSTR pwszDestFile
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB_RENAME_REQUEST_HEADER pHeader = NULL;
+    PBYTE pCursor = NULL;
+    ULONG ulSourceFileLength = 0;
+    ULONG ulDestFileLength = 0;
+
+    status = RdrAllocateContextPacket(pContext, 1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_RENAME,
+        0,
+        0,
+        pTree->tid,
+        gRdrRuntime.SysPid,
+        pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pData = pContext->Packet.pParams + sizeof(SMB_RENAME_REQUEST_HEADER);
+
+    pContext->Packet.bufferUsed += sizeof(SMB_RENAME_REQUEST_HEADER);
+    pContext->Packet.pSMBHeader->wordCount = 1;
+
+    pHeader = (PSMB_RENAME_REQUEST_HEADER) pContext->Packet.pParams;
+    pHeader->usSearchAttributes = usSearchAttributes;
+
+    pCursor = pContext->Packet.pData;
+
+    ulSourceFileLength = LwRtlWC16StringNumChars(pwszSourceFile);
+    ulDestFileLength = LwRtlWC16StringNumChars(pwszDestFile);
+
+    /* Old filename format */
+    *(pCursor++) = 0x04;
+    pContext->Packet.bufferUsed += 1;
+    /* Align old filename */
+    if ((pCursor - (PBYTE) pContext->Packet.pSMBHeader) % 2)
+    {
+        pCursor++;
+        pContext->Packet.bufferUsed++;
+    }
+    /* Write old filename */
+    SMB_HTOLWSTR(pCursor, pwszSourceFile, ulSourceFileLength);
+    pCursor += (ulSourceFileLength + 1) * sizeof(WCHAR);
+    pContext->Packet.bufferUsed += (ulSourceFileLength + 1) * sizeof(WCHAR);
+
+    /* New filename format */
+    *(pCursor++) = 0x04;
+    pContext->Packet.bufferUsed += 1;
+    /* Align new filename */
+    if ((pCursor - (PBYTE) pContext->Packet.pSMBHeader) % 2)
+    {
+        pCursor++;
+        pContext->Packet.bufferUsed++;
+    }
+    /* Write new filename */
+    SMB_HTOLWSTR(pCursor, pwszDestFile, ulDestFileLength);
+    pCursor += (ulDestFileLength + 1) * sizeof(WCHAR);
+    pContext->Packet.bufferUsed += (ulDestFileLength + 1) * sizeof(WCHAR);
+
+    pHeader->usByteCount = (USHORT) (pCursor - pContext->Packet.pData);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pTree->pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
 
