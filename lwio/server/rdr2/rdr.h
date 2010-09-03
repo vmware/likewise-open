@@ -79,7 +79,12 @@
 #include "connect.h"
 #include "externs.h"
 
+#define RDR_CONNECT_TIMEOUT 10
 #define RDR_IDLE_TIMEOUT 10
+#define RDR_ECHO_TIMEOUT 10
+#define RDR_RESPONSE_TIMEOUT 20
+#define RDR_ECHO_INTERVAL 300
+#define RDR_NS_IN_S (1000000000ll)
 
 NTSTATUS
 RdrCreateContext(

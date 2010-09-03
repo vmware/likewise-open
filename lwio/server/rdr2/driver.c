@@ -224,6 +224,10 @@ RdrInitialize(
     /* Pid used for SMB Header */
 
     gRdrRuntime.SysPid = getpid();
+    gRdrRuntime.config.usResponseTimeout = RDR_RESPONSE_TIMEOUT;
+    gRdrRuntime.config.usEchoTimeout = RDR_ECHO_TIMEOUT;
+    gRdrRuntime.config.usEchoInterval = RDR_ECHO_INTERVAL;
+    gRdrRuntime.config.usConnectTimeout = RDR_CONNECT_TIMEOUT;
 
     ntStatus = RdrSocketInit();
     BAIL_ON_NT_STATUS(ntStatus);

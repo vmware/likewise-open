@@ -50,6 +50,10 @@ typedef struct _RDR_OP_CONTEXT
     {
         struct
         {
+            struct _RDR_SOCKET* pSocket;
+        } Echo;
+        struct
+        {
             LONG64 llByteOffset;
             LONG64 llTotalBytesRead;
             USHORT usReadLen;
@@ -147,6 +151,7 @@ typedef struct _RDR_SOCKET
     USHORT usNextMid;
     unsigned volatile bReadBlocked:1;
     unsigned volatile bWriteBlocked:1;
+    unsigned volatile bEcho:1;
 } RDR_SOCKET, *PRDR_SOCKET;
 
 typedef enum _RDR_SESSION_STATE
@@ -243,8 +248,11 @@ typedef struct _RDR_CCB
 
 typedef struct _RDR_CONFIG
 {
-    ULONG ulNumMaxPackets;
     BOOLEAN bSignMessagesIfSupported;
+    USHORT usResponseTimeout;
+    USHORT usEchoTimeout;
+    USHORT usEchoInterval;
+    USHORT usConnectTimeout;
 } RDR_CONFIG, *PRDR_CONFIG;
 
 typedef struct _RDR_GLOBAL_RUNTIME

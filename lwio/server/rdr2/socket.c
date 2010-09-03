@@ -51,6 +51,13 @@
 
 static
 NTSTATUS
+RdrEcho(
+    PRDR_SOCKET pSocket,
+    PCSTR pszMessage
+    );
+
+static
+NTSTATUS
 RdrSocketAcquireMid(
     PRDR_SOCKET pSocket,
     USHORT* pusMid
@@ -165,6 +172,22 @@ static
 VOID
 RdrSocketFree(
     PRDR_SOCKET pSocket
+    );
+
+static
+NTSTATUS
+RdrTransceiveEcho(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_SOCKET pSocket,
+    PCSTR pszMessage
+    );
+
+static
+BOOLEAN
+RdrEchoComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pData
     );
 
 static
@@ -672,9 +695,13 @@ RdrSocketTask(
     BOOLEAN bInLock = FALSE;
     int err = 0;
     SOCKLEN_T len = sizeof(err);
-    static const LONG64 llConnectTimeout = 10 * 1000000000ll; // 10 sec
     PLW_LIST_LINKS pLink = NULL;
     PRDR_OP_CONTEXT pIrpContext = NULL;
+
+    if (WakeMask & LW_TASK_EVENT_YIELD)
+    {
+        WakeMask = LW_TASK_EVENT_YIELD;
+    }
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
@@ -728,12 +755,35 @@ RdrSocketTask(
             else
             {
                 *pWaitMask = LW_TASK_EVENT_FD_WRITABLE | LW_TASK_EVENT_TIME;
-                *pllTime = llConnectTimeout;
+                *pllTime = gRdrRuntime.config.usConnectTimeout * RDR_NS_IN_S;
                 goto cleanup;
             }
         default:
             ntStatus = LwErrnoToNtStatus(err);
             BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+    if (WakeMask & LW_TASK_EVENT_TIME)
+    {
+        if (pSocket->bEcho)
+        {
+            /* Server is unresponsive to echo, time out socket */
+            ntStatus = STATUS_IO_TIMEOUT;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+            /* Send an echo now */
+            LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+            ntStatus = RdrEcho(pSocket, "Ping!");
+            LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+            if (ntStatus == STATUS_PENDING)
+            {
+                ntStatus = STATUS_SUCCESS;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+            pSocket->bEcho = TRUE;
         }
     }
 
@@ -750,6 +800,12 @@ RdrSocketTask(
     if (!pSocket->pOutgoing && !LwListIsEmpty(&pSocket->PendingSend) &&
         pSocket->usUsedSlots < pSocket->usMaxSlots)
     {
+        if (pSocket->usUsedSlots == 0)
+        {
+            /* Reset timeout since we will now have an outstanding request */
+            *pllTime = 0;
+        }
+
         pLink = LwListRemoveHead(&pSocket->PendingSend);
         pIrpContext = LW_STRUCT_FROM_FIELD(pLink, RDR_OP_CONTEXT, Link);
         ntStatus = RdrSocketPrepareSend(pSocket, &pIrpContext->Packet);
@@ -770,6 +826,9 @@ RdrSocketTask(
         switch(ntStatus)
         {
         case STATUS_SUCCESS:
+            /* Reset timeout since we successfully received a response */
+            *pllTime = 0;
+
             /* This function should free packet and socket memory on error */
             ntStatus = RdrSocketFindAndSignalResponse(pSocket, pSocket->pPacket);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -813,6 +872,24 @@ RdrSocketTask(
     if (pSocket->bWriteBlocked && pSocket->pOutgoing)
     {
         *pWaitMask |= LW_TASK_EVENT_FD_WRITABLE;
+    }
+
+    *pWaitMask |= LW_TASK_EVENT_TIME;
+    /* Determine next timeout */
+    if (*pllTime == 0)
+    {
+        if (pSocket->bEcho)
+        {
+            *pllTime = gRdrRuntime.config.usEchoTimeout * RDR_NS_IN_S;
+        }
+        else if (pSocket->usUsedSlots != 0)
+        {
+            *pllTime = gRdrRuntime.config.usResponseTimeout * RDR_NS_IN_S;
+        }
+        else
+        {
+            *pllTime = gRdrRuntime.config.usEchoInterval * RDR_NS_IN_S;
+        }
     }
 
 cleanup:
@@ -892,8 +969,6 @@ RdrSocketFindAndSignalResponse(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pSocket->usUsedSlots--;
-
     if (pResponse->pContext)
     {
         ntStatus = SMBPacketDecodeHeader(
@@ -912,6 +987,7 @@ RdrSocketFindAndSignalResponse(
 
         if (!bKeep)
         {
+            pSocket->usUsedSlots--;
             SMBHashRemoveKey(pSocket->pResponseHash, &pResponse->mid);
             RdrResponseFree(pResponse);
         }
@@ -1597,4 +1673,141 @@ RdrResponseFree(
     )
 {
     SMBFreeMemory(pResponse);
+}
+
+static
+NTSTATUS
+RdrEcho(
+    PRDR_SOCKET pSocket,
+    PCSTR pszMessage
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PRDR_OP_CONTEXT pContext = NULL;
+
+    status = RdrCreateContext(NULL, &pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Continue = RdrEchoComplete;
+    pContext->State.Echo.pSocket = pSocket;
+
+    status = RdrTransceiveEcho(pContext, pSocket, pszMessage);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    if (status != STATUS_PENDING && pContext)
+    {
+        RdrFreeContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrTransceiveEcho(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_SOCKET pSocket,
+    PCSTR pszMessage
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PECHO_REQUEST_HEADER pEchoHeader = NULL;
+    PBYTE pCursor = NULL;
+    ULONG ulRemainingSpace = 0;
+
+    status = RdrAllocateContextPacket(
+        pContext,
+        1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_ECHO,
+        0,
+        0,
+        0xFFFF,
+        gRdrRuntime.SysPid,
+        0,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pSMBHeader->wordCount = 1;
+
+    pCursor = pContext->Packet.pParams;
+    ulRemainingSpace = pContext->Packet.bufferLen - (pCursor - pContext->Packet.pRawBuffer);
+
+    pEchoHeader = (PECHO_REQUEST_HEADER) pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pEchoHeader));
+    BAIL_ON_NT_STATUS(status);
+
+    pEchoHeader->echoCount = SMB_HTOL16(1);
+    pEchoHeader->byteCount = SMB_HTOL16(strlen(pszMessage) + 1);
+
+    pContext->Packet.pData = pCursor;
+
+    status = Advance(&pCursor, &ulRemainingSpace, strlen(pszMessage) + 1);
+    BAIL_ON_NT_STATUS(status);
+
+    strcpy((char*) pContext->Packet.pData, pszMessage);
+
+    pContext->Packet.bufferUsed += (pCursor - pContext->Packet.pParams);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+BOOLEAN
+RdrEchoComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pData
+    )
+{
+    PSMB_PACKET pPacket = pData;
+    PRDR_SOCKET pSocket = pContext->State.Echo.pSocket;
+    BOOLEAN bLocked = FALSE;
+
+    BAIL_ON_NT_STATUS(status);
+
+    status = pPacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(status);
+
+    LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
+
+    pSocket->bEcho = FALSE;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+
+    RdrFreePacket(pPacket);
+    RdrFreeContext(pContext);
+
+    return FALSE;
+
+error:
+
+    goto cleanup;
 }
