@@ -670,7 +670,7 @@ RdrTreeFindOrCreate(
     OUT PRDR_TREE* ppTree
     )
 {
-    DWORD     ntStatus = 0;
+    NTSTATUS  ntStatus = 0;
     PRDR_TREE pTree = NULL;
     BOOLEAN   bInLock = FALSE;
     PRDR_SESSION pSession = *ppSession;
