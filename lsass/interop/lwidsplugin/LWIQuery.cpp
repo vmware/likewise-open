@@ -1042,7 +1042,7 @@ LWIQuery::GetUserById(
     {
         int err = 0;
         uint32_t nssStatus = NSS_STATUS_SUCCESS;
-        char buffer[512+1];
+        char buffer[2048+1];
         int buflen = sizeof(buffer) - 1;
         struct passwd sUser = { 0 };
 
@@ -1087,7 +1087,7 @@ LWIQuery::GetUserByName(
     {
         int err = 0;
         long nssStatus = NSS_STATUS_SUCCESS;
-        char buffer[512+1];
+        char buffer[2048+1];
         int buflen = sizeof(buffer) - 1;
         struct passwd sUser = { 0 };
 
@@ -1147,7 +1147,7 @@ LWIQuery::GetUsersNext(
 
 	int err = 0;
 	long nssStatus = NSS_STATUS_SUCCESS;
-	char buffer[512+1];
+	char buffer[2048+1];
 	int buflen = sizeof(buffer) - 1;
 	struct passwd sUser = { 0 };
 
@@ -1191,7 +1191,7 @@ LWIQuery::GetGroupById(
     {
         int err = 0;
         long nssStatus = NSS_STATUS_SUCCESS;
-        char buffer[512+1];
+        char buffer[4096+1];
         int buflen = sizeof(buffer) - 1;
         struct group grp = { 0 };
 
@@ -1235,7 +1235,7 @@ LWIQuery::GetGroupByName(
     {
         int err = 0;
         long nssStatus = NSS_STATUS_SUCCESS;
-        char buffer[512+1];
+        char buffer[4096+1];
         int buflen = sizeof(buffer) - 1;
         struct group grp = { 0 };
 
@@ -1295,7 +1295,7 @@ LWIQuery::GetGroupsNext(
 
     int err = 0;
     long nssStatus = NSS_STATUS_SUCCESS;
-    char buffer[512+1];
+    char buffer[4096+1];
     int buflen = sizeof(buffer) - 1;
     struct group grp = { 0 };
 
