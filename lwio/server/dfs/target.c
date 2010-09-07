@@ -33,69 +33,55 @@
  *
  * Module Name:
  *
- *        reftable.c
+ *        target.c
  *
  * Abstract:
  *
  *        Likewise Distributed File System Driver (DFS)
  *
- *        DFS Referral Control Block Table routineus
+ *        Referral Target routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "dfs.h"
 
-static
-int
-DfsReferralTableCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    );
-
-static
-VOID
-DfsReferralTableFreeKey(
-    PVOID pKey
-    );
-
-static
-VOID
-DfsReferralTableFreeData(
-    PVOID pData
-    );
-
 
 /***********************************************************************
  **********************************************************************/
 
 NTSTATUS
-DfsReferralTableInitialize(
-    PDFS_REFERRAL_TABLE pReferralTable
+DfsAllocateReferralTarget(
+    OUT PDFS_REFERRAL_TARGET *ppReferralTarget,
+    IN PWSTR pwszTarget,
+    IN ULONG TTL
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDFS_REFERRAL_TARGET pReferralTarget = NULL;
 
-    BAIL_ON_INVALID_PTR(pReferralTable, ntStatus);
-
-    ntStatus = LwRtlRBTreeCreate(
-                   DfsReferralTableCompare,
-                   DfsReferralTableFreeKey,
-                   DfsReferralTableFreeData,
-                   &pReferralTable->pTable);
+    ntStatus = DfsAllocateMemory(
+                    (PVOID*)&pReferralTarget,
+                    sizeof(*pReferralTarget));
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pReferralTarget->ReferralLink);
+
+    ntStatus = LwRtlWC16StringDuplicate(
+                   &pReferralTarget->pwszTargetPath,
+                   pwszTarget);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pReferralTarget->Ttl = TTL;
+
+    *ppReferralTarget = pReferralTarget;
 cleanup:
     return ntStatus;
 
 error:
-    if (pReferralTable)
+    if (pReferralTarget)
     {
-        if (pReferralTable->pTable)
-        {
-            LwRtlRBTreeFree(pReferralTable->pTable);
-            pReferralTable->pTable = NULL;
-        }
+        DfsFreeReferralTarget(pReferralTarget);
     }
 
     goto cleanup;
@@ -105,67 +91,18 @@ error:
 /***********************************************************************
  **********************************************************************/
 
-static
-int
-DfsReferralTableCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    )
-{
-    return wc16scasecmp((const wchar16_t*)pKey1, (const wchar16_t*)pKey2);
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-static
 VOID
-DfsReferralTableFreeKey(
-    PVOID pKey
+DfsFreeReferralTarget(
+    PDFS_REFERRAL_TARGET pTarget
     )
 {
+    if (pTarget->pwszTargetPath)
+    {
+        LwRtlWC16StringFree(&pTarget->pwszTargetPath);
+    }
+
     return;
 }
-
-
-/***********************************************************************
- **********************************************************************/
-
-static
-VOID
-DfsReferralTableFreeData(
-    PVOID pData
-    )
-{
-    return;
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-NTSTATUS
-DfsReferralTableAdd_inlock(
-    PDFS_REFERRAL_TABLE pReferralTable,
-    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    ntStatus = LwRtlRBTreeAdd(
-                   pReferralTable->pTable,
-                   pReferralCB->pwszReferralName,
-                   pReferralCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
 
 
 /*

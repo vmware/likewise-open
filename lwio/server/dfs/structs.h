@@ -130,13 +130,9 @@ typedef struct _DFS_REFERRAL_TARGET
 {
     LW_LIST_LINKS ReferralLink;
 
-    pthread_mutex_t Mutex;
-
-    LONG RefCount;
-
     ULONG Ttl;
 
-    PSTR pszTargetPath;
+    PWSTR pwszTargetPath;
 
 } DFS_REFERRAL_TARGET, *PDFS_REFERRAL_TARGET;
 

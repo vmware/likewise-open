@@ -48,10 +48,18 @@
 
 static
 NTSTATUS
-DfsInitializeRoot(
+DfsConfigInitializeRoot(
     HANDLE hRegistryServer,
     HKEY hParentKey,
     PWSTR pwszRootName
+    );
+
+static
+NTSTATUS
+DfsConfigRootAddReferrals(
+    HANDLE hRegistryServer,
+    HKEY hParentKey,
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
     );
 
 /***********************************************************************
@@ -89,8 +97,6 @@ DfsConfigReadStandaloneRoots(
                    &hStandaloneKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // Enumerate subkeys to create ROOT_CONTROL_BLOCKs
-
     for (dwIndex = 0; !bFinished; dwIndex++)
     {
         ntStatus = NtRegEnumKeyExW(
@@ -111,7 +117,7 @@ DfsConfigReadStandaloneRoots(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = DfsInitializeRoot(
+        ntStatus = DfsConfigInitializeRoot(
                        hRegConnection,
                        hStandaloneKey,
                        pwszDfsRootName);
@@ -147,14 +153,57 @@ error:
 
 static
 NTSTATUS
-DfsInitializeRoot(
+DfsConfigInitializeRoot(
     HANDLE hRegistryServer,
     HKEY hParentKey,
     PWSTR pwszDfsRootName
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDFS_ROOT_CONTROL_BLOCK pRootCB = NULL;
+
+    ntStatus = DfsAllocateRootCB(&pRootCB, pwszDfsRootName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = DfsConfigRootAddReferrals(
+                   hRegistryServer,
+                   hParentKey,
+                   pRootCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = DfsRootCtrlBlockTableAdd(
+                   &gRootCtrlBlockTable,
+                   pRootCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pRootCB)
+    {
+        DfsReleaseRootCB(&pRootCB);
+    }
+
+    goto cleanup;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+DfsConfigRootAddReferrals(
+    HANDLE hRegistryServer,
+    HKEY hParentKey,
+    PDFS_ROOT_CONTROL_BLOCK pRootCB
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     HKEY hDfsRootKey = (HKEY)NULL;
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB = NULL;
+    PWSTR *ppwszTargets = NULL;
+    DWORD i = 0;
     DWORD dwIndex = 0;
     BOOLEAN bFinished = FALSE;
     DWORD dwValueNameLength = MAX_VALUE_LENGTH;
@@ -162,37 +211,21 @@ DfsInitializeRoot(
     DWORD dwType = REG_NONE;
     DWORD dwReserved = 0;
     BYTE pBuffer[4096] = { 0 };
-    DWORD dwBufferSize = sizeof(pBuffer);;
-    PDFS_ROOT_CONTROL_BLOCK pRootCB = NULL;
-    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB = NULL;
+    DWORD dwBufferSize = 0;
 
     ntStatus = NtRegOpenKeyExW(
                    hRegistryServer,
                    hParentKey,
-                   pwszDfsRootName,
+                   pRootCB->pwszRootName,
                    0,
                    KEY_READ,
                    &hDfsRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // Create the DFS_ROOT_CONTROL_BLOCK here...
-
-    ntStatus = DfsAllocateRootCB(&pRootCB);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlWC16StringDuplicate(
-                   &pRootCB->pwszRootName,
-                   pwszDfsRootName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = DfsReferralTableInitialize(&pRootCB->ReferralTable);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    // Create the DFS_REFERRAL_CONTROL_BLOCK for each Value
-
     for (dwIndex=0; !bFinished; dwIndex++)
     {
         dwBufferSize = sizeof(pBuffer);
+        LwRtlZeroMemory(pBuffer, dwBufferSize);
 
         ntStatus = NtRegEnumValueW(
                        hRegistryServer,
@@ -212,21 +245,30 @@ DfsInitializeRoot(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        // Parse Results and add REFERRAL_TARGETS
+        if (dwType != REG_MULTI_SZ)
+        {
+            continue;
+        }
 
-        ntStatus = DfsAllocateReferralCB(&pReferralCB);
+        ntStatus = NtRegByteArrayToMultiStrsW(
+                       pBuffer,
+                       dwBufferSize,
+                       &ppwszTargets);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = LwRtlWC16StringDuplicate(
-                       &pReferralCB->pwszReferralName,
-                       pwszValueName);
+        ntStatus = DfsAllocateReferralCB(&pReferralCB, pwszValueName);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        for (i=0; ppwszTargets[i] != NULL; i++)
+        {
+            ntStatus = DfsReferralParseTarget(pReferralCB, ppwszTargets[i]);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        RegFreeMultiStrsW(ppwszTargets);
+        ppwszTargets = NULL;
     }
 
-    ntStatus = DfsRootCtrlBlockTableAdd(
-                   &gRootCtrlBlockTable,
-                   pRootCB);
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
     if (hDfsRootKey)
@@ -237,11 +279,6 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pRootCB)
-    {
-        DfsReleaseRootCB(&pRootCB);
-    }
-
     goto cleanup;
 }
 

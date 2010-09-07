@@ -205,7 +205,8 @@ DfsAcquireCCB(
 
 NTSTATUS
 DfsAllocateRootCB(
-    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
+    PDFS_ROOT_CONTROL_BLOCK *ppRootCB,
+    PWSTR pwszDfsRootName
     );
 
 VOID
@@ -225,7 +226,8 @@ DfsReferenceRootCB(
 
 NTSTATUS
 DfsAllocateReferralCB(
-    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB
+    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB,
+    PWSTR pwszReferralName
     );
 
 VOID
@@ -236,6 +238,12 @@ DfsReleaseReferralCB(
 PDFS_REFERRAL_CONTROL_BLOCK
 DfsReferenceReferralCB(
     PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
+    );
+
+NTSTATUS
+DfsReferralParseTarget(
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB,
+    PWSTR pwszTarget
     );
 
 
@@ -277,6 +285,33 @@ NTSTATUS
 DfsReferralTableAdd_inlock(
     PDFS_REFERRAL_TABLE pReferralTable,
     PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
+    );
+
+
+//
+// From target.c
+//
+
+NTSTATUS
+DfsAllocateReferralTarget(
+    OUT PDFS_REFERRAL_TARGET *ppReferralTarget,
+    IN PWSTR pwszTarget,
+    IN ULONG TTL
+    );
+
+VOID
+DfsFreeReferralTarget(
+    PDFS_REFERRAL_TARGET pTarget
+    );
+
+//
+// From string.c
+//
+
+WCHAR*
+DfsWC16StringFindCharacter(
+    PWSTR pwszString,
+    WCHAR Needle
     );
 
 

@@ -46,19 +46,21 @@
 
 #include "dfs.h"
 
-
-/***********************************************************************
- **********************************************************************/
-
 static
 VOID
 DfsFreeReferralCB(
     PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
     );
 
+
+/***********************************************************************
+ **********************************************************************/
+
+
 NTSTATUS
 DfsAllocateReferralCB(
-    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB
+    PDFS_REFERRAL_CONTROL_BLOCK *ppReferralCB,
+    PWSTR pwszReferralName
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -71,12 +73,17 @@ DfsAllocateReferralCB(
                    sizeof(DFS_REFERRAL_CONTROL_BLOCK));
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwRtlWC16StringDuplicate(
+                   &pReferralCB->pwszReferralName,
+                   pwszReferralName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LwListInit(&pReferralCB->TargetList);
+
     pthread_rwlock_init(&pReferralCB->RwLock, NULL);
     pReferralCB->pRwLock = &pReferralCB->RwLock;
 
     pReferralCB->RefCount = 1;
-
-    LwListInit(&pReferralCB->TargetList);
 
     *ppReferralCB = pReferralCB;
 
@@ -102,6 +109,10 @@ DfsFreeReferralCB(
     PDFS_REFERRAL_CONTROL_BLOCK pReferralCB
     )
 {
+    PLW_LIST_LINKS pTargetLink = NULL;
+    PLW_LIST_LINKS pNextTargetLink = NULL;
+    PDFS_REFERRAL_TARGET pTarget = NULL;
+
     if (pReferralCB->pRwLock)
     {
         pthread_rwlock_destroy(&pReferralCB->RwLock);
@@ -111,6 +122,26 @@ DfsFreeReferralCB(
     if (pReferralCB->pwszReferralName)
     {
         LwRtlWC16StringFree(&pReferralCB->pwszReferralName);
+    }
+
+    pTargetLink = LwListTraverse(&pReferralCB->TargetList, NULL);
+
+    while (pTargetLink)
+    {
+        pNextTargetLink = LwListTraverse(
+                              &pReferralCB->TargetList,
+                              pTargetLink);
+
+        LwListRemove(pTargetLink);
+
+        pTarget = LW_STRUCT_FROM_FIELD(
+                      pTargetLink,
+                      DFS_REFERRAL_TARGET,
+                      ReferralLink);
+
+        DfsFreeReferralTarget(pTarget);
+
+        pTargetLink = pNextTargetLink;
     }
 
     DfsFreeMemory((PVOID*)&pReferralCB);
@@ -151,7 +182,62 @@ DfsReferenceReferralCB(
     return pReferralCB;
 }
 
+/***********************************************************************
+ **********************************************************************/
 
+NTSTATUS
+DfsReferralParseTarget(
+    PDFS_REFERRAL_CONTROL_BLOCK pReferralCB,
+    PWSTR pwszTarget
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszTTL = NULL;
+    PSTR pszTTL = NULL;
+    PSTR pszNext = NULL;
+    ULONG Ttl = 0;
+    PDFS_REFERRAL_TARGET pReferralTarget = NULL;
+
+    pwszTTL = DfsWC16StringFindCharacter(pwszTarget, L':');
+    if ((pwszTTL == NULL) || (*(pwszTTL+1) == 0x0))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    *pwszTTL = 0x0;
+    pwszTTL++;
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszTTL, pwszTTL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    Ttl = strtoll(pszTTL, &pszNext, 10);
+
+    if ((Ttl == 0) || (*pszNext != '\0'))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = DfsAllocateReferralTarget(
+                   &pReferralTarget,
+                   pwszTarget,
+                   Ttl);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LwListInsertAfter(
+        &pReferralCB->TargetList,
+        &pReferralTarget->ReferralLink);
+
+cleanup:
+    if (pszTTL)
+    {
+        LwRtlCStringFree(&pszTTL);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:

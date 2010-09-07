@@ -58,7 +58,8 @@ DfsFreeRootCB(
 
 NTSTATUS
 DfsAllocateRootCB(
-    PDFS_ROOT_CONTROL_BLOCK *ppRootCB
+    PDFS_ROOT_CONTROL_BLOCK *ppRootCB,
+    PWSTR pwszDfsRootName
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -71,7 +72,16 @@ DfsAllocateRootCB(
                    sizeof(DFS_ROOT_CONTROL_BLOCK));
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwRtlWC16StringDuplicate(
+                   &pRootCB->pwszRootName,
+                   pwszDfsRootName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = DfsReferralTableInitialize(&pRootCB->ReferralTable);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pthread_rwlock_init(&pRootCB->RwLock, NULL);
+    pRootCB->pRwLock = &pRootCB->RwLock;
 
     pRootCB->RefCount = 1;
 
