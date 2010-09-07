@@ -781,6 +781,7 @@ LwNtCtxFsControlFileComplete(
             pContext->OutputBuffer,
             pContext->OutputBufferLength,
             pOut);
+        status = pContext->IoStatusBlock->Status;
     }
     else
     {
