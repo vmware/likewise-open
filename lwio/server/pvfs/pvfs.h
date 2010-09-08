@@ -67,6 +67,7 @@
 #include "lwio/lwiodevctl.h"
 #include "iodriver.h"
 #include "lwioutils.h"
+#include "lwiolru.h"
 #include "lwlist.h"
 #include "srvecp.h"
 

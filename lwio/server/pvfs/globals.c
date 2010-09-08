@@ -61,10 +61,10 @@ PVFS_WORKER_POOL gWorkPool = {0};
 PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
 PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue = NULL;
 
-pthread_rwlock_t* gpPathCacheRwLock = NULL;
-pthread_rwlock_t  gPathCacheRwLock;
+pthread_mutex_t* gpPathCacheLock = NULL;
+pthread_mutex_t  gPathCacheLock;
 
-PSMB_HASH_TABLE gpPathCache = NULL;
+PLWIO_LRU        gpPathCache = NULL;
 
 pthread_mutex_t gDeviceFcbMutex = PTHREAD_MUTEX_INITIALIZER;
 PPVFS_FCB gpPvfsDeviceFcb = NULL;

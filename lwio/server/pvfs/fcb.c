@@ -446,10 +446,6 @@ PvfsReleaseFCB(
             LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
         }
 
-        /* Clear the path cache */
-
-        PvfsPathCacheRemove(pFcb->pszFilename);
-
         PvfsFreeFCB(pFcb);
     }
 
