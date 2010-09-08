@@ -33,31 +33,17 @@
  *
  * Module Name:
  *
- *        includes
+ *        structs.h
  *
  * Abstract:
  *
- *        Likewise Posix File System (SMBSS)
+ *        Likewise Named Pipe File System (NPFS)
  *
- *        Service Entry API
+ *        Structures
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __PVFS_H__
-#define __PVFS_H__
-
-#include "config.h"
-#include "lwiosys.h"
-#include "lwiofsctl.h"
-
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
-
-#include "iodriver.h"
-
-#include "lwioutils.h"
-#include "lwlist.h"
 
 typedef struct _NPFS_IRP_CONTEXT
 {
@@ -155,159 +141,9 @@ typedef struct _NPFS_FCB
     LW_LIST_LINKS          link;
 }NPFS_FCB, *PNPFS_FCB;
 
-typedef enum _PVFS_INFO_TYPE
+typedef enum _NPFS_INFO_TYPE
 {
     NPFS_QUERY = 1,
     NPFS_SET
 } NPFS_INFO_TYPE, *PNPFS_INFO_TYPE;
 
-NTSTATUS
-NpfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsCreateNamedPipe(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsFsCtl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-
-NTSTATUS
-NpfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsQueryInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsSetInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsCommonCreate(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsValidateCreate(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PUNICODE_STRING pPipeName
-    );
-
-NTSTATUS
-NpfsAllocateIrpContext(
-    PIRP pIrp,
-    PNPFS_IRP_CONTEXT * ppIrpContext
-    );
-
-
-NTSTATUS
-NpfsFreeIrpContext(
-    PNPFS_IRP_CONTEXT pIrpContext
-    );
-
-NTSTATUS
-NpfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
-    );
-
-
-NTSTATUS
-NpfsCommonClose(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsCloseHandle(
-    PNPFS_CCB pCCB
-    );
-
-NTSTATUS
-NpfsServerCloseHandle(
-    PNPFS_CCB pSCB
-    );
-
-NTSTATUS
-NpfsClientCloseHandle(
-    PNPFS_CCB pCCB
-    );
-
-NTSTATUS
-NpfsServerFreeCCB(
-    PNPFS_CCB pSCB
-    );
-
-NTSTATUS
-NpfsClientFreeCCB(
-    PNPFS_CCB pCCB
-    );
-
-VOID
-NpfsClientCompleteReadFile(
-    PNPFS_CCB pCCB,
-    PNPFS_IRP_CONTEXT pIrpContext
-    );
-
-VOID
-NpfsServerCompleteReadFile(
-    PNPFS_CCB pCCB,
-    PNPFS_IRP_CONTEXT pIrpContext
-    );
-
-extern LW_LIST_LINKS gFCBList;
-extern pthread_rwlock_t gServerLock;
-extern pthread_rwlock_t* gpServerLock;
-extern IO_DEVICE_HANDLE  ghDevice;
-
-#define ENTER_READER_RW_LOCK(pMutex) pthread_rwlock_rdlock(pMutex)
-
-#define LEAVE_READER_RW_LOCK(pMutex) pthread_rwlock_unlock(pMutex)
-
-#define ENTER_WRITER_RW_LOCK(pMutex) pthread_rwlock_wrlock(pMutex)
-
-#define LEAVE_WRITER_RW_LOCK(pMutex) pthread_rwlock_unlock(pMutex)
-
-
-#define ENTER_MUTEX(pMutex)  pthread_mutex_lock(pMutex)
-
-#define LEAVE_MUTEX(pMutex)  pthread_mutex_unlock(pMutex)
-
-#include "prototypes.h"
-
-#endif /* __PVFS_H__ */

@@ -48,7 +48,7 @@
  *          Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#include "npfs.h"
+#include "includes.h"
 
 VOID
 NpfsDriverShutdown(

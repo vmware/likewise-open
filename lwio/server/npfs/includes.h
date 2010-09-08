@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,39 +28,36 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        deviceio.c
+ *        includes
  *
  * Abstract:
  *
- *        Likewise Named Pipe File System Driver (PVFS)
+ *        Likewise Named Pipe File System (NPFS)
  *
- *        Device I/O Function
+ *        Common header
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "includes.h"
+#include <config.h>
+#include <lwiosys.h>
+#include <lwiofsctl.h>
 
-NTSTATUS
-NpfsDeviceIo(
-    IO_DEVICE_HANDLE DriverHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
+#include <lw/rtlstring.h>
+#include <lw/rtlgoto.h>
 
-    pIrp->IoStatusBlock.Status = ntStatus;
+#include <iodriver.h>
 
-    return ntStatus;
-}
+#include <lwioutils.h>
+#include <lwlist.h>
 
-
-
+#include "defs.h"
+#include "structs.h"
+#include "prototypes.h"
+#include "externs.h"

@@ -23,6 +23,76 @@
  * license@likewise.com
  */
 
+// close.c
+
+NTSTATUS
+NpfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsCommonClose(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsCloseHandle(
+    PNPFS_CCB pCCB
+    );
+
+NTSTATUS
+NpfsServerCloseHandle(
+    PNPFS_CCB pSCB
+    );
+
+NTSTATUS
+NpfsClientCloseHandle(
+    PNPFS_CCB pCCB
+    );
+
+// create.c
+
+NTSTATUS
+NpfsCreate(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsValidateCreate(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PUNICODE_STRING pPipeName
+    );
+
+NTSTATUS
+NpfsCommonCreate(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+NTSTATUS
+NpfsAllocateIrpContext(
+    PIRP pIrp,
+    PNPFS_IRP_CONTEXT * ppIrpContext
+    );
+
+
+NTSTATUS
+NpfsFreeIrpContext(
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+// deviceio.c
+
+NTSTATUS
+NpfsDeviceIo(
+    IO_DEVICE_HANDLE DriverHandle,
+    PIRP pIrp
+    );
+
+
 /* memory.c */
 NTSTATUS
 NpfsAllocateMemory(
@@ -101,6 +171,7 @@ NpfsValidateCreateNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
     PUNICODE_STRING  pPath
     );
+
 /* ccb.c */
 
 NTSTATUS
@@ -246,6 +317,12 @@ NpfsFreeFCB(
 /* fsctl.c */
 
 NTSTATUS
+NpfsFsCtl(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
 NpfsCommonFsCtl(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
@@ -324,6 +401,12 @@ NpfsMdlListIsEmpty(
 /* queryinfo.c */
 
 NTSTATUS
+NpfsQueryInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
 NpfsCommonQueryInformation(
     PNPFS_IRP_CONTEXT  pIrpContext,
     PIRP pIrp
@@ -358,9 +441,20 @@ NpfsServerReadFile(
     PNPFS_IRP_CONTEXT pIrpContext
     );
 
+VOID
+NpfsServerCompleteReadFile(
+    PNPFS_CCB pSCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
 
 NTSTATUS
 NpfsClientReadFile(
+    PNPFS_CCB pCCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+NpfsClientCompleteReadFile(
     PNPFS_CCB pCCB,
     PNPFS_IRP_CONTEXT pIrpContext
     );
@@ -375,6 +469,14 @@ NTSTATUS
 NpfsClientReadFile_Connected(
     PNPFS_CCB pCCB,
     PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+/* setinfo.c */
+
+NTSTATUS
+NpfsSetInformation(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
     );
 
 /* write.c */

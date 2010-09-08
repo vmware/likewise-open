@@ -28,7 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include "npfs.h"
+#include "includes.h"
 
 LW_LIST_LINKS gFCBList = { &gFCBList, &gFCBList };
 

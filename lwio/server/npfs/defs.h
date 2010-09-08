@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,39 +28,33 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        deviceio.c
+ *        defs.h
  *
  * Abstract:
  *
- *        Likewise Named Pipe File System Driver (PVFS)
+ *        Likewise Named Pipe File System (NPFS)
  *
- *        Device I/O Function
+ *        Defines
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "includes.h"
+#define ENTER_READER_RW_LOCK(pMutex) pthread_rwlock_rdlock(pMutex)
 
-NTSTATUS
-NpfsDeviceIo(
-    IO_DEVICE_HANDLE DriverHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
+#define LEAVE_READER_RW_LOCK(pMutex) pthread_rwlock_unlock(pMutex)
 
-    pIrp->IoStatusBlock.Status = ntStatus;
+#define ENTER_WRITER_RW_LOCK(pMutex) pthread_rwlock_wrlock(pMutex)
 
-    return ntStatus;
-}
+#define LEAVE_WRITER_RW_LOCK(pMutex) pthread_rwlock_unlock(pMutex)
 
 
+#define ENTER_MUTEX(pMutex)  pthread_mutex_lock(pMutex)
+
+#define LEAVE_MUTEX(pMutex)  pthread_mutex_unlock(pMutex)
 
