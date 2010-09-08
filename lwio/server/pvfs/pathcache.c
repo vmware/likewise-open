@@ -282,6 +282,32 @@ error:
     goto cleanup;
 }
 
+VOID
+PvfsPathCacheShutdown(
+    VOID
+    )
+{
+    BOOLEAN bLocked = FALSE;
+
+    if (gpPathCache == NULL)
+    {
+        goto cleanup;
+    }
+
+    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+
+    LwioLruSafeFree(&gpPathCache);
+
+    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
+
+    pthread_mutex_destroy(&gPathCacheLock);
+    gpPathCacheLock = NULL;
+
+cleanup:
+
+    return;
+}
+
 
 /*****************************************************************************
  ****************************************************************************/

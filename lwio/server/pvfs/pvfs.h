@@ -406,6 +406,11 @@ PvfsPathCacheInit(
     VOID
     );
 
+VOID
+PvfsPathCacheShutdown(
+    VOID
+    );
+
 NTSTATUS
 PvfsPathCacheAdd(
     IN PCSTR pszResolvedPath

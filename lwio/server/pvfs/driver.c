@@ -132,11 +132,7 @@ PvfsDriverShutdown(
 
     PvfsFcbTableDestroy();
 
-    if (gpPathCacheLock)
-    {
-        pthread_mutex_destroy(&gPathCacheLock);
-        gpPathCacheLock = NULL;
-    }
+    PvfsPathCacheShutdown();
 
     PvfsDestroyUnixIdCache(gUidMruCache, PVFS_MAX_MRU_SIZE);
     PvfsDestroyUnixIdCache(gGidMruCache, PVFS_MAX_MRU_SIZE);
