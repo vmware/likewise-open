@@ -292,6 +292,8 @@ NpfsServerCompleteReadFile(
 
 extern LW_LIST_LINKS gFCBList;
 extern pthread_rwlock_t gServerLock;
+extern pthread_rwlock_t* gpServerLock;
+extern IO_DEVICE_HANDLE  ghDevice;
 
 #define ENTER_READER_RW_LOCK(pMutex) pthread_rwlock_rdlock(pMutex)
 
