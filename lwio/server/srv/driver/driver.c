@@ -116,12 +116,6 @@ SrvUnblockOneWorker(
     IN PSMB_PROD_CONS_QUEUE pWorkQueue
     );
 
-static
-ULONG
-SrvGetNumCpus(
-    VOID
-    );
-
 NTSTATUS
 IO_DRIVER_ENTRY(srv)(
     IN IO_DRIVER_HANDLE hDriver,
@@ -326,7 +320,7 @@ SrvInitialize(
 {
     NTSTATUS ntStatus = 0;
     INT      iWorker = 0;
-    ULONG    ulNumCpus = SrvGetNumCpus();
+    ULONG    ulNumCpus = GetCpuCount();
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
@@ -989,26 +983,6 @@ error:
 
     goto cleanup;
 }
-
-static
-ULONG
-SrvGetNumCpus(
-    VOID
-    )
-{
-    LONG numCpus = 0;
-
-    numCpus = sysconf(_SC_NPROCESSORS_ONLN);
-
-    if (numCpus <= 0)
-    {
-        LWIO_LOG_ERROR("Could not retrieve number of CPUs with sysconf");
-        numCpus = 1;
-    }
-
-    return (ULONG)numCpus;
-}
-
 
 
 /*

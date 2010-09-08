@@ -63,7 +63,6 @@ SrvWorkerInit(
 {
     NTSTATUS ntStatus = 0;
     LONG lError = 0;
-    cpu_set_t cpuSet;
     pthread_attr_t threadAttr;
     pthread_attr_t* pThreadAttr = NULL;
 
@@ -85,16 +84,10 @@ SrvWorkerInit(
     }
     else
     {
-        CPU_ZERO(&cpuSet);
-        CPU_SET((int)ulCpu, &cpuSet);
-
-        lError = pthread_attr_setaffinity_np(&threadAttr,
-                                             sizeof(cpuSet),
-                                             &cpuSet);
-        ntStatus = LwErrnoToNtStatus(lError);
+        ntStatus = SetThreadAttrAffinity(&threadAttr, ulCpu);
         if (!NT_SUCCESS(ntStatus))
         {
-            LWIO_LOG_ERROR("Error calling pthread_attr_setaffinity_np");
+            LWIO_LOG_ERROR("Error setting thread affinity");
             ntStatus = STATUS_SUCCESS;
         }
         else
