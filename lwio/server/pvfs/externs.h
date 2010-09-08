@@ -59,10 +59,10 @@ extern PVFS_WORKER_POOL gWorkPool;
 extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
 extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
 
-extern pthread_rwlock_t  gPathCacheRwLock;
-extern pthread_rwlock_t* gpPathCacheRwLock;
+extern pthread_mutex_t  gPathCacheLock;
+extern pthread_mutex_t* gpPathCacheLock;
 
-extern PSMB_HASH_TABLE   gpPathCache;
+extern PLWIO_LRU        gpPathCache;
 
 extern PVFS_FCB_TABLE gFcbTable;
 

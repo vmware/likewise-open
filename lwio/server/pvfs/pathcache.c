@@ -46,7 +46,7 @@
 
 #include "pvfs.h"
 
-#define PVFS_PATH_CACHE_SIZE        1021
+#define PVFS_PATH_CACHE_SIZE        10240
 #define PVFS_PATH_HASH_MULTIPLIER   31
 
 typedef struct _PVFS_PATH_CACHE_ENTRY
@@ -87,12 +87,12 @@ PvfsPathCacheAdd(
                   pszResolvedPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
-    ntError = SMBHashSetValue(
+    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+    ntError = LwioLruSetValue(
                   gpPathCache,
                   (PVOID)pCacheRecord->pszPathname,
                   (PVOID)pCacheRecord);
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
 
     BAIL_ON_NT_STATUS(ntError);
 
@@ -135,8 +135,8 @@ PvfsPathCacheLookup(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gPathCacheRwLock);
-    ntError = SMBHashGetValue(
+    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+    ntError = LwioLruGetValue(
                   gpPathCache,
                   (PCVOID)pszOriginalPath,
                   (PVOID*)&pCacheRecord);
@@ -150,7 +150,7 @@ PvfsPathCacheLookup(
     *ppszResolvedPath = pszResolvedPath;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
 
     return ntError;
 
@@ -185,8 +185,8 @@ PvfsPathCacheLookup2(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gPathCacheRwLock);
-    ntError = SMBHashGetValue(
+    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+    ntError = LwioLruGetValue(
                   gpPathCache,
                   (PCVOID)pszOriginalPath,
                   (PVOID*)&pCacheRecord);
@@ -198,7 +198,7 @@ PvfsPathCacheLookup2(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
 
     return ntError;
 
@@ -219,12 +219,12 @@ PvfsPathCacheRemove(
 
     if (gpPathCache != NULL)
     {
-        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
+        LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
 
         /* Ignore errors from the remove */
-        ntError = SMBHashRemoveKey(gpPathCache, (PCVOID)pszPathname);
+        ntError = LwioLruRemove(gpPathCache, (PVOID)pszPathname);
 
-        LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+        LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
     }
 
     return STATUS_SUCCESS;
@@ -234,20 +234,20 @@ PvfsPathCacheRemove(
 /*****************************************************************************
  ****************************************************************************/
 
-static int
+static LONG
 PvfsPathCachePathCompare(
     PCVOID pKey1,
     PCVOID pKey2
     );
 
-static size_t
+static ULONG
 PvfsPathCacheKey(
     PCVOID pszPath
     );
 
 static VOID
 PvfsPathCacheFreeEntry(
-    const SMB_HASH_ENTRY *pEntry
+    LWIO_LRU_ENTRY entry
     );
 
 NTSTATUS
@@ -256,24 +256,25 @@ PvfsPathCacheInit(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PSMB_HASH_TABLE pHashTable = NULL;
+    PLWIO_LRU pLru = NULL;
 
-    pthread_rwlock_init(&gPathCacheRwLock, NULL);
-    gpPathCacheRwLock = &gPathCacheRwLock;
+    pthread_mutex_init(&gPathCacheLock, NULL);
+    gpPathCacheLock = &gPathCacheLock;
 
-    ntError = SMBHashCreate(
-                  PVFS_PATH_CACHE_SIZE,
-                  PvfsPathCachePathCompare,
-                  PvfsPathCacheKey,
-                  PvfsPathCacheFreeEntry,
-                  &pHashTable);
+    ntError = LwioLruCreate(
+                PVFS_PATH_CACHE_SIZE,
+                0,
+                PvfsPathCachePathCompare,
+                PvfsPathCacheKey,
+                PvfsPathCacheFreeEntry,
+                &pLru);
     BAIL_ON_NT_STATUS(ntError);
 
-    gpPathCache = pHashTable;
-    pHashTable = NULL;
+    gpPathCache = pLru;
+    pLru = NULL;
 
 cleanup:
-    SMBHashSafeFree(&pHashTable);
+    LwioLruSafeFree(&pLru);
 
     return ntError;
 
@@ -285,19 +286,19 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static size_t
+static ULONG
 PvfsPathCacheKey(
     PCVOID pszPath
     )
 {
-    size_t KeyResult = 0;
+    ULONG KeyResult = 0;
     PCSTR pszPathname = (PCSTR)pszPath;
     PCSTR pszChar = NULL;
 
     for (pszChar=pszPathname; pszChar && *pszChar; pszChar++)
     {
         KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) +
-                    (size_t)tolower(*pszChar);
+                    (ULONG)tolower(*pszChar);
     }
 
     return KeyResult;
@@ -310,20 +311,17 @@ PvfsPathCacheKey(
 static
 VOID
 PvfsPathCacheFreeEntry(
-    const SMB_HASH_ENTRY *pEntry
+    LWIO_LRU_ENTRY entry
     )
 {
     PPVFS_PATH_CACHE_ENTRY pRecord = NULL;
 
-    if (pEntry)
-    {
-        pRecord = (PPVFS_PATH_CACHE_ENTRY)pEntry->pValue;
+    pRecord = (PPVFS_PATH_CACHE_ENTRY)entry.pValue;
 
-        LwRtlCStringFree(&pRecord->pszPathname);
-        PVFS_FREE(&pRecord);
+    LwRtlCStringFree(&pRecord->pszPathname);
+    PVFS_FREE(&pRecord);
 
-        /* The Key was a pointer to the pszPathname in the record */
-    }
+    /* The Key was a pointer to the pszPathname in the record */
 
     return;
 }
@@ -332,7 +330,7 @@ PvfsPathCacheFreeEntry(
 /*****************************************************************************
  ****************************************************************************/
 
-static int
+static LONG
 PvfsPathCachePathCompare(
     PCVOID pKey1,
     PCVOID pKey2
