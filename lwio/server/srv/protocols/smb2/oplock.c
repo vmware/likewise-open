@@ -441,6 +441,7 @@ SrvProcessOplockBreak_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
+    if (pRequestHeader->ucOplockLevel != SMB2_OPLOCK_LEVEL_NONE)
     {
         // Client is trying to ack an oplock that is no longer
         // valid (due to rundown or it never had one).
@@ -506,7 +507,7 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     {
         case IO_OPLOCK_BROKEN_TO_NONE:
 
-            // ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+            ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
 
             break;
 
