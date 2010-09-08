@@ -452,6 +452,7 @@ PvfsLookupPath(
             goto cleanup;
         }
 
+        PvfsPathCacheRemove(pszDiskPath);   // Ignore errors
         LwRtlCStringFree(&pszDiskPath);
         pszDiskPath = NULL;
     }
