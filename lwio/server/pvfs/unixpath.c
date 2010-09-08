@@ -566,6 +566,7 @@ PvfsResolvePath(
     DWORD Length = PATH_MAX;
     DIR *pDir = NULL;
     struct dirent *pDirEntry = NULL;
+    struct dirent dirEntry = { 0 };
 
     if (*pszLookupPath != '/')
     {
@@ -652,9 +653,9 @@ PvfsResolvePath(
             }
             BAIL_ON_NT_STATUS(ntError);
 
-            for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
+            for(ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry);
                 pDirEntry;
-                ntError = PvfsSysReadDir(pDir, &pDirEntry))
+                ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry))
             {
                 /* First check the error return */
                 BAIL_ON_NT_STATUS(ntError);

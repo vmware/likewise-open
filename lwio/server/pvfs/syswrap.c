@@ -258,34 +258,20 @@ error:
 NTSTATUS
 PvfsSysReadDir(
     DIR *pDir,
+    struct dirent *pDirEntry,
     struct dirent **ppDirEntry
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
-    struct dirent *pDirEntry = NULL;
 
-    if ((pDirEntry = readdir(pDir)) == NULL)
-    {
-        /* Handle errno a little differently here.  Assume
-           we can only get EBADF in the case on an error.
-           Otherwise, assume NULL means end-of-file. */
-
-        unixerr = errno;
-        if (unixerr == EBADF) {
-            ntError = PvfsMapUnixErrnoToNtStatus(unixerr);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-    }
-
-    *ppDirEntry = pDirEntry;
-
-cleanup:
-    return ntError;
+    unixerr = readdir_r(pDir, pDirEntry, ppDirEntry);
+    ntError = PvfsMapUnixErrnoToNtStatus(unixerr);
+    BAIL_ON_NT_STATUS(ntError);
 
 error:
-    goto cleanup;
 
+    return ntError;
 }
 
 /**********************************************************

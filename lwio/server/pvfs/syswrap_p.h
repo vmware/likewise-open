@@ -106,6 +106,7 @@ PvfsSysDirFd(
 NTSTATUS
 PvfsSysReadDir(
     DIR *pDir,
+    struct dirent *pDirEntry,
     struct dirent **ppDirEntry
     );
 
