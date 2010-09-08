@@ -316,7 +316,8 @@ PvfsPathCacheKey(
 
     for (pszChar=pszPathname; pszChar && *pszChar; pszChar++)
     {
-        KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) + (size_t)*pszChar;
+        KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) +
+                    (size_t)tolower(*pszChar);
     }
 
     return KeyResult;
