@@ -121,6 +121,8 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     DWORD           dwMinGid;
     DWORD           dwMaxGid;
 
+    PLW_MAP_SECURITY_CONTEXT pSecCtx;
+
     pthread_mutex_t   cfgMutex;
 
     LOCAL_CONFIG      cfg;

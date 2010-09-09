@@ -52,16 +52,16 @@ PCSTR gpszLocalProviderName = LOCAL_CFG_TAG_LOCAL_PROVIDER;
 
 LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2 =
 {
-    .pfnFindObjects = LocalFindObjects,
-    .pfnOpenEnumObjects = LocalOpenEnumObjects,
-    .pfnEnumObjects = LocalEnumObjects,
-    .pfnOpenEnumGroupMembers = LocalOpenEnumMembers,
-    .pfnEnumGroupMembers = LocalEnumMembers,
-    .pfnCloseEnum = LocalCloseEnum,
-    .pfnQueryMemberOf = LocalQueryMemberOf,
-    .pfnGetSmartCardUserObject = LocalGetSmartCardUserObject,
-    .pfnOpenHandle = LocalOpenHandle,
-    .pfnCloseHandle = LocalCloseHandle,
+    .pfnFindObjects                  = LocalFindObjects,
+    .pfnOpenEnumObjects              = LocalOpenEnumObjects,
+    .pfnEnumObjects                  = LocalEnumObjects,
+    .pfnOpenEnumGroupMembers         = LocalOpenEnumMembers,
+    .pfnEnumGroupMembers             = LocalEnumMembers,
+    .pfnCloseEnum                    = LocalCloseEnum,
+    .pfnQueryMemberOf                = LocalQueryMemberOf,
+    .pfnGetSmartCardUserObject       = LocalGetSmartCardUserObject,
+    .pfnOpenHandle                   = LocalOpenHandle,
+    .pfnCloseHandle                  = LocalCloseHandle,
     .pfnShutdownProvider             = &LocalShutdownProvider,
     .pfnOpenHandle                   = &LocalOpenHandle,
     .pfnServicesDomain               = &LocalServicesDomain,
@@ -91,5 +91,6 @@ LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2 =
 
 LOCAL_PROVIDER_GLOBALS gLPGlobals =
 {
-    .pszBuiltinDomain = "BUILTIN"
+    .pszBuiltinDomain = "BUILTIN",
+    .pSecCtx          = NULL
 };
