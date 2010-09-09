@@ -383,6 +383,7 @@ SrvProcessOplockBreak_SMB_V2(
 
         // Release the timer on the break ack now
 
+        pthread_mutex_lock(pOplockState->pMutex);
         if (pOplockState->pTimerRequest)
         {
             PSRV_OPLOCK_STATE_SMB_V2 pOplockState2 = NULL;
@@ -399,6 +400,7 @@ SrvProcessOplockBreak_SMB_V2(
             SrvTimerRelease(pOplockState->pTimerRequest);
             pOplockState->pTimerRequest = NULL;
         }
+        pthread_mutex_unlock(pOplockState->pMutex);
 
         ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState,
                     &pRequestHeader->ucOplockLevel,
@@ -850,6 +852,13 @@ cleanup:
 
     if (pOplockState)
     {
+        pthread_mutex_lock(pOplockState->pMutex);
+        if (pOplockState->pTimerRequest) {
+            SrvTimerRelease(pOplockState->pTimerRequest);
+            pOplockState->pTimerRequest = NULL;
+        }
+        pthread_mutex_unlock(pOplockState->pMutex);
+
         SrvReleaseOplockState_SMB_V2(pOplockState);
     }
 
@@ -977,7 +986,19 @@ SrvFreeOplockState_SMB_V2(
 
     if (pOplockState->pTimerRequest)
     {
+        PSRV_OPLOCK_STATE_SMB_V2 pOplockState2 = NULL;
+
+        SrvTimerCancelRequest(
+            pOplockState->pTimerRequest,
+            (PVOID*)&pOplockState2);
+
+        if (pOplockState2)
+        {
+            SrvReleaseOplockState_SMB_V2(pOplockState2);
+        }
+
         SrvTimerRelease(pOplockState->pTimerRequest);
+        pOplockState->pTimerRequest = NULL;
     }
 
     if (pOplockState->pMutex)
