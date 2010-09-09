@@ -335,6 +335,8 @@ SrvCreditorAdjustAsyncCredits(
             else
             {
                 --pCreditor->usTotalCredits;
+
+                SrvCreditorReturnGlobalCredits(1);
             }
 
             if (usCreditsRequested > usCreditsGranted) // allocate more credits?
@@ -454,6 +456,8 @@ SrvCreditorAdjustNormalCredits(
         SrvCreditorFreeDebitorList(pDebitor);
 
         --pCreditor->usTotalCredits;
+
+        SrvCreditorReturnGlobalCredits(1);
     }
 
     if (usCreditsRequested > usCreditsGranted) // allocate more credits?
