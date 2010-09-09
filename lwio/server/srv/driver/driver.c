@@ -320,7 +320,7 @@ SrvInitialize(
 {
     NTSTATUS ntStatus = 0;
     INT      iWorker = 0;
-    ULONG    ulNumCpus = GetCpuCount();
+    ULONG    ulNumCpus = LwRtlGetCpuCount();
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 

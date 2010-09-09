@@ -84,7 +84,7 @@ SrvWorkerInit(
     }
     else
     {
-        ntStatus = SetThreadAttrAffinity(&threadAttr, ulCpu);
+        ntStatus = LwRtlSetAffinityThreadAttribute(&threadAttr, ulCpu);
         if (!NT_SUCCESS(ntStatus))
         {
             LWIO_LOG_ERROR("Error setting thread affinity");
