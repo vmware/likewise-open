@@ -2098,8 +2098,6 @@ SrvMarshallFileNameInfo(
                     &pwszTreePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
-
     if (STATUS_SUCCESS != SrvMatchPathPrefix(
                                 pFileNameInfo->FileName,
                                 pFileNameInfo->FileNameLength/sizeof(wchar16_t),
