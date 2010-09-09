@@ -97,6 +97,14 @@ LwFreeString(
     LW_PSTR pszString
     );
 
+LW_DWORD
+LwDuplicateStringArray(
+    OUT PSTR** pppNewStringArray,
+    OUT PDWORD pdwNewCount,
+    IN PSTR* ppStringArray,
+    IN DWORD dwCount
+    );
+
 void
 LwFreeStringArray(
     PSTR * ppStringArray,
