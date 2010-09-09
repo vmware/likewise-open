@@ -430,10 +430,10 @@ SrvCreditorAdjustNormalCredits(
                     &pDebitor);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pDebitor->ullSequence = pCreditor->ullNextAvblId++;
-
     if (usCreditsRequested || pCreditor->usTotalCredits == 1)
     {
+        pDebitor->ullSequence = pCreditor->ullNextAvblId++;
+
         // Move from in-use list to the available list
         SrvCreditorMoveDebitor(
                 pDebitor,
