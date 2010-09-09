@@ -55,6 +55,17 @@ NpfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
+    if (ghDevice)
+    {
+        IoDeviceDelete(&ghDevice);
+    }
+
+    if (gpServerLock)
+    {
+        pthread_rwlock_destroy(&gServerLock);
+        gpServerLock = NULL;
+    }
+
     IO_LOG_ENTER_LEAVE("");
 }
 
@@ -161,6 +172,7 @@ IO_DRIVER_ENTRY(npfs)(
     }
 
     pthread_rwlock_init(&gServerLock, NULL);
+    gpServerLock = &gServerLock;
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,
@@ -173,6 +185,8 @@ IO_DRIVER_ENTRY(npfs)(
                               "npfs",
                               NULL);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+
+    ghDevice = deviceHandle;
 
 cleanup:
     IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
