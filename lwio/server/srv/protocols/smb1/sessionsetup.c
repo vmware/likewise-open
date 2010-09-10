@@ -124,7 +124,7 @@ SrvProcessSessionSetup_WC_12(
     LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
     BOOLEAN                    bGssNegotiateLocked = FALSE;
     PSTR                       pszClientPrincipalName = NULL;
-    PLWIO_SRV_SESSION          pSessionExisting       = NULL;
+    PLWIO_SRV_SESSION          pSession               = NULL;
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
     BOOLEAN                    bLoggedInAsGuest = FALSE;
     BOOLEAN                    bInitializedSessionKey = FALSE;
@@ -163,14 +163,11 @@ SrvProcessSessionSetup_WC_12(
 
     if (pSmbRequest->pHeader->uid)
     {
-        ntStatus = SrvConnectionFindSession_SMB_V1(
-                        pCtxSmb1,
+        ntStatus = SrvConnectionFindSession(
                         pConnection,
                         pSmbRequest->pHeader->uid,
-                        &pCtxSmb1->pSession);
+                        &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        pSessionExisting = pCtxSmb1->pSession;
 
         SRV_LOG_VERBOSE(
                 pExecContext->pLogContext,
@@ -183,11 +180,11 @@ SrvProcessSessionSetup_WC_12(
                 pSmbRequest->pHeader->mid,
                 SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                 pSmbRequest->pHeader->tid,
-                pSessionExisting->uid);
+                pSession->uid);
     }
     else
     {
-        ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
+        ntStatus = SrvConnectionCreateSession(pConnection, &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
         SRV_LOG_VERBOSE(
@@ -201,16 +198,16 @@ SrvProcessSessionSetup_WC_12(
                 pSmbRequest->pHeader->mid,
                 SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                 pSmbRequest->pHeader->tid,
-                pCtxSmb1->pSession->uid);
+                pSession->uid);
     }
 
-    pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
+    pSmbResponse->pHeader->uid = pSession->uid;
 
     if (SrvGssNegotiateIsComplete(
             pConnection->hGssContext,
             pConnection->hGssNegotiate))
     {
-        ntStatus = SrvSetStatSessionInfo(pExecContext, pCtxSmb1->pSession);
+        ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (!pExecContext->pConnection->pSessionKey)
@@ -238,7 +235,7 @@ SrvProcessSessionSetup_WC_12(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvIoSecCreateSecurityContextFromGssContext(
-                       &pCtxSmb1->pSession->pIoSecurityContext,
+                       &pSession->pIoSecurityContext,
                        &bLoggedInAsGuest,
                        hContextHandle,
                        pszClientPrincipalName);
@@ -250,7 +247,7 @@ SrvProcessSessionSetup_WC_12(
 
             ((PSESSION_SETUP_RESPONSE_HEADER_WC_4)pSessionBuffer)->action = 0x1;
 
-            SrvSessionSetUserFlags(pCtxSmb1->pSession, SMB_SESSION_FLAG_GUEST);
+            SrvSessionSetUserFlags(pSession, SMB_SESSION_FLAG_GUEST);
 
             // The session key for this connection has to come from an
             // authenticated session
@@ -274,7 +271,7 @@ SrvProcessSessionSetup_WC_12(
                     pSmbRequest->pHeader->mid,
                     SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                     pSmbRequest->pHeader->tid,
-                    pCtxSmb1->pSession->uid);
+                    pSession->uid);
         }
 
         // Go ahead and close out this GSS negotiate state so we can
@@ -288,7 +285,7 @@ SrvProcessSessionSetup_WC_12(
         if (pszClientPrincipalName)
         {
             ntStatus = SrvSessionSetPrincipalName(
-                            pCtxSmb1->pSession,
+                            pSession,
                             pszClientPrincipalName);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -304,7 +301,7 @@ SrvProcessSessionSetup_WC_12(
                     pSmbRequest->pHeader->mid,
                     SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                     pSmbRequest->pHeader->tid,
-                    pCtxSmb1->pSession->uid,
+                    pSession->uid,
                     pszClientPrincipalName);
         }
 
@@ -315,7 +312,7 @@ SrvProcessSessionSetup_WC_12(
                     .ver   = SMB_PROTOCOL_VERSION_1,
                     .id    =
                         {
-                            .usUid = pCtxSmb1->pSession->uid
+                            .usUid = pSession->uid
                         }
             };
 
@@ -323,13 +320,15 @@ SrvProcessSessionSetup_WC_12(
                             pConnection->pOEMConnection,
                             pConnection->ulOEMConnectionLength,
                             &sessionId,
-                            pCtxSmb1->pSession->pIoSecurityContext,
-                            &pCtxSmb1->pSession->pOEMSession,
-                            &pCtxSmb1->pSession->ulOEMSessionLength);
+                            pSession->pIoSecurityContext,
+                            &pSession->pOEMSession,
+                            &pSession->ulOEMSessionLength);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
+
+        pCtxSmb1->pSession = SrvSessionAcquire(pSession);
     }
 
 cleanup:
@@ -339,9 +338,9 @@ cleanup:
     SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
     SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
 
-    if (pSessionExisting)
+    if (pSession)
     {
-        SrvSessionRelease(pSessionExisting);
+        SrvSessionRelease(pSession);
     }
 
     return ntStatus;
@@ -357,6 +356,22 @@ error:
         pConnection->hGssNegotiate = NULL;
     }
 
+    /* If a session exists, rundown the session */
+    if (!pSession && pSmbRequest->pHeader->uid)
+    {
+        NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+        ntStatus2 = SrvConnectionFindSession(
+                            pConnection,
+                            pSmbRequest->pHeader->uid,
+                            &pSession);
+    }
+
+    if (pSession)
+    {
+        SrvSessionRundown(pSession);
+    }
+
     goto cleanup;
 }
 
@@ -370,6 +385,7 @@ SrvProcessSessionSetup_WC_13(
     PLWIO_SRV_CONNECTION        pConnection = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol= pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1    pCtxSmb1    = pCtxProtocol->pSmb1Context;
+    PLWIO_SRV_SESSION           pSession    = NULL;
     ULONG                       iMsg        = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1         pSmbRequest = &pCtxSmb1->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V1         pSmbResponse= &pCtxSmb1->pResponses[iMsg];
@@ -393,16 +409,16 @@ SrvProcessSessionSetup_WC_13(
     ntStatus = SrvMarshallSessionSetupResponse_WC_3(pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
+    ntStatus = SrvConnectionCreateSession(pConnection, &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
+    pSmbResponse->pHeader->uid = pSession->uid;
 
-    ntStatus = SrvSetStatSessionInfo(pExecContext, pCtxSmb1->pSession);
+    ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvIoSecCreateSecurityContextFromNtlmLogon(
-                    &pCtxSmb1->pSession->pIoSecurityContext,
+                    &pSession->pIoSecurityContext,
                     &bLoggedInAsGuest,
                     &pszUsername,
                     (PVOID*)&pSessionKey,
@@ -414,6 +430,7 @@ SrvProcessSessionSetup_WC_13(
     if (pConnection->pSessionKey == NULL && bLoggedInAsGuest == FALSE)
     {
         LWIO_LOCK_MUTEX(bSessionSetupLocked, &pConnection->mutexSessionSetup);
+
         if (pConnection->pSessionKey == NULL)
         {
             ntStatus = SrvAllocateMemory(ulSessionKeyLength,
@@ -426,6 +443,7 @@ SrvProcessSessionSetup_WC_13(
 
             pConnection->ulSessionKeyLength = ulSessionKeyLength;
         }
+
         LWIO_UNLOCK_MUTEX(bSessionSetupLocked, &pConnection->mutexSessionSetup);
     }
 
@@ -434,15 +452,15 @@ SrvProcessSessionSetup_WC_13(
         PBYTE pSessionBuffer = pSmbResponse->pBuffer + pSmbResponse->usHeaderSize;
         ((PSESSION_SETUP_RESPONSE_HEADER_WC_3)pSessionBuffer)->action = 0x1;
 
-        SrvSessionSetUserFlags(pCtxSmb1->pSession, SMB_SESSION_FLAG_GUEST);
+        SrvSessionSetUserFlags(pSession, SMB_SESSION_FLAG_GUEST);
     }
 
-    ntStatus = SrvSessionSetPrincipalName(
-                            pCtxSmb1->pSession,
-                            pszUsername);
+    ntStatus = SrvSessionSetPrincipalName(pSession, pszUsername);
     BAIL_ON_NT_STATUS(ntStatus);
 
     SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
+
+    pCtxSmb1->pSession = SrvSessionAcquire(pSession);
 
 cleanup:
 
@@ -451,9 +469,20 @@ cleanup:
     SRV_SAFE_FREE_MEMORY(pszUsername);
     SRV_SAFE_FREE_MEMORY(pSessionKey);
 
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
+
     return ntStatus;
 
 error:
+
+    /* If a session exists, run down the session */
+    if (pSession)
+    {
+        SrvSessionRundown(pSession);
+    }
 
     goto cleanup;
 }
