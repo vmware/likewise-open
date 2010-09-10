@@ -40,6 +40,7 @@ using Likewise.LMC.Utilities;
 using Likewise.LMC.Properties;
 using Likewise.LMC.ServerControl;
 using System.IO;
+using System.Security.Principal;
 
 namespace Likewise.LMC
 {
@@ -150,6 +151,13 @@ namespace Likewise.LMC
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+
+            // see if we're an admin
+            WindowsPrincipal principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            bool hasAdministrativeRight = principal.IsInRole(WindowsBuiltInRole.Administrator);
+            if (hasAdministrativeRight)
+                this.Text = "Administrator: " + this.Text;
+
             sc.SetLWTreeView(navTree);
 
             sc.LoadPlugins();

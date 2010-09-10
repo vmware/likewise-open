@@ -224,22 +224,6 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AuthUtils\AuthUtils.csproj">
-      <Project>{805A93D2-3B90-4A27-B319-73D86363470A}</Project>
-      <Name>AuthUtils</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LikewiseClassLibraries\Krb5\Krb5.csproj">
-      <Project>{D27214EF-85C2-46D7-94A7-45C3D26BEAC8}</Project>
-      <Name>Krb5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LikewiseClassLibraries\Ldap\LDAP.csproj">
-      <Project>{A01CDE74-BC93-437B-A97A-883083EA4CC9}</Project>
-      <Name>LDAP</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LikewiseClassLibraries\System.DirectoryServices\System.DirectoryServices.csproj">
-      <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
-      <Name>System.DirectoryServices</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ServerControl\ServerControl_Open.csproj">
       <Project>{9F45E041-5B67-48B8-AD13-DD5C40F3364A}</Project>
       <Name>ServerControl_Open</Name>
