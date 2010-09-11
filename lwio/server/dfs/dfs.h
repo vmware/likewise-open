@@ -55,7 +55,7 @@
 #include "lwiosys.h"
 #include "lwio/lwiofsctl.h"
 #include "lwio/lwiodevctl.h"
-#include "iodriver.h"
+#include "lwio/iodriver.h"
 #include "lwioutils.h"
 #include "lwlist.h"
 

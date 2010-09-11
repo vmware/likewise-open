@@ -52,7 +52,7 @@
 #include <lw/rtlstring.h>
 #include <lw/rtlgoto.h>
 
-#include <iodriver.h>
+#include <lwio/iodriver.h>
 
 #include <lwioutils.h>
 #include <lwlist.h>
