@@ -141,15 +141,15 @@ RegExportAttributeEntries(
                   pItem->valueName);
     BAIL_ON_REG_ERROR(dwError);
 
-    if (pItem->regAttr.pCurrentValue)
+    if (pItem->value)
     {
         dwError = RegExportEntry(
                       NULL,
                       REG_SZ,    /* Type of value name "value" */
                       "value",
                       pItem->regAttr.ValueType,
-                      pItem->regAttr.pCurrentValue,
-                      pItem->regAttr.CurrentValueLen,
+                      pItem->value,
+                      pItem->valueLen,
                       &pszString,
                       &dwAttrStringLen);
         BAIL_ON_REG_ERROR(dwError);
@@ -204,12 +204,6 @@ RegExportAttributeEntries(
     switch (pItem->regAttr.RangeType)
     {
         case LWREG_VALUE_RANGE_TYPE_BOOLEAN:
-            dwError = RtlCStringAllocateAppendPrintf(
-                          &pszDumpString, "%*srange=boolean\n",
-                          dwIndentLevel,
-                          pszIndentChar);
-            BAIL_ON_REG_ERROR(dwError);
-
             dwError = RtlCStringAllocateAppendPrintf(
                           &pszDumpString, "%*srange=boolean\n",
                           dwIndentLevel,
