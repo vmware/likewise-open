@@ -698,11 +698,6 @@ RdrSocketTask(
     PLW_LIST_LINKS pLink = NULL;
     PRDR_OP_CONTEXT pIrpContext = NULL;
 
-    if (WakeMask & LW_TASK_EVENT_YIELD)
-    {
-        WakeMask = LW_TASK_EVENT_YIELD;
-    }
-
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
         /* The task holds the last implicit reference to a socket,
