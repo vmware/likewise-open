@@ -290,7 +290,7 @@ RdrTreeRelease(
 
     if (--pTree->refCount == 0)
     {
-        if (pTree->state != RDR_TREE_STATE_READY)
+        if (pTree->state != RDR_TREE_STATE_READY || !RdrSocketIsValid(pTree->pSession->pSocket))
         {
             RdrTreeUnlink(pTree);
             LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);

@@ -104,4 +104,9 @@ RdrSocketShutdown(
     VOID
     );
 
+BOOLEAN
+RdrSocketIsValid(
+    PRDR_SOCKET pSocket
+    );
+
 #endif /* __SOCKET_H__ */

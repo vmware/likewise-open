@@ -1335,6 +1335,21 @@ RdrSocketInvalidate_InLock(
     LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
 }
 
+BOOLEAN
+RdrSocketIsValid(
+    PRDR_SOCKET pSocket
+    )
+{
+    BOOLEAN bLocked = FALSE;
+    BOOLEAN bResult = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &pSocket->mutex);
+    bResult = pSocket->state != RDR_SOCKET_STATE_ERROR;
+    LWIO_UNLOCK_MUTEX(bLocked, &pSocket->mutex);
+
+    return bResult;
+}
+
 VOID
 RdrSocketRelease(
     PRDR_SOCKET pSocket

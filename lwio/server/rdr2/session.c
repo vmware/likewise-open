@@ -302,7 +302,8 @@ RdrSessionRelease(
 
     if (--pSession->refCount == 0)
     {
-        if (pSession->state != RDR_SESSION_STATE_READY)
+        if (pSession->state != RDR_SESSION_STATE_READY ||
+            pSession->pSocket->state != RDR_SOCKET_STATE_READY)
         {
             RdrSessionUnlink(pSession);
             LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
