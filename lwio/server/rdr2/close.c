@@ -152,19 +152,15 @@ RdrClose(
             BAIL_ON_NT_STATUS(status);
         }
     }
-    else
-    {
-        RdrReleaseFile(pFile);
-    }
-
 
 cleanup:
 
     if (status != STATUS_PENDING && pContext)
     {
-        pIrp->IoStatusBlock.Status = status;
+        pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
         IoIrpComplete(pIrp);
         RdrFreeContext(pContext);
+        RdrReleaseFile(pFile);
         status = STATUS_PENDING;
     }
 

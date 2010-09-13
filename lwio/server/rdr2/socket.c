@@ -705,8 +705,8 @@ RdrSocketTask(
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
-        /* If we are being explicitly cancelled,
-           we are charged with cleaning up the socket */
+        /* The task holds the last implicit reference to a socket,
+           so we can now clean up and free the structure */
         LWIO_LOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
         RdrSocketFreeContents(pSocket);
         LWIO_UNLOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
@@ -716,6 +716,13 @@ RdrSocketTask(
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    if (pSocket->state == RDR_SOCKET_STATE_ERROR)
+    {
+        /* Go back to sleep until we are cancelled */
+        *pWaitMask = LW_TASK_EVENT_EXPLICIT;
+        goto cleanup;
+    }
 
     if (WakeMask & LW_TASK_EVENT_INIT)
     {
@@ -904,7 +911,7 @@ error:
     {
         LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
         RdrSocketInvalidate_InLock(pSocket, ntStatus);
-        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+        *pWaitMask = LW_TASK_EVENT_EXPLICIT;
     }
 
     goto cleanup;
@@ -927,7 +934,10 @@ RdrSocketFindResponseByMid(
         (PVOID *) &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppResponse = pResponse;
+    if (ppResponse)
+    {
+        *ppResponse = pResponse;
+    }
 
 cleanup:
 
@@ -935,7 +945,10 @@ cleanup:
 
 error:
 
-    *ppResponse = NULL;
+    if (ppResponse)
+    {
+        *ppResponse = NULL;
+    }
 
     goto cleanup;
 }
@@ -1269,6 +1282,11 @@ RdrSocketInvalidate_InLock(
     PRDR_RESPONSE pResponse = NULL;
     BOOLEAN bLocked = TRUE;
 
+    if (pSocket->state == RDR_SOCKET_STATE_ERROR)
+    {
+        return;
+    }
+
     pSocket->state = RDR_SOCKET_STATE_ERROR;
     pSocket->error = status;
 
@@ -1382,7 +1400,6 @@ RdrSocketFree(
     if (pSocket->pTask)
     {
         LwRtlCancelTask(pSocket->pTask);
-        LwRtlReleaseTask(&pSocket->pTask);
     }
     else
     {
@@ -1421,6 +1438,8 @@ RdrSocketFreeContents(
         LwRtlCancelTask(pSocket->pTimeout);
         LwRtlReleaseTask(&pSocket->pTimeout);
     }
+
+    LwRtlReleaseTask(&pSocket->pTask);
 
     SMBFreeMemory(pSocket);
 }
@@ -1474,7 +1493,18 @@ RdrSocketAcquireMid(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    *pusMid = pSocket->usNextMid++;
+    if (pSocket->state == RDR_SOCKET_STATE_ERROR)
+    {
+        ntStatus = pSocket->error;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    do
+    {
+        *pusMid = pSocket->usNextMid++;
+    } while (RdrSocketFindResponseByMid(pSocket, *pusMid, NULL) == STATUS_SUCCESS);
+
+error:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
