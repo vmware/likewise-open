@@ -314,9 +314,12 @@ LocalDirValidateGID(
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Check whether group gid is within permitted range */
-    if (dwGid < dwGidMin || dwGid > dwGidMax) {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+    if (dwGid < dwGidMin) {
+        BAIL_WITH_LSA_ERROR(LW_ERROR_GID_TOO_LOW);
+    }
+
+    if (dwGid > dwGidMax) {
+        BAIL_WITH_LSA_ERROR(LW_ERROR_GID_TOO_HIGH);
     }
 
 cleanup:

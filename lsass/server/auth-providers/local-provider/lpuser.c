@@ -713,9 +713,12 @@ LocalDirValidateUID(
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Check whether account uid is within permitted range */
-    if (dwUid < dwUidMin || dwUid > dwUidMax) {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+    if (dwUid < dwUidMin) {
+        BAIL_WITH_LSA_ERROR(LW_ERROR_UID_TOO_LOW);
+    }
+
+    if (dwUid > dwUidMax) {
+        BAIL_WITH_LSA_ERROR(LW_ERROR_UID_TOO_HIGH);
     }
 
 cleanup:
