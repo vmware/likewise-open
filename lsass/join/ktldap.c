@@ -102,7 +102,7 @@ cleanup:
     if (dwError == ERROR_SUCCESS &&
         lderr != LDAP_SUCCESS)
     {
-        dwError = LwLdapErrToWin32Error(lderr);
+        dwError = LwMapLdapErrorToLwError(lderr);
     }
 
     return dwError;
@@ -207,7 +207,7 @@ cleanup:
     if (dwError == ERROR_SUCCESS &&
         lderr != LDAP_SUCCESS)
     {
-        dwError = LwLdapErrToWin32Error(lderr);
+        dwError = LwMapLdapErrorToLwError(lderr);
     }
 
     return dwError;
@@ -233,7 +233,7 @@ KtLdapUnbind(
 cleanup:
     if (lderr)
     {
-        dwError = LwLdapErrToWin32Error(lderr);
+        dwError = LwMapLdapErrorToLwError(lderr);
     }
 
     return dwError;
