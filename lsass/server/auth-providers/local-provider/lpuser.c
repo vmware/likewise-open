@@ -1152,7 +1152,8 @@ LocalDirDeleteUser(
 
     PWSTR pwszAttributes[] = {
         wszAttrNameObjectClass,
-        wszAttrNameObjectSid
+        wszAttrNameObjectSid,
+        NULL
     };
 
     dwError = LwAllocateWc16sPrintfW(
