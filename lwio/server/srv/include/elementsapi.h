@@ -295,6 +295,7 @@ typedef struct _LWIO_SRV_SEARCH_SPACE_2
     PBYTE                  pFileInfoCursor;
     USHORT                 usFileInfoLen;
     BOOLEAN                bUseLongFilenames;
+    LONG64                 llSearchIndex;
 
 } LWIO_SRV_SEARCH_SPACE_2, *PLWIO_SRV_SEARCH_SPACE_2;
 
