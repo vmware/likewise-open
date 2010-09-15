@@ -938,6 +938,22 @@ error:
 
     *pulDataLength = 0;
 
+    switch (ntStatus)
+    {
+        case STATUS_NO_MORE_MATCHES:
+
+            if (pSearchSpace && (pSearchSpace->llSearchIndex == -1))
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
     goto cleanup;
 }
 
@@ -1286,6 +1302,22 @@ error:
 
     *pulDataLength = 0;
 
+    switch (ntStatus)
+    {
+        case STATUS_NO_MORE_MATCHES:
+
+            if (pSearchSpace && (pSearchSpace->llSearchIndex == -1))
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
     goto cleanup;
 }
 
@@ -1630,6 +1662,22 @@ error:
 
     *pulDataLength = 0;
 
+    switch (ntStatus)
+    {
+        case STATUS_NO_MORE_MATCHES:
+
+            if (pSearchSpace && (pSearchSpace->llSearchIndex == -1))
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
     goto cleanup;
 }
 
@@ -1954,6 +2002,22 @@ error:
 
     *pulDataLength = 0;
 
+    switch (ntStatus)
+    {
+        case STATUS_NO_MORE_MATCHES:
+
+            if (pSearchSpace && (pSearchSpace->llSearchIndex == -1))
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
     goto cleanup;
 }
 
@@ -2277,6 +2341,22 @@ error:
 
     *pulDataLength = 0;
 
+    switch (ntStatus)
+    {
+        case STATUS_NO_MORE_MATCHES:
+
+            if (pSearchSpace && (pSearchSpace->llSearchIndex == -1))
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
     goto cleanup;
 }
 
@@ -2599,6 +2679,22 @@ cleanup:
 error:
 
     *pulDataLength = 0;
+
+    switch (ntStatus)
+    {
+        case STATUS_NO_MORE_MATCHES:
+
+            if (pSearchSpace && (pSearchSpace->llSearchIndex == -1))
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
 
     goto cleanup;
 }
