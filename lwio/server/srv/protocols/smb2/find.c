@@ -473,7 +473,7 @@ SrvProcessFind_SMB_V2(
 
     switch (pRequestHeader->ucInfoClass)
     {
-		case SMB2_FILE_INFO_CLASS_ID_BOTH_DIR:
+        case SMB2_FILE_INFO_CLASS_ID_BOTH_DIR:
 
             ntStatus = SrvFindIdBothDirInformation(
                             pExecContext,
@@ -486,7 +486,7 @@ SrvProcessFind_SMB_V2(
 
             break;
 
-		case SMB2_FILE_INFO_CLASS_ID_FULL_DIR:
+        case SMB2_FILE_INFO_CLASS_ID_FULL_DIR:
 
             ntStatus = SrvFindIdFullDirInformation(
                             pExecContext,
@@ -497,7 +497,7 @@ SrvProcessFind_SMB_V2(
                             ulMaxDataLength,
                             &ulDataLength);
 
-		    break;
+            break;
 
         case SMB2_FILE_INFO_CLASS_BOTH_DIR:
 
@@ -910,7 +910,14 @@ SrvFindIdBothDirInformation(
 
     if (!ulSearchResultCount)
     {
-        ntStatus = STATUS_NO_MORE_MATCHES;
+        if (!pSearchSpace->pFileInfoCursor)
+        {
+            ntStatus = STATUS_NO_MORE_MATCHES;
+        }
+        else
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -1251,7 +1258,14 @@ SrvFindBothDirInformation(
 
     if (!ulSearchResultCount)
     {
-        ntStatus = STATUS_NO_MORE_MATCHES;
+        if (!pSearchSpace->pFileInfoCursor)
+        {
+            ntStatus = STATUS_NO_MORE_MATCHES;
+        }
+        else
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -1588,7 +1602,14 @@ SrvFindIdFullDirInformation(
 
     if (!ulSearchResultCount)
     {
-        ntStatus = STATUS_NO_MORE_MATCHES;
+        if (!pSearchSpace->pFileInfoCursor)
+        {
+            ntStatus = STATUS_NO_MORE_MATCHES;
+        }
+        else
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -1905,7 +1926,14 @@ SrvFindFullDirInformation(
 
     if (!ulSearchResultCount)
     {
-        ntStatus = STATUS_NO_MORE_MATCHES;
+        if (!pSearchSpace->pFileInfoCursor)
+        {
+            ntStatus = STATUS_NO_MORE_MATCHES;
+        }
+        else
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -2221,7 +2249,14 @@ SrvFindDirectoryInformation(
 
     if (!ulSearchResultCount)
     {
-        ntStatus = STATUS_NO_MORE_MATCHES;
+        if (!pSearchSpace->pFileInfoCursor)
+        {
+            ntStatus = STATUS_NO_MORE_MATCHES;
+        }
+        else
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -2537,7 +2572,14 @@ SrvFindNamesInformation(
 
     if (!ulSearchResultCount)
     {
-        ntStatus = STATUS_NO_MORE_MATCHES;
+        if (!pSearchSpace->pFileInfoCursor)
+        {
+            ntStatus = STATUS_NO_MORE_MATCHES;
+        }
+        else
+        {
+            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
