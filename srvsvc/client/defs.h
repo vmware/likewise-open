@@ -46,7 +46,7 @@
 
 #define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
 #define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
-#define SRVSVC_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/srvsvc"
+#define SRVSVC_LOCAL_ENDPOINT     CACHEDIR "/rpc/srvsvc"
 
 #define TRY                      DCETHREAD_TRY
 #define CATCH_ALL(pDceException) DCETHREAD_CATCH_ALL(pDceException)
