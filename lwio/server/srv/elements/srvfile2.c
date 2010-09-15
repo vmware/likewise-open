@@ -223,11 +223,22 @@ SrvFile2SetOplockState(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    if (pFile->hOplockState && pFile->pfnFreeOplockState)
+    if (pFile->hOplockState)
     {
-        pFile->pfnFreeOplockState(pFile->hOplockState);
-        pFile->hOplockState       = NULL;
-        pFile->pfnFreeOplockState = NULL;
+        if (pFile->pfnCancelOplockState)
+        {
+            pFile->pfnCancelOplockState(pFile->hOplockState);
+
+            pFile->pfnCancelOplockState = NULL;
+        }
+
+        if (pFile->pfnFreeOplockState)
+        {
+            pFile->pfnFreeOplockState(pFile->hOplockState);
+
+            pFile->hOplockState       = NULL;
+            pFile->pfnFreeOplockState = NULL;
+        }
     }
 
     if (SrvFile2IsRundown_inlock(pFile))
@@ -236,8 +247,9 @@ SrvFile2SetOplockState(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pFile->hOplockState       = hOplockState;
-    pFile->pfnFreeOplockState = pfnFreeOplockState;
+    pFile->hOplockState         = hOplockState;
+    pFile->pfnFreeOplockState   = pfnFreeOplockState;
+    pFile->pfnCancelOplockState = pfnCancelOplockState;
 
 cleanup:
 
@@ -262,8 +274,9 @@ SrvFile2RemoveOplockState(
 
     hOplockState = pFile->hOplockState;
 
-    pFile->hOplockState       = NULL;
-    pFile->pfnFreeOplockState = NULL;
+    pFile->hOplockState         = NULL;
+    pFile->pfnFreeOplockState   = NULL;
+    pFile->pfnCancelOplockState = NULL;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
@@ -515,6 +528,11 @@ SrvFile2Free(
         }
 
         SrvFreeMemory(pFile->pFilename);
+    }
+
+    if (pFile->hOplockState && pFile->pfnFreeOplockState)
+    {
+        pFile->pfnFreeOplockState(pFile->hOplockState);
     }
 
     if (pFile->hFile)

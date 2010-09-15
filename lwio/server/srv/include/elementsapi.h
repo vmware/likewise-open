@@ -337,8 +337,9 @@ typedef struct _LWIO_SRV_FILE_2
     BOOLEAN                  bIsDurable;
     BOOLEAN                  bIsClosing;
 
-    HANDLE                         hOplockState;
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+    HANDLE                           hOplockState;
+    PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState;
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE   pfnFreeOplockState;
 
     BOOLEAN bIsBlockingIdleTimeout;
 
