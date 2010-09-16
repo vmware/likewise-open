@@ -6,6 +6,7 @@ libsrvelements_la_SOURCES = \
     creditor.c      \
     globals.c       \
     libmain.c       \
+    mt19937ar.c     \
     resources.c     \
     srvasyncstate.c \
     srvconnection.c \

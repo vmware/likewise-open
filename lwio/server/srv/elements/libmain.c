@@ -57,6 +57,8 @@ SrvElementsInit(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     int      iIter = 0;
 
+    mt_init_genrand(&gSrvElements.randGen, time(NULL));
+
     ntStatus = SrvElementsConfigSetupInitial();
     BAIL_ON_NT_STATUS(ntStatus);
 
