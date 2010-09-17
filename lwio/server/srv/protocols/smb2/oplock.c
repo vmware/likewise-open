@@ -1049,9 +1049,6 @@ SrvOplockAsyncCB_SMB_V2(
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)pContext;
     PSRV_EXEC_CONTEXT        pExecContext = NULL;
     BOOLEAN                  bInLock      = FALSE;
-    PLWIO_SRV_SESSION_2      pSession     = NULL;
-    PLWIO_SRV_TREE_2         pTree        = NULL;
-    PLWIO_SRV_FILE_2         pFile        = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
 
@@ -1072,24 +1069,6 @@ SrvOplockAsyncCB_SMB_V2(
     }
 
     ntStatus = pOplockState->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvConnection2FindSession(
-                    pOplockState->pConnection,
-                    pOplockState->ullUid,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvSession2FindTree(
-                    pSession,
-                    pOplockState->ulTid,
-                    &pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTree2FindFile(
-                    pTree,
-                    &pOplockState->fid,
-                    &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildOplockExecContext_SMB_V2(
@@ -1117,21 +1096,6 @@ cleanup:
     if (pExecContext)
     {
         SrvReleaseExecContext(pExecContext);
-    }
-
-    if (pFile)
-    {
-        SrvFile2Release(pFile);
-    }
-
-    if (pTree)
-    {
-        SrvTree2Release(pTree);
-    }
-
-    if (pSession)
-    {
-        SrvSession2Release(pSession);
     }
 
     return;
