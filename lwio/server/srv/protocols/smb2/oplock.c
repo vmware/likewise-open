@@ -597,22 +597,10 @@ SrvAcknowledgeOplockBreak_SMB_V2(
                     sizeof(pOplockState->oplockBuffer_ack),
                     &pOplockState->oplockBuffer_out,
                     sizeof(pOplockState->oplockBuffer_out));
+
     switch (ntStatus)
     {
         case STATUS_PENDING:
-
-            InterlockedIncrement(&pOplockState->refCount);
-
-            ntStatus = SrvFile2SetOplockState(
-                           pFile,
-                           pOplockState,
-                           &SrvCancelOplockStateHandle_SMB_V2,
-                           &SrvReleaseOplockStateHandle_SMB_V2);
-            if (ntStatus != STATUS_SUCCESS)
-            {
-                InterlockedDecrement(&pOplockState->refCount);
-            }
-            BAIL_ON_NT_STATUS(ntStatus);
 
             SrvFile2SetOplockLevel(pFile, ucOplockLevel);
 
