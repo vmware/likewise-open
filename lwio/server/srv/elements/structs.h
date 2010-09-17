@@ -178,6 +178,8 @@ typedef struct _SRV_ELEMENTS_GLOBALS
 {
     pthread_mutex_t  mutex;
 
+    mt               randGen;
+
     SRV_TIMER timer;
 
     PBYTE pHintsBuffer;

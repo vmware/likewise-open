@@ -516,6 +516,15 @@ SrvTree2AcquireFileId_inlock(
                                 .ullVolatileId = pTree->ullNextAvailableFid
                             };
     BOOLEAN  bFound = FALSE;
+    BOOLEAN  bInLock = FALSE;
+    union {
+        ULONG64 ullFileId;
+        struct
+        {
+            ULONG ulFileId1;
+            ULONG ulFileId2;
+        } fileIdParts;
+    } fileId;
 
     do
     {
@@ -553,8 +562,14 @@ SrvTree2AcquireFileId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    RAND_bytes( (PBYTE)&candidateFid.ullPersistentId,
-                sizeof(candidateFid.ullPersistentId));
+    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+
+    fileId.fileIdParts.ulFileId1 = mt_genrand_int32(&gSrvElements.randGen);
+    fileId.fileIdParts.ulFileId2 = mt_genrand_int32(&gSrvElements.randGen);
+
+    candidateFid.ullPersistentId = fileId.ullFileId;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
 
     *pFid = candidateFid;
 

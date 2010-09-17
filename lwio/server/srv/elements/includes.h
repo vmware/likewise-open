@@ -81,6 +81,8 @@
 #include <srvutils.h>
 #include <elementsapi.h>
 
+#include "mt19937ar.h"
+
 #include "defs.h"
 #include "structs.h"
 #include "prototypes.h"
