@@ -141,8 +141,8 @@ SrvSvcNetShareGetInfo(
                         CreateOptions,
                         NULL,
                         0,
-                        NULL
-                        );
+                        NULL,
+                        NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = LwAllocateMemory(

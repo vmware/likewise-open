@@ -175,6 +175,7 @@ SrvSvcNetFileEnum(
                     dwCreateOptions,
                     NULL,
                     0,
+                    NULL,
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -611,6 +612,7 @@ SrvSvcNetFileGetInfo(
                     dwCreateOptions,
                     NULL,
                     0,
+                    NULL,
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -806,6 +808,7 @@ SrvSvcNetFileClose(
                     dwCreateOptions,
                     NULL,
                     0,
+                    NULL,
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 

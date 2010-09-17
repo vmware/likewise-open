@@ -117,6 +117,7 @@ SrvSvcNetShareEnum(
                         CreateOptions,
                         NULL,
                         0,
+                        NULL,
                         NULL));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
