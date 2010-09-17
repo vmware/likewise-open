@@ -601,14 +601,18 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     {
         case STATUS_PENDING:
 
+            InterlockedIncrement(&pOplockState->refCount);
+
             ntStatus = SrvFile2SetOplockState(
                            pFile,
                            pOplockState,
                            &SrvCancelOplockStateHandle_SMB_V2,
                            &SrvReleaseOplockStateHandle_SMB_V2);
+            if (ntStatus != STATUS_SUCCESS)
+            {
+                InterlockedDecrement(&pOplockState->refCount);
+            }
             BAIL_ON_NT_STATUS(ntStatus);
-
-            InterlockedIncrement(&pOplockState->refCount);
 
             SrvFile2SetOplockLevel(pFile, ucOplockLevel);
 
