@@ -1145,7 +1145,7 @@ RdrSocketConnect(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (connect(fd, ai->ai_addr, ai->ai_addrlen) && errno != EINPROGRESS)
+    if (connect(fd, pCursor->ai_addr, pCursor->ai_addrlen) && errno != EINPROGRESS)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
