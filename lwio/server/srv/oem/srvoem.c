@@ -62,12 +62,13 @@ SrvOEMCreateClientConnection(
 
 NTSTATUS
 SrvOEMCreateSession(
-    PVOID                       pOEMConnection,        /* IN     */
-    ULONG                       ulOEMConnectionLength, /* IN     */
-    PSRV_OEM_SESSION_ID         pSessionId,            /* IN     */
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext,      /* IN     */
-    PVOID*                      ppOEMSession,          /*    OUT */
-    PULONG                      pulOEMSessionLength    /* IN OUT */
+    PVOID                       pOEMConnection,        /* IN              */
+    ULONG                       ulOEMConnectionLength, /* IN              */
+    PSRV_OEM_SESSION_ID         pSessionId,            /* IN              */
+    PIO_CREATE_SECURITY_CONTEXT pSecurityContext,      /* IN              */
+    PWSTR                       pwszClientOS,          /* IN     OPTIONAL */
+    PVOID*                      ppOEMSession,          /*    OUT          */
+    PULONG                      pulOEMSessionLength    /* IN OUT          */
     )
 {
     *ppOEMSession = NULL;
