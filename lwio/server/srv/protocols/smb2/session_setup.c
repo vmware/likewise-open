@@ -329,6 +329,7 @@ SrvProcessSessionSetup_SMB_V2(
                             pConnection->ulOEMConnectionLength,
                             &sessionId,
                             pCtxSmb2->pSession->pIoSecurityContext,
+                            pConnection->clientProperties.pwszNativeOS,
                             &pCtxSmb2->pSession->pOEMSession,
                             &pCtxSmb2->pSession->ulOEMSessionLength);
             BAIL_ON_NT_STATUS(ntStatus);

@@ -321,6 +321,7 @@ SrvProcessSessionSetup_WC_12(
                             pConnection->ulOEMConnectionLength,
                             &sessionId,
                             pSession->pIoSecurityContext,
+                            pConnection->clientProperties.pwszNativeOS,
                             &pSession->pOEMSession,
                             &pSession->ulOEMSessionLength);
             BAIL_ON_NT_STATUS(ntStatus);
