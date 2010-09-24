@@ -1128,20 +1128,29 @@ SrvProtocolTransportDriverDetectPacket(
                 break;
 
             case 0xFE:
-                pPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
 
-                if (ulBytesAvailable < sizeof(SMB2_HEADER))
+                if (SrvProtocolConfigIsSmb2Enabled())
+                {
+                    pPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
+
+                    if (ulBytesAvailable < sizeof(SMB2_HEADER))
+                    {
+                        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                        BAIL_ON_NT_STATUS(ntStatus);
+                    }
+
+                    pPacket->pSMB2Header = (PSMB2_HEADER)pBuffer;
+                    pBuffer             += sizeof(SMB2_HEADER);
+                    ulBytesAvailable    -= sizeof(SMB2_HEADER);
+
+                    pPacket->pParams    = NULL;
+                    pPacket->pData      = NULL;
+                }
+                else
                 {
                     ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
-
-                pPacket->pSMB2Header = (PSMB2_HEADER)pBuffer;
-                pBuffer             += sizeof(SMB2_HEADER);
-                ulBytesAvailable    -= sizeof(SMB2_HEADER);
-
-                pPacket->pParams    = NULL;
-                pPacket->pData      = NULL;
 
                 break;
 
