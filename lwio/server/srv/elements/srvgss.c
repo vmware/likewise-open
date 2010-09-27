@@ -464,9 +464,10 @@ SrvGssEndNegotiate(
                         &ulMinorStatus,
                         pGssNegotiateContext->pGssContext,
                         GSS_C_NO_BUFFER);
-
-        SrvFreeMemory(pGssNegotiateContext->pGssContext);
     }
+
+    if (pGssNegotiateContext->pGssContext)
+        SrvFreeMemory(pGssNegotiateContext->pGssContext);
 
     SrvFreeMemory(pGssNegotiateContext);
 }
