@@ -1059,6 +1059,12 @@ SrvProtocolTransportDriverDetectPacket(
 
             pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
             pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
+            if (pPacket->pNetBIOSHeader->len > 0xFFFFFF)
+            {
+                // Packet is too large
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pConnection->readerState.sNumBytesToRead = pPacket->pNetBIOSHeader->len;
 
