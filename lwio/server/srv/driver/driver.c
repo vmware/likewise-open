@@ -950,6 +950,8 @@ SrvShutdown(
 
         pthread_mutex_unlock(gSMBSrvGlobals.pMutex);
         gSMBSrvGlobals.pMutex = NULL;
+
+        pthread_mutex_destroy(&gSMBSrvGlobals.mutex);
     }
 
     return ntStatus;
