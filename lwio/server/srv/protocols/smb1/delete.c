@@ -855,7 +855,7 @@ SrvExecuteDeleteAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pDeleteState->mutex);
 
-    if (pDeleteState->pAcb->AsyncCancelContext)
+    if (pDeleteState->pAcb && pDeleteState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pDeleteState->pAcb->AsyncCancelContext);
     }

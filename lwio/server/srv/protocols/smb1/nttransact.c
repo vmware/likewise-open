@@ -3584,7 +3584,7 @@ SrvExecuteNTTransactAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pNTTransactState->mutex);
 
-    if (pNTTransactState->pAcb->AsyncCancelContext)
+    if (pNTTransactState->pAcb && pNTTransactState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pNTTransactState->pAcb->AsyncCancelContext);

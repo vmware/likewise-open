@@ -720,7 +720,7 @@ SrvExecuteWriteXAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pWriteState->mutex);
 
-    if (pWriteState->pAcb->AsyncCancelContext)
+    if (pWriteState->pAcb && pWriteState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pWriteState->pAcb->AsyncCancelContext);
     }

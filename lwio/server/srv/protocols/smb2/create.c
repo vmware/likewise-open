@@ -1157,7 +1157,7 @@ SrvExecuteCreateAsyncCB_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
-    if (pCreateState->pAcb->AsyncCancelContext)
+    if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pCreateState->pAcb->AsyncCancelContext);

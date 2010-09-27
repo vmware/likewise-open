@@ -464,7 +464,7 @@ SrvExecuteGetInfoAsyncCB_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pGetInfoState->mutex);
 
-    if (pGetInfoState->pAcb->AsyncCancelContext)
+    if (pGetInfoState->pAcb && pGetInfoState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pGetInfoState->pAcb->AsyncCancelContext);
     }
