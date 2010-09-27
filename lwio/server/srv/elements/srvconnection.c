@@ -264,7 +264,6 @@ SrvConnectionCreate(
     SOCKLEN_T                       serverAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
-    HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
     PSRV_PROPERTIES                 pServerProperties,
     PSRV_HOST_INFO                  pHostinfo,
@@ -313,12 +312,6 @@ SrvConnectionCreate(
     ntStatus = SrvAcquireHostInfo(
                     pHostinfo,
                     &pConnection->pHostinfo);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvGssAcquireContext(
-                    pConnection->pHostinfo,
-                    hGssContext,
-                    &pConnection->hGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->clientAddress = *pClientAddress;
@@ -1743,14 +1736,7 @@ SrvConnectionFree(
 
     if (pConnection->hGssNegotiate)
     {
-        SrvGssEndNegotiate(
-            pConnection->hGssContext,
-            pConnection->hGssNegotiate);
-    }
-
-    if (pConnection->hGssContext)
-    {
-        SrvGssReleaseContext(pConnection->hGssContext);
+        SrvGssEndNegotiate(pConnection->hGssNegotiate);
     }
 
     if (pConnection->pSocket)

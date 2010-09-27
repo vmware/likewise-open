@@ -50,42 +50,8 @@
 #include "includes.h"
 #include "srvgss_p.h"
 
-NTSTATUS
-SrvGssAcquireContext(
-    PSRV_HOST_INFO pHostinfo,
-    HANDLE         hGssOrig,
-    PHANDLE        phGssNew
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSRV_KRB5_CONTEXT pContext = (PSRV_KRB5_CONTEXT)hGssOrig;
-
-    if (!pContext)
-    {
-        ntStatus = SrvGssNewContext(pHostinfo, &pContext);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        InterlockedIncrement(&pContext->refcount);
-    }
-
-    *phGssNew = (HANDLE)pContext;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *phGssNew = (HANDLE)NULL;
-
-    goto cleanup;
-}
-
 BOOLEAN
 SrvGssNegotiateIsComplete(
-    HANDLE hGss,
     HANDLE hGssNegotiate
     )
 {
@@ -243,7 +209,6 @@ error:
 
 NTSTATUS
 SrvGssGetSessionDetails(
-    HANDLE hGss,
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
     PULONG pulSessionKeyLength,
@@ -257,7 +222,7 @@ SrvGssGetSessionDetails(
     DWORD dwSessionKeyLength = 0;
     PSTR pszClientPrincipalName = NULL;
 
-    if (!SrvGssNegotiateIsComplete(hGss, hGssNegotiate))
+    if (!SrvGssNegotiateIsComplete(hGssNegotiate))
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -325,7 +290,6 @@ error:
 
 NTSTATUS
 SrvGssBeginNegotiate(
-    HANDLE  hGss,
     PHANDLE phGssResume
     )
 {
@@ -358,7 +322,7 @@ error:
 
     if (pGssNegotiate)
     {
-        SrvGssEndNegotiate(hGss, (HANDLE)pGssNegotiate);
+        SrvGssEndNegotiate((HANDLE)pGssNegotiate);
     }
 
     goto cleanup;
@@ -366,7 +330,6 @@ error:
 
 NTSTATUS
 SrvGssNegotiate(
-    HANDLE  hGss,
     HANDLE  hGssResume,
     PBYTE   pSecurityInputBlob,
     ULONG   ulSecurityInputBlobLen,
@@ -375,7 +338,6 @@ SrvGssNegotiate(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_KRB5_CONTEXT pGssContext = (PSRV_KRB5_CONTEXT)hGss;
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssResume;
     PBYTE pSecurityBlob = NULL;
     ULONG ulSecurityBlobLen = 0;
@@ -390,20 +352,11 @@ SrvGssNegotiate(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            ntStatus = SrvGssInitNegotiate(
-                            pGssContext,
-                            pGssNegotiate,
-                            pSecurityInputBlob,
-                            ulSecurityInputBlobLen,
-                            &pSecurityBlob,
-                            &ulSecurityBlobLen);
-
-            break;
+            // intentional fall through
 
         case SRV_GSS_CONTEXT_STATE_HINTS:
 
             ntStatus = SrvGssContinueNegotiate(
-                            pGssContext,
                             pGssNegotiate,
                             NULL,
                             0,
@@ -421,7 +374,6 @@ SrvGssNegotiate(
             }
 
             ntStatus = SrvGssContinueNegotiate(
-                            pGssContext,
                             pGssNegotiate,
                             pSecurityInputBlob,
                             ulSecurityInputBlobLen,
@@ -448,7 +400,6 @@ error:
 
 VOID
 SrvGssEndNegotiate(
-    HANDLE hGss,
     HANDLE hGssResume
     )
 {
@@ -472,296 +423,9 @@ SrvGssEndNegotiate(
     SrvFreeMemory(pGssNegotiateContext);
 }
 
-VOID
-SrvGssReleaseContext(
-    HANDLE hGss
-    )
-{
-    PSRV_KRB5_CONTEXT pContext = (PSRV_KRB5_CONTEXT)hGss;
-
-    if (InterlockedDecrement(&pContext->refcount) == 0)
-    {
-        SrvGssFreeContext(pContext);
-    }
-}
-
-static
-NTSTATUS
-SrvGssNewContext(
-    PSRV_HOST_INFO     pHostinfo,
-    PSRV_KRB5_CONTEXT* ppContext
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PSTR     pszCachePath = NULL;
-    PSRV_KRB5_CONTEXT pContext = NULL;
-    BOOLEAN  bInLock = FALSE;
-
-    ntStatus = SrvAllocateMemory(sizeof(SRV_KRB5_CONTEXT), (PVOID*)&pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pContext->refcount = 1;
-
-    pthread_mutex_init(&pContext->mutex, NULL);
-    pContext->pMutex = &pContext->mutex;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pHostinfo->mutex);
-
-    if (pHostinfo->bIsJoined)
-    {
-        ntStatus = SrvAllocateStringPrintf(
-                       &pContext->pszMachinePrincipal,
-                       "%s$@%s",
-                       pHostinfo->pszHostname,
-                       pHostinfo->pszDomain);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
-
-        SMBStrToUpper(pContext->pszMachinePrincipal);
-
-        ntStatus = SMBAllocateString(SRV_KRB5_CACHE_PATH, &pszCachePath);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvGetTGTFromKeytab(
-                       pContext->pszMachinePrincipal,
-                       NULL,
-                       pszCachePath,
-                       &pContext->ticketExpiryTime);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pContext->pszCachePath = pszCachePath;
-    }
-    else
-    {
-        ntStatus = SrvAllocateStringPrintf(
-                       &pContext->pszMachinePrincipal,
-                       "%s",
-                       pHostinfo->pszHostname);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    *ppContext = pContext;
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppContext = NULL;
-
-    if (pContext)
-    {
-        SrvGssFreeContext(pContext);
-    }
-
-    if (pszCachePath)
-    {
-        SrvFreeMemory(pszCachePath);
-    }
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvGssInitNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
-    PBYTE                      pSecurityInputBlob,
-    ULONG                      ulSecurityInputBlobLen,
-    PBYTE*                     ppSecurityOutputBlob,
-    ULONG*                     pulSecurityOutputBloblen
-    )
-{
-    NTSTATUS ntStatus = 0;
-    ULONG ulMajorStatus = 0;
-    ULONG ulMinorStatus = 0;
-    gss_buffer_desc input_name = GSS_C_EMPTY_BUFFER;
-    gss_buffer_desc input_desc = GSS_C_EMPTY_BUFFER;
-    gss_buffer_desc output_desc = GSS_C_EMPTY_BUFFER;
-    gss_buffer_desc OidString = GSS_C_EMPTY_BUFFER;
-    gss_name_t      target_name = GSS_C_NO_NAME;
-    gss_cred_id_t pServerCreds = NULL;
-    PBYTE pSessionKey = NULL;
-    ULONG ulSessionKeyLength = 0;
-    ULONG ret_flags = 0;
-    PSTR  pszCurrentCachePath = NULL;
-    BOOLEAN bInLock = FALSE;
-    gss_OID_set DesiredMechs = {0};
-    PSTR pszGssNtlmOid = "1.3.6.1.4.1.311.2.2.10";
-    gss_OID NtlmOid = NULL;
-    static gss_OID_desc gss_spnego_mech_oid_desc =
-      {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
-
-    LWIO_LOCK_MUTEX(bInLock, pGssContext->pMutex);
-
-    ulMajorStatus = gss_create_empty_oid_set(&ulMinorStatus, &DesiredMechs);
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    OidString.value  = pszGssNtlmOid;
-    OidString.length = LwRtlCStringNumChars(pszGssNtlmOid);
-
-    ulMajorStatus = gss_str_to_oid(&ulMinorStatus, &OidString, &NtlmOid);
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    ulMajorStatus = gss_add_oid_set_member(&ulMinorStatus, NtlmOid, &DesiredMechs);
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    /* only do the Krb5 setup if we have a valid principal name */
-
-    if (!IsNullOrEmptyString(pGssContext->pszCachePath))
-    {
-        ntStatus = SrvGssRenew(pGssContext);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvSetDefaultKrb5CachePath(
-                       pGssContext->pszCachePath,
-                       &pszCurrentCachePath);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ulMajorStatus = gss_add_oid_set_member(
-                            &ulMinorStatus,
-                            (gss_OID)gss_mech_krb5,
-                            &DesiredMechs);
-        BAIL_ON_SEC_ERROR(ulMajorStatus);
-    }
-
-    input_name.value = pGssContext->pszMachinePrincipal;
-    input_name.length = strlen(pGssContext->pszMachinePrincipal);
-
-    ulMajorStatus = gss_import_name(
-                        (OM_uint32 *)&ulMinorStatus,
-                        &input_name,
-                        (gss_OID) gss_nt_krb5_name,
-                        &target_name);
-    srv_display_status("gss_import_name", ulMajorStatus, ulMinorStatus);
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    ulMajorStatus = gss_acquire_cred(
-                        &ulMinorStatus,
-                        NULL,
-                        0,
-                        DesiredMechs,
-                        GSS_C_ACCEPT,
-                        &pServerCreds,
-                        NULL,
-                        NULL);
-    srv_display_status("gss_acquire_sec_context", ulMajorStatus, ulMinorStatus);
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    ulMajorStatus = gss_init_sec_context(
-                            (OM_uint32 *)&ulMinorStatus,
-                            pServerCreds,
-                            pGssNegotiate->pGssContext,
-                            target_name,
-                            &gss_spnego_mech_oid_desc,
-                            0,
-                            0,
-                            GSS_C_NO_CHANNEL_BINDINGS,
-                            &input_desc,
-                            NULL,
-                            &output_desc,
-                            &ret_flags,
-                            NULL);
-
-    srv_display_status("gss_init_sec_context", ulMajorStatus, ulMinorStatus);
-
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    switch (ulMajorStatus)
-    {
-        case GSS_S_CONTINUE_NEEDED:
-
-            pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_NEGOTIATE;
-
-            break;
-
-        case GSS_S_COMPLETE:
-
-            pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_COMPLETE;
-
-            break;
-
-        default:
-
-            ntStatus = LWIO_ERROR_GSS;
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
-    }
-
-    if (output_desc.length)
-    {
-        ntStatus = SrvAllocateMemory(
-                        output_desc.length,
-                        (PVOID*)&pSessionKey);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pSessionKey, output_desc.value, output_desc.length);
-
-        ulSessionKeyLength = output_desc.length;
-    }
-
-    *ppSecurityOutputBlob = pSessionKey;
-    *pulSecurityOutputBloblen = ulSessionKeyLength;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
-
-    gss_release_buffer(&ulMinorStatus, &output_desc);
-    gss_release_name(&ulMinorStatus, &target_name);
-    gss_release_oid_set(&ulMinorStatus, &DesiredMechs);
-    gss_release_cred(&ulMinorStatus, &pServerCreds);
-    gss_release_oid(&ulMinorStatus, &NtlmOid);
-
-    if (pGssNegotiate->pGssContext &&
-        (*pGssNegotiate->pGssContext != GSS_C_NO_CONTEXT))
-    {
-        gss_delete_sec_context(
-                        &ulMinorStatus,
-                        pGssNegotiate->pGssContext,
-                        GSS_C_NO_BUFFER);
-
-        *pGssNegotiate->pGssContext = GSS_C_NO_CONTEXT;
-    }
-
-    if (pszCurrentCachePath)
-    {
-        SrvSetDefaultKrb5CachePath(
-            pszCurrentCachePath,
-            NULL);
-
-        SrvFreeMemory(pszCurrentCachePath);
-    }
-
-    return ntStatus;
-
-sec_error:
-
-    ntStatus = LWIO_ERROR_GSS;
-
-error:
-
-    *ppSecurityOutputBlob = NULL;
-    *pulSecurityOutputBloblen = 0;
-
-    if (pSessionKey)
-    {
-        SrvFreeMemory(pSessionKey);
-    }
-
-    goto cleanup;
-}
-
 static
 NTSTATUS
 SrvGssContinueNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
     PBYTE                      pSecurityInputBlob,
     ULONG                      ulSecurityInputBlobLen,
@@ -777,13 +441,10 @@ SrvGssContinueNegotiate(
     ULONG ret_flags = 0;
     PBYTE pSecurityBlob = NULL;
     ULONG ulSecurityBlobLength = 0;
-    BOOLEAN bInLock = FALSE;
 
     static gss_OID_desc gss_spnego_mech_oid_desc =
                               {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
     static gss_OID gss_spnego_mech_oid = &gss_spnego_mech_oid_desc;
-
-    LWIO_LOCK_MUTEX(bInLock, pGssContext->pMutex);
 
     input_desc.length = ulSecurityInputBlobLen;
     input_desc.value = pSecurityInputBlob;
@@ -844,8 +505,6 @@ SrvGssContinueNegotiate(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
-
     gss_release_buffer(&ulMinorStatus, &output_desc);
 
     return ntStatus;
@@ -865,40 +524,6 @@ error:
     }
 
     goto cleanup;
-}
-
-static
-VOID
-SrvGssFreeContext(
-    PSRV_KRB5_CONTEXT pContext
-    )
-{
-    if (!IsNullOrEmptyString(pContext->pszCachePath))
-    {
-        NTSTATUS ntStatus = 0;
-
-        ntStatus = SrvDestroyKrb5Cache(pContext->pszCachePath);
-        if (ntStatus)
-        {
-            LWIO_LOG_ERROR("Failed to destroy kerberos cache path [%s][code:%d]",
-                          pContext->pszCachePath,
-                          ntStatus);
-        }
-    }
-
-    if (pContext->pszCachePath)
-    {
-        SrvFreeMemory(pContext->pszCachePath);
-    }
-    if (pContext->pszMachinePrincipal)
-    {
-        SrvFreeMemory(pContext->pszMachinePrincipal);
-    }
-
-    if (pContext->pMutex)
-    {
-        pthread_mutex_destroy(pContext->pMutex);
-    }
 }
 
 static
@@ -966,208 +591,12 @@ srv_display_status_1(
     }
 }
 
-static
-NTSTATUS
-SrvGssRenew(
-   PSRV_KRB5_CONTEXT pContext
-   )
-{
-    NTSTATUS ntStatus = 0;
-
-    if (!pContext->ticketExpiryTime ||
-        difftime(time(NULL), pContext->ticketExpiryTime) >  60 * 60)
-    {
-        ntStatus = SrvGetTGTFromKeytab(
-                        pContext->pszMachinePrincipal,
-                        NULL,
-                        pContext->pszCachePath,
-                        &pContext->ticketExpiryTime);
-    }
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvGetTGTFromKeytab(
-    PCSTR   pszUserName,
-    PCSTR   pszPassword,
-    PCSTR   pszCachePath,
-    time_t* pGoodUntilTime
-    )
-{
-    NTSTATUS ntStatus = 0;
-    krb5_error_code ret = 0;
-    krb5_context ctx = NULL;
-    krb5_creds creds = { 0 };
-    krb5_ccache cc = NULL;
-    krb5_keytab keytab = 0;
-    krb5_principal client_principal = NULL;
-    krb5_get_init_creds_opt opts;
-
-    ret = krb5_init_context(&ctx);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    ret = krb5_parse_name(ctx, pszUserName, &client_principal);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    /* use krb5_cc_resolve to get an alternate cache */
-    ret = krb5_cc_resolve(ctx, pszCachePath, &cc);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    ret = krb5_kt_default(ctx, &keytab);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    krb5_get_init_creds_opt_init(&opts);
-    krb5_get_init_creds_opt_set_forwardable(&opts, TRUE);
-
-    ret = krb5_get_init_creds_keytab(
-                    ctx,
-                    &creds,
-                    client_principal,
-                    keytab,
-                    0,    /* start time     */
-                    NULL, /* in_tkt_service */
-                    &opts  /* options        */
-                    );
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    ret = krb5_cc_initialize(ctx, cc, client_principal);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    ret = krb5_cc_store_cred(ctx, cc, &creds);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    if (pGoodUntilTime)
-    {
-        *pGoodUntilTime = creds.times.endtime;
-    }
-
-error:
-
-    if (creds.client == client_principal)
-    {
-        creds.client = NULL;
-    }
-
-    if (ctx)
-    {
-        if (client_principal)
-        {
-            krb5_free_principal(ctx, client_principal);
-        }
-
-        if (keytab) {
-            krb5_kt_close(ctx, keytab);
-        }
-
-        if (cc) {
-            krb5_cc_close(ctx, cc);
-        }
-
-        krb5_free_cred_contents(ctx, &creds);
-
-        krb5_free_context(ctx);
-    }
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvDestroyKrb5Cache(
-    PCSTR pszCachePath
-    )
-{
-    NTSTATUS ntStatus = 0;
-    krb5_error_code ret = 0;
-    krb5_context ctx = NULL;
-    krb5_ccache cc = NULL;
-
-    ret = krb5_init_context(&ctx);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    /* use krb5_cc_resolve to get an alternate cache */
-    ret = krb5_cc_resolve(ctx, pszCachePath, &cc);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    ret = krb5_cc_destroy(ctx, cc);
-    if (ret != 0) {
-        if (ret != KRB5_FCC_NOFILE) {
-            BAIL_ON_KRB_ERROR(ctx, ret);
-        } else {
-            ret = 0;
-        }
-    }
-
-error:
-
-    if (ctx)
-    {
-       krb5_free_context(ctx);
-    }
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvSetDefaultKrb5CachePath(
-    PCSTR pszCachePath,
-    PSTR* ppszOrigCachePath
-    )
-{
-    NTSTATUS ntStatus = 0;
-    ULONG ulMajorStatus = 0;
-    ULONG ulMinorStatus = 0;
-    PSTR  pszOrigCachePath = NULL;
-
-    // Set the default for gss
-    ulMajorStatus = gss_krb5_ccache_name(
-                            (OM_uint32 *)&ulMinorStatus,
-                            pszCachePath,
-                            (ppszOrigCachePath) ? (const char**)&pszOrigCachePath : NULL);
-    BAIL_ON_SEC_ERROR(ulMajorStatus);
-
-    if (ppszOrigCachePath)
-    {
-        if (!IsNullOrEmptyString(pszOrigCachePath))
-        {
-            ntStatus = SMBAllocateString(
-                            pszOrigCachePath,
-                            ppszOrigCachePath);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-        else
-        {
-            *ppszOrigCachePath = NULL;
-        }
-    }
-
-    LWIO_LOG_DEBUG("Cache path set to [%s]", LWIO_SAFE_LOG_STRING(pszCachePath));
-
-cleanup:
-
-    return ntStatus;
-
-sec_error:
-error:
-
-    if (ppszOrigCachePath)
-    {
-        *ppszOrigCachePath = NULL;
-    }
-
-    goto cleanup;
-}
-
 /**
  * Caller must not free the memory since it is reused
  **/
 
 NTSTATUS
 SrvGssNegHints(
-    HANDLE hGssContext,
     PBYTE *ppNegHints,
     ULONG *pulNegHintsLength
     )
@@ -1180,7 +609,7 @@ SrvGssNegHints(
 
     if (!gSrvElements.pHintsBuffer)
     {
-        ntStatus = SrvGssBeginNegotiate(hGssContext, &hGssNegotiate);
+        ntStatus = SrvGssBeginNegotiate(&hGssNegotiate);
         BAIL_ON_NT_STATUS(ntStatus);
 
         /* MIT Krb5 1.7 returns the NegHints blob if you call
@@ -1188,7 +617,6 @@ SrvGssNegHints(
 
         ((PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate)->state = SRV_GSS_CONTEXT_STATE_HINTS;
         ntStatus = SrvGssNegotiate(
-                       hGssContext,
                        hGssNegotiate,
                        NULL,
                        0,
@@ -1206,7 +634,7 @@ cleanup:
 
     if (hGssNegotiate)
     {
-        SrvGssEndNegotiate(hGssContext, hGssNegotiate);
+        SrvGssEndNegotiate(hGssNegotiate);
     }
 
     return ntStatus;

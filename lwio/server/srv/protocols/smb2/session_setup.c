@@ -92,13 +92,10 @@ SrvProcessSessionSetup_SMB_V2(
 
     if (pConnection->hGssNegotiate == NULL)
     {
-        ntStatus = SrvGssBeginNegotiate(
-                       pConnection->hGssContext,
-                       &pConnection->hGssNegotiate);
+        ntStatus = SrvGssBeginNegotiate(&pConnection->hGssNegotiate);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvGssNegotiate(
-                       pConnection->hGssContext,
                        pConnection->hGssNegotiate,
                        NULL,
                        0,
@@ -108,7 +105,6 @@ SrvProcessSessionSetup_SMB_V2(
     }
 
     ntStatus = SrvGssNegotiate(
-                    pConnection->hGssContext,
                     pConnection->hGssNegotiate,
                     pSecurityBlob,
                     ulSecurityBlobLen,
@@ -150,8 +146,7 @@ SrvProcessSessionSetup_SMB_V2(
     ulBytesAvailable -= pSmbResponse->ulHeaderSize;
     ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
-    if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
-                                   pConnection->hGssNegotiate))
+    if (!SrvGssNegotiateIsComplete(pConnection->hGssNegotiate))
     {
         SRV_LOG_VERBOSE(
                 pExecContext->pLogContext,
@@ -217,7 +212,6 @@ SrvProcessSessionSetup_SMB_V2(
         if (!pConnection->pSessionKey)
         {
              ntStatus = SrvGssGetSessionDetails(
-                             pConnection->hGssContext,
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
                              &pConnection->ulSessionKeyLength,
@@ -227,7 +221,6 @@ SrvProcessSessionSetup_SMB_V2(
         else
         {
              ntStatus = SrvGssGetSessionDetails(
-                             pConnection->hGssContext,
                              pConnection->hGssNegotiate,
                              NULL,
                              NULL,
@@ -279,9 +272,8 @@ SrvProcessSessionSetup_SMB_V2(
         // Go ahead and close out this GSS negotiate state so we can
         // handle another Session setup.
 
-        SrvGssEndNegotiate(
-            pConnection->hGssContext,
-            pConnection->hGssNegotiate);
+        SrvGssEndNegotiate(pConnection->hGssNegotiate);
+
         pConnection->hGssNegotiate = NULL;
 
         if (pszClientPrincipalName)
@@ -367,9 +359,7 @@ error:
 
     if (pConnection->hGssNegotiate)
     {
-        SrvGssEndNegotiate(
-                pConnection->hGssContext,
-                pConnection->hGssNegotiate);
+        SrvGssEndNegotiate(pConnection->hGssNegotiate);
 
         pConnection->hGssNegotiate = NULL;
     }

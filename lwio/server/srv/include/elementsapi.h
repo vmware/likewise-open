@@ -606,7 +606,6 @@ typedef struct _SRV_CONNECTION
     PVOID                      pProtocolTransportDriverContext;
 
     BYTE                ServerChallenge[8];
-    HANDLE              hGssContext;
 
     pthread_mutex_t     mutexSessionSetup;
     pthread_mutex_t*    pMutexSessionSetup;
@@ -813,22 +812,13 @@ SrvTimerRelease(
     IN  PSRV_TIMER_REQUEST pTimerRequest
     );
 
-NTSTATUS
-SrvGssAcquireContext(
-    PSRV_HOST_INFO pHostinfo,
-    HANDLE         hGssOrig,
-    PHANDLE        phGssNew
-    );
-
 BOOLEAN
 SrvGssNegotiateIsComplete(
-    HANDLE hGss,
     HANDLE hGssNegotiate
     );
 
 NTSTATUS
 SrvGssGetSessionDetails(
-    HANDLE hGss,
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
     PULONG pulSessionKeyLength,
@@ -838,13 +828,11 @@ SrvGssGetSessionDetails(
 
 NTSTATUS
 SrvGssBeginNegotiate(
-    HANDLE  hGss,
     PHANDLE phGssNegotiate
     );
 
 NTSTATUS
 SrvGssNegotiate(
-    HANDLE  hGss,
     HANDLE  hGssResume,
     PBYTE   pSecurityInputBlob,
     ULONG   ulSecurityInputBlobLen,
@@ -854,18 +842,11 @@ SrvGssNegotiate(
 
 VOID
 SrvGssEndNegotiate(
-    HANDLE hGss,
     HANDLE hGssNegotiate
-    );
-
-VOID
-SrvGssReleaseContext(
-    HANDLE hGss
     );
 
 NTSTATUS
 SrvGssNegHints(
-    HANDLE hGssContext,
     PBYTE *ppNegHints,
     ULONG *pulNegHintsLength
     );
@@ -909,7 +890,6 @@ SrvConnectionCreate(
     SOCKLEN_T                       serverAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
-    HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
     PSRV_PROPERTIES                 pServerProperties,
     PSRV_HOST_INFO                  pHostinfo,

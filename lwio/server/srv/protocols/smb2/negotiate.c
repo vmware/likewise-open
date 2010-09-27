@@ -137,10 +137,7 @@ SrvProcessNegotiate_SMB_V2(
         PBYTE pNegHintsBlob = NULL; /* Do not free */
         ULONG ulNegHintsLength = 0;
 
-        ntStatus = SrvGssNegHints(
-                       pConnection->hGssContext,
-                       &pNegHintsBlob,
-                       &ulNegHintsLength);
+        ntStatus = SrvGssNegHints(&pNegHintsBlob, &ulNegHintsLength);
 
         /* Microsoft clients ignore the security blob on the neg prot response
            so don't fail here if we can't get a negHintsBlob */
@@ -202,10 +199,7 @@ SrvBuildNegotiateResponse_SMB_V2(
     ntStatus = SMB2InitPacket(pSmbResponse, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGssNegHints(
-                   pConnection->hGssContext,
-                   &pNegHintsBlob,
-                   &ulNegHintsLength);
+    ntStatus = SrvGssNegHints(&pNegHintsBlob, &ulNegHintsLength);
 
     /* Microsoft clients ignore the security blob on the neg prot response
        so don't fail here if we can't get a negHintsBlob */
