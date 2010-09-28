@@ -48,7 +48,13 @@
 #define __DEFS_H__
 
 #define LWIO_SRV_DEFAULT_NUM_WORKERS             8
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS       128
+
+/* To enable packet allocator, set the LWIO_SRV_DEFAULT_NUM_MAX_PACKETS to
+ * a value greater than zero.
+ */
+// #define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS       128
+#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS       0
+
 #define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS  4096
 #define LWIO_SRV_DEFAULT_MONITOR_INTERVAL_MINS   0
 #define LWIO_SRV_DEFAULT_MONITOR_INTERVAL_MINS_MIN 0
