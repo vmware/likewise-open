@@ -92,10 +92,10 @@ typedef struct _PVFS_STAT_STRUCT
 
 typedef struct _PVFS_STATFS_STRUCT
 {
-    LONG64   BlockSize;
+    ULONG    BlockSize;
     LONG64   TotalBlocks;
     LONG64   TotalFreeBlocks;
-    LONG64   MaximumNameLength;
+    LONG     MaximumNameLength;
 
 } PVFS_STATFS, *PPVFS_STATFS;
 

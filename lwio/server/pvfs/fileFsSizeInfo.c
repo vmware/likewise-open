@@ -128,7 +128,7 @@ PvfsQueryFileFsSizeInfo(
     BAIL_ON_NT_STATUS(ntError);
 
     pFileInfo->TotalAllocationUnits     = StatFs.TotalBlocks;
-    pFileInfo->BytesPerSector           = (StatFs.BlockSize > UINT32_MAX ? UINT32_MAX : StatFs.BlockSize);
+    pFileInfo->BytesPerSector           = StatFs.BlockSize;
     pFileInfo->SectorsPerAllocationUnit = 1;
     pFileInfo->AvailableAllocationUnits = StatFs.TotalFreeBlocks;
 
