@@ -336,10 +336,13 @@ SrvInitialize(
     ntStatus = SrvReadConfig(&gSMBSrvGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketCreateAllocator(
-                    gSMBSrvGlobals.config.ulMaxNumPackets,
-                    &gSMBSrvGlobals.hPacketAllocator);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (gSMBSrvGlobals.config.ulMaxNumPackets > 0)
+    {
+        ntStatus = SMBPacketCreateAllocator(
+                        gSMBSrvGlobals.config.ulMaxNumPackets,
+                        &gSMBSrvGlobals.hPacketAllocator);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvProdConsInitContents(
                     &gSMBSrvGlobals.workQueue,
