@@ -109,7 +109,7 @@
 #define PVFS_CONF_REGISTRY_POLICY "Policy\\Services\\lwio\\Parameters\\Drivers\\pvfs"
 
 #define PVFS_WORKERS_MAX_WORK_ITEMS      1024
-#define PVFS_MAX_MRU_SIZE                64
+#define PVFS_MAX_MRU_SIZE                10240
 
 /* Top level API functions */
 
