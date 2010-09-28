@@ -140,13 +140,10 @@ SrvProcessSessionSetup_WC_12(
 
     if (pConnection->hGssNegotiate == NULL)
     {
-        ntStatus = SrvGssBeginNegotiate(
-                       pConnection->hGssContext,
-                       &pConnection->hGssNegotiate);
+        ntStatus = SrvGssBeginNegotiate(&pConnection->hGssNegotiate);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvGssNegotiate(
-                       pConnection->hGssContext,
                        pConnection->hGssNegotiate,
                        NULL,
                        0,
@@ -203,9 +200,7 @@ SrvProcessSessionSetup_WC_12(
 
     pSmbResponse->pHeader->uid = pSession->uid;
 
-    if (SrvGssNegotiateIsComplete(
-            pConnection->hGssContext,
-            pConnection->hGssNegotiate))
+    if (SrvGssNegotiateIsComplete(pConnection->hGssNegotiate))
     {
         ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -213,7 +208,6 @@ SrvProcessSessionSetup_WC_12(
         if (!pExecContext->pConnection->pSessionKey)
         {
             ntStatus = SrvGssGetSessionDetails(
-                           pConnection->hGssContext,
                            pConnection->hGssNegotiate,
                            &pConnection->pSessionKey,
                            &pConnection->ulSessionKeyLength,
@@ -225,7 +219,6 @@ SrvProcessSessionSetup_WC_12(
         else
         {
             ntStatus = SrvGssGetSessionDetails(
-                           pConnection->hGssContext,
                            pConnection->hGssNegotiate,
                            NULL,
                            NULL,
@@ -277,9 +270,8 @@ SrvProcessSessionSetup_WC_12(
         // Go ahead and close out this GSS negotiate state so we can
         // handle another Session setup.
 
-        SrvGssEndNegotiate(
-            pConnection->hGssContext,
-            pConnection->hGssNegotiate);
+        SrvGssEndNegotiate(pConnection->hGssNegotiate);
+
         pConnection->hGssNegotiate = NULL;
 
         if (pszClientPrincipalName)
@@ -350,9 +342,7 @@ error:
 
     if (pConnection->hGssNegotiate)
     {
-        SrvGssEndNegotiate(
-                pConnection->hGssContext,
-                pConnection->hGssNegotiate);
+        SrvGssEndNegotiate(pConnection->hGssNegotiate);
 
         pConnection->hGssNegotiate = NULL;
     }
@@ -682,7 +672,6 @@ SrvMarshallSessionSetupResponse_WC_4(
     ULONG ulTotalBytesUsed   = 0;
 
     ntStatus = SrvGssNegotiate(
-                    pConnection->hGssContext,
                     pConnection->hGssNegotiate,
                     pSecurityBlob,
                     ulSecurityBlobLength,
@@ -768,9 +757,7 @@ SrvMarshallSessionSetupResponse_WC_4(
     // ulBytesAvailable -= ulPackageByteCount;
     ulTotalBytesUsed += ulBytesUsed;
 
-    if (!SrvGssNegotiateIsComplete(
-            pConnection->hGssContext,
-            pConnection->hGssNegotiate))
+    if (!SrvGssNegotiateIsComplete(pConnection->hGssNegotiate))
     {
         pSmbResponse->pHeader->error = STATUS_MORE_PROCESSING_REQUIRED;
     }

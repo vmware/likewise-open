@@ -315,12 +315,6 @@ SrvProtocolTransportDriverShutdown(
         pTransportContext->hTransport = NULL;
     }
 
-    if (pTransportContext->hGssContext)
-    {
-        SrvGssReleaseContext(pTransportContext->hGssContext);
-	pTransportContext->hGssContext = NULL;
-    }
-
     // Zero the transport dispatch but leave the socket dispatch for
     // the Producer/Consumer Queue shutdown in case there is an existing socket
     // on a connection
@@ -352,22 +346,6 @@ SrvProtocolTransportDriverConnectionNew(
     {
         LWIO_LOG_ERROR("Failed to acquire current host information (status = 0x%08x)", ntStatus);
         BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    // No lock required because only one connect can be
-    // happening at a time.
-
-    if (!pProtocolDispatchContext->hGssContext)
-    {
-        ntStatus = SrvGssAcquireContext(
-                        pHostinfo,
-                        NULL,
-                        &pProtocolDispatchContext->hGssContext);
-        if (ntStatus)
-        {
-            LWIO_LOG_ERROR("Failed to initialize GSS Handle (status = 0x%08x)", ntStatus);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
     }
 
     properties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
@@ -408,7 +386,6 @@ SrvProtocolTransportDriverConnectionNew(
                     serverAddrLen,
                     pSocket,
                     pGlobals->hPacketAllocator,
-                    pProtocolDispatchContext->hGssContext,
                     pGlobals->pShareList,
                     &properties,
                     pHostinfo,

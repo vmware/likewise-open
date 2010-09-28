@@ -88,20 +88,6 @@
     }
 
 #define SRV_PRINCIPAL       "not_defined_in_RFC4178@please_ignore"
-#define SRV_KRB5_CACHE_PATH "MEMORY:lwio_krb5_cc"
-
-typedef struct _SRV_KRB5_CONTEXT
-{
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    LONG             refcount;
-
-    PSTR            pszCachePath;
-    PSTR            pszMachinePrincipal;
-    time_t          ticketExpiryTime;
-
-} SRV_KRB5_CONTEXT, *PSRV_KRB5_CONTEXT;
 
 typedef enum
 {
@@ -121,37 +107,12 @@ typedef struct _SRV_GSS_NEGOTIATE_CONTEXT
 
 static
 NTSTATUS
-SrvGssNewContext(
-    PSRV_HOST_INFO     pHostinfo,
-    PSRV_KRB5_CONTEXT* ppContext
-    );
-
-static
-NTSTATUS
-SrvGssInitNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
-    PBYTE                      pSecurityInputBlob,
-    ULONG                      ulSecurityInputBlobLen,
-    PBYTE*                     ppSecurityOutputBlob,
-    ULONG*                     pulSecurityOutputBloblen
-    );
-
-static
-NTSTATUS
 SrvGssContinueNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
     PBYTE                      pSecurityInputBlob,
     ULONG                      ulSecurityInputBlobLen,
     PBYTE*                     ppSecurityOutputBlob,
     ULONG*                     pulSecurityOutputBloblen
-    );
-
-static
-VOID
-SrvGssFreeContext(
-    PSRV_KRB5_CONTEXT pContext
     );
 
 static
@@ -168,34 +129,6 @@ srv_display_status_1(
     PCSTR     pszId,
     OM_uint32 code,
     int       type
-    );
-
-static
-NTSTATUS
-SrvGssRenew(
-   PSRV_KRB5_CONTEXT pContext
-   );
-
-static
-NTSTATUS
-SrvGetTGTFromKeytab(
-    PCSTR   pszUserName,
-    PCSTR   pszPassword,
-    PCSTR   pszCachePath,
-    time_t* pGoodUntilTime
-    );
-
-static
-NTSTATUS
-SrvDestroyKrb5Cache(
-    PCSTR pszCachePath
-    );
-
-static
-NTSTATUS
-SrvSetDefaultKrb5CachePath(
-    PCSTR pszCachePath,
-    PSTR* ppszOrigCachePath
     );
 
 #endif /* __SRVGSS_P_H__ */

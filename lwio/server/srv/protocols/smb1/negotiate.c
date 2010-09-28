@@ -140,10 +140,7 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
 
         byteCount += sizeof(pServerProperties->GUID);
 
-        ntStatus = SrvGssNegHints(
-                       pConnection->hGssContext,
-                       &pNegHintsBlob,
-                       &ulNegHintsLength);
+        ntStatus = SrvGssNegHints(&pNegHintsBlob, &ulNegHintsLength);
 
         /* Microsoft clients ignore the security blob on the neg prot response
            so don't fail here if we can't get a negHintsBlob */
