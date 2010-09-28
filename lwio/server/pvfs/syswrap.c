@@ -436,10 +436,12 @@ PvfsSysFstatFs(
             PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
         }
 
-        pStatFs->BlockSize         = sFsBuf.f_bsize;
+        pStatFs->BlockSize         =
+                sFsBuf.f_bsize > UINT32_MAX ? UINT32_MAX : sFsBuf.f_bsize;
         pStatFs->TotalBlocks       = sFsBuf.f_blocks;
         pStatFs->TotalFreeBlocks   = sFsBuf.f_bavail;
-        pStatFs->MaximumNameLength = sFsBuf.f_namelen;
+        pStatFs->MaximumNameLength =
+                sFsBuf.f_namelen > INT32_MAX ? INT32_MAX : sFsBuf.f_namelen;
 
         ntError = STATUS_SUCCESS;
     }
