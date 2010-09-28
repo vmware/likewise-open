@@ -71,8 +71,8 @@
 #include <lwio/lwfileinfo.h>
 #include <lwio/lwiodevctl.h>
 
-#include <iodriver.h>
-#include <ioapi.h>
+#include <lwio/iodriver.h>
+#include <lwio/ioapi.h>
 
 #include <smbwire.h>
 

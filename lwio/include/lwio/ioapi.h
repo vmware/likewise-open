@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -46,7 +46,7 @@
 #define __IO_API_H__
 
 #include <lwio/io-types.h>
-#include "lwzct.h"
+#include <lwio/lwzct.h>
 
 typedef ULONG IO_FLAGS, *PIO_FLAGS;
 
@@ -98,7 +98,7 @@ IoCreateFile(
     IN FILE_SHARE_FLAGS ShareAccess,
     IN FILE_CREATE_DISPOSITION CreateDisposition,
     IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION 
+    IN OPTIONAL PVOID EaBuffer, // PFILE_FULL_EA_INFORMATION
     IN ULONG EaLength,
     IN OPTIONAL PIO_ECP_LIST EcpList
     );
@@ -255,7 +255,7 @@ IoCompleteZctWriteFile(
     IN ULONG BytesTransferred
     );
 
-NTSTATUS 
+NTSTATUS
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -286,7 +286,7 @@ IoFlushBuffersFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock
     );
 
-NTSTATUS 
+NTSTATUS
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -296,7 +296,7 @@ IoQueryInformationFile(
     IN FILE_INFORMATION_CLASS FileInformationClass
     );
 
-NTSTATUS 
+NTSTATUS
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -320,7 +320,7 @@ IoQueryFullAttributesFile(
     );
 #endif
 
-NTSTATUS 
+NTSTATUS
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -365,7 +365,7 @@ IoSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     );
 
-NTSTATUS 
+NTSTATUS
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -377,7 +377,7 @@ IoLockFile(
     IN BOOLEAN ExclusiveLock
     );
 
-NTSTATUS 
+NTSTATUS
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -460,7 +460,7 @@ IoQuerySecurityFile(
     IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN ULONG Length
-    ); 
+    );
 
 NTSTATUS
 IoSetSecurityFile(
@@ -470,7 +470,7 @@ IoSetSecurityFile(
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN ULONG Length
-    ); 
+    );
 
 // TODO: QueryEaFile and SetEaFile.
 

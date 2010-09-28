@@ -68,8 +68,8 @@
 #include <lwio/lmfile.h>
 #include <lwio/lwfileinfo.h>
 
-#include <iodriver.h>
-#include <ioapi.h>
+#include <lwio/iodriver.h>
+#include <lwio/ioapi.h>
 
 #include <smbwire.h>
 

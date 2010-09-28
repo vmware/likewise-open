@@ -62,8 +62,8 @@
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
 
-#include <iodriver.h>
-#include <ioapi.h>
+#include <lwio/iodriver.h>
+#include <lwio/ioapi.h>
 
 #include <srvutils.h>
 

@@ -67,8 +67,8 @@
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>
 
-#include <iodriver.h>
-#include <ioapi.h>
+#include <lwio/iodriver.h>
+#include <lwio/ioapi.h>
 #include <lwlist.h>
 
 #include <smbwire.h>

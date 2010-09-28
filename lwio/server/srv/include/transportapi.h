@@ -50,7 +50,7 @@
 
 #include <sys/socket.h>
 #include "lwthreads.h"
-#include "lwzct.h"
+#include <lwio/lwzct.h>
 
 // Provided by Transport layer -- Opaque to Protocol layer:
 typedef struct _SRV_TRANSPORT_HANDLE_DATA *SRV_TRANSPORT_HANDLE, **PSRV_TRANSPORT_HANDLE;
