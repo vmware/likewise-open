@@ -263,6 +263,8 @@ PvfsSecuritySidMapFromUid(
         goto cleanup;
     }
 
+    LWIO_UNLOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+
     ntError = LwMapSecurityGetSidFromId(
                   gpPvfsLwMapSecurityCtx,
                   ppUserSid,
@@ -272,6 +274,8 @@ PvfsSecuritySidMapFromUid(
 
     /* Try to cache the SID/UID pair but don't fail if we can't since
        we have already got the data the caller asked for */
+
+    LWIO_LOCK_MUTEX(bInLock, &gUidMruCacheMutex);
 
     if (gUidMruCache[Key] != NULL)
     {
@@ -336,12 +340,16 @@ PvfsSecuritySidMapFromGid(
         goto cleanup;
     }
 
+    LWIO_UNLOCK_MUTEX(bInLock, &gGidMruCacheMutex);
+
     ntError = LwMapSecurityGetSidFromId(
                   gpPvfsLwMapSecurityCtx,
                   ppGroupSid,
                   FALSE,
                   Gid);
     BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_MUTEX(bInLock, &gGidMruCacheMutex);
 
     /* Try to cache the SID/GID pair but don't fail if we can't since
        we have already got the data the caller asked for */
