@@ -148,6 +148,13 @@ PvfsConfigRegistryInit(
         0xffffffff,
         (PDWORD)&pConfig->VirtualGid);
 
+    LwIoReadConfigDword(
+        pReg,
+        "PathCacheSize",
+        TRUE,
+        2,
+        0xffffffff,
+        &pConfig->PathCacheSize);
 
 cleanup:
 
@@ -186,6 +193,7 @@ PvfsConfigDefaultInit(
     pConfig->VirtualGid = (gid_t)-1;
 
     pConfig->WorkerThreadPoolSize = 4;
+    pConfig->PathCacheSize = 10240;
 
     return STATUS_SUCCESS;
 }

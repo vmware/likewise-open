@@ -555,6 +555,7 @@ typedef struct _PVFS_DRIVER_CONFIG
     gid_t    VirtualGid;
 
     DWORD     WorkerThreadPoolSize;
+    DWORD     PathCacheSize;
 
 } PVFS_DRIVER_CONFIG, *PPVFS_DRIVER_CONFIG;
 

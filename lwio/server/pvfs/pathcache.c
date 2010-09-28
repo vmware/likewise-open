@@ -46,7 +46,6 @@
 
 #include "pvfs.h"
 
-#define PVFS_PATH_CACHE_SIZE        10240
 #define PVFS_PATH_HASH_MULTIPLIER   31
 
 typedef struct _PVFS_PATH_CACHE_ENTRY
@@ -262,7 +261,7 @@ PvfsPathCacheInit(
     gpPathCacheLock = &gPathCacheLock;
 
     ntError = LwioLruCreate(
-                PVFS_PATH_CACHE_SIZE,
+                gPvfsDriverConfig.PathCacheSize,
                 0,
                 PvfsPathCachePathCompare,
                 PvfsPathCacheKey,
