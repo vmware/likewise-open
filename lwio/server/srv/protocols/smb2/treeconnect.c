@@ -147,7 +147,6 @@ SrvProcessTreeConnect_SMB_V2(
     PWSTR               pwszSharename = NULL;
     PSRV_SHARE_INFO     pShareInfo    = NULL;
     BOOLEAN             bInLock       = FALSE;
-    BOOLEAN             bShareInfoInLock = FALSE;
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
     if (pTConState)
@@ -209,18 +208,8 @@ SrvProcessTreeConnect_SMB_V2(
     {
         case SRV_TREE_CONNECT_STAGE_SMB_V2_INITIAL:
 
-            LWIO_LOCK_RWMUTEX_SHARED(
-                    bShareInfoInLock,
-                    &pConnection->pHostinfo->mutex);
-
-            ntStatus = SrvGetShareName(
-                            pConnection->pHostinfo->pszHostname,
-                            pConnection->pHostinfo->pszDomain,
-                            pTConState->pwszPath,
-                            &pwszSharename);
+            ntStatus = SrvGetShareName(pTConState->pwszPath, &pwszSharename);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            LWIO_UNLOCK_RWMUTEX(bShareInfoInLock, &pConnection->pHostinfo->mutex);
 
             ntStatus = SrvShareFindByName(
                             pConnection->pShareList,
@@ -273,8 +262,6 @@ SrvProcessTreeConnect_SMB_V2(
     }
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bShareInfoInLock, &pConnection->pHostinfo->mutex);
 
     if (pTConState)
     {

@@ -266,7 +266,6 @@ SrvConnectionCreate(
     HANDLE                          hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
     PSRV_PROPERTIES                 pServerProperties,
-    PSRV_HOST_INFO                  pHostinfo,
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
     PLWIO_SRV_CONNECTION*           ppConnection
     )
@@ -307,11 +306,6 @@ SrvConnectionCreate(
                     NULL,
                     &SrvConnection2AsyncStateRelease,
                     &pConnection->pAsyncStateCollection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvAcquireHostInfo(
-                    pHostinfo,
-                    &pConnection->pHostinfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->clientAddress = *pClientAddress;
@@ -1764,11 +1758,6 @@ SrvConnectionFree(
     if (pConnection->pAsyncStateCollection)
     {
         LwRtlRBTreeFree(pConnection->pAsyncStateCollection);
-    }
-
-    if (pConnection->pHostinfo)
-    {
-        SrvReleaseHostInfo(pConnection->pHostinfo);
     }
 
     if (pConnection->pMutex)

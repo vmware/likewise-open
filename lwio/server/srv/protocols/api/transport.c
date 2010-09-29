@@ -333,20 +333,12 @@ SrvProtocolTransportDriverConnectionNew(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_PROTOCOL_API_GLOBALS pGlobals = pProtocolDispatchContext->pGlobals;
     SRV_PROPERTIES properties = { 0 };
-    PSRV_HOST_INFO pHostinfo = NULL;
     PLWIO_SRV_CONNECTION pConnection = NULL;
     const struct sockaddr* pClientAddress = NULL;
     SOCKLEN_T              clientAddrLen = 0;
     const struct sockaddr* pServerAddress = NULL;
     SOCKLEN_T              serverAddrLen = 0;
     BOOLEAN bInLock = FALSE;
-
-    ntStatus = SrvAcquireHostInfo(NULL, &pHostinfo);
-    if (ntStatus)
-    {
-        LWIO_LOG_ERROR("Failed to acquire current host information (status = 0x%08x)", ntStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     properties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
     properties.bEncryptPasswords = TRUE;
@@ -388,7 +380,6 @@ SrvProtocolTransportDriverConnectionNew(
                     pGlobals->hPacketAllocator,
                     pGlobals->pShareList,
                     &properties,
-                    pHostinfo,
                     &pProtocolDispatchContext->socketDispatch,
                     &pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -431,11 +422,6 @@ SrvProtocolTransportDriverConnectionNew(
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
-
-    if (pHostinfo)
-    {
-        SrvReleaseHostInfo(pHostinfo);
-    }
 
     return ntStatus;
 

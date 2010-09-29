@@ -601,7 +601,6 @@ typedef struct _SRV_CONNECTION
     ULONG               ulSessionKeyLength;
 
     // Server-wide state
-    PSRV_HOST_INFO             pHostinfo;
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
     PVOID                      pProtocolTransportDriverContext;
 
@@ -892,7 +891,6 @@ SrvConnectionCreate(
     HANDLE                          hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
     PSRV_PROPERTIES                 pServerProperties,
-    PSRV_HOST_INFO                  pHostinfo,
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
     PLWIO_SRV_CONNECTION*           ppConnection
     );

@@ -64,8 +64,6 @@ SrvShareCreateAbsoluteSecDescFromRel(
 
 NTSTATUS
 SrvGetShareName(
-    IN  PCSTR  pszHostname,
-    IN  PCSTR  pszDomain,
     IN  PWSTR  pwszPath,
     OUT PWSTR* ppwszSharename
     )
