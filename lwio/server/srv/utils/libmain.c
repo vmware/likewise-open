@@ -85,5 +85,7 @@ SrvUtilsShutdown(
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvUtilsGlobals.mutex);
     gSrvUtilsGlobals.pMutex = NULL;
 
+    pthread_rwlock_destroy(&gSrvUtilsGlobals.mutex);
+
     return ntStatus;
 }
