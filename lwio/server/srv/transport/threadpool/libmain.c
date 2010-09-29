@@ -71,10 +71,6 @@ SrvTransportInit(
     ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Our tasks sometimes make blocking IPC calls, so use a private set of task threads */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_DELEGATE_TASKS, FALSE);
-    /* Create one task thread per CPU */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_TASK_THREADS, -1);
     /* We don't presently use work threads, so turn them off */
     LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_WORK_THREADS, 0);
 
