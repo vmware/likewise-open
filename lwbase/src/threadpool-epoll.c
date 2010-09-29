@@ -1251,6 +1251,8 @@ LwRtlFreeThreadPool(
             ReleaseDelegatePool(&pPool->pDelegate);
         }
 
+        pthread_cond_destroy(&pPool->Event);
+
         pthread_mutex_destroy(&pPool->Lock);
 
         DestroyWorkThreads(&pPool->WorkThreads);

@@ -267,6 +267,7 @@ DestroyWorkThreads(
                 LOCK_THREADS(pThreads);
             }
         }
+        UNLOCK_THREADS(pThreads);
 
         RtlMemoryFree(pThreads->pWorkThreads);
     }
