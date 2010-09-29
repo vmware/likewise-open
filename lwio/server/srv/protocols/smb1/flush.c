@@ -430,7 +430,7 @@ SrvExecuteFlushAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pFlushState->mutex);
 
-    if (pFlushState->pAcb->AsyncCancelContext)
+    if (pFlushState->pAcb && pFlushState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pFlushState->pAcb->AsyncCancelContext);
     }

@@ -1072,7 +1072,7 @@ SrvExecuteOpenAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pOpenState->mutex);
 
-    if (pOpenState->pAcb->AsyncCancelContext)
+    if (pOpenState->pAcb && pOpenState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pOpenState->pAcb->AsyncCancelContext);

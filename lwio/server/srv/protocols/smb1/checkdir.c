@@ -533,7 +533,7 @@ SrvExecuteCheckdirAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pCheckdirState->mutex);
 
-    if (pCheckdirState->pAcb->AsyncCancelContext)
+    if (pCheckdirState->pAcb && pCheckdirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pCheckdirState->pAcb->AsyncCancelContext);

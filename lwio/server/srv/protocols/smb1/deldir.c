@@ -558,7 +558,7 @@ SrvExecuteDeletedirAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pDeletedirState->mutex);
 
-    if (pDeletedirState->pAcb->AsyncCancelContext)
+    if (pDeletedirState->pAcb && pDeletedirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pDeletedirState->pAcb->AsyncCancelContext);

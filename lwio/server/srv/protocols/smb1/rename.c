@@ -547,7 +547,7 @@ SrvExecuteRenameAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pRenameState->mutex);
 
-    if (pRenameState->pAcb->AsyncCancelContext)
+    if (pRenameState->pAcb && pRenameState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pRenameState->pAcb->AsyncCancelContext);

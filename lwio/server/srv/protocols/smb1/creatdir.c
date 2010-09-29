@@ -506,7 +506,7 @@ SrvExecuteCreatedirAsyncCB(
 
     LWIO_LOCK_MUTEX(bInLock, &pCreatedirState->mutex);
 
-    if (pCreatedirState->pAcb->AsyncCancelContext)
+    if (pCreatedirState->pAcb && pCreatedirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pCreatedirState->pAcb->AsyncCancelContext);

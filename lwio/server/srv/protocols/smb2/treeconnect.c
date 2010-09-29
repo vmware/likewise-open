@@ -406,7 +406,7 @@ SrvExecuteTreeConnectAsyncCB_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pTConState->mutex);
 
-    if (pTConState->pAcb->AsyncCancelContext)
+    if (pTConState->pAcb && pTConState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pTConState->pAcb->AsyncCancelContext);
     }

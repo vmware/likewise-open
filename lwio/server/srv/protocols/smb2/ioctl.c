@@ -584,7 +584,7 @@ SrvExecuteIOCTLAsyncCB_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pIOCTLState->mutex);
 
-    if (pIOCTLState->pAcb->AsyncCancelContext)
+    if (pIOCTLState->pAcb && pIOCTLState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pIOCTLState->pAcb->AsyncCancelContext);
