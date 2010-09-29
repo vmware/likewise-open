@@ -2,7 +2,6 @@ noinst_LTLIBRARIES = libsrvutils.la
 
 libsrvutils_la_SOURCES = \
     globals.c            \
-    hostinfo.c           \
     libmain.c            \
     logfilter.c          \
     memory.c             \

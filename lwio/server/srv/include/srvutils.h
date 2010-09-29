@@ -220,21 +220,6 @@ typedef struct _SMB_PROD_CONS_QUEUE
 
 } SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
 
-
-typedef struct _SRV_HOST_INFO
-{
-    LONG  refcount;
-
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
-
-    PSTR  pszHostname;
-    PSTR  pszDomain;
-
-    BOOLEAN bIsJoined;
-
-} SRV_HOST_INFO, *PSRV_HOST_INFO;
-
 typedef struct _SRV_LOG_CONTEXT* PSRV_LOG_CONTEXT;
 
 typedef VOID (*PFN_SRV_LOG_HANDLER)(
@@ -267,17 +252,6 @@ SrvReallocMemory(
 VOID
 SrvFreeMemory(
     IN PVOID pMemory
-    );
-
-NTSTATUS
-SrvAcquireHostInfo(
-    PSRV_HOST_INFO  pOrigHostInfo,
-    PSRV_HOST_INFO* ppNewHostInfo
-    );
-
-VOID
-SrvReleaseHostInfo(
-    PSRV_HOST_INFO pHostinfo
     );
 
 NTSTATUS
