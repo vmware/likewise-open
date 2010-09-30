@@ -144,6 +144,11 @@ PvfsDriverShutdown(
 
     PvfsShutdownQuota();
 
+    if (gPvfsDeviceHandle)
+    {
+        IoDeviceDelete(&gPvfsDeviceHandle);
+    }
+
     IO_LOG_ENTER_LEAVE("");
 }
 
