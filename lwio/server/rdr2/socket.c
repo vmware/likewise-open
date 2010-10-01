@@ -232,7 +232,7 @@ RdrSocketCreate(
     PWSTR pwszCanonicalName = NULL;
     PWSTR pwszCursor = NULL;
 
-    ntStatus = SMBAllocateMemory(
+    ntStatus = LwIoAllocateMemory(
                 sizeof(RDR_SOCKET),
                 (PVOID*)&pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -330,7 +330,7 @@ error:
             pthread_mutex_destroy(&pSocket->mutex);
         }
 
-        SMBFreeMemory(pSocket);
+        LwIoFreeMemory(pSocket);
     }
 
     *ppSocket = NULL;
@@ -1456,7 +1456,7 @@ RdrSocketFreeContents(
 
     LwRtlReleaseTask(&pSocket->pTask);
 
-    SMBFreeMemory(pSocket);
+    LwIoFreeMemory(pSocket);
 }
 
 VOID
@@ -1657,7 +1657,7 @@ RdrResponseCreate(
     NTSTATUS ntStatus = 0;
     PRDR_RESPONSE pResponse = NULL;
 
-    ntStatus = SMBAllocateMemory(
+    ntStatus = LwIoAllocateMemory(
                     sizeof(RDR_RESPONSE),
                     (PVOID*)&pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1685,7 +1685,7 @@ RdrResponseFree(
     PRDR_RESPONSE pResponse
     )
 {
-    SMBFreeMemory(pResponse);
+    LwIoFreeMemory(pResponse);
 }
 
 static

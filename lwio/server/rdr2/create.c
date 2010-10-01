@@ -152,7 +152,7 @@ RdrCreateTreeConnected(
 
     BAIL_ON_NT_STATUS(status);
 
-    status = SMBAllocateMemory(
+    status = LwIoAllocateMemory(
         sizeof(RDR_CCB),
         (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(status);

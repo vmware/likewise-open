@@ -85,7 +85,7 @@ RdrSessionCreate(
     BOOLEAN bDestroySetupCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
 
-    status = SMBAllocateMemory(
+    status = LwIoAllocateMemory(
                 sizeof(RDR_SESSION),
                 (PVOID*)&pSession);
     BAIL_ON_NT_STATUS(status);
@@ -141,7 +141,7 @@ error:
             pthread_mutex_destroy(&pSession->mutex);
         }
 
-        SMBFreeMemory(pSession);
+        LwIoFreeMemory(pSession);
     }
 
     *ppSession = NULL;
@@ -369,7 +369,7 @@ RdrSessionFree(
         RdrSocketRelease(pSession->pSocket);
     }
 
-    SMBFreeMemory(pSession);
+    LwIoFreeMemory(pSession);
 }
 
 VOID

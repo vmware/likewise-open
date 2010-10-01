@@ -79,7 +79,7 @@ RdrTreeCreate(
     pthread_mutexattr_t mutexAttr;
     pthread_mutexattr_t* pMutexAttr = NULL;
 
-    status = SMBAllocateMemory(
+    status = LwIoAllocateMemory(
                 sizeof(RDR_TREE),
                 (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(status);
@@ -341,7 +341,7 @@ RdrTreeFree(
         RdrSessionRelease(pTree->pSession);
     }
 
-    SMBFreeMemory(pTree);
+    LwIoFreeMemory(pTree);
 }
 
 static

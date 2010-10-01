@@ -298,7 +298,7 @@ RdrProcessNegotiateResponse(
     pSocket->usMaxSlots = pHeader->maxMpxCount;
     pSocket->securityBlobLen = securityBlobLen;
 
-    status = SMBAllocateMemory(
+    status = LwIoAllocateMemory(
                     pSocket->securityBlobLen,
                     (PVOID *) &pSocket->pSecurityBlob);
     BAIL_ON_NT_STATUS(status);
@@ -530,7 +530,7 @@ RdrNegotiateGssContextWorkItem(
 
         if (!pSocket->pSessionKey && pSession->pSessionKey)
         {
-            status = SMBAllocateMemory(
+            status = LwIoAllocateMemory(
                 pSession->dwSessionKeyLength,
                 OUT_PPVOID(&pSocket->pSessionKey));
             BAIL_ON_NT_STATUS(status);

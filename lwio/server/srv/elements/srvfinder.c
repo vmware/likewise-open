@@ -638,7 +638,7 @@ SrvFinderFreeSearchSpace(
 
     if (pSearchSpace->pwszSearchPattern)
     {
-        SMBFreeMemory(pSearchSpace->pwszSearchPattern);
+        LwIoFreeMemory(pSearchSpace->pwszSearchPattern);
 
     }
 
