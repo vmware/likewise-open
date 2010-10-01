@@ -467,10 +467,10 @@ SrvQuerySmbStandardInfo(
                                         256 * sizeof(wchar16_t);
                     }
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pTrans2State->pData2,
-                                    (PVOID*)&pTrans2State->pData2,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pTrans2State->pData2);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     pTrans2State->usBytesAllocated = usNewSize;
@@ -1196,10 +1196,10 @@ SrvQueryStreamInfo(
                                         256 * sizeof(wchar16_t);
                     }
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pTrans2State->pData2,
-                                    (PVOID*)&pTrans2State->pData2,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pTrans2State->pData2);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     pTrans2State->usBytesAllocated = usNewSize;
@@ -1575,10 +1575,10 @@ SrvQueryAllInfo(
                                         256 * sizeof(wchar16_t);
                     }
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pTrans2State->pData2,
-                                    (PVOID*)&pTrans2State->pData2,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pTrans2State->pData2);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     pTrans2State->usBytesAllocated = usNewSize;
@@ -1872,10 +1872,10 @@ SrvQueryNameInfo(
                                         256 * sizeof(wchar16_t);
                     }
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pTrans2State->pData2,
-                                    (PVOID*)&pTrans2State->pData2,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pTrans2State->pData2);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     pTrans2State->usBytesAllocated = usNewSize;
@@ -2185,10 +2185,10 @@ SrvQueryAltNameInfo(
                                         256 * sizeof(wchar16_t);
                     }
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pTrans2State->pData2,
-                                    (PVOID*)&pTrans2State->pData2,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pTrans2State->pData2);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     pTrans2State->usBytesAllocated = usNewSize;
