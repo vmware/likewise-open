@@ -96,9 +96,9 @@ SrvShareRegFindByName(
     HKEY            hRootKey         = NULL;
     HKEY            hKey             = NULL;
     HKEY            hSecKey          = NULL;
-    REG_DATA_TYPE   dataType         = REG_UNKNOWN;
+    REG_DATA_TYPE   dataType         = REG_NONE;
     ULONG           ulValueLen       = MAX_VALUE_LENGTH;
-    REG_DATA_TYPE   dataSecType      = REG_UNKNOWN;
+    REG_DATA_TYPE   dataSecType      = REG_NONE;
     ULONG           ulSecValueLen    = MAX_VALUE_LENGTH;
     PSRV_SHARE_INFO pShareInfo       = NULL;
     BYTE            pData[MAX_VALUE_LENGTH]      = {0};
@@ -497,12 +497,12 @@ SrvShareRegEnum(
     HKEY     hSecKey           = NULL;
     PWSTR    pwszValueName     = NULL;
     PBYTE    pData             = NULL;
-    REG_DATA_TYPE    dataType  = REG_UNKNOWN;
+    REG_DATA_TYPE    dataType  = REG_NONE;
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
     wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
     wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
     PSRV_SHARE_INFO* ppShareInfoList  = NULL;
-    REG_DATA_TYPE    dataSecType      = REG_UNKNOWN;
+    REG_DATA_TYPE    dataSecType      = REG_NONE;
     ULONG            ulNumSharesFound = 0;
     BYTE             pSecData[MAX_VALUE_LENGTH] = {0};
     PSRV_SHARE_REG_ENUM_CONTEXT pResume = (PSRV_SHARE_REG_ENUM_CONTEXT)hResume;
