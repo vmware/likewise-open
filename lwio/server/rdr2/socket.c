@@ -303,7 +303,7 @@ RdrSocketCreate(
     ntStatus = LwRtlCreateTask(
         gRdrRuntime.pThreadPool,
         &pSocket->pTask,
-        gRdrRuntime.pReaderTaskGroup,
+        gRdrRuntime.pSocketTaskGroup,
         RdrSocketTask,
         pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -702,9 +702,9 @@ RdrSocketTask(
     {
         /* The task holds the last implicit reference to a socket,
            so we can now clean up and free the structure */
-        LWIO_LOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
+        LWIO_LOCK_MUTEX(bGlobalLock, &gRdrRuntime.Lock);
         RdrSocketFreeContents(pSocket);
-        LWIO_UNLOCK_MUTEX(bGlobalLock, &gRdrRuntime.socketHashLock);
+        LWIO_UNLOCK_MUTEX(bGlobalLock, &gRdrRuntime.Lock);
 
         *pWaitMask = LW_TASK_EVENT_COMPLETE;
         goto cleanup;
@@ -1067,10 +1067,9 @@ RdrSocketTimeout(
         *pWaitMask = LW_TASK_EVENT_TIME;
         *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
     }
-    else if (WakeMask & LW_TASK_EVENT_TIME ||
-             WakeMask & LW_TASK_EVENT_EXPLICIT)
+    else if (WakeMask & LW_TASK_EVENT_TIME || WakeMask & LW_TASK_EVENT_EXPLICIT)
     {
-        LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+        LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
 
         if (pSocket->refCount == 0)
         {
@@ -1084,7 +1083,7 @@ RdrSocketTimeout(
             *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
         }
 
-        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
     }
 }
 
@@ -1286,14 +1285,14 @@ RdrSocketInvalidate_InLock(
     pSocket->state = RDR_SOCKET_STATE_ERROR;
     pSocket->error = status;
 
-    LWIO_LOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
+    LWIO_LOCK_MUTEX(bInGlobalLock, &gRdrRuntime.Lock);
     RdrSocketUnlink(pSocket);
     if (pSocket->pTimeout)
     {
         LwRtlWakeTask(pSocket->pTimeout);
         LwRtlReleaseTask(&pSocket->pTimeout);
     }
-    LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.Lock);
 
     while ((pLink = LwListTraverse(&pSocket->PendingSend, pLink)))
     {
@@ -1358,7 +1357,7 @@ RdrSocketRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
 
     assert(pSocket->refCount > 0);
 
@@ -1372,7 +1371,7 @@ RdrSocketRelease(
         {
             RdrSocketUnlink(pSocket);
             RdrSocketFree(pSocket);
-            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
         }
         else
         {
@@ -1380,25 +1379,25 @@ RdrSocketRelease(
             if (LwRtlCreateTask(
                     gRdrRuntime.pThreadPool,
                     &pSocket->pTimeout,
-                    gRdrRuntime.pReaderTaskGroup,
+                    gRdrRuntime.pSocketTimerGroup,
                     RdrSocketTimeout,
                     pSocket) == STATUS_SUCCESS)
             {
                 LwRtlWakeTask(pSocket->pTimeout);
-                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
             }
             else
             {
                 LWIO_LOG_VERBOSE("Could not start timer for socket %p; closing immediately", pSocket);
                 RdrSocketUnlink(pSocket);
                 RdrSocketFree(pSocket);
-                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+                LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
             }
         }
     }
     else
     {
-        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
     }
 }
 
@@ -1562,28 +1561,6 @@ error:
 }
 
 NTSTATUS
-RdrSocketInit(
-    VOID
-    )
-{
-    NTSTATUS ntStatus = 0;
-
-    assert(!gRdrRuntime.pSocketHashByName);
-
-    ntStatus = SMBHashCreate(
-                    19,
-                    SMBHashCaselessWc16StringCompare,
-                    SMBHashCaselessWc16String,
-                    NULL,
-                    &gRdrRuntime.pSocketHashByName);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return ntStatus;
-}
-
-NTSTATUS
 RdrSocketFindOrCreate(
     IN PCWSTR pwszHostname,
     OUT PRDR_SOCKET* ppSocket
@@ -1594,7 +1571,7 @@ RdrSocketFindOrCreate(
     PRDR_SOCKET pSocket = NULL;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
 
     ntStatus = SMBHashGetValue(
         gRdrRuntime.pSocketHashByName,
@@ -1623,13 +1600,13 @@ RdrSocketFindOrCreate(
         pSocket->bParentLink = TRUE;
     }
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
 
     *ppSocket = pSocket;
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
 
     return ntStatus;
 
@@ -1668,16 +1645,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-NTSTATUS
-RdrSocketShutdown(
-    VOID
-    )
-{
-    SMBHashSafeFree(&gRdrRuntime.pSocketHashByName);
-
-    return 0;
 }
 
 static

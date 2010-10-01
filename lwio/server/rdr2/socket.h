@@ -94,16 +94,6 @@ RdrSocketFindOrCreate(
     OUT PRDR_SOCKET* ppSocket
     );
 
-NTSTATUS
-RdrSocketInit(
-    VOID
-    );
-
-NTSTATUS
-RdrSocketShutdown(
-    VOID
-    );
-
 BOOLEAN
 RdrSocketIsValid(
     PRDR_SOCKET pSocket

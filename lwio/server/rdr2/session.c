@@ -252,7 +252,7 @@ RdrSessionTimeout(
         *pWaitMask = LW_TASK_EVENT_TIME;
         *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
     }
-    else if (WakeMask & LW_TASK_EVENT_TIME)
+    else if (WakeMask & LW_TASK_EVENT_TIME || WakeMask & LW_TASK_EVENT_EXPLICIT)
     {
         LWIO_LOCK_MUTEX(bLocked, &pSession->pSocket->mutex);
 
@@ -318,7 +318,7 @@ RdrSessionRelease(
             if (LwRtlCreateTask(
                     gRdrRuntime.pThreadPool,
                     &pSession->pTimeout,
-                    gRdrRuntime.pReaderTaskGroup,
+                    gRdrRuntime.pSessionTimerGroup,
                     RdrSessionTimeout,
                     pSession) == STATUS_SUCCESS)
             {

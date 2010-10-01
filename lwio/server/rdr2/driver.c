@@ -219,7 +219,8 @@ RdrInitialize(
 
     memset(&gRdrRuntime, 0, sizeof(gRdrRuntime));
 
-    pthread_mutex_init(&gRdrRuntime.socketHashLock, NULL);
+    pthread_mutex_init(&gRdrRuntime.Lock, NULL);
+    gRdrRuntime.bLockConstructed = TRUE;
 
     /* Pid used for SMB Header */
 
@@ -229,7 +230,12 @@ RdrInitialize(
     gRdrRuntime.config.usEchoInterval = RDR_ECHO_INTERVAL;
     gRdrRuntime.config.usConnectTimeout = RDR_CONNECT_TIMEOUT;
 
-    ntStatus = RdrSocketInit();
+    ntStatus = SMBHashCreate(
+                    19,
+                    SMBHashCaselessWc16StringCompare,
+                    SMBHashCaselessWc16String,
+                    NULL,
+                    &gRdrRuntime.pSocketHashByName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
@@ -238,12 +244,26 @@ RdrInitialize(
     ntStatus = LwRtlCreateThreadPool(&gRdrRuntime.pThreadPool, pAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pReaderTaskGroup);
+    ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pSocketTaskGroup);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pSocketTimerGroup);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pSessionTimerGroup);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pTreeTimerGroup);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
 
     LwRtlFreeThreadPoolAttributes(&pAttrs);
+
+    if (ntStatus)
+    {
+        RdrShutdown();
+    }
 
     return ntStatus;
 }
@@ -254,14 +274,55 @@ RdrShutdown(
     VOID
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = RdrSocketShutdown();
-    BAIL_ON_NT_STATUS(ntStatus);
+    /* We need to run down all cached tress/session/sockets sitting around.
+     * Notify and wait for each task group in turn.  Note that we do not
+     * cancel them because cancellation indicates our intention to revive
+     * the object.
+     */
 
-    pthread_mutex_destroy(&gRdrRuntime.socketHashLock);
+    if (gRdrRuntime.pTreeTimerGroup)
+    {
+        LwRtlWakeTaskGroup(gRdrRuntime.pTreeTimerGroup);
+        LwRtlWaitTaskGroup(gRdrRuntime.pTreeTimerGroup);
+        LwRtlFreeTaskGroup(&gRdrRuntime.pTreeTimerGroup);
+    }
 
-error:
+    if (gRdrRuntime.pSessionTimerGroup)
+    {
+        LwRtlWakeTaskGroup(gRdrRuntime.pSessionTimerGroup);
+        LwRtlWaitTaskGroup(gRdrRuntime.pSessionTimerGroup);
+        LwRtlFreeTaskGroup(&gRdrRuntime.pSessionTimerGroup);
+    }
+
+    if (gRdrRuntime.pSocketTimerGroup)
+    {
+        LwRtlWakeTaskGroup(gRdrRuntime.pSocketTimerGroup);
+        LwRtlWaitTaskGroup(gRdrRuntime.pSocketTimerGroup);
+        LwRtlFreeTaskGroup(&gRdrRuntime.pSocketTimerGroup);
+    }
+
+    /* All socket tasks should have been canceled by this point,
+     * so wait for them to finish shutting down
+     */
+    if (gRdrRuntime.pSocketTaskGroup)
+    {
+        LwRtlWaitTaskGroup(gRdrRuntime.pSocketTaskGroup);
+    }
+
+    /* All sockets are now gone, so free the socket hash */
+    SMBHashSafeFree(&gRdrRuntime.pSocketHashByName);
+
+    /* Free the thread pool */
+    LwRtlFreeThreadPool(&gRdrRuntime.pThreadPool);
+
+    /* Free the global mutex */
+    if (gRdrRuntime.bLockConstructed)
+    {
+        pthread_mutex_destroy(&gRdrRuntime.Lock);
+        gRdrRuntime.bLockConstructed = FALSE;
+    }
 
     return ntStatus;
 }

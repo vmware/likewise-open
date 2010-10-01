@@ -259,10 +259,14 @@ typedef struct _RDR_GLOBAL_RUNTIME
 {
     RDR_CONFIG config;
     SMB_HASH_TABLE *pSocketHashByName;
-    pthread_mutex_t socketHashLock;
+    pthread_mutex_t Lock;
+    unsigned bLockConstructed:1;
     pid_t SysPid;
     PLW_THREAD_POOL pThreadPool;
-    PLW_TASK_GROUP pReaderTaskGroup;
+    PLW_TASK_GROUP pSocketTaskGroup;
+    PLW_TASK_GROUP pSocketTimerGroup;
+    PLW_TASK_GROUP pSessionTimerGroup;
+    PLW_TASK_GROUP pTreeTimerGroup;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif
