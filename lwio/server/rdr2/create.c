@@ -119,11 +119,6 @@ cleanup:
     RTL_FREE(&pwszServer);
     RTL_FREE(&pwszShare);
 
-    if (status != STATUS_PENDING)
-    {
-        RdrContinueContext(pContext, status, pTree);
-    }
-
     return status;
 
 error:
