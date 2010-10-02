@@ -1400,7 +1400,7 @@ SrvBuildCreateResponse_SMB_V2(
             break;
     }
 
-    pResponseHeader->fid               = pCreateState->pFile->fid;
+    pResponseHeader->ucReserved        = 0;
     pResponseHeader->ulCreateAction    = pCreateState->ulCreateAction;
     pResponseHeader->ullCreationTime   =
                                 pCreateState->pFileBasicInfo->CreationTime;
@@ -1410,11 +1410,13 @@ SrvBuildCreateResponse_SMB_V2(
                                 pCreateState->pFileBasicInfo->LastWriteTime;
     pResponseHeader->ullLastChangeTime =
                                 pCreateState->pFileBasicInfo->ChangeTime;
-    pResponseHeader->ulFileAttributes  =
-                                pCreateState->pFileBasicInfo->FileAttributes;
     pResponseHeader->ullAllocationSize =
                                 pCreateState->pFileStdInfo->AllocationSize;
     pResponseHeader->ullEndOfFile      = pCreateState->pFileStdInfo->EndOfFile;
+    pResponseHeader->ulFileAttributes  =
+                                pCreateState->pFileBasicInfo->FileAttributes;
+    pResponseHeader->ulReserved2       = 0;
+    pResponseHeader->fid               = pCreateState->pFile->fid;
     pResponseHeader->usLength          = ulBytesUsed + 1;
 
     for (; iContext < pCreateState->ulNumContexts; iContext++)
