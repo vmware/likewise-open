@@ -667,20 +667,23 @@ PvfsNotifyFullReportIrp(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pFilterLink = NULL;
+    PLW_LIST_LINKS pNextLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     BOOLEAN bActive = FALSE;
     BOOLEAN bLocked =  FALSE;
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
-    for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
-         pFilterLink;
-         pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, pFilterLink))
+    pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
+
+    while(pFilterLink)
     {
         pFilter = LW_STRUCT_FROM_FIELD(
                       pFilterLink,
                       PVFS_NOTIFY_FILTER_RECORD,
                       NotifyList);
+
+        pNextLink = PvfsListTraverse(pFcb->pNotifyListIrp, pFilterLink);
 
         /* Continue if we don't match the filter and depth */
 
@@ -688,12 +691,14 @@ PvfsNotifyFullReportIrp(
               ((pFcb == pReportParentFcb) || pFilter->bWatchTree)))
         {
             pFilter = NULL;
+            pFilterLink = pNextLink;
+
             continue;
         }
 
         PvfsListRemoveItem(pFcb->pNotifyListIrp, pFilterLink);
 
-        LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+        pFilterLink = NULL;
 
         PvfsQueueCancelIrpIfRequested(pFilter->pIrpContext);
 
@@ -704,8 +709,13 @@ PvfsNotifyFullReportIrp(
 
         if (!bActive)
         {
+            PvfsFreeNotifyRecord(&pFilter);
+            pFilterLink = pNextLink;
+
             continue;
         }
+
+        LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
         ntError = PvfsNotifyReportIrp(
                       pFilter->pIrpContext,
