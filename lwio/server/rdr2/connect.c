@@ -129,6 +129,12 @@ cleanup:
 
     LWIO_UNLOCK_MUTEX(bTreeLocked, &pTree->mutex);
 
+    if (status != STATUS_SUCCESS)
+    {
+        RdrTreeInvalidate(pTree, status);
+        RdrTreeRelease(pTree);
+    }
+
     RdrFreeTreeConnectContext(pContext);
 
     return FALSE;
