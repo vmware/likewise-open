@@ -100,6 +100,16 @@ RdrMarshalFileInfo(
 
 static
 NTSTATUS
+RdrMarshalFileBasicInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    );
+
+static
+NTSTATUS
 RdrMarshalFileEndOfFileInfo(
     PSMB_HEADER pSmbHeader,
     PBYTE* ppCursor,
@@ -231,6 +241,9 @@ RdrSetInformation(
 
     switch (pIrp->Args.QuerySetInformation.FileInformationClass)
     {
+    case FileBasicInformation:
+        infoLevel = SMB_SET_FILE_BASIC_INFO;
+        break;
     case FileEndOfFileInformation:
         infoLevel = SMB_SET_FILE_END_OF_FILE_INFO;
         break;
@@ -601,6 +614,15 @@ RdrMarshalFileInfo(
 
     switch (infoLevel)
     {
+    case SMB_SET_FILE_BASIC_INFO:
+        status = RdrMarshalFileBasicInfo(
+            pSmbHeader,
+            ppCursor,
+            pulRemainingSpace,
+            pInfo,
+            ulInfoLength);
+        BAIL_ON_NT_STATUS(status);
+        break;
     case SMB_SET_FILE_END_OF_FILE_INFO:
         status = RdrMarshalFileEndOfFileInfo(
             pSmbHeader,
@@ -666,6 +688,50 @@ RdrMarshalFileEndOfFileInfo(
     BAIL_ON_NT_STATUS(status);
 
     pEndInfoPacked->EndOfFile = SMB_HTOL64(pEndInfo->EndOfFile);
+
+    *ppCursor = pCursor;
+    *pulRemainingSpace = ulRemainingSpace;
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrMarshalFileBasicInfo(
+    PSMB_HEADER pSmbHeader,
+    PBYTE* ppCursor,
+    PULONG pulRemainingSpace,
+    PVOID pInfo,
+    ULONG ulInfoLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PFILE_BASIC_INFORMATION pEndInfo = pInfo;
+    PBYTE pCursor = *ppCursor;
+    ULONG ulRemainingSpace = *pulRemainingSpace;
+    PTRANS2_FILE_BASIC_INFORMATION pEndInfoPacked = (PTRANS2_FILE_BASIC_INFORMATION) *ppCursor;
+
+    if (ulInfoLength < sizeof(*pEndInfo))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    /* Advance cursor past info structure */
+    status = Advance(&pCursor, &ulRemainingSpace, sizeof(*pEndInfoPacked));
+    BAIL_ON_NT_STATUS(status);
+
+    pEndInfoPacked->CreationTime = SMB_HTOL64(pEndInfo->CreationTime);
+    pEndInfoPacked->ChangeTime = SMB_HTOL64(pEndInfo->ChangeTime);
+    pEndInfoPacked->FileAttributes = SMB_HTOL32(pEndInfo->FileAttributes);
+    pEndInfoPacked->LastAccessTime = SMB_HTOL64(pEndInfo->LastAccessTime);
+    pEndInfoPacked->LastWriteTime = SMB_HTOL64(pEndInfo->LastWriteTime);
 
     *ppCursor = pCursor;
     *pulRemainingSpace = ulRemainingSpace;
