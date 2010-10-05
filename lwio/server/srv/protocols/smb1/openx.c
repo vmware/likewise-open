@@ -406,6 +406,9 @@ SrvBuildOpenState(
 
     pOpenState->pwszFilename = pwszFilename;
 
+    ntStatus = IoRtlEcpListAllocate(&pOpenState->pEcpList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
      *  - Client principal name
@@ -413,9 +416,6 @@ SrvBuildOpenState(
      */
     if (SrvTreeIsNamedPipe(pCtxSmb1->pTree))
     {
-        ntStatus = IoRtlEcpListAllocate(&pOpenState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ntStatus = SrvConnectionGetNamedPipeSessionKey(
                        pConnection,
                        pOpenState->pEcpList);
@@ -424,6 +424,36 @@ SrvBuildOpenState(
         ntStatus = SrvConnectionGetNamedPipeClientAddress(
                        pConnection,
                        pOpenState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
+                                      IO_ECP_TYPE_PIPE_INFO,
+                                      &pOpenState->filePipeInfo,
+                                      sizeof(pOpenState->filePipeInfo),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
+                                      IO_ECP_TYPE_PIPE_LOCAL_INFO,
+                                      &pOpenState->filePipeLocalInfo,
+                                      sizeof(pOpenState->filePipeLocalInfo),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
+                                      IO_ECP_TYPE_FILE_STD_INFO,
+                                      &pOpenState->fileStdInfo,
+                                      sizeof(pOpenState->fileStdInfo),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
+                                      IO_ECP_TYPE_FILE_BASIC_INFO,
+                                      &pOpenState->fileBasicInfo,
+                                      sizeof(pOpenState->fileBasicInfo),
+                                      NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
