@@ -579,7 +579,13 @@ cleanup:
             SMBGSSContextFree(pContext->State.TreeConnect.hGssContext);
         }
 
-        RdrContinueContext(pContext, status, NULL);
+        if (pSession)
+        {
+            RdrSessionInvalidate(pSession, status);
+            RdrSessionRelease(pSession);
+        }
+
+        RdrSessionSetupComplete(pContext, status, NULL);
     }
 
     return;
