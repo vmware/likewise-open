@@ -1415,20 +1415,65 @@ SrvConnectionGetNamedPipeClientAddress(
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
     // Cast is necessary to discard const-ness.
-    ntStatus = IoRtlEcpListInsert(pEcpList,
-                                  IO_ECP_TYPE_PEER_ADDRESS,
-                                  (PVOID) pConnection->pClientAddress,
-                                  pConnection->clientAddrLen,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (pConnection->pClientAddress->sa_family)
+    {
+        case AF_INET:
 
-cleanup:
+            {
+                union
+                {
+                    const struct sockaddr* pGenericAddr;
+                    struct sockaddr_in*    pIPV4Addr;
+                } addr =
+                {
+                    .pGenericAddr = pConnection->pClientAddress
+                };
 
-    return ntStatus;
+                ntStatus = IoRtlEcpListInsert(pEcpList,
+                                              IO_ECP_TYPE_PEER_ADDRESS,
+                                              &addr.pIPV4Addr->sin_addr,
+                                              sizeof(addr.pIPV4Addr->sin_addr),
+                                              NULL);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            break;
+
+#ifdef AF_INET6
+
+    case AF_INET6:
+
+        {
+            union
+                {
+                    const struct sockaddr* pGenericAddr;
+                    struct sockaddr_in6*   pIPV6Addr;
+                } addr =
+                {
+                    .pGenericAddr = pConnection->pClientAddress
+                };
+
+                ntStatus = IoRtlEcpListInsert(pEcpList,
+                                              IO_ECP_TYPE_PEER_ADDRESS,
+                                              &addr.pIPV6Addr->sin6_addr,
+                                              sizeof(addr.pIPV6Addr->sin6_addr),
+                                              NULL);
+                BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        break;
+#endif
+
+    default:
+
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
 
 error:
 
-    goto cleanup;
+    return ntStatus;
 }
 
 NTSTATUS

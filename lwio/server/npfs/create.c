@@ -297,8 +297,8 @@ NpfsCommonProcessCreateEcp(
 
         if (ulEcpSize > sizeof(pPipe->ClientAddress))
         {
-            /* Only 4-byte (IPv4) address supported */
-            ntStatus = STATUS_NOT_SUPPORTED;
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         pPipe->usClientAddressLen = (USHORT) ulEcpSize;
