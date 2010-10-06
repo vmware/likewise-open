@@ -408,9 +408,6 @@ SrvBuildTreeConnectState(
     pTConState->pszService     = pszService;
     pTConState->pwszPath       = pwszPath;
 
-    pTConState->clientAddress         = pConnection->clientAddress;
-    pTConState->ulClientAddressLength = pConnection->clientAddrLen;
-
     *ppTConState = pTConState;
 
 cleanup:
@@ -675,11 +672,12 @@ SrvIoPrepareEcpList(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
+        // Cast is necessary to discard const-ness.
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
                         SRV_ECP_TYPE_CLIENT_ADDRESS,
-                        &pTConState->clientAddress,
-                        pTConState->ulClientAddressLength,
+                        (PVOID) pTConState->pSession->pConnection->pClientAddress,
+                        pTConState->pSession->pConnection->clientAddrLen,
                         NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }

@@ -258,10 +258,6 @@ SrvConnectionRundownAsyncStateCallback(
 
 NTSTATUS
 SrvConnectionCreate(
-    const struct sockaddr*          pClientAddress,
-    SOCKLEN_T                       clientAddrLen,
-    const struct sockaddr*          pServerAddress,
-    SOCKLEN_T                       serverAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
@@ -272,12 +268,6 @@ SrvConnectionCreate(
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_CONNECTION pConnection = NULL;
-
-    if (!pClientAddress)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = SrvAllocateMemory(sizeof(*pConnection), (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -308,10 +298,15 @@ SrvConnectionCreate(
                     &pConnection->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pConnection->clientAddress = *pClientAddress;
-    pConnection->clientAddrLen = clientAddrLen;
-    pConnection->serverAddress = *pServerAddress;
-    pConnection->serverAddrLen = serverAddrLen;
+    pSocketDispatch->pfnGetClientAddress(
+                pSocket,
+                &pConnection->pClientAddress,
+                &pConnection->clientAddrLen);
+
+    pSocketDispatch->pfnGetServerAddress(
+                pSocket,
+                &pConnection->pServerAddress,
+                &pConnection->serverAddrLen);
 
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
@@ -1418,19 +1413,12 @@ SrvConnectionGetNamedPipeClientAddress(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PVOID pAddr = NULL;
-    ULONG ulAddrLength = 0;
 
-    ntStatus = pConnection->pSocketDispatch->pfnGetAddressBytes(
-                    pConnection->pSocket,
-                    &pAddr,
-                    &ulAddrLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
+    // Cast is necessary to discard const-ness.
     ntStatus = IoRtlEcpListInsert(pEcpList,
                                   IO_ECP_TYPE_PEER_ADDRESS,
-                                  pAddr,
-                                  ulAddrLength,
+                                  (PVOID) pConnection->pClientAddress,
+                                  pConnection->clientAddrLen,
                                   NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 

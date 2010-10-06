@@ -150,7 +150,7 @@ static
 PSRV_LOG_FILTER
 SrvLogSpecFindFilter(
     PSRV_LOG_FILTER  pFilterList,
-    struct sockaddr* pClientAddress,
+    const struct sockaddr* pClientAddress,
     SOCKLEN_T        ulClientAddressLength
     );
 
@@ -523,7 +523,7 @@ SrvLogSpecParseClients(
 
                 ntStatus = SrvSocketStringToAddressA(
                                 token.pData,
-                                &pLogFilter->clientAddress,
+                                &pLogFilter->pClientAddress,
                                 &pLogFilter->ulClientAddressLength);
                 *(token.pData + token.ulLength) = chSave;
 
@@ -1132,7 +1132,7 @@ SrvLogSpecMergeFilter(
         {
             pExisting = SrvLogSpecFindFilter(
                             pLogSpec->pClientSpecList,
-                            &pCandidate->clientAddress,
+                            pCandidate->pClientAddress,
                             pCandidate->ulClientAddressLength);
         }
 
@@ -1200,7 +1200,7 @@ static
 PSRV_LOG_FILTER
 SrvLogSpecFindFilter(
     PSRV_LOG_FILTER  pFilterList,
-    struct sockaddr* pClientAddress,
+    const struct sockaddr* pClientAddress,
     SOCKLEN_T        ulClientAddressLength
     )
 {
@@ -1212,7 +1212,7 @@ SrvLogSpecFindFilter(
         BOOLEAN bMatch = FALSE;
 
         ntStatus = SrvSocketCompareAddress(
-                        &pCursor->clientAddress,
+                        pCursor->pClientAddress,
                         pCursor->ulClientAddressLength,
                         pClientAddress,
                         ulClientAddressLength,
@@ -1479,7 +1479,7 @@ error:
 NTSTATUS
 SrvLogContextUpdateFilter(
     PSRV_LOG_CONTEXT pLogContext,
-    struct sockaddr* pClientAddress,
+    const struct sockaddr* pClientAddress,
     SOCKLEN_T        ulClientAddressLength
     )
 {
@@ -1630,6 +1630,11 @@ SrvLogFilterFree(
     PSRV_LOG_FILTER pFilter
     )
 {
+    if (pFilter->pClientAddress)
+    {
+        SrvFreeMemory(pFilter->pClientAddress);
+    }
+
     if (pFilter->pFilterList_smb1)
     {
         SrvLogFilterOpListRelease(pFilter->pFilterList_smb1);

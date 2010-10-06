@@ -162,9 +162,27 @@ LwioSrvStatCreateRequestContext(
     pContext->ulRequestLength = ulRequestLength;
 
     pContext->connInfo.ulResourceId  = pConnection->ulResourceId;
-    pContext->connInfo.clientAddress = pConnection->clientAddress;
+
+    ntStatus = RTL_ALLOCATE(
+                    &pContext->connInfo.pClientAddress,
+                    struct sockaddr,
+                    pConnection->clientAddrLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pContext->connInfo.pClientAddress,
+           pConnection->pClientAddress,
+           pConnection->clientAddrLen);
     pContext->connInfo.clientAddrLen = pConnection->clientAddrLen;
-    pContext->connInfo.serverAddress = pConnection->serverAddress;
+
+    ntStatus = RTL_ALLOCATE(
+                    &pContext->connInfo.pServerAddress,
+                    struct sockaddr,
+                    pConnection->serverAddrLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pContext->connInfo.pServerAddress,
+           pConnection->pServerAddress,
+           pConnection->serverAddrLen);
     pContext->connInfo.serverAddrLen = pConnection->serverAddrLen;
 
     ntStatus = LwioSrvStatGetCurrentNTTime(&pContext->llRequestStartTime);
@@ -645,7 +663,7 @@ LwioSrvStatLogContextHeader(
     BAIL_ON_NT_STATUS(ntStatus);
 
     v.valueType = SRV_STAT_HANDLER_VALUE_TYPE_PSOCKADDR;
-    v.val.pSockAddr = &pStatContext->connInfo.clientAddress;
+    v.val.pSockAddr = pStatContext->connInfo.pClientAddress;
 
     ntStatus = LwioSrvStatLogToString(
                     " ",
@@ -657,7 +675,7 @@ LwioSrvStatLogContextHeader(
                     pulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    v.val.pSockAddr = &pStatContext->connInfo.serverAddress;
+    v.val.pSockAddr = pStatContext->connInfo.pServerAddress;
 
     ntStatus = LwioSrvStatLogToString(
                     " ",
@@ -1120,6 +1138,8 @@ LwioSrvStatFreeContext(
         pthread_mutex_destroy(&pStatContext->mutex);
     }
 
+    RTL_FREE(&pStatContext->connInfo.pClientAddress);
+    RTL_FREE(&pStatContext->connInfo.pServerAddress);
     RTL_FREE(&pStatContext->sessionInfo.pwszUserPrincipal);
 
     if (pStatContext->pMessageStack)

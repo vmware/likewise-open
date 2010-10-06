@@ -349,9 +349,6 @@ SrvBuildTreeConnectState_SMB_V2(
 
     memcpy((PBYTE)pTConState->pwszPath, (PBYTE)pPath->Buffer, pPath->Length);
 
-    pTConState->clientAddress         = pConnection->clientAddress;
-    pTConState->ulClientAddressLength = pConnection->clientAddrLen;
-
     pTConState->pSession = SrvSession2Acquire(pSession);
 
     *ppTConState = pTConState;
@@ -574,11 +571,12 @@ SrvIoPrepareEcpList_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
+        // Cast is necessary to discard const-ness.
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
                         SRV_ECP_TYPE_CLIENT_ADDRESS,
-                        &pTConState->clientAddress,
-                        pTConState->ulClientAddressLength,
+                        (PVOID) pTConState->pSession->pConnection->pClientAddress,
+                        pTConState->pSession->pConnection->clientAddrLen,
                         NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }

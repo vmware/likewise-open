@@ -213,9 +213,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     ULONG                          ulMaximalShareAccessMask;
     ULONG                          ulGuestMaximalShareAccessMask;
 
-    struct sockaddr                clientAddress;
-    ULONG                          ulClientAddressLength;
-
 } SRV_TREE_CONNECT_STATE_SMB_V1, *PSRV_TREE_CONNECT_STATE_SMB_V1;
 
 typedef enum

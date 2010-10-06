@@ -71,7 +71,7 @@ SrvBuildExecContext(
 
     ntStatus = SrvLogContextUpdateFilter(
                     pContext->pLogContext,
-                    &pConnection->clientAddress,
+                    pConnection->pClientAddress,
                     pConnection->clientAddrLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
