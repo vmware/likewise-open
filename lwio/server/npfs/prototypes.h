@@ -226,10 +226,6 @@ NpfsAsyncConnectNamedPipe(
     );
 
 /* file_basic_info.c */
-NTSTATUS
-NpfsQueryFileBasicInfo(
-    PNPFS_IRP_CONTEXT pIrpContext
-    );
 
 NTSTATUS
 NpfsFileBasicInfo(
@@ -237,18 +233,35 @@ NpfsFileBasicInfo(
     PNPFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+NpfsQueryFileBasicInfo(
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+NpfsQueryCcbFileBasicInfo(
+    PNPFS_CCB               pCcb,
+    PFILE_BASIC_INFORMATION pFileInfo
+    );
+
+
 /* file_std_info.c */
+
+NTSTATUS
+NpfsFileStandardInfo(
+    NPFS_INFO_TYPE Type,
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
 
 NTSTATUS
 NpfsQueryFileStandardInfo(
     PNPFS_IRP_CONTEXT pIrpContext
     );
 
-
 NTSTATUS
-NpfsFileStandardInfo(
-    NPFS_INFO_TYPE Type,
-    PNPFS_IRP_CONTEXT pIrpContext
+NpfsQueryCcbFileStandardInfo(
+    PNPFS_CCB                  pCcb,
+    PFILE_STANDARD_INFORMATION pFileInfo
     );
 
 /* file_access_info.c */
@@ -273,6 +286,12 @@ NpfsFilePipeInfo(
     PNPFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+NpfsQueryCcbFilePipeInfo(
+    PNPFS_CCB              pCcb,
+    PFILE_PIPE_INFORMATION pPipeInfo
+    );
+
 /* file_pipe_local_info.c */
 
 NTSTATUS
@@ -281,6 +300,11 @@ NpfsFilePipeLocalInfo(
     PNPFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+NpfsQueryCcbFilePipeLocalInfo(
+    PNPFS_CCB                    pCcb,
+    PFILE_PIPE_LOCAL_INFORMATION pPipeInfo
+    );
 
 /* fcb.c */
 

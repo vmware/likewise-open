@@ -409,6 +409,20 @@ SrvBuildOpenState(
     ntStatus = IoRtlEcpListAllocate(&pOpenState->pEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
+                                  SRV_ECP_TYPE_FILE_STD_INFO,
+                                  &pOpenState->fileStdInfo,
+                                  sizeof(pOpenState->fileStdInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
+                                  SRV_ECP_TYPE_FILE_BASIC_INFO,
+                                  &pOpenState->fileBasicInfo,
+                                  sizeof(pOpenState->fileBasicInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
      *  - Client principal name
@@ -427,32 +441,16 @@ SrvBuildOpenState(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
-                                      IO_ECP_TYPE_PIPE_INFO,
+                                      SRV_ECP_TYPE_PIPE_INFO,
                                       &pOpenState->filePipeInfo,
                                       sizeof(pOpenState->filePipeInfo),
                                       NULL);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
-                                      IO_ECP_TYPE_PIPE_LOCAL_INFO,
+                                      SRV_ECP_TYPE_PIPE_LOCAL_INFO,
                                       &pOpenState->filePipeLocalInfo,
                                       sizeof(pOpenState->filePipeLocalInfo),
-                                      NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
-                                      IO_ECP_TYPE_FILE_STD_INFO,
-                                      &pOpenState->fileStdInfo,
-                                      sizeof(pOpenState->fileStdInfo),
-                                      NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoRtlEcpListInsert(pOpenState->pEcpList,
-                                      IO_ECP_TYPE_FILE_BASIC_INFO,
-                                      &pOpenState->fileBasicInfo,
-                                      sizeof(pOpenState->fileBasicInfo),
                                       NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -693,56 +691,13 @@ SrvQueryFileOpenInformation(
 
     pOpenState = (PSRV_OPEN_STATE_SMB_V1)pCtxSmb1->hState;
 
-    if (!pOpenState->pFileBasicInfo)
+    if (!IoRtlEcpListIsAcknowledged(
+            pOpenState->pEcpList,
+            SRV_ECP_TYPE_FILE_BASIC_INFO))
     {
-        pOpenState->pFileBasicInfo = &pOpenState->fileBasicInfo;
-
-        SrvPrepareOpenStateAsync(pOpenState, pExecContext);
-
-        ntStatus = IoQueryInformationFile(
-                        pOpenState->pFile->hFile,
-                        pOpenState->pAcb,
-                        &pOpenState->ioStatusBlock,
-                        pOpenState->pFileBasicInfo,
-                        sizeof(pOpenState->fileBasicInfo),
-                        FileBasicInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
-    }
-
-    if (!(pOpenState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-    {
-        SrvFileBlockIdleTimeout(pOpenState->pFile);
-    }
-    else
-    {
-        SrvFileUnblockIdleTimeout(pOpenState->pFile);
-    }
-
-    if (!pOpenState->pFileStdInfo)
-    {
-        pOpenState->pFileStdInfo = &pOpenState->fileStdInfo;
-
-        SrvPrepareOpenStateAsync(pOpenState, pExecContext);
-
-        ntStatus = IoQueryInformationFile(
-                        pOpenState->pFile->hFile,
-                        pOpenState->pAcb,
-                        &pOpenState->ioStatusBlock,
-                        pOpenState->pFileStdInfo,
-                        sizeof(pOpenState->fileStdInfo),
-                        FileStandardInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
-    }
-
-    if (SrvTreeIsNamedPipe(pOpenState->pTree))
-    {
-        if (!pOpenState->pFilePipeInfo)
+        if (!pOpenState->pFileBasicInfo)
         {
-            pOpenState->pFilePipeInfo = &pOpenState->filePipeInfo;
+            pOpenState->pFileBasicInfo = &pOpenState->fileBasicInfo;
 
             SrvPrepareOpenStateAsync(pOpenState, pExecContext);
 
@@ -750,17 +705,31 @@ SrvQueryFileOpenInformation(
                             pOpenState->pFile->hFile,
                             pOpenState->pAcb,
                             &pOpenState->ioStatusBlock,
-                            pOpenState->pFilePipeInfo,
-                            sizeof(pOpenState->filePipeInfo),
-                            FilePipeInformation);
+                            pOpenState->pFileBasicInfo,
+                            sizeof(pOpenState->fileBasicInfo),
+                            FileBasicInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
         }
 
-        if (!pOpenState->pFilePipeLocalInfo)
+        if (!(pOpenState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
         {
-            pOpenState->pFilePipeLocalInfo = &pOpenState->filePipeLocalInfo;
+            SrvFileBlockIdleTimeout(pOpenState->pFile);
+        }
+        else
+        {
+            SrvFileUnblockIdleTimeout(pOpenState->pFile);
+        }
+    }
+
+    if (!IoRtlEcpListIsAcknowledged(
+                pOpenState->pEcpList,
+                SRV_ECP_TYPE_FILE_STD_INFO))
+    {
+        if (!pOpenState->pFileStdInfo)
+        {
+            pOpenState->pFileStdInfo = &pOpenState->fileStdInfo;
 
             SrvPrepareOpenStateAsync(pOpenState, pExecContext);
 
@@ -768,12 +737,61 @@ SrvQueryFileOpenInformation(
                             pOpenState->pFile->hFile,
                             pOpenState->pAcb,
                             &pOpenState->ioStatusBlock,
-                            pOpenState->pFilePipeLocalInfo,
-                            sizeof(pOpenState->filePipeLocalInfo),
-                            FilePipeLocalInformation);
+                            pOpenState->pFileStdInfo,
+                            sizeof(pOpenState->fileStdInfo),
+                            FileStandardInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
+        }
+    }
+
+    if (SrvTreeIsNamedPipe(pOpenState->pTree))
+    {
+        if (!IoRtlEcpListIsAcknowledged(
+                    pOpenState->pEcpList,
+                    SRV_ECP_TYPE_PIPE_INFO))
+        {
+            if (!pOpenState->pFilePipeInfo)
+            {
+                pOpenState->pFilePipeInfo = &pOpenState->filePipeInfo;
+
+                SrvPrepareOpenStateAsync(pOpenState, pExecContext);
+
+                ntStatus = IoQueryInformationFile(
+                                pOpenState->pFile->hFile,
+                                pOpenState->pAcb,
+                                &pOpenState->ioStatusBlock,
+                                pOpenState->pFilePipeInfo,
+                                sizeof(pOpenState->filePipeInfo),
+                                FilePipeInformation);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
+            }
+        }
+
+        if (!IoRtlEcpListIsAcknowledged(
+                    pOpenState->pEcpList,
+                    SRV_ECP_TYPE_PIPE_LOCAL_INFO))
+        {
+            if (!pOpenState->pFilePipeLocalInfo)
+            {
+                pOpenState->pFilePipeLocalInfo = &pOpenState->filePipeLocalInfo;
+
+                SrvPrepareOpenStateAsync(pOpenState, pExecContext);
+
+                ntStatus = IoQueryInformationFile(
+                                pOpenState->pFile->hFile,
+                                pOpenState->pAcb,
+                                &pOpenState->ioStatusBlock,
+                                pOpenState->pFilePipeLocalInfo,
+                                sizeof(pOpenState->filePipeLocalInfo),
+                                FilePipeLocalInformation);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
+            }
         }
     }
 

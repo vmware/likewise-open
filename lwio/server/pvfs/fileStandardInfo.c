@@ -102,8 +102,6 @@ PvfsQueryFileStandardInfo(
     PPVFS_CCB pCcb = NULL;
     PFILE_STANDARD_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PVFS_STAT Stat = {0};
-    BOOLEAN bDeletePending = FALSE;
 
     /* Sanity checks */
 
@@ -122,37 +120,8 @@ PvfsQueryFileStandardInfo(
 
     pFileInfo = (PFILE_STANDARD_INFORMATION)Args.FileInformation;
 
-    /* Real work starts here */
-
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    ntError = PvfsCcbQueryFileStandardInformation(pCcb, pFileInfo);
     BAIL_ON_NT_STATUS(ntError);
-
-    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
-
-    if (PVFS_IS_DIR(pCcb))
-    {
-        /* NTFS reports the allocation and end-of-file on
-           directories as 0.  smbtorture cares about this even
-           if no apps that I know of do. */
-
-        pFileInfo->AllocationSize = 0;
-        pFileInfo->EndOfFile      = 0;
-
-        pFileInfo->NumberOfLinks  = bDeletePending ? 0 : 1;
-    }
-    else
-    {
-        pFileInfo->EndOfFile      = Stat.s_size;
-        pFileInfo->AllocationSize = Stat.s_alloc > Stat.s_size ?
-                                    Stat.s_alloc : Stat.s_size;
-
-        pFileInfo->NumberOfLinks  = bDeletePending ?
-                                    Stat.s_nlink - 1 :
-                                    Stat.s_nlink;
-    }
-
-    pFileInfo->DeletePending  = bDeletePending;
-    pFileInfo->Directory      = S_ISDIR(Stat.s_mode) ? TRUE : FALSE;
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;

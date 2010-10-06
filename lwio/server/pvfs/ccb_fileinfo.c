@@ -177,7 +177,55 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+PvfsCcbQueryFileStandardInformation(
+    PPVFS_CCB pCcb,
+    PFILE_STANDARD_INFORMATION pFileInfo
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_STAT Stat = {0};
+    BOOLEAN bDeletePending = FALSE;
 
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
+
+    if (PVFS_IS_DIR(pCcb))
+    {
+        /* NTFS reports the allocation and end-of-file on
+           directories as 0.  smbtorture cares about this even
+           if no apps that I know of do. */
+
+        pFileInfo->AllocationSize = 0;
+        pFileInfo->EndOfFile      = 0;
+
+        pFileInfo->NumberOfLinks  = bDeletePending ? 0 : 1;
+    }
+    else
+    {
+        pFileInfo->EndOfFile      = Stat.s_size;
+        pFileInfo->AllocationSize = Stat.s_alloc > Stat.s_size ?
+                                    Stat.s_alloc : Stat.s_size;
+
+        pFileInfo->NumberOfLinks  = bDeletePending ?
+                                    Stat.s_nlink - 1 :
+                                    Stat.s_nlink;
+    }
+
+    pFileInfo->DeletePending  = bDeletePending;
+    pFileInfo->Directory      = S_ISDIR(Stat.s_mode) ? TRUE : FALSE;
+
+cleanup:
+
+    return ntError;
+
+error:
+
+    goto cleanup;
+
+}
 
 
 /*

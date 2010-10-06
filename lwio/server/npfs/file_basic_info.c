@@ -105,11 +105,8 @@ NpfsQueryFileBasicInfo(
 
     pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;
 
-    pFileInfo->LastAccessTime = 0;
-    pFileInfo->LastWriteTime = 0;
-    pFileInfo->ChangeTime = 0;
-    pFileInfo->CreationTime = 0;
-    pFileInfo->FileAttributes = FILE_ATTRIBUTE_NORMAL;
+    ntStatus = NpfsQueryCcbFileBasicInfo(pCcb, pFileInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntStatus = STATUS_SUCCESS;
@@ -121,6 +118,23 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+NTSTATUS
+NpfsQueryCcbFileBasicInfo(
+    PNPFS_CCB               pCcb,
+    PFILE_BASIC_INFORMATION pFileInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    pFileInfo->LastAccessTime = 0;
+    pFileInfo->LastWriteTime = 0;
+    pFileInfo->ChangeTime = 0;
+    pFileInfo->CreationTime = 0;
+    pFileInfo->FileAttributes = FILE_ATTRIBUTE_NORMAL;
+
+    return ntStatus;
 }
 
 

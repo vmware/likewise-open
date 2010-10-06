@@ -112,12 +112,11 @@ NpfsQueryFileStandardInfo(
 
     pFileInfo = (PFILE_STANDARD_INFORMATION)Args.FileInformation;
 
-    pFileInfo->AllocationSize = 8192;
-    pFileInfo->EndOfFile      = 0;
-    pFileInfo->NumberOfLinks  = 0;
-    pFileInfo->DeletePending  = FALSE;
-    pFileInfo->Directory      = FALSE;
+    ntStatus = NpfsQueryCcbFileStandardInfo(pCcb, pFileInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+
     ntStatus = STATUS_SUCCESS;
 
 cleanup:
@@ -127,6 +126,23 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+NTSTATUS
+NpfsQueryCcbFileStandardInfo(
+    PNPFS_CCB                  pCcb,
+    PFILE_STANDARD_INFORMATION pFileInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    pFileInfo->AllocationSize = 8192;
+    pFileInfo->EndOfFile      = 0;
+    pFileInfo->NumberOfLinks  = 0;
+    pFileInfo->DeletePending  = FALSE;
+    pFileInfo->Directory      = FALSE;
+
+    return ntStatus;
 }
 
 /*
