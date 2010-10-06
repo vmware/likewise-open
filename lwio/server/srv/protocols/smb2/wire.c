@@ -196,6 +196,8 @@ SMB2MarshalHeader(
     pSMB2Header->usEpoch        = usEpoch;
     pSMB2Header->usCredits      = usCredits;
     pSMB2Header->ullCommandSequence = ullMid;
+    pSMB2Header->ulFlags            = 0;
+    pSMB2Header->ulChainOffset  = 0;
 
     if (!ullAsyncId)
     {
