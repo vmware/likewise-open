@@ -143,7 +143,7 @@ typedef struct _SRV_PROTOCOL_SESSION_ENUM_QUERY
     ULONG    ulBufferSize;
     ULONG    ulBytesUsed;
 
-    struct sockaddr* pClientAddress;
+    const struct sockaddr* pClientAddress;
     SOCKLEN_T        clientAddrLen;
 
     struct addrinfo* pQueryAddress;

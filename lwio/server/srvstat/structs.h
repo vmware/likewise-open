@@ -111,8 +111,21 @@ typedef struct _SRV_STAT_REQUEST_CONTEXT
 
     SRV_STAT_SMB_VERSION      protocolVersion;
 
-    SRV_STAT_CONNECTION_INFO  connInfo;
-    SRV_STAT_SESSION_INFO     sessionInfo;
+    struct {
+        struct sockaddr* pClientAddress;
+        size_t           clientAddrLen;
+        struct sockaddr* pServerAddress;
+        size_t           serverAddrLen;
+        ULONG            ulResourceId;
+    } connInfo;
+
+    struct
+    {
+        PWSTR   pwszUserPrincipal;
+        ULONG   ulUid;
+        ULONG   ulGid;
+        ULONG64 ullSessionId;
+    } sessionInfo;
 
     LONG64                    llRequestStartTime;
     LONG64                    llRequestEndTime;

@@ -534,7 +534,7 @@ typedef struct _SRV_CLIENT_PROPERITES
 typedef struct _SRV_SOCKET *PLWIO_SRV_SOCKET;
 typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
 typedef VOID (*PFN_SRV_SOCKET_DISCONNECT)(PLWIO_SRV_SOCKET pSocket);
-typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(PLWIO_SRV_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
+typedef VOID (*PFN_SRV_SOCKET_GET_ADDRESS)(PLWIO_SRV_SOCKET pSocket, const struct sockaddr** ppAddress, PULONG pulAddressLength);
 typedef VOID (*PFN_SRV_CONNECTION_IO_COMPLETE)(PVOID pContext, NTSTATUS Status);
 typedef VOID (*PFN_SRV_SOCKET_RESET_TIMEOUT)(PLWIO_SRV_SOCKET pSocket, BOOLEAN bIsEnabled, ULONG ulTimeoutSeconds);
 struct _SRV_EXEC_CONTEXT;
@@ -542,7 +542,8 @@ struct _SRV_EXEC_CONTEXT;
 typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
     PFN_SRV_SOCKET_FREE pfnFree;
     PFN_SRV_SOCKET_DISCONNECT pfnDisconnect;
-    PFN_SRV_SOCKET_GET_ADDRESS_BYTES pfnGetAddressBytes;
+    PFN_SRV_SOCKET_GET_ADDRESS pfnGetClientAddress;
+    PFN_SRV_SOCKET_GET_ADDRESS pfnGetServerAddress;
     PFN_SRV_SOCKET_RESET_TIMEOUT pfnResetTimeout;
 } SRV_CONNECTION_SOCKET_DISPATCH, *PSRV_CONNECTION_SOCKET_DISPATCH;
 
@@ -559,9 +560,9 @@ typedef struct _SRV_CONNECTION
 
     // Immutable for lifetime of connection.
     SRV_RESOURCE     resource;
-    struct sockaddr  clientAddress;
+    const struct sockaddr* pClientAddress;
     SOCKLEN_T        clientAddrLen;
-    struct sockaddr  serverAddress;
+    const struct sockaddr* pServerAddress;
     SOCKLEN_T        serverAddrLen;
     PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
@@ -883,10 +884,6 @@ SrvAsyncStateRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    const struct sockaddr*          pClientAddress,
-    SOCKLEN_T                       clientAddrLen,
-    const struct sockaddr*          pServerAddress,
-    SOCKLEN_T                       serverAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,

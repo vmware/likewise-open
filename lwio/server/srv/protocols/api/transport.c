@@ -133,11 +133,19 @@ SrvProtocolTransportDriverSocketDisconnect(
     );
 
 static
-NTSTATUS
-SrvProtocolTransportDriverSocketGetAddressBytes(
+VOID
+SrvProtocolTransportDriverSocketGetClientAddress(
     IN PSRV_SOCKET pSocket,
-    OUT PVOID* ppAddress,
-    OUT PULONG pAddressLength
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T* pAddressLength
+    );
+
+static
+VOID
+SrvProtocolTransportDriverSocketGetServerAddress(
+    IN PSRV_SOCKET pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T* pAddressLength
     );
 
 static
@@ -242,7 +250,8 @@ SrvProtocolTransportDriverInit(
 
     pSocketDispatch->pfnFree = SrvProtocolTransportDriverSocketFree;
     pSocketDispatch->pfnDisconnect = SrvProtocolTransportDriverSocketDisconnect;
-    pSocketDispatch->pfnGetAddressBytes = SrvProtocolTransportDriverSocketGetAddressBytes;
+    pSocketDispatch->pfnGetClientAddress = SrvProtocolTransportDriverSocketGetClientAddress;
+    pSocketDispatch->pfnGetServerAddress = SrvProtocolTransportDriverSocketGetServerAddress;
     pSocketDispatch->pfnResetTimeout = SrvProtocolTransportDriverSocketResetTimeout;
 
     uuid_generate(pTransportContext->guid);
@@ -334,10 +343,6 @@ SrvProtocolTransportDriverConnectionNew(
     PSRV_PROTOCOL_API_GLOBALS pGlobals = pProtocolDispatchContext->pGlobals;
     SRV_PROPERTIES properties = { 0 };
     PLWIO_SRV_CONNECTION pConnection = NULL;
-    const struct sockaddr* pClientAddress = NULL;
-    SOCKLEN_T              clientAddrLen = 0;
-    const struct sockaddr* pServerAddress = NULL;
-    SOCKLEN_T              serverAddrLen = 0;
     BOOLEAN bInLock = FALSE;
 
     properties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
@@ -368,14 +373,7 @@ SrvProtocolTransportDriverConnectionNew(
 #endif
     uuid_copy(properties.GUID, pProtocolDispatchContext->guid);
 
-    SrvTransportSocketGetAddress(pSocket, &pClientAddress, &clientAddrLen);
-    SrvTransportSocketGetServerAddress(pSocket, &pServerAddress, &serverAddrLen);
-
     ntStatus = SrvConnectionCreate(
-                    pClientAddress,
-                    clientAddrLen,
-                    pServerAddress,
-                    serverAddrLen,
                     pSocket,
                     pGlobals->hPacketAllocator,
                     pGlobals->pShareList,
@@ -390,9 +388,9 @@ SrvProtocolTransportDriverConnectionNew(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvOEMCreateClientConnection(
-                    &pConnection->clientAddress,
+                    pConnection->pClientAddress,
                     pConnection->clientAddrLen,
-                    &pConnection->serverAddress,
+                    pConnection->pServerAddress,
                     pConnection->serverAddrLen,
                     pConnection->resource.ulResourceId,
                     &pConnection->pOEMConnection,
@@ -737,53 +735,25 @@ SrvProtocolTransportDriverSocketDisconnect(
 }
 
 static
-NTSTATUS
-SrvProtocolTransportDriverSocketGetAddressBytes(
+VOID
+SrvProtocolTransportDriverSocketGetClientAddress(
     IN PSRV_SOCKET pSocket,
-    OUT PVOID* ppAddress,
-    OUT PULONG pAddressLength
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T* pAddressLength
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    const struct sockaddr* pSocketAddress = NULL;
-    SOCKLEN_T socketAddressLength = 0;
-    PVOID pAddressPart = NULL;
-    ULONG addressPartLength = 0;
+    SrvTransportSocketGetAddress(pSocket, ppAddress, pAddressLength);
+}
 
-    SrvTransportSocketGetAddress(pSocket, &pSocketAddress, &socketAddressLength);
-    switch (pSocketAddress->sa_family)
-    {
-        case AF_INET:
-            pAddressPart = &((struct sockaddr_in*)pSocketAddress)->sin_addr.s_addr;
-            addressPartLength = sizeof(((struct sockaddr_in*)pSocketAddress)->sin_addr.s_addr);
-            break;
-#ifdef AF_INET6
-        case AF_INET6:
-            pAddressPart = &((struct sockaddr_in6*)pSocketAddress)->sin6_addr.s6_addr;
-            addressPartLength = sizeof(((struct sockaddr_in6*)pSocketAddress)->sin6_addr.s6_addr);
-            break;
-#endif
-
-        default:
-            LWIO_ASSERT(FALSE);
-            ntStatus = STATUS_NOT_SUPPORTED;
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-    }
-
-cleanup:
-
-    *ppAddress = pAddressPart;
-    *pAddressLength = addressPartLength;
-
-    return ntStatus;
-
-error:
-
-    pAddressPart = NULL;
-    addressPartLength = 0;
-
-    goto cleanup;
+static
+VOID
+SrvProtocolTransportDriverSocketGetServerAddress(
+    IN PSRV_SOCKET pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T* pAddressLength
+    )
+{
+    SrvTransportSocketGetServerAddress(pSocket, ppAddress, pAddressLength);
 }
 
 static
@@ -1331,9 +1301,9 @@ SrvProtocolTransportDriverSetStatistics(
     PSRV_STAT_INFO pStatInfo = NULL;
     SRV_STAT_CONNECTION_INFO statConnInfo =
     {
-            .clientAddress = pConnection->clientAddress,
+            .pClientAddress = pConnection->pClientAddress,
             .clientAddrLen = pConnection->clientAddrLen,
-            .serverAddress = pConnection->serverAddress,
+            .pServerAddress = pConnection->pServerAddress,
             .serverAddrLen = pConnection->serverAddrLen,
             .ulResourceId  = pConnection->resource.ulResourceId
     };

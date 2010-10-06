@@ -61,9 +61,9 @@ SrvOEMInitialize(
 
 NTSTATUS
 SrvOEMCreateClientConnection(
-    struct sockaddr* pClientAddress,                  /* IN     */
+    const struct sockaddr* pClientAddress,            /* IN     */
     SOCKLEN_T        ulClientAddressLength,           /* IN     */
-    struct sockaddr* pServerAddress,                  /* IN     */
+    const struct sockaddr* pServerAddress,            /* IN     */
     SOCKLEN_T        ulServerAddressLength,           /* IN     */
     ULONG            ulResourceId,                    /* IN     */
     PVOID*           ppOEMConnection,                 /*    OUT */

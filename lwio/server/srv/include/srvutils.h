@@ -369,13 +369,13 @@ SrvProdConsFreeContents(
 
 NTSTATUS
 SrvSocketAddressToStringW(
-    struct sockaddr* pSocketAddress,
+    const struct sockaddr* pSocketAddress,
     PWSTR*           ppwszAddress
     );
 
 NTSTATUS
 SrvSocketAddressToString(
-    struct sockaddr* pSocketAddress, /* IN     */
+    const struct sockaddr* pSocketAddress, /* IN     */
     PSTR             pszAddress,     /*    OUT */
     ULONG            ulAddressLength /* IN     */
     );
@@ -383,7 +383,7 @@ SrvSocketAddressToString(
 NTSTATUS
 SrvSocketStringToAddressA(
     PCSTR            pszAddress,
-    struct sockaddr* pSocketAddress,
+    struct sockaddr** ppSocketAddress,
     SOCKLEN_T*       pAddressLength
     );
 
@@ -416,7 +416,7 @@ SrvLogContextCreate(
 NTSTATUS
 SrvLogContextUpdateFilter(
     PSRV_LOG_CONTEXT pLogContext,
-    struct sockaddr* pClientAddress,
+    const struct sockaddr* pClientAddress,
     SOCKLEN_T        ulClientAddressLength
     );
 

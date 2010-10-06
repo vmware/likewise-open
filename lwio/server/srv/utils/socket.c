@@ -82,7 +82,7 @@ SrvSocketCompareIPV6Address(
 
 NTSTATUS
 SrvSocketAddressToStringW(
-    struct sockaddr* pSocketAddress,
+    const struct sockaddr* pSocketAddress,
     PWSTR*           ppwszAddress
     )
 {
@@ -120,7 +120,7 @@ error:
 
 NTSTATUS
 SrvSocketAddressToString(
-    struct sockaddr* pSocketAddress, /* IN     */
+    const struct sockaddr* pSocketAddress, /* IN     */
     PSTR             pszAddress,     /*    OUT */
     ULONG            ulAddressLength /* IN     */
     )
@@ -170,17 +170,25 @@ error:
 NTSTATUS
 SrvSocketStringToAddressA(
     PCSTR            pszAddress,
-    struct sockaddr* pSocketAddress,
+    struct sockaddr** ppSocketAddress,
     SOCKLEN_T*       pAddressLength
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     struct addrinfo* pAddrInfo = NULL;
+    struct sockaddr* pSocketAddress = NULL;
 
     ntStatus = SrvSocketGetAddrInfoA(pszAddress, &pAddrInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *pSocketAddress = *pAddrInfo->ai_addr;
+    ntStatus = SrvAllocateMemory(
+                    pAddrInfo->ai_addrlen,
+                    OUT_PPVOID(&pSocketAddress));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pSocketAddress, pAddrInfo->ai_addr, pAddrInfo->ai_addrlen);
+
+    *ppSocketAddress = pSocketAddress;
     *pAddressLength = pAddrInfo->ai_addrlen;
 
 cleanup:
@@ -194,7 +202,12 @@ cleanup:
 
 error:
 
-    memset(pSocketAddress, 0, sizeof(*pSocketAddress));
+    if (pSocketAddress)
+    {
+        SrvFreeMemory(pSocketAddress);
+    }
+
+    *ppSocketAddress = NULL;
     *pAddressLength = 0;
 
     goto cleanup;
@@ -296,6 +309,7 @@ SrvSocketCompareAddress(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bMatch   = FALSE;
 #ifdef AF_INET6
+    // Ok because sizeof(struct sockaddr) == sizeof(struct sockaddr_in).
     struct sockaddr mappedAddr1 = {0};
     struct sockaddr mappedAddr2 = {0};
 #endif
@@ -456,6 +470,7 @@ SrvSocketBuildMappedIPV4Address(
         .pGenericAddr = pDstAddress
     };
 
+    dstAddrInfo.pIPV4Addr->sin_family = AF_INET;
     dstAddrInfo.pIPV4Addr->sin_port = srcAddrInfo.pIPV6Addr->sin6_port;
     // An IPV6 address is 16 bytes.
     // We want to skip 12 bytes and get just 4 bytes for the IPV4 address

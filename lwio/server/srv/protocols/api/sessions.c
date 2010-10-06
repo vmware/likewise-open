@@ -324,7 +324,7 @@ SrvProtocolCountCandidateSessions(
         for (; !bMatch && (pCursor != NULL); pCursor = pCursor->ai_next)
         {
             ntStatus = SrvSocketCompareAddress(
-                            &pConnection->clientAddress,
+                            pConnection->pClientAddress,
                             pConnection->clientAddrLen,
                             pCursor->ai_addr,
                             pCursor->ai_addrlen,
@@ -424,7 +424,7 @@ SrvProtocolEnumCandidateSessions(
         for (; !bMatch && (pCursor != NULL); pCursor = pCursor->ai_next)
         {
             ntStatus = SrvSocketCompareAddress(
-                            &pConnection->clientAddress,
+                            pConnection->pClientAddress,
                             pConnection->clientAddrLen,
                             pCursor->ai_addr,
                             pCursor->ai_addrlen,
@@ -442,7 +442,7 @@ SrvProtocolEnumCandidateSessions(
     {
         LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-        pSessionEnumQuery->pClientAddress = &pConnection->clientAddress;
+        pSessionEnumQuery->pClientAddress = pConnection->pClientAddress;
         pSessionEnumQuery->clientAddrLen  = pConnection->clientAddrLen;
 
         ntStatus = WireGetCurrentNTTime(&pSessionEnumQuery->llCurTime);
@@ -1126,7 +1126,7 @@ SrvProtocolDeleteCandidateSessions(
         for (; !bMatch && (pCursor != NULL); pCursor = pCursor->ai_next)
         {
             ntStatus = SrvSocketCompareAddress(
-                            &pConnection->clientAddress,
+                            pConnection->pClientAddress,
                             pConnection->clientAddrLen,
                             pCursor->ai_addr,
                             pCursor->ai_addrlen,
