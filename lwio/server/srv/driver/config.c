@@ -128,7 +128,7 @@ SrvInitConfig(
     SrvFreeConfigContents(pConfig);
 
     pConfig->ulMaxNumPackets          = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
-    pConfig->ulNumWorkers             = LWIO_SRV_DEFAULT_NUM_WORKERS;
+    pConfig->ulNumWorkers = LWIO_SRV_WORKERS_CPU_RATIO * LwRtlGetCpuCount();
     pConfig->ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
     pConfig->bBootstrapDefaultSharePath       = FALSE;
     pConfig->ulMonitorIntervalMinutes = LWIO_SRV_DEFAULT_MONITOR_INTERVAL_MINS;
