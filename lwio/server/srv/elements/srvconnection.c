@@ -495,9 +495,11 @@ SrvConnectionIsInvalid(
     return bInvalid;
 }
 
+static
 VOID
-SrvConnectionSetInvalid(
-    PLWIO_SRV_CONNECTION pConnection
+SrvConnectionSetInvalidEx(
+    PLWIO_SRV_CONNECTION pConnection,
+    BOOLEAN bOnlyIfNoSessions
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -505,10 +507,13 @@ SrvConnectionSetInvalid(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    if (pConnection->state != LWIO_SRV_CONN_STATE_INVALID)
+    if (!bOnlyIfNoSessions || (0 == pConnection->ullSessionCount))
     {
-        bDisconnect = TRUE;
-        pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
+        if (pConnection->state != LWIO_SRV_CONN_STATE_INVALID)
+        {
+            bDisconnect = TRUE;
+            pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
+        }
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
@@ -523,6 +528,23 @@ SrvConnectionSetInvalid(
             pConnection->pSocketDispatch->pfnDisconnect(pConnection->pSocket);
         }
     }
+}
+
+VOID
+SrvConnectionSetInvalid(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    SrvConnectionSetInvalidEx(pConnection, FALSE);
+}
+
+static
+VOID
+SrvConnectionSetInvalidIfNoSessions(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    SrvConnectionSetInvalidEx(pConnection, TRUE);
 }
 
 LWIO_SRV_CONN_STATE
@@ -1622,6 +1644,7 @@ error:
     goto cleanup;
 }
 
+
 static
 NTSTATUS
 SrvConnectionDeleteSession(
@@ -1634,6 +1657,7 @@ SrvConnectionDeleteSession(
     PLWIO_SRV_SESSION pSession  = (PLWIO_SRV_SESSION)pData;
 
     SrvSessionRundown(pSession);
+    SrvConnectionSetInvalidIfNoSessions(pSession->pConnection);
 
     *pbContinue = TRUE;
 
@@ -1652,6 +1676,7 @@ SrvConnection2DeleteSession(
     PLWIO_SRV_SESSION_2 pSession  = (PLWIO_SRV_SESSION_2)pData;
 
     SrvSession2Rundown(pSession);
+    SrvConnectionSetInvalidIfNoSessions(pSession->pConnection);
 
     *pbContinue = TRUE;
 
