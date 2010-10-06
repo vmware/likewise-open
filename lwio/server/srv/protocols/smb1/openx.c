@@ -712,19 +712,19 @@ SrvQueryFileOpenInformation(
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
         }
-
-        if (!(pOpenState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-        {
-            SrvFileBlockIdleTimeout(pOpenState->pFile);
-        }
-        else
-        {
-            SrvFileUnblockIdleTimeout(pOpenState->pFile);
-        }
     }
     else
     {
         pOpenState->pFileBasicInfo = &pOpenState->fileBasicInfo;
+    }
+
+    if (!(pOpenState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFileBlockIdleTimeout(pOpenState->pFile);
+    }
+    else
+    {
+        SrvFileUnblockIdleTimeout(pOpenState->pFile);
     }
 
     if (!IoRtlEcpListIsAcknowledged(
