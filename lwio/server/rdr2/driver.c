@@ -282,10 +282,12 @@ RdrShutdown(
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
     /* We need to run down all cached tress/session/sockets sitting around.
-     * Notify and wait for each task group in turn.  Note that we do not
-     * cancel them because cancellation indicates our intention to revive
-     * the object.
+     * Set the global shutdown flag, then notify and wait for each task group
+     * in turn.  Note that we do not cancel them because cancellation indicates
+     * our intention to revive the object.
      */
+
+    RdrSetShutdown();
 
     if (gRdrRuntime.pTreeTimerGroup)
     {
@@ -668,6 +670,32 @@ error:
     goto cleanup;
 }
 
+BOOLEAN
+RdrIsShutdownSet(
+    VOID
+    )
+{
+    BOOLEAN bLocked = FALSE;
+    BOOLEAN bResult = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &gRdrRuntime.Lock);
+    bResult = gRdrRuntime.bShutdown;
+    LWIO_UNLOCK_MUTEX(bLocked, &gRdrRuntime.Lock);
+
+    return bResult;
+}
+
+VOID
+RdrSetShutdown(
+    VOID
+    )
+{
+    BOOLEAN bLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &gRdrRuntime.Lock);
+    gRdrRuntime.bShutdown = TRUE;
+    LWIO_UNLOCK_MUTEX(bLocked, &gRdrRuntime.Lock);
+}
 
 /*
 local variables:

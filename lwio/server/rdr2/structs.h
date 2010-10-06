@@ -267,6 +267,7 @@ typedef struct _RDR_GLOBAL_RUNTIME
     PLW_TASK_GROUP pSocketTimerGroup;
     PLW_TASK_GROUP pSessionTimerGroup;
     PLW_TASK_GROUP pTreeTimerGroup;
+    BOOLEAN bShutdown;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif

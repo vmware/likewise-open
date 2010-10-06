@@ -185,9 +185,16 @@ RdrFinishClose(
 
     RdrFreePacket(pPacket);
 
+    /*
+     * We must release the file before completing the IRP.  This guarantees that any tree
+     * this file might have been holding open will have its reference count decremented.
+     * This satisfies the assumption in RdrShutdown() that all open trees have a reference
+     * count of zero.
+     */
+    RdrReleaseFile(pFile);
+
     pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
     IoIrpComplete(pIrp);
-    RdrReleaseFile(pFile);
     RdrFreeContext(pContext);
 
     return FALSE;

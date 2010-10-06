@@ -1067,7 +1067,9 @@ RdrSocketTimeout(
         *pWaitMask = LW_TASK_EVENT_TIME;
         *pllTime = RDR_IDLE_TIMEOUT * 1000000000ll;
     }
-    else if (WakeMask & LW_TASK_EVENT_TIME || WakeMask & LW_TASK_EVENT_EXPLICIT)
+
+    if ((WakeMask & LW_TASK_EVENT_TIME) ||
+        ((WakeMask & LW_TASK_EVENT_EXPLICIT) && RdrIsShutdownSet()))
     {
         LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.Lock);
 

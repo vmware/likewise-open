@@ -243,4 +243,14 @@ RdrConvertPath(
     PWSTR* ppwszFile
     );
 
+BOOLEAN
+RdrIsShutdownSet(
+    VOID
+    );
+
+VOID
+RdrSetShutdown(
+    VOID
+    );
+
 #endif /* __RDR_H__ */
