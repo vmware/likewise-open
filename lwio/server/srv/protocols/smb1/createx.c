@@ -414,6 +414,10 @@ SrvQueryFileInformation_inlock(
             SrvFileUnblockIdleTimeout(pCreateState->pFile);
         }
     }
+    else // Got the value through the ECP
+    {
+        pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+    }
 
     if (!IoRtlEcpListIsAcknowledged(
                 pCreateState->pEcpList,
@@ -436,6 +440,10 @@ SrvQueryFileInformation_inlock(
 
             SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
         }
+    }
+    else
+    {
+        pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
     }
 
     if (SrvTreeIsNamedPipe(pCreateState->pTree))
@@ -462,6 +470,10 @@ SrvQueryFileInformation_inlock(
                 SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
             }
         }
+        else
+        {
+            pCreateState->pFilePipeInfo = &pCreateState->filePipeInfo;
+        }
 
         if (!IoRtlEcpListIsAcknowledged(
                     pCreateState->pEcpList,
@@ -484,6 +496,10 @@ SrvQueryFileInformation_inlock(
 
                 SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
             }
+        }
+        else
+        {
+            pCreateState->pFilePipeLocalInfo = &pCreateState->filePipeLocalInfo;
         }
     }
 

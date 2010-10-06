@@ -899,6 +899,10 @@ SrvQueryFileInformation_SMB_V2(
             SrvFile2UnblockIdleTimeout(pCreateState->pFile);
         }
     }
+    else
+    {
+        pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+    }
 
     if (!IoRtlEcpListIsAcknowledged(
             pCreateState->pEcpList,
@@ -921,6 +925,10 @@ SrvQueryFileInformation_SMB_V2(
 
             SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
         }
+    }
+    else
+    {
+        pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
     }
 
     if (SrvTree2IsNamedPipe(pCreateState->pTree))
@@ -947,6 +955,10 @@ SrvQueryFileInformation_SMB_V2(
                 SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
             }
         }
+        else
+        {
+            pCreateState->pFilePipeInfo = &pCreateState->filePipeInfo;
+        }
 
         if (!IoRtlEcpListIsAcknowledged(
                 pCreateState->pEcpList,
@@ -969,6 +981,10 @@ SrvQueryFileInformation_SMB_V2(
 
                 SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
             }
+        }
+        else
+        {
+            pCreateState->pFilePipeLocalInfo = &pCreateState->filePipeLocalInfo;
         }
     }
 
