@@ -91,7 +91,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileMoveClusterInformation,       NULL },
     { FileQuotaInformation,             NULL },
     { FileReparsePointInformation,      NULL },
-    { FileNetworkOpenInformation,       NULL },
+    { FileNetworkOpenInformation,       &NpfsFileNetworkOpenInfo },
     { FileAttributeTagInformation,      NULL },
     { FileTrackingInformation,          NULL },
     { FileIdBothDirectoryInformation,   NULL },

@@ -92,6 +92,19 @@ NpfsDeviceIo(
     PIRP pIrp
     );
 
+// file_network_open_info.c
+
+NTSTATUS
+NpfsFileNetworkOpenInfo(
+    NPFS_INFO_TYPE Type,
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+NpfsQueryCcbFileNetworkOpenInfo(
+    PNPFS_CCB                      pCcb,
+    PFILE_NETWORK_OPEN_INFORMATION pFileInfo
+    );
 
 /* memory.c */
 NTSTATUS

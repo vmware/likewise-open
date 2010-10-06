@@ -3000,16 +3000,9 @@ SrvParseNtTransactCreateParameters(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
-                                  SRV_ECP_TYPE_FILE_STD_INFO,
-                                  &pNTTransactState->fileStdInfo,
-                                  sizeof(pNTTransactState->fileStdInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
-                                  SRV_ECP_TYPE_FILE_BASIC_INFO,
-                                  &pNTTransactState->fileBasicInfo,
-                                  sizeof(pNTTransactState->fileBasicInfo),
+                                  SRV_ECP_TYPE_NET_OPEN_INFO,
+                                  &pNTTransactState->networkOpenInfo,
+                                  sizeof(pNTTransactState->networkOpenInfo),
                                   NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -3157,11 +3150,11 @@ SrvQueryNTTransactFileInformation(
 
     if (!IoRtlEcpListIsAcknowledged(
             pNTTransactState->pEcpList,
-            SRV_ECP_TYPE_FILE_BASIC_INFO))
+            SRV_ECP_TYPE_NET_OPEN_INFO))
     {
-        if (!pNTTransactState->pFileBasicInfo)
+        if (!pNTTransactState->pNetworkOpenInfo)
         {
-            pNTTransactState->pFileBasicInfo = &pNTTransactState->fileBasicInfo;
+            pNTTransactState->pNetworkOpenInfo = &pNTTransactState->networkOpenInfo;
 
             SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
 
@@ -3169,9 +3162,9 @@ SrvQueryNTTransactFileInformation(
                             pNTTransactState->pFile->hFile,
                             pNTTransactState->pAcb,
                             &pNTTransactState->ioStatusBlock,
-                            pNTTransactState->pFileBasicInfo,
-                            sizeof(pNTTransactState->fileBasicInfo),
-                            FileBasicInformation);
+                            pNTTransactState->pNetworkOpenInfo,
+                            sizeof(pNTTransactState->networkOpenInfo),
+                            FileNetworkOpenInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
@@ -3179,43 +3172,16 @@ SrvQueryNTTransactFileInformation(
     }
     else
     {
-        pNTTransactState->pFileBasicInfo = &pNTTransactState->fileBasicInfo;
+        pNTTransactState->pNetworkOpenInfo = &pNTTransactState->networkOpenInfo;
     }
 
-    if (!(pNTTransactState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    if (!(pNTTransactState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
         SrvFileBlockIdleTimeout(pNTTransactState->pFile);
     }
     else
     {
         SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
-    }
-
-    if (!IoRtlEcpListIsAcknowledged(
-            pNTTransactState->pEcpList,
-            SRV_ECP_TYPE_FILE_STD_INFO))
-    {
-        if (!pNTTransactState->pFileStdInfo)
-        {
-            pNTTransactState->pFileStdInfo = &pNTTransactState->fileStdInfo;
-
-            SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
-
-            ntStatus = IoQueryInformationFile(
-                            pNTTransactState->pFile->hFile,
-                            pNTTransactState->pAcb,
-                            &pNTTransactState->ioStatusBlock,
-                            pNTTransactState->pFileStdInfo,
-                            sizeof(pNTTransactState->fileStdInfo),
-                            FileStandardInformation);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
-        }
-    }
-    else
-    {
-        pNTTransactState->pFileStdInfo = &pNTTransactState->fileStdInfo;
     }
 
     if (SrvTreeIsNamedPipe(pNTTransactState->pTree))
@@ -3313,7 +3279,7 @@ SrvRequestNTTransactOplocks(
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (SrvTreeIsNamedPipe(pNTTransactState->pTree) ||
-        pNTTransactState->fileStdInfo.Directory)
+        (pNTTransactState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
         pOplockCursor = &noOplockChain[0];
 
@@ -3494,13 +3460,13 @@ SrvBuildNTTransactCreateResponse(
     responseHeader.ucOplockLevel     = pNTTransactState->ucOplockLevel;
     responseHeader.usFid             = pNTTransactState->pFile->fid;
     responseHeader.ulCreateAction    = pNTTransactState->ulCreateAction;
-    responseHeader.llCreationTime    = pNTTransactState->fileBasicInfo.CreationTime;
-    responseHeader.llLastAccessTime  = pNTTransactState->fileBasicInfo.LastAccessTime;
-    responseHeader.llLastWriteTime   = pNTTransactState->fileBasicInfo.LastWriteTime;
-    responseHeader.llChangeTime      = pNTTransactState->fileBasicInfo.ChangeTime;
-    responseHeader.ulExtFileAttributes = pNTTransactState->fileBasicInfo.FileAttributes;
-    responseHeader.ullAllocationSize   = pNTTransactState->fileStdInfo.AllocationSize;
-    responseHeader.ullEndOfFile        = pNTTransactState->fileStdInfo.EndOfFile;
+    responseHeader.llCreationTime    = pNTTransactState->networkOpenInfo.CreationTime;
+    responseHeader.llLastAccessTime  = pNTTransactState->networkOpenInfo.LastAccessTime;
+    responseHeader.llLastWriteTime   = pNTTransactState->networkOpenInfo.LastWriteTime;
+    responseHeader.llChangeTime      = pNTTransactState->networkOpenInfo.ChangeTime;
+    responseHeader.ulExtFileAttributes = pNTTransactState->networkOpenInfo.FileAttributes;
+    responseHeader.ullAllocationSize   = pNTTransactState->networkOpenInfo.AllocationSize;
+    responseHeader.ullEndOfFile        = pNTTransactState->networkOpenInfo.EndOfFile;
 
     if (SrvTreeIsNamedPipe(pNTTransactState->pTree))
     {
@@ -3522,7 +3488,8 @@ SrvBuildNTTransactCreateResponse(
                                        SMB_DEVICE_STATE_NO_REPARSE_TAG;
     }
 
-    responseHeader.bDirectory = pNTTransactState->fileStdInfo.Directory;
+    responseHeader.bDirectory =
+        (pNTTransactState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
 
     ntStatus = WireMarshallNtTransactionResponse(
                         pOutBuffer,

@@ -264,8 +264,7 @@ NpfsCommonProcessCreateEcp(
     ULONG ulSessionKeyLength = 0;
     PBYTE pAddr = NULL;
     ULONG ulEcpSize = 0;
-    PFILE_BASIC_INFORMATION pFileBasicInfo = NULL;
-    PFILE_STANDARD_INFORMATION pFileStdInfo = NULL;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo = NULL;
     PFILE_PIPE_INFORMATION pPipeInfo = NULL;
     PFILE_PIPE_LOCAL_INFORMATION pPipeLocalInfo = NULL;
 
@@ -308,51 +307,24 @@ NpfsCommonProcessCreateEcp(
 
     ntStatus = IoRtlEcpListFind(
                     pIrp->Args.Create.EcpList,
-                    SRV_ECP_TYPE_FILE_BASIC_INFO,
-                    OUT_PPVOID(&pFileBasicInfo),
+                    SRV_ECP_TYPE_NET_OPEN_INFO,
+                    OUT_PPVOID(&pNetworkOpenInfo),
                     &ulEcpSize);
 
     if (ntStatus == STATUS_SUCCESS)
     {
-        if (ulEcpSize != sizeof(FILE_BASIC_INFORMATION))
+        if (ulEcpSize != sizeof(FILE_NETWORK_OPEN_INFORMATION))
         {
             ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = NpfsQueryCcbFileBasicInfo(pCCB, pFileBasicInfo);
+        ntStatus = NpfsQueryCcbFileNetworkOpenInfo(pCCB, pNetworkOpenInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListAcknowledge(
                         pIrp->Args.Create.EcpList,
-                        SRV_ECP_TYPE_FILE_BASIC_INFO);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
-
-    ntStatus = IoRtlEcpListFind(
-                    pIrp->Args.Create.EcpList,
-                    SRV_ECP_TYPE_FILE_STD_INFO,
-                    OUT_PPVOID(&pFileStdInfo),
-                    &ulEcpSize);
-
-    if (ntStatus == STATUS_SUCCESS)
-    {
-        if (ulEcpSize != sizeof(FILE_STANDARD_INFORMATION))
-        {
-            ntStatus = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        ntStatus = NpfsQueryCcbFileStandardInfo(pCCB, pFileStdInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoRtlEcpListAcknowledge(
-                        pIrp->Args.Create.EcpList,
-                        SRV_ECP_TYPE_FILE_STD_INFO);
+                        SRV_ECP_TYPE_NET_OPEN_INFO);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else

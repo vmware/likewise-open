@@ -385,11 +385,11 @@ SrvQueryFileInformation_inlock(
 
     if (!IoRtlEcpListIsAcknowledged(
             pCreateState->pEcpList,
-            SRV_ECP_TYPE_FILE_BASIC_INFO))
+            SRV_ECP_TYPE_NET_OPEN_INFO))
     {
-        if (!pCreateState->pFileBasicInfo)
+        if (!pCreateState->pNetworkOpenInfo)
         {
-            pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+            pCreateState->pNetworkOpenInfo = &pCreateState->networkOpenInfo;
 
             SrvPrepareCreateStateAsync(pCreateState, pExecContext);
 
@@ -397,9 +397,9 @@ SrvQueryFileInformation_inlock(
                             pCreateState->pFile->hFile,
                             pCreateState->pAcb,
                             &pCreateState->ioStatusBlock,
-                            pCreateState->pFileBasicInfo,
-                            sizeof(pCreateState->fileBasicInfo),
-                            FileBasicInformation);
+                            pCreateState->pNetworkOpenInfo,
+                            sizeof(pCreateState->networkOpenInfo),
+                            FileNetworkOpenInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
@@ -407,43 +407,16 @@ SrvQueryFileInformation_inlock(
     }
     else // Got the value through the ECP
     {
-        pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+        pCreateState->pNetworkOpenInfo = &pCreateState->networkOpenInfo;
     }
 
-    if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    if (!(pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
         SrvFileBlockIdleTimeout(pCreateState->pFile);
     }
     else
     {
         SrvFileUnblockIdleTimeout(pCreateState->pFile);
-    }
-
-    if (!IoRtlEcpListIsAcknowledged(
-                pCreateState->pEcpList,
-                SRV_ECP_TYPE_FILE_STD_INFO))
-    {
-        if (!pCreateState->pFileStdInfo)
-        {
-            pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
-
-            SrvPrepareCreateStateAsync(pCreateState, pExecContext);
-
-            ntStatus = IoQueryInformationFile(
-                            pCreateState->pFile->hFile,
-                            pCreateState->pAcb,
-                            &pCreateState->ioStatusBlock,
-                            pCreateState->pFileStdInfo,
-                            sizeof(pCreateState->fileStdInfo),
-                            FileStandardInformation);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
-        }
-    }
-    else
-    {
-        pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
     }
 
     if (SrvTreeIsNamedPipe(pCreateState->pTree))
@@ -545,7 +518,7 @@ SrvRequestCreateXOplocks(
     pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (SrvTreeIsNamedPipe(pCreateState->pTree) ||
-        pCreateState->fileStdInfo.Directory)
+        (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
         pOplockCursor = &noOplockChain[0];
 
@@ -730,13 +703,13 @@ SrvBuildNTCreateResponse_inlock(
     pResponseHeader->oplockLevel     = pCreateState->ucOplockLevel;
     pResponseHeader->fid             = pCreateState->pFile->fid;
     pResponseHeader->createAction    = pCreateState->ulCreateAction;
-    pResponseHeader->creationTime    = pCreateState->fileBasicInfo.CreationTime;
-    pResponseHeader->lastAccessTime  = pCreateState->fileBasicInfo.LastAccessTime;
-    pResponseHeader->lastWriteTime   = pCreateState->fileBasicInfo.LastWriteTime;
-    pResponseHeader->changeTime      = pCreateState->fileBasicInfo.ChangeTime;
-    pResponseHeader->extFileAttributes = pCreateState->fileBasicInfo.FileAttributes;
-    pResponseHeader->allocationSize    = pCreateState->fileStdInfo.AllocationSize;
-    pResponseHeader->endOfFile         = pCreateState->fileStdInfo.EndOfFile;
+    pResponseHeader->creationTime    = pCreateState->networkOpenInfo.CreationTime;
+    pResponseHeader->lastAccessTime  = pCreateState->networkOpenInfo.LastAccessTime;
+    pResponseHeader->lastWriteTime   = pCreateState->networkOpenInfo.LastWriteTime;
+    pResponseHeader->changeTime      = pCreateState->networkOpenInfo.ChangeTime;
+    pResponseHeader->extFileAttributes = pCreateState->networkOpenInfo.FileAttributes;
+    pResponseHeader->allocationSize    = pCreateState->networkOpenInfo.AllocationSize;
+    pResponseHeader->endOfFile         = pCreateState->networkOpenInfo.EndOfFile;
 
     if (SrvTreeIsNamedPipe(pCtxSmb1->pTree))
     {
@@ -758,7 +731,8 @@ SrvBuildNTCreateResponse_inlock(
                                        SMB_DEVICE_STATE_NO_REPARSE_TAG;
     }
 
-    pResponseHeader->isDirectory = pCreateState->fileStdInfo.Directory;
+    pResponseHeader->isDirectory =
+       (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
     pResponseHeader->byteCount = 0;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
@@ -974,16 +948,9 @@ SrvBuildCreateState(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
-                                  SRV_ECP_TYPE_FILE_STD_INFO,
-                                  &pCreateState->fileStdInfo,
-                                  sizeof(pCreateState->fileStdInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
-                                  SRV_ECP_TYPE_FILE_BASIC_INFO,
-                                  &pCreateState->fileBasicInfo,
-                                  sizeof(pCreateState->fileBasicInfo),
+                                  SRV_ECP_TYPE_NET_OPEN_INFO,
+                                  &pCreateState->networkOpenInfo,
+                                  sizeof(pCreateState->networkOpenInfo),
                                   NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 

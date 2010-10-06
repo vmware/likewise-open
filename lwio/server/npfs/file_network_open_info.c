@@ -28,116 +28,124 @@
  * license@likewisesoftware.com
  */
 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        fileNetworkOpenInfo.c
+ *        file_network_open_info.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise Named Pipe File System Driver (NPFS)
  *
  *        FileNetworkOpenInformation Handler
  *
- * Authors: Sriram Nambakam <snambakam@likewise.com>
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include "pvfs.h"
-
-/* Forward declarations */
+#include "includes.h"
 
 static
 NTSTATUS
-PvfsQueryFileNetworkOpenInfo(
-    PPVFS_IRP_CONTEXT pIrpContext
+NpfsQueryFileNetworkOpenInfo(
+    PNPFS_IRP_CONTEXT pIrpContext
     );
 
-
-/* File Globals */
-
-
-
-/* Code */
-
-
 NTSTATUS
-PvfsFileNetworkOpenInfo(
-    PVFS_INFO_TYPE Type,
-    PPVFS_IRP_CONTEXT pIrpContext
+NpfsFileNetworkOpenInfo(
+    NPFS_INFO_TYPE Type,
+    PNPFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
 
     switch(Type)
     {
-    case PVFS_SET:
-        ntError = STATUS_NOT_SUPPORTED;
-        break;
+        case NPFS_SET:
+            ntStatus = STATUS_NOT_SUPPORTED;
+            break;
 
-    case PVFS_QUERY:
-        ntError = PvfsQueryFileNetworkOpenInfo(pIrpContext);
-        break;
+        case NPFS_QUERY:
+            ntStatus = NpfsQueryFileNetworkOpenInfo(pIrpContext);
+            break;
 
-    default:
-        ntError = STATUS_INVALID_PARAMETER;
-        break;
+        default:
+            ntStatus = STATUS_INVALID_PARAMETER;
+            break;
     }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
+    BAIL_ON_NT_STATUS(ntStatus);
 
 error:
-    goto cleanup;
+
+    return ntStatus;
 }
 
 static
 NTSTATUS
-PvfsQueryFileNetworkOpenInfo(
-    PPVFS_IRP_CONTEXT pIrpContext
+NpfsQueryFileNetworkOpenInfo(
+    PNPFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
+    PNPFS_CCB pCcb = NULL;
     PFILE_NETWORK_OPEN_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    IRP_ARGS_QUERY_SET_INFORMATION Args =
+                                    pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
 
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+    ntStatus = NpfsGetCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* No access checked needed for this call */
 
+    BAIL_ON_INVALID_PTR(Args.FileInformation, ntStatus);
+
     if (Args.Length < sizeof(*pFileInfo))
     {
-        ntError = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntError);
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pFileInfo = (PFILE_NETWORK_OPEN_INFORMATION)Args.FileInformation;
 
-    ntError = PvfsCcbQueryFileNetworkOpenInformation(pCcb, pFileInfo);
-    BAIL_ON_NT_STATUS(ntError);
+    ntStatus = NpfsQueryCcbFileNetworkOpenInfo(pCcb, pFileInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
-    ntError = STATUS_SUCCESS;
+
+    ntStatus = STATUS_SUCCESS;
 
 cleanup:
 
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
-    return ntError;
+    return ntStatus;
 
 error:
+
     goto cleanup;
+}
+
+NTSTATUS
+NpfsQueryCcbFileNetworkOpenInfo(
+    PNPFS_CCB                      pCcb,
+    PFILE_NETWORK_OPEN_INFORMATION pFileInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    pFileInfo->LastAccessTime = 0;
+    pFileInfo->LastWriteTime = 0;
+    pFileInfo->ChangeTime = 0;
+    pFileInfo->CreationTime = 0;
+    pFileInfo->FileAttributes = FILE_ATTRIBUTE_NORMAL;
+    pFileInfo->AllocationSize = 8192;
+    pFileInfo->EndOfFile      = 0;
+
+    return ntStatus;
 }
 
 /*
@@ -148,3 +156,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

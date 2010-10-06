@@ -1027,19 +1027,18 @@ PvfsSetEcpFileInfo(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PFILE_STANDARD_INFORMATION pFileStdInfo = NULL;
-    PFILE_BASIC_INFORMATION pFileBasicInfo = NULL;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo = NULL;
     ULONG ulEcpSize = 0;
     PPVFS_CCB pCcb = NULL;
 
     ntError = IoRtlEcpListFind(
                     pIrp->Args.Create.EcpList,
-                    SRV_ECP_TYPE_FILE_STD_INFO,
-                    OUT_PPVOID(&pFileStdInfo),
+                    SRV_ECP_TYPE_NET_OPEN_INFO,
+                    OUT_PPVOID(&pNetworkOpenInfo),
                     &ulEcpSize);
     if (ntError == STATUS_SUCCESS)
     {
-        if (ulEcpSize != sizeof(FILE_STANDARD_INFORMATION))
+        if (ulEcpSize != sizeof(FILE_NETWORK_OPEN_INFORMATION))
         {
             ntError = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntError);
@@ -1048,42 +1047,14 @@ PvfsSetEcpFileInfo(
         ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsCcbQueryFileStandardInformation(
+        ntError = PvfsCcbQueryFileNetworkOpenInformation(
                         pCcb,
-                        pFileStdInfo);
+                        pNetworkOpenInfo);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = IoRtlEcpListAcknowledge(
                         pIrp->Args.Create.EcpList,
-                        SRV_ECP_TYPE_FILE_STD_INFO);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-    else
-    {
-        ntError = STATUS_SUCCESS;
-    }
-
-    ntError = IoRtlEcpListFind(
-                        pIrp->Args.Create.EcpList,
-                        SRV_ECP_TYPE_FILE_BASIC_INFO,
-                        OUT_PPVOID(&pFileBasicInfo),
-                        &ulEcpSize);
-    if (ntError == STATUS_SUCCESS)
-    {
-        if (ulEcpSize != sizeof(FILE_BASIC_INFORMATION))
-        {
-            ntError = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        ntError = PvfsCcbQueryFileBasicInformation(
-                        pCcb,
-                        pFileBasicInfo);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = IoRtlEcpListAcknowledge(
-                        pIrp->Args.Create.EcpList,
-                        SRV_ECP_TYPE_FILE_BASIC_INFO);
+                        SRV_ECP_TYPE_NET_OPEN_INFO);
         BAIL_ON_NT_STATUS(ntError);
     }
     else

@@ -248,11 +248,8 @@ typedef struct _SRV_CREATE_STATE_SMB_V1
     PIO_ECP_LIST            pEcpList;
     IO_FILE_HANDLE          hFile;
 
-    FILE_BASIC_INFORMATION       fileBasicInfo;
-    PFILE_BASIC_INFORMATION      pFileBasicInfo;
-
-    FILE_STANDARD_INFORMATION    fileStdInfo;
-    PFILE_STANDARD_INFORMATION   pFileStdInfo;
+    FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo;
 
     FILE_PIPE_INFORMATION        filePipeInfo;
     PFILE_PIPE_INFORMATION       pFilePipeInfo;
@@ -308,11 +305,8 @@ typedef struct _SRV_OPEN_STATE_SMB_V1
     ACCESS_MASK                  ulDesiredAccessMask;
     USHORT                       usCreateOptions;
 
-    FILE_BASIC_INFORMATION       fileBasicInfo;
-    PFILE_BASIC_INFORMATION      pFileBasicInfo;
-
-    FILE_STANDARD_INFORMATION    fileStdInfo;
-    PFILE_STANDARD_INFORMATION   pFileStdInfo;
+    FILE_NETWORK_OPEN_INFORMATION  networkOpenInfo;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo;
 
     FILE_PIPE_INFORMATION        filePipeInfo;
     PFILE_PIPE_INFORMATION       pFilePipeInfo;
@@ -1064,11 +1058,8 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
     ULONG                          ulCreateAction;
     UCHAR                          ucOplockLevel;
 
-    FILE_BASIC_INFORMATION         fileBasicInfo;
-    PFILE_BASIC_INFORMATION        pFileBasicInfo;
-
-    FILE_STANDARD_INFORMATION      fileStdInfo;
-    PFILE_STANDARD_INFORMATION     pFileStdInfo;
+    FILE_NETWORK_OPEN_INFORMATION  networkOpenInfo;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo;
 
     FILE_PIPE_INFORMATION          filePipeInfo;
     PFILE_PIPE_INFORMATION         pFilePipeInfo;
