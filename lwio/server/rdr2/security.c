@@ -61,6 +61,24 @@ RdrQuerySecurityComplete(
     );
 
 static
+NTSTATUS
+RdrTransceiveSetSecurity(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile,
+    SECURITY_INFORMATION SecurityInformation,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    ULONG ulLength
+    );
+
+static
+BOOLEAN
+RdrSetSecurityComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    );
+
+static
 VOID
 RdrCancelQuerySecurity(
     PIRP pIrp,
@@ -278,3 +296,184 @@ error:
 
     goto cleanup;
 }
+
+static
+VOID
+RdrCancelSetSecurity(
+    PIRP pIrp,
+    PVOID pParam
+    )
+{
+}
+
+NTSTATUS
+RdrSetSecurity(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PRDR_OP_CONTEXT pContext = NULL;
+    PRDR_CCB pFile = NULL;
+
+    pFile = IoFileGetContext(pIrp->FileHandle);
+
+    status = RdrCreateContext(pIrp, &pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    IoIrpMarkPending(pIrp, RdrCancelSetSecurity, pContext);
+
+    pContext->Continue = RdrSetSecurityComplete;
+
+    status = RdrTransceiveSetSecurity(
+        pContext,
+        pFile,
+        pIrp->Args.QuerySetSecurity.SecurityInformation,
+        pIrp->Args.QuerySetSecurity.SecurityDescriptor,
+        pIrp->Args.QuerySetSecurity.Length);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    if (status != STATUS_PENDING && pContext)
+    {
+        pIrp->IoStatusBlock.Status = status;
+        IoIrpComplete(pIrp);
+        RdrFreeContext(pContext);
+        status = STATUS_PENDING;
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrTransceiveSetSecurity(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_CCB pFile,
+    SECURITY_INFORMATION SecurityInformation,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    ULONG ulLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    uint32_t packetByteCount = 0;
+    NT_TRANSACTION_REQUEST_HEADER *pHeader = NULL;
+    USHORT usSetup[0];
+    SMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER setHeader = {0};
+    USHORT usSetHeaderOffset = 0;
+    USHORT usSetDataOffset = 0;
+
+    status = RdrAllocateContextPacket(pContext, 1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMBPacketMarshallHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM_NT_TRANSACT,
+        0,
+        0,
+        pFile->pTree->tid,
+        gRdrRuntime.SysPid,
+        pFile->pTree->pSession->uid,
+        0,
+        TRUE,
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pData = pContext->Packet.pParams + sizeof(NT_TRANSACTION_REQUEST_HEADER);
+    pContext->Packet.bufferUsed += sizeof(NT_TRANSACTION_REQUEST_HEADER);
+    pContext->Packet.pSMBHeader->wordCount = 19 + sizeof(usSetup)/sizeof(USHORT);
+
+    pHeader = (NT_TRANSACTION_REQUEST_HEADER *) pContext->Packet.pParams;
+
+    setHeader.usFid = SMB_HTOL16(pFile->fid);
+    setHeader.securityInformation = SMB_HTOL32(SecurityInformation);
+    setHeader.reserved = 0;
+
+    status = WireMarshallTransactionRequestData(
+        pContext->Packet.pData,
+        pContext->Packet.bufferLen - pContext->Packet.bufferUsed,
+        &packetByteCount,
+        usSetup,
+        sizeof(usSetup)/sizeof(USHORT),
+        NULL,
+        (PBYTE) &setHeader,
+        sizeof(setHeader),
+        &usSetHeaderOffset,
+        (PBYTE) pSecurityDescriptor,
+        ulLength,
+        &usSetDataOffset);
+    BAIL_ON_NT_STATUS(status);
+
+    assert(packetByteCount <= UINT16_MAX);
+    pContext->Packet.bufferUsed += packetByteCount;
+
+    pHeader->usFunction = SMB_SUB_COMMAND_NT_TRANSACT_SET_SECURITY_DESC;
+    pHeader->ulTotalParameterCount = sizeof(setHeader);
+    pHeader->ulTotalDataCount = ulLength;
+    pHeader->ulMaxParameterCount = sizeof(setHeader);
+    pHeader->ulMaxDataCount = 0;
+    pHeader->ucMaxSetupCount = sizeof(usSetup)/sizeof(USHORT);
+    pHeader->ulParameterCount = sizeof(setHeader);
+    pHeader->ulParameterOffset = usSetHeaderOffset + (pContext->Packet.pData - (PBYTE) pContext->Packet.pSMBHeader);
+    pHeader->ulDataCount = ulLength;
+    pHeader->ulDataOffset = usSetDataOffset + (pContext->Packet.pData - (PBYTE) pContext->Packet.pSMBHeader);
+    pHeader->ucSetupCount = sizeof(usSetup)/sizeof(USHORT);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pFile->pTree->pSession->pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+BOOLEAN
+RdrSetSecurityComplete(
+    PRDR_OP_CONTEXT pContext,
+    NTSTATUS status,
+    PVOID pParam
+    )
+{
+    PSMB_PACKET pResponsePacket = pParam;
+
+    BAIL_ON_NT_STATUS(status);
+
+    status = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_NT_STATUS(status);
+
+ cleanup:
+
+    RdrFreePacket(pResponsePacket);
+
+    if (status != STATUS_PENDING)
+    {
+        pContext->pIrp->IoStatusBlock.Status = status;
+        IoIrpComplete(pContext->pIrp);
+        RdrFreeContext(pContext);
+        return FALSE;
+    }
+    else
+    {
+        return TRUE;
+    }
+
+error:
+
+    goto cleanup;
+}
+
+

@@ -162,6 +162,11 @@ RdrDriverDispatch(
             pIrp
             );
         break;
+    case IRP_TYPE_SET_SECURITY:
+        ntStatus =  RdrSetSecurity(
+            DeviceHandle,
+            pIrp);
+        break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
     }

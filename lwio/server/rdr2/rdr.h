@@ -212,6 +212,12 @@ RdrSetInformation(
     );
 
 NTSTATUS
+RdrSetSecurity(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PIRP pIrp
+    );
+
+NTSTATUS
 RdrGetSessionKey(
     HANDLE hFile,
     PDWORD pdwSessionKeyLength,
