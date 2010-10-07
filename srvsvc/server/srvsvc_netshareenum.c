@@ -252,7 +252,7 @@ SrvSvcNetShareEnum(
         for (i=0; i<ctr502->count ; i++)
         {
             dwError = SrvSvcSrvCopyShareInfo502(
-                          &ctr502->array[i],
+                          (PSHARE_INFO_502) &ctr502->array[i],
                           &pEnumParamsOut->info.p502[i]);
             BAIL_ON_SRVSVC_ERROR(dwError);
         }

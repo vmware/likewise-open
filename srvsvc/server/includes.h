@@ -46,6 +46,7 @@
 #include <lwstr.h>
 #include <lwerror.h>
 #include <lwdscache.h>
+#include <lwsid.h>
 #include <lw/base.h>
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
@@ -57,10 +58,13 @@
 #include <lwio/lmfile.h>
 #include <lwio/lwfileinfo.h>
 #include <dce/rpc.h>
+#include <dce/smb.h>
+#include <dce/lrpc.h>
 #include <compat/dcerpc.h>
 #include <lw/rpc/lsa.h>
 #include <lwnet.h>
 #include <lw/rpc/lsa.h>
+#include <stdlib.h>
 
 #include <lw/srvsvc.h>
 #include <lw/winreg.h>

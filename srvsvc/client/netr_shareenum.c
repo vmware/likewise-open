@@ -52,7 +52,6 @@ NetrShareEnum(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
     srvsvc_NetShareCtr ctr;
     srvsvc_NetShareCtr0 ctr0;
     srvsvc_NetShareCtr1 ctr1;
@@ -112,7 +111,7 @@ NetrShareEnum(
     {
         status = _NetrShareEnum(
                     pContext->hBinding,
-                    pwszServername,
+                    (PWSTR) pwszServername,
                     &dwReturnedLevel,
                     &ctr,
                     dwMaxLen,

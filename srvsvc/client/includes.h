@@ -46,8 +46,10 @@
 #include <compat/dcerpc.h>
 #include <lw/winerror.h>
 #include <wc16str.h>
-#include <lwio/io-types.h>
+#include <lwio/lwio.h>
 #include <lwmem.h>
+#include <lwstr.h>
+#include <stdlib.h>
 
 #include <lw/srvsvc.h>
 #include <srvsvcdefs.h>

@@ -43,7 +43,7 @@ libsrvsvc_ss_la_CPPFLAGS = \
     $(LSASS_INCLUDES)
 
 libsrvsvc_ss_la_CFLAGS = \
-    $(AM_CPPFLAGS)       \
+    $(AM_CFLAGS)       \
     -DDCERPC_STUB_BUILD  \
     $(DCERPC_INCLUDES)
 
@@ -54,12 +54,13 @@ libwinreg_ss_la_CPPFLAGS = \
     $(LSASS_INCLUDES)
 
 libwinreg_ss_la_CFLAGS = \
-    $(AM_CPPFLAGS)       \
+    $(AM_CFLAGS)       \
     -DDCERPC_STUB_BUILD  \
     $(DCERPC_INCLUDES)
 
 
 srvsvcd_CFLAGS = \
+    $(AM_CFLAGS) \
     -DSRVSVC_BUILD
 
 srvsvcd_CPPFLAGS = \

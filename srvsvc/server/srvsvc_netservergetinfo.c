@@ -61,7 +61,6 @@ SrvSvcNetrServerGetInfo(
 
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    unsigned32 rpcStatus = RPC_S_OK;
     PWSTR pwszProtSeq = NULL;
     PSTR pszLsaLpcSocketPath = NULL;
     PWSTR pwszLsaLpcSocketPath = NULL;
@@ -71,8 +70,6 @@ SrvSvcNetrServerGetInfo(
     POLICY_HANDLE hLocalPolicy = NULL;
     LsaPolicyInformation *pPolInfo = NULL;
     PCSTR pszComment = "Likewise CIFS";
-    PWSTR pwszHostname = NULL;
-    PWSTR pwszComment = NULL;
     SERVER_INFO_101 *pInfo101 = NULL;
     SERVER_INFO_102 *pInfo102 = NULL;
     BOOLEAN bStandalone = FALSE;

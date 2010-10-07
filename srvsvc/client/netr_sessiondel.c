@@ -39,7 +39,6 @@ NetrSessionDel(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
 
     BAIL_ON_INVALID_PTR(pContext, status);
 
@@ -47,9 +46,9 @@ NetrSessionDel(
     {
         status = _NetrSessionDel(
                     pContext->hBinding,
-                    pwszServername,
-                    pwszUncClientname,
-                    pwszUsername);
+                    (PWSTR) pwszServername,
+                    (PWSTR) pwszUncClientname,
+                    (PWSTR) pwszUsername);
     }
     CATCH_ALL(pDceException)
     {

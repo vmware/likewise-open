@@ -170,30 +170,30 @@ SrvSvcLogToSyslog(
     {
         case SRVSVC_LOG_LEVEL_ALWAYS:
         {
-            lsmb_vsyslog(LOG_INFO, pszFormat, msgList);
+            SrvSvc_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
         }
         case SRVSVC_LOG_LEVEL_ERROR:
         {
-            lsmb_vsyslog(LOG_ERR, pszFormat, msgList);
+            SrvSvc_vsyslog(LOG_ERR, pszFormat, msgList);
             break;
         }
 
         case SRVSVC_LOG_LEVEL_WARNING:
         {
-            lsmb_vsyslog(LOG_WARNING, pszFormat, msgList);
+            SrvSvc_vsyslog(LOG_WARNING, pszFormat, msgList);
             break;
         }
 
         case SRVSVC_LOG_LEVEL_INFO:
         {
-            lsmb_vsyslog(LOG_INFO, pszFormat, msgList);
+            SrvSvc_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
         }
 
         default:
         {
-            lsmb_vsyslog(LOG_INFO, pszFormat, msgList);
+            SrvSvc_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
         }
     }

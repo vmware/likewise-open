@@ -378,13 +378,7 @@ SrvSvcSrvCopyShareInfo1005(
 
     pOutShareInfo->shi1005_flags = pInShareInfo->shi1005_flags;
 
-cleanup:
-
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 
 

@@ -26,25 +26,9 @@
 ]
 interface srvsvc
 {
-cpp_quote("#ifdef DCERPC_STUB_BUILD")
+    cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 #include <lw/srvsvc.h>
-
-cpp_quote("#ifndef __SRVSVC_IDL__")
-cpp_quote("#define __SRVSVC_IDL__")
-
-cpp_quote("#ifdef _WIN32")
-
-cpp_quote("#ifndef TARGET_IS_NT50_OR_LATER")
-cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
-cpp_quote("#else")
-cpp_quote("#if !(TARGET_IS_NT50_OR_LATER)")
-cpp_quote("#undef TARGET_IS_NT50_OR_LATER")
-cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
-cpp_quote("#endif") // false TARGET_IS_NT50_OR_LATER
-cpp_quote("#endif") // undefined TARGET_IS_NT50_OR_LATER
-
-cpp_quote("#endif") //_WIN32, !_WIN32
 
     typedef [switch_type(UINT32) ] union {
         [case(0)] srvsvc_NetConnCtr0 *ctr0;
@@ -158,7 +142,9 @@ cpp_quote("#endif") //_WIN32, !_WIN32
         [default];
     } srvsvc_NetSrvInfo;
 
-cpp_quote("#endif /* DCERPC_STUB_BUILD */")
+cpp_quote("#else")
+cpp_quote("#include <lw/srvsvc.h>")
+cpp_quote("#endif")
 
     void _srvsvc_Function0();
     void _srvsvc_Function1();
@@ -309,8 +295,6 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
 	[in] UINT32 type,
 	[in] UINT32 flags
 	);
-
-    cpp_quote("#endif /* __SRVSVC_IDL__ */")
 }
 
 #endif /* __SRVSVC_IDL__ */

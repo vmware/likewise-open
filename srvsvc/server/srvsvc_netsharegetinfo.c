@@ -243,10 +243,10 @@ SrvSvcNetShareGetInfo(
         break;
 
     case 502:
-        info->info502 = &pShareInfo->info502;
+        info->info502 = (PSHARE_INFO_502_I) &pShareInfo->info502;
 
         dwError = SrvSvcSrvCopyShareInfo502(
-                      info->info502,
+                      (PSHARE_INFO_502)info->info502,
                       pGetParamsOut->Info.p502);
         BAIL_ON_SRVSVC_ERROR(dwError);
 

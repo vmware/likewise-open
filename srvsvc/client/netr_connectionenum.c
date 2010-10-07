@@ -53,7 +53,6 @@ NetrConnectionEnum(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
     srvsvc_NetConnCtr ctr;
     srvsvc_NetConnCtr0 ctr0;
     srvsvc_NetConnCtr1 ctr1;

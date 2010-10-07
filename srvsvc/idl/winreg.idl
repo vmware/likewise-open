@@ -33,22 +33,8 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 #include <lw/winreg.h>
 
-    cpp_quote("#ifndef __WINREG_IDL__")
-    cpp_quote("#define __WINREG_IDL__")
-
-    cpp_quote("#ifdef _WIN32")
-
-    cpp_quote("#ifndef TARGET_IS_NT50_OR_LATER")
-    cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
-    cpp_quote("#else")
-    cpp_quote("#if !(TARGET_IS_NT50_OR_LATER)")
-    cpp_quote("#undef TARGET_IS_NT50_OR_LATER")
-    cpp_quote("#define TARGET_IS_NT50_OR_LATER TRUE")
-    cpp_quote("#endif") // false TARGET_IS_NT50_OR_LATER
-    cpp_quote("#endif") // undefined TARGET_IS_NT50_OR_LATER
-
-    cpp_quote("#endif") //_WIN32, !_WIN32
-
+cpp_quote("#else")
+cpp_quote("#include <lw/winreg.h>")
 cpp_quote("#endif /* DCERPC_STUB_BUILD */")
 
     void _winreg_Function0x0();
@@ -127,8 +113,6 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _winreg_Function0x20();
     void _winreg_Function0x21();
     void _winreg_Function0x22();
-
-    cpp_quote("#endif /* __WINREG_IDL__ */")
 }
 
 #endif /* __WINREG_IDL__ */

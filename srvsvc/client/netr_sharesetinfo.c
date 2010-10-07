@@ -41,7 +41,6 @@ NetrShareSetInfo(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
     srvsvc_NetShareInfo Info;
     PSHARE_INFO_502 pInfo502 = NULL;
     SHARE_INFO_502_I Info502i = {0};
@@ -134,8 +133,8 @@ NetrShareSetInfo(
     {
         status = _NetrShareSetInfo(
                         pContext->hBinding,
-                        pwszServername,
-                        pwszNetname,
+                        (PWSTR) pwszServername,
+                        (PWSTR) pwszNetname,
                         dwLevel,
                         Info,
                         pdwParmErr);

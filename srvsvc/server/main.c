@@ -75,12 +75,6 @@ SrvSvcExitHandler(
     );
 
 static
-BOOLEAN
-SrvSvcProcessShouldExit(
-    VOID
-    );
-
-static
 DWORD
 SrvSvcGetProcessExitCode(
     PDWORD pdwExitCode
@@ -467,24 +461,6 @@ error:
     if (fp != NULL) {
         fclose(fp);
     }
-}
-
-static
-BOOLEAN
-SrvSvcProcessShouldExit(
-    VOID
-    )
-{
-    BOOLEAN bResult = 0;
-    BOOLEAN bInLock = FALSE;
-
-    SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
-
-    bResult = gServerInfo.bProcessShouldExit;
-
-    SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);
-
-    return bResult;
 }
 
 VOID

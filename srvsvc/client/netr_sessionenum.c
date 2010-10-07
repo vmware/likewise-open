@@ -54,7 +54,6 @@ NetrSessionEnum(
     )
 {
     NET_API_STATUS status         = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
     DWORD   dwInfoLevel2          = dwInfoLevel;
     BOOLEAN bMoreDataAvailable    = FALSE;
     DWORD   dwEntriesRead         = 0;

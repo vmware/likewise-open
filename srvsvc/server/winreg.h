@@ -45,11 +45,11 @@
  * Authors: Gerald Carter <gcarter@likewiseopen.org>
  */
 
-#ifndef _WINREG_SRV_H_
-#define _WINREG_SRV_H_
+#ifndef _WINREG_H_
+#define _WINREG_H_
 
 
-#endif /* _WINREG_SRV_H_ */
+#endif /* _WINREG_H_ */
 
 
 /*

@@ -39,6 +39,7 @@ libsrvsvc_cs_la_CPFLAGS = \
     $(DCERPC_INCLUDES)
 
 libsrvsvc_la_CFLAGS =   \
+    $(AM_CFLAGS)        \
     -DSRVSVC_BUILD      \
     -DLIBRPC_BUILD      \
     $(INCLUDES)

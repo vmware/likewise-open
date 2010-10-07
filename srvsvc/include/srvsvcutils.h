@@ -286,6 +286,12 @@ SrvSvcAllocateStringPrintfV(
     );
 
 DWORD
+SrvSvcAllocateString(
+    PCSTR  pszInputString,
+    PSTR*  ppszOutputString
+    );
+
+DWORD
 SrvSvcRemoveFile(
     PCSTR pszPath
     );

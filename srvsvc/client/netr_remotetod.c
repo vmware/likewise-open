@@ -45,7 +45,6 @@ NetrRemoteTOD(
     )
 {
     NET_API_STATUS status  = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
     PTIME_OF_DAY_INFO info = NULL;
 
     BAIL_ON_INVALID_PTR(pContext, status);

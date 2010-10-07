@@ -149,13 +149,7 @@ _RegCloseKey(
 
     *handle = NULL;
 
-cleanup:
-
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 
 /********************************************************************
@@ -296,7 +290,8 @@ cleanup:
     return dwError;
 
 error:
-    goto error;
+
+    goto cleanup;
 }
 
 /********************************************************************

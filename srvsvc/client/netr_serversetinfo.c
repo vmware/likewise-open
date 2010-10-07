@@ -40,7 +40,6 @@ NetrServerSetInfo(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    dcethread_exc* pDceException  = NULL;
     srvsvc_NetSrvInfo info;
 
     BAIL_ON_INVALID_PTR(pContext, status);

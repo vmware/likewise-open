@@ -80,7 +80,6 @@ SrvSvcHandleSignals(
     sigset_t old_signal_mask;
     int which_signal = 0;
     int sysRet = 0;
-    unsigned32 status = 0;
 
     // After starting up threads, we now want to handle SIGINT async
     // instead of using sigwait() on it.  The reason for this is so

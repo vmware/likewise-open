@@ -55,7 +55,7 @@ NetrShareAdd(
             break;
 
         case 502:
-            Info.info502 = (PSHARE_INFO_502)pBuffer;
+            Info.info502 = (PSHARE_INFO_502_I)pBuffer;
             break;
 
         default:
