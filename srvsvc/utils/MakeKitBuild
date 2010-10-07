@@ -1,0 +1,23 @@
+make()
+{
+    UTILS_SOURCES="\
+	consolelog.c \
+	filelog.c    \
+	fileutils.c  \
+	globals.c    \
+	hostinfo.c   \
+	logger.c     \
+	loginfo.c    \
+	memory.c     \
+	strings.c    \
+	sysfuncs.c   \
+	syslog.c"
+
+    mk_library \
+	LIB=srvsvcutils \
+	SOURCES="$UTILS_SOURCES" \
+	CPPFLAGS="-DSRVSVC_BUILD" \
+	INCLUDEDIRS=". ../include" \
+	HEADERDEPS="lwadvapi.h wc16str.h lw/base.h dce/rpc.h lwio/lwio.h" \
+	LIBDEPS="dcerpc lwbase"
+}

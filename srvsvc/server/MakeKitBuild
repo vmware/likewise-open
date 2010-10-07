@@ -1,0 +1,60 @@
+make()
+{
+    SERVER_SOURCES="\
+        accesstoken.c              \
+	config.c                   \
+	netfile.c                  \
+	netsession.c               \
+	srvsvc.c                   \
+	srvsvc_srv.c               \
+	winreg.c                   \
+	winreg_srv.c               \
+	globals.c                  \
+	marshall.c                 \
+	memutil.c                  \
+	security.c                 \
+	signalhandler.c            \
+	srvsvc_netshareadd.c       \
+	srvsvc_netsharedel.c       \
+	srvsvc_netsharegetinfo.c   \
+	srvsvc_netsharesetinfo.c   \
+	srvsvc_netshareenum.c      \
+	srvsvc_netservergetinfo.c  \
+	srvsvc_netnamevalidate.c   \
+	utils.c                    \
+	main.c"
+
+    lw_dceidl \
+	IDL=../idl/srvsvc.idl \
+	HEADER=srvsvc_h.h \
+	SSTUB=srvsvc_sstub.c \
+	INCLUDEDIRS=". ../idl ../include" \
+	HEADERDEPS="lw/base.h"
+
+    lw_dceidl \
+	IDL=../idl/winreg.idl \
+	HEADER=winreg_h.h \
+	SSTUB=winreg_sstub.c \
+	INCLUDEDIRS=". ../idl ../include" \
+	HEADERDEPS="lw/base.h"
+
+    mk_group \
+	GROUP=stubs.og \
+	SOURCES="srvsvc_sstub.c winreg_sstub.c" \
+	INCLUDEDIRS=". ../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h" \
+	LIBDEPS="dcerpc"
+
+    mk_program \
+	PROGRAM=srvsvcd \
+	SOURCES="$SERVER_SOURCES" \
+	GROUPS="stubs.og ../logging_r/logging_r.og" \
+	INSTALLDIR="${MK_SBINDIR}" \
+	INCLUDEDIRS=". ../include" \
+	CPPFLAGS="-DSRVSVC_BUILD" \
+	HEADERDEPS="lw/base.h lwadvapi.h lwio/lwio.h dce/rpc.h compat/dcerpc.h lwnet.h \
+                    lw/rpc/lsa.h" \
+	LIBDEPS="srvsvcutils lsarpc lwioshareinfo lwbase \
+                 lwbase_nothr lwioclient lwadvapi lwadvapi_nothr" \
+	DEPS="srvsvc_h.h winreg_h.h"
+}

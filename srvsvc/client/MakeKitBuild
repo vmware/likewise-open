@@ -1,0 +1,48 @@
+make()
+{
+    CLIENT_SOURCES="\
+        srvsvc_binding.c          \
+	netr_connectionenum.c     \
+	netr_fileenum.c           \
+	netr_filegetinfo.c        \
+	netr_fileclose.c          \
+	netr_sessiondel.c         \
+	netr_sessionenum.c        \
+	netr_shareadd.c           \
+	netr_shareenum.c          \
+	netr_sharegetinfo.c       \
+	netr_sharesetinfo.c       \
+	netr_sharedel.c           \
+	netr_servergetinfo.c      \
+	netr_serversetinfo.c      \
+	netr_remotetod.c          \
+	srvsvc_memory.c           \
+	srvsvc_stubmemory.c       \
+	memptr.c                  \
+	globals.c"
+
+    lw_dceidl \
+	IDL=../idl/srvsvc.idl \
+	HEADER="srvsvc_h.h" \
+	CSTUB="srvsvc_cstub.c" \
+	INCLUDEDIRS=". ../idl ../include" \
+	HEADERDEPS="lw/base.h"
+
+    mk_group \
+	GROUP="srvsvc_stub.og" \
+	SOURCES="srvsvc_cstub.c" \
+	CPPFLAGS="-DDCERPC_STUB_BUILD" \
+	INCLUDEDIRS=". ../include" \
+	HEADERDEPS="lw/base.h dce/rpc.h" \
+	LIBDEPS="dcerpc"
+
+    mk_library \
+	LIB=srvsvc \
+	SOURCES="$CLIENT_SOURCES" \
+	GROUPS="srvsvc_stub.og ../logging_r/logging_r.og" \
+	CPPFLAGS="-DLIBRPC_BUILD -DSRVSVC_BUILD" \
+	INCLUDEDIRS=". ../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwadvapi.h compat/dcerpc.h" \
+	LIBDEPS="srvsvcutils dcerpc lwbase" \
+	DEPS="srvsvc_h.h"
+}
