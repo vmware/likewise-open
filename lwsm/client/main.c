@@ -724,6 +724,9 @@ LwSmRestart(
     PWSTR* ppwszReverseDeps = NULL;
     PLW_SERVICE_STATUS pStatus = NULL;
     PLW_SERVICE_HANDLE phDepHandles = NULL;
+    PWSTR* ppwszDependencies = NULL;
+    LW_SERVICE_HANDLE hDepHandle = NULL;
+    LW_SERVICE_STATUS status;
     PSTR pszTemp = NULL;
     size_t count = 0;
     size_t i = 0;
@@ -775,6 +778,37 @@ LwSmRestart(
     dwError = LwSmStopService(hHandle);
     BAIL_ON_ERROR(dwError);
 
+    dwError = LwSmQueryServiceDependencyClosure(hHandle, &ppwszDependencies);
+    BAIL_ON_ERROR(dwError);
+
+    for (i = 0; ppwszDependencies[i]; i++)
+    {
+        dwError = LwSmAcquireServiceHandle(ppwszDependencies[i], &hDepHandle);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmQueryServiceStatus(hDepHandle, &status);
+        BAIL_ON_ERROR(dwError);
+
+        if (status.state != LW_SERVICE_STATE_RUNNING)
+        {
+            if (!gState.bQuiet)
+            {
+                dwError = LwWc16sToMbs(ppwszDependencies[i], &pszTemp);
+                BAIL_ON_ERROR(dwError);
+
+                printf("Starting service dependency: %s\n", pszTemp);
+                LW_SAFE_FREE_MEMORY(pszTemp);
+            }
+
+            dwError = LwSmStartService(hDepHandle);
+            BAIL_ON_ERROR(dwError);
+        }
+
+        dwError = LwSmReleaseServiceHandle(hDepHandle);
+        hDepHandle = NULL;
+        BAIL_ON_ERROR(dwError);
+    }
+
     if (!gState.bQuiet)
     {
         printf("Starting service: %s\n", pArgv[1]);
@@ -820,6 +854,22 @@ cleanup:
         }
 
         LW_SAFE_FREE_MEMORY(phDepHandles);
+    }
+    if (ppwszReverseDeps)
+    {
+        LwSmFreeServiceNameList(ppwszReverseDeps);
+        ppwszReverseDeps = NULL;
+    }
+
+    if (hDepHandle)
+    {
+        LwSmReleaseServiceHandle(hDepHandle);
+        hDepHandle = NULL;
+    }
+    if (ppwszDependencies)
+    {
+        LwSmFreeServiceNameList(ppwszDependencies);
+        ppwszDependencies = NULL;
     }
 
     return dwError;
