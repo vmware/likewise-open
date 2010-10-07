@@ -1,0 +1,19 @@
+make()
+{
+    API_SOURCES="\
+        config.c    \
+        files.c     \
+        globals.c   \
+        libmain.c   \
+        negotiate.c \
+        sessions.c  \
+        transport.c"
+
+    mk_group \
+        GROUP="api.og" \
+        SOURCES="$API_SOURCES" \
+        GROUPDEPS="../smb1/smb1.og ../smb2/smb2.og" \
+        INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
+        HEADERDEPS="lw/base.h uuid/uuid.h" \
+        LIBDEPS="uuid"
+}

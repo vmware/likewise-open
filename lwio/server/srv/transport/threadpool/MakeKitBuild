@@ -1,0 +1,15 @@
+make()
+{
+    THREADPOOL_SOURCES="\
+        libmain.c       \
+        listener.c      \
+        srvsocket.c"
+
+    mk_group \
+        GROUP="threadpool.og" \
+        SOURCES="$THREADPOOL_SOURCES" \
+        INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
+        HEADERDEPS="lw/base.h" \
+        LIBDEPS="lwbase"
+}
+

@@ -1,0 +1,16 @@
+make()
+{
+    API_SOURCES="\
+        globals.c \
+        libmain.c \
+        mapping.c \
+        shareapi.c \
+        utils.c"
+
+    mk_group \
+        GROUP="api.og" \
+        SOURCES="$API_SOURCES" \
+        GROUPDEPS="../regshare/regshare.og" \
+        INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
+        HEADERDEPS="lw/base.h"
+}

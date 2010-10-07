@@ -1,0 +1,32 @@
+make()
+{
+    ELEMENTS_SOURCES="\
+        config.c        \
+	context.c       \
+	creditor.c      \
+	globals.c       \
+	libmain.c       \
+	mt19937ar.c     \
+	resources.c     \
+	srvasyncstate.c \
+	srvconnection.c \
+	srvenum.c       \
+	srvfile.c       \
+	srvfile2.c      \
+	srvfinder.c     \
+	srvgss.c        \
+	srvioapi.c      \
+	srvmpxtracker.c \
+	srvsession.c    \
+	srvsession2.c   \
+	srvtimer.c      \
+	srvtree.c       \
+	srvtree2.c"
+
+    mk_group \
+        GROUP="elements.og" \
+        SOURCES="$ELEMENTS_SOURCES" \
+        INCLUDEDIRS="../include ../../include ../../../include" \
+        HEADERDEPS="lwnet.h lw/base.h uuid/uuid.h openssl/rand.h openssl/hmac.h gssapi.h" \
+        LIBDEPS="crypto uuid lwbase"
+}

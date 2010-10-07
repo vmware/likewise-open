@@ -1,0 +1,13 @@
+make()
+{
+    STATISTICS_SOURCES="\
+        config.c   \
+        globals.c  \
+        libmain.c"
+
+    mk_group \
+        GROUP="statistics.og" \
+        SOURCES="$STATISTICS_SOURCES" \
+        INCLUDEDIRS="../include ../../include ../../../include" \
+        HEADERDEPS="lw/base.h"
+}

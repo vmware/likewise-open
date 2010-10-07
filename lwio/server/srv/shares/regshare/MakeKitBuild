@@ -1,0 +1,14 @@
+make()
+{
+    REGSHARE_SOURCES="\
+        globals.c   \
+        libmain.c   \
+        regshare.c"
+
+    mk_group \
+        GROUP="regshare.og" \
+        SOURCES="$REGSHARE_SOURCES" \
+        INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
+        HEADERDEPS="lw/base.h reg/lwntreg.h lwadvapi.h" \
+        LIBDEPS="regclient"
+}

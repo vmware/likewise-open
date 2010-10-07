@@ -1,0 +1,21 @@
+make()
+{
+    UTILS_SOURCES="\
+        globals.c            \
+	libmain.c            \
+	logfilter.c          \
+	memory.c             \
+	path.c               \
+	prodcons.c           \
+	socket.c             \
+	string.c"
+
+
+    mk_group \
+        GROUP="utils.og" \
+        SOURCES="$UTILS_SOURCES" \
+        INCLUDEDIRS="../include ../../include ../../../include" \
+        HEADERDEPS="lwnet.h lw/base.h" \
+        LIBDEPS="lwnetclientapi"
+}
+

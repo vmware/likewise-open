@@ -1,0 +1,34 @@
+make()
+{
+    NPFS_SOURCES="\
+        close.c  \
+        create.c \
+        createnp.c \
+        connectnp.c \
+        ccb.c    \
+        fcb.c    \
+        file_basic_info.c \
+        file_access_info.c \
+        file_pipe_info.c \
+        file_pipe_local_info.c \
+        file_std_info.c \
+        file_network_open_info.c \
+        deviceio.c \
+        driver.c \
+        fsctl.c \
+        globals.c \
+        queryinfo.c \
+        read.c \
+        setinfo.c \
+        memory.c \
+        pipe.c \
+        mdl.c \
+        write.c"
+
+    mk_dlo \
+        DLO=libnpfs.sys \
+        SOURCES="$NPFS_SOURCES" \
+        INCLUDEDIRS=". ../include ../../include" \
+        HEADERDEPS="lw/base.h" \
+        LIBDEPS="iomgr"
+}

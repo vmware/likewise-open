@@ -1,0 +1,26 @@
+make()
+{
+    DRIVER_SOURCES="\
+        ccb.c          \
+	config.c       \
+	device.c       \
+	deviceclose.c  \
+	devicecreate.c \
+	deviceio.c     \
+	driver.c       \
+	files.c        \
+	globals.c      \
+	monitor.c      \
+	sessions.c     \
+	srvshares.c    \
+	srvstats.c     \
+	srvworker.c"
+
+    mk_dlo \
+        DLO=libsrv.sys \
+        SOURCES="$DRIVER_SOURCES" \
+        GROUPS="../protocols/api/api.og ../transport/threadpool/threadpool.og ../elements/elements.og ../shares/api/api.og ../utils/utils.og ../statistics/statistics.og ../oem/oem.og" \
+        INCLUDEDIRS=". ../include ../../include ../../../include ../../../../include" \
+        HEADERDEPS="lw/base.h uuid/uuid.h reg/lwntreg.h lwnet.h" \
+        LIBDEPS="lwbase lwiosmbcommon lwioshareinfo iomgr"
+}

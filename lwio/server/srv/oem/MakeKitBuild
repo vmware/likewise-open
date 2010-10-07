@@ -1,0 +1,12 @@
+make()
+{
+    OEM_SOURCES="\
+        srvoem.c   \
+        libmain.c"
+
+    mk_group \
+        GROUP="oem.og" \
+        SOURCES="$OEM_SOURCES" \
+        INCLUDEDIRS="../include ../../include ../../../include" \
+        HEADERDEPS="lw/base.h"
+}
