@@ -977,21 +977,29 @@ PvfsSetMaximalAccessMask(
                   SRV_ECP_TYPE_MAX_ACCESS,
                   OUT_PPVOID(&pulMaxAccessMask),
                   &ulEcpSize);
-    if (ntError != STATUS_NOT_FOUND)
+    if (ntError == STATUS_NOT_FOUND)
     {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (ulEcpSize != sizeof(ACCESS_MASK))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
-
-        if (ulEcpSize != sizeof(ACCESS_MASK))
-        {
-            ntError = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        // TODO - Fill in real MAXIMUM_ALLOWED
-        *pulMaxAccessMask = 0x1F01FF;
     }
 
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsAccessCheckFile(
+                  pCcb->pUserToken,
+                  pCcb->pszFilename,
+                  MAXIMUM_ALLOWED,
+                  pulMaxAccessMask);
+    if (ntError != STATUS_SUCCESS)
+    {
+        *pulMaxAccessMask = 0;
+        ntError = STATUS_SUCCESS;
+    }
 
 cleanup:
     return ntError;
