@@ -49,7 +49,8 @@
 static
 NTSTATUS
 PvfsSetMaximalAccessMask(
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb
     );
 
 static
@@ -62,7 +63,8 @@ PvfsGetEcpShareName(
 static
 NTSTATUS
 PvfsSetEcpFileInfo(
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb
     );
 
 /*****************************************************************************
@@ -155,12 +157,6 @@ PvfsCreate(
         pIrp->Args.Create.CreateOptions |= FILE_NON_DIRECTORY_FILE;
         ntError = PvfsCreateFile(pIrpContext);
     }
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSetMaximalAccessMask(pIrp);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSetEcpFileInfo(pIrp);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -329,6 +325,16 @@ PvfsCreateFileDoSysOpen(
     {
         pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
     }
+
+    ntError = PvfsSetMaximalAccessMask(
+                  pCreateContext->pIrpContext,
+                  pCreateContext->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSetEcpFileInfo(
+                  pCreateContext->pIrpContext,
+                  pCreateContext->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -552,6 +558,16 @@ PvfsCreateDirDoSysOpen(
 
         pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
     }
+
+    ntError = PvfsSetMaximalAccessMask(
+                  pCreateContext->pIrpContext,
+                  pCreateContext->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSetEcpFileInfo(
+                  pCreateContext->pIrpContext,
+                  pCreateContext->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -947,12 +963,14 @@ PvfsCleanupFailedCreate(
 static
 NTSTATUS
 PvfsSetMaximalAccessMask(
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    PIRP pIrp = pIrpContext->pIrp;
     PACCESS_MASK pulMaxAccessMask = NULL;
-    ULONG       ulEcpSize = 0;
+    ULONG ulEcpSize = 0;
 
     ntError = IoRtlEcpListFind(
                   pIrp->Args.Create.EcpList,
@@ -969,18 +987,22 @@ PvfsSetMaximalAccessMask(
             BAIL_ON_NT_STATUS(ntError);
         }
 
-        // TODO: Fill in the correct maximal access
+        // TODO - Fill in real MAXIMUM_ALLOWED
         *pulMaxAccessMask = 0x1F01FF;
     }
-    else
-    {
-        ntError = STATUS_SUCCESS;
-    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
 
 error:
-
-    return ntError;
+    goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
 
 static
 NTSTATUS
@@ -1015,21 +1037,27 @@ PvfsGetEcpShareName(
 
     ntError = STATUS_SUCCESS;
 
-error:
-
+cleanup:
     return ntError;
+
+error:
+    goto cleanup;
 }
+
+/*****************************************************************************
+ ****************************************************************************/
 
 static
 NTSTATUS
 PvfsSetEcpFileInfo(
-    PIRP pIrp
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    PIRP pIrp = pIrpContext->pIrp;
     PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo = NULL;
     ULONG ulEcpSize = 0;
-    PPVFS_CCB pCcb = NULL;
 
     ntError = IoRtlEcpListFind(
                     pIrp->Args.Create.EcpList,
@@ -1044,9 +1072,6 @@ PvfsSetEcpFileInfo(
             BAIL_ON_NT_STATUS(ntError);
         }
 
-        ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-        BAIL_ON_NT_STATUS(ntError);
-
         ntError = PvfsCcbQueryFileNetworkOpenInformation(
                         pCcb,
                         pNetworkOpenInfo);
@@ -1057,22 +1082,13 @@ PvfsSetEcpFileInfo(
                         SRV_ECP_TYPE_NET_OPEN_INFO);
         BAIL_ON_NT_STATUS(ntError);
     }
-    else
-    {
-        ntError = STATUS_SUCCESS;
-    }
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
-
-    if (pCcb)
-    {
-        PvfsReleaseCCB(pCcb);
-    }
-
     return ntError;
 
 error:
-
     goto cleanup;
 }
 
