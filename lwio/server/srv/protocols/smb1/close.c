@@ -468,32 +468,35 @@ SrvCancelFileAsyncOperations(
     PSRV_BYTE_RANGE_LOCK_STATE pCursor     = NULL;
     PLWIO_ASYNC_STATE          pAsyncState = NULL;
 
-    LWIO_LOCK_MUTEX(bInLock, &pBRLStateList->mutex);
-
-    for (   pCursor = pBRLStateList->pHead;
-            pCursor != NULL;
-            pCursor = pCursor->pNext)
+    if (pBRLStateList)
     {
-        if (pAsyncState)
+        LWIO_LOCK_MUTEX(bInLock, &pBRLStateList->mutex);
+
+        for (   pCursor = pBRLStateList->pHead;
+                pCursor != NULL;
+                pCursor = pCursor->pNext)
         {
-            SrvAsyncStateRelease(pAsyncState);
+            if (pAsyncState)
+            {
+                SrvAsyncStateRelease(pAsyncState);
 
-            pAsyncState = NULL;
+                pAsyncState = NULL;
+            }
+
+            ntStatus = SrvTreeFindAsyncState(
+                            pFile->pTree,
+                            pCursor->ullAsyncId,
+                            &pAsyncState);
+            if (ntStatus == STATUS_NOT_FOUND)
+            {
+                ntStatus = STATUS_SUCCESS;
+
+                continue;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvAsyncStateCancel(pAsyncState);
         }
-
-        ntStatus = SrvTreeFindAsyncState(
-                        pFile->pTree,
-                        pCursor->ullAsyncId,
-                        &pAsyncState);
-        if (ntStatus == STATUS_NOT_FOUND)
-        {
-            ntStatus = STATUS_SUCCESS;
-
-            continue;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvAsyncStateCancel(pAsyncState);
     }
 
 cleanup:
