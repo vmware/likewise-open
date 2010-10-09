@@ -608,6 +608,33 @@ cleanup:
 }
 
 static
+NTSTATUS
+LsaMapSecurityGetSidFromName(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PSID* Sid,
+    IN BOOLEAN IsUser,
+    IN PCSTR pszName
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
+    PSID sid = NULL;
+
+    status = LsaMapSecurityResolveObjectInfo(Context, IsUser, pszName, NULL, &objectInfo);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    sid = objectInfo.Sid;
+    objectInfo.Sid = NULL;
+
+cleanup:
+    LsaMapSecurityFreeObjectInfo(&objectInfo);
+
+    *Sid = sid;
+
+    return status;
+}
+
+static
 VOID
 LsaMapSecurityFreeAccessTokenCreateInformation(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
@@ -1606,6 +1633,7 @@ static LW_MAP_SECURITY_PLUGIN_INTERFACE gLsaMapSecurityPluginInterface = {
     .FreeContext = LsaMapSecurityFreeContext,
     .GetIdFromSid = LsaMapSecurityGetIdFromSid,
     .GetSidFromId = LsaMapSecurityGetSidFromId,
+    .GetSidFromName = LsaMapSecurityGetSidFromName,
     .DuplicateSid = LsaMapSecurityDuplicateSid,
     .FreeSid = LsaMapSecurityFreeSid,
     .GetAccessTokenCreateInformationFromUid = LsaMapSecurityGetAccessTokenCreateInformationFromUid,
