@@ -317,6 +317,11 @@ LwSmBootstrap(
     );
 
 DWORD
+LwSmAutostartServices(
+    VOID
+    );
+
+DWORD
 LwSmLoaderInitialize(
     PSM_LOADER_CALLS pCalls
     );

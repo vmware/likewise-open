@@ -70,6 +70,7 @@ server_lwsmd_SOURCES = \
 	server/api.c \
 	server/dispatch.c \
 	server/registry.c \
+	server/autostart.c \
 	server/bootstrap.c \
 	server/logger.c \
 	server/main.c

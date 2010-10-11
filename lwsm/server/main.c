@@ -168,6 +168,10 @@ main(
     dwError = LwSmPopulateTable();
     BAIL_ON_ERROR(dwError);
 
+    /* Start the 'Autostart' services */
+    dwError = LwSmAutostartServices();
+    BAIL_ON_ERROR(dwError);
+
     /* Start IPC server */
     dwError = LwSmStartIpcServer();
     BAIL_ON_ERROR(dwError);
