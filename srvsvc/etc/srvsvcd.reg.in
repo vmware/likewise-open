@@ -1,9 +1,27 @@
 [HKEY_THIS_MACHINE\Services]
 
 [HKEY_THIS_MACHINE\Services\srvsvc]
-"Description"="Likewise Server Service"
-"Path"="@SBINDIR@/srvsvcd"
-"Arguments"="@SBINDIR@/srvsvcd --syslog"
-"Environment"=""
-"Dependencies"="dcerpc lwio srv npfs"
-"Type"=dword:00000001
+"Description" = {
+    default = "Likewise Server Service"
+    doc = ""
+}
+"Path" = {
+    default = "@SBINDIR@/srvsvcd"
+    doc = ""
+}
+"Arguments" = {
+    default = "@SBINDIR@/srvsvcd --syslog"
+    doc = ""
+}
+"Environment" = {
+    default = ""
+    doc = ""
+}
+"Dependencies" = {
+    default = "dcerpc lwio srv npfs"
+    doc = ""
+}
+"Type" = {
+    default = dword:00000001
+    doc = ""
+}
