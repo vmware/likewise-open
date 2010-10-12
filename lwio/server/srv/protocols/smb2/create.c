@@ -845,6 +845,7 @@ SrvCancelCreateStateHandle_SMB_V2_inlock(
     if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
     {
         IoCancelAsyncCancelContext(pCreateState->pAcb->AsyncCancelContext);
+        pCreateState->pAcb->AsyncCancelContext = NULL;
     }
 }
 
