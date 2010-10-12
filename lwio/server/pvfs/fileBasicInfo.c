@@ -122,14 +122,8 @@ PvfsQueryFileBasicInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-#if 0
-    /* Disabled for now until I can properly deal with
-       NTcreate&X with only WRITE_DAC access.  For now, treat
-       this like FILE_STANDARD_INFORMATION. */
-
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
-#endif
 
     if (Args.Length < sizeof(*pFileInfo))
     {
