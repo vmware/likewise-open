@@ -7,3 +7,4 @@
 "Environment"=""
 "Dependencies"=""
 "Type"=dword:00000001
+"Autostart"=dword:00000001
