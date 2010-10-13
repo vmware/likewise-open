@@ -345,6 +345,10 @@ SrvProcessReadAndX(
 
             if (pReadState->pZct)
             {
+                // Remove mid before sending a response since the client can
+                // immediately re-use it.
+                SrvMpxTrackerRemoveExecContext(pExecContext);
+
                 ntStatus = SrvSendZctReadResponse(pReadState, pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
