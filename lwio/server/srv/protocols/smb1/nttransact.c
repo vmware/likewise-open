@@ -2106,9 +2106,12 @@ SrvProcessNotifyChange(
                             &pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvMpxTrackerSwapExecContext(
-                    pExecContext,
-                    pNotifyState->pInternalExecContext);
+            if (pSmbRequest->pHeader->mid != 0xFFFF)
+            {
+                SrvMpxTrackerSwapExecContext(
+                        pExecContext,
+                        pNotifyState->pInternalExecContext);
+            }
 
             ntStatus = SrvAsyncStateCreate(
                             pNotifyState->ullNotifyId,
