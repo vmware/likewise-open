@@ -48,6 +48,7 @@ static struct
     LW_SM_LOG_LEVEL logLevel;
     PCSTR pszLogFilePath;
     BOOLEAN bSyslog;
+    BOOLEAN bDisableAutostart;
 } gState = 
 {
     .pIpcContext = NULL,
@@ -57,7 +58,8 @@ static struct
     .notifyPipe = {-1, -1},
     .logLevel = LW_SM_LOG_LEVEL_WARNING,
     .pszLogFilePath = NULL,
-    .bSyslog = FALSE
+    .bSyslog = FALSE,
+    .bDisableAutostart = FALSE
 };
 
 static
@@ -169,8 +171,11 @@ main(
     BAIL_ON_ERROR(dwError);
 
     /* Start the 'Autostart' services */
-    dwError = LwSmAutostartServices();
-    BAIL_ON_ERROR(dwError);
+    if (!gState.bDisableAutostart)
+    {
+        dwError = LwSmAutostartServices();
+        BAIL_ON_ERROR(dwError);
+    }
 
     /* Start IPC server */
     dwError = LwSmStartIpcServer();
@@ -261,6 +266,10 @@ LwSmParseArguments(
             }
 
             gState.pszLogFilePath = ppszArgv[i];
+        }
+        else if (!strcmp(ppszArgv[i], "--disable-autostart"))
+        {
+            gState.bDisableAutostart = TRUE;
         }
     }
 
