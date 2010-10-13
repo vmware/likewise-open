@@ -373,6 +373,16 @@ cleanup:
 error:
     PvfsHashTableDestroy(&pTable);
 
+    if (pNewEntry)
+    {
+        if (pNewEntry->pTree)
+        {
+            LwRtlRBTreeFree(pNewEntry->pTree);
+            pNewEntry->pTree = NULL;
+        }
+        PvfsFreeMemory((PVOID*)&pNewEntry);
+    }
+
     goto cleanup;
 }
 
