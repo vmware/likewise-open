@@ -1321,6 +1321,8 @@ SrvProtocolProcessFile2(
                             ulBufferSize,
                             &ulBytesUsed);
 
+            break;
+
         default:
 
             ntStatus = STATUS_INVALID_INFO_CLASS;
