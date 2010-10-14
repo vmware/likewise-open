@@ -922,7 +922,7 @@ LwioSrvStatLogToString(
     {
         PSTR   pszCursor  = *ppszBuffer + *pulBytesUsed;
         size_t nBytesAvbl = *pulTotalLength - *pulBytesUsed;
-        size_t nWritten   = 0;
+        LONG   nWritten   = 0;
 
         switch (pValue->valueType)
         {
