@@ -484,6 +484,23 @@ SrvFileRundown(
     }
 }
 
+BOOLEAN
+SrvFileIsRundown(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bIsRundown = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    bIsRundown = SrvFileIsRundown_inlock(pFile);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return bIsRundown;
+}
+
 static
 VOID
 SrvFileFree(

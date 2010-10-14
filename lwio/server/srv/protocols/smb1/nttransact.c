@@ -2258,6 +2258,15 @@ SrvExecuteChangeNotify(
     {
         ntStatus = STATUS_SUCCESS;
     }
+    else if (ntStatus == STATUS_CANCELLED)
+    {
+        if (SrvFileIsRundown(pCtxSmb1->pFile))
+        {
+            ntStatus = STATUS_SUCCESS;
+            pNotifyState->ioStatusBlock.Status = STATUS_SUCCESS;
+            pNotifyState->ioStatusBlock.BytesTransferred = 0;
+        }
+    }
 
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -2285,6 +2294,7 @@ SrvProcessChangeNotifyCompletion(
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
     PLWIO_SRV_SESSION          pSession     = NULL;
     PLWIO_SRV_TREE             pTree        = NULL;
+    PLWIO_SRV_FILE             pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullNotifyId  = 0LL;
@@ -2319,6 +2329,28 @@ SrvProcessChangeNotifyCompletion(
     SrvTreeRemoveAsyncState(pTree, ullNotifyId);
 
     pNotifyState = (PSRV_CHANGE_NOTIFY_STATE_SMB_V1)pAsyncState->hAsyncState;
+
+    if (pSmbRequest->pHeader->error == STATUS_CANCELLED)
+    {
+        ntStatus = SrvTreeFindFile_SMB_V1(
+                        pCtxSmb1,
+                        pTree,
+                        pNotifyState->usFid,
+                        &pFile);
+        if (ntStatus == STATUS_INVALID_HANDLE)
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // If the file is closed, we should return STATUS_SUCCESS instead.
+        if (!pFile || SrvFileIsRundown(pFile))
+        {
+            pSmbRequest->pHeader->error = STATUS_SUCCESS;
+            pNotifyState->ioStatusBlock.Status = STATUS_SUCCESS;
+            pNotifyState->ioStatusBlock.BytesTransferred = 0;
+        }
+    }
 
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
@@ -2357,6 +2389,11 @@ cleanup:
     if (pAsyncState)
     {
         SrvAsyncStateRelease(pAsyncState);
+    }
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
     }
 
     if (pTree)

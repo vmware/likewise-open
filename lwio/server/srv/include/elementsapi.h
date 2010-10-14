@@ -1493,6 +1493,11 @@ SrvFileRundown(
     PLWIO_SRV_FILE pFile
     );
 
+BOOLEAN
+SrvFileIsRundown(
+    PLWIO_SRV_FILE pFile
+    );
+
 NTSTATUS
 SrvFile2Create(
     PLWIO_SRV_TREE_2        pTree,
@@ -1580,6 +1585,11 @@ SrvFile2UnblockIdleTimeout(
 
 VOID
 SrvFile2Rundown(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+BOOLEAN
+SrvFile2IsRundown(
     PLWIO_SRV_FILE_2 pFile
     );
 
