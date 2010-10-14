@@ -430,6 +430,16 @@ SrvProcessNotifyCompletion_SMB_V2(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (pSmbRequest->pHeader->error == STATUS_CANCELLED)
+    {
+        if (SrvFile2IsRundown(pNotifyState->pFile))
+        {
+            pSmbRequest->pHeader->error = STATUS_NOTIFY_CLEANUP;
+            pNotifyState->ioStatusBlock.Status = STATUS_NOTIFY_CLEANUP;
+            pNotifyState->ioStatusBlock.BytesTransferred = 0;
+        }
+    }
+
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
     switch (pSmbRequest->pHeader->error)
@@ -440,6 +450,7 @@ SrvProcessNotifyCompletion_SMB_V2(
 
             break;
 
+        case STATUS_NOTIFY_CLEANUP:
         case STATUS_NOTIFY_ENUM_DIR:
         case STATUS_SUCCESS:
 
@@ -620,6 +631,17 @@ SrvExecuteChangeNotify_SMB_V2(
                         pNotifyState->ulCompletionFilter,
                         NULL);
     }
+
+    if (ntStatus == STATUS_CANCELLED)
+    {
+        if (SrvFile2IsRundown(pNotifyState->pFile))
+        {
+            ntStatus = STATUS_NOTIFY_CLEANUP;
+            pNotifyState->ioStatusBlock.Status = STATUS_NOTIFY_CLEANUP;
+            pNotifyState->ioStatusBlock.BytesTransferred = 0;
+        }
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     SrvReleaseNotifyStateAsync_SMB_V2(pNotifyState); // Completed synchronously
