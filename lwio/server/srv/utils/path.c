@@ -119,7 +119,10 @@ cleanup:
 
 error:
 
-    *ppwszFilename = NULL;
+    if (ppwszFilename)
+    {
+        *ppwszFilename = NULL;
+    }
 
     if (pwszFilename)
     {
