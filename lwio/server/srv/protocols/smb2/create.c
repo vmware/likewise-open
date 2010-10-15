@@ -889,19 +889,19 @@ SrvQueryFileInformation_SMB_V2(
 
             SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
         }
-
-        if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-        {
-            SrvFile2BlockIdleTimeout(pCreateState->pFile);
-        }
-        else
-        {
-            SrvFile2UnblockIdleTimeout(pCreateState->pFile);
-        }
     }
     else
     {
         pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+    }
+
+    if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFile2BlockIdleTimeout(pCreateState->pFile);
+    }
+    else
+    {
+        SrvFile2UnblockIdleTimeout(pCreateState->pFile);
     }
 
     if (!IoRtlEcpListIsAcknowledged(

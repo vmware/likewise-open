@@ -3213,19 +3213,19 @@ SrvQueryNTTransactFileInformation(
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
         }
-
-        if (!(pNTTransactState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-        {
-            SrvFileBlockIdleTimeout(pNTTransactState->pFile);
-        }
-        else
-        {
-            SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
-        }
     }
     else
     {
         pNTTransactState->pFileBasicInfo = &pNTTransactState->fileBasicInfo;
+    }
+
+    if (!(pNTTransactState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFileBlockIdleTimeout(pNTTransactState->pFile);
+    }
+    else
+    {
+        SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
     }
 
     if (!IoRtlEcpListIsAcknowledged(

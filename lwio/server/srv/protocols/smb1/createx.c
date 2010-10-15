@@ -404,19 +404,19 @@ SrvQueryFileInformation_inlock(
 
             SrvReleaseCreateStateAsync(pCreateState); // completed synchronously
         }
-
-        if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-        {
-            SrvFileBlockIdleTimeout(pCreateState->pFile);
-        }
-        else
-        {
-            SrvFileUnblockIdleTimeout(pCreateState->pFile);
-        }
     }
     else // Got the value through the ECP
     {
         pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
+    }
+
+    if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        SrvFileBlockIdleTimeout(pCreateState->pFile);
+    }
+    else
+    {
+        SrvFileUnblockIdleTimeout(pCreateState->pFile);
     }
 
     if (!IoRtlEcpListIsAcknowledged(
