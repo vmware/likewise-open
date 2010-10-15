@@ -393,6 +393,11 @@ error:
         *pdwTotalEntries = dwTotalEntries;
     }
 
+    if (pdwResumeHandle && (dwError == ERROR_MORE_DATA))
+    {
+        *pdwResumeHandle = dwResumeHandle;
+    }
+
     goto cleanup;
 }
 
