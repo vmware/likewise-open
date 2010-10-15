@@ -520,7 +520,7 @@ SrvCreditorInitialize_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
 
         // The first available sequence must be 0
-        pCreditor->ullNextAvblId = pCreditor->ullNextAvblId++;
+        pDebitor->ullSequence = pCreditor->ullNextAvblId++;
 
         SrvCreditorAttachDebitor(
                 pDebitor,
