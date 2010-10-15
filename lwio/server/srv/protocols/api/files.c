@@ -224,6 +224,7 @@ SrvProtocolEnumerateFiles(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bMoreData= FALSE;
     SRV_PROTOCOL_FILE_ENUM_QUERY fileEnumQuery =
     {
             .pwszBasepath   = pwszBasepath,
@@ -253,6 +254,14 @@ SrvProtocolEnumerateFiles(
                         SRV_RESOURCE_TYPE_FILE,
                         &SrvProtocolEnumAllFiles,
                         &fileEnumQuery);
+        /* If we still have more data to read, then return MORE_ENTRIES */
+        if (ntStatus == STATUS_END_OF_FILE &&
+            (fileEnumQuery.ulEntriesRead + fileEnumQuery.iResumeIndex) <
+             fileEnumQuery.ulTotalEntries)
+        {
+            bMoreData = TRUE;
+            ntStatus = STATUS_SUCCESS;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else if (!fileEnumQuery.pwszUsername)
@@ -267,6 +276,13 @@ SrvProtocolEnumerateFiles(
                         SRV_RESOURCE_TYPE_FILE,
                         &SrvProtocolEnumFilteredFiles,
                         &fileEnumQuery);
+        /* If we still have more data to read, then return MORE_ENTRIES */
+        if (ntStatus == STATUS_END_OF_FILE &&
+            fileEnumQuery.ulEntriesRead < fileEnumQuery.ulTotalEntries)
+        {
+            bMoreData = TRUE;
+            ntStatus = STATUS_SUCCESS;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -283,7 +299,7 @@ cleanup:
 
     SrvProtocolClearFileQueryContents(&fileEnumQuery);
 
-    return ntStatus;
+    return (NT_SUCCESS(ntStatus) && bMoreData ? STATUS_MORE_ENTRIES : ntStatus);
 
 error:
 
@@ -559,11 +575,6 @@ error:
 
     *pbContinue = FALSE;
 
-    if (ntStatus == STATUS_END_OF_FILE)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
-
     goto cleanup;
 }
 
@@ -707,11 +718,6 @@ cleanup:
 error:
 
     *pbContinue = FALSE;
-
-    if (ntStatus == STATUS_END_OF_FILE)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
 
     goto cleanup;
 }
@@ -906,11 +912,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (ntStatus == STATUS_END_OF_FILE)
-    {
-        ntStatus = STATUS_BUFFER_TOO_SMALL;
-    }
 
     goto cleanup;
 }

@@ -71,6 +71,7 @@ SrvDevCtlEnumerateFiles(
     PULONG   pulResumeHandle  = NULL;
     PFILE_INFO_ENUM_IN_PARAMS   pParamsIn         = NULL;
     FILE_INFO_ENUM_OUT_PREAMBLE paramsOutPreamble = {0};
+    BOOLEAN  bMoreData        = FALSE;
 
     ntStatus = LwFileInfoUnmarshalEnumInputParameters(
                         pInBuffer,
@@ -113,6 +114,14 @@ SrvDevCtlEnumerateFiles(
                     &ulEntriesRead,
                     &ulTotalEntries,
                     pulResumeHandle);
+    /* If we get STATUS_MORE_ENTRIES, return all the entries that
+       are filled in the buffer. */
+    if (ntStatus == STATUS_MORE_ENTRIES)
+    {
+        bMoreData = TRUE;
+        ntStatus = STATUS_SUCCESS;
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     ulTotalBytesUsed += ulBytesUsed;
@@ -136,7 +145,7 @@ cleanup:
         LwFileInfoFreeEnumInputParameters(pParamsIn);
     }
 
-    return ntStatus;
+    return (NT_SUCCESS(ntStatus) && bMoreData ? STATUS_MORE_ENTRIES : ntStatus);
 
 error:
 
