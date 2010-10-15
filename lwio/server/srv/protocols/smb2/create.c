@@ -1441,14 +1441,10 @@ SrvBuildCreateResponse_SMB_V2(
     pResponseHeader->ullLastChangeTime =
                                 pCreateState->pNetworkOpenInfo->ChangeTime;
     pResponseHeader->ulFileAttributes  =
-                                pCreateState->pFileBasicInfo->FileAttributes;
+                                pCreateState->pNetworkOpenInfo->FileAttributes;
     pResponseHeader->ullAllocationSize =
                                 pCreateState->pNetworkOpenInfo->AllocationSize;
     pResponseHeader->ullEndOfFile      = pCreateState->pNetworkOpenInfo->EndOfFile;
-    pResponseHeader->ulFileAttributes  =
-                                pCreateState->pNetworkOpenInfo->FileAttributes;
-    pResponseHeader->ulReserved2       = 0;
-    pResponseHeader->fid               = pCreateState->pFile->fid;
     pResponseHeader->usLength          = ulBytesUsed + 1;
 
     for (; iContext < pCreateState->ulNumContexts; iContext++)
