@@ -349,7 +349,7 @@ SrvMpxTrackerAdd(
         // Context already exists.  Error code will go back
         // to client.
 
-        LWIO_LOG_VERBOSE("Attempt to add duplicate PID/MID = (%d, %d)",
+        LWIO_LOG_ERROR("Attempt to add duplicate PID/MID = (%d, %d)",
                          ulPid, usMid);
 
         ntStatus = STATUS_INVALID_PARAMETER;

@@ -153,6 +153,15 @@ SrvProtocolExecute(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
+    // Remove mid before sending a response since the client can immediately
+    // re-use it. Note that, even if we are not sending a response for
+    // some reason, it is fine to remove the mid since we are done with the
+    // request.  Also note that in a ZCT read file case, we already sent
+    // the response and will not send it here, but we already removed
+    // the mid from the request.
+
+    SrvMpxTrackerRemoveExecContext(pContext);
+
     // Cleanup any protocol state before sending a response.
     if (pContext->pProtocolContext)
     {
