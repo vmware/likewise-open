@@ -245,7 +245,7 @@ SrvSvcNetFileEnum(
 
     *pdwEntriesRead  = pOutPreamble->dwEntriesRead;
     *pdwTotalEntries = pOutPreamble->dwTotalEntries;
-    if (pdwResumeHandle)
+    if (pdwResumeHandle && pOutPreamble->pdwResumeHandle)
     {
         *pdwResumeHandle = *pOutPreamble->pdwResumeHandle;
     }
