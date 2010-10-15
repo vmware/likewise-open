@@ -165,12 +165,7 @@ cleanup:
         LwSessionInfoFreeEnumInputParameters(pParamsIn);
     }
 
-    if (bMoreData)
-    {
-        ntStatus = STATUS_MORE_ENTRIES;
-    }
-
-    return ntStatus;
+    return (NT_SUCCESS(ntStatus) && bMoreData ? STATUS_MORE_ENTRIES : ntStatus);
 
 error:
 

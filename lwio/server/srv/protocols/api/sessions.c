@@ -238,13 +238,7 @@ cleanup:
 
     SrvProtocolFreeSessionEnumQueryContents(&sessionEnumQuery);
 
-    if (bMoreData)
-    {
-        /* We have more data to send, return MORE_ENTRIES */
-        ntStatus = STATUS_MORE_ENTRIES;
-    }
-
-    return ntStatus;
+    return (NT_SUCCESS(ntStatus) && bMoreData ? STATUS_MORE_ENTRIES : ntStatus);
 
 error:
 
