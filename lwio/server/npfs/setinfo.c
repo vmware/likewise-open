@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "npfs.h"
+#include "includes.h"
 
 NTSTATUS
 NpfsSetInformation(

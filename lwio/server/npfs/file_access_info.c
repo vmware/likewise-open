@@ -45,7 +45,7 @@
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#include "npfs.h"
+#include "includes.h"
 
 NTSTATUS
 NpfsFileAccessInfo(

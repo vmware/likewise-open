@@ -23,7 +23,7 @@
  * license@likewise.com
  */
 
-#include "npfs.h"
+#include "includes.h"
 
 
 NTSTATUS

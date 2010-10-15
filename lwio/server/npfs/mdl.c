@@ -23,7 +23,7 @@
  * license@likewise.com
  */
 
-#include "npfs.h"
+#include "includes.h"
 
 #define min(a,b) (a <= b)? a:b
 
