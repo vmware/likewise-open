@@ -1430,7 +1430,7 @@ SrvBuildCreateResponse_SMB_V2(
             break;
     }
 
-    pResponseHeader->fid               = pCreateState->pFile->fid;
+    pResponseHeader->ucReserved        = 0;
     pResponseHeader->ulCreateAction    = pCreateState->ulCreateAction;
     pResponseHeader->ullCreationTime   =
                                 pCreateState->pNetworkOpenInfo->CreationTime;
@@ -1445,6 +1445,8 @@ SrvBuildCreateResponse_SMB_V2(
     pResponseHeader->ullAllocationSize =
                                 pCreateState->pNetworkOpenInfo->AllocationSize;
     pResponseHeader->ullEndOfFile      = pCreateState->pNetworkOpenInfo->EndOfFile;
+    pResponseHeader->ulReserved2       = 0;
+    pResponseHeader->fid               = pCreateState->pFile->fid;
     pResponseHeader->usLength          = ulBytesUsed + 1;
 
     for (; iContext < pCreateState->ulNumContexts; iContext++)

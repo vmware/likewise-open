@@ -720,6 +720,7 @@ SrvBuildNTCreateResponse_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pResponseHeader->fileType = (USHORT)pCreateState->filePipeInfo.ReadMode;
+        pResponseHeader->deviceState = 0;
     }
     else
     {

@@ -545,6 +545,7 @@ SMB2MarshalLogoffResponse(
     // pDataCursor += sizeof(SMB2_LOGOFF_RESPONSE_HEADER);
 
     pHeader->usLength = ulBytesUsed;
+    pHeader->usReserved = 0;
 
     *pulBytesUsed = ulBytesUsed;
 
@@ -648,6 +649,8 @@ SMB2MarshalTreeConnectResponse(
     }
 
     pResponseHeader = (PSMB2_TREE_CONNECT_RESPONSE_HEADER)pDataCursor;
+    memset(pResponseHeader, 0, sizeof(*pResponseHeader));
+
     ulOffset += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
     ulBytesUsed += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
@@ -753,6 +756,7 @@ SMB2MarshalTreeDisconnectResponse(
     ulBytesUsed += sizeof(SMB2_TREE_DISCONNECT_RESPONSE_HEADER);
 
     pHeader->usLength = sizeof(SMB2_TREE_DISCONNECT_RESPONSE_HEADER);
+    pHeader->usReserved = 0;
 
     *pulBytesUsed = ulBytesUsed;
 
@@ -1032,6 +1036,8 @@ SMB2MarshalCreateContext(
 
     pCreateContext = (PSMB2_CREATE_CONTEXT)pDataCursor;
 
+    memset(pCreateContext, 0, sizeof(*pCreateContext));
+
     ulOffset          += sizeof(SMB2_CREATE_CONTEXT);
     ulBytesUsed       += sizeof(SMB2_CREATE_CONTEXT);
     ulBytesAvailable1 -= sizeof(SMB2_CREATE_CONTEXT);
@@ -1197,6 +1203,7 @@ SMB2MarshalFlushResponse(
     ulBytesAvailable -= sizeof(SMB2_FLUSH_RESPONSE_HEADER);
 
     pHeader->usLength = ulBytesUsed;
+    pHeader->usReserved = 0;
 
     *pulBytesUsed = ulBytesUsed;
 
@@ -1271,6 +1278,7 @@ SMB2MarshalEchoResponse(
     ulBytesAvailable -= sizeof(SMB2_ECHO_RESPONSE_HEADER);
 
     pHeader->usLength = ulBytesUsed;
+    pHeader->usReserved = 0;
 
     *pulBytesUsed = ulBytesUsed;
 
@@ -1450,6 +1458,8 @@ SMB2MarshalReadResponse(
     }
 
     pHeader = (PSMB2_READ_RESPONSE_HEADER)pDataCursor;
+    memset(pHeader, 0, sizeof(*pHeader));
+
     ulBytesUsed += sizeof(SMB2_READ_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_READ_RESPONSE_HEADER);
     ulDataOffset += sizeof(SMB2_READ_RESPONSE_HEADER);
@@ -1577,6 +1587,8 @@ SMB2MarshalWriteResponse(
     }
 
     pHeader = (PSMB2_WRITE_RESPONSE_HEADER)pDataCursor;
+    memset(pHeader, 0, sizeof(*pHeader));
+
     ulBytesUsed += sizeof(SMB2_WRITE_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_WRITE_RESPONSE_HEADER);
     pDataCursor += sizeof(SMB2_WRITE_RESPONSE_HEADER);
@@ -1711,6 +1723,7 @@ SMB2MarshalLockResponse(
     ulBytesAvailable -= sizeof(SMB2_LOCK_RESPONSE_HEADER);
 
     pHeader->usLength = ulBytesUsed;
+    pHeader->usReserved = 0;
 
     *pulBytesUsed = ulBytesUsed;
 
@@ -1818,12 +1831,14 @@ SMB2MarshalIOCTLResponse(
     }
 
     pResponseHeader = (PSMB2_IOCTL_RESPONSE_HEADER)pDataCursor;
+
     ulBytesUsed += sizeof(SMB2_IOCTL_RESPONSE_HEADER);
     ulDataOffset += sizeof(SMB2_IOCTL_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_IOCTL_RESPONSE_HEADER);
     pDataCursor += sizeof(SMB2_IOCTL_RESPONSE_HEADER);
 
     pResponseHeader->usLength       = ulBytesUsed + 1;
+    pResponseHeader->usReserved     = 0;
     pResponseHeader->ulFunctionCode = pRequestHeader->ulFunctionCode;
     pResponseHeader->fid            = pRequestHeader->fid;
     pResponseHeader->ulInOffset     = ulDataOffset;
@@ -1831,6 +1846,7 @@ SMB2MarshalIOCTLResponse(
     pResponseHeader->ulOutOffset    = ulDataOffset;
     pResponseHeader->ulOutLength    = ulOutLength;
     pResponseHeader->ulFlags        = pRequestHeader->ulFlags;
+    pResponseHeader->ulReserved     = 0;
 
     // TODO: Check against max buffer size
     if (ulOutLength)
@@ -1983,6 +1999,8 @@ SMB2MarshalFindResponse(
     }
 
     pResponseHeader = (PSMB2_FIND_RESPONSE_HEADER)pDataCursor;
+    memset(pResponseHeader, 0, sizeof(*pResponseHeader));
+
     ulBytesUsed += sizeof(SMB2_FIND_RESPONSE_HEADER);
     ulDataOffset += sizeof(SMB2_FIND_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_FIND_RESPONSE_HEADER);
@@ -2108,6 +2126,8 @@ SMB2MarshalNotifyResponse(
     }
 
     pResponseHeader = (PSMB2_NOTIFY_RESPONSE_HEADER)pDataCursor;
+    memset(pResponseHeader, 0, sizeof(*pResponseHeader));
+
     ulBytesUsed      += sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
     ulDataOffset     += sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
@@ -2195,6 +2215,8 @@ SMB2MarshalError(
     }
 
     pHeader = (PSMB2_ERROR_RESPONSE_HEADER)pDataCursor;
+    memset(pHeader, 0, sizeof(*pHeader));
+
     ulBytesUsed += sizeof(SMB2_ERROR_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_ERROR_RESPONSE_HEADER);
     pDataCursor += sizeof(SMB2_ERROR_RESPONSE_HEADER);
