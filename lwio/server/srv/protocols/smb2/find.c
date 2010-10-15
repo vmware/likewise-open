@@ -856,10 +856,10 @@ SrvFindIdBothDirInformation(
                 {
                     USHORT usNewSize = pSearchSpace->usFileInfoLen + 256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pSearchSpace->pFileInfo,
-                                    (PVOID*)&pSearchSpace->pFileInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pSearchSpace->pFileInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,
@@ -1220,10 +1220,10 @@ SrvFindBothDirInformation(
                 {
                     USHORT usNewSize = pSearchSpace->usFileInfoLen + 256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pSearchSpace->pFileInfo,
-                                    (PVOID*)&pSearchSpace->pFileInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pSearchSpace->pFileInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,
@@ -1580,10 +1580,10 @@ SrvFindIdFullDirInformation(
                 {
                     USHORT usNewSize = pSearchSpace->usFileInfoLen + 256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pSearchSpace->pFileInfo,
-                                    (PVOID*)&pSearchSpace->pFileInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pSearchSpace->pFileInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,
@@ -1920,10 +1920,10 @@ SrvFindFullDirInformation(
                 {
                     USHORT usNewSize = pSearchSpace->usFileInfoLen + 256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pSearchSpace->pFileInfo,
-                                    (PVOID*)&pSearchSpace->pFileInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pSearchSpace->pFileInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,
@@ -2259,10 +2259,10 @@ SrvFindDirectoryInformation(
                 {
                     USHORT usNewSize = pSearchSpace->usFileInfoLen + 256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pSearchSpace->pFileInfo,
-                                    (PVOID*)&pSearchSpace->pFileInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pSearchSpace->pFileInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,
@@ -2598,10 +2598,10 @@ SrvFindNamesInformation(
                     USHORT usNewSize = pSearchSpace->usFileInfoLen +
                                             256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pSearchSpace->pFileInfo,
-                                    (PVOID*)&pSearchSpace->pFileInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pSearchSpace->pFileInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     memset(pSearchSpace->pFileInfo + pSearchSpace->usFileInfoLen,

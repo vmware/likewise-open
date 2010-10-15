@@ -924,10 +924,10 @@ SrvGetFileSystemInfoGeneric_WithString_SMB_V2(
                         ulNewSize = SMB_MIN(ulNewSize,
                                             pGetInfoState->pRequestHeader->ulOutputBufferLen);
 
-                        ntStatus = SMBReallocMemory(
+                        ntStatus = SrvReallocMemory(
                                         pGetInfoState->pData2,
-                                        (PVOID*)&pGetInfoState->pData2,
-                                        ulNewSize);
+                                        ulNewSize,
+                                        (PVOID*)&pGetInfoState->pData2);
                         BAIL_ON_NT_STATUS(ntStatus);
 
                         pGetInfoState->ulDataLength = ulNewSize;

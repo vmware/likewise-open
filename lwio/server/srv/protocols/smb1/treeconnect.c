@@ -976,10 +976,10 @@ SrvGetNativeFilesystem(
                     USHORT usNewSize =  pTConState->usBytesAllocated +
                                         256 * sizeof(wchar16_t);
 
-                    ntStatus = SMBReallocMemory(
+                    ntStatus = SrvReallocMemory(
                                     pTConState->pVolumeInfo,
-                                    (PVOID*)&pTConState->pVolumeInfo,
-                                    usNewSize);
+                                    usNewSize,
+                                    (PVOID*)&pTConState->pVolumeInfo);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     pTConState->usBytesAllocated = usNewSize;
