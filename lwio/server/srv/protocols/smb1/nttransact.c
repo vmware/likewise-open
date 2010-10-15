@@ -3033,6 +3033,9 @@ SrvParseNtTransactCreateParameters(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = IoRtlEcpListAllocate(&pNTTransactState->pEcpList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
      *  - Client principal name
@@ -3040,9 +3043,6 @@ SrvParseNtTransactCreateParameters(
      */
     if (SrvTreeIsNamedPipe(pNTTransactState->pTree))
     {
-        ntStatus = IoRtlEcpListAllocate(&pNTTransactState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ntStatus = SrvConnectionGetNamedPipeSessionKey(
                        pConnection,
                        pNTTransactState->pEcpList);
@@ -3051,6 +3051,36 @@ SrvParseNtTransactCreateParameters(
         ntStatus = SrvConnectionGetNamedPipeClientAddress(
                        pConnection,
                        pNTTransactState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
+                                      IO_ECP_TYPE_PIPE_INFO,
+                                      &pNTTransactState->filePipeInfo,
+                                      sizeof(pNTTransactState->filePipeInfo),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
+                                      IO_ECP_TYPE_PIPE_LOCAL_INFO,
+                                      &pNTTransactState->filePipeLocalInfo,
+                                      sizeof(pNTTransactState->filePipeLocalInfo),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
+                                      IO_ECP_TYPE_FILE_STD_INFO,
+                                      &pNTTransactState->fileStdInfo,
+                                      sizeof(pNTTransactState->fileStdInfo),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
+                                      IO_ECP_TYPE_FILE_BASIC_INFO,
+                                      &pNTTransactState->fileBasicInfo,
+                                      sizeof(pNTTransactState->fileBasicInfo),
+                                      NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
