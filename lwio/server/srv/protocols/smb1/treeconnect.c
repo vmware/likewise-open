@@ -864,6 +864,7 @@ SrvBuildTreeConnectResponse(
     ulBytesAvailable -= sizeof(TREE_CONNECT_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(TREE_CONNECT_RESPONSE_HEADER);
 
+    pResponseHeader->optionalSupport = 0;
     pResponseHeader->maximalShareAccessMask =
                                 pTConState->ulMaximalShareAccessMask;
 
