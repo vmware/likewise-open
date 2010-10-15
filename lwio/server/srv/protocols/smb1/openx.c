@@ -722,6 +722,10 @@ SrvQueryFileOpenInformation(
             SrvFileUnblockIdleTimeout(pOpenState->pFile);
         }
     }
+    else
+    {
+        pOpenState->pFileBasicInfo = &pOpenState->fileBasicInfo;
+    }
 
     if (!IoRtlEcpListIsAcknowledged(
                 pOpenState->pEcpList,
@@ -744,6 +748,10 @@ SrvQueryFileOpenInformation(
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
         }
+    }
+    else
+    {
+        pOpenState->pFileStdInfo = &pOpenState->fileStdInfo;
     }
 
     if (SrvTreeIsNamedPipe(pOpenState->pTree))
@@ -770,6 +778,10 @@ SrvQueryFileOpenInformation(
                 SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
             }
         }
+        else
+        {
+            pOpenState->pFilePipeInfo = &pOpenState->filePipeInfo;
+        }
 
         if (!IoRtlEcpListIsAcknowledged(
                     pOpenState->pEcpList,
@@ -792,6 +804,10 @@ SrvQueryFileOpenInformation(
 
                 SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
             }
+        }
+        else
+        {
+            pOpenState->pFilePipeLocalInfo = &pOpenState->filePipeLocalInfo;
         }
     }
 

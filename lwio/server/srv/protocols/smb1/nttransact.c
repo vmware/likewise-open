@@ -3223,6 +3223,10 @@ SrvQueryNTTransactFileInformation(
             SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
         }
     }
+    else
+    {
+        pNTTransactState->pFileBasicInfo = &pNTTransactState->fileBasicInfo;
+    }
 
     if (!IoRtlEcpListIsAcknowledged(
             pNTTransactState->pEcpList,
@@ -3245,6 +3249,10 @@ SrvQueryNTTransactFileInformation(
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
         }
+    }
+    else
+    {
+        pNTTransactState->pFileStdInfo = &pNTTransactState->fileStdInfo;
     }
 
     if (SrvTreeIsNamedPipe(pNTTransactState->pTree))
@@ -3271,6 +3279,10 @@ SrvQueryNTTransactFileInformation(
                 SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
             }
         }
+        else
+        {
+            pNTTransactState->pFilePipeInfo = &pNTTransactState->filePipeInfo;
+        }
 
         if (!IoRtlEcpListIsAcknowledged(
                 pNTTransactState->pEcpList,
@@ -3293,6 +3305,10 @@ SrvQueryNTTransactFileInformation(
 
                 SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
             }
+        }
+        else
+        {
+            pNTTransactState->pFilePipeLocalInfo = &pNTTransactState->filePipeLocalInfo;
         }
     }
 
