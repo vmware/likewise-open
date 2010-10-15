@@ -96,13 +96,6 @@ SrvTreeAsyncStateCompare(
     );
 
 static
-BOOLEAN
-SrvTreeRundownAsyncStateCallback(
-    PLWIO_ASYNC_STATE pAsyncState,
-    PVOID pContext
-    );
-
-static
 VOID
 SrvTreeAsyncStateRelease(
     PVOID pAsyncState
@@ -128,11 +121,23 @@ SrvTreeGatherRundownFileListCallback(
     );
 
 static
+BOOLEAN
+SrvTreeGatherRundownAsyncStateListCallback(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
+    );
+
+static
 VOID
 SrvTreeRundownFileList(
     PLWIO_SRV_FILE pRundownList
     );
 
+static
+VOID
+SrvTreeRundownAsyncStateList(
+    PLWIO_ASYNC_STATE pRundownList
+    );
 
 NTSTATUS
 SrvTreeCreate(
@@ -659,6 +664,7 @@ SrvTreeRundown(
     BOOLEAN bDoRundown = FALSE;
     BOOLEAN bIsInParent = FALSE;
     PLWIO_SRV_FILE pRundownFileList = NULL;
+    PLWIO_ASYNC_STATE pRundownAsyncStateList = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
@@ -671,8 +677,8 @@ SrvTreeRundown(
 
         SrvEnumAsyncStateCollection(
                 pTree->pAsyncStateCollection,
-                SrvTreeRundownAsyncStateCallback,
-                NULL);
+                SrvTreeGatherRundownAsyncStateListCallback,
+                &pRundownAsyncStateList);
 
         LwRtlRBTreeRemoveAll(pTree->pAsyncStateCollection);
 
@@ -693,6 +699,7 @@ SrvTreeRundown(
     if (bDoRundown)
     {
         // Cannot rundown with lock held as they self-remove
+        SrvTreeRundownAsyncStateList(pRundownAsyncStateList);
         SrvTreeRundownFileList(pRundownFileList);
     }
 }
@@ -866,18 +873,6 @@ SrvTreeAsyncStateCompare(
 }
 
 static
-BOOLEAN
-SrvTreeRundownAsyncStateCallback(
-    PLWIO_ASYNC_STATE pAsyncState,
-    PVOID pContext
-    )
-{
-    SrvAsyncStateCancel(pAsyncState);
-
-    return TRUE;
-}
-
-static
 VOID
 SrvTreeAsyncStateRelease(
     PVOID pAsyncState
@@ -922,6 +917,24 @@ SrvTreeGatherRundownFileListCallback(
 }
 
 static
+BOOLEAN
+SrvTreeGatherRundownAsyncStateListCallback(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
+    )
+{
+    PLWIO_ASYNC_STATE* ppRundownList = (PLWIO_ASYNC_STATE*) pContext;
+
+    LWIO_ASSERT(!pAsyncState->pRundownNext);
+    pAsyncState->pRundownNext = *ppRundownList;
+
+    SrvAsyncStateAcquire(pAsyncState);
+    *ppRundownList = pAsyncState;
+
+    return TRUE;
+}
+
+static
 VOID
 SrvTreeRundownFileList(
     PLWIO_SRV_FILE pRundownList
@@ -936,6 +949,23 @@ SrvTreeRundownFileList(
         SrvFileRelease(pFile);
     }
 }
+
+static
+VOID
+SrvTreeRundownAsyncStateList(
+    PLWIO_ASYNC_STATE pRundownList
+    )
+{
+    while (pRundownList)
+    {
+        PLWIO_ASYNC_STATE pAsyncState = pRundownList;
+
+        pRundownList = pAsyncState->pRundownNext;
+        SrvAsyncStateCancel(pAsyncState);
+        SrvAsyncStateRelease(pAsyncState);
+    }
+}
+
 
 /*
 local variables:

@@ -236,6 +236,12 @@ SrvConnection2GatherRundownSessionListCallback(
     PVOID pContext
     );
 
+static
+BOOLEAN
+SrvConnectionGatherRundownAsyncStateListCallback(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
+    );
 
 static
 VOID
@@ -250,10 +256,9 @@ SrvConnection2RundownSessionList(
     );
 
 static
-BOOLEAN
-SrvConnectionRundownAsyncStateCallback(
-    PLWIO_ASYNC_STATE pAsyncState,
-    PVOID pContext
+VOID
+SrvConnectionRundownAsyncStateList(
+    PLWIO_ASYNC_STATE pRundownList
     );
 
 NTSTATUS
@@ -2127,6 +2132,7 @@ SrvConnectionRundown(
     BOOLEAN bInLock = FALSE;
     PLWIO_SRV_SESSION pRundownSessionList = NULL;
     PLWIO_SRV_SESSION_2 pRundownSession2List = NULL;
+    PLWIO_ASYNC_STATE pRundownAsyncStateList = NULL;
 
     // TODO: Merge with SrvConnectionSetInvalid()
 
@@ -2154,14 +2160,15 @@ SrvConnectionRundown(
 
     SrvEnumAsyncStateCollection(
             pConnection->pAsyncStateCollection,
-            SrvConnectionRundownAsyncStateCallback,
-            NULL);
+            SrvConnectionGatherRundownAsyncStateListCallback,
+            &pRundownAsyncStateList);
 
     LwRtlRBTreeRemoveAll(pConnection->pAsyncStateCollection);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     // Cannot rundown with lock held as they self-remove
+    SrvConnectionRundownAsyncStateList(pRundownAsyncStateList);
     SrvConnectionRundownSessionList(pRundownSessionList);
     SrvConnection2RundownSessionList(pRundownSession2List);
 }
@@ -2203,6 +2210,25 @@ SrvConnection2GatherRundownSessionListCallback(
 }
 
 static
+BOOLEAN
+SrvConnectionGatherRundownAsyncStateListCallback(
+    PLWIO_ASYNC_STATE pAsyncState,
+    PVOID pContext
+    )
+{
+    PLWIO_ASYNC_STATE* ppRundownList = (PLWIO_ASYNC_STATE*) pContext;
+
+    LWIO_ASSERT(!pAsyncState->pRundownNext);
+    pAsyncState->pRundownNext = *ppRundownList;
+
+    SrvAsyncStateAcquire(pAsyncState);
+    *ppRundownList = pAsyncState;
+
+    return TRUE;
+}
+
+
+static
 VOID
 SrvConnectionRundownSessionList(
     PLWIO_SRV_SESSION pRundownList
@@ -2235,14 +2261,18 @@ SrvConnection2RundownSessionList(
 }
 
 static
-BOOLEAN
-SrvConnectionRundownAsyncStateCallback(
-    PLWIO_ASYNC_STATE pAsyncState,
-    PVOID pContext
+VOID
+SrvConnectionRundownAsyncStateList(
+    PLWIO_ASYNC_STATE pRundownList
     )
 {
-    SrvAsyncStateCancel(pAsyncState);
+    while (pRundownList)
+    {
+        PLWIO_ASYNC_STATE pAsyncState = pRundownList;
+        pRundownList = pAsyncState->pRundownNext;
 
-    return TRUE;
+        SrvAsyncStateCancel(pAsyncState);
+        SrvAsyncStateRelease(pAsyncState);
+    }
 }
 

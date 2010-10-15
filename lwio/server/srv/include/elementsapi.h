@@ -225,6 +225,8 @@ typedef struct _LWIO_ASYNC_STATE
 
     LONG                           refcount;
 
+    PLWIO_ASYNC_STATE              pRundownNext;
+
     ULONG64                        ullAsyncId;
     USHORT                         usCommand;
 
