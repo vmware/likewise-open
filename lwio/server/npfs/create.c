@@ -263,7 +263,11 @@ NpfsCommonProcessCreateEcp(
     PBYTE pSessionKey = NULL;
     ULONG ulSessionKeyLength = 0;
     PBYTE pAddr = NULL;
-    ULONG ulAddrLen = 0;
+    ULONG ulEcpSize = 0;
+    PFILE_BASIC_INFORMATION pFileBasicInfo = NULL;
+    PFILE_STANDARD_INFORMATION pFileStdInfo = NULL;
+    PFILE_PIPE_INFORMATION pPipeInfo = NULL;
+    PFILE_PIPE_LOCAL_INFORMATION pPipeLocalInfo = NULL;
 
     ntStatus = IoRtlEcpListFind(
         pIrp->Args.Create.EcpList,
@@ -286,20 +290,128 @@ NpfsCommonProcessCreateEcp(
         pIrp->Args.Create.EcpList,
         IO_ECP_TYPE_PEER_ADDRESS,
         OUT_PPVOID(&pAddr),
-        &ulAddrLen);
+        &ulEcpSize);
 
     if (ntStatus != STATUS_NOT_FOUND)
     {
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (ulAddrLen > sizeof(pPipe->ClientAddress))
+        if (ulEcpSize > sizeof(pPipe->ClientAddress))
         {
             ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        pPipe->usClientAddressLen = (USHORT) ulAddrLen;
-        memcpy(pPipe->ClientAddress, pAddr, ulAddrLen);
+        pPipe->usClientAddressLen = (USHORT) ulEcpSize;
+        memcpy(pPipe->ClientAddress, pAddr, ulEcpSize);
+    }
+
+    ntStatus = IoRtlEcpListFind(
+                    pIrp->Args.Create.EcpList,
+                    SRV_ECP_TYPE_FILE_BASIC_INFO,
+                    OUT_PPVOID(&pFileBasicInfo),
+                    &ulEcpSize);
+
+    if (ntStatus == STATUS_SUCCESS)
+    {
+        if (ulEcpSize != sizeof(FILE_BASIC_INFORMATION))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = NpfsQueryCcbFileBasicInfo(pCCB, pFileBasicInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListAcknowledge(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_FILE_BASIC_INFO);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
+    ntStatus = IoRtlEcpListFind(
+                    pIrp->Args.Create.EcpList,
+                    SRV_ECP_TYPE_FILE_STD_INFO,
+                    OUT_PPVOID(&pFileStdInfo),
+                    &ulEcpSize);
+
+    if (ntStatus == STATUS_SUCCESS)
+    {
+        if (ulEcpSize != sizeof(FILE_STANDARD_INFORMATION))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = NpfsQueryCcbFileStandardInfo(pCCB, pFileStdInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListAcknowledge(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_FILE_STD_INFO);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
+    ntStatus = IoRtlEcpListFind(
+                    pIrp->Args.Create.EcpList,
+                    SRV_ECP_TYPE_PIPE_INFO,
+                    OUT_PPVOID(&pPipeInfo),
+                    &ulEcpSize);
+
+    if (ntStatus == STATUS_SUCCESS)
+    {
+        if (ulEcpSize != sizeof(FILE_PIPE_INFORMATION))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = NpfsQueryCcbFilePipeInfo(pCCB, pPipeInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListAcknowledge(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_PIPE_INFO);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
+    ntStatus = IoRtlEcpListFind(
+                    pIrp->Args.Create.EcpList,
+                    SRV_ECP_TYPE_PIPE_LOCAL_INFO,
+                    OUT_PPVOID(&pPipeLocalInfo),
+                    &ulEcpSize);
+
+    if (ntStatus == STATUS_SUCCESS)
+    {
+        if (ulEcpSize != sizeof(FILE_PIPE_LOCAL_INFORMATION))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = NpfsQueryCcbFilePipeLocalInfo(pCCB, pPipeLocalInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListAcknowledge(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_PIPE_LOCAL_INFO);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = STATUS_SUCCESS;
     }
 
 cleanup:

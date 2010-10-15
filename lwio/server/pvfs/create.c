@@ -59,6 +59,12 @@ PvfsGetEcpShareName(
     PWSTR* ppwszShareName
     );
 
+static
+NTSTATUS
+PvfsSetEcpFileInfo(
+    PIRP pIrp
+    );
+
 /*****************************************************************************
  Main entry to the Create() routine for driver.  Splits work based on the
  CreateOptions.
@@ -152,6 +158,9 @@ PvfsCreate(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSetMaximalAccessMask(pIrp);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSetEcpFileInfo(pIrp);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -1009,6 +1018,91 @@ PvfsGetEcpShareName(
 error:
 
     return ntError;
+}
+
+static
+NTSTATUS
+PvfsSetEcpFileInfo(
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PFILE_STANDARD_INFORMATION pFileStdInfo = NULL;
+    PFILE_BASIC_INFORMATION pFileBasicInfo = NULL;
+    ULONG ulEcpSize = 0;
+    PPVFS_CCB pCcb = NULL;
+
+    ntError = IoRtlEcpListFind(
+                    pIrp->Args.Create.EcpList,
+                    SRV_ECP_TYPE_FILE_STD_INFO,
+                    OUT_PPVOID(&pFileStdInfo),
+                    &ulEcpSize);
+    if (ntError == STATUS_SUCCESS)
+    {
+        if (ulEcpSize != sizeof(FILE_STANDARD_INFORMATION))
+        {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsCcbQueryFileStandardInformation(
+                        pCcb,
+                        pFileStdInfo);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = IoRtlEcpListAcknowledge(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_FILE_STD_INFO);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        ntError = STATUS_SUCCESS;
+    }
+
+    ntError = IoRtlEcpListFind(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_FILE_BASIC_INFO,
+                        OUT_PPVOID(&pFileBasicInfo),
+                        &ulEcpSize);
+    if (ntError == STATUS_SUCCESS)
+    {
+        if (ulEcpSize != sizeof(FILE_BASIC_INFORMATION))
+        {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError = PvfsCcbQueryFileBasicInformation(
+                        pCcb,
+                        pFileBasicInfo);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = IoRtlEcpListAcknowledge(
+                        pIrp->Args.Create.EcpList,
+                        SRV_ECP_TYPE_FILE_BASIC_INFO);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        ntError = STATUS_SUCCESS;
+    }
+
+cleanup:
+
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+
+    goto cleanup;
 }
 
 

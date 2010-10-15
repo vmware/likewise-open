@@ -688,6 +688,20 @@ SrvBuildCreateState_SMB_V2(
     ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
+                                  SRV_ECP_TYPE_FILE_STD_INFO,
+                                  &pCreateState->fileStdInfo,
+                                  sizeof(pCreateState->fileStdInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
+                                  SRV_ECP_TYPE_FILE_BASIC_INFO,
+                                  &pCreateState->fileBasicInfo,
+                                  sizeof(pCreateState->fileBasicInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
      *  - Client principal name
@@ -706,32 +720,16 @@ SrvBuildCreateState_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
-                                      IO_ECP_TYPE_PIPE_INFO,
+                                      SRV_ECP_TYPE_PIPE_INFO,
                                       &pCreateState->filePipeInfo,
                                       sizeof(pCreateState->filePipeInfo),
                                       NULL);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
-                                      IO_ECP_TYPE_PIPE_LOCAL_INFO,
+                                      SRV_ECP_TYPE_PIPE_LOCAL_INFO,
                                       &pCreateState->filePipeLocalInfo,
                                       sizeof(pCreateState->filePipeLocalInfo),
-                                      NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
-                                      IO_ECP_TYPE_FILE_STD_INFO,
-                                      &pCreateState->fileStdInfo,
-                                      sizeof(pCreateState->fileStdInfo),
-                                      NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoRtlEcpListInsert(pCreateState->pEcpList,
-                                      IO_ECP_TYPE_FILE_BASIC_INFO,
-                                      &pCreateState->fileBasicInfo,
-                                      sizeof(pCreateState->fileBasicInfo),
                                       NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -870,56 +868,13 @@ SrvQueryFileInformation_SMB_V2(
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
-    if (!pCreateState->pFileBasicInfo)
+    if (!IoRtlEcpListIsAcknowledged(
+            pCreateState->pEcpList,
+            SRV_ECP_TYPE_FILE_BASIC_INFO))
     {
-        pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
-
-        SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
-
-        ntStatus = IoQueryInformationFile(
-                        pCreateState->pFile->hFile,
-                        pCreateState->pAcb,
-                        &pCreateState->ioStatusBlock,
-                        pCreateState->pFileBasicInfo,
-                        sizeof(pCreateState->fileBasicInfo),
-                        FileBasicInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
-    }
-
-    if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-    {
-        SrvFile2BlockIdleTimeout(pCreateState->pFile);
-    }
-    else
-    {
-        SrvFile2UnblockIdleTimeout(pCreateState->pFile);
-    }
-
-    if (!pCreateState->pFileStdInfo)
-    {
-        pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
-
-        SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
-
-        ntStatus = IoQueryInformationFile(
-                        pCreateState->pFile->hFile,
-                        pCreateState->pAcb,
-                        &pCreateState->ioStatusBlock,
-                        pCreateState->pFileStdInfo,
-                        sizeof(pCreateState->fileStdInfo),
-                        FileStandardInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
-    }
-
-    if (SrvTree2IsNamedPipe(pCreateState->pTree))
-    {
-        if (!pCreateState->pFilePipeInfo)
+        if (!pCreateState->pFileBasicInfo)
         {
-            pCreateState->pFilePipeInfo = &pCreateState->filePipeInfo;
+            pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
 
             SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
@@ -927,17 +882,31 @@ SrvQueryFileInformation_SMB_V2(
                             pCreateState->pFile->hFile,
                             pCreateState->pAcb,
                             &pCreateState->ioStatusBlock,
-                            pCreateState->pFilePipeInfo,
-                            sizeof(pCreateState->filePipeInfo),
-                            FilePipeInformation);
+                            pCreateState->pFileBasicInfo,
+                            sizeof(pCreateState->fileBasicInfo),
+                            FileBasicInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
         }
 
-        if (!pCreateState->pFilePipeLocalInfo)
+        if (!(pCreateState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
         {
-            pCreateState->pFilePipeLocalInfo = &pCreateState->filePipeLocalInfo;
+            SrvFile2BlockIdleTimeout(pCreateState->pFile);
+        }
+        else
+        {
+            SrvFile2UnblockIdleTimeout(pCreateState->pFile);
+        }
+    }
+
+    if (!IoRtlEcpListIsAcknowledged(
+            pCreateState->pEcpList,
+            SRV_ECP_TYPE_FILE_STD_INFO))
+    {
+        if (!pCreateState->pFileStdInfo)
+        {
+            pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
 
             SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
@@ -945,12 +914,61 @@ SrvQueryFileInformation_SMB_V2(
                             pCreateState->pFile->hFile,
                             pCreateState->pAcb,
                             &pCreateState->ioStatusBlock,
-                            pCreateState->pFilePipeLocalInfo,
-                            sizeof(pCreateState->filePipeLocalInfo),
-                            FilePipeLocalInformation);
+                            pCreateState->pFileStdInfo,
+                            sizeof(pCreateState->fileStdInfo),
+                            FileStandardInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+        }
+    }
+
+    if (SrvTree2IsNamedPipe(pCreateState->pTree))
+    {
+        if (!IoRtlEcpListIsAcknowledged(
+                pCreateState->pEcpList,
+                SRV_ECP_TYPE_PIPE_INFO))
+        {
+            if (!pCreateState->pFilePipeInfo)
+            {
+                pCreateState->pFilePipeInfo = &pCreateState->filePipeInfo;
+
+                SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+                ntStatus = IoQueryInformationFile(
+                                pCreateState->pFile->hFile,
+                                pCreateState->pAcb,
+                                &pCreateState->ioStatusBlock,
+                                pCreateState->pFilePipeInfo,
+                                sizeof(pCreateState->filePipeInfo),
+                                FilePipeInformation);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+            }
+        }
+
+        if (!IoRtlEcpListIsAcknowledged(
+                pCreateState->pEcpList,
+                SRV_ECP_TYPE_PIPE_LOCAL_INFO))
+        {
+            if (!pCreateState->pFilePipeLocalInfo)
+            {
+                pCreateState->pFilePipeLocalInfo = &pCreateState->filePipeLocalInfo;
+
+                SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+                ntStatus = IoQueryInformationFile(
+                                pCreateState->pFile->hFile,
+                                pCreateState->pAcb,
+                                &pCreateState->ioStatusBlock,
+                                pCreateState->pFilePipeLocalInfo,
+                                sizeof(pCreateState->filePipeLocalInfo),
+                                FilePipeLocalInformation);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+            }
         }
     }
 

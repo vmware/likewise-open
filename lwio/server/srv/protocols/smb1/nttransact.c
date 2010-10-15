@@ -3036,6 +3036,20 @@ SrvParseNtTransactCreateParameters(
     ntStatus = IoRtlEcpListAllocate(&pNTTransactState->pEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
+                                  SRV_ECP_TYPE_FILE_STD_INFO,
+                                  &pNTTransactState->fileStdInfo,
+                                  sizeof(pNTTransactState->fileStdInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
+                                  SRV_ECP_TYPE_FILE_BASIC_INFO,
+                                  &pNTTransactState->fileBasicInfo,
+                                  sizeof(pNTTransactState->fileBasicInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
      *  - Client principal name
@@ -3054,32 +3068,16 @@ SrvParseNtTransactCreateParameters(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
-                                      IO_ECP_TYPE_PIPE_INFO,
+                                      SRV_ECP_TYPE_PIPE_INFO,
                                       &pNTTransactState->filePipeInfo,
                                       sizeof(pNTTransactState->filePipeInfo),
                                       NULL);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
-                                      IO_ECP_TYPE_PIPE_LOCAL_INFO,
+                                      SRV_ECP_TYPE_PIPE_LOCAL_INFO,
                                       &pNTTransactState->filePipeLocalInfo,
                                       sizeof(pNTTransactState->filePipeLocalInfo),
-                                      NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
-                                      IO_ECP_TYPE_FILE_STD_INFO,
-                                      &pNTTransactState->fileStdInfo,
-                                      sizeof(pNTTransactState->fileStdInfo),
-                                      NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoRtlEcpListInsert(pNTTransactState->pEcpList,
-                                      IO_ECP_TYPE_FILE_BASIC_INFO,
-                                      &pNTTransactState->fileBasicInfo,
-                                      sizeof(pNTTransactState->fileBasicInfo),
                                       NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -3194,56 +3192,13 @@ SrvQueryNTTransactFileInformation(
 
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
-    if (!pNTTransactState->pFileBasicInfo)
+    if (!IoRtlEcpListIsAcknowledged(
+            pNTTransactState->pEcpList,
+            SRV_ECP_TYPE_FILE_BASIC_INFO))
     {
-        pNTTransactState->pFileBasicInfo = &pNTTransactState->fileBasicInfo;
-
-        SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
-
-        ntStatus = IoQueryInformationFile(
-                        pNTTransactState->pFile->hFile,
-                        pNTTransactState->pAcb,
-                        &pNTTransactState->ioStatusBlock,
-                        pNTTransactState->pFileBasicInfo,
-                        sizeof(pNTTransactState->fileBasicInfo),
-                        FileBasicInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
-    }
-
-    if (!(pNTTransactState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-    {
-        SrvFileBlockIdleTimeout(pNTTransactState->pFile);
-    }
-    else
-    {
-        SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
-    }
-
-    if (!pNTTransactState->pFileStdInfo)
-    {
-        pNTTransactState->pFileStdInfo = &pNTTransactState->fileStdInfo;
-
-        SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
-
-        ntStatus = IoQueryInformationFile(
-                        pNTTransactState->pFile->hFile,
-                        pNTTransactState->pAcb,
-                        &pNTTransactState->ioStatusBlock,
-                        pNTTransactState->pFileStdInfo,
-                        sizeof(pNTTransactState->fileStdInfo),
-                        FileStandardInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
-    }
-
-    if (SrvTreeIsNamedPipe(pNTTransactState->pTree))
-    {
-        if (!pNTTransactState->pFilePipeInfo)
+        if (!pNTTransactState->pFileBasicInfo)
         {
-            pNTTransactState->pFilePipeInfo = &pNTTransactState->filePipeInfo;
+            pNTTransactState->pFileBasicInfo = &pNTTransactState->fileBasicInfo;
 
             SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
 
@@ -3251,17 +3206,31 @@ SrvQueryNTTransactFileInformation(
                             pNTTransactState->pFile->hFile,
                             pNTTransactState->pAcb,
                             &pNTTransactState->ioStatusBlock,
-                            pNTTransactState->pFilePipeInfo,
-                            sizeof(pNTTransactState->filePipeInfo),
-                            FilePipeInformation);
+                            pNTTransactState->pFileBasicInfo,
+                            sizeof(pNTTransactState->fileBasicInfo),
+                            FileBasicInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
         }
 
-        if (!pNTTransactState->pFilePipeLocalInfo)
+        if (!(pNTTransactState->pFileBasicInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
         {
-            pNTTransactState->pFilePipeLocalInfo = &pNTTransactState->filePipeLocalInfo;
+            SrvFileBlockIdleTimeout(pNTTransactState->pFile);
+        }
+        else
+        {
+            SrvFileUnblockIdleTimeout(pNTTransactState->pFile);
+        }
+    }
+
+    if (!IoRtlEcpListIsAcknowledged(
+            pNTTransactState->pEcpList,
+            SRV_ECP_TYPE_FILE_STD_INFO))
+    {
+        if (!pNTTransactState->pFileStdInfo)
+        {
+            pNTTransactState->pFileStdInfo = &pNTTransactState->fileStdInfo;
 
             SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
 
@@ -3269,12 +3238,61 @@ SrvQueryNTTransactFileInformation(
                             pNTTransactState->pFile->hFile,
                             pNTTransactState->pAcb,
                             &pNTTransactState->ioStatusBlock,
-                            pNTTransactState->pFilePipeLocalInfo,
-                            sizeof(pNTTransactState->filePipeLocalInfo),
-                            FilePipeLocalInformation);
+                            pNTTransactState->pFileStdInfo,
+                            sizeof(pNTTransactState->fileStdInfo),
+                            FileStandardInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
+        }
+    }
+
+    if (SrvTreeIsNamedPipe(pNTTransactState->pTree))
+    {
+        if (!IoRtlEcpListIsAcknowledged(
+                pNTTransactState->pEcpList,
+                SRV_ECP_TYPE_PIPE_INFO))
+        {
+            if (!pNTTransactState->pFilePipeInfo)
+            {
+                pNTTransactState->pFilePipeInfo = &pNTTransactState->filePipeInfo;
+
+                SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
+
+                ntStatus = IoQueryInformationFile(
+                                pNTTransactState->pFile->hFile,
+                                pNTTransactState->pAcb,
+                                &pNTTransactState->ioStatusBlock,
+                                pNTTransactState->pFilePipeInfo,
+                                sizeof(pNTTransactState->filePipeInfo),
+                                FilePipeInformation);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
+            }
+        }
+
+        if (!IoRtlEcpListIsAcknowledged(
+                pNTTransactState->pEcpList,
+                SRV_ECP_TYPE_PIPE_LOCAL_INFO))
+        {
+            if (!pNTTransactState->pFilePipeLocalInfo)
+            {
+                pNTTransactState->pFilePipeLocalInfo = &pNTTransactState->filePipeLocalInfo;
+
+                SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
+
+                ntStatus = IoQueryInformationFile(
+                                pNTTransactState->pFile->hFile,
+                                pNTTransactState->pAcb,
+                                &pNTTransactState->ioStatusBlock,
+                                pNTTransactState->pFilePipeLocalInfo,
+                                sizeof(pNTTransactState->filePipeLocalInfo),
+                                FilePipeLocalInformation);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
+            }
         }
     }
 

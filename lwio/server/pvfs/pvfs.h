@@ -66,6 +66,7 @@
 #include "lwio/lwiofsctl.h"
 #include "lwio/lwiodevctl.h"
 #include "lwio/iodriver.h"
+#include "lwio/iortl.h"
 #include "lwioutils.h"
 #include "lwiolru.h"
 #include "lwlist.h"
@@ -674,6 +675,12 @@ NTSTATUS
 PvfsCcbSetFileBasicInformation(
     PPVFS_CCB pCcb,
     PFILE_BASIC_INFORMATION pFileInfo
+    );
+
+NTSTATUS
+PvfsCcbQueryFileStandardInformation(
+    PPVFS_CCB pCcb,
+    PFILE_STANDARD_INFORMATION pFileInfo
     );
 
 /* From read.c */

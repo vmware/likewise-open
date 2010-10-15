@@ -84,8 +84,7 @@ NpfsQueryFilePipeLocalInfo(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PIRP pIrp = pIrpContext->pIrp;
     PNPFS_CCB pCcb = NULL;
-    PNPFS_PIPE pPipe = NULL;
-    PNPFS_FCB pFCB = NULL;
+
     PFILE_PIPE_LOCAL_INFORMATION pPipeInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
@@ -93,9 +92,6 @@ NpfsQueryFilePipeLocalInfo(
 
     ntStatus = NpfsGetCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pPipe = pCcb->pPipe;
-    pFCB = pPipe->pFCB;
 
     /* No access checked needed for this call */
 
@@ -109,6 +105,29 @@ NpfsQueryFilePipeLocalInfo(
 
     pPipeInfo = (PFILE_PIPE_LOCAL_INFORMATION)Args.FileInformation;
 
+    ntStatus = NpfsQueryCcbFilePipeLocalInfo(pCcb, pPipeInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pPipeInfo);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+NpfsQueryCcbFilePipeLocalInfo(
+    PNPFS_CCB                    pCcb,
+    PFILE_PIPE_LOCAL_INFORMATION pPipeInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PNPFS_FCB pFCB = pCcb->pPipe->pFCB;
+
     pPipeInfo->CurrentInstances = pFCB->CurrentNumberOfInstances;
     pPipeInfo->InboundQuota = 0;
     pPipeInfo->MaximumInstances = pFCB->MaxNumberOfInstances;
@@ -121,13 +140,5 @@ NpfsQueryFilePipeLocalInfo(
     pPipeInfo->ReadDataAvailable = 0;
     pPipeInfo->WriteQuotaAvailable = 0;
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pPipeInfo);
-
-cleanup:
-
     return ntStatus;
-
-error:
-
-    goto cleanup;
 }

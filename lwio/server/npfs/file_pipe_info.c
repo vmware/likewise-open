@@ -105,8 +105,8 @@ NpfsQueryFilePipeInfo(
     pPipeInfo = (PFILE_PIPE_INFORMATION)Args.FileInformation;
 
     // TODO: Maintain these values on the CCB and SCB objects
-    pPipeInfo->CompletionMode = PIPE_WAIT;
-    pPipeInfo->ReadMode = PIPE_READMODE_MESSAGE;
+    ntStatus = NpfsQueryCcbFilePipeInfo(pCcb, pPipeInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pPipeInfo);
 
@@ -117,4 +117,18 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+NTSTATUS
+NpfsQueryCcbFilePipeInfo(
+    PNPFS_CCB              pCcb,
+    PFILE_PIPE_INFORMATION pPipeInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    pPipeInfo->CompletionMode = PIPE_WAIT;
+    pPipeInfo->ReadMode = PIPE_READMODE_MESSAGE;
+
+    return ntStatus;
 }

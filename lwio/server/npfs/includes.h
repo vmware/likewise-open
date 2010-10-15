@@ -53,9 +53,12 @@
 #include <lw/rtlgoto.h>
 
 #include <lwio/iodriver.h>
+#include <lwio/iortl.h>
 
 #include <lwioutils.h>
 #include <lwlist.h>
+
+#include <srvecp.h>
 
 #include "defs.h"
 #include "structs.h"
