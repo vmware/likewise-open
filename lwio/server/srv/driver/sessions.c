@@ -75,6 +75,7 @@ SrvDevCtlEnumerateSessions(
     ULONG     ulClientPrefixLen =
                 (sizeof(wszClientPrefix)/sizeof(wszClientPrefix[0])) - 1;
     PWSTR     pwszUncClientname = NULL;
+    BOOLEAN   bMoreData         = FALSE;
 
     ntStatus = LwSessionInfoUnmarshalEnumInputParameters(
                         pInBuffer,
@@ -133,6 +134,14 @@ SrvDevCtlEnumerateSessions(
                     &ulEntriesRead,
                     &ulTotalEntries,
                     pulResumeHandle);
+
+    /* If we get STATUS_MORE_ENTRIES, return all the entries that
+       are filled in the buffer. */
+    if (ntStatus == STATUS_MORE_ENTRIES)
+    {
+        bMoreData = TRUE;
+        ntStatus = STATUS_SUCCESS;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ulTotalBytesUsed += ulBytesUsed;
@@ -154,6 +163,11 @@ cleanup:
     if (pParamsIn)
     {
         LwSessionInfoFreeEnumInputParameters(pParamsIn);
+    }
+
+    if (bMoreData)
+    {
+        ntStatus = STATUS_MORE_ENTRIES;
     }
 
     return ntStatus;

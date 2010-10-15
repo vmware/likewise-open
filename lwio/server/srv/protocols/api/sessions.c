@@ -162,6 +162,7 @@ SrvProtocolEnumerateSessions(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
+    BOOLEAN  bMoreData = FALSE;
     SRV_PROTOCOL_SESSION_ENUM_QUERY sessionEnumQuery =
     {
             .pwszUncClientname    = pwszUncClientname,
@@ -212,6 +213,14 @@ SrvProtocolEnumerateSessions(
                     LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                     &SrvProtocolEnumCandidateSessions,
                     &sessionEnumQuery);
+
+    /* If we still have more data to read, then return MORE_ENTRIES */
+    if (ntStatus == STATUS_END_OF_FILE &&
+        sessionEnumQuery.ulEntriesRead < sessionEnumQuery.ulTotalEntries)
+    {
+        bMoreData = TRUE;
+        ntStatus = STATUS_SUCCESS;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     *pulBytesUsed    = sessionEnumQuery.ulBytesUsed;
@@ -228,6 +237,12 @@ cleanup:
     LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     SrvProtocolFreeSessionEnumQueryContents(&sessionEnumQuery);
+
+    if (bMoreData)
+    {
+        /* We have more data to send, return MORE_ENTRIES */
+        ntStatus = STATUS_MORE_ENTRIES;
+    }
 
     return ntStatus;
 
@@ -687,11 +702,6 @@ error:
 
     *pbContinue = FALSE;
 
-    if (ntStatus == STATUS_END_OF_FILE)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
-
     goto cleanup;
 }
 
@@ -878,11 +888,6 @@ cleanup:
 error:
 
     *pbContinue = FALSE;
-
-    if (ntStatus == STATUS_END_OF_FILE)
-    {
-        ntStatus = STATUS_SUCCESS;
-    }
 
     goto cleanup;
 }
