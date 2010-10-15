@@ -17,6 +17,7 @@ libnpfs_sys_la_SOURCES = \
     fcb.c    \
     file_basic_info.c \
     file_access_info.c \
+    file_network_open_info.c \
     file_pipe_info.c \
     file_pipe_local_info.c \
     file_std_info.c \

@@ -227,6 +227,47 @@ error:
 
 }
 
+NTSTATUS
+PvfsCcbQueryFileNetworkOpenInformation(
+    PPVFS_CCB                      pCcb,
+    PFILE_NETWORK_OPEN_INFORMATION pFileInfo
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_STAT Stat = {0};
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Timestamps */
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, Stat.s_atime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, Stat.s_mtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, Stat.s_ctime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pFileInfo->AllocationSize = Stat.s_alloc;
+    pFileInfo->EndOfFile      = Stat.s_size;
+
+cleanup:
+
+    return ntError;
+
+error:
+
+    goto cleanup;
+}
+
 
 /*
 local variables:

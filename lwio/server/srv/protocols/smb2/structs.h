@@ -843,11 +843,8 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
 
     PSRV_CREATE_CONTEXT          pExtAContext;
 
-    FILE_BASIC_INFORMATION       fileBasicInfo;
-    PFILE_BASIC_INFORMATION      pFileBasicInfo;
-
-    FILE_STANDARD_INFORMATION    fileStdInfo;
-    PFILE_STANDARD_INFORMATION   pFileStdInfo;
+    FILE_NETWORK_OPEN_INFORMATION  networkOpenInfo;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo;
 
     FILE_PIPE_INFORMATION        filePipeInfo;
     PFILE_PIPE_INFORMATION       pFilePipeInfo;

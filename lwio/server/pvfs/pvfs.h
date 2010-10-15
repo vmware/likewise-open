@@ -683,6 +683,12 @@ PvfsCcbQueryFileStandardInformation(
     PFILE_STANDARD_INFORMATION pFileInfo
     );
 
+NTSTATUS
+PvfsCcbQueryFileNetworkOpenInformation(
+    PPVFS_CCB                      pCcb,
+    PFILE_NETWORK_OPEN_INFORMATION pFileInfo
+    );
+
 /* From read.c */
 
 NTSTATUS
