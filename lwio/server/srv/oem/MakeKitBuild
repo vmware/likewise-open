@@ -5,7 +5,7 @@ make()
         libmain.c"
 
     mk_group \
-        GROUP="oem.og" \
+        GROUP="oem" \
         SOURCES="$OEM_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include" \
         HEADERDEPS="lw/base.h"

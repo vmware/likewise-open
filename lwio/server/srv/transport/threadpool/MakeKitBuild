@@ -6,7 +6,7 @@ make()
         srvsocket.c"
 
     mk_group \
-        GROUP="threadpool.og" \
+        GROUP="threadpool" \
         SOURCES="$THREADPOOL_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h" \

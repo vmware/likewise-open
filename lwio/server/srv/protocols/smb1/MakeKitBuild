@@ -56,7 +56,7 @@ make()
 	writex.c"
 
     mk_group \
-        GROUP="smb1.og" \
+        GROUP="smb1" \
         SOURCES="$SMB1_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h uuid/uuid.h openssl/rand.h" \

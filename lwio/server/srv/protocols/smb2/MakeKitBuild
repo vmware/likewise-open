@@ -37,7 +37,7 @@ make()
 	write.c"
 
     mk_group \
-        GROUP="smb2.og" \
+        GROUP="smb2" \
         SOURCES="$SMB2_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h uuid/uuid.h" \

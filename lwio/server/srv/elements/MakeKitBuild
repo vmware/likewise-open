@@ -24,7 +24,7 @@ make()
 	srvtree2.c"
 
     mk_group \
-        GROUP="elements.og" \
+        GROUP="elements" \
         SOURCES="$ELEMENTS_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include" \
         HEADERDEPS="lwnet.h lw/base.h uuid/uuid.h openssl/rand.h openssl/hmac.h gssapi.h" \

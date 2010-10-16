@@ -12,7 +12,7 @@ make()
 
 
     mk_group \
-        GROUP="utils.og" \
+        GROUP="utils" \
         SOURCES="$UTILS_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include" \
         HEADERDEPS="lwnet.h lw/base.h" \

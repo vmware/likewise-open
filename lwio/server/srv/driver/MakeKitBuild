@@ -19,7 +19,7 @@ make()
     mk_dlo \
         DLO=libsrv.sys \
         SOURCES="$DRIVER_SOURCES" \
-        GROUPS="../protocols/api/api.og ../transport/threadpool/threadpool.og ../elements/elements.og ../shares/api/api.og ../utils/utils.og ../statistics/statistics.og ../oem/oem.og" \
+        GROUPS="../protocols/api/api ../transport/threadpool/threadpool ../elements/elements ../shares/api/api ../utils/utils ../statistics/statistics ../oem/oem" \
         INCLUDEDIRS=". ../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h uuid/uuid.h reg/lwntreg.h lwnet.h" \
         LIBDEPS="lwbase lwiosmbcommon lwioshareinfo iomgr"

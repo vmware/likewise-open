@@ -6,7 +6,7 @@ make()
         regshare.c"
 
     mk_group \
-        GROUP="regshare.og" \
+        GROUP="regshare" \
         SOURCES="$REGSHARE_SOURCES" \
         INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h reg/lwntreg.h lwadvapi.h" \

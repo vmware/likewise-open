@@ -8,9 +8,9 @@ make()
         utils.c"
 
     mk_group \
-        GROUP="api.og" \
+        GROUP="api" \
         SOURCES="$API_SOURCES" \
-        GROUPDEPS="../regshare/regshare.og" \
+        GROUPDEPS="../regshare/regshare" \
         INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h"
 }

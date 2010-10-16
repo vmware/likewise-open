@@ -10,9 +10,9 @@ make()
         transport.c"
 
     mk_group \
-        GROUP="api.og" \
+        GROUP="api" \
         SOURCES="$API_SOURCES" \
-        GROUPDEPS="../smb1/smb1.og ../smb2/smb2.og" \
+        GROUPDEPS="../smb1/smb1 ../smb2/smb2" \
         INCLUDEDIRS="../include ../../include ../../../include ../../../../include" \
         HEADERDEPS="lw/base.h uuid/uuid.h" \
         LIBDEPS="uuid"
