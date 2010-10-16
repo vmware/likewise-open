@@ -492,5 +492,7 @@ SrvNotifyStateCancel_inlock(
     if (pNotifyState->pAcb && pNotifyState->pAcb->AsyncCancelContext)
     {
         IoCancelAsyncCancelContext(pNotifyState->pAcb->AsyncCancelContext);
+        IoDereferenceAsyncCancelContext(
+                &pNotifyState->pAcb->AsyncCancelContext);
     }
 }

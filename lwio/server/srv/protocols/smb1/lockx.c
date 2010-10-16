@@ -1695,6 +1695,8 @@ SrvCancelLockState_inlock(
     {
         IoCancelAsyncCancelContext(
                 pLockState->pAcb->AsyncCancelContext);
+        IoDereferenceAsyncCancelContext(
+                &pLockState->pAcb->AsyncCancelContext);
     }
 }
 

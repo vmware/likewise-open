@@ -465,6 +465,7 @@ SrvCancelLockRequestStateHandle_SMB_V2_inlock(
     if (pLockState->pAcb && pLockState->pAcb->AsyncCancelContext)
     {
         IoCancelAsyncCancelContext(pLockState->pAcb->AsyncCancelContext);
+        IoDereferenceAsyncCancelContext(&pLockState->pAcb->AsyncCancelContext);
     }
 }
 

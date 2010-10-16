@@ -945,6 +945,8 @@ SrvCancelOplockState_SMB_V2(
     if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
     {
         IoCancelAsyncCancelContext(pOplockState->pAcb->AsyncCancelContext);
+        IoDereferenceAsyncCancelContext(
+                &pOplockState->pAcb->AsyncCancelContext);
     }
 
     if (pOplockState->pTimerRequest)
