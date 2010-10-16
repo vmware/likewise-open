@@ -39,7 +39,7 @@ make()
 	HEADERDEPS="lw/base.h"
 
     mk_group \
-	GROUP=stubs.og \
+	GROUP=stubs \
 	SOURCES="srvsvc_sstub.c winreg_sstub.c" \
 	INCLUDEDIRS=". ../include" \
 	HEADERDEPS="dce/rpc.h lw/base.h" \
@@ -48,7 +48,7 @@ make()
     mk_program \
 	PROGRAM=srvsvcd \
 	SOURCES="$SERVER_SOURCES" \
-	GROUPS="stubs.og ../logging_r/logging_r.og" \
+	GROUPS="stubs ../logging_r/logging_r" \
 	INSTALLDIR="${MK_SBINDIR}" \
 	INCLUDEDIRS=". ../include" \
 	CPPFLAGS="-DSRVSVC_BUILD" \

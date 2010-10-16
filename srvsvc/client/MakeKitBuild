@@ -29,7 +29,7 @@ make()
 	HEADERDEPS="lw/base.h"
 
     mk_group \
-	GROUP="srvsvc_stub.og" \
+	GROUP="srvsvc_stub" \
 	SOURCES="srvsvc_cstub.c" \
 	CPPFLAGS="-DDCERPC_STUB_BUILD" \
 	INCLUDEDIRS=". ../include" \
@@ -39,7 +39,7 @@ make()
     mk_library \
 	LIB=srvsvc \
 	SOURCES="$CLIENT_SOURCES" \
-	GROUPS="srvsvc_stub.og ../logging_r/logging_r.og" \
+	GROUPS="srvsvc_stub ../logging_r/logging_r" \
 	CPPFLAGS="-DLIBRPC_BUILD -DSRVSVC_BUILD" \
 	INCLUDEDIRS=". ../include" \
 	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwadvapi.h compat/dcerpc.h" \
