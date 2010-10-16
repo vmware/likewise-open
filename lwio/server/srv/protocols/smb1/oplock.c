@@ -695,7 +695,8 @@ SrvCancelOplockState(
     if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
     {
         IoCancelAsyncCancelContext(pOplockState->pAcb->AsyncCancelContext);
-        pOplockState->pAcb->AsyncCancelContext = NULL;
+        IoDereferenceAsyncCancelContext(
+                &pOplockState->pAcb->AsyncCancelContext);
     }
 
     if (pOplockState->pTimerRequest)
