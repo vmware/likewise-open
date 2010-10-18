@@ -582,7 +582,10 @@ _NetrSessionEnum(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     *pdwTotalEntries = dwTotalEntries;
-    *pdwResumeHandle = dwResumeHandle;
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = dwResumeHandle;
+    }
 
 cleanup:
 
