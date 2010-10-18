@@ -221,42 +221,53 @@ NpfsServerReadFile(
     switch(pPipe->PipeServerState)
     {
     case PIPE_SERVER_CONNECTED:
-        if (NpfsMdlListIsEmpty(&pSCB->mdlList))
+        if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
         {
-            LwListInsertBefore(&pSCB->ReadIrpList, &pIrpContext->Link);
+            if (NpfsMdlListIsEmpty(&pSCB->mdlList))
+            {
+                ntStatus = STATUS_END_OF_FILE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+        }
+        else if (pPipe->PipeClientState == PIPE_CLIENT_CONNECTED)
+        {
+            if (NpfsMdlListIsEmpty(&pSCB->mdlList))
+            {
+                LwListInsertBefore(&pSCB->ReadIrpList, &pIrpContext->Link);
 
-            IoIrpMarkPending(
-                pIrpContext->pIrp,
-                NpfsCancelReadFile,
-                pIrpContext);
+                IoIrpMarkPending(
+                    pIrpContext->pIrp,
+                    NpfsCancelReadFile,
+                    pIrpContext);
 
-            ntStatus = STATUS_PENDING;
-            BAIL_ON_NT_STATUS(ntStatus);
+                ntStatus = STATUS_PENDING;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
         }
-        else if ((pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
-                 && (NpfsMdlListIsEmpty(&pSCB->mdlList)))
+        else
         {
-            ntStatus = STATUS_END_OF_FILE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-        else if ((pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
-                 && (!NpfsMdlListIsEmpty(&pSCB->mdlList)))
-        {
-            ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-        else if ((pPipe->PipeClientState == PIPE_CLIENT_CONNECTED)
-                 && (!NpfsMdlListIsEmpty(&pSCB->mdlList)))
-        {
-            ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
+            ntStatus = STATUS_INTERNAL_ERROR;
             BAIL_ON_NT_STATUS(ntStatus);
         }
         break;
-    case PIPE_SERVER_DISCONNECTED:
+
     case PIPE_SERVER_INIT_STATE:
     case PIPE_SERVER_WAITING_FOR_CONNECTION:
     case PIPE_SERVER_CREATED:
     case PIPE_SERVER_CLOSED:
+    case PIPE_SERVER_DISCONNECTED:
+        ntStatus = STATUS_PIPE_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
     }
 
@@ -366,39 +377,49 @@ NpfsClientReadFile(
     switch(pPipe->PipeClientState)
     {
     case PIPE_CLIENT_CONNECTED:
-        if (NpfsMdlListIsEmpty(&pCCB->mdlList))
+        if (pPipe->PipeServerState == PIPE_SERVER_CLOSED)
         {
-            LwListInsertBefore(&pCCB->ReadIrpList, &pIrpContext->Link);
+            if (NpfsMdlListIsEmpty(&pCCB->mdlList))
+            {
+                ntStatus = STATUS_END_OF_FILE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+        }
+        else if (pPipe->PipeServerState == PIPE_SERVER_CONNECTED)
+        {
+            if (NpfsMdlListIsEmpty(&pCCB->mdlList))
+            {
+                LwListInsertBefore(&pCCB->ReadIrpList, &pIrpContext->Link);
 
-            IoIrpMarkPending(
-                pIrpContext->pIrp,
-                NpfsCancelReadFile,
-                pIrpContext);
+                IoIrpMarkPending(
+                    pIrpContext->pIrp,
+                    NpfsCancelReadFile,
+                    pIrpContext);
 
-            ntStatus = STATUS_PENDING;
-            BAIL_ON_NT_STATUS(ntStatus);
+                ntStatus = STATUS_PENDING;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
         }
-        else if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
-                 && (NpfsMdlListIsEmpty(&pCCB->mdlList)))
+        else
         {
-            ntStatus = STATUS_END_OF_FILE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-        else if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
-                 && (!NpfsMdlListIsEmpty(&pCCB->mdlList)))
-        {
-            ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-        else if ((pPipe->PipeServerState == PIPE_SERVER_CONNECTED)
-                 && (!NpfsMdlListIsEmpty(&pCCB->mdlList)))
-        {
-            ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
+            ntStatus = STATUS_INTERNAL_ERROR;
             BAIL_ON_NT_STATUS(ntStatus);
         }
         break;
     case PIPE_CLIENT_INIT_STATE:
     case PIPE_CLIENT_CLOSED:
+        ntStatus = STATUS_PIPE_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
     }
 
