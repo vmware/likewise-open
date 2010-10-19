@@ -595,7 +595,7 @@ SrvFinderGetDirInfoSearchResults(
         pFileDirInfoCursor = (PFILE_DIRECTORY_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileDirInfoCursor)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -941,7 +941,7 @@ SrvFinderGetFullDirInfoSearchResults(
         pFileInfoCursor = (PFILE_FULL_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -1294,7 +1294,7 @@ SrvFinderGetNamesInfoSearchResults(
         pFileInfoCursor = (PFILE_NAMES_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -1642,7 +1642,7 @@ SrvFinderGetBothDirInfoSearchResults(
         pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -2008,7 +2008,7 @@ SrvFinderGetIdBothDirInfoSearchResults(
         pFileInfoCursor = (PFILE_ID_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -2376,7 +2376,7 @@ SrvFinderGetIdFullDirInfoSearchResults(
         pFileInfoCursor = (PFILE_ID_FULL_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
