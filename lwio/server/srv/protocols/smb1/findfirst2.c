@@ -36,7 +36,7 @@ SrvUnmarshallFindFirst2Params(
     PBYTE           pParams,
     USHORT          usBytesAvailable,
     USHORT          usParameterOffset,
-    PUSHORT         pusSearchAttrs,
+    PSMB_FILE_ATTRIBUTES pusSearchAttrs,
     PUSHORT         pusSearchCount,
     PUSHORT         pusFlags,
     PSMB_INFO_LEVEL pSmbInfoLevel,
@@ -59,7 +59,7 @@ static
 NTSTATUS
 SrvBuildFindFirst2Response(
     PSRV_EXEC_CONTEXT   pExecContext,
-    USHORT              usSearchAttrs,
+    SMB_FILE_ATTRIBUTES usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
     SMB_INFO_LEVEL      infoLevel,
@@ -74,7 +74,7 @@ SrvProcessTrans2FindFirst2(
     )
 {
     NTSTATUS       ntStatus      = 0;
-    USHORT         usSearchAttrs = 0;
+    SMB_FILE_ATTRIBUTES usSearchAttrs = 0;
     USHORT         usSearchCount = 0;
     USHORT         usFlags       = 0;
     SMB_INFO_LEVEL infoLevel     = 0;
@@ -136,7 +136,7 @@ SrvUnmarshallFindFirst2Params(
     PBYTE           pParams,
     USHORT          usBytesAvailable,
     USHORT          usParameterOffset,
-    PUSHORT         pusSearchAttrs,
+    PSMB_FILE_ATTRIBUTES pusSearchAttrs,
     PUSHORT         pusSearchCount,
     PUSHORT         pusFlags,
     PSMB_INFO_LEVEL pInfoLevel,
@@ -146,7 +146,7 @@ SrvUnmarshallFindFirst2Params(
 {
     NTSTATUS ntStatus = 0;
     PBYTE    pDataCursor = pParams;
-    USHORT   usSearchAttrs = 0;
+    SMB_FILE_ATTRIBUTES usSearchAttrs = 0;
     USHORT   usSearchCount = 0;
     USHORT   usFlags = 0;
     SMB_INFO_LEVEL infoLevel = 0;
@@ -263,7 +263,7 @@ SrvLogFindFirst2Params_SMB_V1(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PUSHORT         pusSearchAttrs = 0;
+    PSMB_FILE_ATTRIBUTES pusSearchAttrs = 0;
     PUSHORT         pusSearchCount = 0;
     PUSHORT         pusFlags       = 0;
     PSMB_INFO_LEVEL pinfoLevel     = 0;
@@ -273,7 +273,7 @@ SrvLogFindFirst2Params_SMB_V1(
     va_list         msgList;
 
     va_start(msgList, ulLine);
-    pusSearchAttrs = (PUSHORT)va_arg(msgList, PUSHORT);
+    pusSearchAttrs = (PSMB_FILE_ATTRIBUTES)va_arg(msgList, PSMB_FILE_ATTRIBUTES);
     pusSearchCount = (PUSHORT)va_arg(msgList, PUSHORT);
     pusFlags       = (PUSHORT)va_arg(msgList, PUSHORT);
     pinfoLevel     = (PSMB_INFO_LEVEL)va_arg(msgList, PSMB_INFO_LEVEL);
@@ -328,7 +328,7 @@ static
 NTSTATUS
 SrvBuildFindFirst2Response(
     PSRV_EXEC_CONTEXT   pExecContext,
-    USHORT              usSearchAttrs,
+    SMB_FILE_ATTRIBUTES usSearchAttrs,
     USHORT              usSearchCount,
     USHORT              usFlags,
     SMB_INFO_LEVEL      infoLevel,
