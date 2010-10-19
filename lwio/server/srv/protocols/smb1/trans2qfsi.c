@@ -861,7 +861,7 @@ SrvMarshallFSInfoVolume(
     usBytesRequired = sizeof(SMB_FS_INFO_VOLUME_HEADER);
     usDataOffset += sizeof(SMB_FS_INFO_VOLUME_HEADER);
 
-    if (pFSVolInfo->VolumeLabel && *pFSVolInfo->VolumeLabel)
+    if (*pFSVolInfo->VolumeLabel)
     {
         usVolumeLabelByteLen = SMB_MIN(UINT8_MAX, pFSVolInfo->VolumeLabelLength);
 
