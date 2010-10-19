@@ -381,6 +381,8 @@ cleanup:
     return ntError;
 
 error:
+    PvfsFreeWorkContext(&pWorkCtx);
+
     goto cleanup;
 }
 
