@@ -49,8 +49,6 @@
 
 typedef struct _SRV_SHARE_REG_GLOBALS
 {
-    pthread_mutex_t      mutex;
-
     SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
 
 } SRV_SHARE_REG_GLOBALS, *PSRV_SHARE_REG_GLOBALS;

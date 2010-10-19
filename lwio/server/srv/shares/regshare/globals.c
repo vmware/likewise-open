@@ -47,8 +47,6 @@
 
 SRV_SHARE_REG_GLOBALS gShareRepository_registry =
 {
-    .mutex                  = PTHREAD_MUTEX_INITIALIZER,
-
     .fnTable =
         {
             .pfnShareRepositoryOpen       = &SrvShareRegOpen,

@@ -605,7 +605,7 @@ SrvGssNegHints(
     HANDLE   hGssNegotiate = NULL;
     BOOLEAN  bInLock       = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     if (!gSrvElements.pHintsBuffer)
     {
@@ -630,7 +630,7 @@ SrvGssNegHints(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     if (hGssNegotiate)
     {

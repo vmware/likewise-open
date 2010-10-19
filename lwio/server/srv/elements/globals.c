@@ -51,7 +51,7 @@
 
 SRV_ELEMENTS_GLOBALS gSrvElements =
 {
-    .mutex                    = PTHREAD_MUTEX_INITIALIZER,
+    .pMutex                   = NULL,
     .randGen                  = { .mti = 0 },
     .pHintsBuffer             = NULL,
     .ulHintsLength            = 0,

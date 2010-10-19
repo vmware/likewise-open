@@ -69,16 +69,19 @@ SrvProtocolInit_SMB_V2(
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
+    pthread_mutex_init(&gProtocolGlobals_SMB_V2.mutex, NULL);
+    gProtocolGlobals_SMB_V2.pMutex = &gProtocolGlobals_SMB_V2.mutex;
+
+    LWIO_LOCK_MUTEX(bInLock, gProtocolGlobals_SMB_V2.pMutex);
+
+    gProtocolGlobals_SMB_V2.pWorkQueue = pWorkQueue;
+
+    LWIO_UNLOCK_MUTEX(bInLock, gProtocolGlobals_SMB_V2.pMutex);
+
     /* Configuration setup should always come first as other initalization
      * routines may rely on configuration parameters to be set */
     status = SrvConfigSetupInitial_SMB_V2();
     BAIL_ON_NT_STATUS(status);
-
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
-
-    gProtocolGlobals_SMB_V2.pWorkQueue = pWorkQueue;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
 
 error:
 
@@ -1003,11 +1006,14 @@ SrvProtocolShutdown_SMB_V2(
 {
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
+    LWIO_LOCK_MUTEX(bInLock, gProtocolGlobals_SMB_V2.pMutex);
 
     gProtocolGlobals_SMB_V2.pWorkQueue = NULL;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, gProtocolGlobals_SMB_V2.pMutex);
+
+    pthread_mutex_destroy(&gProtocolGlobals_SMB_V2.mutex);
+    gProtocolGlobals_SMB_V2.pMutex = NULL;
 
     /* Configuration shutdown should always come last as other shutdown
      * routines may rely on configuration parameters to be set */

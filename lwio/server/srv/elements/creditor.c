@@ -819,7 +819,7 @@ SrvCreditorAcquireGlobalCredits(
     BOOLEAN  bInLock = FALSE;
     USHORT   usCreditsGranted = usCreditsRequested;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     if (!gSrvElements.ulGlobalCreditLimit)
     {
@@ -841,7 +841,7 @@ SrvCreditorAcquireGlobalCredits(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     return ntStatus;
 
@@ -860,9 +860,9 @@ SrvCreditorReturnGlobalCredits(
 {
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     gSrvElements.ulGlobalCreditLimit += usCredits;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, gSrvElements.pMutex);
 }
