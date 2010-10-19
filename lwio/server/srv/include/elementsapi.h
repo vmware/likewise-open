@@ -470,8 +470,6 @@ typedef struct _LWIO_SRV_SESSION_2
 
     PLWRTL_RB_TREE    pTreeCollection;
 
-    HANDLE            hFinderRepository;
-
     ULONG             ulNextAvailableTid;
 
     PWSTR             pwszClientPrincipalName;

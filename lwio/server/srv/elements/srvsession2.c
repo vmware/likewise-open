@@ -179,9 +179,6 @@ SrvSession2Create(
                     &pSession->pTreeCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvFinderCreateRepository(&pSession->hFinderRepository);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     SRV_ELEMENTS_INCREMENT_SESSIONS;
 
     *ppSession = pSession;
@@ -840,11 +837,6 @@ SrvSession2Free(
     if (pSession->pTreeCollection)
     {
         LwRtlRBTreeFree(pSession->pTreeCollection);
-    }
-
-    if (pSession->hFinderRepository)
-    {
-        SrvFinderCloseRepository(pSession->hFinderRepository);
     }
 
     SRV_SAFE_FREE_MEMORY(pSession->pwszClientPrincipalName);
