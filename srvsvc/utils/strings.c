@@ -341,7 +341,7 @@ SrvSvcAllocateStringPrintfV(
     PSTR  pszSmallBuffer = NULL;
     DWORD dwBufsize = 0;
     INT   requiredLength = 0;
-    DWORD dwNewRequiredLength = 0;
+    INT   dwNewRequiredLength = 0;
     PSTR  pszOutputString = NULL;
     va_list args2;
 
