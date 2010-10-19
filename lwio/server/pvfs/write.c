@@ -252,11 +252,11 @@ PvfsPrepareZctWrite(
                   &pZctContext->CcbLinks);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
-
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->ControlBlock);
+
     if (pCcb)
     {
         PvfsReleaseCCB(pCcb);
