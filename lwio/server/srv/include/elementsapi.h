@@ -666,7 +666,7 @@ typedef struct _SRV_SEARCH_SPACE
 
     IO_FILE_HANDLE   hFile;
     PWSTR            pwszSearchPattern;
-    USHORT           usSearchAttrs;
+    SMB_FILE_ATTRIBUTES usSearchAttrs;
     ULONG            ulSearchStorageType;
     PBYTE            pFileInfo;
     PBYTE            pFileInfoCursor;
@@ -1615,7 +1615,7 @@ SrvFinderCreateSearchSpace(
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
     IN  PWSTR          pwszSearchPattern,
-    IN  USHORT         usSearchAttrs,
+    IN  SMB_FILE_ATTRIBUTES usSearchAttrs,
     IN  ULONG          ulSearchStorageType,
     IN  SMB_INFO_LEVEL infoLevel,
     IN  BOOLEAN        bUseLongFilenames,

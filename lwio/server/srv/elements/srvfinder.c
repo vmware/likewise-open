@@ -300,7 +300,7 @@ SrvFinderCreateSearchSpace(
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
     IN  PWSTR          pwszSearchPattern,
-    IN  USHORT         usSearchAttrs,
+    IN  SMB_FILE_ATTRIBUTES usSearchAttrs,
     IN  ULONG          ulSearchStorageType,
     IN  SMB_INFO_LEVEL infoLevel,
     IN  BOOLEAN        bUseLongFilenames,

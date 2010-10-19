@@ -898,12 +898,13 @@ typedef struct _SRV_DELETE_STATE_SMB_V1
     PLWIO_SRV_TREE              pTree;
 
     BOOLEAN                     bPathHasWildCards;
+    BOOLEAN                     bNeedSearchAttributes;
 
     PWSTR                       pwszFilesystemPath;
     PWSTR                       pwszSearchPattern2;
     HANDLE                      hSearchSpace;
     USHORT                      usSearchId;
-    ULONG                       ulSearchStorageType;
+    SMB_FILE_ATTRIBUTES         usSearchAttributes;
 
     BOOLEAN                     bEndOfSearch;
     USHORT                      usSearchResultCount;
@@ -917,8 +918,8 @@ typedef struct _SRV_DELETE_STATE_SMB_V1
     PVOID                                     pSecurityDescriptor;
     PVOID                                     pSecurityQOS;
     PIO_ECP_LIST                              pEcpList;
-    FILE_CREATE_OPTIONS                       ulCreateOptions;
     BOOLEAN                                   bPendingCreate;
+    BOOLEAN                                   bDeletedFile;
     PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult; // Do not free
 
 } SRV_DELETE_STATE_SMB_V1, *PSRV_DELETE_STATE_SMB_V1;

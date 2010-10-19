@@ -547,7 +547,7 @@ SrvBuildQueryInfo2Response(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader->usFileAttributes =
-                    (USHORT)(pInfo2State->fileBasicInfo.FileAttributes & 0x3F);
+            SMB_FILE_ATTRIBUTES_FROM_NATIVE(pInfo2State->fileBasicInfo.FileAttributes);
 
     pResponseHeader->ulFileAllocationSize =
             SMB_MIN(UINT32_MAX, pInfo2State->fileStandardInfo.AllocationSize);

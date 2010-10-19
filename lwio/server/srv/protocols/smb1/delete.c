@@ -31,6 +31,33 @@
 #include "includes.h"
 
 static
+inline
+BOOLEAN
+SrvIsEligibleForDelete(
+    FILE_ATTRIBUTES ulFileAttributes,
+    SMB_FILE_ATTRIBUTES usSearchAttributes
+    )
+{
+    BOOLEAN bIsEligible = FALSE;
+    FILE_ATTRIBUTES includeAttributes = SMB_FILE_ATTRIBUTES_TO_NATIVE(usSearchAttributes);
+
+    if (IsSetFlag(ulFileAttributes, includeAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)))
+    {
+        bIsEligible = TRUE;
+    }
+    else if (!IsSetFlag(ulFileAttributes, (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)))
+    {
+        bIsEligible = TRUE;
+    }
+    else
+    {
+        bIsEligible = FALSE;
+    }
+
+    return bIsEligible;
+}
+
+static
 NTSTATUS
 SrvDeleteFiles(
     PSRV_EXEC_CONTEXT pExecContext
@@ -203,8 +230,24 @@ SrvProcessDelete(
                             &pDeleteState->bPathHasWildCards);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            if (pDeleteState->bPathHasWildCards)
+            // Need to treat as wildcard if either one of hidden or system
+            // was not specified.
+            if (!(IsSetFlag(pDeleteState->usSearchAttributes, SMB_FILE_ATTRIBUTE_HIDDEN) &&
+                  IsSetFlag(pDeleteState->usSearchAttributes, SMB_FILE_ATTRIBUTE_SYSTEM)))
             {
+                pDeleteState->bNeedSearchAttributes = TRUE;
+            }
+
+            if (pDeleteState->bPathHasWildCards || pDeleteState->bNeedSearchAttributes)
+            {
+                SMB_FILE_ATTRIBUTES usSearchAttributes = pDeleteState->usSearchAttributes;
+
+                // Only the hidden and system inclusive attributes are
+                // consulted for delete -- except that, apparently,
+                // SMB_FILE_ATTRIBUTE_DIRECTORY can also be used, but will
+                // result in an error.
+                usSearchAttributes &= SMB_FILE_ATTRIBUTE_HIDDEN | SMB_FILE_ATTRIBUTE_SYSTEM | SMB_FILE_ATTRIBUTE_DIRECTORY;
+
                 ntStatus = SrvFinderCreateSearchSpace(
                                 pDeleteState->pTree->hFile,
                                 pDeleteState->pTree->pShareInfo,
@@ -212,8 +255,8 @@ SrvProcessDelete(
                                 pDeleteState->pSession->hFinderRepository,
                                 pDeleteState->pwszFilesystemPath,
                                 pDeleteState->pwszSearchPattern2,
-                                pDeleteState->pRequestHeader->usSearchAttributes,
-                                pDeleteState->ulSearchStorageType,
+                                usSearchAttributes,
+                                0, // ulSearchStorageType
                                 SMB_FIND_FILE_BOTH_DIRECTORY_INFO,
                                 pDeleteState->bUseLongFilenames,
                                 FILE_LIST_DIRECTORY,
@@ -228,7 +271,7 @@ SrvProcessDelete(
 
         case SRV_DELETE_STAGE_SMB_V1_DELETE_FILES:
 
-            if (pDeleteState->bPathHasWildCards)
+            if (pDeleteState->hSearchSpace)
             {
                 ntStatus = SrvDeleteFiles(pExecContext);
             }
@@ -303,8 +346,6 @@ SrvDeleteFiles(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
     PWSTR                      pwszFilename = NULL;
-    BOOLEAN                    bDone        = FALSE;
-    BOOLEAN                    bDeletedFile = FALSE;
     wchar16_t wszDot[]                      = {'.',  0};
 
     pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
@@ -316,16 +357,15 @@ SrvDeleteFiles(
         ntStatus = pDeleteState->ioStatusBlock.Status;
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pDeleteState->hFile)
-        {
-            IoCloseFile(pDeleteState->hFile);
-            pDeleteState->hFile = NULL;
-        }
+        IoCloseFile(pDeleteState->hFile);
+        pDeleteState->hFile = NULL;
+
+        pDeleteState->bDeletedFile = TRUE;
 
         pDeleteState->iResult++;
     }
 
-    do
+    for (;;)
     {
         for (   ;
                 pDeleteState->iResult < pDeleteState->usSearchResultCount;
@@ -350,16 +390,32 @@ SrvDeleteFiles(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            if (pDeleteState->hFile)
-            {
-                IoCloseFile(pDeleteState->hFile);
-                pDeleteState->hFile = NULL;
-            }
-
             if (pwszFilename)
             {
                 SrvFreeMemory(pwszFilename);
                 pwszFilename = NULL;
+            }
+
+            if (!SrvIsEligibleForDelete(pDeleteState->pResult->FileAttributes,
+                                        pDeleteState->usSearchAttributes))
+            {
+                if (!pDeleteState->bPathHasWildCards)
+                {
+                    if ((SMBWc16sCmp(pDeleteState->pwszSearchPattern2, wszDot) == 0))
+                    {
+                        ntStatus = STATUS_OBJECT_NAME_INVALID;
+                    }
+                    else if (IsSetFlag(pDeleteState->pResult->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+                    {
+                        ntStatus = STATUS_FILE_IS_A_DIRECTORY;
+                    }
+                    else
+                    {
+                        ntStatus = STATUS_NO_SUCH_FILE;
+                    }
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+                continue;
             }
 
             if (pDeleteState->bUseLongFilenames)
@@ -385,7 +441,7 @@ SrvDeleteFiles(
                        pDeleteState->pResult->ShortNameLength);
             }
 
-            if ((SMBWc16sCmp(pwszFilename, wszDot) == 0))
+            if (SMBWc16sCmp(pwszFilename, wszDot) == 0)
             {
                 ntStatus = STATUS_OBJECT_NAME_INVALID;
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -423,7 +479,7 @@ SrvDeleteFiles(
                             FILE_ATTRIBUTE_NORMAL,
                             FILE_NO_SHARE,
                             FILE_OPEN,
-                            pDeleteState->ulCreateOptions,
+                            FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE,
                             NULL,
                             0,
                             pDeleteState->pEcpList);
@@ -431,53 +487,65 @@ SrvDeleteFiles(
 
             SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
 
-	    bDeletedFile = TRUE;
-
             pDeleteState->bPendingCreate = FALSE;
+
+            IoCloseFile(pDeleteState->hFile);
+            pDeleteState->hFile = NULL;
+
+            pDeleteState->bDeletedFile = TRUE;
         }
 
-        if (!pDeleteState->bEndOfSearch)
+        if (pDeleteState->bEndOfSearch)
         {
-            if (pDeleteState->pData)
-            {
-                SrvFreeMemory(pDeleteState->pData);
-                pDeleteState->pData = NULL;
-            }
+            break;
+        }
 
-            pDeleteState->iResult = 0;
-            pDeleteState->pResult = NULL;
+        if (pDeleteState->pData)
+        {
+            SrvFreeMemory(pDeleteState->pData);
+            pDeleteState->pData = NULL;
+        }
 
-            ntStatus = SrvFinderGetSearchResults(
-                            pDeleteState->hSearchSpace,
-                            FALSE,                 /* bReturnSingleEntry    */
-                            FALSE,                 /* bRestartScan          */
-                            10,                    /* Desired serarch count */
-                            UINT16_MAX,            /* Max data count        */
-                            pDeleteState->usDataOffset,
-                            &pDeleteState->pData,
-                            &pDeleteState->usDataLen,
-                            &pDeleteState->usSearchResultCount,
-                            &pDeleteState->bEndOfSearch);
+        pDeleteState->iResult = 0;
+        pDeleteState->pResult = NULL;
 
-            if (ntStatus == STATUS_NO_MORE_MATCHES)
-            {
-                ntStatus = STATUS_SUCCESS;
-            }
+        ntStatus = SrvFinderGetSearchResults(
+                        pDeleteState->hSearchSpace,
+                        FALSE,                 /* bReturnSingleEntry   */
+                        FALSE,                 /* bRestartScan         */
+                        10,                    /* Desired search count */
+                        UINT16_MAX,            /* Max data count       */
+                        pDeleteState->usDataOffset,
+                        &pDeleteState->pData,
+                        &pDeleteState->usDataLen,
+                        &pDeleteState->usSearchResultCount,
+                        &pDeleteState->bEndOfSearch);
+
+        if (ntStatus == STATUS_NO_MORE_MATCHES)
+        {
+            ntStatus = STATUS_ASSERTION_FAILURE;
             BAIL_ON_NT_STATUS(ntStatus);
+        }
 
-            if (pDeleteState->usSearchResultCount == 0 && !bDeletedFile)
-            {
-                ntStatus = STATUS_NO_SUCH_FILE;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
+        if (ntStatus == STATUS_NO_SUCH_FILE)
+        {
+            ntStatus = STATUS_SUCCESS;
+            break;
+        }
+    }
 
+    if (!pDeleteState->bDeletedFile)
+    {
+        if (pDeleteState->bPathHasWildCards)
+        {
+            ntStatus = STATUS_NO_SUCH_FILE;
         }
         else
         {
-            bDone = TRUE;
+            ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
         }
-
-    } while (!bDone);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
@@ -562,7 +630,7 @@ SrvDeleteSingleFile(
                         FILE_ATTRIBUTE_NORMAL,
                         FILE_NO_SHARE,
                         FILE_OPEN,
-                        pDeleteState->ulCreateOptions,
+                        FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE,
                         NULL,
                         0,
                         pDeleteState->pEcpList);
@@ -800,9 +868,7 @@ SrvBuildDeleteState(
     pDeleteState->pRequestHeader    = pRequestHeader;
     pDeleteState->pwszSearchPattern = pwszSearchPattern;
     pDeleteState->bUseLongFilenames = bUseLongFilenames;
-
-    pDeleteState->ulCreateOptions =
-                            FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE;
+    pDeleteState->usSearchAttributes = pRequestHeader->usSearchAttributes;
 
     *ppDeleteState = pDeleteState;
 
