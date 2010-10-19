@@ -156,7 +156,6 @@ PvfsSetFileRenameInfo(
     ntError = PvfsWC16CanonicalPathName(&pszNewFilename, pFileInfo->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    pszNewPathname = pszNewFilename;
     if (pRootDirCcb)
     {
         pszNewPathname = NULL;
@@ -180,6 +179,11 @@ PvfsSetFileRenameInfo(
                           pRootDirCcb->pszFilename,
                           pszNewFilename);
         }
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        ntError = RtlCStringDuplicate(&pszNewPathname, pszNewFilename);
         BAIL_ON_NT_STATUS(ntError);
     }
 
