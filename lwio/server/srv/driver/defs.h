@@ -47,7 +47,7 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define LWIO_SRV_DEFAULT_NUM_WORKERS             8
+#define LWIO_SRV_WORKERS_CPU_RATIO             4
 
 /* To enable packet allocator, set the LWIO_SRV_DEFAULT_NUM_MAX_PACKETS to
  * a value greater than zero.
