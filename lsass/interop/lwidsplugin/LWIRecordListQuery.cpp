@@ -177,8 +177,7 @@ LWIRecordListQuery::Run(IN OUT sGetRecordList* pGetRecordList)
 
     LOG_ENTER("LWIRecordListQuery::Run - fType = %d, fResult = %d, fInNodeRef = %d, "
               "fInDataBuf => { len = %d, size = %d }, fInPatternMatch = 0x%04X, "
-              "fInAttribInfoOnly = %s",
-              "fIOContinueData = %d",
+              "fInAttribInfoOnly = %s, fIOContinueData = %d",
               pGetRecordList->fType,
               pGetRecordList->fResult,
               pGetRecordList->fInNodeRef,
