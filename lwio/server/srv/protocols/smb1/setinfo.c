@@ -633,6 +633,8 @@ SrvBuildSetInformationResponse(
 
     pResponseHeader = (PSET_INFO_RESPONSE_HEADER)pOutBuffer;
 
+    pResponseHeader->byteCount = 0;
+
     // pOutBuffer       += sizeof(SET_INFO_RESPONSE_HEADER);
     // ulOffset         += sizeof(SET_INFO_RESPONSE_HEADER);
     // ulBytesAvailable -= sizeof(SET_INFO_RESPONSE_HEADER);
