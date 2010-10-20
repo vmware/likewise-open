@@ -686,9 +686,6 @@ SrvSvcRpcInitialize(
 
     SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
 
-    dwError = LwNtStatusToWin32Error(LsaRpcInitMemory());
-    BAIL_ON_NT_STATUS(dwError);
-
     /* Binding to our RPC end-point might fail if dcerpcd is not
        yet ready when we start, so attempt it in a loop with
        a small delay between attempts */
