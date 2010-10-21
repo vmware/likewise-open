@@ -70,8 +70,6 @@ typedef struct _SRV_SHARE_DB_ENUM_CONTEXT
 
 typedef struct _SRV_SHARE_DB_GLOBALS
 {
-    pthread_mutex_t      mutex;
-
     SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
 
     pthread_rwlock_t      dbMutex;

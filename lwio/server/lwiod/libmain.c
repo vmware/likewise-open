@@ -220,6 +220,9 @@ lwiod_main(
     dwError = LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_LWIO_ERROR(dwError);
 
+    pthread_mutex_init(&gServerInfo.lock, NULL);
+    gServerInfo.pLock = &gServerInfo.lock;
+
     ntStatus = LwioSrvSetDefaults(&gLwioServerConfig);
     dwError = LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_LWIO_ERROR(dwError);
@@ -283,6 +286,12 @@ cleanup:
     SMBSrvSetProcessExitCode(dwError);
 
     LwioShutdownLogging_r();
+
+    if (gServerInfo.pLock)
+    {
+        pthread_mutex_destroy(&gServerInfo.lock);
+        gServerInfo.pLock = NULL;
+    }
 
     return dwError;
 

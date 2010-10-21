@@ -1286,6 +1286,7 @@ typedef struct _SRV_CONFIG_SMB_V2
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
 {
     pthread_mutex_t      mutex;
+    pthread_mutex_t      *pMutex;
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 

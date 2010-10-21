@@ -562,14 +562,14 @@ SrvTree2AcquireFileId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     fileId.fileIdParts.ulFileId1 = mt_genrand_int32(&gSrvElements.randGen);
     fileId.fileIdParts.ulFileId2 = mt_genrand_int32(&gSrvElements.randGen);
 
     candidateFid.ullPersistentId = fileId.ullFileId;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     *pFid = candidateFid;
 

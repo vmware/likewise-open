@@ -51,7 +51,7 @@
 
 LWIO_SRV_RUNTIME_GLOBALS gSMBSrvGlobals =
 {
-    .mutex   = PTHREAD_MUTEX_INITIALIZER,
+    .pMutex   = NULL,
     .hDevice = NULL
 };
 

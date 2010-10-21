@@ -177,6 +177,7 @@ typedef struct _SRV_ELEMENTS_CONFIG
 typedef struct _SRV_ELEMENTS_GLOBALS
 {
     pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     mt               randGen;
 

@@ -57,6 +57,9 @@ SrvElementsInit(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     int      iIter = 0;
 
+    pthread_mutex_init(&gSrvElements.mutex, NULL);
+    gSrvElements.pMutex = &gSrvElements.mutex;
+
     mt_init_genrand(&gSrvElements.randGen, time(NULL));
 
     ntStatus = SrvElementsConfigSetupInitial();
@@ -130,11 +133,11 @@ SrvElementsGetBootTime(
     LONG64   llBootTime = 0LL;
     BOOLEAN  bInLock    = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     llBootTime = gSrvElements.llBootTime;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, gSrvElements.pMutex);
 
     *pullBootTime = llBootTime;
 
@@ -204,6 +207,12 @@ SrvElementsShutdown(
     SrvElementsResourcesShutdown();
 
     SrvElementsConfigShutdown();
+
+    if (gSrvElements.pMutex)
+    {
+        pthread_mutex_destroy(&gSrvElements.mutex);
+        gSrvElements.pMutex = NULL;
+    }
 
 error:
 

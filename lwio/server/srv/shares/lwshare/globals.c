@@ -47,8 +47,6 @@
 
 SRV_SHARE_DB_GLOBALS gShareRepository_lwshare =
 {
-    .mutex   = PTHREAD_MUTEX_INITIALIZER,
-
     .fnTable =
         {
             .pfnShareRepositoryOpen       = &SrvShareDbOpen,
