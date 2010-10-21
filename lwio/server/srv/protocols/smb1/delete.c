@@ -31,33 +31,6 @@
 #include "includes.h"
 
 static
-inline
-BOOLEAN
-SrvIsEligibleForDelete(
-    FILE_ATTRIBUTES ulFileAttributes,
-    SMB_FILE_ATTRIBUTES usSearchAttributes
-    )
-{
-    BOOLEAN bIsEligible = FALSE;
-    FILE_ATTRIBUTES includeAttributes = SMB_FILE_ATTRIBUTES_TO_NATIVE(usSearchAttributes);
-
-    if (IsSetFlag(ulFileAttributes, includeAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)))
-    {
-        bIsEligible = TRUE;
-    }
-    else if (!IsSetFlag(ulFileAttributes, (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)))
-    {
-        bIsEligible = TRUE;
-    }
-    else
-    {
-        bIsEligible = FALSE;
-    }
-
-    return bIsEligible;
-}
-
-static
 NTSTATUS
 SrvDeleteFiles(
     PSRV_EXEC_CONTEXT pExecContext
@@ -371,6 +344,9 @@ SrvDeleteFiles(
                 pDeleteState->iResult < pDeleteState->usSearchResultCount;
                 pDeleteState->iResult++)
         {
+            BOOLEAN bEligibleForDelete = FALSE;
+            FILE_ATTRIBUTES ulIncludeAttributes = 0;
+
             if (!pDeleteState->pResult)
             {
                 pDeleteState->pResult =
@@ -396,8 +372,20 @@ SrvDeleteFiles(
                 pwszFilename = NULL;
             }
 
-            if (!SrvIsEligibleForDelete(pDeleteState->pResult->FileAttributes,
-                                        pDeleteState->usSearchAttributes))
+            ulIncludeAttributes =
+                SMB_FILE_ATTRIBUTES_TO_NATIVE(pDeleteState->usSearchAttributes);
+
+            bEligibleForDelete =
+                    (IsSetFlag(pDeleteState->pResult->FileAttributes,
+                               ulIncludeAttributes & (FILE_ATTRIBUTE_DIRECTORY |
+                                                      FILE_ATTRIBUTE_HIDDEN |
+                                                      FILE_ATTRIBUTE_SYSTEM))) ||
+                    (!IsSetFlag(pDeleteState->pResult->FileAttributes,
+                                         (FILE_ATTRIBUTE_DIRECTORY |
+                                          FILE_ATTRIBUTE_HIDDEN |
+                                          FILE_ATTRIBUTE_SYSTEM)));
+
+            if (!bEligibleForDelete)
             {
                 if (!pDeleteState->bPathHasWildCards)
                 {
@@ -405,7 +393,8 @@ SrvDeleteFiles(
                     {
                         ntStatus = STATUS_OBJECT_NAME_INVALID;
                     }
-                    else if (IsSetFlag(pDeleteState->pResult->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+                    else if (IsSetFlag(pDeleteState->pResult->FileAttributes,
+                                        FILE_ATTRIBUTE_DIRECTORY))
                     {
                         ntStatus = STATUS_FILE_IS_A_DIRECTORY;
                     }
