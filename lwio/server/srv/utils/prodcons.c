@@ -121,7 +121,6 @@ SrvProdConsEnqueue(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    BOOLEAN  bSignalEvent = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
@@ -133,17 +132,9 @@ SrvProdConsEnqueue(
     ntStatus = SMBEnqueue(&pQueue->queue, pItem);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!pQueue->ulNumItems)
-    {
-        bSignalEvent = TRUE;
-    }
-
     pQueue->ulNumItems++;
 
-    if (bSignalEvent)
-    {
-        pthread_cond_signal(&pQueue->event);
-    }
+    pthread_cond_signal(&pQueue->event);
 
 cleanup:
 
@@ -164,7 +155,6 @@ SrvProdConsEnqueueFront(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    BOOLEAN  bSignalEvent = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
@@ -176,17 +166,9 @@ SrvProdConsEnqueueFront(
     ntStatus = SMBEnqueueFront(&pQueue->queue, pItem);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!pQueue->ulNumItems)
-    {
-        bSignalEvent = TRUE;
-    }
-
     pQueue->ulNumItems++;
 
-    if (bSignalEvent)
-    {
-        pthread_cond_signal(&pQueue->event);
-    }
+    pthread_cond_signal(&pQueue->event);
 
 cleanup:
 
@@ -208,7 +190,6 @@ SrvProdConsDequeue(
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
     PVOID    pItem = NULL;
-    BOOLEAN  bSignalEvent = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
@@ -221,15 +202,11 @@ SrvProdConsDequeue(
 
     if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
     {
-        bSignalEvent = TRUE;
+        // Unblock any threads that may be waiting to queue.
+        pthread_cond_broadcast(&pQueue->event);
     }
 
     pQueue->ulNumItems--;
-
-    if (bSignalEvent)
-    {
-        pthread_cond_signal(&pQueue->event);
-    }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
@@ -248,7 +225,6 @@ SrvProdConsTimedDequeue(
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
     PVOID    pItem = NULL;
-    BOOLEAN  bSignalEvent = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
@@ -287,17 +263,13 @@ SrvProdConsTimedDequeue(
 
     if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
     {
-        bSignalEvent = TRUE;
+        // Unblock any threads that may be waiting to queue.
+        pthread_cond_broadcast(&pQueue->event);
     }
 
     pQueue->ulNumItems--;
 
     LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
-
-    if (bSignalEvent)
-    {
-        pthread_cond_signal(&pQueue->event);
-    }
 
     *ppItem = pItem;
 

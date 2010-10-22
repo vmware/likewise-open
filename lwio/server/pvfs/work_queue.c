@@ -96,7 +96,6 @@ PvfsAddWorkItem(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOL bInLock = FALSE;
-    BOOL bSignal = FALSE;
 
     BAIL_ON_INVALID_PTR(pWorkQueue, ntError);
     BAIL_ON_INVALID_PTR(pWork, ntError);
@@ -111,20 +110,12 @@ PvfsAddWorkItem(
                 &pWorkQueue->SpaceAvailable,
                 &pWorkQueue->Mutex);
         }
-
-        if (PvfsListIsEmpty(pWorkQueue->pQueue))
-        {
-            bSignal = TRUE;
-        }
     }
 
     ntError = PvfsListAddTail(pWorkQueue->pQueue, &pWork->WorkList);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (bSignal)
-    {
-        pthread_cond_signal(&pWorkQueue->ItemsAvailable);
-    }
+    pthread_cond_signal(&pWorkQueue->ItemsAvailable);
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bInLock, &pWorkQueue->Mutex);
@@ -146,7 +137,7 @@ PvfsNextWorkItem(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOL bInLock = FALSE;
-    BOOL bSignal = FALSE;
+    BOOL bWakeQueuers = FALSE;
     PLW_LIST_LINKS pData = NULL;
 
     BAIL_ON_INVALID_PTR(pWorkQueue, ntError);
@@ -165,7 +156,7 @@ PvfsNextWorkItem(
 
         if (PvfsListIsFull(pWorkQueue->pQueue))
         {
-            bSignal = TRUE;
+            bWakeQueuers = TRUE;
         }
     }
 
@@ -177,9 +168,10 @@ PvfsNextWorkItem(
                   PVFS_WORK_CONTEXT,
                   WorkList);
 
-    if (bSignal)
+    // Unblock all threads that are waiting to queue.
+    if (bWakeQueuers)
     {
-        pthread_cond_signal(&pWorkQueue->SpaceAvailable);
+        pthread_cond_broadcast(&pWorkQueue->SpaceAvailable);
     }
 
 cleanup:
