@@ -123,7 +123,7 @@ PvfsAddWorkItem(
 
     if (bSignal)
     {
-        pthread_cond_broadcast(&pWorkQueue->ItemsAvailable);
+        pthread_cond_signal(&pWorkQueue->ItemsAvailable);
     }
 
 cleanup:
@@ -179,7 +179,7 @@ PvfsNextWorkItem(
 
     if (bSignal)
     {
-        pthread_cond_broadcast(&pWorkQueue->SpaceAvailable);
+        pthread_cond_signal(&pWorkQueue->SpaceAvailable);
     }
 
 cleanup:
