@@ -1618,8 +1618,6 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszPrimaryFqdn = NULL;
     PWSTR pwszUsername = NULL;
     PWSTR pwszComputer = NULL;
-    PSTR pszHostname = NULL;
-    HANDLE hPwdDb = (HANDLE)NULL;
     NTSTATUS status = 0;
     NETR_BINDING netr_b = NULL;
     PLWPS_PASSWORD_INFO pMachAcctInfo = NULL;
@@ -1644,16 +1642,10 @@ AD_NetlogonAuthenticationUserEx(
 
     /* Grab the machine password and account info */
 
-    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT,
-                                    &hPwdDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaDnsGetHostInfo(&pszHostname);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwpsGetPasswordByHostName(hPwdDb,
-                                        pszHostname,
-                                        &pMachAcctInfo);
+    dwError = LsaPcacheGetPasswordInfo(
+                  gpLsaAdProviderState->pPcache,
+                  &pMachAcctInfo,
+                  NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Gather other Schannel params */
@@ -1885,15 +1877,8 @@ AD_NetlogonAuthenticationUserEx(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    if (hPwdDb)
-    {
-        if (pMachAcctInfo) {
-            LwpsFreePasswordInfo(hPwdDb, pMachAcctInfo);
-        }
 
-        LwpsClosePasswordStore(hPwdDb);
-        hPwdDb = (HANDLE)NULL;
-    }
+    LwFreePasswordInfo(pMachAcctInfo);
 
     if (netr_b)
     {
@@ -1918,7 +1903,6 @@ cleanup:
         NetrFreeMemory((void*)pValidationInfo);
     }
 
-    LW_SAFE_FREE_MEMORY(pszHostname);
     LW_SAFE_FREE_MEMORY(pszServerName);
 
     LW_SAFE_FREE_MEMORY(pwszUsername);

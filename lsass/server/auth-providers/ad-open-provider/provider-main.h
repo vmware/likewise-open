@@ -77,6 +77,13 @@ AD_CloseHandle(
     HANDLE hProvider
     );
 
+DWORD
+AD_GetPasswordInfo(
+    PCSTR pszDomain,
+    PLWPS_PASSWORD_INFO* ppPasswordInfo,
+    PLWPS_PASSWORD_INFO_A* ppPasswordInfoA
+    );
+
 BOOLEAN
 AD_ServicesDomain(
     PCSTR pszDomain

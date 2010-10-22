@@ -69,6 +69,7 @@
 #include "lwmem.h"
 #include "lwstr.h"
 #include <lwkrb5.h>
+#include <lwpwdinfo.h>
 #include <lw/rpc/samr.h>
 #include <lw/rpc/netlogon.h>
 #include <lw/rpc/krb5pac.h>
@@ -120,6 +121,7 @@
 #include "offline-helper.h"
 #include "lsasqlite.h"
 #include "lsasqlite_p.h"
+#include "pwdcache_p.h"
 
 #include "externs.h"
 

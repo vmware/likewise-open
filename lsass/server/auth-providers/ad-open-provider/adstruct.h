@@ -139,6 +139,10 @@ typedef struct _LSA_AD_CONFIG {
 struct _ADSTATE_CONNECTION;
 typedef struct _ADSTATE_CONNECTION *ADSTATE_CONNECTION_HANDLE;
 
+struct _LSA_MACHINEPWD_CACHE;
+typedef struct _LSA_MACHINEPWD_CACHE *LSA_MACHINEPWD_CACHE_HANDLE;
+typedef struct _LSA_MACHINEPWD_CACHE **PLSA_MACHINEPWD_CACHE_HANDLE;
+
 typedef struct _LSA_AD_PROVIDER_STATE {
     /// Tracks machine credentials state
     struct {
@@ -149,6 +153,9 @@ typedef struct _LSA_AD_PROVIDER_STATE {
         /// determine whe
         pthread_mutex_t* pMutex;
     } MachineCreds;
+
+    LSA_MACHINEPWD_CACHE_HANDLE pPcache;
+
     MEDIA_SENSE_HANDLE MediaSenseHandle;
     LSA_AD_CONFIG      config;
 

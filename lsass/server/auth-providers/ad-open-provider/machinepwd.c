@@ -62,7 +62,6 @@ typedef struct _AD_MACHINE_PASSWORD_SYNC_STATE {
     pthread_mutex_t ThreadLock;
     pthread_cond_t ThreadCondition;
     pthread_t* pThread;
-    HANDLE hPasswordStore;
     DWORD dwTgtExpiry;
     DWORD dwTgtExpiryGraceSeconds;
 } AD_MACHINE_PASSWORD_SYNC_STATE, *PAD_MACHINE_PASSWORD_SYNC_STATE;
@@ -83,7 +82,6 @@ static AD_MACHINE_PASSWORD_SYNC_STATE gAdMachinePasswordSyncState = {
     .ThreadLock = PTHREAD_MUTEX_INITIALIZER,
     .ThreadCondition = PTHREAD_COND_INITIALIZER,
     .pThread = NULL,
-    .hPasswordStore = NULL,
     .dwTgtExpiry = 0,
     .dwTgtExpiryGraceSeconds = 2 * DEFAULT_THREAD_WAITSECS,
 };
@@ -146,18 +144,7 @@ ADInitMachinePasswordSync(
 {
     DWORD dwError = 0;
 
-    dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_DEFAULT,
-                    &gAdMachinePasswordSyncState.hPasswordStore);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 
 DWORD
@@ -216,6 +203,8 @@ ADChangeMachinePasswordInThreadLock(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    LsaPcacheClearPasswordInfo(gpLsaAdProviderState->pPcache);
+
     if (AD_EventlogEnabled())
     {
         ADLogMachinePWUpdateSuccessEvent();
@@ -239,10 +228,9 @@ ADSyncMachinePasswordThreadRoutine(
     DWORD dwError = 0;
     DWORD dwPasswordSyncLifetime = 0;
     struct timespec timeout = {0, 0};
-    PLWPS_PASSWORD_INFO pAcctInfo = NULL;
     PSTR pszHostname = NULL;
-    PSTR pszDnsDomainName = NULL;
     DWORD dwGoodUntilTime = 0;
+    PLWPS_PASSWORD_INFO_A pPasswordInfoA = NULL;
 
     LSA_LOG_INFO("Machine Password Sync Thread starting");
 
@@ -275,10 +263,11 @@ ADSyncMachinePasswordThreadRoutine(
         }
         ADSyncTimeToDC(gpADProviderData->szDomain);
 
-        dwError = LwpsGetPasswordByHostName(
-                        gAdMachinePasswordSyncState.hPasswordStore,
-                        pszHostname,
-                        &pAcctInfo);
+
+        dwError = LsaPcacheGetPasswordInfo(
+                      gpLsaAdProviderState->pPcache,
+                      NULL,
+                      &pPasswordInfoA);
         if (dwError)
         {
             LSA_LOG_ERROR("Error: Failed to get machine password information (error = %u)", dwError);
@@ -289,7 +278,7 @@ ADSyncMachinePasswordThreadRoutine(
         dwCurrentPasswordAge =
                          difftime(
                               time(NULL),
-                              pAcctInfo->last_change_time);
+                              pPasswordInfoA->last_change_time);
 
         dwPasswordSyncLifetime = AD_GetMachinePasswordSyncPwdLifetime();
         dwReapingAge = dwPasswordSyncLifetime / 2;
@@ -334,12 +323,7 @@ ADSyncMachinePasswordThreadRoutine(
 
                 if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
                 {
-                    LW_SAFE_FREE_STRING(pszDnsDomainName);
-
-                    dwError = LwWc16sToMbs(pAcctInfo->pwszDnsDomainName, &pszDnsDomainName);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-                    LsaDmTransitionOffline(pszDnsDomainName, FALSE);
+                    LsaDmTransitionOffline(pPasswordInfoA->pszDnsDomainName, FALSE);
                 }
 
                 ADSetMachineTGTExpiryError();
@@ -359,11 +343,8 @@ ADSyncMachinePasswordThreadRoutine(
 
 lsa_wait_resync:
 
-        if (pAcctInfo)
-        {
-            LwpsFreePasswordInfo(gAdMachinePasswordSyncState.hPasswordStore, pAcctInfo);
-            pAcctInfo = NULL;
-        }
+        LwFreePasswordInfoA(pPasswordInfoA);
+        pPasswordInfoA = NULL;
 
         LW_SAFE_FREE_STRING(pszHostname);
 
@@ -395,13 +376,9 @@ retry_wait:
 
 cleanup:
 
-    if (pAcctInfo)
-    {
-        LwpsFreePasswordInfo(gAdMachinePasswordSyncState.hPasswordStore, pAcctInfo);
-    }
+    LwFreePasswordInfoA(pPasswordInfoA);
 
     LW_SAFE_FREE_STRING(pszHostname);
-    LW_SAFE_FREE_STRING(pszDnsDomainName);
 
     pthread_mutex_unlock(&gAdMachinePasswordSyncState.ThreadLock);
 
@@ -475,12 +452,6 @@ ADShutdownMachinePasswordSync(
         pthread_join(gAdMachinePasswordSyncState.Thread, NULL);
         gAdMachinePasswordSyncState.pThread = NULL;
         gAdMachinePasswordSyncState.bThreadShutdown = FALSE;
-    }
-
-    if (gAdMachinePasswordSyncState.hPasswordStore)
-    {
-        LwpsClosePasswordStore(gAdMachinePasswordSyncState.hPasswordStore);
-        gAdMachinePasswordSyncState.hPasswordStore = NULL;
     }
 }
 
