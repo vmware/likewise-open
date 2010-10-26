@@ -93,6 +93,11 @@ SrvDevCtlEnumerateConnections(
              */
             pwszComputerName = pParamsIn->pwszQualifier + ulClientPrefixLen;
         }
+        else if (pParamsIn->pwszQualifier[0] == 0)
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
         else
         {
             pwszShareName = pParamsIn->pwszQualifier;
