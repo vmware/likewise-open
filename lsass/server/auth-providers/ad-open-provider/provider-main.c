@@ -4082,7 +4082,6 @@ LsaAdProviderLogConfigReloadEvent(
                  "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n" \
                  "     Authentication provider:           %s\r\n" \
                  "     Current settings are...\r\n" \
-                 "     Cache reaper timeout (secs):       %u\r\n" \
                  "     Cache entry expiry (secs):         %u\r\n" \
                  "     Space replacement character:       '%c'\r\n" \
                  "     Domain separator character:        '%c'\r\n" \
@@ -4109,7 +4108,6 @@ LsaAdProviderLogConfigReloadEvent(
                  "     Domain Manager check domain online (secs):          %u\r\n"
                  "     Domain Manager unknown domain cache timeout (secs): %u",
                  LSA_SAFE_LOG_STRING(gpszADProviderName),
-                 gpLsaAdProviderState->config.dwCacheReaperTimeoutSecs,
                  gpLsaAdProviderState->config.dwCacheEntryExpirySecs,
                  LsaSrvSpaceReplacement(),
                  LsaSrvDomainSeparator(),

@@ -47,7 +47,6 @@
 "AssumeDefaultDomain"=dword:00000000
 "UserDomainPrefix"=""
 "SyncSystemTime"=dword:00000001
-"CachePurgeTimeout"=dword:00278D00
 "RequireMembershipOf"=sza:""
 "CreateK5Login"=dword:00000001
 "CreateHomeDir"=dword:00000001

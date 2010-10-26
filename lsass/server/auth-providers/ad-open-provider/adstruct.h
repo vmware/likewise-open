@@ -105,7 +105,6 @@ typedef struct _AD_PROVIDER_DATA
 
 typedef struct _LSA_AD_CONFIG {
 
-    DWORD               dwCacheReaperTimeoutSecs;
     DWORD               dwCacheEntryExpirySecs;
     DWORD               dwCacheSizeCap;
     BOOLEAN             bEnableEventLog;

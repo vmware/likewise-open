@@ -102,11 +102,6 @@ AD_GetUnprovisionedModeHomedirTemplate(
     );
 
 DWORD
-AD_GetCacheReaperTimeoutSecs(
-    VOID
-    );
-
-DWORD
 AD_GetMachinePasswordSyncPwdLifetime(
     VOID
     );
