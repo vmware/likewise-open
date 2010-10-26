@@ -56,6 +56,8 @@
 #include <lwio/lwsessioninfo.h>
 #include <lwio/lmfile.h>
 #include <lwio/lwfileinfo.h>
+#include <lwio/lmconnection.h>
+#include <lwio/lwconnectioninfo.h>
 #include <dce/rpc.h>
 #include <compat/dcerpc.h>
 #include <lw/rpc/lsa.h>

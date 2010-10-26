@@ -233,6 +233,19 @@ SrvSvcNetNameValidate(
     UINT32 flags
     );
 
+
+NET_API_STATUS
+SrvSvcNetrConnectionEnum(
+    handle_t IDL_handle,
+    wchar16_t *pwszServerName,
+    wchar16_t *pwszQualifier,
+    PDWORD pdwLevel,
+    srvsvc_NetConnCtr *pCtr,
+    DWORD dwPrefMaxLength,
+    PDWORD pdwTotalEntries,
+    PDWORD pdwResume
+    );
+
 // utils.c
 
 DWORD
@@ -299,6 +312,27 @@ SrvSvcSrvFreeServerInfo102(
     PSERVER_INFO_102 pServerInfo101
     );
 
+DWORD
+SrvSvcSrvCopyConnectionInfo0(
+    IN OUT PCONNECTION_INFO_0 pOutConnectionInfo,
+    IN     PCONNECTION_INFO_0 pInConnectionInfo
+    );
+
+DWORD
+SrvSvcSrvCopyConnectionInfo1(
+    IN OUT PCONNECTION_INFO_1 pOutConnectionInfo,
+    IN     PCONNECTION_INFO_1 pInConnectionInfo
+    );
+
+VOID
+SrvSvcSrvFreeConnectionInfo0(
+    IN PCONNECTION_INFO_0 pConnectionInfo0
+    );
+
+VOID
+SrvSvcSrvFreeConnectionInfo1(
+    IN PCONNECTION_INFO_1 pConnectionInfo1
+    );
 
 /*
 local variables:

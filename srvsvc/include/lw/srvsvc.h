@@ -52,73 +52,7 @@
 #include <lwio/lmshare.h>
 #include <lwio/lmsession.h>
 #include <lwio/lmfile.h>
-
-#ifndef CONNECTION_INFO_0_DEFINED
-#define CONNECTION_INFO_0_DEFINED 1
-
-typedef struct _CONNECTION_INFO_0 {
-    UINT32 coni0_id;
-} CONNECTION_INFO_0, *PCONNECTION_INFO_0;
-
-#endif
-
-typedef struct {
-    UINT32 count;
-#ifdef _DCE_IDL_
-    [size_is(count)]
-#endif
-    CONNECTION_INFO_0 *array;
-} srvsvc_NetConnCtr0;
-
-
-#ifndef CONNECTION_INFO_1_DEFINED
-#define CONNECTION_INFO_1_DEFINED 1
-
-#ifdef _DCE_IDL_
-cpp_quote("#ifndef CONNECTION_INFO_1_DEFINED")
-cpp_quote("#define CONNECTION_INFO_1_DEFINED 1")
-#endif
-
-typedef struct _CONNECTION_INFO_1 {
-    UINT32 coni1_id;
-    UINT32 coni1_type;
-    UINT32 coni1_num_open;
-    UINT32 coni1_num_users;
-    UINT32 coni1_time;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    PWSTR coni1_username;
-#ifdef _DCE_IDL_
-    [string]
-#endif
-    PWSTR coni1_netname;
-} CONNECTION_INFO_1, *PCONNECTION_INFO_1;
-
-#ifdef _DCE_IDL_
-cpp_quote("#endif")
-#endif
-
-#endif
-
-typedef struct {
-    UINT32 count;
-#ifdef _DCE_IDL_
-    [size_is(count)]
-#endif
-    CONNECTION_INFO_1 *array;
-} srvsvc_NetConnCtr1;
-
-
-#ifndef _DCE_IDL_
-
-typedef union {
-    srvsvc_NetConnCtr0 *ctr0;
-    srvsvc_NetConnCtr1 *ctr1;
-} srvsvc_NetConnCtr;
-
-#endif
-
+#include <lwio/lmconnection.h>
 
 #ifndef SERVER_INFO_100_DEFINED
 #define SERVER_INFO_100_DEFINED 1
@@ -1093,10 +1027,10 @@ typedef WINERROR NET_API_STATUS;
 
 typedef struct _SRVSVC_CONTEXT* PSRVSVC_CONTEXT;
 
-NET_API_STATUS
+WINERROR
 SrvSvcCreateContext(
-    IN  PCWSTR           pwszHostname,
-    OUT PSRVSVC_CONTEXT* ppContext
+    PCWSTR           pwszHostname,
+    PSRVSVC_CONTEXT* ppContext
     );
 
 NET_API_STATUS
@@ -1236,7 +1170,7 @@ NetrRemoteTOD(
     PBYTE*          ppBuffer           /*    OUT          */
     );
 
-NET_API_STATUS
+WINERROR
 SrvSvcCloseContext(
     IN  PSRVSVC_CONTEXT pContext
     );

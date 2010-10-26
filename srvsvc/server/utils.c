@@ -440,6 +440,89 @@ SrvSvcSrvFreeServerInfo102(
 }
 
 
+DWORD
+SrvSvcSrvCopyConnectionInfo0(
+    IN OUT PCONNECTION_INFO_0 pOutConnectionInfo,
+    IN     PCONNECTION_INFO_0 pInConnectionInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    pOutConnectionInfo->coni0_id = pInConnectionInfo->coni0_id;
+
+    return dwError;
+}
+
+
+VOID
+SrvSvcSrvFreeConnectionInfo0(
+    IN PCONNECTION_INFO_0 pConnectionInfo0
+    )
+{
+    if (pConnectionInfo0)
+    {
+        SrvSvcSrvFreeMemory(pConnectionInfo0);
+    }
+}
+
+
+DWORD
+SrvSvcSrvCopyConnectionInfo1(
+    IN OUT PCONNECTION_INFO_1 pOutConnectionInfo,
+    IN     PCONNECTION_INFO_1 pInConnectionInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    pOutConnectionInfo->coni1_id        = pInConnectionInfo->coni1_id;
+    pOutConnectionInfo->coni1_type      = pInConnectionInfo->coni1_type;
+    pOutConnectionInfo->coni1_num_opens = pInConnectionInfo->coni1_num_opens;
+    pOutConnectionInfo->coni1_num_users = pInConnectionInfo->coni1_num_users;
+    pOutConnectionInfo->coni1_time      = pInConnectionInfo->coni1_time;
+
+    if (pInConnectionInfo->coni1_username)
+    {
+        dwError = SrvSvcSrvAllocateWC16String(
+                      &pOutConnectionInfo->coni1_username,
+                      pInConnectionInfo->coni1_username);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+    if (pInConnectionInfo->coni1_netname)
+    {
+        dwError = SrvSvcSrvAllocateWC16String(
+                      &pOutConnectionInfo->coni1_netname,
+                      pInConnectionInfo->coni1_netname);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+error:
+    return dwError;
+}
+
+
+VOID
+SrvSvcSrvFreeConnectionInfo1(
+    IN PCONNECTION_INFO_1 pConnectionInfo1
+    )
+{
+    if (pConnectionInfo1)
+    {
+        if (pConnectionInfo1->coni1_username)
+        {
+            SrvSvcSrvFreeMemory(pConnectionInfo1->coni1_username);
+        }
+
+        if (pConnectionInfo1->coni1_netname)
+        {
+            SrvSvcSrvFreeMemory(pConnectionInfo1->coni1_netname);
+        }
+
+        SrvSvcSrvFreeMemory(pConnectionInfo1);
+    }
+}
+
+
 /*
 local variables:
 mode: c
