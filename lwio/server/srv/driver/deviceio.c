@@ -216,6 +216,16 @@ SrvDeviceIoCommon(
 
           break;
 
+      case SRV_DEVCTL_ENUM_CONNECTION:
+
+          ntStatus = SrvDevCtlEnumerateConnections(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+          break;
+
       case IO_DEVICE_CTL_STATISTICS:
 
           ntStatus = SrvProcessStatistics(

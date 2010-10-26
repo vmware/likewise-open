@@ -140,6 +140,20 @@ SrvProtocolEnumerateFiles(
     );
 
 NTSTATUS
+SrvProtocolEnumerateConnections(
+    PWSTR  pwszComputerName,     /* IN     OPTIONAL */
+    PWSTR  pwszShareName,        /* IN     OPTIONAL */
+    ULONG  ulInfoLevel,          /* IN              */
+    ULONG  ulPreferredMaxLength, /* IN              */
+    PBYTE  pBuffer,              /* IN              */
+    ULONG  ulBufferSize,         /* IN              */
+    PULONG pulBytesUsed,         /* IN OUT          */
+    PULONG pulEntriesRead,       /* IN OUT          */
+    PULONG pulTotalEntries,      /* IN OUT          */
+    PULONG pulResumeHandle       /* IN OUT OPTIONAL */
+    );
+
+NTSTATUS
 SrvProtocolGetFileInfo(
     ULONG  ulInfoLevel,       /* IN              */
     ULONG  ulFileId,          /* IN              */

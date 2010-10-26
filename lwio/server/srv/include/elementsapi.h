@@ -141,6 +141,7 @@ typedef enum
 {
     SRV_RESOURCE_TYPE_UNKNOWN = 0,
     SRV_RESOURCE_TYPE_CONNECTION,
+    SRV_RESOURCE_TYPE_TREE,
     SRV_RESOURCE_TYPE_FILE
 } SRV_RESOURCE_TYPE;
 
@@ -349,63 +350,67 @@ typedef struct _LWIO_SRV_FILE_2
 
 typedef struct _LWIO_SRV_TREE
 {
-    LONG              refcount;
+    LONG                    refcount;
 
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
+    pthread_rwlock_t        mutex;
+    pthread_rwlock_t*       pMutex;
 
     // Parent
-    PLWIO_SRV_SESSION pSession;
-    SRV_OBJECT_FLAGS  objectFlags;
-    PLWIO_SRV_TREE    pRundownNext;
+    PLWIO_SRV_SESSION       pSession;
+    SRV_OBJECT_FLAGS        objectFlags;
+    PLWIO_SRV_TREE          pRundownNext;
 
-    USHORT            tid;
-    USHORT            uid;
-    ULONG             ulConnectionResourceId;
+    USHORT                  tid;
+    USHORT                  uid;
 
-    PSRV_SHARE_INFO   pShareInfo;
+    SRV_RESOURCE            resource;
+    SRV_RESOURCE_ATTRIBUTES resourceAttrs;
 
-    IO_FILE_HANDLE    hFile;
+    PSRV_SHARE_INFO         pShareInfo;
 
-    PLWIO_SRV_FILE    lruFile[SRV_LRU_CAPACITY];
+    IO_FILE_HANDLE          hFile;
 
-    PLWRTL_RB_TREE    pFileCollection;
+    PLWIO_SRV_FILE          lruFile[SRV_LRU_CAPACITY];
 
-    ULONG             ulNumOpenFiles;
+    PLWRTL_RB_TREE          pFileCollection;
 
-    PLWRTL_RB_TREE    pAsyncStateCollection;
+    ULONG                   ulNumOpenFiles;
 
-    USHORT            nextAvailableFid;
+    PLWRTL_RB_TREE          pAsyncStateCollection;
+
+    USHORT                  nextAvailableFid;
 
 } LWIO_SRV_TREE;
 
 typedef struct _LWIO_SRV_TREE_2
 {
-    LONG              refcount;
+    LONG                    refcount;
 
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
+    pthread_rwlock_t        mutex;
+    pthread_rwlock_t*       pMutex;
 
     // Parent
-    PLWIO_SRV_SESSION_2 pSession;
-    SRV_OBJECT_FLAGS  objectFlags;
-    PLWIO_SRV_TREE_2  pRundownNext;
+    PLWIO_SRV_SESSION_2     pSession;
+    SRV_OBJECT_FLAGS        objectFlags;
+    PLWIO_SRV_TREE_2        pRundownNext;
 
-    ULONG             ulTid;
-    ULONG64           ullUid;
-    ULONG             ulConnectionResourceId;
+    ULONG                   ulTid;
+    ULONG64                 ullUid;
 
-    PSRV_SHARE_INFO   pShareInfo;
+    SRV_RESOURCE            resource;
+    SRV_RESOURCE_ATTRIBUTES resourceAttrs;
 
-    IO_FILE_HANDLE    hFile;
+    PSRV_SHARE_INFO         pShareInfo;
 
-    PLWIO_SRV_FILE_2  lruFile[SRV_LRU_CAPACITY];
+    IO_FILE_HANDLE          hFile;
 
-    PLWRTL_RB_TREE    pFileCollection;
+    PLWIO_SRV_FILE_2        lruFile[SRV_LRU_CAPACITY];
 
-    ULONG             ulNumOpenFiles;
+    PLWRTL_RB_TREE          pFileCollection;
 
-    ULONG64           ullNextAvailableFid;
+    ULONG                   ulNumOpenFiles;
+
+    ULONG64                 ullNextAvailableFid;
 
 } LWIO_SRV_TREE_2;
 
@@ -966,6 +971,20 @@ SrvConnection2GetSessionCount(
     PLWIO_SRV_CONNECTION pConnection,
     PWSTR                pwszUsername,
     PULONG64             pullSessionCount
+    );
+
+NTSTATUS
+SrvConnectionGetConnectionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszShareName,
+    PULONG               pulConnectionCount
+    );
+
+NTSTATUS
+SrvConnectionGetConnectionCount2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszShareName,
+    PULONG               pulConnectionCount
     );
 
 NTSTATUS
@@ -1796,6 +1815,20 @@ SrvElementsResetStats(
 NTSTATUS
 SrvElementsShutdown(
     VOID
+    );
+
+NTSTATUS
+SrvConnectionGetSessionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername,
+    PULONG64             pullSessionCount
+    );
+
+NTSTATUS
+SrvConnection2GetSessionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername,
+    PULONG64             pullSessionCount
     );
 
 #endif /* __ELEMENTSAPI_H__ */

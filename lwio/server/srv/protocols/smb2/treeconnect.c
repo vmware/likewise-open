@@ -250,6 +250,10 @@ SrvProcessTreeConnect_SMB_V2(
             ntStatus = SrvBuildTreeConnectResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+	    ntStatus = SrvElementsRegisterResource(&pTConState->pTree->resource,
+						   NULL);
+	    BAIL_ON_NT_STATUS(ntStatus);
+
             // intentional fall through
 
         case SRV_TREE_CONNECT_STAGE_SMB_V2_DONE:

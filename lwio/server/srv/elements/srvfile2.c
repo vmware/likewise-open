@@ -132,7 +132,7 @@ SrvFile2Create(
     pFile->resource.pAttributes->treeId.usTid     = pTree->ulTid;
     pFile->resource.pAttributes->sessionId.ullUid = pTree->ullUid;
     pFile->resource.pAttributes->ulConnectionResourceId =
-                                                pTree->ulConnectionResourceId;
+                                  pTree->resourceAttrs.ulConnectionResourceId;
 
     LWIO_LOG_DEBUG( "Associating file [object:0x%x]"
                     "[fid: (persistent:%08X)(volatile:%08X)]",

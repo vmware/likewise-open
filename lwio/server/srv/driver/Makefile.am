@@ -17,6 +17,7 @@ libsrv_sys_la_SOURCES = \
     deviceio.c     \
     driver.c       \
     files.c        \
+    connections.c  \
     globals.c      \
     monitor.c      \
     sessions.c     \

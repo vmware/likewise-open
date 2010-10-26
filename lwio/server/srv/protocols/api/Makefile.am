@@ -1,12 +1,13 @@
 noinst_LTLIBRARIES = libsrv.protocols.api.la
 
 libsrv_protocols_api_la_SOURCES = \
-    config.c    \
-    files.c     \
-    globals.c   \
-    libmain.c   \
-    negotiate.c \
-    sessions.c  \
+    config.c        \
+    files.c         \
+    globals.c       \
+    libmain.c       \
+    negotiate.c     \
+    sessions.c      \
+    connections.c   \
     transport.c
 
 libsrv_protocols_api_la_CPPFLAGS = \

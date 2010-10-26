@@ -261,6 +261,42 @@ SrvConnectionRundownAsyncStateList(
     PLWIO_ASYNC_STATE pRundownList
     );
 
+static
+NTSTATUS
+SrvConnectionCountConnections(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnectionCountTrees(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnectionCountConnections2(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnectionCountTrees2(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
 NTSTATUS
 SrvConnectionCreate(
     PLWIO_SRV_SOCKET                pSocket,
@@ -2276,3 +2312,236 @@ SrvConnectionRundownAsyncStateList(
     }
 }
 
+NTSTATUS
+SrvConnectionGetConnectionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszShareName,
+    PULONG               pulConnectionCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+    SRV_CONNECTION_ENUM_QUERY ConnectionEnumQuery =
+    {
+          .pwszShareName      = pwszShareName,
+          .ulConnectionCount  = 0
+    };
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    pConnection->pSessionCollection,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvConnectionCountConnections,
+                    &ConnectionEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pulConnectionCount = ConnectionEnumQuery.ulConnectionCount;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+    *pulConnectionCount = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionCountConnections(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION pSession = (PLWIO_SRV_SESSION)pData;
+    PSRV_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
+                                (PSRV_CONNECTION_ENUM_QUERY)pUserData;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    pSession->pTreeCollection,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvConnectionCountTrees,
+                    pConnectionEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pbContinue = TRUE;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionCountTrees(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_TREE pTree = (PLWIO_SRV_TREE)pData;
+    PSRV_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
+                                (PSRV_CONNECTION_ENUM_QUERY)pUserData;
+    BOOLEAN bInTreeLock = FALSE;
+    BOOLEAN bInShareLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInTreeLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInShareLock, &pTree->pShareInfo->mutex);
+
+    /*
+     * Count all trees if the requested share name is NULL
+     * or only the trees with matching share name
+     */
+    if (pConnectionEnumQuery->pwszShareName == NULL ||
+        LwRtlWC16StringIsEqual(pConnectionEnumQuery->pwszShareName,
+                               pTree->pShareInfo->pwszName,
+                               FALSE))
+    {
+        pConnectionEnumQuery->ulConnectionCount++;
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInTreeLock, &pTree->mutex);
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+SrvConnectionGetConnectionCount2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszShareName,
+    PULONG               pulConnectionCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+    SRV_CONNECTION_ENUM_QUERY ConnectionEnumQuery =
+    {
+          .pwszShareName     = pwszShareName,
+          .ulConnectionCount = 0
+    };
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    pConnection->pSessionCollection,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvConnectionCountConnections2,
+                    &ConnectionEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pulConnectionCount = ConnectionEnumQuery.ulConnectionCount;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+    *pulConnectionCount = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionCountConnections2(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
+    PSRV_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
+                                (PSRV_CONNECTION_ENUM_QUERY)pUserData;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    pSession->pTreeCollection,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvConnectionCountTrees2,
+                    pConnectionEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pbContinue = TRUE;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionCountTrees2(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_TREE_2 pTree = (PLWIO_SRV_TREE_2)pData;
+    PSRV_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
+                                (PSRV_CONNECTION_ENUM_QUERY)pUserData;
+    BOOLEAN bInTreeLock = FALSE;
+    BOOLEAN bInShareLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInTreeLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInShareLock, &pTree->pShareInfo->mutex);
+
+    /*
+     * Count all trees if the requested share name is NULL
+     * or only the trees with matching share name
+     */
+    if (pConnectionEnumQuery->pwszShareName == NULL ||
+        LwRtlWC16StringIsEqual(pConnectionEnumQuery->pwszShareName,
+                               pTree->pShareInfo->pwszName,
+                               FALSE))
+    {
+        pConnectionEnumQuery->ulConnectionCount++;
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInTreeLock, &pTree->mutex);
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

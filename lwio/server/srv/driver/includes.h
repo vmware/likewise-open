@@ -69,6 +69,8 @@
 #include <lwio/lwsessioninfo.h>
 #include <lwio/lmfile.h>
 #include <lwio/lwfileinfo.h>
+#include <lwio/lmconnection.h>
+#include <lwio/lwconnectioninfo.h>
 #include <lwio/lwiodevctl.h>
 
 #include <lwio/iodriver.h>

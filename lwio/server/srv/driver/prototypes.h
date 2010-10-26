@@ -201,6 +201,17 @@ SrvDevCtlCloseFile(
     IN OUT PULONG pulBytesTransferred
     );
 
+// connections.c
+
+NTSTATUS
+SrvDevCtlEnumerateConnections(
+    IN     PBYTE  pInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  pOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
 // monitor.c
 
 NTSTATUS
