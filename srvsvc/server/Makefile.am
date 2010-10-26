@@ -28,6 +28,7 @@ srvsvcd_SOURCES =              \
     srvsvc_netshareenum.c      \
     srvsvc_netservergetinfo.c  \
     srvsvc_netnamevalidate.c   \
+    srvsvc_netconnectionenum.c \
     utils.c                    \
     main.c
 

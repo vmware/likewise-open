@@ -296,19 +296,51 @@ void _srvsvc_Function7(
 {
 }
 
-NET_API_STATUS _NetrConnectionEnum(
+NET_API_STATUS
+_NetrConnectionEnum(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *qualifier,
-    /* [in, out] */ UINT32 *level,
-    /* [in, out] */ srvsvc_NetConnCtr *ctr,
-    /* [in] */ UINT32 prefered_maximum_length,
-    /* [out] */ UINT32 *total_entries,
-    /* [in, out] */ UINT32 *resume_handle
+    /* [in] */ wchar16_t *pwszServerName,
+    /* [in] */ wchar16_t *pwszQualifier,
+    /* [in, out] */ PDWORD pdwLevel,
+    /* [in, out] */ srvsvc_NetConnCtr *pCtr,
+    /* [in] */ DWORD dwPrefMaxLength,
+    /* [out] */ PDWORD pdwTotalEntries,
+    /* [in, out] */ PDWORD pdwResume
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwRequiredAccessRights = SRVSVC_ACCESS_GET_INFO_ADMINS;
+    DWORD dwAccessGranted = 0;
+    SRVSVC_SRV_CONTEXT SrvCtx = {0};
 
+    dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &SrvCtx);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+                        SrvCtx.pUserToken,
+                        dwRequiredAccessRights,
+                        0,
+                        &GenericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+    dwError = SrvSvcNetrConnectionEnum(
+                    IDL_handle,
+                    pwszServerName,
+                    pwszQualifier,
+                    pdwLevel,
+                    pCtr,
+                    dwPrefMaxLength,
+                    pdwTotalEntries,
+                    pdwResume);
+
+error:
     return dwError;
 }
 
