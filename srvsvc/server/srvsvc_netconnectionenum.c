@@ -123,7 +123,6 @@ SrvSvcNetrConnectionEnum(
                         CreateOptions,
                         NULL,
                         0,
-                        NULL,
                         NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
