@@ -233,6 +233,14 @@ typedef struct _SRV_ENUM_CALLBACK_CONTEXT {
     PVOID pContext;
 } SRV_ENUM_CALLBACK_CONTEXT, *PSRV_ENUM_CALLBACK_CONTEXT;
 
+typedef struct _SRV_CONNECTION_ENUM_QUERY
+{
+    PWSTR  pwszShareName;
+    ULONG  ulConnectionCount;
+
+} SRV_CONNECTION_ENUM_QUERY, *PSRV_CONNECTION_ENUM_QUERY;
+
+
 #endif /* __STRUCTS_H__ */
 
 
@@ -245,5 +253,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-
-

@@ -140,7 +140,14 @@ SrvTree2Create(
 
     pTree->ulTid = ulTid;
     pTree->ullUid = pSession->ullUid;
-    pTree->ulConnectionResourceId = pSession->ulConnectionResourceId;
+
+    pTree->resource.resourceType                  = SRV_RESOURCE_TYPE_TREE;
+    pTree->resource.pAttributes                   = &pTree->resourceAttrs;
+    pTree->resource.pAttributes->protocolVersion  = SMB_PROTOCOL_VERSION_2;
+    pTree->resource.pAttributes->treeId.ulTid     = pTree->ulTid;
+    pTree->resource.pAttributes->sessionId.ullUid = pTree->ullUid;
+    pTree->resource.pAttributes->ulConnectionResourceId =
+                                             pSession->ulConnectionResourceId;
 
     LWIO_LOG_DEBUG("Associating Tree [object:0x%x][tid:%u]",
                     pTree,
@@ -499,6 +506,15 @@ SrvTree2Rundown(
 
     if (bDoRundown)
     {
+        if (pTree->resource.ulResourceId)
+        {
+            PSRV_RESOURCE pResource = NULL;
+
+            SrvElementsUnregisterResource(pTree->resource.ulResourceId,
+                                          &pResource);
+            pTree->resource.ulResourceId = 0;
+        }
+
         // Cannot rundown with lock held as they self-remove
         SrvTree2RundownFileList(pRundownFileList);
     }
@@ -645,6 +661,15 @@ SrvTree2Free(
     if (pTree->pShareInfo)
     {
         SrvShareReleaseInfo(pTree->pShareInfo);
+    }
+
+    if (pTree->resource.ulResourceId)
+    {
+        PSRV_RESOURCE pResource = NULL;
+
+        SrvElementsUnregisterResource(pTree->resource.ulResourceId,
+                                      &pResource);
+        pTree->resource.ulResourceId = 0;
     }
 
     // Release parent at the end

@@ -176,4 +176,43 @@ typedef struct _SRV_PROTOCOL_FILE_ENUM_QUERY
 
 } SRV_PROTOCOL_FILE_ENUM_QUERY, *PSRV_PROTOCOL_FILE_ENUM_QUERY;
 
+typedef struct _SRV_PROTOCOL_CONNECTION_ENUM_QUERY
+{
+    PWSTR    pwszComputerName;    /* These two are      */
+    PWSTR    pwszShareName;       /* mutually exclusive */
+    ULONG    ulInfoLevel;
+    ULONG    ulPreferredMaxLength;
+    ULONG    ulConnectionResId;
+
+    LONG64   llCurTime;
+
+    ULONG    iEntryIndex;
+    ULONG    iResumeIndex;
+
+    ULONG    ulEntriesRead;
+    ULONG    ulTotalEntries;
+
+    PBYTE    pBuffer;
+    ULONG    ulBufferSize;
+    ULONG    ulBytesUsed;
+
+    const struct sockaddr* pClientAddress;
+    SOCKLEN_T              clientAddrLen;
+    PWSTR                  pwszClientHost;
+
+    struct addrinfo* pQueryAddress;
+
+} SRV_PROTOCOL_CONNECTION_ENUM_QUERY, *PSRV_PROTOCOL_CONNECTION_ENUM_QUERY;
+
+
 #endif /* __STRUCTS_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

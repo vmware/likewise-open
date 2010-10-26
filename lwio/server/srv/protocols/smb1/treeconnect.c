@@ -312,6 +312,10 @@ SrvProcessTreeConnectAndX(
             ntStatus = SrvBuildTreeConnectResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+	    ntStatus = SrvElementsRegisterResource(&pTConState->pTree->resource,
+						   NULL);
+	    BAIL_ON_NT_STATUS(ntStatus);
+
             pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_DONE;
 
             // Intentional fall through
