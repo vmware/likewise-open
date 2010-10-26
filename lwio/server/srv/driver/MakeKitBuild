@@ -3,6 +3,7 @@ make()
     DRIVER_SOURCES="\
         ccb.c          \
 	config.c       \
+    connections.c  \
 	device.c       \
 	deviceclose.c  \
 	devicecreate.c \
