@@ -186,7 +186,7 @@ PvfsCreateFileSupersede(
                       &pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsCheckDeleteOnClose(
+        ntError = PvfsCheckDosAttributes(
                       Args,
                       pCreateCtx->pszDiskFilename,
                       pCreateCtx->GrantedAccess);
@@ -232,7 +232,7 @@ PvfsCreateFileSupersede(
     pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
                                         Args.DesiredAccess);
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   NULL,  /* New File */
                   pCreateCtx->GrantedAccess);
@@ -400,7 +400,7 @@ PvfsCreateFileCreate(
     pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
                                         Args.DesiredAccess);
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   NULL,  /* New File */
                   pCreateCtx->GrantedAccess);
@@ -492,7 +492,7 @@ PvfsCreateFileOpenOrOverwrite(
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   pCreateCtx->pszDiskFilename,
                   pCreateCtx->GrantedAccess);
@@ -666,7 +666,7 @@ PvfsCreateFileOpenOrOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL,
                   pCreateCtx->GrantedAccess);

@@ -687,17 +687,19 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
+static
 NTSTATUS
 PvfsCheckDeleteOnClose(
     IN IRP_ARGS_CREATE CreateArgs,
-    IN PSTR pszFilename,
-    IN ACCESS_MASK GrantedAccess
+    IN BOOLEAN bFileExists,
+    IN ACCESS_MASK GrantedAccess,
+    IN FILE_ATTRIBUTES Attributes
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    FILE_ATTRIBUTES Attributes = 0;
 
-    if (!(CreateArgs.CreateOptions & FILE_DELETE_ON_CLOSE)) {
+    if (!(CreateArgs.CreateOptions & FILE_DELETE_ON_CLOSE))
+    {
         goto cleanup;
     }
 
@@ -718,41 +720,22 @@ PvfsCheckDeleteOnClose(
 
     /* Dealing with files from here down */
 
-    if (pszFilename)
-    {
-        ntError = PvfsGetFilenameAttributes(
-                      pszFilename,
-                      &Attributes);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     switch (CreateArgs.CreateDisposition)
     {
     case FILE_OPEN:
     case FILE_OPEN_IF:
     case FILE_SUPERSEDE:
     case FILE_CREATE:
-        if (pszFilename)
+        if (Attributes & FILE_ATTRIBUTE_READONLY)
         {
-            if (Attributes & FILE_ATTRIBUTE_READONLY)
-            {
-                ntError = STATUS_CANNOT_DELETE;
-                BAIL_ON_NT_STATUS(ntError);
-            }
-        }
-        else
-        {
-            if (CreateArgs.FileAttributes & FILE_ATTRIBUTE_READONLY)
-            {
-                ntError = STATUS_CANNOT_DELETE;
-                BAIL_ON_NT_STATUS(ntError);
-            }
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
         }
         break;
 
     case FILE_OVERWRITE:
     case FILE_OVERWRITE_IF:
-        if (pszFilename && (CreateArgs.FileAttributes == 0))
+        if (bFileExists && (CreateArgs.FileAttributes == 0))
         {
             if (Attributes & FILE_ATTRIBUTE_READONLY)
             {
@@ -762,7 +745,7 @@ PvfsCheckDeleteOnClose(
         }
         else
         {
-            if (CreateArgs.FileAttributes & FILE_ATTRIBUTE_READONLY)
+            if (Attributes & FILE_ATTRIBUTE_READONLY)
             {
                 ntError = STATUS_CANNOT_DELETE;
                 BAIL_ON_NT_STATUS(ntError);
@@ -772,6 +755,96 @@ PvfsCheckDeleteOnClose(
     }
 
     ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsCheckReadOnly(
+    IN IRP_ARGS_CREATE CreateArgs,
+    IN BOOLEAN bFileExists,
+    IN ACCESS_MASK GrantedAccess,
+    IN FILE_ATTRIBUTES Attributes
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    /* ReadOnly is largely ignored by the file system on directories.
+       It is used by the Windows explorer.exe to mark folders as "special" */
+
+    if (!(CreateArgs.CreateOptions & FILE_DIRECTORY_FILE))
+    {
+        if (Attributes & FILE_ATTRIBUTE_READONLY)
+        {
+            ntError = STATUS_ACCESS_DENIED;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsCheckDosAttributes(
+    IN IRP_ARGS_CREATE CreateArgs,
+    IN OPTIONAL PSTR pszFilename,
+    IN ACCESS_MASK GrantedAccess
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    FILE_ATTRIBUTES Attributes = CreateArgs.FileAttributes;
+    BOOLEAN bFileExists = (pszFilename != NULL) ? TRUE : FALSE;
+
+    if (!((CreateArgs.CreateOptions & FILE_DELETE_ON_CLOSE) ||
+          (GrantedAccess & FILE_GENERIC_WRITE)))
+    {
+        goto cleanup;
+    }
+
+    if (pszFilename)
+    {
+        ntError = PvfsGetFilenameAttributes(pszFilename, &Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (CreateArgs.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        ntError = PvfsCheckDeleteOnClose(
+                      CreateArgs,
+                      bFileExists,
+                      GrantedAccess,
+                      Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    // Enforce ReadOnly on pre-existing files
+
+    if (bFileExists && (GrantedAccess & FILE_WRITE_DATA))
+    {
+        ntError = PvfsCheckReadOnly(
+                      CreateArgs,
+                      bFileExists,
+                      GrantedAccess,
+                      Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
 
 cleanup:
     return ntError;
