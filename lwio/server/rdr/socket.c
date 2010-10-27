@@ -578,10 +578,22 @@ SMBSocketReceiveAndUnmarshall(
 
     pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + sizeof(NETBIOS_HEADER));
 
+    if ((PBYTE) pPacket->pSMBHeader + sizeof(SMB_HEADER) >= pPacket->pRawBuffer + pPacket->bufferUsed)
+    {
+           ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+           BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     if (SMBIsAndXCommand(SMB_LTOH8(pPacket->pSMBHeader->command)))
     {
         pPacket->pAndXHeader = (ANDX_HEADER *)
             (pPacket->pRawBuffer + sizeof(SMB_HEADER) + sizeof(NETBIOS_HEADER));
+
+        if ((PBYTE) pPacket->pAndXHeader + sizeof(ANDX_HEADER) >= pPacket->pRawBuffer + pPacket->bufferUsed)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
     pPacket->pParams = pPacket->pAndXHeader ?
@@ -748,6 +760,16 @@ SMBSocketFindAndSignalResponse(
     uint16_t uid = SMB_LTOH16(pPacket->pSMBHeader->uid);
     uint16_t tid = SMB_LTOH16(pPacket->pSMBHeader->tid);
     uint16_t mid = SMB_LTOH16(pPacket->pSMBHeader->mid);
+    ULONG ulFlags = SMB_LTOH32(pPacket->pSMBHeader->flags);
+
+    /* If the packet is not a response, drop it on the floor */
+    if (!(ulFlags & FLAG_RESPONSE))
+    {
+        SMBPacketRelease(
+            pSocket->hPacketAllocator,
+            pPacket);
+        goto cleanup;
+    }
 
     /* If any intermediate object has an error status, then the
        waiting thread has (or will soon) be awoken with an error
