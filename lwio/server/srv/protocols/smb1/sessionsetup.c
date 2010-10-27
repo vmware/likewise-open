@@ -876,6 +876,7 @@ SrvMarshallSessionSetupResponse_WC_3(
     BAIL_ON_NT_STATUS(ntStatus);
 
     assert(ulBytesUsed <= UINT16_MAX);
+    pResponseHeader->action = 0x0;
     pResponseHeader->byteCount = (USHORT) ulBytesUsed;
 
     ulTotalBytesUsed += ulBytesUsed;
