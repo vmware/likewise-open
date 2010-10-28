@@ -161,7 +161,7 @@ PvfsSetCreateResult(
     );
 
 NTSTATUS
-PvfsCheckDeleteOnClose(
+PvfsCheckDosAttributes(
     IN IRP_ARGS_CREATE CreateArgs,
     IN PSTR pszFilename,
     IN ACCESS_MASK GrantedAccess

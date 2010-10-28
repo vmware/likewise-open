@@ -194,7 +194,7 @@ PvfsCreateDirCreate(
     pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
                                         Args.DesiredAccess);
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   NULL,  /* New directory */
                   pCreateCtx->GrantedAccess);
@@ -282,7 +282,7 @@ PvfsCreateDirOpen(
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL,
                   pCreateCtx->GrantedAccess);
@@ -406,7 +406,7 @@ PvfsCreateDirOpenIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCheckDeleteOnClose(
+    ntError = PvfsCheckDosAttributes(
                   Args,
                   pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL,
                   pCreateCtx->GrantedAccess);
