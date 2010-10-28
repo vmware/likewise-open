@@ -361,6 +361,7 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     pFSVolInfoHeader->llVolumeCreationTime = pFSVolInfo->VolumeCreationTime;
     pFSVolInfoHeader->ulVolumeSerialNumber = pFSVolInfo->VolumeSerialNumber;
     pFSVolInfoHeader->ulVolumeLabelLength = 0;
+    pFSVolInfoHeader->pad = 0;
 
     // pFSVolInfoHeader->ulVolumeLabelLength  = pFSVolInfo->VolumeLabelLength;
     // if (pFSVolInfo->VolumeLabelLength)

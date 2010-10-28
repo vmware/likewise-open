@@ -815,6 +815,8 @@ SrvBuildOplockBreakResponse_SMB_V2(
 
     pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
     pOplockBreakHeader->fid      = pOplockState->fid;
+    pOplockBreakHeader->ucReserved = 0;
+    pOplockBreakHeader->ulReserved = 0;
 
     switch (ucOplockLevel)
     {
