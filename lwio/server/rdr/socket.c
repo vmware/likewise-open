@@ -589,7 +589,8 @@ SMBSocketReceiveAndUnmarshall(
         pPacket->pAndXHeader = (ANDX_HEADER *)
             (pPacket->pRawBuffer + sizeof(SMB_HEADER) + sizeof(NETBIOS_HEADER));
 
-        if ((PBYTE) pPacket->pAndXHeader + sizeof(ANDX_HEADER) >= pPacket->pRawBuffer + pPacket->bufferUsed)
+        if (pPacket->pSMBHeader->error == 0 &&
+            (PBYTE) pPacket->pAndXHeader + sizeof(ANDX_HEADER) >= pPacket->pRawBuffer + pPacket->bufferUsed)
         {
             ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
