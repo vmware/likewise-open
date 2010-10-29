@@ -760,7 +760,7 @@ SMBSocketFindAndSignalResponse(
     uint16_t uid = SMB_LTOH16(pPacket->pSMBHeader->uid);
     uint16_t tid = SMB_LTOH16(pPacket->pSMBHeader->tid);
     uint16_t mid = SMB_LTOH16(pPacket->pSMBHeader->mid);
-    ULONG ulFlags = SMB_LTOH32(pPacket->pSMBHeader->flags);
+    ULONG ulFlags = pPacket->pSMBHeader->flags;
 
     /* If the packet is not a response, drop it on the floor */
     if (!(ulFlags & FLAG_RESPONSE))
