@@ -364,8 +364,6 @@ SrvSocketCompareAddress(
 
                 ntStatus = STATUS_NOT_SUPPORTED;
                 BAIL_ON_NT_STATUS(ntStatus);
-
-                break;
         }
     }
 

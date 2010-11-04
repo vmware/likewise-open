@@ -481,8 +481,6 @@ SrvConnectionSetProtocolVersion_inlock(
 
                 ntStatus = STATUS_INVALID_PARAMETER_2;
                 BAIL_ON_NT_STATUS(ntStatus);
-
-                break;
         }
 
         LwRtlRBTreeFree(pConnection->pSessionCollection);

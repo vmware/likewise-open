@@ -550,8 +550,6 @@ SrvLogSpecParseClients(
 
             ntStatus = STATUS_DATA_ERROR;
             BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
     }
 
     if (pLogFilterList) // reverse
@@ -777,8 +775,6 @@ SrvLogSpecParseOpcodes(
 
             ntStatus = STATUS_DATA_ERROR;
             BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
     }
 
     if (pLogOpFilterList)
@@ -968,8 +964,6 @@ SrvLogSpecParseLoglevel(
 
                         ntStatus = STATUS_DATA_ERROR;
                         BAIL_ON_NT_STATUS(ntStatus);
-
-                        break;
                 }
             }
 
