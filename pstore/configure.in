@@ -153,6 +153,7 @@ else
     pstorecachedir="$localstatedir"
 fi
 AC_DEFINE_UNQUOTED([LWPS_CACHE_DIR], ["$pstorecachedir"], [Location of pstore cache files])
+AC_DEFINE_UNQUOTED([LWPS_LOCK_DIR], ["$pstorecachedir"], [Location of pstore registry lock file])
 
 AS_AC_EXPAND(providerdir, $libdir)
 

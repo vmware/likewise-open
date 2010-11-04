@@ -103,7 +103,7 @@ RegDB_OpenProvider(
     BAIL_ON_LWPS_ERROR(dwError);
 
     dwError = LwpsCreateRWLock(
-                  LWPS_CONFIG_DIR "/" LWPS_LOCK_FILE,
+                  LWPS_LOCK_DIR "/" LWPS_LOCK_FILE,
                   &pContext->hRWLock);
     BAIL_ON_LWPS_ERROR(dwError);
 
