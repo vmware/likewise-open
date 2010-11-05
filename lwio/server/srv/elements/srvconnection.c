@@ -2399,10 +2399,8 @@ SrvConnectionCountTrees(
     PSRV_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
                                 (PSRV_CONNECTION_ENUM_QUERY)pUserData;
     BOOLEAN bInTreeLock = FALSE;
-    BOOLEAN bInShareLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInTreeLock, &pTree->mutex);
-    LWIO_LOCK_RWMUTEX_SHARED(bInShareLock, &pTree->pShareInfo->mutex);
 
     /*
      * Count all trees if the requested share name is NULL
@@ -2416,7 +2414,6 @@ SrvConnectionCountTrees(
         pConnectionEnumQuery->ulConnectionCount++;
     }
 
-    LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
     LWIO_UNLOCK_RWMUTEX(bInTreeLock, &pTree->mutex);
 
     *pbContinue = TRUE;
@@ -2511,10 +2508,8 @@ SrvConnectionCountTrees2(
     PSRV_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
                                 (PSRV_CONNECTION_ENUM_QUERY)pUserData;
     BOOLEAN bInTreeLock = FALSE;
-    BOOLEAN bInShareLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInTreeLock, &pTree->mutex);
-    LWIO_LOCK_RWMUTEX_SHARED(bInShareLock, &pTree->pShareInfo->mutex);
 
     /*
      * Count all trees if the requested share name is NULL
@@ -2528,7 +2523,6 @@ SrvConnectionCountTrees2(
         pConnectionEnumQuery->ulConnectionCount++;
     }
 
-    LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
     LWIO_UNLOCK_RWMUTEX(bInTreeLock, &pTree->mutex);
 
     *pbContinue = TRUE;
