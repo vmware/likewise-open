@@ -488,18 +488,14 @@ SrvProtocolProcessCandidateTree(
     PLWIO_SRV_TREE pTree = (PLWIO_SRV_TREE)pData;
     PSRV_PROTOCOL_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
                                     (PSRV_PROTOCOL_CONNECTION_ENUM_QUERY)pUserData;
-    BOOLEAN bInShareLock = FALSE;
     BOOLEAN bInTreeLock = FALSE;
 
     if (pConnectionEnumQuery->pwszShareName)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bInShareLock, &pTree->pShareInfo->mutex);
-
         if (!LwRtlWC16StringIsEqual(pConnectionEnumQuery->pwszShareName,
                                     pTree->pShareInfo->pwszName,
                                     FALSE))
         {
-            LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
             pTree = NULL;
         }
     }
@@ -510,7 +506,6 @@ SrvProtocolProcessCandidateTree(
         {
             pConnectionEnumQuery->iEntryIndex++;
 
-            LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
             pTree = NULL; // Skip
         }
     }
@@ -604,8 +599,8 @@ SrvProtocolProcessCandidateTree(
     *pbContinue = TRUE;
 
 cleanup:
+
     LWIO_UNLOCK_RWMUTEX(bInTreeLock, &pTree->mutex);
-    LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
 
     return ntStatus;
 
@@ -665,18 +660,14 @@ SrvProtocolProcessCandidateTree2(
     PLWIO_SRV_TREE_2 pTree = (PLWIO_SRV_TREE_2)pData;
     PSRV_PROTOCOL_CONNECTION_ENUM_QUERY pConnectionEnumQuery =
                                     (PSRV_PROTOCOL_CONNECTION_ENUM_QUERY)pUserData;
-    BOOLEAN bInShareLock = FALSE;
     BOOLEAN bInTreeLock = FALSE;
 
     if (pConnectionEnumQuery->pwszShareName)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bInShareLock, &pTree->pShareInfo->mutex);
-
         if (!LwRtlWC16StringIsEqual(pConnectionEnumQuery->pwszShareName,
                                     pTree->pShareInfo->pwszName,
                                     FALSE))
         {
-            LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
             pTree = NULL;
         }
     }
@@ -687,7 +678,6 @@ SrvProtocolProcessCandidateTree2(
         {
             pConnectionEnumQuery->iEntryIndex++;
 
-            LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
             pTree = NULL; // Skip
         }
     }
@@ -781,7 +771,6 @@ SrvProtocolProcessCandidateTree2(
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bInTreeLock, &pTree->mutex);
-    LWIO_UNLOCK_RWMUTEX(bInShareLock, &pTree->pShareInfo->mutex);
 
     return ntStatus;
 
