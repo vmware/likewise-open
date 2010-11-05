@@ -1127,7 +1127,7 @@ LocalDirModifyUser(
         BAIL_ON_LSA_ERROR(dwError);
 
         LsaUtilFreeSecurityObject(pObject);
-        ppObjects = NULL;
+        pObject = NULL;
 
         dwError = DirectoryRemoveFromGroup(
             pContext->hDirectory,
