@@ -856,6 +856,7 @@ SrvBuildFileBasicInfoResponse_SMB_V2(
     fileBasicInfoPacked.FileAttributes = pFileBasicInfo->FileAttributes;
     fileBasicInfoPacked.LastAccessTime = pFileBasicInfo->LastAccessTime;
     fileBasicInfoPacked.LastWriteTime  = pFileBasicInfo->LastWriteTime;
+    fileBasicInfoPacked.unknown        = 0;
 
     pGetInfoResponseHeader->ulOutBufferLength =
                                         sizeof(SMB2_FILE_BASIC_INFORMATION);
@@ -1122,6 +1123,7 @@ SrvBuildFileNetworkOpenInfoResponse_SMB_V2(
                             pFileNetworkOpenInfo->EndOfFile;
     fileNetworkOpenInfoPacked.ulFileAttributes    =
                             pFileNetworkOpenInfo->FileAttributes;
+    fileNetworkOpenInfoPacked.ulPad               = 0;
 
     memcpy(pOutBuffer, &fileNetworkOpenInfoPacked,
                 sizeof(SMB2_FILE_NETWORK_OPEN_INFORMATION));
@@ -1616,6 +1618,7 @@ SrvBuildFileAllInfoResponse_SMB_V2(
                             pFileAllInfo->BasicInformation.LastWriteTime;
     pFileAllInfoHeader->ulFileAttributes =
                             pFileAllInfo->BasicInformation.FileAttributes;
+    pFileAllInfoHeader->ulReserved        = 0;
     pFileAllInfoHeader->ullAllocationSize =
                             pFileAllInfo->StandardInformation.AllocationSize;
     pFileAllInfoHeader->ullEndOfFile =
@@ -1626,6 +1629,7 @@ SrvBuildFileAllInfoResponse_SMB_V2(
                             pFileAllInfo->StandardInformation.DeletePending;
     pFileAllInfoHeader->ucIsDirectory =
                             pFileAllInfo->StandardInformation.Directory;
+    pFileAllInfoHeader->usReserved     = 0;
     pFileAllInfoHeader->ullIndexNumber =
                             pFileAllInfo->InternalInformation.IndexNumber;
     pFileAllInfoHeader->ulEaSize =
@@ -2836,6 +2840,9 @@ SrvBuildFileCompressionInfoResponse_SMB_V2(
                     pFileCompressionInfo->CompressionUnitShift;
     pFileCompressionInfoHeader->usCompressionFormat =
                     pFileCompressionInfo->CompressionFormat;
+    pFileCompressionInfoHeader->ucReserved[0] =
+            pFileCompressionInfoHeader->ucReserved[1] =
+                    pFileCompressionInfoHeader->ucReserved[2] = 0;
 
     // pOutBuffer       += pGetInfoResponseHeader->ulOutBufferLength;
     // ulBytesAvailable -= pGetInfoResponseHeader->ulOutBufferLength;

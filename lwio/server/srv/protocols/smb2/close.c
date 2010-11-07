@@ -500,6 +500,7 @@ SrvBuildCloseResponse_SMB_V2(
     }
 
     pResponseHeader = (PSMB2_CLOSE_RESPONSE_HEADER)pOutBuffer;
+    memset(pResponseHeader, 0, sizeof(*pResponseHeader));
 
     pOutBuffer       += sizeof(SMB2_CLOSE_RESPONSE_HEADER);
     ulBytesUsed       = sizeof(SMB2_CLOSE_RESPONSE_HEADER);
