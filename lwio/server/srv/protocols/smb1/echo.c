@@ -255,6 +255,7 @@ SrvMarshallEchoResponse(
                     &usBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pResponseHeader->sequenceNumber = 0;
     pResponseHeader->byteCount = (USHORT)usBytesUsed;
 
     // pOutBuffer       += usBytesUsed;

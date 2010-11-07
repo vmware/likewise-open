@@ -1047,6 +1047,7 @@ SrvBuildOpenResponse(
         pResponseHeader->usFileType = 0;
         pResponseHeader->usDeviceState = 0;
     }
+    pResponseHeader->usReserved  = 0;
     pResponseHeader->usByteCount = 0;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
