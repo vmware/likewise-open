@@ -100,7 +100,7 @@ SrvTransportInit(
     {
         LWIO_LOG_ERROR("Could not establish any listeners");
 
-        ntStatus = v4Status ? v4Status : v6Status;
+        ntStatus = v4Status;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

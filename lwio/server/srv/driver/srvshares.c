@@ -178,7 +178,6 @@ SrvShareDevCtlAdd(
     default:
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
-        break;
     }
 
     pShareList = &gSMBSrvGlobals.shareList;
@@ -447,8 +446,6 @@ SrvShareDevCtlEnum(
 
             ntStatus = STATUS_INVALID_LEVEL;
             BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
     }
 
     EnumShareInfoParamsOut.dwInfoLevel  = ulLevel;
@@ -709,8 +706,6 @@ SrvShareDevCtlGetInfo(
 
             ntStatus = STATUS_INVALID_LEVEL;
             BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
     }
 
     GetShareInfoParamsOut.dwInfoLevel = ulLevel;
