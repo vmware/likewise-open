@@ -39,7 +39,7 @@
 #ifndef __LWBASE_SECURITY_API_H__
 #define __LWBASE_SECURITY_API_H__
 
-#include "security-types.h"
+#include <lw/security-types.h>
 #include <lw/ntstatus.h>
 #include <lw/rtlstring.h>
 
@@ -223,6 +223,36 @@ RtlGetAclAceCount(
     IN PACL Acl
     );
 
+///<
+/// Get size required for an ACCESS_ALLOWED_ACE.
+///
+/// This function gets the number of bytes required for an
+/// access allowed ACE (ACCESS_ALLOWED_ACE) given a particular SID.
+///
+/// @param[in] Sid - SID for ACE.
+///
+/// @return Number of bytes required or 0 if Sid is invalid.
+///
+USHORT
+RtlLengthAccessAllowedAce(
+    IN PSID Sid
+    );
+
+///<
+/// Get size required for an ACCESS_DENIED_ACE.
+///
+/// This function gets the number of bytes required for an
+/// access denied ACE (ACCESS_DENIED_ACE) given a particular SID.
+///
+/// @param[in] Sid - SID for ACE.
+///
+/// @return Number of bytes required or 0 if Sid is invalid.
+///
+USHORT
+RtlLengthAccessDeniedAce(
+    IN PSID Sid
+    );
+
 NTSTATUS
 RtlAddAccessAllowedAceEx(
     IN PACL Acl,
@@ -272,6 +302,11 @@ RtlValidRelativeSecurityDescriptor(
 ULONG
 RtlLengthSecurityDescriptor(
     IN PSECURITY_DESCRIPTOR_ABSOLUTE SecurityDescriptor
+    );
+
+ULONG
+RtlLengthSecurityDescriptorRelative(
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor
     );
 
 NTSTATUS
@@ -591,6 +626,27 @@ RtlCreateWellKnownSid(
     IN OPTIONAL PSID DomainOrComputerSid,
     OUT OPTIONAL PSID Sid,
     IN OUT PULONG SidSize
+    );
+
+
+//
+// SDDL Functions
+//
+NTSTATUS
+RtlAllocateSecurityDescriptorFromSddlCString(
+    OUT PSECURITY_DESCRIPTOR_RELATIVE* ppSecurityDescriptor,
+    OUT OPTIONAL PULONG pSecurityDescriptorLength,
+    IN PCSTR pszStringSecurityDescriptor,
+    IN ULONG SddlRevision
+    );
+
+
+NTSTATUS
+RtlAllocateSddlCStringFromSecurityDescriptor(
+    OUT PSTR* ppszStringSecurityDescriptor,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG SddlRevision,
+    IN SECURITY_INFORMATION SecurityInformation
     );
 
 LW_END_EXTERN_C
