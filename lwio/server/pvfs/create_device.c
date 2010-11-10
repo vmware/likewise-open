@@ -62,6 +62,9 @@ PvfsCreateDevice(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    // Initialize CreateOptions since it might be used without setting
+    pCcb->CreateOptions = 0;
+
     LWIO_LOCK_MUTEX(bLocked, &gDeviceFcbMutex);
 
     if (!gpPvfsDeviceFcb)
