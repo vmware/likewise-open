@@ -82,7 +82,7 @@ SMB2InitPacket(
     }
 
     pSmbPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer);
-    pSmbPacket->bufferUsed += sizeof(NETBIOS_HEADER);
+    pSmbPacket->bufferUsed = sizeof(NETBIOS_HEADER);
     pBuffer += sizeof(NETBIOS_HEADER);
 
     pSmbPacket->pSMB2Header = (PSMB2_HEADER)pBuffer;
@@ -184,6 +184,7 @@ SMB2MarshalHeader(
     }
 
     pSMB2Header = (PSMB2_HEADER)pDataCursor;
+    LwRtlZeroMemory(pSMB2Header, sizeof(SMB2_HEADER));
 
     ulBytesUsed      += sizeof(SMB2_HEADER);
     ulBytesAvailable -= sizeof(SMB2_HEADER);
