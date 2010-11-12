@@ -224,7 +224,7 @@ RdrQueryDirectory(
         BAIL_ON_NT_STATUS(status);
 
         status = RdrFileSpecToSearchPattern(
-            pFile->pwszPath,
+            RDR_CCB_PATH(pFile),
             pIrp->Args.QueryDirectory.FileSpec,
             &pwszPattern);
         BAIL_ON_NT_STATUS(status);
@@ -299,6 +299,11 @@ RdrTransceiveFindFirst2(
         TRUE,
         &pContext->Packet);
     BAIL_ON_NT_STATUS(status);
+
+    if (pTree->usSupportFlags & SMB_SHARE_IS_IN_DFS)
+    {
+        pContext->Packet.pSMBHeader->flags2 |= FLAG2_DFS;
+    }
 
     pContext->Packet.pData = pContext->Packet.pParams + sizeof(TRANSACTION_REQUEST_HEADER);
     pContext->Packet.bufferUsed += sizeof(TRANSACTION_REQUEST_HEADER);
