@@ -90,10 +90,8 @@ SrvWorkerInit(
             LWIO_LOG_ERROR("Error setting thread affinity");
             ntStatus = STATUS_SUCCESS;
         }
-        else
-        {
-            pThreadAttr = &threadAttr;
-        }
+
+        pThreadAttr = &threadAttr;
     }
 
     ntStatus = pthread_create(
@@ -106,6 +104,11 @@ SrvWorkerInit(
     pWorker->pWorker = &pWorker->worker;
 
 error:
+
+    if (pThreadAttr)
+    {
+        pthread_attr_destroy(&threadAttr);
+    }
 
     return ntStatus;
 }
