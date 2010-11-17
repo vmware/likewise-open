@@ -867,7 +867,9 @@ SrvSendZctReadResponse(
     LW_ZCT_ENTRY entry = { 0 };
 
     pExecContext->pSmbResponse->bufferUsed += pSmbResponse->ulMessageSize;
-    SMBPacketMarshallFooter(pExecContext->pSmbResponse);
+
+    ntStatus = SMBPacketMarshallFooter(pExecContext->pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     entry.Type = LW_ZCT_ENTRY_TYPE_MEMORY;
     entry.Length = pExecContext->pSmbResponse->bufferUsed - pReadState->ulBytesRead;
