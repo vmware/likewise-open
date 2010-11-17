@@ -853,7 +853,7 @@ SrvBuildTreeConnectResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 3;
+    *pSmbResponse->pWordCount = 7;
 
     if (ulBytesAvailable < sizeof(TREE_CONNECT_RESPONSE_HEADER))
     {
@@ -869,6 +869,11 @@ SrvBuildTreeConnectResponse(
     ulTotalBytesUsed += sizeof(TREE_CONNECT_RESPONSE_HEADER);
 
     pResponseHeader->optionalSupport = 0;
+    pResponseHeader->maximalShareAccessMask =
+                                pTConState->ulMaximalShareAccessMask;
+
+    pResponseHeader->guestMaximalShareAccessMask =
+                                pTConState->ulGuestMaximalShareAccessMask;
 
     ntStatus = MarshallTreeConnectResponseData(
                     pOutBuffer,
