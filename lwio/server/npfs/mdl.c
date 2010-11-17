@@ -1,3 +1,6 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
 /*
  * Copyright (c) Likewise Software.  All rights reserved.
  *
@@ -83,19 +86,29 @@ NpfsDequeueBuffer(
     }
 
     LengthRemaining = Length;
-    while (LengthRemaining && !NpfsMdlListIsEmpty(pMdlList))
+
+    while (!NpfsMdlListIsEmpty(pMdlList))
     {
         pMdl = LW_STRUCT_FROM_FIELD(pMdlList->Next, NPFS_MDL, link);
         BytesAvail = pMdl->Length - pMdl->Offset;
         BytesToCopy = min(BytesAvail, LengthRemaining);
-        memcpy(pBuffer, pMdl->Buffer + pMdl->Offset, BytesToCopy);
-        BytesCopied += BytesToCopy;
-        pMdl->Offset += BytesToCopy;
-        LengthRemaining -= BytesToCopy;
+        if (BytesToCopy)
+        {
+            memcpy(pBuffer + BytesCopied, pMdl->Buffer + pMdl->Offset, BytesToCopy);
+            BytesCopied += BytesToCopy;
+            pMdl->Offset += BytesToCopy;
+            LengthRemaining -= BytesToCopy;
+        }
+
         if (pMdl->Length - pMdl->Offset == 0)
         {
             NpfsDequeueMdl(pMdlList, &pMdl);
             NpfsFreeMdl(pMdl);
+        }
+        else
+        {
+            ntStatus = STATUS_BUFFER_TOO_SMALL;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
@@ -249,3 +262,13 @@ NpfsMdlListIsEmpty(
 {
     return LwListIsEmpty(pMdlList);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
