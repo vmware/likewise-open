@@ -1895,16 +1895,14 @@ SrvBuildFSFullSizeInfoResponse(
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
     pFSSizeInfo = (PFILE_FS_SIZE_INFORMATION)pTrans2State->pData2;
 
-    fsFullSizeInfo.ullTotalAllocationUnits =
-            SMB_MIN(UINT64_MAX, pFSSizeInfo->TotalAllocationUnits);
+    fsFullSizeInfo.ullTotalAllocationUnits = pFSSizeInfo->TotalAllocationUnits;
     fsFullSizeInfo.ullCallerAvailableAllocationUnits =
-            SMB_MIN(UINT64_MAX, pFSSizeInfo->AvailableAllocationUnits);
+            pFSSizeInfo->AvailableAllocationUnits;
     fsFullSizeInfo.ullAvailableAllocationUnits =
-            SMB_MIN(UINT64_MAX, pFSSizeInfo->AvailableAllocationUnits);
+            pFSSizeInfo->AvailableAllocationUnits;
     fsFullSizeInfo.ulSectorsPerAllocationUnit =
             pFSSizeInfo->SectorsPerAllocationUnit;
-    fsFullSizeInfo.ulBytesPerSector =
-            SMB_MIN(UINT32_MAX, pFSSizeInfo->BytesPerSector);
+    fsFullSizeInfo.ulBytesPerSector = pFSSizeInfo->BytesPerSector;
 
     if (!pSmbResponse->ulSerialNum)
     {
