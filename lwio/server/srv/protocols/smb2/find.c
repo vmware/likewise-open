@@ -239,7 +239,6 @@ SrvProcessFind_SMB_V2(
     ULONG ulDataOffset     = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
-    PIO_ECP_LIST pEcpList = NULL;
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
                     pCtxSmb2,
@@ -324,7 +323,7 @@ SrvProcessFind_SMB_V2(
                         pFile->createOptions,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        pEcpList);
+                        NULL);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (pFile->hFile)
@@ -619,11 +618,6 @@ SrvProcessFind_SMB_V2(
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
-
-    if (pEcpList)
-    {
-        IoRtlEcpListFree(&pEcpList);
-    }
 
     if (pwszFilesystemPath)
     {
