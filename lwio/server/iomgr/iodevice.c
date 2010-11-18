@@ -112,12 +112,16 @@ IoDeviceDelete(
 {
     PIO_DEVICE_OBJECT pDeviceObject = *pDeviceHandle;
 
-    LWIO_ASSERT(pDeviceObject);
+    // Disabling assert as it it firing on every shutdown and causing Crash reports to collect on Mac systems.
+    // See bug 11648.
+    //LWIO_ASSERT(pDeviceObject);
 
     if (pDeviceObject)
     {
         // TODO -- add proper drain support...
-        LWIO_ASSERT(LwListIsEmpty(&pDeviceObject->FileObjectsList));
+        // Disabling assert as it it firing on every shutdown and causing Crash reports to collect on Mac systems.
+        // See bug 11648.
+        // LWIO_ASSERT(LwListIsEmpty(&pDeviceObject->FileObjectsList));
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
         IopRootRemoveDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
         RtlUnicodeStringFree(&pDeviceObject->DeviceName);
