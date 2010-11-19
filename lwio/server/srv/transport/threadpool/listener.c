@@ -60,7 +60,8 @@ static
 NTSTATUS
 SrvListenerInitSocket(
     PSRV_TRANSPORT_LISTENER pListener,
-    BOOLEAN bInet6
+    BOOLEAN bInet6,
+    BOOLEAN bNetbios
     )
 {
     NTSTATUS ntStatus = 0;
@@ -70,10 +71,18 @@ SrvListenerInitSocket(
     if (bInet6)
     {
 #ifdef AF_INET6
-        pListener->Addr.Addr6.sin6_family = AF_INET6;
-        /* Leave address zero */
-        pListener->Addr.Addr6.sin6_port = htons(SMB_SERVER_PORT);
-        pListener->AddrLen = sizeof(pListener->Addr.Addr6);
+        if (bNetbios)
+        {
+            ntStatus = STATUS_NOT_SUPPORTED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+        else
+        {
+            pListener->Addr.Addr6.sin6_family = AF_INET6;
+            /* Leave address zero */
+            pListener->Addr.Addr6.sin6_port = htons(SMB_SERVER_PORT);
+            pListener->AddrLen = sizeof(pListener->Addr.Addr6);
+        }
 #else
         ntStatus = STATUS_NOT_SUPPORTED;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -83,7 +92,14 @@ SrvListenerInitSocket(
     {
         pListener->Addr.Addr4.sin_family = AF_INET;
         pListener->Addr.Addr4.sin_addr.s_addr  = htonl(INADDR_ANY);
-        pListener->Addr.Addr4.sin_port = htons(SMB_SERVER_PORT);
+        if (bNetbios)
+        {
+            pListener->Addr.Addr4.sin_port = htons(NETBIOS_SERVER_PORT);
+        }
+        else
+        {
+            pListener->Addr.Addr4.sin_port = htons(SMB_SERVER_PORT);
+        }
         pListener->AddrLen = sizeof(pListener->Addr.Addr4);
     }
 
@@ -157,7 +173,8 @@ NTSTATUS
 SrvListenerInit(
     OUT PSRV_TRANSPORT_LISTENER pListener,
     IN SRV_TRANSPORT_HANDLE pTransport,
-    IN BOOLEAN bInet6
+    IN BOOLEAN bInet6,
+    IN BOOLEAN bNetbios
     )
 {
     NTSTATUS ntStatus = 0;
@@ -166,7 +183,7 @@ SrvListenerInit(
 
     pListener->pTransport = pTransport;
 
-    ntStatus = SrvListenerInitSocket(pListener, bInet6);
+    ntStatus = SrvListenerInitSocket(pListener, bInet6, bNetbios);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlCreateTaskGroup(pTransport->pPool, &pListener->pTaskGroup);

@@ -79,6 +79,11 @@ SrvProtocolConfigIsSigningRequired(
     );
 
 BOOLEAN
+SrvProtocolConfigIsNetbiosEnabled(
+    VOID
+    );
+
+BOOLEAN
 SrvProtocolConfigIsSmb2Enabled(
     VOID
     );

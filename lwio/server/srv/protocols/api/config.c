@@ -86,6 +86,12 @@ SrvProtocolReadConfig(
     /* Ignore error as it may not exist; we can still use default. */
     LwIoReadConfigBoolean(
             pReg,
+            "SupportNetbios",
+            bUsePolicy,
+            &config.bEnableNetbios);
+
+    LwIoReadConfigBoolean(
+            pReg,
             "SupportSmb2",
             bUsePolicy,
             &config.bEnableSmb2);
@@ -164,6 +170,7 @@ SrvProtocolInitConfig(
 
     SrvProtocolFreeConfigContents(pConfig);
 
+    pConfig->bEnableNetbios = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_NETBIOS;
     pConfig->bEnableSmb2 = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2;
     pConfig->bEnableSigning = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING;
     pConfig->bRequireSigning = SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
@@ -234,6 +241,24 @@ SrvProtocolConfigIsSigningRequired(
 
     return bRequired;
 }
+
+BOOLEAN
+SrvProtocolConfigIsNetbiosEnabled(
+    VOID
+    )
+{
+    BOOLEAN bEnabled = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
+
+    bEnabled = gProtocolApiGlobals.config.bEnableNetbios;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return bEnabled;
+}
+
 
 BOOLEAN
 SrvProtocolConfigIsSmb2Enabled(

@@ -52,6 +52,8 @@
 #include "lwthreads.h"
 #include <lwio/lwzct.h>
 
+#define NETBIOS_SERVER_PORT 139
+
 // Provided by Transport layer -- Opaque to Protocol layer:
 typedef struct _SRV_TRANSPORT_HANDLE_DATA *SRV_TRANSPORT_HANDLE, **PSRV_TRANSPORT_HANDLE;
 typedef struct _SRV_SOCKET *PSRV_SOCKET;
@@ -157,7 +159,8 @@ NTSTATUS
 SrvTransportInit(
     OUT PSRV_TRANSPORT_HANDLE phTransport,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
-    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
+    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
+    IN BOOL bNbEnabled
     );
 
 VOID
