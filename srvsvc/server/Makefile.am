@@ -88,10 +88,11 @@ srvsvcd_LDADD = \
     libwinreg_ss.la                         \
     $(LSASS_LIBS)                           \
     $(DCERPC_LIBS)                          \
-    $(LIBUNISTR_LIBS)                       \
-    $(LWADVAPI_LIBS)                        \
     $(LWIO_LIBS)                            \
-    $(NETLOGON_LIBS)
+    -llwbase                                \
+    -llwbase_nothr                          \
+    -llwadvapi                              \
+    -llwadvapi_nothr
 
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
              winreg_h.h winreg_cstub.c winreg_sstub.c
