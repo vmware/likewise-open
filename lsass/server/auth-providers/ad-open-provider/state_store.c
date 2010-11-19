@@ -838,9 +838,6 @@ ADState_ReadRegCellEntry(
     DWORD dwMultiCellListOrder = 0;
     DWORD dwIsForestCell = 0;
 
-    dwError = LwAllocateMemory(sizeof(*pListEntry), (PVOID) &pListEntry);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = RegOpenServer(&hReg);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -869,6 +866,9 @@ ADState_ReadRegCellEntry(
 
     for (i=0; i<dwMultiCellListOrder; i++)
     {
+        dwError = LwAllocateMemory(sizeof(*pListEntry), (PVOID) &pListEntry);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = RegUtilGetValue(
                       hReg,
                       HKEY_THIS_MACHINE,
@@ -906,6 +906,7 @@ ADState_ReadRegCellEntry(
                       ppCellList,
                       pListEntry);
         BAIL_ON_LSA_ERROR(dwError);
+        pListEntry = NULL;
     }
 
 cleanup:
@@ -913,6 +914,11 @@ cleanup:
     {
         LW_SAFE_FREE_STRING(ppszMultiCellListOrder[i]);
     }
+    if (pListEntry)
+    {
+        ADProviderFreeCellInfo(pListEntry);
+    }
+
     LW_SAFE_FREE_MEMORY(ppszMultiCellListOrder);
     return dwError;
 
