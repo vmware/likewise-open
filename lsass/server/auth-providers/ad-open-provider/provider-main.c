@@ -1525,7 +1525,7 @@ cleanup:
 DWORD
 AD_AuthenticateUserPam(
     HANDLE hProvider,
-    LSA_AUTH_USER_PAM_PARAMS* pParams,
+    PLSA_AUTH_USER_PAM_PARAMS pParams,
     PLSA_AUTH_USER_PAM_INFO* ppPamAuthInfo
     )
 {
