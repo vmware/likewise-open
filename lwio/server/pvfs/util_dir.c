@@ -203,41 +203,46 @@ PvfsEnumerateDirectory(
         pCcb->pDirContext->bScanned = FALSE;
     }
 
-    // A single file name match is the equivalent of a Windows Stat()
-
-    if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
-    {
-        ntError = PvfsLookupFile(
-                      &pszDiskFilename,
-                      &Stat,
-                      pCcb->pszFilename,
-                      pszPattern,
-                      FALSE);
-        BAIL_ON_NT_STATUS(ntError);
-
-        RtlCStringFree(&pszDiskFilename);
-
-        if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
-        {
-            ntError = PvfsAccessCheckFileEnumerate(pCcb, pszPattern);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pszPattern);
-        BAIL_ON_NT_STATUS(ntError);
-
-        // Success
-        goto cleanup;
-    }
 
     if (!pCcb->pDirContext->bScanned)
     {
-        ntError = PvfsSysOpenDir(
-                      pCcb->pszFilename,
-                      &pCcb->pDirContext->pDir);
-        BAIL_ON_NT_STATUS(ntError);
+        if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
+        {
+            // A single file name match is the equivalent of a Windows Stat()
+            ntError = PvfsLookupFile(
+                          &pszDiskFilename,
+                          &Stat,
+                          pCcb->pszFilename,
+                          pszPattern,
+                          FALSE);
+            BAIL_ON_NT_STATUS(ntError);
 
-        pCcb->pDirContext->bScanned = TRUE;
+            RtlCStringFree(&pszDiskFilename);
+
+            if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
+            {
+                ntError = PvfsAccessCheckFileEnumerate(pCcb, pszPattern);
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+            ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pszPattern);
+            BAIL_ON_NT_STATUS(ntError);
+
+            pCcb->pDirContext->bScanned = TRUE;
+
+            // Success
+            goto cleanup;
+        }
+        else
+        {
+            // Prepare to enumerate the entire directory
+            ntError = PvfsSysOpenDir(
+                          pCcb->pszFilename,
+                          &pCcb->pDirContext->pDir);
+            BAIL_ON_NT_STATUS(ntError);
+
+            pCcb->pDirContext->bScanned = TRUE;
+        }
     }
 
     /* Loop to read entries */
