@@ -172,6 +172,8 @@ PvfsEnumerateDirectory(
     struct dirent dirEntry = { 0 };
     PSTR pszPattern = NULL;
     BOOLEAN bCaseSensitive = FALSE;
+    PSTR pszDiskFilename = NULL;
+    PVFS_STAT Stat = { 0 };
 
     if (Count == 0)
     {
@@ -201,6 +203,32 @@ PvfsEnumerateDirectory(
         pCcb->pDirContext->bScanned = FALSE;
     }
 
+    // A single file name match is the equivalent of a Windows Stat()
+
+    if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
+    {
+        ntError = PvfsLookupFile(
+                      &pszDiskFilename,
+                      &Stat,
+                      pCcb->pszFilename,
+                      pszPattern,
+                      FALSE);
+        BAIL_ON_NT_STATUS(ntError);
+
+        RtlCStringFree(&pszDiskFilename);
+
+        if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
+        {
+            ntError = PvfsAccessCheckFileEnumerate(pCcb, pszPattern);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pszPattern);
+        BAIL_ON_NT_STATUS(ntError);
+
+        // Success
+        goto cleanup;
+    }
 
     if (!pCcb->pDirContext->bScanned)
     {
