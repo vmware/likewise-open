@@ -174,6 +174,8 @@ PvfsEnumerateDirectory(
     BOOLEAN bCaseSensitive = FALSE;
     PSTR pszDiskFilename = NULL;
     PVFS_STAT Stat = { 0 };
+    PSTR pszResolvedDirname = NULL;
+    PSTR pszResolvedFilename = NULL;
 
     if (Count == 0)
     {
@@ -217,15 +219,23 @@ PvfsEnumerateDirectory(
                           FALSE);
             BAIL_ON_NT_STATUS(ntError);
 
-            RtlCStringFree(&pszDiskFilename);
+            ntError = PvfsFileSplitPath(
+                          &pszResolvedDirname,
+                          &pszResolvedFilename,
+                          pszDiskFilename);
+            BAIL_ON_NT_STATUS(ntError);
 
             if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
             {
-                ntError = PvfsAccessCheckFileEnumerate(pCcb, pszPattern);
+                ntError = PvfsAccessCheckFileEnumerate(
+                              pCcb,
+                              pszResolvedFilename);
                 BAIL_ON_NT_STATUS(ntError);
             }
 
-            ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pszPattern);
+            ntError = PvfsDirContextAddEntry(
+                          pCcb->pDirContext,
+                          pszResolvedFilename);
             BAIL_ON_NT_STATUS(ntError);
 
             pCcb->pDirContext->bScanned = TRUE;
@@ -311,6 +321,9 @@ PvfsEnumerateDirectory(
     }
 
 cleanup:
+    RtlCStringFree(&pszResolvedFilename);
+    RtlCStringFree(&pszResolvedDirname);
+    RtlCStringFree(&pszDiskFilename);
     RtlCStringFree(&pszPattern);
 
     return ntError;

@@ -347,9 +347,9 @@ error:
 
 NTSTATUS
 PvfsFileSplitPath(
-    PSTR *ppszDirname,
-    PSTR *ppszBasename,
-    PCSTR pszPath
+    OUT PSTR *ppszDirname,
+    OUT PSTR *ppszBasename,
+    IN PCSTR pszPath
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
