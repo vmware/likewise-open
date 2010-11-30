@@ -95,9 +95,9 @@ typedef struct _SRVSVC_RUNTIME_GLOBALS
 
     DWORD           dwStartAsDaemon;             /* Should start as daemon */
 
-    LWIO_LOG_TARGET logTarget;                   /* where are we logging   */
+    SRVSVC_LOG_TARGET logTarget;                   /* where are we logging   */
 
-    LWIO_LOG_LEVEL  maxAllowedLogLevel;          /* how much logging ?     */
+    SRVSVC_LOG_LEVEL  maxAllowedLogLevel;          /* how much logging ?     */
 
     CHAR            szLogFilePath[PATH_MAX + 1]; /* log file path */
 
