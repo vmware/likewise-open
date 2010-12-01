@@ -300,6 +300,12 @@ SrvProdConsEnqueue(
     );
 
 NTSTATUS
+SrvProdConsEnqueueNowait(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    PVOID                pItem
+    );
+
+NTSTATUS
 SrvProdConsEnqueueFront(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID                pItem

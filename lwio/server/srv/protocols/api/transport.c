@@ -1294,7 +1294,9 @@ SrvProtocolTransportDriverDispatchPacket(
         }
     }
 
-    ntStatus = SrvProdConsEnqueue(
+    // Called from the context of a task thread - cannot wait if the queue is
+    // full.
+    ntStatus = SrvProdConsEnqueueNowait(
                     pDriverContext->pGlobals->pWorkQueue,
                     pContext);
     BAIL_ON_NT_STATUS(ntStatus);
