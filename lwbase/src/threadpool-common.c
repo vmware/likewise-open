@@ -58,6 +58,10 @@ AcquireDelegatePool(
             .ulWorkThreadStackSize = 0
         };
 
+    if (getenv("LW_GLOBAL_TASK_THREADS"))
+    {
+        attrs.lTaskThreads = (LONG) atoi(getenv("LW_GLOBAL_TASK_THREADS"));
+    }
 
     pthread_mutex_lock(&gpDelegatePoolLock);
 
