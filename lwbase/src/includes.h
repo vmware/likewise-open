@@ -53,6 +53,8 @@
 #include <sys/varargs.h>
 #endif
 
+#include <sys/resource.h>
+
 #include <wc16str.h>
 #ifdef HAVE_UUID_UUID_H
 #include <uuid/uuid.h>
