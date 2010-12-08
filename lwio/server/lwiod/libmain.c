@@ -216,14 +216,6 @@ lwiod_main(
     dwError = LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    ntStatus = LwioSrvRefreshConfig(&gLwioServerConfig);
-    dwError = LwNtStatusToWin32Error(ntStatus);
-    BAIL_ON_LWIO_ERROR(dwError);
-
-    ntStatus = LwioSrvSetDefaults(&gLwioServerConfig);
-    dwError = LwNtStatusToWin32Error(ntStatus);
-    BAIL_ON_LWIO_ERROR(dwError);
-
     dwError = SMBSrvParseArgs(argc,
                               argv,
                               &gServerInfo);
@@ -263,6 +255,14 @@ lwiod_main(
         LWIO_LOG_ERROR("Could not register process pid (%d) with Mac DirectoryService Cache plugin", (int) getpid());
         BAIL_ON_LWIO_ERROR(dwError);
     }
+
+    ntStatus = LwioSrvRefreshConfig(&gLwioServerConfig);
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    ntStatus = LwioSrvSetDefaults(&gLwioServerConfig);
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvInitialize();
     BAIL_ON_LWIO_ERROR(dwError);
