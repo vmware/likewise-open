@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        fcb.h
+ *        scb.h
  *
  * Abstract:
  *
@@ -44,32 +44,32 @@
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef _PVFS_FCB_H
-#define _PVFS_FCB_H
+#ifndef _PVFS_SCB_H
+#define _PVFS_SCB_H
 
 #include "pvfs.h"
 
 
-// From fcb.c
+// From scb.c
 
 NTSTATUS
-PvfsAllocateFCB(
-    PPVFS_SCB *ppFcb
+PvfsAllocateSCB(
+    PPVFS_SCB *ppScb
     );
 
 PPVFS_SCB
-PvfsReferenceFCB(
-    IN PPVFS_SCB pFcb
+PvfsReferenceSCB(
+    IN PPVFS_SCB pScb
     );
 
 VOID
 PvfsReleaseSCB(
-    PPVFS_SCB *ppFcb
+    PPVFS_SCB *ppScb
     );
 
 NTSTATUS
-PvfsCreateFCB(
-    OUT PPVFS_SCB *ppFcb,
+PvfsCreateSCB(
+    OUT PPVFS_SCB *ppScb,
     IN PSTR pszFilename,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
@@ -77,48 +77,48 @@ PvfsCreateFCB(
     );
 
 NTSTATUS
-PvfsGetDirectoryFCB(
+PvfsGetDirectorySCB(
     IN  PSTR pszFilename,
-    OUT PPVFS_SCB *ppFcb
+    OUT PPVFS_SCB *ppScb
     );
 
 NTSTATUS
-PvfsAddCCBToFCB(
-    PPVFS_SCB pFcb,
+PvfsAddCCBToSCB(
+    PPVFS_SCB pScb,
     PPVFS_CCB pCcb
     );
 
 
 NTSTATUS
-PvfsRemoveCCBFromFCB(
-    PPVFS_SCB pFcb,
+PvfsRemoveCCBFromSCB(
+    PPVFS_SCB pScb,
     PPVFS_CCB pCcb
     );
 
 BOOLEAN
 PvfsFileHasOtherOpens(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_SCB pScb,
     IN PPVFS_CCB pCcb
     );
 
 BOOLEAN
 PvfsFileIsOplocked(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_SCB pScb
     );
 
 BOOLEAN
 PvfsFileIsOplockedExclusive(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_SCB pScb
     );
 
 BOOLEAN
 PvfsFileIsOplockedShared(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_SCB pScb
     );
 
 NTSTATUS
 PvfsPendOplockBreakTest(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_SCB pScb,
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb,
     IN PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
@@ -128,7 +128,7 @@ PvfsPendOplockBreakTest(
 
 NTSTATUS
 PvfsAddItemPendingOplockBreakAck(
-    IN OUT PPVFS_SCB pFcb,
+    IN OUT PPVFS_SCB pScb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
     IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
@@ -137,7 +137,7 @@ PvfsAddItemPendingOplockBreakAck(
 
 NTSTATUS
 PvfsAddOplockRecord(
-    IN OUT PPVFS_SCB pFcb,
+    IN OUT PPVFS_SCB pScb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_CCB pCcb,
     IN     ULONG OplockType
@@ -154,87 +154,87 @@ PvfsScheduleCancelPendingOp(
     );
 
 NTSTATUS
-PvfsRenameFCB(
-    PPVFS_SCB pFcb,
+PvfsRenameSCB(
+    PPVFS_SCB pScb,
     PPVFS_CCB pCcb,
     PSTR pszNewFilename
     );
 
 BOOLEAN
-PvfsFcbIsPendingDelete(
-    PPVFS_SCB pFcb
+PvfsScbIsPendingDelete(
+    PPVFS_SCB pScb
     );
 
 VOID
-PvfsFcbSetPendingDelete(
-    PPVFS_SCB pFcb,
+PvfsScbSetPendingDelete(
+    PPVFS_SCB pScb,
     BOOLEAN bPendingDelete
     );
 
 PPVFS_SCB
-PvfsGetParentFCB(
-    PPVFS_SCB pFcb
+PvfsGetParentSCB(
+    PPVFS_SCB pScb
     );
 
 LONG64
-PvfsClearLastWriteTimeFCB(
-    PPVFS_SCB pFcb
+PvfsClearLastWriteTimeSCB(
+    PPVFS_SCB pScb
     );
 
 VOID
-PvfsSetLastWriteTimeFCB(
-    PPVFS_SCB pFcb,
+PvfsSetLastWriteTimeSCB(
+    PPVFS_SCB pScb,
     LONG64 LastWriteTime
     );
 
-// From fcbtable.c
+// From scbtable.c
 
 NTSTATUS
-PvfsFcbTableInitialize(
+PvfsScbTableInitialize(
     VOID
     );
 
 NTSTATUS
-PvfsFcbTableDestroy(
+PvfsScbTableDestroy(
     VOID
     );
 
 NTSTATUS
-PvfsFcbTableLookup(
-    PPVFS_SCB *ppFcb,
+PvfsScbTableLookup(
+    PPVFS_SCB *ppScb,
     PPVFS_SCB_TABLE_ENTRY pBucket,
     PSTR pszFilename
     );
 
 NTSTATUS
-PvfsFcbTableLookup_inlock(
-    PPVFS_SCB *ppFcb,
+PvfsScbTableLookup_inlock(
+    PPVFS_SCB *ppScb,
     PPVFS_SCB_TABLE_ENTRY pBucket,
     PCSTR pszFilename
     );
 
 NTSTATUS
-PvfsFcbTableAdd_inlock(
+PvfsScbTableAdd_inlock(
     PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pFcb
+    PPVFS_SCB pScb
     );
 
 NTSTATUS
-PvfsFcbTableRemove_inlock(
+PvfsScbTableRemove_inlock(
     PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pFcb
+    PPVFS_SCB pScb
     );
 
 NTSTATUS
-PvfsFcbTableRemove(
+PvfsScbTableRemove(
     PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pFcb
+    PPVFS_SCB pScb
     );
 
 NTSTATUS
-PvfsFcbTableGetBucket(
+PvfsScbTableGetBucket(
     OUT PPVFS_SCB_TABLE_ENTRY *ppBucket,
-    IN PPVFS_SCB_TABLE pFcbTable,
+    IN PPVFS_SCB_TABLE pScbTable,
     IN PVOID pKey
     );
 
@@ -243,7 +243,7 @@ PvfsFcbTableGetBucket(
 
 
 
-#endif   /* _PVFS_FCB_H */
+#endif   /* _PVFS_SCB_H */
 
 /*
 local variables:

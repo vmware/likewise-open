@@ -59,21 +59,21 @@ PvfsCheckShareMode(
     IN PSTR pszFilename,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess,
-    OUT PPVFS_SCB *ppFcb
+    OUT PPVFS_SCB *ppScb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_SCB pFcb = NULL;
+    PPVFS_SCB pScb = NULL;
     PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
 
-    ntError = PvfsFcbTableGetBucket(&pBucket, &gScbTable, pszFilename);
+    ntError = PvfsScbTableGetBucket(&pBucket, &gScbTable, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsFcbTableLookup(&pFcb, pBucket, pszFilename);
+    ntError = PvfsScbTableLookup(&pScb, pBucket, pszFilename);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsEnforceShareMode(
-                      pFcb,
+                      pScb,
                       SharedAccess,
                       DesiredAccess);
 
@@ -84,7 +84,7 @@ PvfsCheckShareMode(
         if (ntError == STATUS_SUCCESS ||
             ntError == STATUS_SHARING_VIOLATION)
         {
-            *ppFcb = PvfsReferenceFCB(pFcb);
+            *ppScb = PvfsReferenceSCB(pScb);
         }
         goto cleanup;
     }
@@ -96,8 +96,8 @@ PvfsCheckShareMode(
 
     /* If not found, then add one */
 
-    ntError = PvfsCreateFCB(
-                  &pFcb,
+    ntError = PvfsCreateSCB(
+                  &pScb,
                   pszFilename,
                   TRUE,
                   SharedAccess,
@@ -110,17 +110,17 @@ PvfsCheckShareMode(
     if (ntError == STATUS_SUCCESS ||
         ntError == STATUS_SHARING_VIOLATION)
     {
-        *ppFcb = PvfsReferenceFCB(pFcb);
+        *ppScb = PvfsReferenceSCB(pScb);
         goto cleanup;
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    *ppFcb = PvfsReferenceFCB(pFcb);
+    *ppScb = PvfsReferenceSCB(pScb);
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pFcb) {
-        PvfsReleaseSCB(&pFcb);
+    if (pScb) {
+        PvfsReleaseSCB(&pScb);
     }
 
     return ntError;
@@ -133,16 +133,17 @@ error:
 /***********************************************************
  **********************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 _PvfsEnforceShareMode(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_SCB pScb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     );
 
 NTSTATUS
 PvfsEnforceShareMode(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_SCB pScb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     )
@@ -155,7 +156,7 @@ PvfsEnforceShareMode(
 
     for (i=0; i<RetryMax && (ntError != STATUS_SUCCESS); i++)
     {
-        ntError = _PvfsEnforceShareMode(pFcb, ShareAccess, DesiredAccess);
+        ntError = _PvfsEnforceShareMode(pScb, ShareAccess, DesiredAccess);
         if ((ntError == STATUS_SHARING_VIOLATION) && (i<(RetryMax-1)))
         {
             NTSTATUS ntErrorSleep = STATUS_SUCCESS;
@@ -199,7 +200,7 @@ struct _SHARE_MODE_ACCESS_COMPATIBILITY
 
 NTSTATUS
 _PvfsEnforceShareMode(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_SCB pScb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     )
@@ -219,9 +220,9 @@ _PvfsEnforceShareMode(
 
     RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pScb->rwCcbLock);
 
-    while ((pCursor = PvfsListTraverse(pFcb->pCcbList, pCursor)) != NULL)
+    while ((pCursor = PvfsListTraverse(pScb->pCcbList, pCursor)) != NULL)
     {
         pCcb = LW_STRUCT_FROM_FIELD(
                    pCursor,
@@ -275,7 +276,7 @@ _PvfsEnforceShareMode(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwCcbLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwCcbLock);
 
     return ntError;
 

@@ -207,7 +207,7 @@ PvfsCreateFileSupersede(
         ntError = PvfsSysRemove(pCreateCtx->pszDiskFilename);
         BAIL_ON_NT_STATUS(ntError);
 
-        /* Seems like this should clear the FCB from
+        /* Seems like this should clear the SCB from
            the open table.  Not sure */
 
         PvfsReleaseSCB(&pCreateCtx->pScb);
@@ -240,7 +240,7 @@ PvfsCreateFileSupersede(
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
-    /* This should get us a new FCB */
+    /* This should get us a new SCB */
 
     ntError = PvfsCheckShareMode(
                   pCreateCtx->pszDiskFilename,

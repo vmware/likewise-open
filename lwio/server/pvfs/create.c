@@ -272,7 +272,7 @@ PvfsCreateFileDoSysOpen(
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
     pCreateContext->pszDiskFilename = NULL;
 
-    ntError = PvfsAddCCBToFCB(pCreateContext->pScb, pCreateContext->pCcb);
+    ntError = PvfsAddCCBToSCB(pCreateContext->pScb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
@@ -319,7 +319,7 @@ PvfsCreateFileDoSysOpen(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Save the delete-on-close flag to the FCB */
+    /* Save the delete-on-close flag to the SCB */
 
     if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
     {
@@ -498,7 +498,7 @@ PvfsCreateDirDoSysOpen(
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
 
-    ntError = PvfsAddCCBToFCB(pCreateContext->pScb, pCreateContext->pCcb);
+    ntError = PvfsAddCCBToSCB(pCreateContext->pScb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
@@ -543,7 +543,7 @@ PvfsCreateDirDoSysOpen(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Save the delete-on-close flag to the FCB */
+    /* Save the delete-on-close flag to the SCB */
 
     if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
     {
@@ -956,20 +956,20 @@ error:
 
 NTSTATUS
 PvfsCreateFileCheckPendingDelete(
-    PPVFS_SCB pFcb
+    PPVFS_SCB pScb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_SCB pParentFcb = NULL;
+    PPVFS_SCB pParentScb = NULL;
 
-    if (PvfsFcbIsPendingDelete(pFcb))
+    if (PvfsScbIsPendingDelete(pScb))
     {
         ntError = STATUS_DELETE_PENDING;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pParentFcb = PvfsGetParentFCB(pFcb);
-    if (pParentFcb && PvfsFcbIsPendingDelete(pParentFcb))
+    pParentScb = PvfsGetParentSCB(pScb);
+    if (pParentScb && PvfsScbIsPendingDelete(pParentScb))
     {
         ntError = STATUS_DELETE_PENDING;
         BAIL_ON_NT_STATUS(ntError);
@@ -978,9 +978,9 @@ PvfsCreateFileCheckPendingDelete(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pParentFcb)
+    if (pParentScb)
     {
-        PvfsReleaseSCB(&pParentFcb);
+        PvfsReleaseSCB(&pParentScb);
     }
 
 

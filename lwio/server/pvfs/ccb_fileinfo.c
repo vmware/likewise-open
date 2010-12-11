@@ -125,7 +125,7 @@ PvfsCcbSetFileBasicInformation(
 
     if (WriteTime != 0)
     {
-        PvfsSetLastWriteTimeFCB(pCcb->pScb, WriteTime);
+        PvfsSetLastWriteTimeSCB(pCcb->pScb, WriteTime);
     }
 
     /* Check if we need to preserve any original timestamps */
@@ -190,7 +190,7 @@ PvfsCcbQueryFileStandardInformation(
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pScb);
+    bDeletePending = PvfsScbIsPendingDelete(pCcb->pScb);
 
     if (PVFS_IS_DIR(pCcb))
     {

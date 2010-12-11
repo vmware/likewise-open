@@ -66,7 +66,7 @@ extern PLWIO_LRU        gpPathCache;
 
 extern PVFS_SCB_TABLE gScbTable;
 
-extern pthread_mutex_t gDeviceFcbMutex;
+extern pthread_mutex_t gDeviceScbMutex;
 extern PPVFS_SCB gpPvfsDeviceScb;
 
 extern pthread_mutex_t gPvfsIrpContextMutex;

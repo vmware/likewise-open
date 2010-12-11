@@ -141,7 +141,7 @@ PvfsQueryFileAllInfo(
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pScb);
+    bDeletePending = PvfsScbIsPendingDelete(pCcb->pScb);
 
     if (PVFS_IS_DIR(pCcb))
     {
