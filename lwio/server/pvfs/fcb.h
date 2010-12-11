@@ -54,22 +54,22 @@
 
 NTSTATUS
 PvfsAllocateFCB(
-    PPVFS_SCB *ppFcb
+    PPVFS_FCB *ppFcb
     );
 
-PPVFS_SCB
+PPVFS_FCB
 PvfsReferenceFCB(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_FCB pFcb
     );
 
 VOID
-PvfsReleaseSCB(
-    PPVFS_SCB *ppFcb
+PvfsReleaseFCB(
+    PPVFS_FCB *ppFcb
     );
 
 NTSTATUS
 PvfsCreateFCB(
-    OUT PPVFS_SCB *ppFcb,
+    OUT PPVFS_FCB *ppFcb,
     IN PSTR pszFilename,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
@@ -79,46 +79,46 @@ PvfsCreateFCB(
 NTSTATUS
 PvfsGetDirectoryFCB(
     IN  PSTR pszFilename,
-    OUT PPVFS_SCB *ppFcb
+    OUT PPVFS_FCB *ppFcb
     );
 
 NTSTATUS
 PvfsAddCCBToFCB(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_CCB pCcb
     );
 
 
 NTSTATUS
 PvfsRemoveCCBFromFCB(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_CCB pCcb
     );
 
 BOOLEAN
 PvfsFileHasOtherOpens(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_FCB pFcb,
     IN PPVFS_CCB pCcb
     );
 
 BOOLEAN
 PvfsFileIsOplocked(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_FCB pFcb
     );
 
 BOOLEAN
 PvfsFileIsOplockedExclusive(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_FCB pFcb
     );
 
 BOOLEAN
 PvfsFileIsOplockedShared(
-    IN PPVFS_SCB pFcb
+    IN PPVFS_FCB pFcb
     );
 
 NTSTATUS
 PvfsPendOplockBreakTest(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_FCB pFcb,
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb,
     IN PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
@@ -128,7 +128,7 @@ PvfsPendOplockBreakTest(
 
 NTSTATUS
 PvfsAddItemPendingOplockBreakAck(
-    IN OUT PPVFS_SCB pFcb,
+    IN OUT PPVFS_FCB pFcb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
     IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
@@ -137,7 +137,7 @@ PvfsAddItemPendingOplockBreakAck(
 
 NTSTATUS
 PvfsAddOplockRecord(
-    IN OUT PPVFS_SCB pFcb,
+    IN OUT PPVFS_FCB pFcb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_CCB pCcb,
     IN     ULONG OplockType
@@ -155,35 +155,35 @@ PvfsScheduleCancelPendingOp(
 
 NTSTATUS
 PvfsRenameFCB(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_CCB pCcb,
     PSTR pszNewFilename
     );
 
 BOOLEAN
 PvfsFcbIsPendingDelete(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 VOID
 PvfsFcbSetPendingDelete(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     BOOLEAN bPendingDelete
     );
 
-PPVFS_SCB
+PPVFS_FCB
 PvfsGetParentFCB(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 LONG64
 PvfsClearLastWriteTimeFCB(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 VOID
 PvfsSetLastWriteTimeFCB(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     LONG64 LastWriteTime
     );
 
@@ -201,40 +201,40 @@ PvfsFcbTableDestroy(
 
 NTSTATUS
 PvfsFcbTableLookup(
-    PPVFS_SCB *ppFcb,
-    PPVFS_SCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB *ppFcb,
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PSTR pszFilename
     );
 
 NTSTATUS
 PvfsFcbTableLookup_inlock(
-    PPVFS_SCB *ppFcb,
-    PPVFS_SCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB *ppFcb,
+    PPVFS_FCB_TABLE_ENTRY pBucket,
     PCSTR pszFilename
     );
 
 NTSTATUS
 PvfsFcbTableAdd_inlock(
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pFcb
+    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB pFcb
     );
 
 NTSTATUS
 PvfsFcbTableRemove_inlock(
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pFcb
+    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB pFcb
     );
 
 NTSTATUS
 PvfsFcbTableRemove(
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pFcb
+    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_FCB pFcb
     );
 
 NTSTATUS
 PvfsFcbTableGetBucket(
-    OUT PPVFS_SCB_TABLE_ENTRY *ppBucket,
-    IN PPVFS_SCB_TABLE pFcbTable,
+    OUT PPVFS_FCB_TABLE_ENTRY *ppBucket,
+    IN PPVFS_FCB_TABLE pFcbTable,
     IN PVOID pKey
     );
 

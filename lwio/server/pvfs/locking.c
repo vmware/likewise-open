@@ -87,7 +87,7 @@ InitLockEntry(
 
 static NTSTATUS
 PvfsAddPendingLock(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PPVFS_LOCK_ENTRY pLock
@@ -95,7 +95,7 @@ PvfsAddPendingLock(
 
 static VOID
 PvfsProcessPendingLocks(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 /* Code */
@@ -115,7 +115,7 @@ PvfsLockFile(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pCursor = NULL;
-    PPVFS_SCB pFcb = pCcb->pScb;
+    PPVFS_FCB pFcb = pCcb->pFcb;
     BOOLEAN bExclusive = FALSE;
     BOOLEAN bFcbReadLocked = FALSE;
     BOOLEAN bBrlWriteLocked = FALSE;
@@ -145,7 +145,7 @@ PvfsLockFile(
         pCurrentCcb = LW_STRUCT_FROM_FIELD(
                           pCursor,
                           PVFS_CCB,
-                          ScbList);
+                          FcbList);
 
         /* We'll deal with ourselves in AddLock() */
 
@@ -205,7 +205,7 @@ error:
 static
 NTSTATUS
 PvfsAddPendingLock(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PPVFS_LOCK_ENTRY pLock
@@ -235,9 +235,9 @@ PvfsAddPendingLock(
                   &pPendingLock->LockList);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (!pIrpCtx->pScb)
+    if (!pIrpCtx->pFcb)
     {
-        pIrpCtx->pScb = PvfsReferenceFCB(pCcb->pScb);
+        pIrpCtx->pFcb = PvfsReferenceFCB(pCcb->pFcb);
     }
     pIrpCtx->QueueType = PVFS_QUEUE_TYPE_PENDING_LOCK;
 
@@ -280,7 +280,7 @@ PvfsUnlockFile(
     )
 {
     NTSTATUS ntError = STATUS_RANGE_NOT_LOCKED;
-    PPVFS_SCB pFcb = pCcb->pScb;
+    PPVFS_FCB pFcb = pCcb->pFcb;
     PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
     PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
     PPVFS_LOCK_ENTRY pEntry = NULL;
@@ -400,7 +400,7 @@ cleanup:
 
 static VOID
 PvfsProcessPendingLocks(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -427,7 +427,7 @@ PvfsProcessPendingLocks(
 
         ntError = PvfsListInit(
                       &pFcb->pPendingLockQueue,
-                      PVFS_SCB_MAX_PENDING_LOCKS,
+                      PVFS_FCB_MAX_PENDING_LOCKS,
                       (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingLock);
     }
 
@@ -801,7 +801,7 @@ PvfsCheckLockedRegion(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pCursor = NULL;
-    PPVFS_SCB pFcb = pCcb->pScb;
+    PPVFS_FCB pFcb = pCcb->pFcb;
     BOOLEAN bFcbLocked = FALSE;
     BOOLEAN bBrlLocked = FALSE;
     PPVFS_CCB pCurrentCcb = NULL;
@@ -841,7 +841,7 @@ PvfsCheckLockedRegion(
         pCurrentCcb = LW_STRUCT_FROM_FIELD(
                           pCursor,
                           PVFS_CCB,
-                          ScbList);
+                          FcbList);
 
         switch(Operation)
         {
@@ -1097,7 +1097,7 @@ PvfsHandleHasOpenByteRangeLocks(
 
 BOOLEAN
 PvfsFileHasOpenByteRangeLocks(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -1122,7 +1122,7 @@ PvfsFileHasOpenByteRangeLocks(
         pCurrentCcb = LW_STRUCT_FROM_FIELD(
                           pCursor,
                           PVFS_CCB,
-                          ScbList);
+                          FcbList);
 
         if (PvfsHandleHasOpenByteRangeLocks(pCurrentCcb))
         {
@@ -1168,7 +1168,7 @@ PvfsScheduleCancelLock(
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
-    BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
+    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
@@ -1208,7 +1208,7 @@ PvfsCleanPendingLockQueue(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_SCB pFcb = PvfsReferenceFCB(pIrpContext->pScb);
+    PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpContext->pFcb);
     BOOLEAN bLocked = FALSE;
     PPVFS_PENDING_LOCK pLockRecord = NULL;
     PLW_LIST_LINKS pLockRecordLink = NULL;
@@ -1261,7 +1261,7 @@ PvfsCleanPendingLockQueue(
 
     if (pFcb)
     {
-        PvfsReleaseSCB(&pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     if (pIrpContext)

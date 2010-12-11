@@ -84,8 +84,7 @@
 #include "time_p.h"
 #include "syswrap_p.h"
 #include "ccb_p.h"
-//#include "fcb.h"
-#include "scb.h"
+#include "fcb.h"
 #include "acl.h"
 #include "attrib.h"
 
@@ -133,7 +132,7 @@ PvfsFreeCreateContext(
 
 NTSTATUS
 PvfsCreateFileCheckPendingDelete(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 NTSTATUS
@@ -362,7 +361,7 @@ PvfsWC16CanonicalPathName(
 
 NTSTATUS
 PvfsValidatePath(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_FILE_ID pFileId
     );
 
@@ -471,12 +470,12 @@ PvfsCheckShareMode(
     IN PSTR pszFilename,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess,
-    OUT PPVFS_SCB *ppFcb
+    OUT PPVFS_FCB *ppFcb
     );
 
 NTSTATUS
 PvfsEnforceShareMode(
-    IN PPVFS_SCB pFcb,
+    IN PPVFS_FCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     );
@@ -545,7 +544,7 @@ PvfsLockFileWithContext(
 
 BOOLEAN
 PvfsFileHasOpenByteRangeLocks(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 NTSTATUS
@@ -578,7 +577,7 @@ NTSTATUS
 PvfsOplockBreakIfLocked(
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb,
-    IN PPVFS_SCB pFcb
+    IN PPVFS_FCB pFcb
     );
 
 NTSTATUS
@@ -589,7 +588,7 @@ PvfsOplockPendingBreakIfLocked(
 NTSTATUS
 PvfsCreateOplockBreakTestContext(
     OUT PPVFS_PENDING_OPLOCK_BREAK_TEST *ppTestContext,
-    IN  PPVFS_SCB pFcb,
+    IN  PPVFS_FCB pFcb,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
@@ -614,7 +613,7 @@ PvfsFreePendingOp(
 
 NTSTATUS
 PvfsOplockMarkPendedOpsReady(
-    PPVFS_SCB pFcb
+    PPVFS_FCB pFcb
     );
 
 
@@ -644,7 +643,7 @@ PvfsFreeNotifyRecord(
 
 VOID
 PvfsNotifyScheduleFullReport(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     FILE_NOTIFY_CHANGE Filter,
     FILE_ACTION Action,
     PCSTR pszFilename

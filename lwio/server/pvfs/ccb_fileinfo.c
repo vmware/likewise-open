@@ -103,7 +103,7 @@ PvfsCcbSetFileBasicInformation(
                                       FILE_NOTIFY_CHANGE_LAST_ACCESS;
     PVFS_STAT Stat = {0};
 
-    ntError = PvfsValidatePath(pCcb->pScb, &pCcb->FileId);
+    ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We cant's set the Change Time so ignore it */
@@ -125,7 +125,7 @@ PvfsCcbSetFileBasicInformation(
 
     if (WriteTime != 0)
     {
-        PvfsSetLastWriteTimeFCB(pCcb->pScb, WriteTime);
+        PvfsSetLastWriteTimeFCB(pCcb->pFcb, WriteTime);
     }
 
     /* Check if we need to preserve any original timestamps */
@@ -164,10 +164,10 @@ PvfsCcbSetFileBasicInformation(
     if (NotifyFilter != 0)
     {
         PvfsNotifyScheduleFullReport(
-            pCcb->pScb,
+            pCcb->pFcb,
             NotifyFilter,
             FILE_ACTION_MODIFIED,
-            pCcb->pScb->pszFilename);
+            pCcb->pFcb->pszFilename);
     }
 
 cleanup:
@@ -190,7 +190,7 @@ PvfsCcbQueryFileStandardInformation(
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pScb);
+    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
 
     if (PVFS_IS_DIR(pCcb))
     {

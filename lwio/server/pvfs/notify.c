@@ -53,7 +53,7 @@
 static
 NTSTATUS
 PvfsNotifyAddFilter(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
     FILE_NOTIFY_CHANGE NotifyFilter,
@@ -65,7 +65,7 @@ static
 NTSTATUS
 PvfsNotifyReportBufferedChanges(
     PPVFS_CCB pCcb,
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
@@ -102,14 +102,14 @@ PvfsReadDirectoryChange(
 
     ntError = PvfsNotifyReportBufferedChanges(
                   pCcb,
-                  pCcb->pScb,
+                  pCcb->pFcb,
                   pIrpContext);
     if (ntError == STATUS_NOT_FOUND)
     {
         PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
         ntError = PvfsNotifyAddFilter(
-                      pCcb->pScb,
+                      pCcb->pFcb,
                       pIrpContext,
                       pCcb,
                       Args.NotifyFilter,
@@ -119,9 +119,9 @@ PvfsReadDirectoryChange(
         {
             pIrpContext->QueueType = PVFS_QUEUE_TYPE_NOTIFY;
 
-            if (!pIrpContext->pScb)
+            if (!pIrpContext->pFcb)
             {
-                pIrpContext->pScb = PvfsReferenceFCB(pCcb->pScb);
+                pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
             }
 
             /* Allow the call to be cancelled while in the queue */
@@ -167,7 +167,7 @@ static
 NTSTATUS
 PvfsNotifyReportBufferedChanges(
     PPVFS_CCB pCcb,
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
@@ -358,7 +358,7 @@ PvfsNotifyAllocateFilter(
 static
 NTSTATUS
 PvfsNotifyAddFilter(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
     FILE_NOTIFY_CHANGE NotifyFilter,
@@ -469,7 +469,7 @@ PvfsNotifyFullReportCtxFree(
 
 VOID
 PvfsNotifyScheduleFullReport(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     FILE_NOTIFY_CHANGE Filter,
     FILE_ACTION Action,
     PCSTR pszFilename
@@ -487,7 +487,7 @@ PvfsNotifyScheduleFullReport(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pReport->pScb = PvfsReferenceFCB(pFcb);
+    pReport->pFcb = PvfsReferenceFCB(pFcb);
     pReport->Filter = Filter;
     pReport->Action = Action;
 
@@ -525,16 +525,16 @@ error:
 static
 VOID
 PvfsNotifyFullReportBuffer(
-    PPVFS_SCB pFcb,
-    PPVFS_SCB pReportParentFcb,
+    PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     );
 
 static
 VOID
 PvfsNotifyFullReportIrp(
-    PPVFS_SCB pFcb,
-    PPVFS_SCB pReportParentFcb,
+    PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     );
 
@@ -546,21 +546,21 @@ PvfsNotifyFullReport(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
-    PPVFS_SCB pParentFcb = NULL;
-    PPVFS_SCB pCursor = NULL;
-    PPVFS_SCB pReportParentFcb = NULL;
+    PPVFS_FCB pParentFcb = NULL;
+    PPVFS_FCB pCursor = NULL;
+    PPVFS_FCB pReportParentFcb = NULL;
 
     BAIL_ON_INVALID_PTR(pReport, ntError);
 
     /* Simply walk up the ancestory and process the notify filter
        record on top if there is a match */
 
-    pCursor = PvfsReferenceFCB(pReport->pScb);
-    pReportParentFcb = PvfsGetParentFCB(pReport->pScb);
+    pCursor = PvfsReferenceFCB(pReport->pFcb);
+    pReportParentFcb = PvfsGetParentFCB(pReport->pFcb);
 
     while ((pParentFcb = PvfsGetParentFCB(pCursor)) != NULL)
     {
-        PvfsReleaseSCB(&pCursor);
+        PvfsReleaseFCB(&pCursor);
 
         /* Process buffers before Irp so we don't doubly report
            a change on a pending Irp that has requested buffering a
@@ -577,12 +577,12 @@ PvfsNotifyFullReport(
 cleanup:
     if (pCursor)
     {
-        PvfsReleaseSCB(&pCursor);
+        PvfsReleaseFCB(&pCursor);
     }
 
     if (pReportParentFcb)
     {
-        PvfsReleaseSCB(&pReportParentFcb);
+        PvfsReleaseFCB(&pReportParentFcb);
     }
 
     return ntError;
@@ -605,8 +605,8 @@ PvfsNotifyReportBuffer(
 static
 VOID
 PvfsNotifyFullReportBuffer(
-    PPVFS_SCB pFcb,
-    PPVFS_SCB pReportParentFcb,
+    PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     )
 {
@@ -660,8 +660,8 @@ PvfsNotifyReportIrp(
 static
 VOID
 PvfsNotifyFullReportIrp(
-    PPVFS_SCB pFcb,
-    PPVFS_SCB pReportParentFcb,
+    PPVFS_FCB pFcb,
+    PPVFS_FCB pReportParentFcb,
     PPVFS_NOTIFY_REPORT_RECORD pReport
     )
 {
@@ -895,9 +895,9 @@ PvfsNotifyFullReportCtxFree(
     {
         pReport = (PPVFS_NOTIFY_REPORT_RECORD)*ppReport;
 
-        if (pReport->pScb)
+        if (pReport->pFcb)
         {
-            PvfsReleaseSCB(&pReport->pScb);
+            PvfsReleaseFCB(&pReport->pFcb);
         }
 
         LwRtlCStringFree(&pReport->pszFilename);
@@ -932,7 +932,7 @@ PvfsScheduleCancelNotify(
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
-    BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
+    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
@@ -972,7 +972,7 @@ PvfsNotifyCleanIrpList(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_SCB pFcb = PvfsReferenceFCB(pIrpCtx->pScb);
+    PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpCtx->pFcb);
     BOOLEAN bFcbLocked = FALSE;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     PLW_LIST_LINKS pFilterLink = NULL;
@@ -1025,7 +1025,7 @@ PvfsNotifyCleanIrpList(
 
     if (pFcb)
     {
-        PvfsReleaseSCB(&pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     if (pIrpCtx)

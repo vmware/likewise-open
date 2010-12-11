@@ -67,11 +67,11 @@ pthread_mutex_t  gPathCacheLock;
 PLWIO_LRU        gpPathCache = NULL;
 
 pthread_mutex_t gDeviceFcbMutex = PTHREAD_MUTEX_INITIALIZER;
-PPVFS_SCB gpPvfsDeviceScb = NULL;
+PPVFS_FCB gpPvfsDeviceFcb = NULL;
 
 pthread_mutex_t gPvfsIrpContextMutex = PTHREAD_MUTEX_INITIALIZER;
 
-PVFS_SCB_TABLE gScbTable;
+PVFS_FCB_TABLE gFcbTable;
 
 PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
 
@@ -85,7 +85,7 @@ PVFS_DRIVER_CONFIG gPvfsDriverConfig;
 
 
 LONG gPvfsIrpContextCount = 0;
-LONG gPvfsScbCount = 0;
+LONG gPvfsFcbCount = 0;
 LONG gPvfsCcbCount = 0;
 LONG gPvfsWorkContextCount = 0;
 

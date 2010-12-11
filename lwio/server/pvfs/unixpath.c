@@ -225,7 +225,7 @@ error:
 
 NTSTATUS
 PvfsValidatePath(
-    PPVFS_SCB pFcb,
+    PPVFS_FCB pFcb,
     PPVFS_FILE_ID pFileId
     )
 {

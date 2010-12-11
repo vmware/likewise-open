@@ -236,7 +236,7 @@ PvfsSetFileRenameInfo(
         */
 
         if (LwRtlCStringCompare(
-                pCcb->pScb->pszFilename,
+                pCcb->pFcb->pszFilename,
                 pszNewDiskPathname,
                 FALSE) != 0)
         {
@@ -254,14 +254,14 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsRenameFCB(pCcb->pScb, pCcb, pszNewDiskPathname);
+    ntError = PvfsRenameFCB(pCcb->pFcb, pCcb, pszNewDiskPathname);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
     PvfsNotifyScheduleFullReport(
-        pCcb->pScb,
+        pCcb->pFcb,
         PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
         FILE_ACTION_RENAMED_NEW_NAME,
         pCcb->pszFilename);

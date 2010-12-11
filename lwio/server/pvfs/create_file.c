@@ -196,10 +196,10 @@ PvfsCreateFileSupersede(
                       pCreateCtx->pszDiskFilename,
                       Args.ShareAccess,
                       pCreateCtx->GrantedAccess,
-                      &pCreateCtx->pScb);
+                      &pCreateCtx->pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+        ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Finally remove the file */
@@ -210,7 +210,7 @@ PvfsCreateFileSupersede(
         /* Seems like this should clear the FCB from
            the open table.  Not sure */
 
-        PvfsReleaseSCB(&pCreateCtx->pScb);
+        PvfsReleaseFCB(&pCreateCtx->pFcb);
 
         RtlCStringFree(&pCreateCtx->pszDiskFilename);
     }
@@ -246,14 +246,14 @@ PvfsCreateFileSupersede(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pScb);
+                  &pCreateCtx->pFcb);
     if ((ntError != STATUS_SUCCESS) &&
         (ntError != STATUS_SHARING_VIOLATION))
     {
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = STATUS_SUCCESS;
@@ -264,7 +264,7 @@ PvfsCreateFileSupersede(
         ntError = PvfsOplockBreakIfLocked(
                       pCreateCtx->pIrpContext,
                       pCreateCtx->pCcb,
-                      pCreateCtx->pScb);
+                      pCreateCtx->pFcb);
     }
 
     switch (ntError)
@@ -275,7 +275,7 @@ PvfsCreateFileSupersede(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pCreateCtx->pScb,
+                      pCreateCtx->pFcb,
                       pIrpContext,
                       pCreateCtx->pCcb,
                       PvfsCreateFileDoSysOpen,
@@ -289,7 +289,7 @@ PvfsCreateFileSupersede(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pCreateCtx->pScb,
+                      pCreateCtx->pFcb,
                       pIrpContext,
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
@@ -412,10 +412,10 @@ PvfsCreateFileCreate(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pScb);
+                  &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
@@ -502,14 +502,14 @@ PvfsCreateFileOpenOrOverwrite(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pScb);
+                  &pCreateCtx->pFcb);
     if ((ntError != STATUS_SUCCESS) &&
         (ntError != STATUS_SHARING_VIOLATION))
     {
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We can only potentially force an oplock break IFF
@@ -529,7 +529,7 @@ PvfsCreateFileOpenOrOverwrite(
         ntError = PvfsOplockBreakIfLocked(
                       pCreateCtx->pIrpContext,
                       pCreateCtx->pCcb,
-                      pCreateCtx->pScb);
+                      pCreateCtx->pFcb);
     }
 
     switch (ntError)
@@ -540,7 +540,7 @@ PvfsCreateFileOpenOrOverwrite(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pCreateCtx->pScb,
+                      pCreateCtx->pFcb,
                       pIrpContext,
                       pCreateCtx->pCcb,
                       PvfsCreateFileDoSysOpen,
@@ -554,7 +554,7 @@ PvfsCreateFileOpenOrOverwrite(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pCreateCtx->pScb,
+                      pCreateCtx->pFcb,
                       pIrpContext,
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,
@@ -686,14 +686,14 @@ PvfsCreateFileOpenOrOverwriteIf(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pScb);
+                  &pCreateCtx->pFcb);
     if ((ntError != STATUS_SUCCESS) &&
         (ntError != STATUS_SHARING_VIOLATION))
     {
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We can only potentially force an oplock break IFF
@@ -713,7 +713,7 @@ PvfsCreateFileOpenOrOverwriteIf(
         ntError = PvfsOplockBreakIfLocked(
                       pCreateCtx->pIrpContext,
                       pCreateCtx->pCcb,
-                      pCreateCtx->pScb);
+                      pCreateCtx->pFcb);
     }
 
     switch (ntError)
@@ -724,7 +724,7 @@ PvfsCreateFileOpenOrOverwriteIf(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pCreateCtx->pScb,
+                      pCreateCtx->pFcb,
                       pIrpContext,
                       pCreateCtx->pCcb,
                       PvfsCreateFileDoSysOpen,
@@ -738,7 +738,7 @@ PvfsCreateFileOpenOrOverwriteIf(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pCreateCtx->pScb,
+                      pCreateCtx->pFcb,
                       pIrpContext,
                       PvfsCreateFileDoSysOpen,
                       PvfsFreeCreateContext,

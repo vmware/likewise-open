@@ -64,10 +64,10 @@ extern pthread_mutex_t* gpPathCacheLock;
 
 extern PLWIO_LRU        gpPathCache;
 
-extern PVFS_SCB_TABLE gScbTable;
+extern PVFS_FCB_TABLE gFcbTable;
 
 extern pthread_mutex_t gDeviceFcbMutex;
-extern PPVFS_SCB gpPvfsDeviceScb;
+extern PPVFS_FCB gpPvfsDeviceFcb;
 
 extern pthread_mutex_t gPvfsIrpContextMutex;
 
@@ -82,7 +82,7 @@ extern PPVFS_ID_CACHE gGidMruCache[];
 extern PVFS_DRIVER_CONFIG gPvfsDriverConfig;
 
 extern LONG gPvfsIrpContextCount;
-extern LONG gPvfsScbCount;
+extern LONG gPvfsFcbCount;
 extern LONG gPvfsCcbCount;
 extern LONG gPvfsWorkContextCount;
 

@@ -73,7 +73,7 @@ PvfsAllocateCCB(
 
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
-    PVFS_INIT_LINKS(&pCCB->ScbList);
+    PVFS_INIT_LINKS(&pCCB->FcbList);
 
     pCCB->bPendingDeleteHandle = FALSE;
     pCCB->bCloseInProgress = FALSE;
@@ -82,7 +82,7 @@ PvfsAllocateCCB(
     pCCB->fd = -1;
     PVFS_CLEAR_FILEID(pCCB->FileId);
 
-    pCCB->pScb = NULL;
+    pCCB->pFcb = NULL;
     pCCB->pszFilename = NULL;
     pCCB->pwszShareName = NULL;
     pCCB->pDirContext = NULL;
@@ -128,10 +128,10 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
-    if (pCCB->pScb)
+    if (pCCB->pFcb)
     {
-        PvfsRemoveCCBFromFCB(pCCB->pScb, pCCB);
-        PvfsReleaseSCB(&pCCB->pScb);
+        PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
+        PvfsReleaseFCB(&pCCB->pFcb);
     }
 
     if (pCCB->pDirContext)
@@ -280,7 +280,7 @@ PvfsSaveFileDeviceInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
-    PPVFS_SCB pFcb = pCcb->pScb;
+    PPVFS_FCB pFcb = pCcb->pFcb;
     BOOLEAN bLocked = FALSE;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);

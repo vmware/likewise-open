@@ -69,9 +69,9 @@ PvfsFreeIrpContext(
             PvfsAsyncIrpComplete(pIrpCtx);
         }
 
-        if (pIrpCtx->pScb)
+        if (pIrpCtx->pFcb)
         {
-            PvfsReleaseSCB(&pIrpCtx->pScb);
+            PvfsReleaseFCB(&pIrpCtx->pFcb);
         }
 
         PVFS_FREE(ppIrpContext);
@@ -105,7 +105,7 @@ PvfsAllocateIrpContext(
 
     pIrpContext->Flags = PVFS_IRP_CTX_FLAG_NONE;
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_NONE;
-    pIrpContext->pScb = NULL;
+    pIrpContext->pFcb = NULL;
 
     pIrpContext->pIrp = pIrp;
 
