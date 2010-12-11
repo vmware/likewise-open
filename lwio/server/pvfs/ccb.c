@@ -130,7 +130,7 @@ PvfsFreeCCB(
 {
     if (pCCB->pScb)
     {
-        PvfsRemoveCCBFromSCB(pCCB->pScb, pCCB);
+        PvfsRemoveCCBFromFCB(pCCB->pScb, pCCB);
         PvfsReleaseSCB(&pCCB->pScb);
     }
 
@@ -280,7 +280,7 @@ PvfsSaveFileDeviceInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
-    PPVFS_SCB pScb = pCcb->pScb;
+    PPVFS_SCB pFcb = pCcb->pScb;
     BOOLEAN bLocked = FALSE;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
@@ -290,12 +290,12 @@ PvfsSaveFileDeviceInfo(
     pCcb->FileId.Inode  = Stat.s_ino;
     pCcb->FileSize = Stat.s_size;
 
-    LWIO_LOCK_MUTEX(bLocked, &pScb->ControlBlock);
-    if ((pScb->FileId.Device == 0) || (pScb->FileId.Inode == 0))
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+    if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
     {
-        pScb->FileId = pCcb->FileId;
+        pFcb->FileId = pCcb->FileId;
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
 cleanup:
     return ntError;

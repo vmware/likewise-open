@@ -60,7 +60,7 @@ PvfsClose(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PPVFS_SCB pScb = NULL;
+    PPVFS_SCB pFcb = NULL;
 
     /* make sure we have a proper CCB */
 
@@ -76,7 +76,7 @@ PvfsClose(
     {
         /* delete-on-close-handle becomes delete-on-close-file */
 
-        PvfsScbSetPendingDelete(pCcb->pScb, TRUE);
+        PvfsFcbSetPendingDelete(pCcb->pScb, TRUE);
     }
 
     if (PVFS_IS_DIR(pCcb))
@@ -113,30 +113,30 @@ PvfsClose(
         }
     }
 
-    /* Explicitly remove the CCB from the SCB list to force
+    /* Explicitly remove the CCB from the FCB list to force
        rundown that it triggered by closing the last open handle.
        Events like an async IRP cancellation could be running
        in the background maintaining a valid reference to the CCB
        that would other prevent the final PvfsFreeCCB() call */
 
-    pScb = pCcb->pScb;
+    pFcb = pCcb->pScb;
     pCcb->pScb = NULL;
 
-    PvfsRemoveCCBFromSCB(pScb, pCcb);
+    PvfsRemoveCCBFromFCB(pFcb, pCcb);
 
     /* Close the fd */
 
     ntError = PvfsSysClose(pCcb->fd);
 
     /* Technically, it would be more proper to do this in the utility
-       functions in PvfsFreeSCB, but we will end up with memory corruption
-       since the SCB is already well on it's way to be free'd.  Can't
-       schedule a work item using a free'd SCB */
+       functions in PvfsFreeFCB, but we will end up with memory corruption
+       since the FCB is already well on it's way to be free'd.  Can't
+       schedule a work item using a free'd FCB */
 
     if (pCcb->ChangeEvent != 0)
     {
         PvfsNotifyScheduleFullReport(
-            pScb,
+            pFcb,
             pCcb->ChangeEvent,
             FILE_ACTION_MODIFIED,
             pCcb->pszFilename);
@@ -147,9 +147,9 @@ PvfsClose(
 cleanup:
     /* This is the final Release that will free the memory */
 
-    if (pScb)
+    if (pFcb)
     {
-        PvfsReleaseSCB(&pScb);
+        PvfsReleaseSCB(&pFcb);
     }
 
     if (pCcb)

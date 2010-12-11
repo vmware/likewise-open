@@ -130,7 +130,7 @@ PvfsDriverShutdown(
 
     ntError = PvfsStopWorkerThreads();
 
-    PvfsScbTableDestroy();
+    PvfsFcbTableDestroy();
 
     PvfsPathCacheShutdown();
 
@@ -319,7 +319,7 @@ PvfsDriverInitialize(
     ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsScbTableInitialize();
+    ntError = PvfsFcbTableInitialize();
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsPathCacheInit();

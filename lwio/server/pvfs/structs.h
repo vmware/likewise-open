@@ -167,7 +167,7 @@ typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
 #define PVFS_SET_PROP_SECURITY  0x00000001
 #define PVFS_SET_PROP_ATTRIB    0x00000002
 
-typedef struct _PVFS_SCB_TABLE_ENTRY
+typedef struct _PVFS_FCB_TABLE_ENTRY
 {
     pthread_rwlock_t rwLock;
     pthread_rwlock_t *pRwLock;
@@ -189,7 +189,7 @@ typedef struct _PVFS_HASH_TABLE
     PVFS_HASH_FREE_ENTRY fnFree;
 } PVFS_HASH_TABLE, *PPVFS_HASH_TABLE;
 
-typedef struct _PVFS_SCB_TABLE
+typedef struct _PVFS_FCB_TABLE
 {
     pthread_rwlock_t rwLock;
     PPVFS_HASH_TABLE pScbTable;
@@ -296,11 +296,11 @@ struct _PVFS_SCB
 {
     LONG RefCount;
 
-    PPVFS_SCB_TABLE_ENTRY pBucket;      /* ScbTable Bucket */
+    PPVFS_SCB_TABLE_ENTRY pBucket;      /* FcbTable Bucket */
 
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
-                                       on an individual SCB */
+                                       on an individual FCB */
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;

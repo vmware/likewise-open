@@ -66,7 +66,7 @@ pthread_mutex_t  gPathCacheLock;
 
 PLWIO_LRU        gpPathCache = NULL;
 
-pthread_mutex_t gDeviceScbMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t gDeviceFcbMutex = PTHREAD_MUTEX_INITIALIZER;
 PPVFS_SCB gpPvfsDeviceScb = NULL;
 
 pthread_mutex_t gPvfsIrpContextMutex = PTHREAD_MUTEX_INITIALIZER;

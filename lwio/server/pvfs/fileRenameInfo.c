@@ -254,7 +254,7 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsRenameSCB(pCcb->pScb, pCcb, pszNewDiskPathname);
+    ntError = PvfsRenameFCB(pCcb->pScb, pCcb, pszNewDiskPathname);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);

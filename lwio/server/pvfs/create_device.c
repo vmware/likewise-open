@@ -65,22 +65,22 @@ PvfsCreateDevice(
     // Initialize CreateOptions since it might be used without setting
     pCcb->CreateOptions = 0;
 
-    LWIO_LOCK_MUTEX(bLocked, &gDeviceScbMutex);
+    LWIO_LOCK_MUTEX(bLocked, &gDeviceFcbMutex);
 
     if (!gpPvfsDeviceScb)
     {
-        ntError = PvfsAllocateSCB(&gpPvfsDeviceScb);
+        ntError = PvfsAllocateFCB(&gpPvfsDeviceScb);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAddCCBToSCB(gpPvfsDeviceScb, pCcb);
+    ntError = PvfsAddCCBToFCB(gpPvfsDeviceScb, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsStoreCCB(pIrpContext->pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &gDeviceScbMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gDeviceFcbMutex);
 
     return ntError;
 
