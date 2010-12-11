@@ -211,7 +211,7 @@ PvfsCreateFileDoSysOpen(
     }
 
     ntError = PvfsEnforceShareMode(
-                   pCreateContext->pFcb,
+                   pCreateContext->pScb,
                    Args.ShareAccess,
                    pCreateContext->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
@@ -272,7 +272,7 @@ PvfsCreateFileDoSysOpen(
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
     pCreateContext->pszDiskFilename = NULL;
 
-    ntError = PvfsAddCCBToFCB(pCreateContext->pFcb, pCreateContext->pCcb);
+    ntError = PvfsAddCCBToFCB(pCreateContext->pScb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
@@ -349,7 +349,7 @@ PvfsCreateFileDoSysOpen(
     if (CreateResult == FILE_CREATED)
     {
         PvfsNotifyScheduleFullReport(
-            pCreateContext->pCcb->pFcb,
+            pCreateContext->pCcb->pScb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
             FILE_ACTION_ADDED,
             pCreateContext->pCcb->pszFilename);
@@ -498,7 +498,7 @@ PvfsCreateDirDoSysOpen(
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
 
-    ntError = PvfsAddCCBToFCB(pCreateContext->pFcb, pCreateContext->pCcb);
+    ntError = PvfsAddCCBToFCB(pCreateContext->pScb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
@@ -582,7 +582,7 @@ PvfsCreateDirDoSysOpen(
     if (CreateResult == FILE_CREATED)
     {
         PvfsNotifyScheduleFullReport(
-            pCreateContext->pCcb->pFcb,
+            pCreateContext->pCcb->pScb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
             FILE_ACTION_ADDED,
             pCreateContext->pCcb->pszFilename);
@@ -877,9 +877,9 @@ PvfsFreeCreateContext(
             PvfsReleaseCCB(pCreateCtx->pCcb);
         }
 
-        if (pCreateCtx->pFcb)
+        if (pCreateCtx->pScb)
         {
-            PvfsReleaseFCB(&pCreateCtx->pFcb);
+            PvfsReleaseSCB(&pCreateCtx->pScb);
         }
 
         RtlCStringFree(&pCreateCtx->pszDiskFilename);
@@ -956,11 +956,11 @@ error:
 
 NTSTATUS
 PvfsCreateFileCheckPendingDelete(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_FCB pParentFcb = NULL;
+    PPVFS_SCB pParentFcb = NULL;
 
     if (PvfsFcbIsPendingDelete(pFcb))
     {
@@ -980,7 +980,7 @@ PvfsCreateFileCheckPendingDelete(
 cleanup:
     if (pParentFcb)
     {
-        PvfsReleaseFCB(&pParentFcb);
+        PvfsReleaseSCB(&pParentFcb);
     }
 
 

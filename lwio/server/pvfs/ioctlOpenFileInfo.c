@@ -148,7 +148,7 @@ PvfsFillOpenFileInfo(
     BOOLEAN bLocked = FALSE;
     DWORD dwIndex = 0;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gFcbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gScbTable.rwLock);
 
     /* Setup the traversal structure.  Pass in the PVOID output buffer
        we were originally given */
@@ -159,15 +159,15 @@ PvfsFillOpenFileInfo(
     OpenFileInfo.pData = pBuffer;
     OpenFileInfo.pPreviousEntry = NULL;
 
-    for (dwIndex=0; dwIndex<gFcbTable.pFcbTable->sTableSize; dwIndex++)
+    for (dwIndex=0; dwIndex<gScbTable.pScbTable->sTableSize; dwIndex++)
     {
-        if (gFcbTable.pFcbTable->ppEntries[dwIndex] == NULL)
+        if (gScbTable.pScbTable->ppEntries[dwIndex] == NULL)
         {
             continue;
         }
 
         ntError = LwRtlRBTreeTraverse(
-                      gFcbTable.pFcbTable->ppEntries[dwIndex]->pTree,
+                      gScbTable.pScbTable->ppEntries[dwIndex]->pTree,
                       LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                       PvfsOpenFileInfo,
                       &OpenFileInfo);
@@ -177,7 +177,7 @@ PvfsFillOpenFileInfo(
     *pBytesConsumed = BufLen - OpenFileInfo.BytesAvailable;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gScbTable.rwLock);
 
     return ntError;
 
@@ -195,7 +195,7 @@ PvfsFillOpenFileInfo0(
     PVOID pBuffer,
     ULONG BufferLength,
     PVOID pPreviousEntry,
-    PPVFS_FCB pFcb,
+    PPVFS_SCB pFcb,
     PULONG pBytesUsed
     );
 
@@ -205,7 +205,7 @@ PvfsFillOpenFileInfo100(
     PVOID pBuffer,
     ULONG BufferLength,
     PVOID pPreviousEntry,
-    PPVFS_FCB pFcb,
+    PPVFS_SCB pFcb,
     PULONG pBytesUsed
     );
 
@@ -219,7 +219,7 @@ PvfsOpenFileInfo(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_FCB pFcb = (PPVFS_FCB)pData;
+    PPVFS_SCB pFcb = (PPVFS_SCB)pData;
     PPVFS_OPEN_FILE_INFO pOpenFileInfo = (PPVFS_OPEN_FILE_INFO)pUserData;
     ULONG BytesUsed = 0;
 
@@ -274,7 +274,7 @@ PvfsFillOpenFileInfo0(
     PVOID pBuffer,
     ULONG BufferLength,
     PVOID pPreviousEntry,
-    PPVFS_FCB pFcb,
+    PPVFS_SCB pFcb,
     PULONG pBytesUsed
     )
 {
@@ -337,7 +337,7 @@ PvfsFillOpenFileInfo100(
     PVOID pBuffer,
     ULONG BufferLength,
     PVOID pPreviousEntry,
-    PPVFS_FCB pFcb,
+    PPVFS_SCB pFcb,
     PULONG pBytesUsed
     )
 {

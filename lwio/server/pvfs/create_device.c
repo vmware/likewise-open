@@ -67,13 +67,13 @@ PvfsCreateDevice(
 
     LWIO_LOCK_MUTEX(bLocked, &gDeviceFcbMutex);
 
-    if (!gpPvfsDeviceFcb)
+    if (!gpPvfsDeviceScb)
     {
-        ntError = PvfsAllocateFCB(&gpPvfsDeviceFcb);
+        ntError = PvfsAllocateFCB(&gpPvfsDeviceScb);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAddCCBToFCB(gpPvfsDeviceFcb, pCcb);
+    ntError = PvfsAddCCBToFCB(gpPvfsDeviceScb, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsStoreCCB(pIrpContext->pIrp->FileHandle, pCcb);

@@ -141,7 +141,7 @@ PvfsQueryFileAllInfo(
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
-    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
+    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pScb);
 
     if (PVFS_IS_DIR(pCcb))
     {
@@ -191,7 +191,7 @@ PvfsQueryFileAllInfo(
 
     /* Name */
 
-    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pFcb->pszFilename);
+    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pScb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Convert to a Windows pathname equivalent */

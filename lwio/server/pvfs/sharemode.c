@@ -59,14 +59,14 @@ PvfsCheckShareMode(
     IN PSTR pszFilename,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess,
-    OUT PPVFS_FCB *ppFcb
+    OUT PPVFS_SCB *ppFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_FCB pFcb = NULL;
-    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_SCB pFcb = NULL;
+    PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
 
-    ntError = PvfsFcbTableGetBucket(&pBucket, &gFcbTable, pszFilename);
+    ntError = PvfsFcbTableGetBucket(&pBucket, &gScbTable, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsFcbTableLookup(&pFcb, pBucket, pszFilename);
@@ -120,7 +120,7 @@ PvfsCheckShareMode(
 
 cleanup:
     if (pFcb) {
-        PvfsReleaseFCB(&pFcb);
+        PvfsReleaseSCB(&pFcb);
     }
 
     return ntError;
@@ -135,14 +135,14 @@ error:
 
 static NTSTATUS
 _PvfsEnforceShareMode(
-    IN PPVFS_FCB pFcb,
+    IN PPVFS_SCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     );
 
 NTSTATUS
 PvfsEnforceShareMode(
-    IN PPVFS_FCB pFcb,
+    IN PPVFS_SCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     )
@@ -199,7 +199,7 @@ struct _SHARE_MODE_ACCESS_COMPATIBILITY
 
 NTSTATUS
 _PvfsEnforceShareMode(
-    IN PPVFS_FCB pFcb,
+    IN PPVFS_SCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
     )
@@ -226,7 +226,7 @@ _PvfsEnforceShareMode(
         pCcb = LW_STRUCT_FROM_FIELD(
                    pCursor,
                    PVFS_CCB,
-                   FcbList);
+                   ScbList);
 
         /* Ignore handles that are in the midst of being closed */
 

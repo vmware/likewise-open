@@ -69,14 +69,14 @@ NTSTATUS
 PvfsHashTableGetValue(
     PPVFS_HASH_TABLE pTable,
     PVOID  pKey,
-    PPVFS_FCB *ppFcb
+    PPVFS_SCB *ppFcb
     );
 
 NTSTATUS
 PvfsHashTableSetValue(
     PPVFS_HASH_TABLE pTable,
     PVOID  pKey,
-    PPVFS_FCB pFcb
+    PPVFS_SCB pFcb
     );
 
 NTSTATUS
@@ -94,7 +94,7 @@ PvfsFcbTableHashKey(
 static
 VOID
 PvfsFcbTableFreeHashEntry(
-    PPVFS_FCB_TABLE_ENTRY *ppEntry
+    PPVFS_SCB_TABLE_ENTRY *ppEntry
     );
 
 static
@@ -115,14 +115,14 @@ PvfsFcbTableInitialize(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    pthread_rwlock_init(&gFcbTable.rwLock, NULL);
+    pthread_rwlock_init(&gScbTable.rwLock, NULL);
 
     ntError = PvfsHashTableCreate(
                   1021,
                   PvfsFcbTableFilenameCompare,
                   PvfsFcbTableHashKey,
                   PvfsFcbTableFreeHashEntry,
-                  &gFcbTable.pFcbTable);
+                  &gScbTable.pScbTable);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -143,13 +143,13 @@ PvfsFcbTableDestroy(
 {
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
-    PvfsHashTableDestroy(&gFcbTable.pFcbTable);
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gScbTable.rwLock);
+    PvfsHashTableDestroy(&gScbTable.pScbTable);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gScbTable.rwLock);
 
-    pthread_rwlock_destroy(&gFcbTable.rwLock);
+    pthread_rwlock_destroy(&gScbTable.rwLock);
 
-    PVFS_ZERO_MEMORY(&gFcbTable);
+    PVFS_ZERO_MEMORY(&gScbTable);
 
     return STATUS_SUCCESS;
 }
@@ -160,8 +160,8 @@ PvfsFcbTableDestroy(
 
 NTSTATUS
 PvfsFcbTableAdd_inlock(
-    PPVFS_FCB_TABLE_ENTRY pBucket,
-    PPVFS_FCB pFcb
+    PPVFS_SCB_TABLE_ENTRY pBucket,
+    PPVFS_SCB pFcb
     )
 {
     return LwRtlRBTreeAdd(
@@ -176,8 +176,8 @@ PvfsFcbTableAdd_inlock(
 
 NTSTATUS
 PvfsFcbTableRemove_inlock(
-    PPVFS_FCB_TABLE_ENTRY pBucket,
-    PPVFS_FCB pFcb
+    PPVFS_SCB_TABLE_ENTRY pBucket,
+    PPVFS_SCB pFcb
     )
 {
    return LwRtlRBTreeRemove(pBucket->pTree, (PVOID)pFcb->pszFilename);
@@ -188,8 +188,8 @@ PvfsFcbTableRemove_inlock(
 
 NTSTATUS
 PvfsFcbTableRemove(
-    PPVFS_FCB_TABLE_ENTRY pBucket,
-    PPVFS_FCB pFcb
+    PPVFS_SCB_TABLE_ENTRY pBucket,
+    PPVFS_SCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -215,8 +215,8 @@ error:
 
 NTSTATUS
 PvfsFcbTableLookup(
-    PPVFS_FCB *ppFcb,
-    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_SCB *ppFcb,
+    PPVFS_SCB_TABLE_ENTRY pBucket,
     PSTR pszFilename
     )
 {
@@ -238,13 +238,13 @@ PvfsFcbTableLookup(
 
 NTSTATUS
 PvfsFcbTableLookup_inlock(
-    PPVFS_FCB *ppFcb,
-    PPVFS_FCB_TABLE_ENTRY pBucket,
+    PPVFS_SCB *ppFcb,
+    PPVFS_SCB_TABLE_ENTRY pBucket,
     PCSTR pszFilename
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_FCB pFcb = NULL;
+    PPVFS_SCB pFcb = NULL;
 
     ntError = LwRtlRBTreeFind(
                   pBucket->pTree,
@@ -271,15 +271,15 @@ error:
 
 NTSTATUS
 PvfsFcbTableGetBucket(
-    OUT PPVFS_FCB_TABLE_ENTRY *ppBucket,
-    IN PPVFS_FCB_TABLE pFcbTable,
+    OUT PPVFS_SCB_TABLE_ENTRY *ppBucket,
+    IN PPVFS_SCB_TABLE pFcbTable,
     IN PVOID pKey
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     size_t sBucket = 0;
-    PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
-    PPVFS_HASH_TABLE pHashTable = pFcbTable->pFcbTable;
+    PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_HASH_TABLE pHashTable = pFcbTable->pScbTable;
 
     if (pHashTable->sTableSize > 0)
     {
@@ -319,7 +319,7 @@ PvfsHashTableCreate(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_HASH_TABLE pTable = NULL;
     size_t sIndex = 0;
-    PPVFS_FCB_TABLE_ENTRY pNewEntry = NULL;
+    PPVFS_SCB_TABLE_ENTRY pNewEntry = NULL;
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pTable,
@@ -471,11 +471,11 @@ PvfsFcbTableFilenameCompare(
 static
 VOID
 PvfsFcbTableFreeHashEntry(
-    PPVFS_FCB_TABLE_ENTRY *ppEntry
+    PPVFS_SCB_TABLE_ENTRY *ppEntry
     )
 {
     BOOLEAN bLocked = FALSE;
-    PPVFS_FCB_TABLE_ENTRY pEntry = ppEntry ? *ppEntry : NULL;
+    PPVFS_SCB_TABLE_ENTRY pEntry = ppEntry ? *ppEntry : NULL;
 
     if (pEntry)
     {

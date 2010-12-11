@@ -143,7 +143,7 @@ PvfsOplockRequest(
     pCcb->OplockState = PVFS_OPLOCK_STATE_GRANTED;
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
-    pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
+    pIrpContext->pScb = PvfsReferenceFCB(pCcb->pScb);
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
 
     /* Allow the oplock request to be cancelled now */
@@ -177,12 +177,12 @@ error:
 
 static NTSTATUS
 PvfsOplockProcessReadyItems(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pFcb
     );
 
 static VOID
 PvfsFreeOplockReadyItemsContext(
-    IN OUT PPVFS_FCB *ppFcb
+    IN OUT PPVFS_SCB *ppFcb
     );
 
 NTSTATUS
@@ -196,7 +196,7 @@ PvfsOplockBreakAck(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_CCB pCcb = NULL;
-    PPVFS_FCB pFcb = NULL;
+    PPVFS_SCB pFcb = NULL;
     PIO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER pOplockBreakResp = NULL;
     ULONG OutputBufLen = *pOutputBufferLength;
     BOOLEAN bCcbLocked = FALSE;
@@ -217,7 +217,7 @@ PvfsOplockBreakAck(
     ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    pFcb = pCcb->pFcb;
+    pFcb = pCcb->pScb;
 
     if (PVFS_IS_DIR(pCcb))
     {
@@ -252,7 +252,7 @@ PvfsOplockBreakAck(
             switch (ntError)
             {
             case STATUS_SUCCESS:
-                pIrpContext->pFcb = PvfsReferenceFCB(pFcb);
+                pIrpContext->pScb = PvfsReferenceFCB(pFcb);
                 pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
 
                 LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
@@ -326,7 +326,7 @@ error:
 
 NTSTATUS
 PvfsOplockMarkPendedOpsReady(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -393,7 +393,7 @@ error:
 static NTSTATUS
 PvfsOplockBreakOnCreate(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -402,7 +402,7 @@ PvfsOplockBreakOnCreate(
 static NTSTATUS
 PvfsOplockBreakOnRead(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -411,7 +411,7 @@ PvfsOplockBreakOnRead(
 static NTSTATUS
 PvfsOplockBreakOnWrite(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -420,7 +420,7 @@ PvfsOplockBreakOnWrite(
 static NTSTATUS
 PvfsOplockBreakOnLockControl(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -429,7 +429,7 @@ PvfsOplockBreakOnLockControl(
 static NTSTATUS
 PvfsOplockBreakOnSetFileInformation(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -455,7 +455,7 @@ NTSTATUS
 PvfsOplockBreakIfLocked(
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb,
-    IN PPVFS_FCB pFcb
+    IN PPVFS_SCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -660,7 +660,7 @@ PvfsOplockPendingBreakIfLocked(
     ntError = PvfsOplockBreakIfLocked(
                   pTestContext->pIrpContext,
                   pTestContext->pCcb,
-                  pTestContext->pFcb);
+                  pTestContext->pScb);
 
     switch (ntError)
     {
@@ -671,7 +671,7 @@ PvfsOplockPendingBreakIfLocked(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pTestContext->pFcb,
+                      pTestContext->pScb,
                       pTestContext->pIrpContext,
                       pTestContext->pCcb,
                       pTestContext->pfnCompletion,
@@ -685,7 +685,7 @@ PvfsOplockPendingBreakIfLocked(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pTestContext->pFcb,
+                      pTestContext->pScb,
                       pTestContext->pIrpContext,
                       pTestContext->pfnCompletion,
                       pTestContext->pfnFreeContext,
@@ -715,7 +715,7 @@ error:
 
 static NTSTATUS
 PvfsOplockBreakAllLevel2Oplocks(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -783,7 +783,7 @@ error:
 static NTSTATUS
 PvfsOplockBreakOnCreate(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -898,7 +898,7 @@ error:
 static NTSTATUS
 PvfsOplockBreakOnRead(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -982,7 +982,7 @@ error:
 static NTSTATUS
 PvfsOplockBreakOnWrite(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -1073,7 +1073,7 @@ error:
 static NTSTATUS
 PvfsOplockBreakOnLockControl(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -1164,7 +1164,7 @@ error:
 static NTSTATUS
 PvfsOplockBreakOnSetFileInformation(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_RECORD pOplock,
     OUT PULONG pBreakResult
@@ -1271,7 +1271,7 @@ PvfsScheduleCancelOplock(
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
-    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
@@ -1311,7 +1311,7 @@ PvfsOplockCleanOplockQueue(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpCtx->pFcb);
+    PPVFS_SCB pFcb = PvfsReferenceFCB(pIrpCtx->pScb);
     BOOLEAN bFcbLocked = FALSE;
     BOOLEAN bCcbLocked= FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
@@ -1371,7 +1371,7 @@ PvfsOplockCleanOplockQueue(
 
     if (pFcb)
     {
-        PvfsReleaseFCB(&pFcb);
+        PvfsReleaseSCB(&pFcb);
     }
 
     if (pIrpCtx)
@@ -1407,15 +1407,15 @@ PvfsOplockGrantBatchOrLevel1(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_FCB pFcb = NULL;
+    PPVFS_SCB pFcb = NULL;
     BOOLEAN bFcbControlLocked = FALSE;
     ULONG OplockType = bIsBatchOplock ?
                            IO_OPLOCK_REQUEST_OPLOCK_BATCH :
                            IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1;
 
-    BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pCcb->pScb, ntError);
 
-    pFcb = pCcb->pFcb;
+    pFcb = pCcb->pScb;
 
     LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
@@ -1469,12 +1469,12 @@ PvfsOplockGrantLevel2(
     )
 {
     NTSTATUS ntError = STATUS_OPLOCK_NOT_GRANTED;
-    PPVFS_FCB pFcb = NULL;
+    PPVFS_SCB pFcb = NULL;
     BOOLEAN bFcbLocked = FALSE;
 
-    BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pCcb->pScb, ntError);
 
-    pFcb = pCcb->pFcb;
+    pFcb = pCcb->pScb;
 
     LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
@@ -1578,7 +1578,7 @@ PvfsFreePendingOp(
 
 static NTSTATUS
 PvfsOplockProcessReadyItems(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -1660,12 +1660,12 @@ error:
 
 static VOID
 PvfsFreeOplockReadyItemsContext(
-    IN OUT PPVFS_FCB *ppFcb
+    IN OUT PPVFS_SCB *ppFcb
     )
 {
     if (ppFcb && *ppFcb)
     {
-        PvfsReleaseFCB(ppFcb);
+        PvfsReleaseSCB(ppFcb);
     }
 
     return;
@@ -1678,7 +1678,7 @@ PvfsFreeOplockReadyItemsContext(
 NTSTATUS
 PvfsCreateOplockBreakTestContext(
     OUT PPVFS_PENDING_OPLOCK_BREAK_TEST *ppTestContext,
-    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_SCB pFcb,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_CCB pCcb,
     IN  PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
@@ -1695,7 +1695,7 @@ PvfsCreateOplockBreakTestContext(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pTestCtx->pFcb = PvfsReferenceFCB(pFcb);
+    pTestCtx->pScb = PvfsReferenceFCB(pFcb);
     pTestCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pTestCtx->pCcb = PvfsReferenceCCB(pCcb);
     pTestCtx->pfnCompletion = pfnCompletion;
@@ -1736,9 +1736,9 @@ PvfsFreeOplockBreakTestContext(
         {
             PvfsReleaseCCB(pCtx->pCcb);
         }
-        if (pCtx->pFcb)
+        if (pCtx->pScb)
         {
-            PvfsReleaseFCB(&pCtx->pFcb);
+            PvfsReleaseSCB(&pCtx->pScb);
         }
 
         PVFS_FREE(ppContext);

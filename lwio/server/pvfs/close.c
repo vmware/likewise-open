@@ -60,7 +60,7 @@ PvfsClose(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PPVFS_FCB pFcb = NULL;
+    PPVFS_SCB pFcb = NULL;
 
     /* make sure we have a proper CCB */
 
@@ -76,7 +76,7 @@ PvfsClose(
     {
         /* delete-on-close-handle becomes delete-on-close-file */
 
-        PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
+        PvfsFcbSetPendingDelete(pCcb->pScb, TRUE);
     }
 
     if (PVFS_IS_DIR(pCcb))
@@ -108,7 +108,7 @@ PvfsClose(
 
         case PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS:
             /* This is our Ack */
-            ntError = PvfsOplockMarkPendedOpsReady(pCcb->pFcb);
+            ntError = PvfsOplockMarkPendedOpsReady(pCcb->pScb);
             break;
         }
     }
@@ -119,8 +119,8 @@ PvfsClose(
        in the background maintaining a valid reference to the CCB
        that would other prevent the final PvfsFreeCCB() call */
 
-    pFcb = pCcb->pFcb;
-    pCcb->pFcb = NULL;
+    pFcb = pCcb->pScb;
+    pCcb->pScb = NULL;
 
     PvfsRemoveCCBFromFCB(pFcb, pCcb);
 
@@ -149,7 +149,7 @@ cleanup:
 
     if (pFcb)
     {
-        PvfsReleaseFCB(&pFcb);
+        PvfsReleaseSCB(&pFcb);
     }
 
     if (pCcb)

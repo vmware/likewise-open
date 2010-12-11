@@ -418,7 +418,7 @@ PvfsSetSecurityDescriptorFile(
     BAIL_ON_NT_STATUS(ntError);
 
     PvfsNotifyScheduleFullReport(
-        pCcb->pFcb,
+        pCcb->pScb,
         FILE_NOTIFY_CHANGE_SECURITY,
         FILE_ACTION_MODIFIED,
         pCcb->pszFilename);
