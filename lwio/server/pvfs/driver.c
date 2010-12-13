@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static VOID
+static
+VOID
 PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     );
@@ -123,7 +124,8 @@ PvfsDestroyUnixIdCache(
     LONG Length
     );
 
-static VOID
+static
+VOID
 PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )

@@ -79,7 +79,8 @@ StoreLock(
     BOOLEAN bExclusive
     );
 
-static VOID
+static
+VOID
 InitLockEntry(
     OUT PPVFS_LOCK_ENTRY pEntry,
     IN  ULONG Key,
@@ -97,7 +98,8 @@ PvfsAddPendingLock(
     PPVFS_LOCK_ENTRY pLock
     );
 
-static VOID
+static
+VOID
 PvfsProcessPendingLocks(
     PPVFS_FCB pFcb
     );
@@ -402,7 +404,8 @@ cleanup:
 /**************************************************************
  *************************************************************/
 
-static VOID
+static
+VOID
 PvfsProcessPendingLocks(
     PPVFS_FCB pFcb
     )
@@ -528,7 +531,8 @@ error:
 /***********************************************************************
  **********************************************************************/
 
-static BOOLEAN
+static
+BOOLEAN
 DoRangesOverlap(
     LONG64 Offset1,
     LONG64 Length1,
@@ -751,7 +755,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static VOID
+static
+VOID
 InitLockEntry(
     OUT PPVFS_LOCK_ENTRY pEntry,
     IN  ULONG Key,
@@ -1090,7 +1095,8 @@ PvfsLockFileWithContext(
 /*****************************************************************************
  ****************************************************************************/
 
-static BOOLEAN
+static
+BOOLEAN
 PvfsHandleHasOpenByteRangeLocks(
     PPVFS_CCB pCcb
     )

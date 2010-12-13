@@ -113,7 +113,8 @@ PvfsCreateSetAllocationContext(
     IN  PPVFS_CCB pCcb
     );
 
-static VOID
+static
+VOID
 PvfsFreeSetAllocationContext(
     IN OUT PVOID *ppContext
     );
@@ -278,7 +279,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsFreeSetAllocationContext(
     IN OUT PVOID *ppContext
     )

@@ -183,7 +183,8 @@ PvfsOplockProcessReadyItems(
     PPVFS_FCB pFcb
     );
 
-static VOID
+static
+VOID
 PvfsFreeOplockReadyItemsContext(
     IN OUT PPVFS_FCB *ppFcb
     );
@@ -443,7 +444,8 @@ PvfsOplockBreakOnSetFileInformation(
     OUT PULONG pBreakResult
     );
 
-static BOOLEAN
+static
+BOOLEAN
 PvfsOplockIsMine(
     PPVFS_CCB pCcb,
     PPVFS_OPLOCK_RECORD pOplock
@@ -1272,7 +1274,8 @@ PvfsOplockCleanOplockQueue(
     PVOID pContext
     );
 
-static VOID
+static
+VOID
 PvfsOplockCleanOplockFree(
     PVOID *ppContext
     );
@@ -1402,7 +1405,8 @@ PvfsOplockCleanOplockQueue(
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsOplockCleanOplockFree(
     PVOID *ppContext
     )
@@ -1542,7 +1546,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static BOOLEAN
+static
+BOOLEAN
 PvfsOplockIsMine(
     PPVFS_CCB pCcb,
     PPVFS_OPLOCK_RECORD pOplock
@@ -1677,7 +1682,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsFreeOplockReadyItemsContext(
     IN OUT PPVFS_FCB *ppFcb
     )

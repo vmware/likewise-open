@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static PVOID
+static
+PVOID
 PvfsWorkerDoWork(
     PVOID pArgs
     );

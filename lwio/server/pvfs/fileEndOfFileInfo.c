@@ -113,7 +113,8 @@ PvfsCreateSetEndOfFileContext(
     IN  PPVFS_CCB pCcb
     );
 
-static VOID
+static
+VOID
 PvfsFreeSetEndOfFileContext(
     IN OUT PVOID *ppContext
     );
@@ -285,7 +286,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsFreeSetEndOfFileContext(
     IN OUT PVOID *ppContext
     )

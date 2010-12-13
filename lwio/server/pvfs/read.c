@@ -75,7 +75,8 @@ PvfsCreateReadContext(
     IN  PPVFS_CCB pCcb
     );
 
-static VOID
+static
+VOID
 PvfsFreeReadContext(
     IN OUT PVOID *ppContext
     );
@@ -422,7 +423,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsFreeReadContext(
     IN OUT PVOID *ppContext
     )

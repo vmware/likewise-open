@@ -233,18 +233,21 @@ PvfsPathCacheRemove(
 /*****************************************************************************
  ****************************************************************************/
 
-static LONG
+static
+LONG
 PvfsPathCachePathCompare(
     PCVOID pKey1,
     PCVOID pKey2
     );
 
-static ULONG
+static
+ULONG
 PvfsPathCacheKey(
     PCVOID pszPath
     );
 
-static VOID
+static
+VOID
 PvfsPathCacheFreeEntry(
     LWIO_LRU_ENTRY entry
     );
@@ -311,7 +314,8 @@ cleanup:
 /*****************************************************************************
  ****************************************************************************/
 
-static ULONG
+static
+ULONG
 PvfsPathCacheKey(
     PCVOID pszPath
     )
@@ -355,7 +359,8 @@ PvfsPathCacheFreeEntry(
 /*****************************************************************************
  ****************************************************************************/
 
-static LONG
+static
+LONG
 PvfsPathCachePathCompare(
     PCVOID pKey1,
     PCVOID pKey2

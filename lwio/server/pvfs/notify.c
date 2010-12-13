@@ -463,7 +463,8 @@ PvfsNotifyFullReport(
     PVOID pContext
     );
 
-static VOID
+static
+VOID
 PvfsNotifyFullReportCtxFree(
     PPVFS_NOTIFY_REPORT_RECORD *ppContext
     );
@@ -920,7 +921,8 @@ PvfsNotifyCleanIrpList(
     PVOID pContext
     );
 
-static VOID
+static
+VOID
 PvfsNotifyCleanIrpListFree(
     PVOID *ppContext
     );
@@ -1043,7 +1045,8 @@ PvfsNotifyCleanIrpList(
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsNotifyCleanIrpListFree(
     PVOID *ppContext
     )
