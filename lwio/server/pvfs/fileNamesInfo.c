@@ -50,7 +50,8 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileNamesInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -90,7 +91,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileNamesInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,
@@ -99,7 +101,8 @@ FillFileNamesInfoBuffer(
     PDWORD pdwConsumed
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileNamesInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -276,7 +279,8 @@ error:
  *   STATUS_OBJECT_PATH_NOT_FOUND (stat() failed)
  **/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileNamesInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,

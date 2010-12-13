@@ -48,12 +48,14 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateFileSupersede(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateFileCreate(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -63,7 +65,8 @@ PvfsCreateFileOpenOrOverwrite(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateFileOpenOrOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -119,7 +122,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateFileSupersede(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -328,7 +332,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateFileCreate(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -589,7 +594,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateFileOpenOrOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext
     )

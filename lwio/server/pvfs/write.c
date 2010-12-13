@@ -49,28 +49,33 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsWriteInternal(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsPrepareZctWrite(
     IN PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsPreCheckWrite(
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsWriteFileWithContext(
     PVOID pContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateWriteContext(
     OUT PPVFS_PENDING_WRITE *ppWriteCtx,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
@@ -125,7 +130,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsWriteInternal(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
@@ -213,7 +219,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsPrepareZctWrite(
     IN PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -274,7 +281,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsPreCheckWrite(
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb
@@ -310,7 +318,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsWriteFileWithContext(
     PVOID pContext
     )
@@ -441,7 +450,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateWriteContext(
     OUT PPVFS_PENDING_WRITE *ppWriteContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,

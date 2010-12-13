@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileRenameInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -97,7 +98,8 @@ error:
 /****************************************************************
  ***************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileRenameInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )

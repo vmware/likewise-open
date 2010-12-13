@@ -53,13 +53,15 @@ PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
     IN PIRP pIrp
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDriverInitialize(
     VOID
     );
@@ -306,7 +308,8 @@ error:
 /************************************************************
  ***********************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDriverInitialize(
     VOID
     )

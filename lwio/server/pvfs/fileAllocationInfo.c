@@ -58,7 +58,8 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileAllocationInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -98,12 +99,14 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetAllocationWithContext(
     PVOID pContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateSetAllocationContext(
     OUT PPVFS_PENDING_SET_ALLOCATION *ppSetAllocationContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
@@ -115,7 +118,8 @@ PvfsFreeSetAllocationContext(
     IN OUT PVOID *ppContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileAllocationInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -207,7 +211,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetAllocationWithContext(
     PVOID pContext
     )
@@ -238,7 +243,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateSetAllocationContext(
     OUT PPVFS_PENDING_SET_ALLOCATION *ppSetAllocationContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,

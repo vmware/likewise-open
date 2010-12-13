@@ -49,7 +49,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -99,7 +100,8 @@ error:
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileDirInfoStatic(
     PFILE_DIRECTORY_INFORMATION pFileInfo,
     PPVFS_STAT pStat
@@ -142,7 +144,8 @@ error:
           STATUS_OBJECT_PATH_NOT_FOUND (stat() failed)
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileDirInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,
@@ -232,7 +235,8 @@ error:
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )

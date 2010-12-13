@@ -133,7 +133,8 @@ error:
 /***********************************************************
  **********************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 _PvfsEnforceShareMode(
     IN PPVFS_FCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,

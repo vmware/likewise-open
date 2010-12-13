@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQuerySetInformationFile(
     PVFS_INFO_TYPE RequestType,
     PPVFS_IRP_CONTEXT  pIrpContext
@@ -120,7 +121,8 @@ PvfsSetInformationFile(
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQuerySetInformationFile(
     PVFS_INFO_TYPE RequestType,
     PPVFS_IRP_CONTEXT  pIrpContext

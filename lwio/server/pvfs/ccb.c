@@ -195,7 +195,8 @@ PvfsReferenceCCB(
 /*******************************************************
  ******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsAcquireCCBInternal(
     IO_FILE_HANDLE FileHandle,
     PPVFS_CCB * ppCCB,

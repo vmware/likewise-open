@@ -49,17 +49,20 @@
 /* Forward declarations */
 
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateDirCreate(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateDirOpen(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateDirOpenIf(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -124,7 +127,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateDirCreate(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -249,7 +253,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateDirOpen(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -335,7 +340,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateDirOpenIf(
     PPVFS_IRP_CONTEXT pIrpContext
     )

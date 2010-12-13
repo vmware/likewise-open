@@ -48,12 +48,14 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileFsControlInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileFsControlInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -104,7 +106,8 @@ error:
 }
 
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileFsControlInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -143,7 +146,8 @@ error:
 }
 
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileFsControlInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )

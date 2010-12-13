@@ -58,14 +58,16 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockGrantBatchOrLevel1(
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
     BOOLEAN bIsBatchOplock
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockGrantLevel2(
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb
@@ -175,7 +177,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockProcessReadyItems(
     PPVFS_FCB pFcb
     );
@@ -390,7 +393,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnCreate(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -399,7 +403,8 @@ PvfsOplockBreakOnCreate(
     OUT PULONG pBreakResult
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnRead(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -408,7 +413,8 @@ PvfsOplockBreakOnRead(
     OUT PULONG pBreakResult
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnWrite(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -417,7 +423,8 @@ PvfsOplockBreakOnWrite(
     OUT PULONG pBreakResult
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnLockControl(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -426,7 +433,8 @@ PvfsOplockBreakOnLockControl(
     OUT PULONG pBreakResult
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnSetFileInformation(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -713,7 +721,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakAllLevel2Oplocks(
     PPVFS_FCB pFcb
     )
@@ -780,7 +789,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnCreate(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -895,7 +905,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnRead(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -979,7 +990,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnWrite(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -1070,7 +1082,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnLockControl(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -1161,7 +1174,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockBreakOnSetFileInformation(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_FCB pFcb,
@@ -1252,7 +1266,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockCleanOplockQueue(
     PVOID pContext
     );
@@ -1304,7 +1319,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockCleanOplockQueue(
     PVOID pContext
     )
@@ -1399,7 +1415,8 @@ PvfsOplockCleanOplockFree(
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockGrantBatchOrLevel1(
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb,
@@ -1462,7 +1479,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockGrantLevel2(
     PPVFS_IRP_CONTEXT pIrpContext,
     PPVFS_CCB pCcb
@@ -1576,7 +1594,8 @@ PvfsFreePendingOp(
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsOplockProcessReadyItems(
     PPVFS_FCB pFcb
     )

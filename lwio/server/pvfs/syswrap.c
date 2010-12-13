@@ -50,7 +50,8 @@
 /**********************************************************
  *********************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 CopyUnixStatToPvfsStat(
     PPVFS_STAT pPvfsStat,
     struct stat *pSbuf

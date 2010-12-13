@@ -547,7 +547,8 @@ error:
 /****************************************************************
  ***************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsResolvePath(
     PSTR *ppszResolvedPath,
     PCSTR pszLookupPath

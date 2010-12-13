@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFilePositionInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -92,7 +93,8 @@ error:
     goto cleanup;
 }
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFilePositionInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )

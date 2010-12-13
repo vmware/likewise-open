@@ -50,7 +50,8 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileFullDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -90,7 +91,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileFullDirInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,
@@ -99,7 +101,8 @@ FillFileFullDirInfoBuffer(
     PDWORD pdwConsumed
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileFullDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -269,7 +272,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileFullDirInfoStatic(
     PFILE_FULL_DIR_INFORMATION pFileInfo,
     PWSTR pwszShortFilename,
@@ -282,7 +286,8 @@ FillFileFullDirInfoStatic(
  *   STATUS_OBJECT_PATH_NOT_FOUND (stat() failed)
  **/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileFullDirInfoBuffer(
     PVOID pBuffer,
     DWORD dwBufLen,
@@ -380,7 +385,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 FillFileFullDirInfoStatic(
     PFILE_FULL_DIR_INFORMATION pFileInfo,
     PWSTR pwszShortFilename,

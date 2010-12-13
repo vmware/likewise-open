@@ -86,7 +86,8 @@ PvfsFreeDirectoryContext(
 /***********************************************************
  **********************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDirContextAddEntry(
     PPVFS_DIRECTORY_CONTEXT pDirCtx,
     PCSTR pszPathname
@@ -127,7 +128,8 @@ error:
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 AllocateCStringFileSpec(
     PSTR *ppszPattern,
     PIO_MATCH_FILE_SPEC pFileSpec

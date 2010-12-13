@@ -48,21 +48,24 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 MapPosixOpenDisposition(
     int *unixFlags,
     FILE_CREATE_DISPOSITION Disposition,
     BOOLEAN bIsDir
     );
 
-static NTSTATUS
+static
+NTSTATUS
 MapPosixOpenAccess(
     int *unixFlags,
     ACCESS_MASK Access,
     BOOLEAN bIsDir
     );
 
-static NTSTATUS
+static
+NTSTATUS
 MapPosixOpenOptions(
     int *unixFlags,
     FILE_CREATE_OPTIONS Options,
@@ -115,7 +118,8 @@ error:
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 MapPosixOpenDisposition(
     int *unixFlags,
     FILE_CREATE_DISPOSITION Disposition,
@@ -166,7 +170,8 @@ error:
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 MapPosixOpenAccess(
     int *unixFlags,
     ACCESS_MASK Access,
@@ -223,7 +228,8 @@ error:
 /********************************************************
  *******************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 MapPosixOpenOptions(
     int *unixFlags,
     FILE_CREATE_OPTIONS Options,

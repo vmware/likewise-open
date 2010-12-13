@@ -58,7 +58,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctMemoryReadIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     OUT PLW_ZCT_VECTOR pZct,
@@ -68,7 +69,8 @@ PvfsDoZctMemoryReadIo(
     );
 
 #ifdef HAVE_SPLICE
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctSpliceReadIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     OUT PLW_ZCT_VECTOR pZct,
@@ -78,7 +80,8 @@ PvfsDoZctSpliceReadIo(
     );
 #endif
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctMemoryWriteIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN ULONG BufferLength,
@@ -87,7 +90,8 @@ PvfsDoZctMemoryWriteIo(
     );
 
 #ifdef HAVE_SPLICE
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctSpliceWriteIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN ULONG BufferLength,
@@ -323,7 +327,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctMemoryReadIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     OUT PLW_ZCT_VECTOR pZct,
@@ -368,7 +373,8 @@ error:
  ****************************************************************************/
 
 #ifdef HAVE_SPLICE
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctSpliceReadIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     OUT PLW_ZCT_VECTOR pZct,
@@ -546,7 +552,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctMemoryWriteIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN ULONG BufferLength,
@@ -579,7 +586,8 @@ error:
  ****************************************************************************/
 
 #ifdef HAVE_SPLICE
-static NTSTATUS
+static
+NTSTATUS
 PvfsDoZctSpliceWriteIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN ULONG BufferLength,

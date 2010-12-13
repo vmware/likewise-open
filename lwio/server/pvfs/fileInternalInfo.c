@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileInternalInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -99,7 +100,8 @@ error:
 /****************************************************************
  ***************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileInternalInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )

@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileCompressionInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -93,7 +94,8 @@ error:
 }
 
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsQueryFileCompressionInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )

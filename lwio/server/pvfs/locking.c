@@ -48,7 +48,8 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 CanLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
@@ -58,7 +59,8 @@ CanLock(
     BOOLEAN bSelf
     );
 
-static NTSTATUS
+static
+NTSTATUS
 AddLock(
     PPVFS_CCB pCcb,
     ULONG Key,
@@ -67,7 +69,8 @@ AddLock(
     BOOLEAN bExclusive
     );
 
-static NTSTATUS
+static
+NTSTATUS
 StoreLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
@@ -85,7 +88,8 @@ InitLockEntry(
     IN  PVFS_LOCK_FLAGS Flags
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsAddPendingLock(
     PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpCtx,
@@ -576,7 +580,8 @@ DoRangesOverlap(
     return FALSE;
 }
 
-static NTSTATUS
+static
+NTSTATUS
 CanLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
@@ -657,7 +662,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 AddLock(
     PPVFS_CCB pCcb,
     ULONG Key,
@@ -688,7 +694,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 StoreLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
@@ -772,7 +779,8 @@ InitLockEntry(
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCheckLockedRegionCanRead(
     IN PPVFS_CCB pCcb,
     IN BOOLEAN bSelf,
@@ -781,7 +789,8 @@ PvfsCheckLockedRegionCanRead(
     IN ULONG Length
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCheckLockedRegionCanWrite(
     IN PPVFS_CCB pCcb,
     IN BOOLEAN bSelf,
@@ -877,7 +886,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCheckLockedRegionCanRead(
     IN PPVFS_CCB pCcb,
     IN BOOLEAN bSelf,
@@ -925,7 +935,8 @@ error:
 /**************************************************************
  *************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCheckLockedRegionCanWrite(
     IN PPVFS_CCB pCcb,
     IN BOOLEAN bSelf,

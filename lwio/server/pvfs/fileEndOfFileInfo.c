@@ -58,7 +58,8 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileEndOfFileInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -98,12 +99,14 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetEndOfFileWithContext(
     PVOID pContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateSetEndOfFileContext(
     OUT PPVFS_PENDING_SET_END_OF_FILE *ppSetEndOfFileContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
@@ -115,7 +118,8 @@ PvfsFreeSetEndOfFileContext(
     IN OUT PVOID *ppContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetFileEndOfFileInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -207,7 +211,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsSetEndOfFileWithContext(
     PVOID pContext
     )
@@ -245,7 +250,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateSetEndOfFileContext(
     OUT PPVFS_PENDING_SET_END_OF_FILE *ppSetEndOfFileContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,

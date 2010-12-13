@@ -50,7 +50,8 @@
 /***********************************************************************
  **********************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsFillOpenFileInfo(
     OUT PVOID pBuffer,
     IN  ULONG BufLen,

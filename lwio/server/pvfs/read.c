@@ -55,17 +55,20 @@
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsReadInternal(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsReadFileWithContext(
     PVOID pContext
     );
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateReadContext(
     OUT PPVFS_PENDING_READ *ppReadContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
@@ -113,7 +116,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsReadInternal(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -214,7 +218,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsReadFileWithContext(
     PVOID pContext
     )
@@ -370,7 +375,8 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsCreateReadContext(
     OUT PPVFS_PENDING_READ *ppReadContext,
     IN  PPVFS_IRP_CONTEXT pIrpContext,
