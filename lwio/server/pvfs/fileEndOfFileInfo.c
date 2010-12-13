@@ -157,7 +157,7 @@ PvfsSetFileEndOfFileInfo(
                   pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
 
     switch (ntError)
     {
@@ -167,7 +167,7 @@ PvfsSetFileEndOfFileInfo(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pSetEoFCtx->pCcb->pFcb,
+                      pSetEoFCtx->pCcb->pScb,
                       pIrpContext,
                       pSetEoFCtx->pCcb,
                       PvfsSetEndOfFileWithContext,
@@ -181,7 +181,7 @@ PvfsSetFileEndOfFileInfo(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pSetEoFCtx->pCcb->pFcb,
+                      pSetEoFCtx->pCcb->pScb,
                       pIrpContext,
                       PvfsSetEndOfFileWithContext,
                       PvfsFreeSetEndOfFileContext,
@@ -235,7 +235,7 @@ PvfsSetEndOfFileWithContext(
     ntError = STATUS_SUCCESS;
 
     PvfsNotifyScheduleFullReport(
-        pCcb->pFcb,
+        pCcb->pScb,
         FILE_NOTIFY_CHANGE_SIZE,
         FILE_ACTION_MODIFIED,
         pCcb->pszFilename);

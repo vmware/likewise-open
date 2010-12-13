@@ -33,8 +33,8 @@ libpvfs_sys_la_SOURCES = \
     alloc.c \
     ccb.c \
     ccb_fileinfo.c \
-    fcb.c \
-    fcbtable.c \
+    scb.c \
+    scbtable.c \
     errno.c \
     syswrap.c \
     util_open.c \

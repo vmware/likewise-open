@@ -162,11 +162,11 @@ PvfsSetFileDispositionInfo(
             }
         }
 
-        PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
+        PvfsScbSetPendingDelete(pCcb->pScb, TRUE);
     }
     else
     {
-        PvfsFcbSetPendingDelete(pCcb->pFcb, FALSE);
+        PvfsScbSetPendingDelete(pCcb->pScb, FALSE);
     }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);

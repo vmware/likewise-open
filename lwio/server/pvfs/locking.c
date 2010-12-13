@@ -92,7 +92,7 @@ InitLockEntry(
 static
 NTSTATUS
 PvfsAddPendingLock(
-    PPVFS_FCB pFcb,
+    PPVFS_SCB pScb,
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PPVFS_LOCK_ENTRY pLock
@@ -101,7 +101,7 @@ PvfsAddPendingLock(
 static
 VOID
 PvfsProcessPendingLocks(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pScb
     );
 
 /* Code */
@@ -121,9 +121,9 @@ PvfsLockFile(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pCursor = NULL;
-    PPVFS_FCB pFcb = pCcb->pFcb;
+    PPVFS_SCB pScb = pCcb->pScb;
     BOOLEAN bExclusive = FALSE;
-    BOOLEAN bFcbReadLocked = FALSE;
+    BOOLEAN bScbReadLocked = FALSE;
     BOOLEAN bBrlWriteLocked = FALSE;
     PVFS_LOCK_ENTRY RangeLock = {0};
     PPVFS_CCB pCurrentCcb = NULL;
@@ -143,15 +143,15 @@ PvfsLockFile(
 
     /* Read lock so no one can add a CCB to the list */
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwCcbLock);
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bScbReadLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pScb->rwBrlLock);
 
-    while ((pCursor = PvfsListTraverse(pFcb->pCcbList, pCursor)) != NULL)
+    while ((pCursor = PvfsListTraverse(pScb->pCcbList, pCursor)) != NULL)
     {
         pCurrentCcb = LW_STRUCT_FROM_FIELD(
                           pCursor,
                           PVFS_CCB,
-                          FcbList);
+                          ScbList);
 
         /* We'll deal with ourselves in AddLock() */
 
@@ -178,13 +178,13 @@ PvfsLockFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pFcb->rwBrlLock);
-    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwCcbLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pScb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bScbReadLocked, &pScb->rwCcbLock);
 
     return ntError;
 
 error:
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pScb->rwBrlLock);
 
     InitLockEntry(&RangeLock, Key, Offset, Length, Flags);
 
@@ -195,23 +195,23 @@ error:
     {
         NTSTATUS ntErrorPending = STATUS_UNSUCCESSFUL;
 
-        ntErrorPending = PvfsAddPendingLock(pFcb, pIrpCtx, pCcb, &RangeLock);
+        ntErrorPending = PvfsAddPendingLock(pScb, pIrpCtx, pCcb, &RangeLock);
         if (ntErrorPending == STATUS_PENDING) {
             ntError = STATUS_PENDING;
         }
     }
 
-    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pScb->rwBrlLock);
 
     goto cleanup;
 }
 
-/* Caller must hold the mutex on the FCB */
+/* Caller must hold the mutex on the SCB */
 
 static
 NTSTATUS
 PvfsAddPendingLock(
-    PPVFS_FCB pFcb,
+    PPVFS_SCB pScb,
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PPVFS_LOCK_ENTRY pLock
@@ -237,13 +237,13 @@ PvfsAddPendingLock(
     pPendingLock->PendingLock = *pLock;   /* structure assignment */
 
     ntError = PvfsListAddTail(
-                  pFcb->pPendingLockQueue,
+                  pScb->pPendingLockQueue,
                   &pPendingLock->LockList);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (!pIrpCtx->pFcb)
+    if (!pIrpCtx->pScb)
     {
-        pIrpCtx->pFcb = PvfsReferenceFCB(pCcb->pFcb);
+        pIrpCtx->pScb = PvfsReferenceSCB(pCcb->pScb);
     }
     pIrpCtx->QueueType = PVFS_QUEUE_TYPE_PENDING_LOCK;
 
@@ -286,14 +286,14 @@ PvfsUnlockFile(
     )
 {
     NTSTATUS ntError = STATUS_RANGE_NOT_LOCKED;
-    PPVFS_FCB pFcb = pCcb->pFcb;
+    PPVFS_SCB pScb = pCcb->pScb;
     PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
     PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
     PPVFS_LOCK_ENTRY pEntry = NULL;
     ULONG i = 0;
     BOOLEAN bBrlWriteLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLock, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLock, &pScb->rwBrlLock);
 
     /* If the caller wants to release all locks, just set the
        NumberOfLocks to 0 */
@@ -390,12 +390,12 @@ PvfsUnlockFile(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bBrlWriteLock, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLock, &pScb->rwBrlLock);
 
     /* See if any pending locks can be granted now */
 
     if (ntError == STATUS_SUCCESS) {
-        PvfsProcessPendingLocks(pFcb);
+        PvfsProcessPendingLocks(pScb);
     }
 
     return ntError;
@@ -407,7 +407,7 @@ cleanup:
 static
 VOID
 PvfsProcessPendingLocks(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pScb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -425,20 +425,20 @@ PvfsProcessPendingLocks(
 
     /* Take the pending lock queue for processing */
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pScb->rwBrlLock);
 
-    if (!PvfsListIsEmpty(pFcb->pPendingLockQueue))
+    if (!PvfsListIsEmpty(pScb->pPendingLockQueue))
     {
-        pProcessingQueue = pFcb->pPendingLockQueue;
-        pFcb->pPendingLockQueue = NULL;
+        pProcessingQueue = pScb->pPendingLockQueue;
+        pScb->pPendingLockQueue = NULL;
 
         ntError = PvfsListInit(
-                      &pFcb->pPendingLockQueue,
-                      PVFS_FCB_MAX_PENDING_LOCKS,
+                      &pScb->pPendingLockQueue,
+                      PVFS_SCB_MAX_PENDING_LOCKS,
                       (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingLock);
     }
 
-    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pScb->rwBrlLock);
     BAIL_ON_NT_STATUS(ntError);
 
     if (pProcessingQueue == NULL)
@@ -486,7 +486,7 @@ PvfsProcessPendingLocks(
         }
 
         /* If the lock still cannot be granted, this will
-           add it back to the FCB's pending lock queue.
+           add it back to the SCB's pending lock queue.
            We don't need to lock the IrpCtx here since it
            is too late to cancel and we are not in the worker
            thread queue. */
@@ -815,14 +815,14 @@ PvfsCheckLockedRegion(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pCursor = NULL;
-    PPVFS_FCB pFcb = pCcb->pFcb;
-    BOOLEAN bFcbLocked = FALSE;
+    PPVFS_SCB pScb = pCcb->pScb;
+    BOOLEAN bScbLocked = FALSE;
     BOOLEAN bBrlLocked = FALSE;
     PPVFS_CCB pCurrentCcb = NULL;
 
     /* Sanity checks */
 
-    BAIL_ON_INVALID_PTR(pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pScb, ntError);
 
     switch(Operation) {
     case PVFS_OPERATION_READ:
@@ -847,15 +847,15 @@ PvfsCheckLockedRegion(
     /* Read locks so no one can add a CCB to the list,
        or add a new BRL. */
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
-    LWIO_LOCK_RWMUTEX_SHARED(bBrlLocked, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bBrlLocked, &pScb->rwBrlLock);
 
-    while ((pCursor = PvfsListTraverse(pFcb->pCcbList, pCursor))!= NULL)
+    while ((pCursor = PvfsListTraverse(pScb->pCcbList, pCursor))!= NULL)
     {
         pCurrentCcb = LW_STRUCT_FROM_FIELD(
                           pCursor,
                           PVFS_CCB,
-                          FcbList);
+                          ScbList);
 
         switch(Operation)
         {
@@ -879,8 +879,8 @@ PvfsCheckLockedRegion(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bBrlLocked, &pFcb->rwBrlLock);
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlLocked, &pScb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->rwCcbLock);
 
     return ntError;
 
@@ -1114,32 +1114,32 @@ PvfsHandleHasOpenByteRangeLocks(
 
 BOOLEAN
 PvfsFileHasOpenByteRangeLocks(
-    PPVFS_FCB pFcb
+    PPVFS_SCB pScb
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pCursor = NULL;
-    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bScbLocked = FALSE;
     BOOLEAN bBrlLocked = FALSE;
     BOOLEAN bFileIsLocked = FALSE;
     PPVFS_CCB pCurrentCcb = NULL;
 
     /* Sanity checks */
 
-    BAIL_ON_INVALID_PTR(pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pScb, ntError);
 
     /* Read locks so no one can add a CCB to the list,
        or add a new BRL. */
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
-    LWIO_LOCK_RWMUTEX_SHARED(bBrlLocked, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bBrlLocked, &pScb->rwBrlLock);
 
-    while ((pCursor = PvfsListTraverse(pFcb->pCcbList, pCursor)) != NULL)
+    while ((pCursor = PvfsListTraverse(pScb->pCcbList, pCursor)) != NULL)
     {
         pCurrentCcb = LW_STRUCT_FROM_FIELD(
                           pCursor,
                           PVFS_CCB,
-                          FcbList);
+                          ScbList);
 
         if (PvfsHandleHasOpenByteRangeLocks(pCurrentCcb))
         {
@@ -1151,8 +1151,8 @@ PvfsFileHasOpenByteRangeLocks(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bBrlLocked, &pFcb->rwBrlLock);
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlLocked, &pScb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->rwCcbLock);
 
     return bFileIsLocked;
 
@@ -1185,7 +1185,7 @@ PvfsScheduleCancelLock(
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
-    BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
@@ -1225,16 +1225,16 @@ PvfsCleanPendingLockQueue(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_FCB pFcb = PvfsReferenceFCB(pIrpContext->pFcb);
+    PPVFS_SCB pScb = PvfsReferenceSCB(pIrpContext->pScb);
     BOOLEAN bLocked = FALSE;
     PPVFS_PENDING_LOCK pLockRecord = NULL;
     PLW_LIST_LINKS pLockRecordLink = NULL;
     PLW_LIST_LINKS pNextLink = NULL;
     BOOLEAN bFound = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pScb->rwBrlLock);
 
-    pLockRecordLink = PvfsListTraverse(pFcb->pPendingLockQueue, NULL);
+    pLockRecordLink = PvfsListTraverse(pScb->pPendingLockQueue, NULL);
 
     while (pLockRecordLink)
     {
@@ -1243,7 +1243,7 @@ PvfsCleanPendingLockQueue(
                       PVFS_PENDING_LOCK,
                       LockList);
 
-        pNextLink = PvfsListTraverse(pFcb->pPendingLockQueue, pLockRecordLink);
+        pNextLink = PvfsListTraverse(pScb->pPendingLockQueue, pLockRecordLink);
 
         if (pLockRecord->pIrpContext != pIrpContext)
         {
@@ -1253,10 +1253,10 @@ PvfsCleanPendingLockQueue(
 
         bFound = TRUE;
 
-        PvfsListRemoveItem(pFcb->pPendingLockQueue, pLockRecordLink);
+        PvfsListRemoveItem(pScb->pPendingLockQueue, pLockRecordLink);
         pLockRecordLink = NULL;
 
-        LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwBrlLock);
+        LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwBrlLock);
 
         pLockRecord->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
@@ -1267,7 +1267,7 @@ PvfsCleanPendingLockQueue(
         /* Can only be one IrpContext match so we are done */
     }
 
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwBrlLock);
 
     if (!bFound)
     {
@@ -1276,9 +1276,9 @@ PvfsCleanPendingLockQueue(
         PvfsAsyncIrpComplete(pIrpContext);
     }
 
-    if (pFcb)
+    if (pScb)
     {
-        PvfsReleaseFCB(&pFcb);
+        PvfsReleaseSCB(&pScb);
     }
 
     if (pIrpContext)

@@ -107,7 +107,7 @@ PvfsLockControl(
                       Flags);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+        ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
 
         /* Question: What do we do for a lock that was specified as
            FailImmediately?  Should it block on an oplock break or
@@ -121,7 +121,7 @@ PvfsLockControl(
 
         case STATUS_OPLOCK_BREAK_IN_PROGRESS:
             ntError = PvfsPendOplockBreakTest(
-                          pLockCtx->pCcb->pFcb,
+                          pLockCtx->pCcb->pScb,
                           pIrpContext,
                           pLockCtx->pCcb,
                           PvfsLockFileWithContext,
@@ -135,7 +135,7 @@ PvfsLockControl(
 
         case STATUS_PENDING:
             ntError = PvfsAddItemPendingOplockBreakAck(
-                          pLockCtx->pCcb->pFcb,
+                          pLockCtx->pCcb->pScb,
                           pIrpContext,
                           PvfsLockFileWithContext,
                           PvfsFreeLockContext,

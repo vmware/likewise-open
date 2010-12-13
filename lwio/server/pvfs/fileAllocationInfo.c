@@ -157,7 +157,7 @@ PvfsSetFileAllocationInfo(
                   pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
 
     switch (ntError)
     {
@@ -167,7 +167,7 @@ PvfsSetFileAllocationInfo(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pSetAllocationCtx->pCcb->pFcb,
+                      pSetAllocationCtx->pCcb->pScb,
                       pIrpContext,
                       pSetAllocationCtx->pCcb,
                       PvfsSetAllocationWithContext,
@@ -181,7 +181,7 @@ PvfsSetFileAllocationInfo(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pSetAllocationCtx->pCcb->pFcb,
+                      pSetAllocationCtx->pCcb->pScb,
                       pIrpContext,
                       PvfsSetAllocationWithContext,
                       PvfsFreeSetAllocationContext,

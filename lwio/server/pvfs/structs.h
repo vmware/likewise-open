@@ -124,7 +124,7 @@ typedef struct _PVFS_DIRECTORY_CONTEXT
 } PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;
 
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
-typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
+typedef struct _PVFS_SCB PVFS_SCB, *PPVFS_SCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
 typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
@@ -167,34 +167,34 @@ typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
 #define PVFS_SET_PROP_SECURITY  0x00000001
 #define PVFS_SET_PROP_ATTRIB    0x00000002
 
-typedef struct _PVFS_FCB_TABLE_ENTRY
+typedef struct _PVFS_SCB_TABLE_ENTRY
 {
     pthread_rwlock_t rwLock;
     pthread_rwlock_t *pRwLock;
     PLWRTL_RB_TREE pTree;
 
-} PVFS_FCB_TABLE_ENTRY, *PPVFS_FCB_TABLE_ENTRY;
+} PVFS_SCB_TABLE_ENTRY, *PPVFS_SCB_TABLE_ENTRY;
 
 typedef int (*PVFS_HASH_KEY_COMPARE)(PCVOID, PCVOID);
 typedef size_t (*PVFS_HASH_KEY)(PCVOID);
-typedef void (*PVFS_HASH_FREE_ENTRY)(PPVFS_FCB_TABLE_ENTRY*);
+typedef void (*PVFS_HASH_FREE_ENTRY)(PPVFS_SCB_TABLE_ENTRY*);
 
 typedef struct _PVFS_HASH_TABLE
 {
     size_t sTableSize;
     size_t sCount;
-    PPVFS_FCB_TABLE_ENTRY *ppEntries;
+    PPVFS_SCB_TABLE_ENTRY *ppEntries;
     PVFS_HASH_KEY_COMPARE fnCompare;
     PVFS_HASH_KEY fnHash;
     PVFS_HASH_FREE_ENTRY fnFree;
 } PVFS_HASH_TABLE, *PPVFS_HASH_TABLE;
 
-typedef struct _PVFS_FCB_TABLE
+typedef struct _PVFS_SCB_TABLE
 {
     pthread_rwlock_t rwLock;
-    PPVFS_HASH_TABLE pFcbTable;
+    PPVFS_HASH_TABLE pScbTable;
 
-} PVFS_FCB_TABLE, *PPVFS_FCB_TABLE;
+} PVFS_SCB_TABLE, *PPVFS_SCB_TABLE;
 
 typedef struct _PVFS_PENDING_CREATE
 {
@@ -202,7 +202,7 @@ typedef struct _PVFS_PENDING_CREATE
     PSTR pszOriginalFilename;
     PSTR pszDiskFilename;
     PPVFS_CCB pCcb;
-    PPVFS_FCB pFcb;
+    PPVFS_SCB pScb;
     ACCESS_MASK GrantedAccess;
     BOOLEAN bFileExisted;
     PVFS_SET_FILE_PROPERTY_FLAGS SetPropertyFlags;
@@ -253,7 +253,7 @@ typedef VOID (*PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX)(
 
 typedef struct _PVFS_PENDING_OPLOCK_BREAK_TEST
 {
-    PPVFS_FCB pFcb;
+    PPVFS_SCB pScb;
     PPVFS_IRP_CONTEXT pIrpContext;
     PPVFS_CCB pCcb;
     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion;
@@ -275,9 +275,9 @@ typedef struct _PVFS_OPLOCK_PENDING_OPERATION
 
 } PVFS_OPLOCK_PENDING_OPERATION, *PPVFS_OPLOCK_PENDING_OPERATION;
 
-#define PVFS_FCB_MAX_PENDING_LOCKS       50
-#define PVFS_FCB_MAX_PENDING_OPERATIONS  50
-#define PVFS_FCB_MAX_PENDING_NOTIFY      50
+#define PVFS_SCB_MAX_PENDING_LOCKS       50
+#define PVFS_SCB_MAX_PENDING_OPERATIONS  50
+#define PVFS_SCB_MAX_PENDING_NOTIFY      50
 
 #define PVFS_CLEAR_FILEID(x)   \
     do {                       \
@@ -292,15 +292,15 @@ typedef struct _PVFS_FILE_ID
 
 } PVFS_FILE_ID, *PPVFS_FILE_ID;
 
-struct _PVFS_FCB
+struct _PVFS_SCB
 {
     LONG RefCount;
 
-    PPVFS_FCB_TABLE_ENTRY pBucket;      /* FcbTable Bucket */
+    PPVFS_SCB_TABLE_ENTRY pBucket;      /* ScbTable Bucket */
 
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
-                                       on an individual FCB */
+                                       on an individual SCB */
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
@@ -319,7 +319,7 @@ struct _PVFS_FCB
     /* rwLock */
     pthread_rwlock_t rwLock;
 
-    PPVFS_FCB pParentFcb;
+    PPVFS_SCB pParentScb;
     PSTR pszFilename;
     /* End rwLock */
 
@@ -367,7 +367,7 @@ typedef enum _PVFS_OPLOCK_STATE
 
 struct _PVFS_CCB
 {
-    LW_LIST_LINKS FcbList;
+    LW_LIST_LINKS ScbList;
 
     pthread_mutex_t ControlBlock;
 
@@ -380,7 +380,7 @@ struct _PVFS_CCB
     PVFS_FILE_ID FileId;
 
     /* Pointer to the shared PVFS FileHandle */
-    PPVFS_FCB pFcb;
+    PPVFS_SCB pScb;
 
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;
@@ -433,7 +433,7 @@ struct _PVFS_IRP_CONTEXT
 
     PVFS_QUEUE_TYPE QueueType;
 
-    PPVFS_FCB pFcb;
+    PPVFS_SCB pScb;
     PIRP pIrp;
 };
 
@@ -515,7 +515,7 @@ typedef struct _PVFS_NOTIFY_FILTER_RECORD
 
 typedef struct _PVFS_NOTIFY_REPORT_RECORD
 {
-    PPVFS_FCB pFcb;
+    PPVFS_SCB pScb;
     FILE_NOTIFY_CHANGE Filter;
     FILE_ACTION Action;
     PSTR pszFilename;

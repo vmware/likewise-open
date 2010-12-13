@@ -208,10 +208,10 @@ PvfsCreateDirCreate(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pFcb);
+                  &pCreateCtx->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->bFileExisted = FALSE;
@@ -297,10 +297,10 @@ PvfsCreateDirOpen(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pFcb);
+                  &pCreateCtx->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCheckQuotaFile(&Args, pCreateCtx->pCcb);
@@ -422,10 +422,10 @@ PvfsCreateDirOpenIf(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pFcb);
+                  &pCreateCtx->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     if (!pCreateCtx->bFileExisted)

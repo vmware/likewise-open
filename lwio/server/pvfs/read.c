@@ -164,7 +164,7 @@ PvfsReadInternal(
     ntError = PvfsCreateReadContext(&pReadCtx, pIrpContext, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
 
     switch (ntError)
     {
@@ -174,7 +174,7 @@ PvfsReadInternal(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pReadCtx->pCcb->pFcb,
+                      pReadCtx->pCcb->pScb,
                       pIrpContext,
                       pReadCtx->pCcb,
                       PvfsReadFileWithContext,
@@ -188,7 +188,7 @@ PvfsReadInternal(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pReadCtx->pCcb->pFcb,
+                      pReadCtx->pCcb->pScb,
                       pIrpContext,
                       PvfsReadFileWithContext,
                       PvfsFreeReadContext,

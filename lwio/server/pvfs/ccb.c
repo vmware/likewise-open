@@ -73,7 +73,7 @@ PvfsAllocateCCB(
 
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
-    PVFS_INIT_LINKS(&pCCB->FcbList);
+    PVFS_INIT_LINKS(&pCCB->ScbList);
 
     pCCB->bPendingDeleteHandle = FALSE;
     pCCB->bCloseInProgress = FALSE;
@@ -82,7 +82,7 @@ PvfsAllocateCCB(
     pCCB->fd = -1;
     PVFS_CLEAR_FILEID(pCCB->FileId);
 
-    pCCB->pFcb = NULL;
+    pCCB->pScb = NULL;
     pCCB->pszFilename = NULL;
     pCCB->pwszShareName = NULL;
     pCCB->pDirContext = NULL;
@@ -128,10 +128,10 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
-    if (pCCB->pFcb)
+    if (pCCB->pScb)
     {
-        PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
-        PvfsReleaseFCB(&pCCB->pFcb);
+        PvfsRemoveCCBFromSCB(pCCB->pScb, pCCB);
+        PvfsReleaseSCB(&pCCB->pScb);
     }
 
     if (pCCB->pDirContext)
@@ -281,7 +281,7 @@ PvfsSaveFileDeviceInfo(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
-    PPVFS_FCB pFcb = pCcb->pFcb;
+    PPVFS_SCB pScb = pCcb->pScb;
     BOOLEAN bLocked = FALSE;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
@@ -291,12 +291,12 @@ PvfsSaveFileDeviceInfo(
     pCcb->FileId.Inode  = Stat.s_ino;
     pCcb->FileSize = Stat.s_size;
 
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
-    if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
+    LWIO_LOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    if ((pScb->FileId.Device == 0) || (pScb->FileId.Inode == 0))
     {
-        pFcb->FileId = pCcb->FileId;
+        pScb->FileId = pCcb->FileId;
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bLocked, &pScb->ControlBlock);
 
 cleanup:
     return ntError;

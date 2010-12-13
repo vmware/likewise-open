@@ -59,7 +59,7 @@
 
 /* Error checking macros */
 
-#define PVFS_IS_DEVICE_HANDLE(p)  ((p) == gpPvfsDeviceFcb)
+#define PVFS_IS_DEVICE_HANDLE(p)  ((p) == gpPvfsDeviceScb)
 
 #define PVFS_BAIL_ON_INVALID_CCB(p, err)                    \
     do {                                                    \
@@ -67,7 +67,7 @@
             err = STATUS_INVALID_PARAMETER;                 \
             goto error;                                     \
         }                                                   \
-        if (((p)->fd == -1) && !PVFS_IS_DEVICE_HANDLE((p)->pFcb))   \
+        if (((p)->fd == -1) && !PVFS_IS_DEVICE_HANDLE((p)->pScb))   \
         {                                                   \
             err = STATUS_INVALID_HANDLE;                    \
             goto error;                                     \

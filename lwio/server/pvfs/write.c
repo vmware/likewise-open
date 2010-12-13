@@ -164,7 +164,7 @@ PvfsWriteInternal(
     pWriteCtx->pZctContext = pZctContext;
     pZctContext = NULL;
 
-    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
 
     switch (ntError)
     {
@@ -174,7 +174,7 @@ PvfsWriteInternal(
 
     case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         ntError = PvfsPendOplockBreakTest(
-                      pWriteCtx->pCcb->pFcb,
+                      pWriteCtx->pCcb->pScb,
                       pIrpContext,
                       pWriteCtx->pCcb,
                       PvfsWriteFileWithContext,
@@ -188,7 +188,7 @@ PvfsWriteInternal(
 
     case STATUS_PENDING:
         ntError = PvfsAddItemPendingOplockBreakAck(
-                      pWriteCtx->pCcb->pFcb,
+                      pWriteCtx->pCcb->pScb,
                       pIrpContext,
                       PvfsWriteFileWithContext,
                       PvfsFreeWriteContext,
