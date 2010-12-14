@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        fcb.h
+ *        scb.h
  *
  * Abstract:
  *
@@ -50,7 +50,7 @@
 #include "pvfs.h"
 
 
-// From fcb.c
+// From scb.c
 
 NTSTATUS
 PvfsAllocateSCB(
@@ -187,7 +187,7 @@ PvfsSetLastWriteTimeSCB(
     LONG64 LastWriteTime
     );
 
-// From fcbtable.c
+// From scbtable.c
 
 NTSTATUS
 PvfsScbTableInitialize(

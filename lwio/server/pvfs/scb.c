@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        fcb.c
+ *        scb.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        File Control Block routines
+ *        File Stream Control Block routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
