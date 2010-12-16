@@ -33,6 +33,8 @@
 
 #include "config.h"
 
+#include <lw/base.h>
+#include <lw/swab.h>
 #include <schtypes.h>
 #include <schannel.h>
 #include "schannel_p.h"
