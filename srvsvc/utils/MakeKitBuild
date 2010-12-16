@@ -19,5 +19,5 @@ make()
 	CPPFLAGS="-DSRVSVC_BUILD" \
 	INCLUDEDIRS=". ../include" \
 	HEADERDEPS="lwadvapi.h wc16str.h lw/base.h dce/rpc.h lwio/lwio.h" \
-	LIBDEPS="dcerpc lwbase"
+	LIBDEPS="dcerpc lwbase lwadvapi"
 }
