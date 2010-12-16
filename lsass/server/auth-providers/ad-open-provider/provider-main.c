@@ -50,6 +50,79 @@
 
 #include "adprovider.h"
 
+typedef struct _LSA_STARTUP_THREAD_INFO
+{
+    PLSA_AD_PROVIDER_STATE pLsaAdProviderState;
+    pthread_mutex_t* pTrustEnumerationMutex;
+    pthread_cond_t* pTrustEnumerationCondition;
+    BOOLEAN bTrustEnumerationIsDone;
+    struct timespec waitTime;
+    pthread_mutex_t* pRefCountMutex;
+    int iRefCount;
+} LSA_STARTUP_THREAD_INFO, *PLSA_STARTUP_THREAD_INFO;
+
+static
+DWORD
+LsaStartupThreadInfoCreate(
+    IN BOOLEAN dwWaitTimeForTrustEnumeration,
+    IN PLSA_AD_PROVIDER_STATE pLsaAdProviderState,
+    OUT PLSA_STARTUP_THREAD_INFO* ppInfo
+    );
+
+static
+VOID
+LsaStartupThreadInfoIncrementRef(
+    PLSA_STARTUP_THREAD_INFO pInfo
+    );
+
+static
+VOID
+LsaStartupThreadInfoDecrementRef(
+    PLSA_STARTUP_THREAD_INFO* ppInfo
+    );
+
+static
+VOID
+LsaStartupThreadInfoDestroy(
+    PLSA_STARTUP_THREAD_INFO* ppInfo
+    );
+
+static
+DWORD
+LsaStartupThreadCreateMutex(
+    OUT pthread_mutex_t** ppMutex
+    );
+
+static
+VOID
+LsaStartupThreadAcquireMutex(
+    IN pthread_mutex_t* pMutex
+    );
+
+static
+VOID
+LsaStartupThreadReleaseMutex(
+    IN pthread_mutex_t* pMutex
+    );
+
+static
+VOID
+LsaStartupThreadDestroyMutex(
+    IN OUT pthread_mutex_t** ppMutex
+    );
+
+static
+DWORD
+LsaStartupThreadCreateCond(
+    OUT pthread_cond_t** ppCond
+    );
+
+static
+VOID
+LsaStartupThreadDestroyCond(
+    IN OUT pthread_cond_t** ppCond
+    );
+
 static
 DWORD
 LsaAdProviderStateCreate(
@@ -188,8 +261,13 @@ AD_InitializeProvider(
     )
 {
     DWORD dwError = 0;
+    int iError = 0;
     LSA_AD_CONFIG config = {0};
     pthread_t startThread;
+    BOOLEAN bTrustEnumerationIsDone = FALSE;
+    BOOLEAN bTrustEnumerationWait = FALSE;
+    DWORD dwTrustEnumerationWaitSeconds = 0;
+    PLSA_STARTUP_THREAD_INFO pStartupThreadInfo = NULL;
 
     pthread_rwlock_init(&gADGlobalDataLock, NULL);
 
@@ -247,15 +325,70 @@ AD_InitializeProvider(
     dwError = ADUnprovPlugin_Initialize();
     BAIL_ON_LSA_ERROR(dwError);
 
+    AD_GetTrustEnumerationWait(
+                &bTrustEnumerationWait,
+                &dwTrustEnumerationWaitSeconds);
+
+    dwError = LsaStartupThreadInfoCreate(
+                    dwTrustEnumerationWaitSeconds,
+                    gpLsaAdProviderState,
+                    &pStartupThreadInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaStartupThreadInfoIncrementRef(pStartupThreadInfo);
     dwError = LwMapErrnoToLwError(pthread_create(
                                       &startThread,
                                       NULL,
                                       LsaAdStartupThread,
-                                      gpLsaAdProviderState));
+                                      pStartupThreadInfo));
+    LsaStartupThreadInfoDecrementRef(&pStartupThreadInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMapErrnoToLwError(pthread_detach(startThread));
     BAIL_ON_LSA_ERROR(dwError);
+
+    while (bTrustEnumerationWait)
+    {
+        LSA_LOG_DEBUG("AD Provider: Waiting for trust enumeration to complete.");
+        LsaStartupThreadAcquireMutex(pStartupThreadInfo->pTrustEnumerationMutex);
+        bTrustEnumerationIsDone = pStartupThreadInfo->bTrustEnumerationIsDone;
+        if (!bTrustEnumerationIsDone)
+        {
+            if (dwTrustEnumerationWaitSeconds == 0)
+            {
+                iError = pthread_cond_wait(
+                            pStartupThreadInfo->pTrustEnumerationCondition,
+                            pStartupThreadInfo->pTrustEnumerationMutex);
+            }
+            else
+            {
+                iError = pthread_cond_timedwait(
+                            pStartupThreadInfo->pTrustEnumerationCondition,
+                            pStartupThreadInfo->pTrustEnumerationMutex,
+                            &pStartupThreadInfo->waitTime);
+            }
+
+            bTrustEnumerationIsDone = pStartupThreadInfo->bTrustEnumerationIsDone;
+        }
+        LsaStartupThreadReleaseMutex(
+                pStartupThreadInfo->pTrustEnumerationMutex);
+
+        if (bTrustEnumerationIsDone)
+        {
+            LSA_LOG_DEBUG("AD Provider: Trust enumeration complete.");
+            break;
+        }
+        if (ETIMEDOUT == iError)
+        {
+            iError = 0;
+
+            if (time(NULL) >= pStartupThreadInfo->waitTime.tv_sec)
+            {
+                LSA_LOG_DEBUG("AD Provider: Aborting wait for trust enumeration");
+                break;
+            }
+        }
+    }
 
     *ppszProviderName = gpszADProviderName;
     *ppFunctionTable = &gADProviderAPITable2;
@@ -263,6 +396,11 @@ AD_InitializeProvider(
 cleanup:
 
     AD_FreeConfigContents(&config);
+
+    if (pStartupThreadInfo)
+    {
+        LsaStartupThreadInfoDecrementRef(&pStartupThreadInfo);
+    }
 
     return dwError;
 
@@ -290,7 +428,8 @@ LsaAdStartupThread(
     )
 {
     DWORD dwError = 0;
-    PLSA_AD_PROVIDER_STATE pState = (PLSA_AD_PROVIDER_STATE) pData;
+    PLSA_STARTUP_THREAD_INFO pInfo = (PLSA_STARTUP_THREAD_INFO) pData;
+    PLSA_AD_PROVIDER_STATE pState = pInfo->pLsaAdProviderState;
 
     LsaAdProviderStateAcquireWrite(pState);
 
@@ -311,6 +450,11 @@ LsaAdStartupThread(
     LsaSrvFlushSystemCache();
 
     LsaAdProviderStateRelease(pState);
+
+    pInfo->bTrustEnumerationIsDone = TRUE;
+    pthread_cond_signal(pInfo->pTrustEnumerationCondition);
+
+    LsaStartupThreadInfoDecrementRef(&pInfo);
 
     return NULL;
 }
@@ -4154,6 +4298,210 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+DWORD
+LsaStartupThreadCreateMutex(
+    OUT pthread_mutex_t** ppMutex
+    )
+{
+    DWORD dwError = 0;
+    int iError = 0;
+    pthread_mutex_t* pMutex = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pMutex), (PVOID*)&pMutex);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    iError = pthread_mutex_init(pMutex, NULL);
+    dwError = LwMapErrnoToLwError(iError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    *ppMutex = pMutex;
+    return dwError;
+
+error:
+    // We do not need to destroy as we failed to init.
+    LW_SAFE_FREE_MEMORY(pMutex);
+    goto cleanup;
+}
+
+static
+VOID
+LsaStartupThreadAcquireMutex(
+    IN pthread_mutex_t* pMutex
+    )
+{
+    int iError = 0;
+
+    iError = pthread_mutex_lock(pMutex);
+    if (iError)
+    {
+        LSA_LOG_ERROR("pthread_mutex_lock() failed: %d", iError);
+    }
+}
+
+static
+VOID
+LsaStartupThreadReleaseMutex(
+    IN pthread_mutex_t* pMutex
+    )
+{
+    int iError = 0;
+    iError = pthread_mutex_unlock(pMutex);
+    if (iError)
+    {
+        LSA_LOG_ERROR("pthread_mutex_unlock() failed: %d", iError);
+    }
+}
+
+static
+VOID
+LsaStartupThreadDestroyMutex(
+    IN OUT pthread_mutex_t** ppMutex
+    )
+{
+    if (*ppMutex)
+    {
+        pthread_mutex_destroy(*ppMutex);
+        LwFreeMemory(*ppMutex);
+        *ppMutex = NULL;
+    }
+}
+
+static
+DWORD
+LsaStartupThreadCreateCond(
+    OUT pthread_cond_t** ppCond
+    )
+{
+    DWORD dwError = 0;
+    pthread_cond_t* pCond = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pCond), (PVOID*)&pCond);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = pthread_cond_init(pCond, NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    *ppCond = pCond;
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pCond);
+    goto cleanup;
+}
+
+static
+VOID
+LsaStartupThreadDestroyCond(
+    IN OUT pthread_cond_t** ppCond
+    )
+{
+    if (*ppCond)
+    {
+        pthread_cond_destroy(*ppCond);
+        LwFreeMemory(*ppCond);
+        *ppCond = NULL;
+    }
+}
+
+static
+DWORD
+LsaStartupThreadInfoCreate(
+    IN BOOLEAN dwWaitTimeForTrustEnumeration,
+    IN PLSA_AD_PROVIDER_STATE pLsaAdProviderState,
+    OUT PLSA_STARTUP_THREAD_INFO* ppInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_STARTUP_THREAD_INFO pInfo = NULL;
+    struct timeval now;
+
+    dwError = LwAllocateMemory(sizeof(*pInfo), (PVOID*) &pInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pInfo->pLsaAdProviderState = pLsaAdProviderState;
+
+    dwError = LsaStartupThreadCreateMutex(&pInfo->pTrustEnumerationMutex);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStartupThreadCreateCond(&pInfo->pTrustEnumerationCondition);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pInfo->bTrustEnumerationIsDone = FALSE;
+
+    if (gettimeofday(&now, NULL) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pInfo->waitTime.tv_sec = now.tv_sec + dwWaitTimeForTrustEnumeration;
+    pInfo->waitTime.tv_nsec = now.tv_usec * 1000;
+
+    dwError = LsaStartupThreadCreateMutex(&pInfo->pRefCountMutex);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pInfo->iRefCount = 1;
+
+cleanup:
+    *ppInfo = pInfo;
+    return dwError;
+
+error:
+    LsaStartupThreadInfoDestroy(&pInfo);
+    goto cleanup;
+}
+
+static
+VOID
+LsaStartupThreadInfoIncrementRef(
+    PLSA_STARTUP_THREAD_INFO pInfo
+    )
+{
+    LsaStartupThreadAcquireMutex(pInfo->pRefCountMutex);
+
+    pInfo->iRefCount++;
+
+    LsaStartupThreadReleaseMutex(pInfo->pRefCountMutex);
+}
+
+static
+VOID
+LsaStartupThreadInfoDecrementRef(
+    PLSA_STARTUP_THREAD_INFO* ppInfo
+    )
+{
+    LsaStartupThreadAcquireMutex((*ppInfo)->pRefCountMutex);
+
+    (*ppInfo)->iRefCount--;
+
+    LsaStartupThreadReleaseMutex((*ppInfo)->pRefCountMutex);
+
+    if ((*ppInfo)->iRefCount < 0)
+    {
+        LsaStartupThreadInfoDestroy(ppInfo);
+    }
+}
+
+static
+VOID
+LsaStartupThreadInfoDestroy(
+    PLSA_STARTUP_THREAD_INFO* ppInfo
+    )
+{
+    if (*ppInfo)
+    {
+        LsaStartupThreadDestroyCond(&(*ppInfo)->pTrustEnumerationCondition);
+        LsaStartupThreadDestroyMutex(&(*ppInfo)->pTrustEnumerationMutex);
+        LsaStartupThreadDestroyMutex(&(*ppInfo)->pRefCountMutex);
+        LwFreeMemory(*ppInfo);
+        *ppInfo = NULL;
+    }
 }
 
 static

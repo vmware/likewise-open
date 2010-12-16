@@ -125,6 +125,9 @@ AD_InitializeConfig(
     pConfig->bNssUserMembershipCacheOnlyEnabled = FALSE;
     pConfig->bNssEnumerationEnabled = FALSE;
 
+    pConfig->bTrustEnumerationWait = FALSE;
+    pConfig->dwTrustEnumerationWaitSeconds = 0;
+
     pConfig->DomainManager.dwCheckDomainOnlineSeconds = 5 * LSA_SECONDS_IN_MINUTE;
     pConfig->DomainManager.dwUnknownDomainCacheTimeoutSeconds = 1 * LSA_SECONDS_IN_HOUR;
     pConfig->DomainManager.bIgnoreAllTrusts = FALSE;
@@ -461,6 +464,25 @@ AD_ReadRegistry(
             NULL,
             &StagingConfig.bNssEnumerationEnabled,
             NULL
+        },
+        {
+            "TrustEnumerationWait",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bTrustEnumerationWait,
+            NULL
+        },
+        {
+            "TrustEnumerationWaitSeconds",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.dwTrustEnumerationWaitSeconds
         },
         {
             "DomainManagerCheckDomainOnlineInterval",
@@ -1663,6 +1685,24 @@ AD_GetNssEnumerationEnabled(
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
     return result;
+}
+
+VOID
+AD_GetTrustEnumerationWait(
+    PBOOLEAN pbTrustEnumerationWait,
+    PDWORD pdwTrustEnumerationWaitSeconds
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    *pbTrustEnumerationWait =
+        gpLsaAdProviderState->config.bTrustEnumerationWait;
+    *pdwTrustEnumerationWaitSeconds =
+        gpLsaAdProviderState->config.dwTrustEnumerationWaitSeconds;
+
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 }
 
 DWORD

@@ -129,6 +129,8 @@ typedef struct _LSA_AD_CONFIG {
     BOOLEAN             bNssGroupMembersCacheOnlyEnabled;
     BOOLEAN             bNssUserMembershipCacheOnlyEnabled;
     BOOLEAN             bNssEnumerationEnabled;
+    BOOLEAN             bTrustEnumerationWait;
+    DWORD               dwTrustEnumerationWaitSeconds;
     struct {
         DWORD           dwCheckDomainOnlineSeconds;
         DWORD           dwUnknownDomainCacheTimeoutSeconds;

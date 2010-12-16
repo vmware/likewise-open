@@ -235,6 +235,12 @@ AD_GetNssEnumerationEnabled(
     VOID
     );
 
+VOID
+AD_GetTrustEnumerationWait(
+    PBOOLEAN pbTrustEnumerationWait,
+    PDWORD pdwTrustEnumerationWaitSeconds
+    );
+
 DWORD
 AD_GetDomainManagerCheckDomainOnlineSeconds(
     VOID
