@@ -1537,6 +1537,7 @@ lwmsg_peer_task_finish_transceive(
             if (message == &task->incoming_message)
             {
                 task->incoming = LWMSG_FALSE;
+                task->recv_partial = LWMSG_FALSE;
                 BAIL_ON_ERROR(status = lwmsg_peer_task_dispatch_incoming_message(task));
             }
             else if (message == &task->outgoing_message)
