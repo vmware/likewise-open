@@ -64,12 +64,12 @@ PvfsCheckShareMode(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_SCB pScb = NULL;
-    PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
 
-    ntError = PvfsScbTableGetBucket(&pBucket, &gScbTable, pszFilename);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsScbTableLookup(&pScb, pBucket, pszFilename);
+    ntError = PvfsCbTableLookup((PVOID*)&pScb, pBucket, PVFS_CONTROL_BLOCK_STREAM, pszFilename);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsEnforceShareMode(

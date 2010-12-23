@@ -283,7 +283,7 @@ PvfsExecuteDeleteOnClose(
 
     /* Verify we are deleting the file we think we are */
 
-    ntError = PvfsValidatePath(pScb, &pScb->FileId);
+    ntError = PvfsValidatePathSCB(pScb, &pScb->FileId);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsSysRemove(pScb->pszFilename);
@@ -329,7 +329,7 @@ PvfsReleaseSCB(
     BOOLEAN bScbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
     PPVFS_SCB pScb = NULL;
-    PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
 
     /* Do housekeeping such as setting the last write time or honoring
        DeletOnClose when the CCB handle count reaches 0.  Not necessarily
@@ -381,14 +381,14 @@ PvfsReleaseSCB(
 
                 if (!pScb->bRemoved)
                 {
-                    PPVFS_SCB_TABLE_ENTRY pBucket = pScb->pBucket;
+                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->pBucket;
 
                     LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
 
                     /* Remove the SCB from the Bucket before setting pScb->pBucket
                        to NULL */
 
-                    PvfsScbTableRemove(pBucket, pScb);
+                    PvfsCbTableRemove(pBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
 
                     LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
                     pScb->bRemoved = TRUE;
@@ -436,7 +436,7 @@ PvfsReleaseSCB(
 
         if (!pScb->bRemoved)
         {
-            PvfsScbTableRemove_inlock(pBucket, pScb);
+            PvfsCbTableRemove_inlock(pBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
 
             pScb->bRemoved = TRUE;
             pScb->pBucket = NULL;
@@ -484,21 +484,24 @@ PvfsCreateSCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_SCB pScb = NULL;
     BOOLEAN bBucketLocked = FALSE;
-    PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
     PPVFS_SCB pParentScb = NULL;
     BOOLEAN bScbLocked = FALSE;
 
     ntError = PvfsFindParentSCB(&pParentScb, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsScbTableGetBucket(&pBucket, &gScbTable, pszFilename);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Protect against adding a duplicate */
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
 
-    ntError = PvfsScbTableLookup_inlock(&pScb, pBucket, pszFilename);
+    ntError = PvfsCbTableLookup_inlock((PVOID*)&pScb,
+                                        pBucket,
+                                        PVFS_CONTROL_BLOCK_STREAM,
+                                        pszFilename);
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
@@ -535,7 +538,7 @@ PvfsCreateSCB(
     /* Add to the file handle table */
 
     LWIO_LOCK_MUTEX(bScbLocked, &pScb->ControlBlock);
-    ntError = PvfsScbTableAdd_inlock(pBucket, pScb);
+    ntError = PvfsCbTableAdd_inlock(pBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
     if (ntError == STATUS_SUCCESS)
     {
         pScb->pBucket = pBucket;
@@ -580,7 +583,7 @@ PvfsFindParentSCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_SCB pScb = NULL;
     PSTR pszDirname = NULL;
-    PPVFS_SCB_TABLE_ENTRY pBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
 
     if (LwRtlCStringIsEqual(pszFilename, "/", TRUE))
     {
@@ -593,10 +596,10 @@ PvfsFindParentSCB(
     ntError = PvfsFileDirname(&pszDirname, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsScbTableGetBucket(&pBucket, &gScbTable, pszDirname);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszDirname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsScbTableLookup(&pScb, pBucket, pszDirname);
+    ntError = PvfsCbTableLookup((PVOID*)&pScb, pBucket, PVFS_CONTROL_BLOCK_STREAM, pszDirname);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = PvfsCreateSCB(
@@ -823,7 +826,7 @@ error:
  ****************************************************************************/
 
 BOOLEAN
-PvfsFileHasOtherOpens(
+PvfsStreamHasOtherOpens(
     IN PPVFS_SCB pScb,
     IN PPVFS_CCB pCcb
     )
@@ -858,7 +861,7 @@ PvfsFileHasOtherOpens(
  ****************************************************************************/
 
 BOOLEAN
-PvfsFileIsOplocked(
+PvfsStreamIsOplocked(
     IN PPVFS_SCB pScb
     )
 {
@@ -869,7 +872,7 @@ PvfsFileIsOplocked(
  ****************************************************************************/
 
 BOOLEAN
-PvfsFileIsOplockedExclusive(
+PvfsStreamIsOplockedExclusive(
     IN PPVFS_SCB pScb
     )
 {
@@ -919,11 +922,11 @@ PvfsFileIsOplockedExclusive(
  ****************************************************************************/
 
 BOOLEAN
-PvfsFileIsOplockedShared(
+PvfsStreamIsOplockedShared(
     IN PPVFS_SCB pScb
     )
 {
-    return !PvfsFileIsOplockedExclusive(pScb);
+    return !PvfsStreamIsOplockedExclusive(pScb);
 }
 
 /*****************************************************************************
@@ -1208,8 +1211,8 @@ PvfsRenameSCB(
     PPVFS_SCB pNewParentScb = NULL;
     PPVFS_SCB pOldParentScb = NULL;
     PPVFS_SCB pTargetScb = NULL;
-    PPVFS_SCB_TABLE_ENTRY pTargetBucket = NULL;
-    PPVFS_SCB_TABLE_ENTRY pCurrentBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pTargetBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
     BOOLEAN bCurrentScbControl = FALSE;
     BOOLEAN bTargetScbControl = FALSE;
     BOOLEAN bTargetBucketLocked = FALSE;
@@ -1218,7 +1221,7 @@ PvfsRenameSCB(
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
 
-    ntError = PvfsValidatePath(pCcb->pScb, &pCcb->FileId);
+    ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     /* If the target has an existing SCB, remove it from the Table and let
@@ -1227,7 +1230,7 @@ PvfsRenameSCB(
     ntError = PvfsFindParentSCB(&pNewParentScb, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsScbTableGetBucket(&pTargetBucket, &gScbTable, pszNewFilename);
+    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gScbTable, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gScbTable(Excl) */
@@ -1238,9 +1241,10 @@ PvfsRenameSCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTargetBucketLocked, &pTargetBucket->rwLock);
 
-    ntError = PvfsScbTableLookup_inlock(
-                  &pTargetScb,
+    ntError = PvfsCbTableLookup_inlock(
+                  (PVOID*)&pTargetScb,
                   pTargetBucket,
+                  PVFS_CONTROL_BLOCK_STREAM,
                   pszNewFilename);
     if (ntError == STATUS_SUCCESS)
     {
@@ -1256,7 +1260,7 @@ PvfsRenameSCB(
 
                 LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->ControlBlock);
 
-                PvfsScbTableRemove_inlock(pTargetBucket, pTargetScb);
+                PvfsCbTableRemove_inlock(pTargetBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pTargetScb);
             }
             LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->ControlBlock);
         }
@@ -1298,7 +1302,7 @@ PvfsRenameSCB(
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     }
 
-    ntError = PvfsScbTableRemove_inlock(pCurrentBucket, pScb);
+    ntError = PvfsCbTableRemove_inlock(pCurrentBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -1322,7 +1326,7 @@ PvfsRenameSCB(
                pScb->ControlBlock */
 
     LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->ControlBlock);
-    ntError = PvfsScbTableAdd_inlock(pTargetBucket, pScb);
+    ntError = PvfsCbTableAdd_inlock(pTargetBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
     if (ntError == STATUS_SUCCESS)
     {
         pScb->bRemoved = FALSE;

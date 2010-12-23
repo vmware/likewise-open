@@ -103,7 +103,7 @@ PvfsCcbSetFileBasicInformation(
                                       FILE_NOTIFY_CHANGE_LAST_ACCESS;
     PVFS_STAT Stat = {0};
 
-    ntError = PvfsValidatePath(pCcb->pScb, &pCcb->FileId);
+    ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We cant's set the Change Time so ignore it */

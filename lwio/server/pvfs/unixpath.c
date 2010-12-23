@@ -224,7 +224,7 @@ error:
  ***************************************************************/
 
 NTSTATUS
-PvfsValidatePath(
+PvfsValidatePathSCB(
     PPVFS_SCB pScb,
     PPVFS_FILE_ID pFileId
     )

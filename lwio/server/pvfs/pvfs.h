@@ -85,6 +85,7 @@
 #include "syswrap_p.h"
 #include "ccb_p.h"
 #include "scb.h"
+#include "cbtable.h"
 #include "acl.h"
 #include "attrib.h"
 
@@ -360,7 +361,7 @@ PvfsWC16CanonicalPathName(
     );
 
 NTSTATUS
-PvfsValidatePath(
+PvfsValidatePathSCB(
     PPVFS_SCB pScb,
     PPVFS_FILE_ID pFileId
     );
@@ -543,7 +544,7 @@ PvfsLockFileWithContext(
     );
 
 BOOLEAN
-PvfsFileHasOpenByteRangeLocks(
+PvfsStreamHasOpenByteRangeLocks(
     PPVFS_SCB pScb
     );
 

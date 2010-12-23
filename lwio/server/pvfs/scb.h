@@ -96,23 +96,23 @@ PvfsRemoveCCBFromSCB(
     );
 
 BOOLEAN
-PvfsFileHasOtherOpens(
+PvfsStreamHasOtherOpens(
     IN PPVFS_SCB pScb,
     IN PPVFS_CCB pCcb
     );
 
 BOOLEAN
-PvfsFileIsOplocked(
+PvfsStreamIsOplocked(
     IN PPVFS_SCB pScb
     );
 
 BOOLEAN
-PvfsFileIsOplockedExclusive(
+PvfsStreamIsOplockedExclusive(
     IN PPVFS_SCB pScb
     );
 
 BOOLEAN
-PvfsFileIsOplockedShared(
+PvfsStreamIsOplockedShared(
     IN PPVFS_SCB pScb
     );
 
@@ -186,62 +186,6 @@ PvfsSetLastWriteTimeSCB(
     PPVFS_SCB pScb,
     LONG64 LastWriteTime
     );
-
-// From scbtable.c
-
-NTSTATUS
-PvfsScbTableInitialize(
-    VOID
-    );
-
-NTSTATUS
-PvfsScbTableDestroy(
-    VOID
-    );
-
-NTSTATUS
-PvfsScbTableLookup(
-    PPVFS_SCB *ppScb,
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PSTR pszFilename
-    );
-
-NTSTATUS
-PvfsScbTableLookup_inlock(
-    PPVFS_SCB *ppScb,
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PCSTR pszFilename
-    );
-
-NTSTATUS
-PvfsScbTableAdd_inlock(
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pScb
-    );
-
-NTSTATUS
-PvfsScbTableRemove_inlock(
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pScb
-    );
-
-NTSTATUS
-PvfsScbTableRemove(
-    PPVFS_SCB_TABLE_ENTRY pBucket,
-    PPVFS_SCB pScb
-    );
-
-NTSTATUS
-PvfsScbTableGetBucket(
-    OUT PPVFS_SCB_TABLE_ENTRY *ppBucket,
-    IN PPVFS_SCB_TABLE pScbTable,
-    IN PVOID pKey
-    );
-
-
-
-
-
 
 #endif   /* _PVFS_SCB_H */
 

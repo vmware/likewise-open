@@ -123,6 +123,11 @@ typedef struct _PVFS_DIRECTORY_CONTEXT
 
 } PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;
 
+typedef DWORD PVFS_CONTROL_BLOCK_TYPE;
+
+#define PVFS_CONTROL_BLOCK_STREAM      0x00000001
+#define PVFS_CONTROL_BLOCK_FILE        0x00000002
+
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
 typedef struct _PVFS_SCB PVFS_SCB, *PPVFS_SCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
@@ -167,34 +172,32 @@ typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
 #define PVFS_SET_PROP_SECURITY  0x00000001
 #define PVFS_SET_PROP_ATTRIB    0x00000002
 
-typedef struct _PVFS_SCB_TABLE_ENTRY
+typedef struct _PVFS_CB_TABLE_ENTRY
 {
     pthread_rwlock_t rwLock;
     pthread_rwlock_t *pRwLock;
     PLWRTL_RB_TREE pTree;
 
-} PVFS_SCB_TABLE_ENTRY, *PPVFS_SCB_TABLE_ENTRY;
+} PVFS_CB_TABLE_ENTRY, *PPVFS_CB_TABLE_ENTRY;
 
-typedef int (*PVFS_HASH_KEY_COMPARE)(PCVOID, PCVOID);
 typedef size_t (*PVFS_HASH_KEY)(PCVOID);
-typedef void (*PVFS_HASH_FREE_ENTRY)(PPVFS_SCB_TABLE_ENTRY*);
+typedef void (*PVFS_HASH_FREE_ENTRY)(PPVFS_CB_TABLE_ENTRY*);
 
 typedef struct _PVFS_HASH_TABLE
 {
     size_t sTableSize;
     size_t sCount;
-    PPVFS_SCB_TABLE_ENTRY *ppEntries;
-    PVFS_HASH_KEY_COMPARE fnCompare;
+    PPVFS_CB_TABLE_ENTRY *ppEntries;
     PVFS_HASH_KEY fnHash;
     PVFS_HASH_FREE_ENTRY fnFree;
 } PVFS_HASH_TABLE, *PPVFS_HASH_TABLE;
 
-typedef struct _PVFS_SCB_TABLE
+typedef struct _PVFS_CB_TABLE
 {
     pthread_rwlock_t rwLock;
-    PPVFS_HASH_TABLE pScbTable;
+    PPVFS_HASH_TABLE pCbHashTable;
 
-} PVFS_SCB_TABLE, *PPVFS_SCB_TABLE;
+} PVFS_CB_TABLE, *PPVFS_CB_TABLE;
 
 typedef struct _PVFS_PENDING_CREATE
 {
@@ -296,7 +299,7 @@ struct _PVFS_SCB
 {
     LONG RefCount;
 
-    PPVFS_SCB_TABLE_ENTRY pBucket;      /* ScbTable Bucket */
+    PPVFS_CB_TABLE_ENTRY pBucket;      /* ScbTable Bucket */
 
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations

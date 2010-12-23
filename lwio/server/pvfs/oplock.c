@@ -736,7 +736,7 @@ PvfsOplockBreakAllLevel2Oplocks(
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
     BOOLEAN bCcbLocked = FALSE;
 
-    if (!PvfsFileIsOplocked(pScb))
+    if (!PvfsStreamIsOplocked(pScb))
     {
         goto cleanup;
     }
@@ -1443,8 +1443,8 @@ PvfsOplockGrantBatchOrLevel1(
     /* Any other opens - FAIL */
     /* Cannot grant a second exclusive oplock - FAIL*/
 
-    if (PvfsFileHasOtherOpens(pScb, pCcb) ||
-        PvfsFileIsOplockedExclusive(pScb))
+    if (PvfsStreamHasOtherOpens(pScb, pCcb) ||
+        PvfsStreamIsOplockedExclusive(pScb))
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntError);
@@ -1452,8 +1452,8 @@ PvfsOplockGrantBatchOrLevel1(
 
     /* Break any Level 2 oplocks and proceed - GRANT */
 
-    if (!PvfsFileIsOplocked(pScb) ||
-        PvfsFileIsOplockedShared(pScb))
+    if (!PvfsStreamIsOplocked(pScb) ||
+        PvfsStreamIsOplockedShared(pScb))
     {
         ntError = PvfsOplockBreakAllLevel2Oplocks(pScb);
         BAIL_ON_NT_STATUS(ntError);
@@ -1502,7 +1502,7 @@ PvfsOplockGrantLevel2(
 
     /* Cannot grant a level2 on an existing exclusive oplock - FAIL*/
 
-    if (PvfsFileIsOplockedExclusive(pScb))
+    if (PvfsStreamIsOplockedExclusive(pScb))
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntError);
@@ -1511,7 +1511,7 @@ PvfsOplockGrantLevel2(
     /* Cannot grant a level2 if there are any open byte range
        locks on the file */
 
-    if (PvfsFileHasOpenByteRangeLocks(pScb))
+    if (PvfsStreamHasOpenByteRangeLocks(pScb))
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntError);
@@ -1519,8 +1519,8 @@ PvfsOplockGrantLevel2(
 
     /* Can have multiple level2 oplocks - GRANT */
 
-    if (!PvfsFileIsOplocked(pScb) ||
-        PvfsFileIsOplockedShared(pScb))
+    if (!PvfsStreamIsOplocked(pScb) ||
+        PvfsStreamIsOplockedShared(pScb))
     {
         PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 

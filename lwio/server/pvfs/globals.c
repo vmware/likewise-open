@@ -71,7 +71,7 @@ PPVFS_SCB gpPvfsDeviceScb = NULL;
 
 pthread_mutex_t gPvfsIrpContextMutex = PTHREAD_MUTEX_INITIALIZER;
 
-PVFS_SCB_TABLE gScbTable;
+PVFS_CB_TABLE gScbTable;
 
 PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
 

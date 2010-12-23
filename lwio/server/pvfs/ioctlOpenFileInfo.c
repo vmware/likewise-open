@@ -160,15 +160,15 @@ PvfsFillOpenFileInfo(
     OpenFileInfo.pData = pBuffer;
     OpenFileInfo.pPreviousEntry = NULL;
 
-    for (dwIndex=0; dwIndex<gScbTable.pScbTable->sTableSize; dwIndex++)
+    for (dwIndex=0; dwIndex<gScbTable.pCbHashTable->sTableSize; dwIndex++)
     {
-        if (gScbTable.pScbTable->ppEntries[dwIndex] == NULL)
+        if (gScbTable.pCbHashTable->ppEntries[dwIndex] == NULL)
         {
             continue;
         }
 
         ntError = LwRtlRBTreeTraverse(
-                      gScbTable.pScbTable->ppEntries[dwIndex]->pTree,
+                      gScbTable.pCbHashTable->ppEntries[dwIndex]->pTree,
                       LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                       PvfsOpenFileInfo,
                       &OpenFileInfo);

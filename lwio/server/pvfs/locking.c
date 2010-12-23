@@ -1113,7 +1113,7 @@ PvfsHandleHasOpenByteRangeLocks(
 }
 
 BOOLEAN
-PvfsFileHasOpenByteRangeLocks(
+PvfsStreamHasOpenByteRangeLocks(
     PPVFS_SCB pScb
     )
 {
