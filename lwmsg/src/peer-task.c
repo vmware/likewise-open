@@ -1522,11 +1522,6 @@ lwmsg_peer_task_finish_transceive(
     LWMsgStatus status = LWMSG_STATUS_PENDING;
     LWMsgMessage* message = NULL;
 
-    if (*trigger & LWMSG_TASK_TRIGGER_FD_READABLE)
-    {
-        task->recv_partial = LWMSG_TRUE;
-    }
-
     while ((*trigger & LWMSG_TASK_TRIGGER_FD_READABLE && task->incoming) ||
            (*trigger & LWMSG_TASK_TRIGGER_FD_WRITABLE && task->outgoing))
     {
@@ -1868,6 +1863,11 @@ lwmsg_peer_task_run(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PeerAssocTask* task = (PeerAssocTask*) data;
     LWMsgPeer* peer = task->peer;
+
+    if (trigger & LWMSG_TASK_TRIGGER_FD_READABLE)
+    {
+        task->recv_partial = LWMSG_TRUE;
+    }
 
     while (status == LWMSG_STATUS_SUCCESS)
     {
