@@ -340,7 +340,7 @@ SrvFileGetLastFailedLockOffset(
     PLWIO_SRV_FILE pFile
     )
 {
-    ULONG64 ullLastFailedLockOffset = -1;
+    ULONG64 ullLastFailedLockOffset = (ULONG64)-1;
 
     BOOLEAN bInLock = FALSE;
 

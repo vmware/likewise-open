@@ -366,9 +366,9 @@ typedef struct _SRV_LOCK_STATE_SMB_V1
     PLWIO_SRV_FILE                   pFile;
 
     BOOLEAN                          bRequestExclusiveLock;
-    LONG64                           llOffset;
-    LONG64                           llLength;
-    ULONG                            ulKey;
+    ULONG64                          Offset;
+    ULONG64                          Length;
+    ULONG                            Key;
 
     BOOLEAN                          bExpired;
     BOOLEAN                          bCompleted;
