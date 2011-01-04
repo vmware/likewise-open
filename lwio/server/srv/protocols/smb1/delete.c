@@ -229,6 +229,7 @@ SrvProcessDelete(
                                 pDeleteState->pwszFilesystemPath,
                                 pDeleteState->pwszSearchPattern2,
                                 usSearchAttributes,
+                                0,
                                 0, // ulSearchStorageType
                                 SMB_FIND_FILE_BOTH_DIRECTORY_INFO,
                                 pDeleteState->bUseLongFilenames,

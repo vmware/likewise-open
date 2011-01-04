@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software
@@ -301,6 +301,7 @@ SrvFinderCreateSearchSpace(
     IN  PWSTR          pwszFilesystemPath,
     IN  PWSTR          pwszSearchPattern,
     IN  SMB_FILE_ATTRIBUTES usSearchAttrs,
+    IN  USHORT         usFlags,
     IN  ULONG          ulSearchStorageType,
     IN  SMB_INFO_LEVEL infoLevel,
     IN  BOOLEAN        bUseLongFilenames,
@@ -321,6 +322,7 @@ SrvFinderCreateSearchSpace(
     BOOLEAN  bFound = FALSE;
     BOOLEAN  bInLock = FALSE;
     PIO_ECP_LIST pEcpList = NULL;
+    FILE_CREATE_OPTIONS createOptions = 0;
 
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
@@ -334,6 +336,11 @@ SrvFinderCreateSearchSpace(
 
         ntStatus = SrvIoPrepareAbeEcpList(pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (usFlags & SMB_FIND_WITH_BACKUP_INTENT)
+    {
+        createOptions |= FILE_OPEN_FOR_BACKUP_INTENT;
     }
 
     ntStatus = SrvIoCreateFile(
@@ -350,7 +357,7 @@ SrvFinderCreateSearchSpace(
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                     FILE_OPEN,
-                    0,
+                    createOptions,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
                     pEcpList);
@@ -646,12 +653,3 @@ SrvFinderFreeSearchSpace(
 }
 
 
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
