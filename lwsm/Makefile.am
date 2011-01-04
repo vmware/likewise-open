@@ -56,7 +56,8 @@ server_driver_la_CFLAGS = $(AM_CFLAGS) $(LOADER_CFLAGS)
 server_driver_la_LIBADD = \
     $(top_builddir)/server/liblwsmloader.la \
     $(top_builddir)/common/liblwsmcommon.la \
-    @LIB_PTHREAD@
+    @LIB_PTHREAD@ \
+    -llwioclient
 server_driver_la_LDFLAGS = $(AM_LDFLAGS) $(LOADER_LDFLAGS)
 
 server_stub_la_SOURCES = server/stub.c
@@ -80,7 +81,7 @@ server_lwsmd_SOURCES = \
 server_lwsmd_LDADD = \
 	$(top_builddir)/common/liblwsmcommon.la \
 	$(top_builddir)/server/liblwsmloader.la \
-	-llwmsg -llwmsg_nothr -llwioclient \
+	-llwmsg -llwmsg_nothr \
 	-lregclient -llwadvapi -llwadvapi_nothr -llwbase -llwbase_nothr \
 	@LIB_PTHREAD@
 
