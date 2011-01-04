@@ -499,8 +499,8 @@ PvfsLockFile(
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     PVFS_LOCK_FLAGS Flags
     );
 
@@ -509,8 +509,8 @@ PvfsUnlockFile(
     PPVFS_CCB pCcb,
     BOOLEAN bUnlockAll,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length
+    ULONG64 Offset,
+    ULONG64 Length
     );
 
 NTSTATUS
@@ -528,8 +528,8 @@ PvfsCreateLockContext(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_CCB pCcb,
     IN  ULONG Key,
-    IN  LONG64 Offset,
-    IN  LONG64 Length,
+    IN  ULONG64 Offset,
+    IN  ULONG64 Length,
     IN  PVFS_LOCK_FLAGS Flags
     );
 

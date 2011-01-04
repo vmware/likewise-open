@@ -53,8 +53,8 @@ NTSTATUS
 CanLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     BOOLEAN bExclusive,
     BOOLEAN bSelf
     );
@@ -64,8 +64,8 @@ NTSTATUS
 AddLock(
     PPVFS_CCB pCcb,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     BOOLEAN bExclusive
     );
 
@@ -74,8 +74,8 @@ NTSTATUS
 StoreLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     BOOLEAN bExclusive
     );
 
@@ -84,8 +84,8 @@ VOID
 InitLockEntry(
     OUT PPVFS_LOCK_ENTRY pEntry,
     IN  ULONG Key,
-    IN  LONG64 Offset,
-    IN  LONG64 Length,
+    IN  ULONG64 Offset,
+    IN  ULONG64 Length,
     IN  PVFS_LOCK_FLAGS Flags
     );
 
@@ -114,8 +114,8 @@ PvfsLockFile(
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     PVFS_LOCK_FLAGS Flags
     )
 {
@@ -128,9 +128,9 @@ PvfsLockFile(
     PVFS_LOCK_ENTRY RangeLock = {0};
     PPVFS_CCB pCurrentCcb = NULL;
 
-    /* Negative locks cannot cross the 0 offset boundary */
+    // Test for wrap-around ranges
 
-    if ((Offset < 0) && (Length != 0) && ((Offset + Length - 1) >= 0))
+    if ((Length != 0) && ((Offset + Length - 1) < Offset))
     {
         ntError = STATUS_INVALID_LOCK_RANGE;
         BAIL_ON_NT_STATUS(ntError);
@@ -281,8 +281,8 @@ PvfsUnlockFile(
     PPVFS_CCB pCcb,
     BOOLEAN bUnlockAll,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length
+    ULONG64 Offset,
+    ULONG64 Length
     )
 {
     NTSTATUS ntError = STATUS_RANGE_NOT_LOCKED;
@@ -534,13 +534,13 @@ error:
 static
 BOOLEAN
 DoRangesOverlap(
-    LONG64 Offset1,
-    LONG64 Length1,
-    LONG64 Offset2,
-    LONG64 Length2
+    ULONG64 Offset1,
+    ULONG64 Length1,
+    ULONG64 Offset2,
+    ULONG64 Length2
     )
 {
-    LONG64 Start1, Start2, End1, End2;
+    ULONG64 Start1, Start2, End1, End2;
 
     /* Zero byte locks form a boundary that overlaps when crossed */
 
@@ -589,8 +589,8 @@ NTSTATUS
 CanLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     BOOLEAN bExclusive,
     BOOLEAN bSelf
     )
@@ -654,11 +654,6 @@ cleanup:
     return ntError;
 
 error:
-    if ((ntError == STATUS_LOCK_NOT_GRANTED) && (Offset >= 0xEF000000))
-    {
-        ntError = STATUS_FILE_LOCK_CONFLICT;
-    }
-
     goto cleanup;
 }
 
@@ -671,8 +666,8 @@ NTSTATUS
 AddLock(
     PPVFS_CCB pCcb,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     BOOLEAN bExclusive
     )
 {
@@ -703,8 +698,8 @@ NTSTATUS
 StoreLock(
     PPVFS_LOCK_TABLE pLockTable,
     ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
+    ULONG64 Offset,
+    ULONG64 Length,
     BOOLEAN bExclusive
     )
 {
@@ -760,14 +755,15 @@ VOID
 InitLockEntry(
     OUT PPVFS_LOCK_ENTRY pEntry,
     IN  ULONG Key,
-    IN  LONG64 Offset,
-    IN  LONG64 Length,
+    IN  ULONG64 Offset,
+    IN  ULONG64 Length,
     IN  PVFS_LOCK_FLAGS Flags
     )
 {
     /* Should never happen, but don't crash if it does */
 
-    if (pEntry == NULL) {
+    if (pEntry == NULL)
+    {
         return;
     }
 
@@ -1002,8 +998,8 @@ PvfsCreateLockContext(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_CCB pCcb,
     IN  ULONG Key,
-    IN  LONG64 Offset,
-    IN  LONG64 Length,
+    IN  ULONG64 Offset,
+    IN  ULONG64 Length,
     IN  PVFS_LOCK_FLAGS Flags
     )
 {

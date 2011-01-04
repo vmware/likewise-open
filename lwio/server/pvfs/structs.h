@@ -150,8 +150,8 @@ typedef struct _PVFS_LOCK_ENTRY
     BOOLEAN bFailImmediately;
     BOOLEAN bExclusive;
     ULONG Key;
-    LONG64 Offset;
-    LONG64 Length;
+    ULONG64 Offset;
+    ULONG64 Length;
 
 } PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
 
