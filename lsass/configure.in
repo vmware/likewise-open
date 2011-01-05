@@ -1104,6 +1104,7 @@ AC_CONFIG_FILES([Makefile
                  tools/lw-lsa/Makefile
                  etc/Makefile
                  etc/lsassd.reg
+                 etc/lsassd-import.reg
                  include/lsaregdef.h
                  include/Makefile
                  scripts/Makefile

@@ -32,11 +32,8 @@
 "SmartCardPromptGecos"=sza:"gdm"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers]
-"LoadOrder"=sza:"ActiveDirectory" "Local"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\ActiveDirectory]
-"Id"="lsa-activedirectory-provider"
-"Path"="@providerdir@/liblsass_auth_provider_ad_open@MOD_EXT@"
 "LogNetworkConnectionEvents"=dword:00000001
 "LoginShellTemplate"="/bin/sh"
 "HomeDirPrefix"="@default_homedir_prefix@"
@@ -68,8 +65,6 @@
 "MemoryCacheSizeCap"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
-"Id"="lsa-local-provider"
-"Path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
 "LoginShellTemplate"="/bin/sh"
 "HomeDirPrefix"="@default_homedir_prefix@"
 "HomeDirTemplate"="%H/local/%D/%U"
@@ -92,25 +87,16 @@
 "MaxGid"=dword:7FFFFFFF
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers]
-"LoadOrder"=sza:"lsarpc" "samr" "dssetup" "wkssvc"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\lsarpc]
-"Path"="@rpcserverdir@/liblsa_srv@MOD_EXT@"
-"LpcSocketPath"="@CACHEDIR@/rpc/lsass"
 "RegisterTcpIp"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\samr]
-"Path"="@rpcserverdir@/libsamr_srv@MOD_EXT@"
-"LpcSocketPath"="@CACHEDIR@/rpc/lsass"
 "LoginShellTemplate"="/bin/sh"
 "HomeDirPrefix"="@default_homedir_prefix@"
 "HomeDirTemplate"="%H/local/%D/%U"
 "RegisterTcpIp"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\dssetup]
-"Path"="@rpcserverdir@/libdssetup_srv@MOD_EXT@"
-"LpcSocketPath"="@CACHEDIR@/rpc/lsass"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\wkssvc]
-"Path"="@rpcserverdir@/libwkssvc_srv@MOD_EXT@"
-"LpcSocketPath"="@CACHEDIR@/rpc/lsass"
