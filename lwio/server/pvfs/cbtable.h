@@ -64,9 +64,10 @@ NTSTATUS
 PvfsHashTableCreate(
     size_t sTableSize,
     PFN_LWRTL_RB_TREE_COMPARE fnCompare,
+    PFN_LWRTL_RB_TREE_FREE_KEY fnFreeHashKey,
     PVFS_HASH_KEY fnHash,
     PVFS_HASH_FREE_ENTRY fnFree,
-    PPVFS_HASH_TABLE* ppHashTable
+    PPVFS_HASH_TABLE* ppTable
     );
 
 VOID
@@ -88,6 +89,11 @@ int
 PvfsCbTableFilenameCompare(
     PCVOID a,
     PCVOID b
+    );
+
+VOID
+PvfsCbTableFreeHashKey(
+    PVOID pKey
     );
 
 NTSTATUS

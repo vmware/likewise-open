@@ -260,6 +260,42 @@ error:
  ***************************************************************/
 
 NTSTATUS
+PvfsValidatePathFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_FILE_ID pFileId
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bFcbLocked = FALSE;
+    PVFS_STAT Stat = {0};
+
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwLock);
+
+    /* Verify that the dev/inode pair is the same on the pathname
+       and the fd */
+
+    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if ((pFileId->Device != Stat.s_dev) || (pFileId->Inode != Stat.s_ino))
+    {
+        ntError = STATUS_FILE_RENAMED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwLock);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
 PvfsFileBasename(
     PSTR *ppszFilename,
     PCSTR pszPath
@@ -543,6 +579,211 @@ cleanup:
 error:
     goto cleanup;
 }
+
+/****************************************************************
+ ***************************************************************/
+
+static
+void
+RtlpFreeStringArray(
+    PSTR * ppStringArray,
+    size_t sSize
+    )
+{
+    size_t i = 0;
+
+    if ( ppStringArray )
+    {
+        for(i = 0; i < sSize; i++)
+        {
+            if (ppStringArray[i])
+            {
+                LwRtlCStringFree(&ppStringArray[i]);
+            }
+        }
+
+        LwRtlMemoryFree(ppStringArray);
+    }
+
+    return;
+}
+
+NTSTATUS
+PvfsParseStreamname(
+    OUT PSTR *ppszOwnerFilename,
+    OUT PSTR *ppszFilename, // the physical location of the stream
+    OPTIONAL OUT PSTR *ppszStreamname,
+    OPTIONAL OUT PVFS_STREAM_TYPE *pStreamtype,
+    IN PCSTR pszFullStreamname
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszStreamname = NULL;
+    PSTR pszOwnerFilename = NULL;
+    PSTR pszFilename = NULL;
+
+    /* By default set streamtype to be $DATA */
+    PVFS_STREAM_TYPE Streamtype = PVFS_STREAM_TYPE_DATA;
+
+    PSTR pszStreamnameTmp = NULL;
+    PSTR pszStreamnameTmp1 = NULL;
+    PSTR* ppszTokens = NULL;
+    // Do not free
+    PSTR pszTmp = NULL;
+    PSTR pszstrtok_rSav = NULL;
+    int iTokenCount = 0;
+    int i = 0;
+    size_t sLen = 0;
+
+    if (pszFullStreamname && *pszFullStreamname == PVFS_STREAM_DELIMINATOR_C)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    sLen = RtlCStringNumChars(pszFullStreamname);
+
+    /* Check for object_name: (this violates object_name should not have ':')*/
+
+    if (pszFullStreamname[sLen-1] == PVFS_STREAM_DELIMINATOR_C
+        && pszFullStreamname[sLen-2] != PVFS_STREAM_DELIMINATOR_C)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError  = RtlCStringDuplicate(&pszStreamnameTmp,
+                                  pszFullStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError  = RtlCStringDuplicate(&pszStreamnameTmp1,
+                                  pszFullStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pszTmp = strtok_r(pszStreamnameTmp, PVFS_STREAM_DELIMINATOR_S, &pszstrtok_rSav);
+    while (pszTmp != NULL)
+    {
+        iTokenCount++;
+        pszTmp = strtok_r(NULL, PVFS_STREAM_DELIMINATOR_S, &pszstrtok_rSav);
+    }
+
+    /* object_name -> iTokenCount == 1
+     * object_name:: -> iTokenCount == 1
+     * object_name::$DATA -> iTokenCount == 2
+     * object_name:stream_name -> iTokenCount == 2
+     * object_name:stream_name:$DATA -> iTokenCount == 3 */
+
+    if (iTokenCount < 1 || iTokenCount > 3)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = RTL_ALLOCATE(&ppszTokens, PSTR, sizeof(*ppszTokens) * iTokenCount);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pszTmp = strtok_r(pszStreamnameTmp1, PVFS_STREAM_DELIMINATOR_S, &pszstrtok_rSav);
+    while (pszTmp != NULL)
+    {
+        ntError  = LwRtlCStringDuplicate(&ppszTokens[i++],
+                                        pszTmp);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pszTmp = strtok_r(NULL, PVFS_STREAM_DELIMINATOR_S, &pszstrtok_rSav);
+    }
+
+    ntError  = RtlCStringDuplicate(&pszOwnerFilename,
+                                  ppszTokens[0]);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (iTokenCount == 1)
+    {
+        // empty stream name
+        ntError = RTL_ALLOCATE(&pszStreamname, CHAR, sizeof(*pszStreamname) * 1);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else if (iTokenCount == 2)
+    {
+        if (*ppszTokens[1] == '$')
+        {
+            if (RtlCStringIsEqual(ppszTokens[1], "$DATA", FALSE))
+            {
+                // empty stream name
+                ntError = RTL_ALLOCATE(&pszStreamname, CHAR, sizeof(*pszStreamname) * 1);
+                BAIL_ON_NT_STATUS(ntError);
+            }
+            else
+            {
+                ntError = STATUS_NOT_SUPPORTED;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+        else
+        {
+            ntError  = RtlCStringDuplicate(&pszStreamname,
+                                           ppszTokens[1]);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+    else if (iTokenCount == 3)
+    {
+        if (!RtlCStringIsEqual(ppszTokens[2], "$DATA", FALSE))
+        {
+            ntError = STATUS_NOT_SUPPORTED;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        ntError  = RtlCStringDuplicate(&pszStreamname,
+                                       ppszTokens[1]);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (pszStreamname && *pszStreamname)
+    {
+        ntError = RtlCStringAllocatePrintf(
+                      &pszFilename,
+                      "%s:%s",
+                      pszOwnerFilename,
+                      pszStreamname);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        ntError  = RtlCStringDuplicate(&pszFilename,
+                                       pszOwnerFilename);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+error:
+    if (ntError)
+    {
+        RtlCStringFree(&pszOwnerFilename);
+        RtlCStringFree(&pszStreamname);
+        RtlCStringFree(&pszFilename);
+    }
+
+    RTL_FREE(&pszStreamnameTmp);
+    RTL_FREE(&pszStreamnameTmp1);
+    RtlpFreeStringArray(ppszTokens, iTokenCount);
+
+    *ppszOwnerFilename = pszOwnerFilename;
+    *ppszFilename = pszFilename;
+    if (pStreamtype)
+    {
+        *pStreamtype = Streamtype;
+    }
+    if (ppszStreamname)
+    {
+        *ppszStreamname = pszStreamname;
+    }
+    else
+    {
+        RtlCStringFree(&pszStreamname);
+    }
+
+    return ntError;
+}
+
 
 /****************************************************************
  ***************************************************************/

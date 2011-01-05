@@ -84,8 +84,9 @@
 #include "time_p.h"
 #include "syswrap_p.h"
 #include "ccb_p.h"
-#include "scb.h"
 #include "cbtable.h"
+#include "scb.h"
+#include "fcb.h"
 #include "acl.h"
 #include "attrib.h"
 
@@ -367,6 +368,12 @@ PvfsValidatePathSCB(
     );
 
 NTSTATUS
+PvfsValidatePathFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_FILE_ID pFileId
+    );
+
+NTSTATUS
 PvfsFileBasename(
     PSTR *ppszFilename,
     PCSTR pszPath
@@ -399,6 +406,15 @@ PvfsLookupFile(
     IN PCSTR pszDiskDirname,
     IN PCSTR pszFilename,
     IN BOOLEAN bCaseSensitive
+    );
+
+NTSTATUS
+PvfsParseStreamname(
+    OUT PSTR *ppszOwnerFilename,
+    OUT PSTR *ppszFilename, // the physical location of the stream
+    OPTIONAL OUT PSTR *ppszStreamname,
+    OPTIONAL OUT PVFS_STREAM_TYPE *pStreamtype,
+    IN PCSTR pszFullStreamname
     );
 
 /* From pathcache.c */

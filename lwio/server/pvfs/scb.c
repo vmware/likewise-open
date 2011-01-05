@@ -63,7 +63,14 @@ PvfsFreeSCB(
             PvfsReleaseSCB(&pScb->pParentScb);
         }
 
+        if (pScb->pOwnerFcb)
+        {
+            PvfsRemoveSCBFromFCB(pScb->pOwnerFcb, pScb);
+            PvfsReleaseFCB(&pScb->pOwnerFcb);
+        }
+
         RtlCStringFree(&pScb->pszFilename);
+        RtlCStringFree(&pScb->pszStreamname);
 
         pthread_mutex_destroy(&pScb->ControlBlock);
         pthread_rwlock_destroy(&pScb->rwLock);
@@ -94,7 +101,7 @@ PvfsFreeSCB(
 static
 VOID
 PvfsSCBFreeCCB(
-PVOID *ppData
+    PVOID *ppData
     )
 {
     /* This should never be called.  The CCB count has to be 0 when
@@ -131,6 +138,10 @@ PvfsAllocateSCB(
     pthread_rwlock_init(&pScb->rwBrlLock, NULL);
 
     pScb->RefCount = 1;
+
+    /* Setup FcbList */
+
+    PVFS_INIT_LINKS(&pScb->FcbList);
 
     /* Setup pendlock byte-range lock queue */
 
@@ -196,6 +207,7 @@ PvfsAllocateSCB(
     pScb->pParentScb = NULL;
     pScb->pBucket = NULL;
     pScb->pszFilename = NULL;
+    pScb->pszStreamname = NULL;
 
     *ppScb = pScb;
 
@@ -469,13 +481,49 @@ static
 NTSTATUS
 PvfsFindParentSCB(
     PPVFS_SCB *ppParentScb,
-    PCSTR pszFilename
+    PCSTR pszFullStreamname
     );
+
+static
+NTSTATUS
+PvfsFindOwnerFCB(
+    PPVFS_FCB *ppOwnerFcb,
+    PSTR pszFullStreamname
+    );
+
+NTSTATUS
+PvfsGetFullStreamname(
+    PSTR *ppszFullStreamname,
+    PPVFS_SCB pScb
+    )
+{
+    if (!pScb)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    LWIO_ASSERT(pScb->pOwnerFcb);
+
+    switch (pScb->StreamType)
+    {
+        case PVFS_STREAM_TYPE_DATA:
+
+            return RtlCStringAllocatePrintf(ppszFullStreamname,
+                                            "%s:%s:%s",
+                                            pScb->pOwnerFcb->pszFilename,
+                                            pScb->pszStreamname,
+                                            PVFS_STREAM_DEFAULT_TYPE_S);
+
+        default:
+            return STATUS_INVALID_PARAMETER;
+    }
+}
+
 
 NTSTATUS
 PvfsCreateSCB(
     OUT PPVFS_SCB *ppScb,
-    IN PSTR pszFilename,
+    IN PSTR pszFullStreamname,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess
@@ -483,15 +531,31 @@ PvfsCreateSCB(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_SCB pScb = NULL;
+    PPVFS_FCB pOwnerFcb = NULL;
     BOOLEAN bBucketLocked = FALSE;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
     PPVFS_SCB pParentScb = NULL;
     BOOLEAN bScbLocked = FALSE;
 
-    ntError = PvfsFindParentSCB(&pParentScb, pszFilename);
+    PSTR pszOwnerFilename = NULL;
+    PSTR pszFilePath = NULL;
+    PSTR pszStreamname = NULL;
+    PVFS_STREAM_TYPE StreamType = PVFS_STREAM_TYPE_DATA;
+
+    ntError = PvfsFindParentSCB(&pParentScb, pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFilename);
+    ntError = PvfsParseStreamname(&pszOwnerFilename,
+                                  &pszFilePath,
+                                  &pszStreamname,
+                                  &StreamType,
+                                  pszFullStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFindOwnerFCB(&pOwnerFcb, pszOwnerFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Protect against adding a duplicate */
@@ -501,7 +565,7 @@ PvfsCreateSCB(
     ntError = PvfsCbTableLookup_inlock((PVOID*)&pScb,
                                         pBucket,
                                         PVFS_CONTROL_BLOCK_STREAM,
-                                        pszFilename);
+                                        pszFullStreamname);
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
@@ -530,10 +594,18 @@ PvfsCreateSCB(
     ntError = PvfsAllocateSCB(&pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlCStringDuplicate(&pScb->pszFilename, pszFilename);
+    ntError = RtlCStringDuplicate(&pScb->pszFilename, pszOwnerFilename);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = RtlCStringDuplicate(&pScb->pszStreamname, pszStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pScb->StreamType = StreamType;
+
     pScb->pParentScb = pParentScb ? PvfsReferenceSCB(pParentScb) : NULL;
+
+    ntError = PvfsAddSCBToFCB(pOwnerFcb, pScb);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Add to the file handle table */
 
@@ -564,9 +636,18 @@ cleanup:
         PvfsReleaseSCB(&pScb);
     }
 
+    if (pOwnerFcb)
+    {
+        PvfsReleaseFCB(&pOwnerFcb);
+    }
+
+    RTL_FREE(&pszOwnerFilename);
+    RTL_FREE(&pszFilePath);
+
     return ntError;
 
 error:
+
     goto cleanup;
 }
 
@@ -577,15 +658,17 @@ static
 NTSTATUS
 PvfsFindParentSCB(
     PPVFS_SCB *ppParentScb,
-    PCSTR pszFilename
+    PCSTR pszFullStreamname
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_SCB pScb = NULL;
     PSTR pszDirname = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+    PSTR pszDefaultDirStreamname = NULL;
 
-    if (LwRtlCStringIsEqual(pszFilename, "/", TRUE))
+
+    if (LwRtlCStringIsEqual(pszFullStreamname, "/::$DATA", TRUE))
     {
         ntError = STATUS_SUCCESS;
         *ppParentScb = NULL;
@@ -593,18 +676,29 @@ PvfsFindParentSCB(
         goto cleanup;
     }
 
-    ntError = PvfsFileDirname(&pszDirname, pszFilename);
+    ntError = PvfsFileDirname(&pszDirname, pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszDirname);
+    ntError = RtlCStringAllocatePrintf(
+                       &pszDefaultDirStreamname,
+                       "%s::$DATA",
+                       pszDirname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableLookup((PVOID*)&pScb, pBucket, PVFS_CONTROL_BLOCK_STREAM, pszDirname);
+    ntError = PvfsCbTableGetBucket(&pBucket,
+                                   &gScbTable,
+                                   (PVOID)pszDefaultDirStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableLookup((PVOID*)&pScb,
+                                 pBucket,
+                                 PVFS_CONTROL_BLOCK_STREAM,
+                                 (PVOID)pszDefaultDirStreamname);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = PvfsCreateSCB(
                       &pScb,
-                      pszDirname,
+                      pszDefaultDirStreamname,
                       FALSE,
                       0,
                       0);
@@ -624,12 +718,65 @@ cleanup:
         LwRtlCStringFree(&pszDirname);
     }
 
+    if (pszDefaultDirStreamname)
+    {
+        LwRtlCStringFree(&pszDefaultDirStreamname);
+    }
+
+
     return ntError;
 
 error:
 
     goto cleanup;
 }
+
+/*******************************************************
+ ******************************************************/
+
+
+static
+NTSTATUS
+PvfsFindOwnerFCB(
+    PPVFS_FCB *ppOwnerFcb,
+    PSTR pszFullStreamname
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    PPVFS_FCB pFcb = NULL;
+    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+
+    ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, (PVOID)pszFullStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableLookup((PVOID*)&pFcb, pBucket, PVFS_CONTROL_BLOCK_FILE, (PVOID)pszFullStreamname);
+    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
+    {
+        ntError = PvfsCreateFCB(
+                      &pFcb,
+                      pszFullStreamname,
+                      FALSE,
+                      0,
+                      0);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppOwnerFcb = PvfsReferenceFCB(pFcb);
+
+cleanup:
+    if (pFcb)
+    {
+        PvfsReleaseFCB(&pFcb);
+    }
+
+    return ntError;
+
+error:
+
+    goto cleanup;
+}
+
 
 
 /*******************************************************

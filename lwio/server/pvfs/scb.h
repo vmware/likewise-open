@@ -77,6 +77,12 @@ PvfsCreateSCB(
     );
 
 NTSTATUS
+PvfsGetFullStreamname(
+    PSTR *ppszFullStreamname,
+    PPVFS_SCB pScb
+    );
+
+NTSTATUS
 PvfsGetDirectorySCB(
     IN  PSTR pszFilename,
     OUT PPVFS_SCB *ppScb
@@ -87,7 +93,6 @@ PvfsAddCCBToSCB(
     PPVFS_SCB pScb,
     PPVFS_CCB pCcb
     );
-
 
 NTSTATUS
 PvfsRemoveCCBFromSCB(

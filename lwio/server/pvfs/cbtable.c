@@ -65,6 +65,7 @@ PvfsCbTableInitialize(
     ntError = PvfsHashTableCreate(
                   1021,
                   (PFN_LWRTL_RB_TREE_COMPARE)PvfsCbTableFilenameCompare,
+                  (PFN_LWRTL_RB_TREE_FREE_KEY)PvfsCbTableFreeHashKey,
                   PvfsCbTableHashKey,
                   PvfsCbTableFreeHashEntry,
                   &pCbTable->pCbHashTable);
@@ -109,18 +110,65 @@ PvfsCbTableAdd_inlock(
     PVOID pCb
     )
 {
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszFullStreamname = NULL;
+    PSTR pszFileName = NULL;
+
+
     switch(CbType)
     {
         case PVFS_CONTROL_BLOCK_STREAM:
 
-            return LwRtlRBTreeAdd(
+            ntError = PvfsGetFullStreamname(&pszFullStreamname, (PPVFS_SCB)pCb);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = LwRtlRBTreeAdd(
                        pBucket->pTree,
-                       (PVOID)((PPVFS_SCB)pCb)->pszFilename,
+                       (PVOID)pszFullStreamname,
                        pCb);
+            BAIL_ON_NT_STATUS(ntError);
+            pszFullStreamname = NULL;
+
+            break;
+
+        case PVFS_CONTROL_BLOCK_FILE:
+
+            ntError = LwRtlCStringDuplicate(&pszFileName, ((PPVFS_FCB)pCb)->pszFilename);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = LwRtlRBTreeAdd(
+                       pBucket->pTree,
+                       (PVOID)pszFileName,
+                       pCb);
+            BAIL_ON_NT_STATUS(ntError);
+            pszFileName = NULL;
+
+            break;
 
         default:
-            return STATUS_INVALID_PARAMETER;
+
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
     }
+
+cleanup:
+
+    if (pszFullStreamname)
+    {
+        LwRtlCStringFree(&pszFullStreamname);
+    }
+
+    if (pszFileName)
+    {
+        LwRtlCStringFree(&pszFileName);
+    }
+
+
+    return ntError;
+
+error:
+
+    goto cleanup;
 }
 
 
@@ -134,16 +182,48 @@ PvfsCbTableRemove_inlock(
     PVOID pCb
     )
 {
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszFullStreamname = NULL;
+
     switch(CbType)
     {
         case PVFS_CONTROL_BLOCK_STREAM:
 
-            return LwRtlRBTreeRemove(pBucket->pTree,
-                                     (PVOID)((PPVFS_SCB)pCb)->pszFilename);
+            ntError = PvfsGetFullStreamname(&pszFullStreamname, (PPVFS_SCB)pCb);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = LwRtlRBTreeRemove(pBucket->pTree,
+                                     (PVOID)pszFullStreamname);
+                                     //(PVOID)((PPVFS_SCB)pCb)->pszFilename);
+            BAIL_ON_NT_STATUS(ntError);
+
+            break;
+
+        case PVFS_CONTROL_BLOCK_FILE:
+
+            ntError = LwRtlRBTreeRemove(pBucket->pTree,
+                                     (PVOID)((PPVFS_FCB)pCb)->pszFilename);
+            BAIL_ON_NT_STATUS(ntError);
+
+            break;
 
         default:
-            return STATUS_INVALID_PARAMETER;
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
     }
+
+cleanup:
+
+    if (pszFullStreamname)
+    {
+        LwRtlCStringFree(&pszFullStreamname);
+    }
+
+    return ntError;
+
+error:
+
+    goto cleanup;
 }
 
 /***********************************************************************
@@ -229,6 +309,11 @@ PvfsCbTableLookup_inlock(
             *ppCb = (PVOID)PvfsReferenceSCB((PPVFS_SCB)pCb);
             break;
 
+        case PVFS_CONTROL_BLOCK_FILE:
+
+            *ppCb = (PVOID)PvfsReferenceFCB((PPVFS_FCB)pCb);
+            break;
+
         default:
             return STATUS_INVALID_PARAMETER;
     }
@@ -286,6 +371,7 @@ NTSTATUS
 PvfsHashTableCreate(
     size_t sTableSize,
     PFN_LWRTL_RB_TREE_COMPARE fnCompare,
+    PFN_LWRTL_RB_TREE_FREE_KEY fnFreeHashKey,
     PVFS_HASH_KEY fnHash,
     PVFS_HASH_FREE_ENTRY fnFree,
     PPVFS_HASH_TABLE* ppTable
@@ -330,7 +416,7 @@ PvfsHashTableCreate(
 
         ntError = LwRtlRBTreeCreate(
                       fnCompare,
-                      NULL,
+                      fnFreeHashKey,
                       NULL,
                       &pNewEntry->pTree);
         BAIL_ON_NT_STATUS(ntError);
@@ -433,6 +519,21 @@ PvfsCbTableFilenameCompare(
     iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
 
     return iReturn;
+}
+
+VOID
+PvfsCbTableFreeHashKey(
+    PVOID pKey
+    )
+{
+    PSTR pszStreamorFilename = (PSTR)pKey;
+
+    if (pszStreamorFilename)
+    {
+        LwRtlCStringFree(&pszStreamorFilename);
+    }
+
+    return;
 }
 
 

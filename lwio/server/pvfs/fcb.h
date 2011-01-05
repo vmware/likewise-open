@@ -1,6 +1,6 @@
-/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
+/* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * Editor Settings: expandtabs and use 4 spaces for indentation */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -33,63 +33,106 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        fcb.h
  *
  * Abstract:
  *
- *        Externs
+ *        Likewise Posix File System Driver (PVFS)
+ *
+ *        File Control Block routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
+#ifndef _PVFS_FCB_H
+#define _PVFS_FCB_H
 
-#include "macros.h"
-#include "threads.h"
+#include "pvfs.h"
+
+NTSTATUS
+PvfsAllocateFCB(
+    PPVFS_FCB *ppFcb
+    );
+
+PPVFS_FCB
+PvfsReferenceFCB(
+    IN PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsReleaseFCB(
+    PPVFS_FCB *ppFcb
+    );
+
+NTSTATUS
+PvfsCreateFCB(
+    OUT PPVFS_FCB *ppFcb,
+    IN PSTR pszFilename,
+    IN BOOLEAN bCheckShareAccess,
+    IN FILE_SHARE_FLAGS SharedAccess,
+    IN ACCESS_MASK DesiredAccess
+    );
+
+NTSTATUS
+PvfsAddSCBToFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_SCB pScb
+    );
+
+NTSTATUS
+PvfsRemoveSCBFromFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_SCB pScb
+    );
+
+BOOLEAN
+PvfsFileHasOtherOpens(
+    IN PPVFS_FCB pFcb,
+    IN PPVFS_CCB pCcb
+    );
+
+NTSTATUS
+PvfsRenameFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb,
+    PSTR pszNewFilename
+    );
+
+BOOLEAN
+PvfsFcbIsPendingDelete(
+    PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsFcbSetPendingDelete(
+    PPVFS_FCB pFcb,
+    BOOLEAN bPendingDelete
+    );
+
+PPVFS_FCB
+PvfsGetParentFCB(
+    PPVFS_FCB pFcb
+    );
+
+LONG64
+PvfsClearLastWriteTimeFCB(
+    PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsSetLastWriteTimeFCB(
+    PPVFS_FCB pFcb,
+    LONG64 LastWriteTime
+    );
 
 
-extern PSTR             gpszPVFSProviderName;
-extern IO_DEVICE_HANDLE gPvfsDeviceHandle;
+#endif   /* _PVFS_FCB_H */
 
-extern GENERIC_MAPPING  gPvfsFileGenericMapping;
-
-extern PVFS_WORKER_POOL gWorkPool;
-
-extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
-extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
-
-extern pthread_mutex_t  gPathCacheLock;
-extern pthread_mutex_t* gpPathCacheLock;
-
-extern PLWIO_LRU        gpPathCache;
-
-extern PVFS_CB_TABLE gScbTable;
-
-extern PVFS_CB_TABLE gFcbTable;
-
-extern pthread_mutex_t gDeviceScbMutex;
-extern PPVFS_SCB gpPvfsDeviceScb;
-
-extern pthread_mutex_t gPvfsIrpContextMutex;
-
-extern PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx;
-
-extern pthread_mutex_t gUidMruCacheMutex;
-extern PPVFS_ID_CACHE gUidMruCache[];
-
-extern pthread_mutex_t gGidMruCacheMutex;
-extern PPVFS_ID_CACHE gGidMruCache[];
-
-extern PVFS_DRIVER_CONFIG gPvfsDriverConfig;
-
-extern LONG gPvfsIrpContextCount;
-extern LONG gPvfsScbCount;
-extern LONG gPvfsFcbCount;
-extern LONG gPvfsCcbCount;
-extern LONG gPvfsWorkContextCount;
-
-extern FILE_FS_CONTROL_INFORMATION gPvfsFileFsControlInformation;
-
-
-#endif /* __EXTERNS_H__ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

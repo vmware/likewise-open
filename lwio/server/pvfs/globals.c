@@ -73,6 +73,8 @@ pthread_mutex_t gPvfsIrpContextMutex = PTHREAD_MUTEX_INITIALIZER;
 
 PVFS_CB_TABLE gScbTable;
 
+PVFS_CB_TABLE gFcbTable;
+
 PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
 
 pthread_mutex_t gUidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -86,6 +88,7 @@ PVFS_DRIVER_CONFIG gPvfsDriverConfig;
 
 LONG gPvfsIrpContextCount = 0;
 LONG gPvfsScbCount = 0;
+LONG gPvfsFcbCount = 0;
 LONG gPvfsCcbCount = 0;
 LONG gPvfsWorkContextCount = 0;
 

@@ -65,11 +65,19 @@ PvfsCheckShareMode(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_SCB pScb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+    PSTR pszDefaultStreamname = NULL;
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFilename);
+    ntError = RtlCStringAllocatePrintf(
+                       &pszDefaultStreamname,
+                       "%s::%s",
+                       pszFilename,
+                       PVFS_STREAM_DEFAULT_TYPE_S);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableLookup((PVOID*)&pScb, pBucket, PVFS_CONTROL_BLOCK_STREAM, pszFilename);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszDefaultStreamname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableLookup((PVOID*)&pScb, pBucket, PVFS_CONTROL_BLOCK_STREAM, pszDefaultStreamname);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsEnforceShareMode(
@@ -98,7 +106,7 @@ PvfsCheckShareMode(
 
     ntError = PvfsCreateSCB(
                   &pScb,
-                  pszFilename,
+                  pszDefaultStreamname,
                   TRUE,
                   SharedAccess,
                   DesiredAccess);
@@ -122,6 +130,8 @@ cleanup:
     if (pScb) {
         PvfsReleaseSCB(&pScb);
     }
+
+    RTL_FREE(&pszDefaultStreamname);
 
     return ntError;
 

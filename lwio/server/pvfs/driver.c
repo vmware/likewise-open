@@ -136,6 +136,8 @@ PvfsDriverShutdown(
 
     PvfsCbTableDestroy(&gScbTable);
 
+    PvfsCbTableDestroy(&gFcbTable);
+
     PvfsPathCacheShutdown();
 
     PvfsDestroyUnixIdCache(gUidMruCache, PVFS_MAX_MRU_SIZE);
@@ -325,6 +327,9 @@ PvfsDriverInitialize(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableInitialize(&gScbTable);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableInitialize(&gFcbTable);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsPathCacheInit();

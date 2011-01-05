@@ -130,6 +130,7 @@ typedef DWORD PVFS_CONTROL_BLOCK_TYPE;
 
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
 typedef struct _PVFS_SCB PVFS_SCB, *PPVFS_SCB;
+typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
 typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
@@ -295,8 +296,20 @@ typedef struct _PVFS_FILE_ID
 
 } PVFS_FILE_ID, *PPVFS_FILE_ID;
 
+#define PVFS_STREAM_DELIMINATOR_C ':'
+#define PVFS_STREAM_DELIMINATOR_S ":"
+
+#define PVFS_STREAM_DEFAULT_TYPE_S "$DATA"
+
+typedef DWORD PVFS_STREAM_TYPE;
+
+#define PVFS_STREAM_TYPE_DATA   0x00000001
+
+
 struct _PVFS_SCB
 {
+    LW_LIST_LINKS FcbList;
+
     LONG RefCount;
 
     PPVFS_CB_TABLE_ENTRY pBucket;      /* ScbTable Bucket */
@@ -323,7 +336,11 @@ struct _PVFS_SCB
     pthread_rwlock_t rwLock;
 
     PPVFS_SCB pParentScb;
+    PPVFS_FCB pOwnerFcb;
+
     PSTR pszFilename;
+    PSTR pszStreamname;
+    PVFS_STREAM_TYPE StreamType;
     /* End rwLock */
 
 
@@ -339,6 +356,54 @@ struct _PVFS_SCB
                                        and the LastFailedLock entry */
     PPVFS_LIST pPendingLockQueue;
     /* End rwBrlLock */
+};
+
+struct _PVFS_FCB
+{
+    LONG RefCount;
+
+    PPVFS_CB_TABLE_ENTRY pBucket;      /* FcbTable Bucket */
+
+    /* ControlBlock */
+    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
+                                       on an individual FCB */
+    PVFS_FILE_ID FileId;
+    LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
+    BOOLEAN bDeleteOnClose;
+    BOOLEAN bRemoved;
+
+#if 0
+    BOOLEAN bOplockBreakInProgress;
+    PPVFS_LIST pOplockList;
+    PPVFS_LIST pOplockPendingOpsQueue;
+    PPVFS_LIST pOplockReadyOpsQueue;
+
+    PPVFS_LIST pNotifyListIrp;
+    PPVFS_LIST pNotifyListBuffer;
+#endif
+    /* End ControlBlock */
+
+
+    /* rwLock */
+    pthread_rwlock_t rwLock;
+
+    PPVFS_FCB pParentFcb;
+    PSTR pszFilename;
+    /* End rwLock */
+
+    /* rwScbLock */
+    pthread_rwlock_t rwScbLock;     /* For managing the SCB list */
+    PPVFS_LIST pScbList;
+    /* End rwScbLock */
+
+#if 0
+    /* rwBrlLock */
+    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
+                                       the CCB list, the pendingLockqueue,
+                                       and the LastFailedLock entry */
+    PPVFS_LIST pPendingLockQueue;
+    /* End rwBrlLock */
+#endif
 };
 
 typedef struct _PVFS_LOCK_LIST
