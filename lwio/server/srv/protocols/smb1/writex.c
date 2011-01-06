@@ -394,7 +394,7 @@ SrvBuildWriteXState(
         case 12:
 
             pWriteState->pRequestHeader_WC_12 = pRequestHeader_WC_12;
-            pWriteState->llOffset =
+            pWriteState->Offset =
                 ((LONG64)pWriteState->pRequestHeader_WC_12->offset);
             pWriteState->ulLength =
                 (((LONG64)pWriteState->pRequestHeader_WC_12->dataLengthHigh) << 16) |
@@ -404,7 +404,7 @@ SrvBuildWriteXState(
         case 14:
 
             pWriteState->pRequestHeader_WC_14 = pRequestHeader_WC_14;
-            pWriteState->llOffset =
+            pWriteState->Offset =
                 (((LONG64)pWriteState->pRequestHeader_WC_14->offsetHigh) << 32) |
                 ((LONG64)pWriteState->pRequestHeader_WC_14->offset);
             pWriteState->ulLength =
@@ -463,7 +463,7 @@ SrvExecuteWriteAndX(
                             0,
                             pWriteState->zct.pZct,
                             pWriteState->ulLength,
-                            &pWriteState->llOffset,
+                            &pWriteState->Offset,
                             &pWriteState->ulKey,
                             &pWriteState->zct.pZctCompletion);
             if (ntStatus == STATUS_NOT_SUPPORTED)
@@ -527,7 +527,7 @@ SrvExecuteWriteAndX(
                             &pWriteState->ioStatusBlock,
                             pWriteState->pData,
                             pWriteState->ulLength,
-                            &pWriteState->llOffset,
+                            &pWriteState->Offset,
                             &pWriteState->ulKey);
             BAIL_ON_NT_STATUS(ntStatus);
 

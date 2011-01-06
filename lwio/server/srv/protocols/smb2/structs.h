@@ -925,7 +925,7 @@ typedef struct _SRV_READ_STATE_SMB_V2
     PSMB2_READ_REQUEST_HEADER pRequestHeader; // Do not free
 
     // I/O Parameters
-    LONG64                    llByteOffset;
+    ULONG64                   Offset;
     LONG                      ulBytesToRead;
     PBYTE                     pData;
     ULONG                     ulKey;
@@ -976,7 +976,7 @@ typedef struct _SRV_WRITE_STATE_SMB_V2
 
     PSMB2_WRITE_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                      pData;          // Do not free
-    LONG64                     llOffset;
+    ULONG64                    Offset;
     ULONG                      ulLength;
     ULONG                      ulKey;
     ULONG                      ulBytesWritten;

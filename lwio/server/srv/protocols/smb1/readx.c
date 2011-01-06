@@ -283,14 +283,13 @@ SrvProcessReadAndX(
             {
                 case 10:
 
-                    pReadState->llByteOffset =
-                        pReadState->pRequestHeader_WC_10->offset;
+                    pReadState->Offset = pReadState->pRequestHeader_WC_10->offset;
 
                     break;
 
                 case 12:
 
-                    pReadState->llByteOffset =
+                    pReadState->Offset =
                         (((LONG64)pReadState->pRequestHeader_WC_12->offsetHigh) << 32) |
                         ((LONG64)pReadState->pRequestHeader_WC_12->offset);
 
@@ -741,7 +740,7 @@ SrvAttemptReadIo(
                             pReadState->bPagedIo ? IO_FLAG_PAGING_IO : 0,
                             pReadState->pZct,
                             pReadState->ulBytesToRead,
-                            &pReadState->llByteOffset,
+                            &pReadState->Offset,
                             &pReadState->ulKey,
                             &pReadState->pZctCompletion);
 
@@ -795,7 +794,7 @@ SrvAttemptReadIo(
                                 &pReadState->ioStatusBlock,
                                 pReadState->pData,
                                 pReadState->ulBytesToRead,
-                                &pReadState->llByteOffset,
+                                &pReadState->Offset,
                                 &pReadState->ulKey);
             }
             else
@@ -806,7 +805,7 @@ SrvAttemptReadIo(
                                 &pReadState->ioStatusBlock,
                                 pReadState->pData,
                                 pReadState->ulBytesToRead,
-                                &pReadState->llByteOffset,
+                                &pReadState->Offset,
                                 &pReadState->ulKey);
             }
             if (ntStatus == STATUS_END_OF_FILE)

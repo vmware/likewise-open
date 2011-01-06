@@ -234,8 +234,7 @@ SrvProcessRead_SMB_V2(
     {
         case SRV_READ_STAGE_SMB_V2_INITIAL:
 
-            pReadState->llByteOffset =
-                                pReadState->pRequestHeader->ullFileOffset;
+            pReadState->Offset = pReadState->pRequestHeader->ullFileOffset;
 
             pReadState->ulBytesToRead = pReadState->pRequestHeader->ulDataLength;
 
@@ -494,7 +493,7 @@ SrvAttemptReadIo_SMB_V2(
                             0,
                             pReadState->pZct,
                             pReadState->ulBytesToRead,
-                            &pReadState->llByteOffset,
+                            &pReadState->Offset,
                             &pReadState->ulKey,
                             &pReadState->pZctCompletion);
             if (ntStatus == STATUS_NOT_SUPPORTED)
@@ -545,7 +544,7 @@ SrvAttemptReadIo_SMB_V2(
                             &pReadState->ioStatusBlock,
                             pReadState->pData,
                             pReadState->ulBytesToRead,
-                            &pReadState->llByteOffset,
+                            &pReadState->Offset,
                             &pReadState->ulKey);
             if (ntStatus == STATUS_END_OF_FILE)
             {

@@ -431,7 +431,7 @@ typedef struct _SRV_READ_STATE_SMB_V1
     PLWIO_SRV_FILE             pFile;
 
     ULONG64                    ullBytesToRead;
-    LONG64                     llByteOffset;
+    ULONG64                    Offset;
 
     PREAD_ANDX_RESPONSE_HEADER pResponseHeader; // Do not free
     PBYTE                      pOutBuffer;
@@ -494,7 +494,7 @@ typedef struct _SRV_WRITEX_STATE_SMB_V1
     PWRITE_ANDX_REQUEST_HEADER_WC_14 pRequestHeader_WC_14; // Do not free
 
     PBYTE                      pData;          // Do not free
-    LONG64                     llOffset;
+    ULONG64                    Offset;
     ULONG                      ulLength;
     ULONG                      ulKey;
     ULONG                      ulBytesWritten;
@@ -533,7 +533,7 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
     PWRITE_REQUEST_HEADER   pRequestHeader; // Do not free
     PBYTE                   pData;          // Do not free
-    LONG64                  llOffset;
+    ULONG64                 Offset;
     ULONG                   ulLength;
     ULONG                   ulKey;
     ULONG                   ulBytesWritten;
@@ -693,7 +693,7 @@ typedef struct _SRV_TRANS_STATE_SMB_V1
 
     IO_FILE_HANDLE               hFile;
     IO_FILE_NAME                 fileName;
-    LONG64                       llOffset;
+    ULONG64                      Offset;
 
     FILE_PIPE_INFORMATION        pipeInfo;
     PFILE_PIPE_INFORMATION       pPipeInfo;

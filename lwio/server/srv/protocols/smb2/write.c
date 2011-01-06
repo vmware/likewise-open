@@ -235,11 +235,8 @@ SrvProcessWrite_SMB_V2(
     {
         case SRV_WRITE_STAGE_SMB_V2_INITIAL:
 
-            pWriteState->llOffset =
-                            pWriteState->pRequestHeader->ullFileOffset;
-
-            pWriteState->ulLength =
-                            pWriteState->pRequestHeader->ulDataLength;
+            pWriteState->Offset = pWriteState->pRequestHeader->ullFileOffset;
+            pWriteState->ulLength = pWriteState->pRequestHeader->ulDataLength;
 
             pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE;
 
@@ -422,7 +419,7 @@ SrvExecuteWrite_SMB_V2(
                             0,
                             pWriteState->Zct.pZct,
                             pWriteState->ulLength,
-                            &pWriteState->llOffset,
+                            &pWriteState->Offset,
                             &pWriteState->ulKey,
                             &pWriteState->Zct.pZctCompletion);
             if (ntStatus == STATUS_NOT_SUPPORTED)
@@ -484,7 +481,7 @@ SrvExecuteWrite_SMB_V2(
                             &pWriteState->ioStatusBlock,
                             pWriteState->pData,
                             pWriteState->ulLength,
-                            &pWriteState->llOffset,
+                            &pWriteState->Offset,
                             &pWriteState->ulKey);
             BAIL_ON_NT_STATUS(ntStatus);
 
