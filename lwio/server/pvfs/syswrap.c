@@ -494,7 +494,7 @@ PvfsSysRead(
     PPVFS_CCB pCcb,
     PVOID pBuffer,
     ULONG pBufLen,
-    PLONG64 pOffset,
+    PULONG64 pOffset,
     PULONG pBytesRead
     )
 {
@@ -509,7 +509,7 @@ PvfsSysRead(
     {
         off_t offset = 0;
 
-        bytesRead = pread(pCcb->fd, pBuffer, pBufLen, *pOffset);
+        bytesRead = pread(pCcb->fd, pBuffer, pBufLen, (off_t)*pOffset);
 
         if (bytesRead > 0)
         {
@@ -544,7 +544,7 @@ PvfsSysWrite(
     PPVFS_CCB pCcb,
     PVOID pBuffer,
     ULONG pBufLen,
-    PLONG64 pOffset,
+    PULONG64 pOffset,
     PULONG pBytesWritten
     )
 {
@@ -559,7 +559,7 @@ PvfsSysWrite(
     {
         off_t offset = 0;
 
-        bytesWritten = pwrite(pCcb->fd, pBuffer, pBufLen, *pOffset);
+        bytesWritten = pwrite(pCcb->fd, pBuffer, pBufLen, (off_t)*pOffset);
 
         if (bytesWritten > 0)
         {

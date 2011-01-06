@@ -288,7 +288,7 @@ PvfsDoZctReadIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN OUT PLW_ZCT_VECTOR pZct,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesRead
     )
 {
@@ -515,7 +515,7 @@ NTSTATUS
 PvfsDoZctWriteIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesWritten
     )
 {

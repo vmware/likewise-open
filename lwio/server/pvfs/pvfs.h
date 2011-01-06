@@ -534,7 +534,7 @@ PvfsCheckLockedRegion(
     IN PPVFS_CCB pCcb,
     IN PVFS_OPERATION_TYPE Operation,
     IN ULONG Key,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     IN ULONG Length
     );
 
@@ -713,7 +713,7 @@ PvfsDoReadIo(
     IN PPVFS_CCB pCcb,
     OUT PVOID pBuffer,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesRead
     );
 
@@ -724,7 +724,7 @@ PvfsDoWriteIo(
     IN PPVFS_CCB pCcb,
     OUT PVOID pBuffer,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesWritten
     );
 
@@ -753,7 +753,7 @@ PvfsDoZctReadIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN OUT PLW_ZCT_VECTOR pZct,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesRead
     );
 
@@ -773,7 +773,7 @@ NTSTATUS
 PvfsDoZctWriteIo(
     IN PPVFS_ZCT_CONTEXT pZctContext,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesWritten
     );
 

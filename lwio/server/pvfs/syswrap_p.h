@@ -153,7 +153,7 @@ PvfsSysRead(
     PPVFS_CCB pCcb,
     PVOID pBuffer,
     ULONG pBufLen,
-    PLONG64 pOffset,
+    PULONG64 pOffset,
     PULONG pBytesRead
     );
 
@@ -162,7 +162,7 @@ PvfsSysWrite(
     PPVFS_CCB pCcb,
     PVOID pBuffer,
     ULONG pBufLen,
-    PLONG64 pOffset,
+    PULONG64 pOffset,
     PULONG pBytesWritten
     );
 

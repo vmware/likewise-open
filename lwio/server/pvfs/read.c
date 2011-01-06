@@ -232,7 +232,7 @@ PvfsReadFileWithContext(
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
     ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     ULONG totalBytesRead = 0;
-    LONG64 Offset = 0;
+    ULONG64 Offset = 0;
     BOOLEAN bMutexLocked = FALSE;
 
     /* Enter critical region - ReadFile() needs to fill
@@ -328,12 +328,12 @@ PvfsDoReadIo(
     IN PPVFS_CCB pCcb,
     OUT PVOID pBuffer,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesRead
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    LONG64 currentOffset = Offset;
+    ULONG64 currentOffset = Offset;
     size_t totalBytesRead = 0;
 
     while (totalBytesRead < BufferLength)
