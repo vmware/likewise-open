@@ -199,7 +199,6 @@ PvfsAllocateSCB(
 
     PVFS_CLEAR_FILEID(pScb->FileId);
 
-    pScb->LastWriteTime = 0;
     pScb->bDeleteOnClose = FALSE;
     pScb->bOplockBreakInProgress = FALSE;
     pScb->pParentScb = NULL;
@@ -235,42 +234,6 @@ PvfsReferenceSCB(
     InterlockedIncrement(&pScb->BaseControlBlock.RefCount);
 
     return pScb;
-}
-
-/*******************************************************
- ******************************************************/
-
-
-static
-NTSTATUS
-PvfsFlushLastWriteTime(
-    PPVFS_SCB pScb,
-    LONG64 LastWriteTime
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PVFS_STAT Stat = {0};
-    LONG64 LastAccessTime = 0;
-
-    /* Need the original access time */
-
-    ntError = PvfsSysStat(pScb->pszFilename, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysUtime(pScb->pszFilename,
-                           LastWriteTime,
-                           LastAccessTime);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-
 }
 
 /***********************************************************************
@@ -360,23 +323,6 @@ PvfsReleaseSCB(
         ntError = PvfsSysStat(pScb->pszFilename, &Stat);
         if (ntError == STATUS_SUCCESS)
         {
-            LONG64 LastWriteTime = PvfsClearLastWriteTimeSCB(pScb);
-
-            if (LastWriteTime != 0)
-            {
-
-                ntError = PvfsFlushLastWriteTime(pScb, LastWriteTime);
-
-                if (ntError == STATUS_SUCCESS)
-                {
-                    PvfsNotifyScheduleFullReport(
-                        pScb,
-                        FILE_NOTIFY_CHANGE_LAST_WRITE,
-                        FILE_ACTION_MODIFIED,
-                        pScb->pszFilename);
-                }
-            }
-
             LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
             if (pScb->bDeleteOnClose)
@@ -817,19 +763,24 @@ PvfsAddCCBToSCB(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bScbWriteLocked = FALSE;
+    BOOLEAN scbWriteLocked = FALSE;
+    BOOLEAN fcbWriteLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bScbWriteLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(scbWriteLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbWriteLocked, &pScb->pOwnerFcb->rwScbLock);
 
     ntError = PvfsListAddTail(pScb->pCcbList, &pCcb->ScbList);
     BAIL_ON_NT_STATUS(ntError);
 
     pCcb->pScb = PvfsReferenceSCB(pScb);
 
+    InterlockedIncrement(&pScb->pOwnerFcb->OpenFileHandleCount);
+
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bScbWriteLocked, &pScb->rwCcbLock);
+    LWIO_UNLOCK_RWMUTEX(fcbWriteLocked, &pScb->pOwnerFcb->rwScbLock);
+    LWIO_UNLOCK_RWMUTEX(scbWriteLocked, &pScb->rwCcbLock);
 
     return ntError;
 
@@ -847,15 +798,20 @@ PvfsRemoveCCBFromSCB(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bScbWriteLocked = FALSE;
+    BOOLEAN scbWriteLocked = FALSE;
+    BOOLEAN fcbWriteLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bScbWriteLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(scbWriteLocked, &pScb->rwCcbLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbWriteLocked, &pScb->pOwnerFcb->rwScbLock);
 
     ntError = PvfsListRemoveItem(pScb->pCcbList, &pCcb->ScbList);
     BAIL_ON_NT_STATUS(ntError);
 
+    InterlockedDecrement(&pScb->pOwnerFcb->OpenFileHandleCount);
+
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bScbWriteLocked, &pScb->rwCcbLock);
+    LWIO_UNLOCK_RWMUTEX(fcbWriteLocked, &pScb->pOwnerFcb->rwScbLock);
+    LWIO_UNLOCK_RWMUTEX(scbWriteLocked, &pScb->rwCcbLock);
 
     return ntError;
 
@@ -1638,41 +1594,4 @@ PvfsGetParentSCB(
 
     return pParent;
 }
-
-/*****************************************************************************
- ****************************************************************************/
-
-LONG64
-PvfsClearLastWriteTimeSCB(
-    PPVFS_SCB pScb
-    )
-{
-    BOOLEAN bLocked = FALSE;
-    LONG64 LastWriteTime = 0;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pScb->rwLock);
-    LastWriteTime = pScb->LastWriteTime;
-    pScb->LastWriteTime = 0;
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwLock);
-
-    return LastWriteTime;
-}
-
-/*****************************************************************************
- ****************************************************************************/
-
-VOID
-PvfsSetLastWriteTimeSCB(
-    PPVFS_SCB pScb,
-    LONG64 LastWriteTime
-    )
-{
-    BOOLEAN bLocked = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pScb->rwLock);
-    pScb->LastWriteTime = LastWriteTime;
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwLock);
-}
-
-
 

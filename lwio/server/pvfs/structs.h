@@ -318,7 +318,6 @@ struct _PVFS_SCB
 
     // Base Mutex
     PVFS_FILE_ID FileId;
-    LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
 
     BOOLEAN bOplockBreakInProgress;
@@ -365,6 +364,7 @@ struct _PVFS_FCB
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
+    LONG OpenFileHandleCount;
 
 #if 0
     BOOLEAN bOplockBreakInProgress;

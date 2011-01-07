@@ -125,7 +125,7 @@ PvfsCcbSetFileBasicInformation(
 
     if (WriteTime != 0)
     {
-        PvfsSetLastWriteTimeSCB(pCcb->pScb, WriteTime);
+        PvfsSetLastWriteTimeFCB(pCcb->pScb->pOwnerFcb, WriteTime);
     }
 
     /* Check if we need to preserve any original timestamps */
