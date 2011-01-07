@@ -291,12 +291,12 @@ PvfsSaveFileDeviceInfo(
     pCcb->FileId.Inode  = Stat.s_ino;
     pCcb->FileSize = Stat.s_size;
 
-    LWIO_LOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
     if ((pScb->FileId.Device == 0) || (pScb->FileId.Inode == 0))
     {
         pScb->FileId = pCcb->FileId;
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
 
 cleanup:
     return ntError;

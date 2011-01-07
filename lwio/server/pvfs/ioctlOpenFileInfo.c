@@ -287,11 +287,11 @@ PvfsFillOpenFileInfo0(
     BOOLEAN bControlLocked = FALSE;
     BOOLEAN bCcbListLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bControlLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
     ntError = LwRtlWC16StringAllocateFromCString(
                   &pwszFilename,
                   pScb->pszFilename);
-    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
     BAIL_ON_NT_STATUS(ntError);
 
     FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
@@ -350,12 +350,12 @@ PvfsFillOpenFileInfo100(
     BOOLEAN bControlLocked = FALSE;
     BOOLEAN bCcbListLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bControlLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
     ntError = LwRtlWC16StringAllocateFromCString(
                   &pwszFilename,
                   pScb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
-    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
 
     FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
                         sizeof(WCHAR);
@@ -386,7 +386,7 @@ PvfsFillOpenFileInfo100(
                   - sizeof(WCHAR);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
 
     LwRtlWC16StringFree(&pwszFilename);
 

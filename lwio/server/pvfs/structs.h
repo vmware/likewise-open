@@ -123,11 +123,6 @@ typedef struct _PVFS_DIRECTORY_CONTEXT
 
 } PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;
 
-typedef DWORD PVFS_CONTROL_BLOCK_TYPE;
-
-#define PVFS_CONTROL_BLOCK_STREAM      0x00000001
-#define PVFS_CONTROL_BLOCK_FILE        0x00000002
-
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
 typedef struct _PVFS_SCB PVFS_SCB, *PPVFS_SCB;
 typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
@@ -296,6 +291,15 @@ typedef struct _PVFS_FILE_ID
 
 } PVFS_FILE_ID, *PPVFS_FILE_ID;
 
+typedef struct _PVFS_CONTROL_BLOCK
+{
+    LONG RefCount;
+    PPVFS_CB_TABLE_ENTRY pBucket;
+    pthread_mutex_t Mutex;
+    BOOLEAN Removed;
+
+} PVFS_CONTROL_BLOCK, *PPVFS_CONTROL_BLOCK;
+
 #define PVFS_STREAM_DELIMINATOR_C ':'
 #define PVFS_STREAM_DELIMINATOR_S ":"
 
@@ -308,19 +312,14 @@ typedef DWORD PVFS_STREAM_TYPE;
 
 struct _PVFS_SCB
 {
+    PVFS_CONTROL_BLOCK BaseControlBlock;
+
     LW_LIST_LINKS FcbList;
 
-    LONG RefCount;
-
-    PPVFS_CB_TABLE_ENTRY pBucket;      /* ScbTable Bucket */
-
-    /* ControlBlock */
-    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
-                                       on an individual SCB */
+    // Base Mutex
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
-    BOOLEAN bRemoved;
 
     BOOLEAN bOplockBreakInProgress;
     PPVFS_LIST pOplockList;
@@ -329,7 +328,7 @@ struct _PVFS_SCB
 
     PPVFS_LIST pNotifyListIrp;
     PPVFS_LIST pNotifyListBuffer;
-    /* End ControlBlock */
+    // End BaseMutex
 
 
     /* rwLock */
@@ -360,17 +359,12 @@ struct _PVFS_SCB
 
 struct _PVFS_FCB
 {
-    LONG RefCount;
+    PVFS_CONTROL_BLOCK BaseControlBlock;
 
-    PPVFS_CB_TABLE_ENTRY pBucket;      /* FcbTable Bucket */
-
-    /* ControlBlock */
-    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
-                                       on an individual FCB */
+    // BaseMutex
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
-    BOOLEAN bRemoved;
 
 #if 0
     BOOLEAN bOplockBreakInProgress;
@@ -381,7 +375,7 @@ struct _PVFS_FCB
     PPVFS_LIST pNotifyListIrp;
     PPVFS_LIST pNotifyListBuffer;
 #endif
-    /* End ControlBlock */
+    // End BaseMutex
 
 
     /* rwLock */

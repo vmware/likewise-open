@@ -33,6 +33,7 @@ libpvfs_sys_la_SOURCES = \
     alloc.c \
     ccb.c \
     ccb_fileinfo.c \
+    cb.c \
     scb.c \
     fcb.c \
     cbtable.c \

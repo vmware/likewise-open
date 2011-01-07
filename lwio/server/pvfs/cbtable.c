@@ -39,7 +39,7 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        File/Stream Control Block Table routines
+ *        Control Block Table routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -49,9 +49,8 @@
 #define PVFS_CB_TABLE_HASH_SIZE    127
 #define PVFS_HASH_STRKEY_MULTIPLIER 31
 
-/*****************************************************************************
- ****************************************************************************/
-
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsCbTableInitialize(
@@ -78,9 +77,8 @@ error:
     goto cleanup;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsCbTableDestroy(
@@ -106,67 +104,27 @@ PvfsCbTableDestroy(
 NTSTATUS
 PvfsCbTableAdd_inlock(
     PPVFS_CB_TABLE_ENTRY pBucket,
-    PVFS_CONTROL_BLOCK_TYPE CbType,
-    PVOID pCb
+    PSTR KeyString,
+    PPVFS_CONTROL_BLOCK pCb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PSTR pszFullStreamname = NULL;
-    PSTR pszFileName = NULL;
+    PSTR newKeyString = NULL;
 
+    ntError = LwRtlCStringDuplicate(&newKeyString, KeyString);
+    BAIL_ON_NT_STATUS(ntError);
 
-    switch(CbType)
-    {
-        case PVFS_CONTROL_BLOCK_STREAM:
-
-            ntError = PvfsGetFullStreamname(&pszFullStreamname, (PPVFS_SCB)pCb);
-            BAIL_ON_NT_STATUS(ntError);
-
-            ntError = LwRtlRBTreeAdd(
-                       pBucket->pTree,
-                       (PVOID)pszFullStreamname,
-                       pCb);
-            BAIL_ON_NT_STATUS(ntError);
-            pszFullStreamname = NULL;
-
-            break;
-
-        case PVFS_CONTROL_BLOCK_FILE:
-
-            ntError = LwRtlCStringDuplicate(&pszFileName, ((PPVFS_FCB)pCb)->pszFilename);
-            BAIL_ON_NT_STATUS(ntError);
-
-            ntError = LwRtlRBTreeAdd(
-                       pBucket->pTree,
-                       (PVOID)pszFileName,
-                       pCb);
-            BAIL_ON_NT_STATUS(ntError);
-            pszFileName = NULL;
-
-            break;
-
-        default:
-
-            ntError = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = LwRtlRBTreeAdd(pBucket->pTree, (PVOID)newKeyString, pCb);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-
-    if (pszFullStreamname)
-    {
-        LwRtlCStringFree(&pszFullStreamname);
-    }
-
-    if (pszFileName)
-    {
-        LwRtlCStringFree(&pszFileName);
-    }
-
-
     return ntError;
 
 error:
+    if (newKeyString)
+    {
+        LwRtlCStringFree(&newKeyString);
+    }
 
     goto cleanup;
 }
@@ -178,52 +136,10 @@ error:
 NTSTATUS
 PvfsCbTableRemove_inlock(
     PPVFS_CB_TABLE_ENTRY pBucket,
-    PVFS_CONTROL_BLOCK_TYPE CbType,
-    PVOID pCb
+    PSTR KeyString
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PSTR pszFullStreamname = NULL;
-
-    switch(CbType)
-    {
-        case PVFS_CONTROL_BLOCK_STREAM:
-
-            ntError = PvfsGetFullStreamname(&pszFullStreamname, (PPVFS_SCB)pCb);
-            BAIL_ON_NT_STATUS(ntError);
-
-            ntError = LwRtlRBTreeRemove(pBucket->pTree,
-                                     (PVOID)pszFullStreamname);
-                                     //(PVOID)((PPVFS_SCB)pCb)->pszFilename);
-            BAIL_ON_NT_STATUS(ntError);
-
-            break;
-
-        case PVFS_CONTROL_BLOCK_FILE:
-
-            ntError = LwRtlRBTreeRemove(pBucket->pTree,
-                                     (PVOID)((PPVFS_FCB)pCb)->pszFilename);
-            BAIL_ON_NT_STATUS(ntError);
-
-            break;
-
-        default:
-            ntError = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntError);
-    }
-
-cleanup:
-
-    if (pszFullStreamname)
-    {
-        LwRtlCStringFree(&pszFullStreamname);
-    }
-
-    return ntError;
-
-error:
-
-    goto cleanup;
+    return LwRtlRBTreeRemove(pBucket->pTree, (PVOID)KeyString);
 }
 
 /***********************************************************************
@@ -232,8 +148,7 @@ error:
 NTSTATUS
 PvfsCbTableRemove(
     PPVFS_CB_TABLE_ENTRY pBucket,
-    PVFS_CONTROL_BLOCK_TYPE CbType,
-    PVOID pCb
+    PSTR KeyString
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -241,7 +156,7 @@ PvfsCbTableRemove(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pBucket->rwLock);
 
-    ntError = PvfsCbTableRemove_inlock(pBucket, CbType, pCb);
+    ntError = PvfsCbTableRemove_inlock(pBucket, KeyString);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -259,10 +174,9 @@ error:
 
 NTSTATUS
 PvfsCbTableLookup(
-    PVOID *ppCb,
+    PPVFS_CONTROL_BLOCK *ppCb,
     PPVFS_CB_TABLE_ENTRY pBucket,
-    PVFS_CONTROL_BLOCK_TYPE CbType,
-    PSTR pszFilename
+    PSTR KeyString
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -270,7 +184,7 @@ PvfsCbTableLookup(
 
     LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pBucket->rwLock);
 
-    ntError = PvfsCbTableLookup_inlock(ppCb, pBucket, CbType, pszFilename);
+    ntError = PvfsCbTableLookup_inlock(ppCb, pBucket, KeyString);
 
     LWIO_UNLOCK_RWMUTEX(bLocked, &pBucket->rwLock);
 
@@ -283,18 +197,17 @@ PvfsCbTableLookup(
 
 NTSTATUS
 PvfsCbTableLookup_inlock(
-    PVOID *ppCb,
+    PPVFS_CONTROL_BLOCK *ppCb,
     PPVFS_CB_TABLE_ENTRY pBucket,
-    PVFS_CONTROL_BLOCK_TYPE CbType,
-    PCSTR pszFilename
+    PCSTR KeyString
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PVOID pCb = NULL;
+    PPVFS_CONTROL_BLOCK pCb = NULL;
 
     ntError = LwRtlRBTreeFind(
                   pBucket->pTree,
-                  (PVOID)pszFilename,
+                  (PVOID)KeyString,
                   (PVOID*)&pCb);
     if (ntError == STATUS_NOT_FOUND)
     {
@@ -302,23 +215,7 @@ PvfsCbTableLookup_inlock(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    switch(CbType)
-    {
-        case PVFS_CONTROL_BLOCK_STREAM:
-
-            *ppCb = (PVOID)PvfsReferenceSCB((PPVFS_SCB)pCb);
-            break;
-
-        case PVFS_CONTROL_BLOCK_FILE:
-
-            *ppCb = (PVOID)PvfsReferenceFCB((PPVFS_FCB)pCb);
-            break;
-
-        default:
-            return STATUS_INVALID_PARAMETER;
-    }
-
-    ntError = STATUS_SUCCESS;
+    *ppCb = PvfsReferenceCB(pCb);
 
 cleanup:
     return ntError;
@@ -486,11 +383,11 @@ PvfsHashTableDestroy(
 
 size_t
 PvfsCbTableHashKey(
-    PCVOID pszPath
+    PCVOID KeyString
     )
 {
     size_t KeyResult = 0;
-    PCSTR pszPathname = (PCSTR)pszPath;
+    PCSTR pszPathname = (PCSTR)KeyString;
     PCSTR pszChar = NULL;
 
     for (pszChar=pszPathname; pszChar && *pszChar; pszChar++)
@@ -511,26 +408,26 @@ PvfsCbTableFilenameCompare(
     PCVOID b
     )
 {
-    int iReturn = 0;
+    int result = 0;
 
-    PSTR pszFilename1 = (PSTR)a;
-    PSTR pszFilename2 = (PSTR)b;
+    PSTR keyString1 = (PSTR)a;
+    PSTR keyString2 = (PSTR)b;
 
-    iReturn = RtlCStringCompare(pszFilename1, pszFilename2, TRUE);
+    result = RtlCStringCompare(keyString1, keyString2, TRUE);
 
-    return iReturn;
+    return result;
 }
 
 VOID
 PvfsCbTableFreeHashKey(
-    PVOID pKey
+    PVOID KeyString
     )
 {
-    PSTR pszStreamorFilename = (PSTR)pKey;
+    PSTR nameString = (PSTR)KeyString;
 
-    if (pszStreamorFilename)
+    if (nameString)
     {
-        LwRtlCStringFree(&pszStreamorFilename);
+        LwRtlCStringFree(&nameString);
     }
 
     return;

@@ -72,7 +72,6 @@ PvfsFreeSCB(
         RtlCStringFree(&pScb->pszFilename);
         RtlCStringFree(&pScb->pszStreamname);
 
-        pthread_mutex_destroy(&pScb->ControlBlock);
         pthread_rwlock_destroy(&pScb->rwLock);
         pthread_rwlock_destroy(&pScb->rwCcbLock);
         pthread_rwlock_destroy(&pScb->rwBrlLock);
@@ -85,6 +84,7 @@ PvfsFreeSCB(
         PvfsListDestroy(&pScb->pNotifyListIrp);
         PvfsListDestroy(&pScb->pNotifyListBuffer);
 
+        PvfsDestroyCB(&pScb->BaseControlBlock);
 
         PVFS_FREE(&pScb);
 
@@ -130,14 +130,13 @@ PvfsAllocateSCB(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
+    PvfsInitializeCB(&pScb->BaseControlBlock);
+
     /* Initialize mutexes and refcounts */
 
-    pthread_mutex_init(&pScb->ControlBlock, NULL);
     pthread_rwlock_init(&pScb->rwLock, NULL);
     pthread_rwlock_init(&pScb->rwCcbLock, NULL);
     pthread_rwlock_init(&pScb->rwBrlLock, NULL);
-
-    pScb->RefCount = 1;
 
     /* Setup FcbList */
 
@@ -202,10 +201,8 @@ PvfsAllocateSCB(
 
     pScb->LastWriteTime = 0;
     pScb->bDeleteOnClose = FALSE;
-    pScb->bRemoved = FALSE;
     pScb->bOplockBreakInProgress = FALSE;
     pScb->pParentScb = NULL;
-    pScb->pBucket = NULL;
     pScb->pszFilename = NULL;
     pScb->pszStreamname = NULL;
 
@@ -235,7 +232,7 @@ PvfsReferenceSCB(
     IN PPVFS_SCB pScb
     )
 {
-    InterlockedIncrement(&pScb->RefCount);
+    InterlockedIncrement(&pScb->BaseControlBlock.RefCount);
 
     return pScb;
 }
@@ -342,6 +339,7 @@ PvfsReleaseSCB(
     PVFS_STAT Stat = {0};
     PPVFS_SCB pScb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+    PSTR fullStreamName = NULL;
 
     /* Do housekeeping such as setting the last write time or honoring
        DeletOnClose when the CCB handle count reaches 0.  Not necessarily
@@ -379,7 +377,7 @@ PvfsReleaseSCB(
                 }
             }
 
-            LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
+            LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
             if (pScb->bDeleteOnClose)
             {
@@ -391,23 +389,28 @@ PvfsReleaseSCB(
                    block mutex before trying to pick up the ScbTable exclusive
                    lock */
 
-                if (!pScb->bRemoved)
+                if (!pScb->BaseControlBlock.Removed)
                 {
-                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->pBucket;
+                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
 
-                    LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
+                    LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
-                    /* Remove the SCB from the Bucket before setting pScb->pBucket
-                       to NULL */
+                    ntError = PvfsGetFullStreamname(&fullStreamName, pScb);
 
-                    PvfsCbTableRemove(pBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
+                    /* Remove the SCB from the Bucket before setting
+                       pScb->BaseControlBlock.pBucket to NULL */
 
-                    LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
-                    pScb->bRemoved = TRUE;
-                    pScb->pBucket = NULL;
-                    LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
+                    if (fullStreamName)
+                    {
+                        PvfsCbTableRemove(pBucket, fullStreamName);
+
+                        LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
+                        pScb->BaseControlBlock.Removed = TRUE;
+                        pScb->BaseControlBlock.pBucket = NULL;
+                        LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
+                    }
                 }
-                LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
+                LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
                 PvfsPathCacheRemove(pScb->pszFilename);
 
@@ -423,35 +426,45 @@ PvfsReleaseSCB(
                 }
             }
 
-            LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->ControlBlock);
+            LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
         }
     }
 
     LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->rwCcbLock);
 
 
-        /* It is important to lock the ScbTable here so that there is no window
-           between the refcount check and the remove. Otherwise another open request
-           could search and locate the SCB in the tree and return free()'d memory.
-           However, if the SCB has no bucket pointer, it has already been removed
-           from the ScbTable so locking is unnecessary. */
+    // It is important to lock the ScbTable here so that there is no window
+    // between the refcount check and the remove. Otherwise another open request
+    // could search and locate the SCB in the tree and return free()'d memory.
+    // However, if the SCB has no bucket pointer, it has already been removed
+    // from the ScbTable so locking is unnecessary.
 
-    pBucket = pScb->pBucket;
+    pBucket = pScb->BaseControlBlock.pBucket;
 
     if (pBucket)
     {
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
     }
 
-    if (InterlockedDecrement(&pScb->RefCount) == 0)
+    if (InterlockedDecrement(&pScb->BaseControlBlock.RefCount) == 0)
     {
 
-        if (!pScb->bRemoved)
+        if (!pScb->BaseControlBlock.Removed)
         {
-            PvfsCbTableRemove_inlock(pBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
+            if (!fullStreamName)
+            {
+                ntError = PvfsGetFullStreamname(&fullStreamName, pScb);
+            }
 
-            pScb->bRemoved = TRUE;
-            pScb->pBucket = NULL;
+            if (fullStreamName)
+            {
+                ntError = PvfsCbTableRemove_inlock(pBucket, fullStreamName);
+
+                LWIO_ASSERT(ntError == STATUS_SUCCESS);
+
+                pScb->BaseControlBlock.Removed = TRUE;
+                pScb->BaseControlBlock.pBucket = NULL;
+            }
         }
 
         if (pBucket)
@@ -459,7 +472,14 @@ PvfsReleaseSCB(
             LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
         }
 
-        PvfsFreeSCB(pScb);
+        // What should we do here if the StreamName allocation failed as we
+        // didn't remove the node?  Leak?  If we go ahead and free the SCB, we'll
+        // cause a crash later.
+
+        if (pScb->BaseControlBlock.Removed)
+        {
+            PvfsFreeSCB(pScb);
+        }
     }
 
     if (pBucket)
@@ -470,6 +490,11 @@ PvfsReleaseSCB(
     *ppScb = NULL;
 
 cleanup:
+    if (fullStreamName)
+    {
+        LwRtlCStringFree(&fullStreamName);
+    }
+
     return;
 }
 
@@ -562,10 +587,10 @@ PvfsCreateSCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
 
-    ntError = PvfsCbTableLookup_inlock((PVOID*)&pScb,
-                                        pBucket,
-                                        PVFS_CONTROL_BLOCK_STREAM,
-                                        pszFullStreamname);
+    ntError = PvfsCbTableLookup_inlock(
+                  (PPVFS_CONTROL_BLOCK*)&pScb,
+                  pBucket,
+                  pszFullStreamname);
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
@@ -609,13 +634,13 @@ PvfsCreateSCB(
 
     /* Add to the file handle table */
 
-    LWIO_LOCK_MUTEX(bScbLocked, &pScb->ControlBlock);
-    ntError = PvfsCbTableAdd_inlock(pBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
+    LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
+    ntError = PvfsCbTableAdd_inlock(pBucket, pszFullStreamname, (PVOID)pScb);
     if (ntError == STATUS_SUCCESS)
     {
-        pScb->pBucket = pBucket;
+        pScb->BaseControlBlock.pBucket = pBucket;
     }
-    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Return a reference to the SCB */
@@ -690,10 +715,10 @@ PvfsFindParentSCB(
                                    (PVOID)pszDefaultDirStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableLookup((PVOID*)&pScb,
-                                 pBucket,
-                                 PVFS_CONTROL_BLOCK_STREAM,
-                                 (PVOID)pszDefaultDirStreamname);
+    ntError = PvfsCbTableLookup(
+                  (PPVFS_CONTROL_BLOCK*)&pScb,
+                  pBucket,
+                  (PVOID)pszDefaultDirStreamname);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = PvfsCreateSCB(
@@ -750,7 +775,10 @@ PvfsFindOwnerFCB(
     ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, (PVOID)pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableLookup((PVOID*)&pFcb, pBucket, PVFS_CONTROL_BLOCK_FILE, (PVOID)pszFullStreamname);
+    ntError = PvfsCbTableLookup(
+                  (PPVFS_CONTROL_BLOCK*)&pFcb,
+                  pBucket,
+                  pszFullStreamname);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = PvfsCreateFCB(
@@ -909,11 +937,11 @@ PvfsAddItemPendingOplockBreakAck(
     BAIL_ON_INVALID_PTR(pScb, ntError);
     BAIL_ON_INVALID_PTR(pfnCompletion, ntError);
 
-    LWIO_LOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
 
     if (!pScb->bOplockBreakInProgress)
     {
-        LWIO_UNLOCK_MUTEX(bLocked, &pScb->ControlBlock);
+        LWIO_UNLOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
 
         ntError = pfnCompletion(pCompletionContext);
         goto cleanup;
@@ -953,12 +981,12 @@ PvfsAddItemPendingOplockBreakAck(
     ntError = STATUS_PENDING;
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
 
     return ntError;
 
 error:
-    LWIO_UNLOCK_MUTEX(bLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
 
     if (pPendingOp)
     {
@@ -1282,7 +1310,7 @@ PvfsOplockCleanPendingOpInternal(
     BOOLEAN bFound = FALSE;
     BOOLEAN bScbLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bScbLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
     pOpLink = PvfsListTraverse(pQueue, NULL);
 
@@ -1306,7 +1334,7 @@ PvfsOplockCleanPendingOpInternal(
         PvfsListRemoveItem(pQueue, pOpLink);
         pOpLink = NULL;
 
-        LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->ControlBlock);
+        LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
         pOperation->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
@@ -1317,7 +1345,7 @@ PvfsOplockCleanPendingOpInternal(
         /* Can only be one IrpContext match so we are done */
         ntError = STATUS_SUCCESS;
     }
-    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
     if (!bFound && bCancelIfNotFound)
     {
@@ -1367,6 +1395,9 @@ PvfsRenameSCB(
     BOOLEAN bScbRwLocked = FALSE;
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
+    PSTR targetFullStreamName = NULL;
+    PSTR newFullStreamName = NULL;
+    PSTR currentFullStreamName = NULL;
 
     ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
@@ -1389,9 +1420,8 @@ PvfsRenameSCB(
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTargetBucketLocked, &pTargetBucket->rwLock);
 
     ntError = PvfsCbTableLookup_inlock(
-                  (PVOID*)&pTargetScb,
+                  (PPVFS_CONTROL_BLOCK*)&pTargetScb,
                   pTargetBucket,
-                  PVFS_CONTROL_BLOCK_STREAM,
                   pszNewFilename);
     if (ntError == STATUS_SUCCESS)
     {
@@ -1399,17 +1429,25 @@ PvfsRenameSCB(
 
         if (pTargetScb != pScb)
         {
-            LWIO_LOCK_MUTEX(bTargetScbControl, &pTargetScb->ControlBlock);
-            if (!pTargetScb->bRemoved)
+            LWIO_LOCK_MUTEX(bTargetScbControl, &pTargetScb->BaseControlBlock.Mutex);
+            if (!pTargetScb->BaseControlBlock.Removed)
             {
-                pTargetScb->bRemoved = TRUE;
-                pTargetScb->pBucket = NULL;
+                pTargetScb->BaseControlBlock.Removed = TRUE;
+                pTargetScb->BaseControlBlock.pBucket = NULL;
 
-                LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->ControlBlock);
+                LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->BaseControlBlock.Mutex);
 
-                PvfsCbTableRemove_inlock(pTargetBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pTargetScb);
+                ntError = PvfsGetFullStreamname(&targetFullStreamName, pTargetScb);
+                if (ntError == STATUS_SUCCESS)
+                {
+                    ntError = PvfsCbTableRemove_inlock(pTargetBucket, targetFullStreamName);
+
+                    LWIO_ASSERT(ntError == STATUS_SUCCESS);
+
+                    LwRtlCStringFree(&targetFullStreamName);
+                }
             }
-            LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->ControlBlock);
+            LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->BaseControlBlock.Mutex);
         }
     }
 
@@ -1432,12 +1470,12 @@ PvfsRenameSCB(
        filename. Another reason to use the dev/inode pair instead if we could
        solve the "Create New File" issue. */
 
-    pCurrentBucket = pScb->pBucket;
+    pCurrentBucket = pScb->BaseControlBlock.pBucket;
 
-    LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->ControlBlock);
-    pScb->bRemoved = TRUE;
-    pScb->pBucket = NULL;
-    LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
+    pScb->BaseControlBlock.Removed = TRUE;
+    pScb->BaseControlBlock.pBucket = NULL;
+    LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
 
     /* Locks - gScbTable(Excl)
                pTargetBucket(Excl)
@@ -1449,13 +1487,16 @@ PvfsRenameSCB(
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     }
 
-    ntError = PvfsCbTableRemove_inlock(pCurrentBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
+    ntError = PvfsGetFullStreamname(&currentFullStreamName, pScb);
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = PvfsCbTableRemove_inlock(pCurrentBucket, currentFullStreamName);
+
+        LWIO_ASSERT(ntError == STATUS_SUCCESS);
+
+        LwRtlCStringFree(&currentFullStreamName);
+    }
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
-    BAIL_ON_NT_STATUS(ntError);
-
-    PVFS_FREE(&pScb->pszFilename);
-
-    ntError = LwRtlCStringDuplicate(&pScb->pszFilename, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Have to update the parent links as well */
@@ -1467,19 +1508,35 @@ PvfsRenameSCB(
         pNewParentScb = NULL;
     }
 
+    // Update File and Stream names
+
+    LwRtlCStringFree(&pScb->pszFilename);
+
+    ntError = LwRtlCStringDuplicate(&pScb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // FIXME!!  Here is where we would change the stream name itself
+    // ntError = PvfsParseStreamname();
+
+    ntError = PvfsGetFullStreamname(&newFullStreamName, pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Locks - gScbTable(Excl),
                pTargetBucket(Excl),
                pScb->rwLock(Excl),
-               pScb->ControlBlock */
+               pScb->BaseControlBlock.Mutex */
 
-    LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->ControlBlock);
-    ntError = PvfsCbTableAdd_inlock(pTargetBucket, PVFS_CONTROL_BLOCK_STREAM, (PVOID)pScb);
+    LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
+    ntError = PvfsCbTableAdd_inlock(
+                  pTargetBucket,
+                  newFullStreamName,
+                  (PPVFS_CONTROL_BLOCK)pScb);
     if (ntError == STATUS_SUCCESS)
     {
-        pScb->bRemoved = FALSE;
-        pScb->pBucket = pTargetBucket;
+        pScb->BaseControlBlock.Removed = FALSE;
+        pScb->BaseControlBlock.pBucket = pTargetBucket;
     }
-    LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
     BAIL_ON_NT_STATUS(ntError);
 
     LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->rwLock);
@@ -1499,7 +1556,7 @@ cleanup:
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bRenameLock, &gScbTable.rwLock);
     LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->rwLock);
-    LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
     if (pNewParentScb)
@@ -1535,9 +1592,9 @@ PvfsScbIsPendingDelete(
     BOOLEAN bPendingDelete = FALSE;
     BOOLEAN bIsLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bIsLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
     bPendingDelete = pScb->bDeleteOnClose;
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
 
     return bPendingDelete;
 }
@@ -1553,9 +1610,9 @@ PvfsScbSetPendingDelete(
 {
     BOOLEAN bIsLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bIsLocked, &pScb->ControlBlock);
+    LWIO_LOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
     pScb->bDeleteOnClose = bPendingDelete;
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pScb->ControlBlock);
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
 }
 
 /*****************************************************************************

@@ -830,6 +830,24 @@ PvfsFsCtrlGetReparsePoint(
     );
 
 
+// From cb.c
+
+VOID
+PvfsDestroyCB(
+    PPVFS_CONTROL_BLOCK pCb
+    );
+
+VOID
+PvfsInitializeCB(
+    PPVFS_CONTROL_BLOCK pCb
+    );
+
+PPVFS_CONTROL_BLOCK
+PvfsReferenceCB(
+    IN PPVFS_CONTROL_BLOCK pCb
+    );
+
+
 #endif /* __PVFS_H__ */
 
 

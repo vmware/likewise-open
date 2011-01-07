@@ -33,109 +33,62 @@
  *
  * Module Name:
  *
- *        cbtable.h
+ *        cb.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        File Control Block routines
+ *        Base Control Block routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef _PVFS_CBTABLE_H
-#define _PVFS_CBTABLE_H
-
 #include "pvfs.h"
 
-NTSTATUS
-PvfsCbTableInitialize(
-    PPVFS_CB_TABLE pCbTable
-    );
 
-NTSTATUS
-PvfsCbTableDestroy(
-    PPVFS_CB_TABLE pCbTable
-    );
-
-
-NTSTATUS
-PvfsHashTableCreate(
-    size_t sTableSize,
-    PFN_LWRTL_RB_TREE_COMPARE fnCompare,
-    PFN_LWRTL_RB_TREE_FREE_KEY fnFreeHashKey,
-    PVFS_HASH_KEY fnHash,
-    PVFS_HASH_FREE_ENTRY fnFree,
-    PPVFS_HASH_TABLE* ppTable
-    );
+////////////////////////////////////////////////////////////////////////
 
 VOID
-PvfsHashTableDestroy(
-    PVFS_HASH_TABLE** ppTable
-    );
-
-size_t
-PvfsCbTableHashKey(
-    PCVOID KeyString
-    );
-
-VOID
-PvfsCbTableFreeHashEntry(
-    PPVFS_CB_TABLE_ENTRY *ppEntry
-    );
-
-int
-PvfsCbTableFilenameCompare(
-    PCVOID a,
-    PCVOID b
-    );
-
-VOID
-PvfsCbTableFreeHashKey(
-    PVOID pKey
-    );
-
-NTSTATUS
-PvfsCbTableLookup(
-    PPVFS_CONTROL_BLOCK *ppCb,
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
-    );
-
-NTSTATUS
-PvfsCbTableLookup_inlock(
-    PPVFS_CONTROL_BLOCK *ppCb,
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PCSTR KeyString
-    );
-
-NTSTATUS
-PvfsCbTableAdd_inlock(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString,
+PvfsDestroyCB(
     PPVFS_CONTROL_BLOCK pCb
-    );
+    )
+{
+    if (pCb)
+    {
+        pthread_mutex_destroy(&pCb->Mutex);
+        pCb->RefCount = 0;
+        pCb->pBucket = NULL;
+    }
 
-NTSTATUS
-PvfsCbTableRemove_inlock(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
-    );
+    return;
+}
 
-NTSTATUS
-PvfsCbTableRemove(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
-    );
+////////////////////////////////////////////////////////////////////////
 
-NTSTATUS
-PvfsCbTableGetBucket(
-    OUT PPVFS_CB_TABLE_ENTRY *ppBucket,
-    IN PPVFS_CB_TABLE pScbTable,
-    IN PVOID pKey
-    );
+VOID
+PvfsInitializeCB(
+    PPVFS_CONTROL_BLOCK pCb
+    )
+{
+    pthread_mutex_init(&pCb->Mutex, NULL);
+    pCb->RefCount = 1;
+    pCb->pBucket = NULL;
+    pCb->Removed = FALSE;
 
+    return;
+}
 
-#endif   /* _PVFS_CBTABLE_H */
+////////////////////////////////////////////////////////////////////////
+
+PPVFS_CONTROL_BLOCK
+PvfsReferenceCB(
+    IN PPVFS_CONTROL_BLOCK pCb
+    )
+{
+    InterlockedIncrement(&pCb->RefCount);
+
+    return pCb;
+}
+
 
