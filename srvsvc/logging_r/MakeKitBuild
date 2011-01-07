@@ -5,6 +5,5 @@ make()
 	SOURCES="globals.c logging.c" \
 	CPPFLAGS="-DLW_ENABLE_THREADS=1" \
 	INCLUDEDIRS="../include" \
-	HEADERDEPS="lwps/lwps.h lwadvapi.h" \
-	LIBDEPS="lsacommon lwadvapi $LIB_PTHREAD"
+	LIBDEPS="$LIB_PTHREAD"
 }
