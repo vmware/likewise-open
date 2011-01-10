@@ -2661,14 +2661,22 @@ AD_CreateHomeDirectory(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaCheckDirectoryExists(
-                    pObject->userInfo.pszHomedir,
-                    &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bExists && AD_ShouldCreateHomeDir()) {
-        dwError = AD_CreateHomeDirectory_Generic(pObject);
+    if (AD_ShouldCreateHomeDir())
+    {
+        // If the home directory's parent directory is NFS mounted from a
+        // windows server with "allow root" disabled, then root is blocked from
+        // even read only access. In that case, this function will fail with
+        // LW_ERROR_ACCESS_DENIED.
+        dwError = LsaCheckDirectoryExists(
+                        pObject->userInfo.pszHomedir,
+                        &bExists);
         BAIL_ON_LSA_ERROR(dwError);
+
+        if (!bExists)
+        {
+            dwError = AD_CreateHomeDirectory_Generic(pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
 cleanup:
