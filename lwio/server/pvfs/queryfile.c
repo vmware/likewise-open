@@ -77,6 +77,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FilePipeRemoteInformation,        NULL },
     { FileStreamInformation,            PvfsFileStreamInfo },
     { FileStandardInformation,          PvfsFileStandardInfo },
+    { LwFilePosixInformation,           PvfsLwFilePosixInfo },
 
     /* Set Levels */
     { FileAllocationInformation,        PvfsFileEndOfFileInfo },

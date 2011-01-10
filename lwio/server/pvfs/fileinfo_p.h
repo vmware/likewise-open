@@ -149,6 +149,12 @@ PvfsFileModeInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsLwFilePosixInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 /* QueryDirectoryInformation */
 
 NTSTATUS
@@ -187,6 +193,11 @@ PvfsFileNamesInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsLwFilePosixDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
 
 
 /* QueryVolumeInformation */

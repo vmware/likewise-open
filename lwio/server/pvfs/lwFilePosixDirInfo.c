@@ -33,31 +33,39 @@
  *
  * Module Name:
  *
- *        fileNamesInfo,c
+ *        lwFilePosixDirInfo.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        FileNamesInformation
+ *        LwFilePosixInformation Handler - directory enumeration case
  *
- * Authors: Gerald Carter <gcarter@likewise.com>
+ * Authors: Evgeny Popovich <epopovich@likewise.com>
  */
 
 #include "pvfs.h"
 
 
-/*****************************************************************************
- ****************************************************************************/
-
 static
 NTSTATUS
-PvfsQueryFileNamesInfo(
+PvfsQueryLwFilePosixDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+static
 NTSTATUS
-PvfsFileNamesInfo(
+FillLwFilePosixDirInfoBuffer(
+    PVOID pBuffer,
+    ULONG ulBufLen,
+    PSTR pszParent,
+    PPVFS_DIRECTORY_ENTRY pEntry,
+    PULONG pulConsumed
+    );
+
+
+NTSTATUS
+PvfsLwFilePosixDirInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -71,7 +79,7 @@ PvfsFileNamesInfo(
         break;
 
     case PVFS_QUERY:
-        ntError = PvfsQueryFileNamesInfo(pIrpContext);
+        ntError = PvfsQueryLwFilePosixDirInfo(pIrpContext);
         break;
 
     default:
@@ -88,35 +96,22 @@ error:
 }
 
 
-/*****************************************************************************
- ****************************************************************************/
-
 static
 NTSTATUS
-FillFileNamesInfoBuffer(
-    PVOID pBuffer,
-    DWORD dwBufLen,
-    PSTR pszParent,
-    PPVFS_DIRECTORY_ENTRY pEntry,
-    PDWORD pdwConsumed
-    );
-
-static
-NTSTATUS
-PvfsQueryFileNamesInfo(
+PvfsQueryLwFilePosixDirInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PFILE_NAMES_INFORMATION pFileInfo = NULL;
-    PFILE_NAMES_INFORMATION pPrevFileInfo = NULL;
-    IRP_ARGS_QUERY_DIRECTORY Args = pIrpContext->pIrp->Args.QueryDirectory;
+    PLW_FILE_POSIX_DIR_INFORMATION pFileInfo = NULL;
+    PLW_FILE_POSIX_DIR_INFORMATION pPrevFileInfo = NULL;
+    IRP_ARGS_QUERY_DIRECTORY* pArgs = &pIrpContext->pIrp->Args.QueryDirectory;
     PVOID pBuffer = NULL;
-    DWORD dwBufLen = 0;
-    DWORD dwOffset = 0;
-    DWORD dwConsumed = 0;
+    ULONG ulBufLen = 0;
+    ULONG ulOffset = 0;
+    ULONG ulConsumed = 0;
     BOOLEAN bLocked = FALSE;
 
     /* Sanity checks */
@@ -130,37 +125,37 @@ PvfsQueryFileNamesInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAccessCheckFileHandle(pCcb,  FILE_LIST_DIRECTORY);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_LIST_DIRECTORY);
     BAIL_ON_NT_STATUS(ntError);
 
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+    BAIL_ON_INVALID_PTR(pArgs->FileInformation, ntError);
 
-    if (Args.Length < sizeof(*pFileInfo))
+    if (pArgs->Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_NAMES_INFORMATION)Args.FileInformation;
+    pFileInfo = (PLW_FILE_POSIX_DIR_INFORMATION)pArgs->FileInformation;
 
-    /* Scen the first time through */
+    /* Scan the first time through */
 
     ntError = STATUS_SUCCESS;
 
-    /* Critical region to prevent inteleaving directory
-       enumeration */
+    if (pArgs->RestartScan)
+    {
+        /* Critical region to prevent inteleaving directory
+           enumeration */
+        LWIO_LOCK_MUTEX(bLocked, &pCcb->ControlBlock);
 
-    LWIO_LOCK_MUTEX(bLocked, &pCcb->ControlBlock);
-
-    if (!pCcb->pDirContext->bScanned) {
         ntError = PvfsEnumerateDirectory(
-                      pCcb,
-                      pIrp->Args.QueryDirectory.FileSpec,
-                      -1,
-                      FALSE);
-    }
+                        pCcb,
+                        pArgs->FileSpec,
+                        -1,
+                        TRUE);
 
-    LWIO_UNLOCK_MUTEX(bLocked, &pCcb->ControlBlock);
+        LWIO_UNLOCK_MUTEX(bLocked, &pCcb->ControlBlock);
+    }
 
     BAIL_ON_NT_STATUS(ntError);
 
@@ -172,30 +167,31 @@ PvfsQueryFileNamesInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+
     /* Fill in the buffer */
 
-    pBuffer = Args.FileInformation;
-    dwBufLen = Args.Length;
-    dwOffset = 0;
+    pBuffer = pArgs->FileInformation;
+    ulBufLen = pArgs->Length;
+    ulOffset = 0;
     pFileInfo = NULL;
     pPrevFileInfo = NULL;
 
     do
     {
         PPVFS_DIRECTORY_ENTRY pEntry = NULL;
-        DWORD dwIndex;
+        ULONG ulIndex = 0;
 
-        pFileInfo = (PFILE_NAMES_INFORMATION)(pBuffer + dwOffset);
+        pFileInfo = (PLW_FILE_POSIX_DIR_INFORMATION)(pBuffer + ulOffset);
         pFileInfo->NextEntryOffset = 0;
 
-        dwIndex = pCcb->pDirContext->dwIndex;
-        pEntry  = &pCcb->pDirContext->pDirEntries[dwIndex];
-        ntError = FillFileNamesInfoBuffer(
+        ulIndex = pCcb->pDirContext->dwIndex;
+        pEntry  = &pCcb->pDirContext->pDirEntries[ulIndex];
+        ntError = FillLwFilePosixDirInfoBuffer(
                       pFileInfo,
-                      dwBufLen - dwOffset,
+                      ulBufLen - ulOffset,
                       pCcb->pszFilename,
                       pEntry,
-                      &dwConsumed);
+                      &ulConsumed);
 
         /* If we ran out of buffer space, reset pointer to previous
            entry and break out of loop */
@@ -231,35 +227,33 @@ PvfsQueryFileNamesInfo(
 
         BAIL_ON_NT_STATUS(ntError);
 
-        pFileInfo->NextEntryOffset = dwConsumed;
+        pFileInfo->NextEntryOffset = ulConsumed;
 
-        dwOffset += dwConsumed;
+        ulOffset += ulConsumed;
         pCcb->pDirContext->dwIndex++;
 
         pPrevFileInfo = pFileInfo;
 
-        if (Args.ReturnSingleEntry) {
+        if (pArgs->ReturnSingleEntry) {
             break;
         }
     }
     /* Exit loop when we are out of buffer or out of entries.  The
        filling function can also break us out of the loop. */
-    while (((dwBufLen - dwOffset) > sizeof(FILE_NAMES_INFORMATION)) &&
+    while (((ulBufLen - ulOffset) > sizeof(LW_FILE_POSIX_DIR_INFORMATION)) &&
              (pCcb->pDirContext->dwIndex < pCcb->pDirContext->dwNumEntries));
 
     /* Update final offset */
 
-    if (pFileInfo)
-    {
+    if (pFileInfo) {
         pFileInfo->NextEntryOffset = 0;
     }
 
-    pIrp->IoStatusBlock.BytesTransferred = dwOffset;
+    pIrp->IoStatusBlock.BytesTransferred = ulOffset;
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb)
-    {
+    if (pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -269,10 +263,6 @@ error:
     goto cleanup;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
-
 /**
  * Returns:
  *   STATUS_BUFFER_TOO_SMALL (not enough space)
@@ -281,71 +271,96 @@ error:
 
 static
 NTSTATUS
-FillFileNamesInfoBuffer(
+FillLwFilePosixDirInfoBuffer(
     PVOID pBuffer,
-    DWORD dwBufLen,
+    ULONG ulBufLen,
     PSTR pszParent,
     PPVFS_DIRECTORY_ENTRY pEntry,
-    PDWORD pdwConsumed
+    PULONG pulConsumed
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PFILE_NAMES_INFORMATION pFileInfo = (PFILE_NAMES_INFORMATION)pBuffer;
-    PWSTR pwszFilename = NULL;
-    DWORD dwNeeded = 0;
-    size_t W16FilenameLen = 0;
-    size_t W16FilenameLenBytes = 0;
+    PLW_FILE_POSIX_DIR_INFORMATION pFileInfo = (PLW_FILE_POSIX_DIR_INFORMATION)pBuffer;
+    PSTR pszFullPath = NULL;
+    ULONG ulNeeded = 0;
+    ULONG ulFilenameLen = 0;
 
     /* Check for enough space for static members */
 
-    if (dwBufLen < sizeof(*pFileInfo))
+    if (ulBufLen < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo->FileIndex = 0;
+    /* Build the absolute path and stat() it */
 
-    ntError = RtlWC16StringAllocateFromCString(
-                  &pwszFilename,
+    ntError = RtlCStringAllocatePrintf(
+                  &pszFullPath,
+                  "%s/%s",
+                  pszParent,
                   pEntry->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Save what we have used so far */
+    ntError = PvfsSysStat(pszFullPath, &pEntry->Stat);
+    BAIL_ON_NT_STATUS(ntError);
 
-    *pdwConsumed = sizeof(*pFileInfo);
+    pFileInfo->PosixInformation.UnixAccessTime = pEntry->Stat.s_atime;
+    pFileInfo->PosixInformation.UnixModificationTime = pEntry->Stat.s_mtime;
+    pFileInfo->PosixInformation.UnixChangeTime = pEntry->Stat.s_ctime;
+    pFileInfo->PosixInformation.EndOfFile = pEntry->Stat.s_size;
+    pFileInfo->PosixInformation.AllocationSize = pEntry->Stat.s_alloc;
+    pFileInfo->PosixInformation.UnixNumberOfLinks = pEntry->Stat.s_nlink;
+    pFileInfo->PosixInformation.UnixMode = pEntry->Stat.s_mode;
+    pFileInfo->PosixInformation.Uid = pEntry->Stat.s_uid;
+    pFileInfo->PosixInformation.Gid = pEntry->Stat.s_gid;
 
-    /* Calculate space */
+    // TODO - fill in the correct volume id
+    // pFileInfo->PosixInformation.VolumeId = pEntry->Stat.s_dev;
+    pFileInfo->PosixInformation.VolumeId = 1;
 
-    W16FilenameLen = RtlWC16StringNumChars(pwszFilename);
-    W16FilenameLenBytes = W16FilenameLen * sizeof(WCHAR);
-    dwNeeded = sizeof(*pFileInfo) + W16FilenameLenBytes;
+    // TODO - is this the file id we want?  Also get the generation number.
+    // pFileInfo->PosixInformation.InodeNumber = pEntry->Stat.s_ino;
+    // pFileInfo->PosixInformation.GenerationNumber = 0;
+    // Hack now - encode path instead of inode/generation numbers
+    pFileInfo->PosixInformation.GenerationNumber = 0;
+    strcpy((char*)&pFileInfo->PosixInformation.InodeNumber, "/pvfs");
+    strncpy(((char*)&pFileInfo->PosixInformation.InodeNumber) + 5, pszFullPath, 10);
+
+    ntError = PvfsGetFilenameAttributes(
+                  pszFullPath,
+                  &pFileInfo->PosixInformation.FileAttributes);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Take care of filename */
+
+    ulFilenameLen = LwRtlCStringNumChars(pEntry->pszFilename);
+    ulNeeded = sizeof(*pFileInfo) + ulFilenameLen;
 
     /* alignment on 8 byte boundary */
 
-    if (dwNeeded % 8) {
-        dwNeeded += 8 - (dwNeeded % 8);
+    if (ulNeeded % 8) {
+        ulNeeded += 8 - (ulNeeded % 8);
     }
 
-    if (dwNeeded > dwBufLen)
+    if (ulNeeded > ulBufLen)
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo->FileNameLength = W16FilenameLenBytes;
-    memcpy(pFileInfo->FileName, pwszFilename, W16FilenameLenBytes);
+    pFileInfo->FileNameLength = ulFilenameLen;
+    memcpy(pFileInfo->FileName, pEntry->pszFilename, ulFilenameLen);
 
-    *pdwConsumed = dwNeeded;
+
+    *pulConsumed = ulNeeded;
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    RtlWC16StringFree(&pwszFilename);
+    RtlCStringFree(&pszFullPath);
 
     return ntError;
 
 error:
     goto cleanup;
 }
-
-

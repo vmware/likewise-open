@@ -165,7 +165,7 @@ error:
 
 /********************************************************
  Returns: STATUS_BUFFER_TOO_SMALL (not enough space)
-          STATUS_OBJECT_PATH_NOT_FOUND (stat() failed)
+          STATUS_OBJECT_NAME_NOT_FOUND (stat() failed)
  *******************************************************/
 
 static

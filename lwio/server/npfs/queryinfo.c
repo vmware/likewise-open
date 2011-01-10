@@ -97,7 +97,8 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileIdBothDirectoryInformation,   NULL },
     { FileIdFullDirectoryInformation,   NULL },
     { FileValidDataLengthInformation,   NULL },
-    { FileShortNameInformation,         NULL }
+    { FileShortNameInformation,         NULL },
+    { LwFilePosixInformation,           NULL }
 };
 
 NTSTATUS
@@ -144,7 +145,7 @@ NpfsCommonQueryInformation(
 
     InfoLevel = pIrpContext->pIrp->Args.QuerySetInformation.FileInformationClass;
 
-    if (InfoLevel >= FileMaximumInformation)
+    if (!IS_VALID_FILE_INFORMATION_CLASS(InfoLevel))
     {
         ntStatus = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NT_STATUS(ntStatus);
