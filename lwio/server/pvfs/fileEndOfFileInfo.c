@@ -235,7 +235,7 @@ PvfsSetEndOfFileWithContext(
     ntError = STATUS_SUCCESS;
 
     PvfsNotifyScheduleFullReport(
-        pCcb->pScb,
+        pCcb->pScb->pOwnerFcb,
         FILE_NOTIFY_CHANGE_SIZE,
         FILE_ACTION_MODIFIED,
         pCcb->pszFilename);

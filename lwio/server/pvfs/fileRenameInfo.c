@@ -263,7 +263,7 @@ PvfsSetFileRenameInfo(
     ntError = STATUS_SUCCESS;
 
     PvfsNotifyScheduleFullReport(
-        pCcb->pScb,
+        pCcb->pScb->pOwnerFcb,
         PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
         FILE_ACTION_RENAMED_NEW_NAME,
         pCcb->pszFilename);

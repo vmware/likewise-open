@@ -164,7 +164,7 @@ PvfsCcbSetFileBasicInformation(
     if (NotifyFilter != 0)
     {
         PvfsNotifyScheduleFullReport(
-            pCcb->pScb,
+            pCcb->pScb->pOwnerFcb,
             NotifyFilter,
             FILE_ACTION_MODIFIED,
             pCcb->pScb->pszFilename);

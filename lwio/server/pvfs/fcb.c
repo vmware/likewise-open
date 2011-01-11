@@ -165,6 +165,7 @@ PvfsAllocateFCB(
                   0,
                   (PPVFS_LIST_FREE_DATA_FN)PvfsFreeOplockRecord);
     BAIL_ON_NT_STATUS(ntError);
+#endif
 
     /* List of Notify requests */
 
@@ -179,7 +180,6 @@ PvfsAllocateFCB(
                   PVFS_SCB_MAX_PENDING_NOTIFY,
                   (PPVFS_LIST_FREE_DATA_FN)PvfsFreeNotifyRecord);
     BAIL_ON_NT_STATUS(ntError);
-#endif
 
     /* List of SCBs */
 

@@ -349,7 +349,7 @@ PvfsCreateFileDoSysOpen(
     if (CreateResult == FILE_CREATED)
     {
         PvfsNotifyScheduleFullReport(
-            pCreateContext->pCcb->pScb,
+            pCreateContext->pCcb->pScb->pOwnerFcb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
             FILE_ACTION_ADDED,
             pCreateContext->pCcb->pszFilename);
@@ -582,7 +582,7 @@ PvfsCreateDirDoSysOpen(
     if (CreateResult == FILE_CREATED)
     {
         PvfsNotifyScheduleFullReport(
-            pCreateContext->pCcb->pScb,
+            pCreateContext->pCcb->pScb->pOwnerFcb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
             FILE_ACTION_ADDED,
             pCreateContext->pCcb->pszFilename);

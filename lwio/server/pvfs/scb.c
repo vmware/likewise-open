@@ -81,8 +81,6 @@ PvfsFreeSCB(
         PvfsListDestroy(&pScb->pOplockReadyOpsQueue);
         PvfsListDestroy(&pScb->pOplockList);
         PvfsListDestroy(&pScb->pCcbList);
-        PvfsListDestroy(&pScb->pNotifyListIrp);
-        PvfsListDestroy(&pScb->pNotifyListBuffer);
 
         PvfsDestroyCB(&pScb->BaseControlBlock);
 
@@ -179,20 +177,6 @@ PvfsAllocateSCB(
                   &pScb->pCcbList,
                   0,
                   (PPVFS_LIST_FREE_DATA_FN)PvfsSCBFreeCCB);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* List of Notify requests */
-
-    ntError = PvfsListInit(
-                  &pScb->pNotifyListIrp,
-                  PVFS_SCB_MAX_PENDING_NOTIFY,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeNotifyRecord);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsListInit(
-                  &pScb->pNotifyListBuffer,
-                  PVFS_SCB_MAX_PENDING_NOTIFY,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeNotifyRecord);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Miscellaneous */
@@ -363,7 +347,7 @@ PvfsReleaseSCB(
                 if (ntError == STATUS_SUCCESS)
                 {
                     PvfsNotifyScheduleFullReport(
-                        pScb,
+                        pScb->pOwnerFcb,
                         S_ISDIR(Stat.s_mode) ?
                             FILE_NOTIFY_CHANGE_DIR_NAME :
                             FILE_NOTIFY_CHANGE_FILE_NAME,

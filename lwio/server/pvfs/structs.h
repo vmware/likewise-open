@@ -324,9 +324,6 @@ struct _PVFS_SCB
     PPVFS_LIST pOplockList;
     PPVFS_LIST pOplockPendingOpsQueue;
     PPVFS_LIST pOplockReadyOpsQueue;
-
-    PPVFS_LIST pNotifyListIrp;
-    PPVFS_LIST pNotifyListBuffer;
     // End BaseMutex
 
 
@@ -371,10 +368,10 @@ struct _PVFS_FCB
     PPVFS_LIST pOplockList;
     PPVFS_LIST pOplockPendingOpsQueue;
     PPVFS_LIST pOplockReadyOpsQueue;
-
+#endif
     PPVFS_LIST pNotifyListIrp;
     PPVFS_LIST pNotifyListBuffer;
-#endif
+
     // End BaseMutex
 
 
@@ -577,7 +574,7 @@ typedef struct _PVFS_NOTIFY_FILTER_RECORD
 
 typedef struct _PVFS_NOTIFY_REPORT_RECORD
 {
-    PPVFS_SCB pScb;
+    PPVFS_FCB pFcb;
     FILE_NOTIFY_CHANGE Filter;
     FILE_ACTION Action;
     PSTR pszFilename;
