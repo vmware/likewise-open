@@ -232,13 +232,17 @@ PvfsValidatePathSCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOLEAN bScbLocked = FALSE;
     PVFS_STAT Stat = {0};
+    PSTR streamName = NULL;
+
+    ntError = PvfsGetBasicStreamname(&streamName, pScb);
+    BAIL_ON_NT_STATUS(ntError);
 
     LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->rwLock);
 
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
 
-    ntError = PvfsSysStat(pScb->pszFilename, &Stat);
+    ntError = PvfsSysStat(streamName, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((pFileId->Device != Stat.s_dev) || (pFileId->Inode != Stat.s_ino))
