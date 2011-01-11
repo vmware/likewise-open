@@ -102,6 +102,7 @@ PvfsCcbSetFileBasicInformation(
     FILE_NOTIFY_CHANGE NotifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE |
                                       FILE_NOTIFY_CHANGE_LAST_ACCESS;
     PVFS_STAT Stat = {0};
+    PSTR streamName = NULL;
 
     ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
@@ -163,14 +164,24 @@ PvfsCcbSetFileBasicInformation(
 
     if (NotifyFilter != 0)
     {
-        PvfsNotifyScheduleFullReport(
-            pCcb->pScb->pOwnerFcb,
-            NotifyFilter,
-            FILE_ACTION_MODIFIED,
-            pCcb->pScb->pszFilename);
+        ntError = PvfsGetFullStreamname(&streamName, pCcb->pScb);
+
+        if (ntError == STATUS_SUCCESS)
+        {
+            PvfsNotifyScheduleFullReport(
+                pCcb->pScb->pOwnerFcb,
+                NotifyFilter,
+                FILE_ACTION_MODIFIED,
+                streamName);
+        }
     }
 
 cleanup:
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
     return ntError;
 
 error:
