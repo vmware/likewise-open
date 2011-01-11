@@ -83,6 +83,12 @@ PvfsGetFullStreamname(
     );
 
 NTSTATUS
+PvfsGetBasicStreamname(
+    PSTR *ppszBasicStreamname,
+    PPVFS_SCB pScb
+    );
+
+NTSTATUS
 PvfsGetDirectorySCB(
     IN  PSTR pszFilename,
     OUT PPVFS_SCB *ppScb

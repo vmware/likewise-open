@@ -429,8 +429,76 @@ cleanup:
 }
 
 
-/***********************************************************************
- **********************************************************************/
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsGetFullStreamname(
+    PSTR *ppszFullStreamname,
+    PPVFS_SCB pScb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    BAIL_ON_INVALID_PTR(pScb, ntError);
+
+    LWIO_ASSERT(pScb->pOwnerFcb);
+
+    switch (pScb->StreamType)
+    {
+        case PVFS_STREAM_TYPE_DATA:
+            ntError = RtlCStringAllocatePrintf(
+                          ppszFullStreamname,
+                          "%s:%s:%s",
+                          pScb->pOwnerFcb->pszFilename,
+                          pScb->pszStreamname,
+                          PVFS_STREAM_DEFAULT_TYPE_S);
+            break;
+
+        default:
+            ntError = STATUS_INVALID_PARAMETER;
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsGetBasicStreamname(
+    PSTR *ppszBasicStreamname,
+    PPVFS_SCB pScb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    BAIL_ON_INVALID_PTR(pScb, ntError);
+
+    LWIO_ASSERT(pScb->pOwnerFcb);
+
+    ntError = RtlCStringAllocatePrintf(
+                  ppszBasicStreamname,
+                  "%s%s%s",
+                  pScb->pOwnerFcb->pszFilename,
+                  *pScb->pszStreamname ? ":" : "",
+                  *pScb->pszStreamname ? pScb->pszStreamname : "");
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+////////////////////////////////////////////////////////////////////////
 
 static
 NTSTATUS
@@ -445,35 +513,6 @@ PvfsFindOwnerFCB(
     PPVFS_FCB *ppOwnerFcb,
     PSTR pszFullStreamname
     );
-
-NTSTATUS
-PvfsGetFullStreamname(
-    PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb
-    )
-{
-    if (!pScb)
-    {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    LWIO_ASSERT(pScb->pOwnerFcb);
-
-    switch (pScb->StreamType)
-    {
-        case PVFS_STREAM_TYPE_DATA:
-
-            return RtlCStringAllocatePrintf(ppszFullStreamname,
-                                            "%s:%s:%s",
-                                            pScb->pOwnerFcb->pszFilename,
-                                            pScb->pszStreamname,
-                                            PVFS_STREAM_DEFAULT_TYPE_S);
-
-        default:
-            return STATUS_INVALID_PARAMETER;
-    }
-}
-
 
 NTSTATUS
 PvfsCreateSCB(
