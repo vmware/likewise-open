@@ -832,7 +832,7 @@ PvfsRenameFCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->rwLock);
 
-    ntError = PvfsSysRename(pCcb->pScb->pszFilename, pszNewFilename);
+    ntError = PvfsSysRename(pCcb->pScb->pOwnerFcb->pszFilename, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Clear the cache entry but ignore any errors */
