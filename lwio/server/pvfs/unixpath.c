@@ -254,6 +254,11 @@ PvfsValidatePathSCB(
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->rwLock);
 
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
     return ntError;
 
 error:
