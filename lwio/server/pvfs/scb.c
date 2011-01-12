@@ -438,10 +438,15 @@ PvfsGetFullStreamname(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN scbRwLocked = FALSE;
+    BOOLEAN fcbRwLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pScb, ntError);
 
     LWIO_ASSERT(pScb->pOwnerFcb);
+
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
 
     switch (pScb->StreamType)
     {
@@ -461,6 +466,9 @@ PvfsGetFullStreamname(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
+
     return ntError;
 
 error:
@@ -477,10 +485,15 @@ PvfsGetBasicStreamname(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN scbRwLocked = FALSE;
+    BOOLEAN fcbRwLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pScb, ntError);
 
     LWIO_ASSERT(pScb->pOwnerFcb);
+
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
 
     ntError = RtlCStringAllocatePrintf(
                   ppszBasicStreamname,
@@ -491,6 +504,9 @@ PvfsGetBasicStreamname(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
+
     return ntError;
 
 error:
