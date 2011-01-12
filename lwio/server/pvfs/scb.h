@@ -187,16 +187,5 @@ PvfsGetParentSCB(
     PPVFS_SCB pScb
     );
 
-LONG64
-PvfsClearLastWriteTimeSCB(
-    PPVFS_SCB pScb
-    );
-
-VOID
-PvfsSetLastWriteTimeSCB(
-    PPVFS_SCB pScb,
-    LONG64 LastWriteTime
-    );
-
 #endif   /* _PVFS_SCB_H */
 
