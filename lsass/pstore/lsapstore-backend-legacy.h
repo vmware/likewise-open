@@ -32,19 +32,19 @@
  *
  * Module Name:
  *
- *     lsapstore-backend-legacy-convert.h
+ *     lsapstore-backend-legacy.h
  *
  * Abstract:
  *
  *     LSASS Password Store API Implementation
  *
- *     Legacy Backend Conversion API
+ *     Legacy Backend Common Includes
  *
  * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
-#ifndef __LSA_PSTORE_BACKEND_LEGACY_CONVERT__
-#define __LSA_PSTORE_BACKEND_LEGACY_CONVERT__
+#ifndef __LSA_PSTORE_BACKEND_LEGACY__
+#define __LSA_PSTORE_BACKEND_LEGACY__
 
 #include <lw/types.h>
 #include <lw/attrs.h>
@@ -52,6 +52,70 @@
 #include <lsa/lsapstore-types.h>
 // Just for legacy password info type:
 #include <lwps/lwps.h>
+
+
+//
+// From lsapstore-backend-legacy-internal.c
+//
+
+typedef struct _LWPS_LEGACY_STATE *PLWPS_LEGACY_STATE;
+
+DWORD
+LwpsLegacyOpenProvider(
+    OUT PLWPS_LEGACY_STATE* ppContext
+    );
+
+VOID
+LwpsLegacyCloseProvider(
+    IN PLWPS_LEGACY_STATE pContext
+    );
+
+DWORD
+LwpsLegacyReadPassword(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN OPTIONAL PCSTR pszQueryDomainName,
+    OUT PLWPS_PASSWORD_INFO* ppInfo
+    );
+
+DWORD
+LwpsLegacyWritePassword(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN PLWPS_PASSWORD_INFO pInfo
+    );
+
+DWORD
+LwpsLegacyDeletePassword(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LwpsLegacySetDefaultJoinedDomain(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LwpsLegacyGetJoinedDomains(
+    IN PLWPS_LEGACY_STATE pContext,
+    OUT PSTR** pppszDomainList,
+    OUT PDWORD pdwDomainCount
+    );
+
+VOID
+LwpsLegacyFreePassword(
+    IN PLWPS_PASSWORD_INFO pInfo
+    );
+
+VOID
+LwpsLegacyFreeStringArray(
+    IN PSTR* ppszDomainList,
+    IN DWORD dwCount
+    );
+
+//
+// From lsapstore-backend-legacy-convert.c
+//
 
 DWORD
 LwpsConvertFillMachinePasswordInfoW(
