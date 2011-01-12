@@ -58,11 +58,6 @@ PvfsFreeSCB(
 {
     if (pScb)
     {
-        if (pScb->pParentScb)
-        {
-            PvfsReleaseSCB(&pScb->pParentScb);
-        }
-
         if (pScb->pOwnerFcb)
         {
             PvfsRemoveSCBFromFCB(pScb->pOwnerFcb, pScb);
@@ -185,7 +180,6 @@ PvfsAllocateSCB(
 
     pScb->bDeleteOnClose = FALSE;
     pScb->bOplockBreakInProgress = FALSE;
-    pScb->pParentScb = NULL;
     pScb->pszFilename = NULL;
     pScb->pszStreamname = NULL;
 
@@ -302,10 +296,10 @@ PvfsReleaseSCB(
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
     PSTR fullStreamName = NULL;
 
-    /* Do housekeeping such as setting the last write time or honoring
-       DeletOnClose when the CCB handle count reaches 0.  Not necessarily
-       when the RefCount reaches 0.  We may have a non-handle open in the
-       SCB table for a path component (see PvfsFindParentSCB()). */
+    // Do housekeeping such as setting the last write time or honoring
+    // DeletOnClose when the CCB handle count reaches 0.  Not necessarily
+    // when the RefCount reaches 0.
+
 
     if (ppScb == NULL || *ppScb == NULL)
     {
@@ -532,13 +526,6 @@ error:
 
 static
 NTSTATUS
-PvfsFindParentSCB(
-    PPVFS_SCB *ppParentScb,
-    PCSTR pszFullStreamname
-    );
-
-static
-NTSTATUS
 PvfsFindOwnerFCB(
     PPVFS_FCB *ppOwnerFcb,
     PSTR pszFullStreamname
@@ -558,16 +545,12 @@ PvfsCreateSCB(
     PPVFS_FCB pOwnerFcb = NULL;
     BOOLEAN bBucketLocked = FALSE;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
-    PPVFS_SCB pParentScb = NULL;
     BOOLEAN bScbLocked = FALSE;
 
     PSTR pszOwnerFilename = NULL;
     PSTR pszFilePath = NULL;
     PSTR pszStreamname = NULL;
     PVFS_STREAM_TYPE StreamType = PVFS_STREAM_TYPE_DATA;
-
-    ntError = PvfsFindParentSCB(&pParentScb, pszFullStreamname);
-    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsParseStreamname(&pszOwnerFilename,
                                   &pszFilePath,
@@ -626,8 +609,6 @@ PvfsCreateSCB(
 
     pScb->StreamType = StreamType;
 
-    pScb->pParentScb = pParentScb ? PvfsReferenceSCB(pParentScb) : NULL;
-
     ntError = PvfsAddSCBToFCB(pOwnerFcb, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -650,11 +631,6 @@ PvfsCreateSCB(
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
-    if (pParentScb)
-    {
-        PvfsReleaseSCB(&pParentScb);
-    }
-
     if (pScb)
     {
         PvfsReleaseSCB(&pScb);
@@ -667,86 +643,6 @@ cleanup:
 
     RTL_FREE(&pszOwnerFilename);
     RTL_FREE(&pszFilePath);
-
-    return ntError;
-
-error:
-
-    goto cleanup;
-}
-
-/***********************************************************************
- **********************************************************************/
-
-static
-NTSTATUS
-PvfsFindParentSCB(
-    PPVFS_SCB *ppParentScb,
-    PCSTR pszFullStreamname
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_SCB pScb = NULL;
-    PSTR pszDirname = NULL;
-    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
-    PSTR pszDefaultDirStreamname = NULL;
-
-
-    if (LwRtlCStringIsEqual(pszFullStreamname, "/::$DATA", TRUE))
-    {
-        ntError = STATUS_SUCCESS;
-        *ppParentScb = NULL;
-
-        goto cleanup;
-    }
-
-    ntError = PvfsFileDirname(&pszDirname, pszFullStreamname);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = RtlCStringAllocatePrintf(
-                       &pszDefaultDirStreamname,
-                       "%s::$DATA",
-                       pszDirname);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsCbTableGetBucket(&pBucket,
-                                   &gScbTable,
-                                   (PVOID)pszDefaultDirStreamname);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsCbTableLookup(
-                  (PPVFS_CONTROL_BLOCK*)&pScb,
-                  pBucket,
-                  (PVOID)pszDefaultDirStreamname);
-    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
-    {
-        ntError = PvfsCreateSCB(
-                      &pScb,
-                      pszDefaultDirStreamname,
-                      FALSE,
-                      0,
-                      0);
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    *ppParentScb = PvfsReferenceSCB(pScb);
-
-cleanup:
-    if (pScb)
-    {
-        PvfsReleaseSCB(&pScb);
-    }
-
-    if (pszDirname)
-    {
-        LwRtlCStringFree(&pszDirname);
-    }
-
-    if (pszDefaultDirStreamname)
-    {
-        LwRtlCStringFree(&pszDefaultDirStreamname);
-    }
-
 
     return ntError;
 
@@ -1392,8 +1288,6 @@ PvfsRenameSCB(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_SCB pNewParentScb = NULL;
-    PPVFS_SCB pOldParentScb = NULL;
     PPVFS_SCB pTargetScb = NULL;
     PPVFS_CB_TABLE_ENTRY pTargetBucket = NULL;
     PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
@@ -1413,9 +1307,6 @@ PvfsRenameSCB(
 
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */
-
-    ntError = PvfsFindParentSCB(&pNewParentScb, pszNewFilename);
-    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableGetBucket(&pTargetBucket, &gScbTable, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -1508,15 +1399,6 @@ PvfsRenameSCB(
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Have to update the parent links as well */
-
-    if (pNewParentScb != pScb->pParentScb)
-    {
-        pOldParentScb = pScb->pParentScb;
-        pScb->pParentScb = pNewParentScb;
-        pNewParentScb = NULL;
-    }
-
     // Update File and Stream names
 
     LwRtlCStringFree(&pScb->pszFilename);
@@ -1568,16 +1450,6 @@ cleanup:
     LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
-    if (pNewParentScb)
-    {
-        PvfsReleaseSCB(&pNewParentScb);
-    }
-
-    if (pOldParentScb)
-    {
-        PvfsReleaseSCB(&pOldParentScb);
-    }
-
     if (pTargetScb)
     {
         PvfsReleaseSCB(&pTargetScb);
@@ -1621,30 +1493,31 @@ PvfsScbSetPendingDelete(
 
     LWIO_LOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
     pScb->bDeleteOnClose = bPendingDelete;
+    if (PvfsIsDefaultStream(pScb))
+    {
+        PvfsFcbSetPendingDelete(pScb->pOwnerFcb, bPendingDelete);
+    }
     LWIO_UNLOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
 }
 
-/*****************************************************************************
- ****************************************************************************/
 
-PPVFS_SCB
-PvfsGetParentSCB(
+////////////////////////////////////////////////////////////////////////
+
+BOOLEAN
+PvfsIsDefaultStream(
     PPVFS_SCB pScb
     )
 {
-    PPVFS_SCB pParent = NULL;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN isDefaultStream = FALSE;
+    BOOLEAN scbRwLocked = FALSE;
 
-    if (pScb)
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
+    if ((pScb->StreamType == PVFS_STREAM_TYPE_DATA) &&
+        (*pScb->pszStreamname == '\0'))
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pScb->rwLock);
-        if (pScb->pParentScb)
-        {
-            pParent = PvfsReferenceSCB(pScb->pParentScb);
-        }
-        LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwLock);
+        isDefaultStream = TRUE;
     }
+    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
 
-    return pParent;
+    return isDefaultStream;
 }
-

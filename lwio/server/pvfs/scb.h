@@ -182,8 +182,8 @@ PvfsScbSetPendingDelete(
     BOOLEAN bPendingDelete
     );
 
-PPVFS_SCB
-PvfsGetParentSCB(
+BOOLEAN
+PvfsIsDefaultStream(
     PPVFS_SCB pScb
     );
 

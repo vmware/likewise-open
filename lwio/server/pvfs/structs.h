@@ -330,7 +330,6 @@ struct _PVFS_SCB
     /* rwLock */
     pthread_rwlock_t rwLock;
 
-    PPVFS_SCB pParentScb;
     PPVFS_FCB pOwnerFcb;
 
     PSTR pszFilename;

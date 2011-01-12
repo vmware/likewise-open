@@ -951,8 +951,10 @@ error:
 
 
 
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
+//
+// Check that neither (a) the current stream, nor (b) the containing
+// parent directory have the delete-pending state set
 
 NTSTATUS
 PvfsCreateFileCheckPendingDelete(
@@ -960,7 +962,9 @@ PvfsCreateFileCheckPendingDelete(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PPVFS_SCB pParentScb = NULL;
+    PPVFS_FCB pOwnerParentFcb = NULL;
+
+    // (a) Is the delete-pending state set on this stream
 
     if (PvfsScbIsPendingDelete(pScb))
     {
@@ -968,8 +972,10 @@ PvfsCreateFileCheckPendingDelete(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pParentScb = PvfsGetParentSCB(pScb);
-    if (pParentScb && PvfsScbIsPendingDelete(pParentScb))
+    // (b) Is the delete-pending state enabled for the parent directory
+
+    pOwnerParentFcb = PvfsGetParentFCB(pScb->pOwnerFcb);
+    if (pOwnerParentFcb && PvfsFcbIsPendingDelete(pOwnerParentFcb))
     {
         ntError = STATUS_DELETE_PENDING;
         BAIL_ON_NT_STATUS(ntError);
@@ -978,9 +984,9 @@ PvfsCreateFileCheckPendingDelete(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pParentScb)
+    if (pOwnerParentFcb)
     {
-        PvfsReleaseSCB(&pParentScb);
+        PvfsReleaseFCB(&pOwnerParentFcb);
     }
 
 
