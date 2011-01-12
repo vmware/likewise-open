@@ -220,10 +220,8 @@ PvfsReferenceSCB(
     return pScb;
 }
 
-/***********************************************************************
- Make sure to alkways enter this unfunction with thee pScb->ControlMutex
- locked
- **********************************************************************/
+////////////////////////////////////////////////////////////////////////
+// Requires that SCB->BaseControlBlock.Mutex is locked
 
 static
 NTSTATUS
@@ -232,17 +230,25 @@ PvfsExecuteDeleteOnClose(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR streamName = NULL;
 
-    /* Always reset the delete-on-close state to be safe */
+    // Always reset the delete-pending state to be safe
 
     pScb->bDeleteOnClose = FALSE;
 
-    /* Verify we are deleting the file we think we are */
+    // Verify we are deleting the file we think we are
 
     ntError = PvfsValidatePathSCB(pScb, &pScb->FileId);
     if (ntError == STATUS_SUCCESS)
     {
-        ntError = PvfsSysRemove(pScb->pszFilename);
+        ntError = PvfsGetBasicStreamname(&streamName, pScb);
+
+        // Don't BAIL_ON_NT_STATUS() so the FileId is always reset
+
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysRemove(streamName);
+        }
 
         /* Reset dev/inode state */
 
@@ -253,6 +259,11 @@ PvfsExecuteDeleteOnClose(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
     return ntError;
 
 error:
@@ -265,7 +276,9 @@ error:
         LWIO_LOG_ERROR(
             "%s: Failed to execute delete-on-close on %s (%d,%d) (%s)\n",
             PVFS_LOG_HEADER,
-            pScb->pszFilename, pScb->FileId.Device, pScb->FileId.Inode,
+            streamName ? streamName : "(invalid streamName)",
+            pScb->FileId.Device,
+            pScb->FileId.Inode,
             LwNtStatusToName(ntError));
         break;
     }
@@ -273,6 +286,7 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
 
 VOID
 PvfsReleaseSCB(
