@@ -120,6 +120,8 @@ PvfsSetFileRenameInfo(
     PSTR pszNewFileBasename = NULL;
     PSTR pszCanonicalNewPathname = NULL;
     PVFS_STAT stat = { 0 };
+    PSTR streamName = NULL;
+
 
     /* Sanity checks */
 
@@ -262,11 +264,15 @@ PvfsSetFileRenameInfo(
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
-    PvfsNotifyScheduleFullReport(
-        pCcb->pScb->pOwnerFcb,
-        PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
-        FILE_ACTION_RENAMED_NEW_NAME,
-        pCcb->pszFilename);
+    ntError = PvfsGetBasicStreamname(&streamName, pCcb->pScb);
+    if (ntError == STATUS_SUCCESS)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCcb->pScb->pOwnerFcb,
+            PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_ACTION_RENAMED_NEW_NAME,
+            streamName);
+    }
 
 cleanup:
     LwRtlCStringFree(&pszNewFilename);
@@ -276,6 +282,7 @@ cleanup:
     LwRtlCStringFree(&pszNewFileDirname);
     LwRtlCStringFree(&pszNewFileDiskDirname);
     LwRtlCStringFree(&pszNewFileBasename);
+    LwRtlCStringFree(&streamName);
 
     if (pCcb)
     {
