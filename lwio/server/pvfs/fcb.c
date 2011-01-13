@@ -68,17 +68,6 @@ PvfsFreeFCB(
         pthread_rwlock_destroy(&pFcb->rwScbLock);
 
         PvfsListDestroy(&pFcb->pScbList);
-#if 0
-        pthread_rwlock_destroy(&pFcb->rwBrlLock);
-
-        PvfsListDestroy(&pFcb->pPendingLockQueue);
-        PvfsListDestroy(&pFcb->pOplockPendingOpsQueue);
-        PvfsListDestroy(&pFcb->pOplockReadyOpsQueue);
-        PvfsListDestroy(&pFcb->pOplockList);
-        PvfsListDestroy(&pFcb->pNotifyListIrp);
-        PvfsListDestroy(&pFcb->pNotifyListBuffer);
-#endif
-
         PvfsDestroyCB(&pFcb->BaseControlBlock);
 
         PVFS_FREE(&pFcb);
@@ -128,40 +117,6 @@ PvfsAllocateFCB(
     /* Initialize mutexes and refcounts */
 
     pthread_rwlock_init(&pFcb->rwScbLock, NULL);
-#if 0
-    pthread_rwlock_init(&pFcb->rwBrlLock, NULL);
-
-    /* Setup pendlock byte-range lock queue */
-
-    ntError = PvfsListInit(
-                  &pFcb->pPendingLockQueue,
-                  PVFS_SCB_MAX_PENDING_LOCKS,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingLock);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Oplock pending ops queue */
-
-    ntError = PvfsListInit(
-                  &pFcb->pOplockPendingOpsQueue,
-                  PVFS_SCB_MAX_PENDING_OPERATIONS,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsListInit(
-                  &pFcb->pOplockReadyOpsQueue,
-                  PVFS_SCB_MAX_PENDING_OPERATIONS,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Oplock list and state */
-
-    pFcb->bOplockBreakInProgress = FALSE;
-    ntError = PvfsListInit(
-                  &pFcb->pOplockList,
-                  0,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeOplockRecord);
-    BAIL_ON_NT_STATUS(ntError);
-#endif
 
     /* List of Notify requests */
 
@@ -193,9 +148,6 @@ PvfsAllocateFCB(
     pFcb->LastWriteTime = 0;
     pFcb->OpenHandleCount = 0;
     pFcb->bDeleteOnClose = FALSE;
-#if 0
-    pFcb->bOplockBreakInProgress = FALSE;
-#endif
     pFcb->pParentFcb = NULL;
     pFcb->pszFilename = NULL;
 

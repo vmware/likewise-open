@@ -361,37 +361,20 @@ struct _PVFS_FCB
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
 
-#if 0
-    BOOLEAN bOplockBreakInProgress;
-    PPVFS_LIST pOplockList;
-    PPVFS_LIST pOplockPendingOpsQueue;
-    PPVFS_LIST pOplockReadyOpsQueue;
-#endif
     PPVFS_LIST pNotifyListIrp;
     PPVFS_LIST pNotifyListBuffer;
-
     // End BaseMutex
-
 
     // Base.RwLock
     PPVFS_FCB pParentFcb;
     PSTR pszFilename;
     // End Base.RwLock
 
-    /* rwScbLock */
+    // rwScbLock
     pthread_rwlock_t rwScbLock;     /* For managing the SCB list */
     LONG OpenHandleCount;
     PPVFS_LIST pScbList;
-    /* End rwScbLock */
-
-#if 0
-    /* rwBrlLock */
-    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
-                                       the CCB list, the pendingLockqueue,
-                                       and the LastFailedLock entry */
-    PPVFS_LIST pPendingLockQueue;
-    /* End rwBrlLock */
-#endif
+    // End rwScbLock
 };
 
 typedef struct _PVFS_LOCK_LIST
