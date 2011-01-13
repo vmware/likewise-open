@@ -57,6 +57,7 @@ PvfsDestroyCB(
     if (pCb)
     {
         pthread_mutex_destroy(&pCb->Mutex);
+        pthread_rwlock_destroy(&pCb->RwLock);
         pCb->RefCount = 0;
         pCb->pBucket = NULL;
     }
@@ -72,6 +73,7 @@ PvfsInitializeCB(
     )
 {
     pthread_mutex_init(&pCb->Mutex, NULL);
+    pthread_rwlock_init(&pCb->RwLock, NULL);
     pCb->RefCount = 1;
     pCb->pBucket = NULL;
     pCb->Removed = FALSE;

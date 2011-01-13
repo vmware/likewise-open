@@ -237,7 +237,7 @@ PvfsValidatePathSCB(
     ntError = PvfsGetBasicStreamname(&streamName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->BaseControlBlock.RwLock);
 
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
@@ -252,7 +252,7 @@ PvfsValidatePathSCB(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->BaseControlBlock.RwLock);
 
     if (streamName)
     {
@@ -278,7 +278,7 @@ PvfsValidatePathFCB(
     BOOLEAN bFcbLocked = FALSE;
     PVFS_STAT Stat = {0};
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->BaseControlBlock.RwLock);
 
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
@@ -293,7 +293,7 @@ PvfsValidatePathFCB(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->BaseControlBlock.RwLock);
 
     return ntError;
 

@@ -296,6 +296,7 @@ typedef struct _PVFS_CONTROL_BLOCK
     LONG RefCount;
     PPVFS_CB_TABLE_ENTRY pBucket;
     pthread_mutex_t Mutex;
+    pthread_rwlock_t RwLock;
     BOOLEAN Removed;
 
 } PVFS_CONTROL_BLOCK, *PPVFS_CONTROL_BLOCK;
@@ -327,15 +328,13 @@ struct _PVFS_SCB
     // End BaseMutex
 
 
-    /* rwLock */
-    pthread_rwlock_t rwLock;
-
+    // Base.RwLock
     PPVFS_FCB pOwnerFcb;
 
     PSTR pszFilename;
     PSTR pszStreamname;
     PVFS_STREAM_TYPE StreamType;
-    /* End rwLock */
+    // End Base.RwLock
 
 
     /* rwCcbLock */
@@ -374,12 +373,10 @@ struct _PVFS_FCB
     // End BaseMutex
 
 
-    /* rwLock */
-    pthread_rwlock_t rwLock;
-
+    // Base.RwLock
     PPVFS_FCB pParentFcb;
     PSTR pszFilename;
-    /* End rwLock */
+    // End Base.RwLock
 
     /* rwScbLock */
     pthread_rwlock_t rwScbLock;     /* For managing the SCB list */

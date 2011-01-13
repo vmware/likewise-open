@@ -67,7 +67,6 @@ PvfsFreeSCB(
         RtlCStringFree(&pScb->pszFilename);
         RtlCStringFree(&pScb->pszStreamname);
 
-        pthread_rwlock_destroy(&pScb->rwLock);
         pthread_rwlock_destroy(&pScb->rwCcbLock);
         pthread_rwlock_destroy(&pScb->rwBrlLock);
 
@@ -127,7 +126,6 @@ PvfsAllocateSCB(
 
     /* Initialize mutexes and refcounts */
 
-    pthread_rwlock_init(&pScb->rwLock, NULL);
     pthread_rwlock_init(&pScb->rwCcbLock, NULL);
     pthread_rwlock_init(&pScb->rwBrlLock, NULL);
 
@@ -451,7 +449,7 @@ PvfsGetFullStreamname_inScbLock(
 
     LWIO_ASSERT(pScb->pOwnerFcb);
 
-    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
 
     switch (pScb->StreamType)
     {
@@ -471,7 +469,7 @@ PvfsGetFullStreamname_inScbLock(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
 
     return ntError;
 
@@ -492,13 +490,13 @@ PvfsGetFullStreamname(
 
     BAIL_ON_INVALID_PTR(pScb, ntError);
 
-    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
 
     ntError = PvfsGetFullStreamname_inScbLock(ppszFullStreamname, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
 
     return ntError;
 
@@ -522,8 +520,8 @@ PvfsGetBasicStreamname(
 
     LWIO_ASSERT(pScb->pOwnerFcb);
 
-    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
-    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
 
     ntError = RtlCStringAllocatePrintf(
                   ppszBasicStreamname,
@@ -534,8 +532,8 @@ PvfsGetBasicStreamname(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
-    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
+    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
 
     return ntError;
 
@@ -1372,9 +1370,9 @@ PvfsRenameSCB(
 
     /* Locks - gScbTable(Excl),
                pTargetBucket(Excl),
-               pScb->rwLock(Excl) */
+               pScb->BaseControlBlock.RwLock(Excl) */
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bScbRwLocked, &pScb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
 
     ntError = PvfsSysRename(pCcb->pScb->pszFilename, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -1398,7 +1396,7 @@ PvfsRenameSCB(
 
     /* Locks - gScbTable(Excl)
                pTargetBucket(Excl)
-               pScb->rwLock(Excl),
+               pScb->BaseControlBlock.RwLock(Excl),
                pCurrentBucket(Excl) */
 
     if (pCurrentBucket != pTargetBucket)
@@ -1433,7 +1431,7 @@ PvfsRenameSCB(
 
     /* Locks - gScbTable(Excl),
                pTargetBucket(Excl),
-               pScb->rwLock(Excl),
+               pScb->BaseControlBlock.RwLock(Excl),
                pScb->BaseControlBlock.Mutex */
 
     LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
@@ -1449,7 +1447,7 @@ PvfsRenameSCB(
     LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
 
 
@@ -1465,7 +1463,7 @@ cleanup:
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bRenameLock, &gScbTable.rwLock);
-    LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
@@ -1530,13 +1528,13 @@ PvfsIsDefaultStream(
     BOOLEAN isDefaultStream = FALSE;
     BOOLEAN scbRwLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
     if ((pScb->StreamType == PVFS_STREAM_TYPE_DATA) &&
         (*pScb->pszStreamname == '\0'))
     {
         isDefaultStream = TRUE;
     }
-    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
 
     return isDefaultStream;
 }

@@ -65,8 +65,6 @@ PvfsFreeFCB(
 
         RtlCStringFree(&pFcb->pszFilename);
 
-        pthread_rwlock_destroy(&pFcb->rwLock);
-
         pthread_rwlock_destroy(&pFcb->rwScbLock);
 
         PvfsListDestroy(&pFcb->pScbList);
@@ -128,8 +126,6 @@ PvfsAllocateFCB(
     PvfsInitializeCB(&pFcb->BaseControlBlock);
 
     /* Initialize mutexes and refcounts */
-
-    pthread_rwlock_init(&pFcb->rwLock, NULL);
 
     pthread_rwlock_init(&pFcb->rwScbLock, NULL);
 #if 0
@@ -828,9 +824,9 @@ PvfsRenameFCB(
 
     /* Locks - gFcbTable(Excl),
                pTargetBucket(Excl),
-               pFcb->rwLock(Excl) */
+               pFcb->BaseControlBlock.RwLock(Excl) */
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
 
     ntError = PvfsSysRename(pCcb->pScb->pOwnerFcb->pszFilename, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -854,7 +850,7 @@ PvfsRenameFCB(
 
     /* Locks - gFcbTable(Excl)
                pTargetBucket(Excl)
-               pFcb->rwLock(Excl),
+               pFcb->BaseControlBlock.RwLock(Excl),
                pCurrentBucket(Excl) */
 
     if (pCurrentBucket != pTargetBucket)
@@ -882,7 +878,7 @@ PvfsRenameFCB(
 
     /* Locks - gFcbTable(Excl),
                pTargetBucket(Excl),
-               pFcb->rwLock(Excl),
+               pFcb->BaseControlBlock.RwLock(Excl),
                pFcb->BaseControlBlock.Mutex */
 
     LWIO_LOCK_MUTEX(bCurrentFcbControl, &pFcb->BaseControlBlock.Mutex);
@@ -898,7 +894,7 @@ PvfsRenameFCB(
     LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->BaseControlBlock.Mutex);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
 
 
@@ -914,7 +910,7 @@ cleanup:
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bRenameLock, &gScbTable.rwLock);
-    LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->BaseControlBlock.Mutex);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
@@ -987,12 +983,12 @@ PvfsGetParentFCB(
 
     if (pFcb)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwLock);
+        LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->BaseControlBlock.RwLock);
         if (pFcb->pParentFcb)
         {
             pParent = PvfsReferenceFCB(pFcb->pParentFcb);
         }
-        LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwLock);
+        LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->BaseControlBlock.RwLock);
     }
 
     return pParent;
@@ -1009,10 +1005,10 @@ PvfsClearLastWriteTimeFCB(
     BOOLEAN bLocked = FALSE;
     LONG64 LastWriteTime = 0;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pFcb->BaseControlBlock.RwLock);
     LastWriteTime = pFcb->LastWriteTime;
     pFcb->LastWriteTime = 0;
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->BaseControlBlock.RwLock);
 
     return LastWriteTime;
 }
@@ -1028,9 +1024,9 @@ PvfsSetLastWriteTimeFCB(
 {
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pFcb->BaseControlBlock.RwLock);
     pFcb->LastWriteTime = LastWriteTime;
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->BaseControlBlock.RwLock);
 }
 
 
