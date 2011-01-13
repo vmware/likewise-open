@@ -147,9 +147,15 @@ PvfsQueryLwFilePosixInfo(
     pFilePosixInfo->VolumeId = 1;
 
     // TODO - is this the file id we want?  Also get generation number.
-    pFilePosixInfo->InodeNumber = stat.s_ino;
-    pFilePosixInfo->GenerationNumber = 0;
+    // pFilePosixInfo->InodeNumber = stat.s_ino;
+    // pFilePosixInfo->GenerationNumber = 0;
 
+    // TODO - Remove it later.  Inode and gen encode full path now
+    {
+        pFilePosixInfo->GenerationNumber = 0;
+        strcpy((char*)&pFilePosixInfo->InodeNumber, "/pvfs");
+        strncpy(((char*)&pFilePosixInfo->InodeNumber) + 5, pCcb->pszFilename, 10);
+    }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFilePosixInfo);
     ntError = STATUS_SUCCESS;
