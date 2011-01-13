@@ -440,20 +440,16 @@ cleanup:
 ////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
-PvfsGetFullStreamname(
+PvfsGetFullStreamname_inScbLock(
     PSTR *ppszFullStreamname,
     PPVFS_SCB pScb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN scbRwLocked = FALSE;
     BOOLEAN fcbRwLocked = FALSE;
-
-    BAIL_ON_INVALID_PTR(pScb, ntError);
 
     LWIO_ASSERT(pScb->pOwnerFcb);
 
-    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
     LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
 
     switch (pScb->StreamType)
@@ -475,13 +471,38 @@ PvfsGetFullStreamname(
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->rwLock);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsGetFullStreamname(
+    PSTR *ppszFullStreamname,
+    PPVFS_SCB pScb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN scbRwLocked = FALSE;
+
+    BAIL_ON_INVALID_PTR(pScb, ntError);
+
+    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->rwLock);
+
+    ntError = PvfsGetFullStreamname_inScbLock(ppszFullStreamname, pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
     LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->rwLock);
 
     return ntError;
 
 error:
     goto cleanup;
-
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1387,7 +1408,7 @@ PvfsRenameSCB(
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     }
 
-    ntError = PvfsGetFullStreamname(&currentFullStreamName, pScb);
+    ntError = PvfsGetFullStreamname_inScbLock(&currentFullStreamName, pScb);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsCbTableRemove_inlock(pCurrentBucket, currentFullStreamName);
@@ -1409,7 +1430,7 @@ PvfsRenameSCB(
     // FIXME!!  Here is where we would change the stream name itself
     // ntError = PvfsParseStreamname();
 
-    ntError = PvfsGetFullStreamname(&newFullStreamName, pScb);
+    ntError = PvfsGetFullStreamname_inScbLock(&newFullStreamName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gScbTable(Excl),
