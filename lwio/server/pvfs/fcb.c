@@ -195,7 +195,7 @@ PvfsAllocateFCB(
     PVFS_CLEAR_FILEID(pFcb->FileId);
 
     pFcb->LastWriteTime = 0;
-    pFcb->OpenFileHandleCount = 0;
+    pFcb->OpenHandleCount = 0;
     pFcb->bDeleteOnClose = FALSE;
 #if 0
     pFcb->bOplockBreakInProgress = FALSE;
@@ -353,7 +353,7 @@ PvfsReleaseFCB(
 
     LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwScbLock);
 
-    if (pFcb->OpenFileHandleCount == 0)
+    if (pFcb->OpenHandleCount == 0)
     {
         ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
         if (ntError == STATUS_SUCCESS)

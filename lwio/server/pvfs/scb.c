@@ -178,6 +178,7 @@ PvfsAllocateSCB(
 
     PVFS_CLEAR_FILEID(pScb->FileId);
 
+    pScb->OpenHandleCount = 0;
     pScb->bDeleteOnClose = FALSE;
     pScb->bOplockBreakInProgress = FALSE;
     pScb->pszFilename = NULL;
@@ -744,7 +745,11 @@ PvfsAddCCBToSCB(
 
     pCcb->pScb = PvfsReferenceSCB(pScb);
 
-    InterlockedIncrement(&pScb->pOwnerFcb->OpenFileHandleCount);
+    pScb->OpenHandleCount++;
+    pScb->pOwnerFcb->OpenHandleCount++;
+
+    LWIO_ASSERT((pScb->OpenHandleCount > 0) &&
+                (pScb->pOwnerFcb->OpenHandleCount > 0));
 
     ntError = STATUS_SUCCESS;
 
@@ -777,7 +782,11 @@ PvfsRemoveCCBFromSCB(
     ntError = PvfsListRemoveItem(pScb->pCcbList, &pCcb->ScbList);
     BAIL_ON_NT_STATUS(ntError);
 
-    InterlockedDecrement(&pScb->pOwnerFcb->OpenFileHandleCount);
+    pScb->OpenHandleCount--;
+    pScb->pOwnerFcb->OpenHandleCount--;
+
+    LWIO_ASSERT((pScb->OpenHandleCount >= 0) &&
+                (pScb->pOwnerFcb->OpenHandleCount >= 0));
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(fcbWriteLocked, &pScb->pOwnerFcb->rwScbLock);
@@ -929,33 +938,22 @@ error:
 BOOLEAN
 PvfsStreamHasOtherOpens(
     IN PPVFS_SCB pScb,
-    IN PPVFS_CCB pCcb
+    IN PPVFS_CCB pCcb    // Historical
     )
 {
-    PLW_LIST_LINKS pCursor = NULL;
-    PPVFS_CCB pCurrentCcb = NULL;
-    BOOLEAN bNonSelfOpen = FALSE;
+    BOOLEAN hasMultiplOpens = FALSE;
     BOOLEAN bScbReadLocked = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bScbReadLocked, &pScb->rwCcbLock);
 
-    while((pCursor = PvfsListTraverse(pScb->pCcbList, pCursor)) != NULL)
+    if (pScb->OpenHandleCount > 1)
     {
-        pCurrentCcb = LW_STRUCT_FROM_FIELD(
-                          pCursor,
-                          PVFS_CCB,
-                          ScbList);
-
-        if (pCcb != pCurrentCcb)
-        {
-            bNonSelfOpen = TRUE;
-            break;
-        }
+        hasMultiplOpens = TRUE;
     }
 
     LWIO_UNLOCK_RWMUTEX(bScbReadLocked, &pScb->rwCcbLock);
 
-    return bNonSelfOpen;
+    return hasMultiplOpens;
 }
 
 /*****************************************************************************

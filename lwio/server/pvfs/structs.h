@@ -340,6 +340,7 @@ struct _PVFS_SCB
 
     /* rwCcbLock */
     pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
+    LONG OpenHandleCount;
     PPVFS_LIST pCcbList;
     /* End rwCcbLock */
 
@@ -360,7 +361,6 @@ struct _PVFS_FCB
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
-    LONG OpenFileHandleCount;
 
 #if 0
     BOOLEAN bOplockBreakInProgress;
@@ -383,6 +383,7 @@ struct _PVFS_FCB
 
     /* rwScbLock */
     pthread_rwlock_t rwScbLock;     /* For managing the SCB list */
+    LONG OpenHandleCount;
     PPVFS_LIST pScbList;
     /* End rwScbLock */
 
