@@ -331,7 +331,6 @@ struct _PVFS_SCB
     // Base.RwLock
     PPVFS_FCB pOwnerFcb;
 
-    PSTR pszFilename;
     PSTR pszStreamname;
     PVFS_STREAM_TYPE StreamType;
     // End Base.RwLock

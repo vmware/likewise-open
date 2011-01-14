@@ -193,7 +193,7 @@ PvfsQueryFileAllInfo(
 
     /* Name */
 
-    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pScb->pszFilename);
+    ntError = PvfsGetBasicStreamname(&pszWinFileName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Convert to a Windows pathname equivalent */

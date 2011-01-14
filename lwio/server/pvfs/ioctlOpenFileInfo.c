@@ -282,19 +282,18 @@ PvfsFillOpenFileInfo0(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIO_OPEN_FILE_INFO_0 pInfo0 = (PIO_OPEN_FILE_INFO_0)pBuffer;
     PIO_OPEN_FILE_INFO_0 pPrev = (PIO_OPEN_FILE_INFO_0)pPreviousEntry;
-    PWSTR pwszFilename = NULL;
+    PWSTR outStreamName = NULL;
     ULONG FilenameByteCount = 0;
-    BOOLEAN bControlLocked = FALSE;
     BOOLEAN bCcbListLocked = FALSE;
+    PSTR streamName = NULL;
 
-    LWIO_LOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
-    ntError = LwRtlWC16StringAllocateFromCString(
-                  &pwszFilename,
-                  pScb->pszFilename);
-    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
+    ntError = PvfsGetBasicStreamname(&streamName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
+    ntError = LwRtlWC16StringAllocateFromCString(&outStreamName, streamName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    FilenameByteCount = (LwRtlWC16StringNumChars(outStreamName)+1) *
                         sizeof(WCHAR);
 
     if (BufferLength < (sizeof(IO_OPEN_FILE_INFO_0)+FilenameByteCount))
@@ -305,7 +304,7 @@ PvfsFillOpenFileInfo0(
 
     pInfo0->NextEntryOffset = 0;
     pInfo0->FileNameLength = FilenameByteCount;
-    memcpy(pInfo0->pwszFileName, pwszFilename, FilenameByteCount);
+    memcpy(pInfo0->pwszFileName, outStreamName, FilenameByteCount);
 
     LWIO_LOCK_RWMUTEX_SHARED(bCcbListLocked, &pScb->rwCcbLock);
     pInfo0->OpenHandleCount = PvfsListLength(pScb->pCcbList);
@@ -321,7 +320,15 @@ PvfsFillOpenFileInfo0(
                   - sizeof(WCHAR);
 
 cleanup:
-    LwRtlWC16StringFree(&pwszFilename);
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
+    if (outStreamName)
+    {
+        LwRtlWC16StringFree(&outStreamName);
+    }
 
     return ntError;
 
@@ -345,19 +352,18 @@ PvfsFillOpenFileInfo100(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIO_OPEN_FILE_INFO_100 pInfo100 = (PIO_OPEN_FILE_INFO_100)pBuffer;
     PIO_OPEN_FILE_INFO_100 pPrev = (PIO_OPEN_FILE_INFO_100)pPreviousEntry;
-    PWSTR pwszFilename = NULL;
+    PWSTR outStreamName = NULL;
     ULONG FilenameByteCount = 0;
-    BOOLEAN bControlLocked = FALSE;
     BOOLEAN bCcbListLocked = FALSE;
+    PSTR streamName = NULL;
 
-    LWIO_LOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
-    ntError = LwRtlWC16StringAllocateFromCString(
-                  &pwszFilename,
-                  pScb->pszFilename);
+    ntError = PvfsGetBasicStreamname(&streamName, pScb);
     BAIL_ON_NT_STATUS(ntError);
-    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
 
-    FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
+    ntError = LwRtlWC16StringAllocateFromCString(&outStreamName, streamName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    FilenameByteCount = (LwRtlWC16StringNumChars(outStreamName)+1) *
                         sizeof(WCHAR);
 
     if (BufferLength < (sizeof(IO_OPEN_FILE_INFO_100)+FilenameByteCount))
@@ -370,7 +376,7 @@ PvfsFillOpenFileInfo100(
 
     pInfo100->NextEntryOffset = 0;
     pInfo100->FileNameLength = FilenameByteCount;
-    memcpy(pInfo100->pwszFileName, pwszFilename, FilenameByteCount);
+    memcpy(pInfo100->pwszFileName, outStreamName, FilenameByteCount);
 
     LWIO_LOCK_RWMUTEX_SHARED(bCcbListLocked, &pScb->rwCcbLock);
     pInfo100->OpenHandleCount = PvfsListLength(pScb->pCcbList);
@@ -386,9 +392,15 @@ PvfsFillOpenFileInfo100(
                   - sizeof(WCHAR);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bControlLocked, &pScb->BaseControlBlock.Mutex);
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
 
-    LwRtlWC16StringFree(&pwszFilename);
+    if (outStreamName)
+    {
+        LwRtlWC16StringFree(&outStreamName);
+    }
 
     return ntError;
 

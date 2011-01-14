@@ -121,7 +121,7 @@ PvfsSetFileRenameInfo(
     PSTR pszCanonicalNewPathname = NULL;
     PVFS_STAT stat = { 0 };
     PSTR streamName = NULL;
-
+    PSTR currentStreamName = NULL;
 
     /* Sanity checks */
 
@@ -239,10 +239,10 @@ PvfsSetFileRenameInfo(
            (c) Rename to new file
         */
 
-        if (LwRtlCStringCompare(
-                pCcb->pScb->pszFilename,
-                pszNewDiskPathname,
-                FALSE) != 0)
+        ntError = PvfsGetBasicStreamname(&currentStreamName, pCcb->pScb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (LwRtlCStringCompare(currentStreamName, pszNewDiskPathname, FALSE) != 0)
         {
             if (pFileInfo->ReplaceIfExists)
             {
@@ -283,6 +283,7 @@ cleanup:
     LwRtlCStringFree(&pszNewFileDiskDirname);
     LwRtlCStringFree(&pszNewFileBasename);
     LwRtlCStringFree(&streamName);
+    LwRtlCStringFree(&currentStreamName);
 
     if (pCcb)
     {
