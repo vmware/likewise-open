@@ -46,5 +46,9 @@ configure()
         HEADERDEPS="sys/types.h ifaddrs.h" \
         getifaddrs
 
+    mk_check_functions \
+        HEADERDEPS="resolv.h" \
+        res_init res_query
+
     lw_check_strerror_r
 }
