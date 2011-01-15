@@ -18,7 +18,7 @@ typedef struct _SRV_TRANSPORT_LISTENER {
         struct sockaddr_in6 Addr6;
 #endif
     } Addr;
-    SOCKLEN_T AddrLen;
+    SOCKLEN_TYPE AddrLen;
 } SRV_TRANSPORT_LISTENER, *PSRV_TRANSPORT_LISTENER;
 
 // Top-level structure
@@ -66,7 +66,7 @@ typedef struct _SRV_SOCKET
         struct sockaddr_in6 Addr6;
 #endif
     } ClientAddress;
-    SOCKLEN_T ClientAddressLength;
+    SOCKLEN_TYPE ClientAddressLength;
     union
     {
         struct sockaddr Addr;
@@ -75,7 +75,7 @@ typedef struct _SRV_SOCKET
         struct sockaddr_in6 Addr6;
 #endif
     } serverAddress;
-    SOCKLEN_T serverAddressLength;
+    SOCKLEN_TYPE serverAddressLength;
     CHAR AddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
 
     PLW_TASK pTask;

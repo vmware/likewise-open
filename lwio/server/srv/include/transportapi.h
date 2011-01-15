@@ -172,14 +172,14 @@ VOID
 SrvTransportSocketGetAddress(
     IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T*              pAddressLength
+    OUT SOCKLEN_TYPE*           pAddressLength
     );
 
 VOID
 SrvTransportSocketGetServerAddress(
     IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T*              pAddressLength
+    OUT SOCKLEN_TYPE*           pAddressLength
     );
 
 PCSTR

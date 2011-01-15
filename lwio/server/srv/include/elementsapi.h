@@ -543,7 +543,7 @@ typedef struct _SRV_CLIENT_PROPERITES
 typedef struct _SRV_SOCKET *PLWIO_SRV_SOCKET;
 typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
 typedef VOID (*PFN_SRV_SOCKET_DISCONNECT)(PLWIO_SRV_SOCKET pSocket);
-typedef VOID (*PFN_SRV_SOCKET_GET_ADDRESS)(PLWIO_SRV_SOCKET pSocket, const struct sockaddr** ppAddress, SOCKLEN_T* pulAddressLength);
+typedef VOID (*PFN_SRV_SOCKET_GET_ADDRESS)(PLWIO_SRV_SOCKET pSocket, const struct sockaddr** ppAddress, SOCKLEN_TYPE* pulAddressLength);
 typedef VOID (*PFN_SRV_CONNECTION_IO_COMPLETE)(PVOID pContext, NTSTATUS Status);
 typedef VOID (*PFN_SRV_SOCKET_RESET_TIMEOUT)(PLWIO_SRV_SOCKET pSocket, BOOLEAN bIsEnabled, ULONG ulTimeoutSeconds);
 struct _SRV_EXEC_CONTEXT;
@@ -570,9 +570,9 @@ typedef struct _SRV_CONNECTION
     // Immutable for lifetime of connection.
     SRV_RESOURCE     resource;
     const struct sockaddr* pClientAddress;
-    SOCKLEN_T        clientAddrLen;
+    SOCKLEN_TYPE        clientAddrLen;
     const struct sockaddr* pServerAddress;
-    SOCKLEN_T        serverAddrLen;
+    SOCKLEN_TYPE        serverAddrLen;
     PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 

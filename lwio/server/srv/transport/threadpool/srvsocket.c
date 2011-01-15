@@ -193,9 +193,9 @@ SrvSocketCreate(
     IN  PSRV_TRANSPORT_LISTENER pListener,
     IN  int                     fd,
     IN  struct sockaddr*        pClientAddress,
-    IN  SOCKLEN_T               ClientAddressLength,
+    IN  SOCKLEN_TYPE               ClientAddressLength,
     IN  struct sockaddr*        pServerAddress,
-    IN  SOCKLEN_T               serverAddressLength,
+    IN  SOCKLEN_TYPE               serverAddressLength,
     OUT PSRV_SOCKET*            ppSocket
     )
 {
@@ -340,7 +340,7 @@ VOID
 SrvSocketGetAddress(
     IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T*              pAddressLength
+    OUT SOCKLEN_TYPE*              pAddressLength
     )
 {
     // immutable, so lock not needed.
@@ -352,7 +352,7 @@ VOID
 SrvSocketGetServerAddress(
     IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T*              pAddressLength
+    OUT SOCKLEN_TYPE*              pAddressLength
     )
 {
     // immutable, so lock not needed.

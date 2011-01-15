@@ -62,7 +62,7 @@ typedef struct _SRV_LOG_FILTER_OP
 typedef struct _SRV_LOG_FILTER
 {
     struct sockaddr*   pClientAddress;
-    SOCKLEN_T          ulClientAddressLength;
+    SOCKLEN_TYPE          ulClientAddressLength;
 
     LWIO_LOG_LEVEL     defaultLogLevel_smb1;
     PSRV_LOG_FILTER_OP pFilterList_smb1;

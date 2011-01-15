@@ -155,7 +155,7 @@ PSRV_LOG_FILTER
 SrvLogSpecFindFilter(
     PSRV_LOG_FILTER  pFilterList,
     const struct sockaddr* pClientAddress,
-    SOCKLEN_T        ulClientAddressLength
+    SOCKLEN_TYPE        ulClientAddressLength
     );
 
 static
@@ -1199,7 +1199,7 @@ PSRV_LOG_FILTER
 SrvLogSpecFindFilter(
     PSRV_LOG_FILTER  pFilterList,
     const struct sockaddr* pClientAddress,
-    SOCKLEN_T        ulClientAddressLength
+    SOCKLEN_TYPE        ulClientAddressLength
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -1478,7 +1478,7 @@ NTSTATUS
 SrvLogContextUpdateFilter(
     PSRV_LOG_CONTEXT pLogContext,
     const struct sockaddr* pClientAddress,
-    SOCKLEN_T        ulClientAddressLength
+    SOCKLEN_TYPE        ulClientAddressLength
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

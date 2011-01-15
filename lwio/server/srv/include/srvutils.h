@@ -394,7 +394,7 @@ NTSTATUS
 SrvSocketStringToAddressA(
     PCSTR            pszAddress,
     struct sockaddr** ppSocketAddress,
-    SOCKLEN_T*       pAddressLength
+    SOCKLEN_TYPE*     pAddressLength
     );
 
 NTSTATUS
@@ -412,9 +412,9 @@ SrvSocketGetAddrInfoA(
 NTSTATUS
 SrvSocketCompareAddress(
     const struct sockaddr* pAddress1,
-    SOCKLEN_T              addrLength1,
+    SOCKLEN_TYPE           addrLength1,
     const struct sockaddr* pAddress2,
-    SOCKLEN_T              addrLength2,
+    SOCKLEN_TYPE           addrLength2,
     PBOOLEAN               pbMatch
     );
 
@@ -427,7 +427,7 @@ NTSTATUS
 SrvLogContextUpdateFilter(
     PSRV_LOG_CONTEXT pLogContext,
     const struct sockaddr* pClientAddress,
-    SOCKLEN_T        ulClientAddressLength
+    SOCKLEN_TYPE     ulClientAddressLength
     );
 
 LWIO_LOG_LEVEL

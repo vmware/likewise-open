@@ -137,7 +137,7 @@ VOID
 SrvProtocolTransportDriverSocketGetClientAddress(
     IN PSRV_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T* pAddressLength
+    OUT SOCKLEN_TYPE* pAddressLength
     );
 
 static
@@ -145,7 +145,7 @@ VOID
 SrvProtocolTransportDriverSocketGetServerAddress(
     IN PSRV_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T* pAddressLength
+    OUT SOCKLEN_TYPE* pAddressLength
     );
 
 static
@@ -740,7 +740,7 @@ VOID
 SrvProtocolTransportDriverSocketGetClientAddress(
     IN PSRV_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T* pAddressLength
+    OUT SOCKLEN_TYPE* pAddressLength
     )
 {
     SrvTransportSocketGetAddress(pSocket, ppAddress, pAddressLength);
@@ -751,7 +751,7 @@ VOID
 SrvProtocolTransportDriverSocketGetServerAddress(
     IN PSRV_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT SOCKLEN_T* pAddressLength
+    OUT SOCKLEN_TYPE* pAddressLength
     )
 {
     SrvTransportSocketGetServerAddress(pSocket, ppAddress, pAddressLength);
