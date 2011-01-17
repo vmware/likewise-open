@@ -305,3 +305,150 @@ error:
     goto cleanup;
 }
 
+
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+PvfsRenameFile(
+    PPVFS_CCB pCcb,
+    PSTR NewFileName
+    );
+
+static
+NTSTATUS
+PvfsRenameStream(
+    PPVFS_CCB pCcb,
+    PSTR NewFileName
+    );
+
+NTSTATUS
+PvfsRenameCCB(
+    PPVFS_CCB pCcb,
+    PSTR NewFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    // Check for renames out from under us
+
+    ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        ntError = PvfsRenameFile(pCcb, NewFileName);
+    }
+    else
+    {
+        ntError = PvfsRenameStream(pCcb, NewFileName);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+error:
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+PvfsRenameFile(
+    PPVFS_CCB pCcb,
+    PSTR NewFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_CB_TABLE_ENTRY pTargetBucket = NULL;
+    PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
+    PSTR currentFullStreamName = NULL;
+    PSTR newFullStreamName = NULL;
+    PVFS_FILE_NAME newFileName = { 0 };
+    BOOLEAN renameLock = FALSE;
+    BOOLEAN targetBucketLock = FALSE;
+    BOOLEAN currentBucketLock = FALSE;
+    BOOLEAN scbLock = FALSE;
+
+    ntError = PvfsParseFileName(&newFileName, NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!PvfsIsDefaultStreamName(&newFileName))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsGetFullStreamname(&currentFullStreamName, pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gScbTable, NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCurrentBucket = pCcb->pScb->BaseControlBlock.pBucket;
+
+    // Locks - gScbTable(Excl)
+    //       - pCurrentBucket(Excl)
+    //       - pTargetBucket(Excl)
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(renameLock, &gScbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(currentBucketLock, &pCurrentBucket->rwLock);
+    if (pCurrentBucket != pTargetBucket)
+    {
+        // Will be moved to a new bucket in the table
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(targetBucketLock, &pTargetBucket->rwLock);
+    }
+
+    ntError = PvfsRenameFCB(pCcb->pScb->pOwnerFcb, pCcb, NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsGetFullStreamname(&newFullStreamName, pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_MUTEX(scbLock, &pCcb->pScb->BaseControlBlock.Mutex);
+
+    ntError = PvfsCbTableRemove_inlock(pCurrentBucket, currentFullStreamName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableAdd_inlock(
+                  pTargetBucket,
+                  newFullStreamName,
+                  (PPVFS_CONTROL_BLOCK)pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->pScb->BaseControlBlock.pBucket = pTargetBucket;
+
+    LWIO_UNLOCK_MUTEX(scbLock, &pCcb->pScb->BaseControlBlock.Mutex);
+
+
+error:
+    LWIO_UNLOCK_RWMUTEX(renameLock, &gScbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(currentBucketLock, &pCurrentBucket->rwLock);
+    LWIO_UNLOCK_RWMUTEX(targetBucketLock, &pTargetBucket->rwLock);
+
+    if (currentFullStreamName)
+    {
+        LwRtlCStringFree(&currentFullStreamName);
+    }
+
+    if (newFullStreamName)
+    {
+        LwRtlCStringFree(&newFullStreamName);
+    }
+
+    PvfsDestroyFileName(&newFileName);
+
+    return ntError;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+PvfsRenameStream(
+    PPVFS_CCB pCcb,
+    PSTR NewFileName
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}

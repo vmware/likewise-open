@@ -730,9 +730,6 @@ PvfsRenameFCB(
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
 
-    ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
-    BAIL_ON_NT_STATUS(ntError);
-
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */
 
@@ -861,7 +858,7 @@ PvfsRenameFCB(
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
-    LWIO_UNLOCK_RWMUTEX(bRenameLock, &gScbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bRenameLock, &gFcbTable.rwLock);
     LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->BaseControlBlock.Mutex);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);

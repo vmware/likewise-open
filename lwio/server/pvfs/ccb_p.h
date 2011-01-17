@@ -91,5 +91,11 @@ PvfsSaveFileDeviceInfo(
     PPVFS_CCB pCcb
     );
 
+NTSTATUS
+PvfsRenameCCB(
+    PPVFS_CCB pCcb,
+    PSTR NewFileName
+    );
+
 #endif     /* _PVFS_CCB_P_H */
 

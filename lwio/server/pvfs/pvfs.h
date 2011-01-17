@@ -417,6 +417,34 @@ PvfsParseStreamname(
     IN PCSTR pszFullStreamname
     );
 
+NTSTATUS
+PvfsParseFileName(
+    IN OUT PPVFS_FILE_NAME pFileName,
+    IN PCSTR FullFileName
+    );
+
+VOID
+PvfsDestroyFileName(
+    PPVFS_FILE_NAME pFileName
+    );
+
+VOID
+PvfsFreeFileName(
+    PPVFS_FILE_NAME pFileName
+    );
+
+NTSTATUS
+PvfsParseFileName(
+    IN OUT PPVFS_FILE_NAME pFileName,
+    IN PCSTR FullFileName
+    );
+
+NTSTATUS
+PvfsAllocateFileName(
+    OUT PPVFS_FILE_NAME *ppFileName,
+    IN PSTR SourceFileName
+    );
+
 /* From pathcache.c */
 
 NTSTATUS

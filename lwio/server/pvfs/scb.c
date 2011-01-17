@@ -1498,7 +1498,6 @@ error:
     goto cleanup;
 }
 
-
 /*****************************************************************************
  ****************************************************************************/
 
@@ -1555,6 +1554,25 @@ PvfsIsDefaultStream(
         isDefaultStream = TRUE;
     }
     LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
+
+    return isDefaultStream;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+BOOLEAN
+PvfsIsDefaultStreamName(
+    PPVFS_FILE_NAME pFileName
+    )
+{
+    BOOLEAN isDefaultStream = FALSE;
+
+    if (pFileName->FileName &&
+        (pFileName->StreamName == NULL) &&
+        (pFileName->Type == PVFS_STREAM_TYPE_DATA))
+    {
+        isDefaultStream = TRUE;
+    }
 
     return isDefaultStream;
 }
