@@ -329,23 +329,50 @@ PvfsRenameCCB(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-
-    // Check for renames out from under us
+    PVFS_FILE_NAME srcFileName = { 0 };
+    PVFS_FILE_NAME dstFileName = { 0 };
 
     ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (PvfsIsDefaultStream(pCcb->pScb))
+    ntError = PvfsBuildFileNameFromScb(&srcFileName, pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsBuildFileNameFromCString(&dstFileName, NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (LwRtlCStringIsEqual(
+            srcFileName.StreamName,
+            dstFileName.StreamName,
+            FALSE))
     {
+        // Both src and dst stream names ar ethe same some only
+        // renaming the underlying file object
+
         ntError = PvfsRenameFile(pCcb, NewFileName);
+    }
+    else if (LwRtlCStringIsEqual(
+                 srcFileName.FileName,
+                 dstFileName.FileName,
+                 FALSE))
+    {
+        // Renaming the named stream, file name stays the same
+
+        ntError = PvfsRenameStream(pCcb, NewFileName);
     }
     else
     {
-        ntError = PvfsRenameStream(pCcb, NewFileName);
+        // Don't allow renaming both the file name and stream name at the
+        // same time (yet)
+
+        ntError = STATUS_INVALID_PARAMETER;
     }
     BAIL_ON_NT_STATUS(ntError);
 
 error:
+    PvfsDestroyFileName(&srcFileName);
+    PvfsDestroyFileName(&dstFileName);
+
     return ntError;
 }
 
@@ -363,20 +390,10 @@ PvfsRenameFile(
     PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
     PSTR currentFullStreamName = NULL;
     PSTR newFullStreamName = NULL;
-    PVFS_FILE_NAME newFileName = { 0 };
     BOOLEAN renameLock = FALSE;
     BOOLEAN targetBucketLock = FALSE;
     BOOLEAN currentBucketLock = FALSE;
     BOOLEAN scbLock = FALSE;
-
-    ntError = PvfsBuildFileNameFromCString(&newFileName, NewFileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (!PvfsIsDefaultStreamName(&newFileName))
-    {
-        ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);
-    }
 
     ntError = PvfsGetFullStreamname(&currentFullStreamName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
@@ -434,8 +451,6 @@ error:
     {
         LwRtlCStringFree(&newFullStreamName);
     }
-
-    PvfsDestroyFileName(&newFileName);
 
     return ntError;
 }
