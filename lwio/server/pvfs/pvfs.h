@@ -356,6 +356,12 @@ PvfsCanonicalPathName(
     );
 
 NTSTATUS
+PvfsCanonicalPathName2(
+    OUT PPVFS_FILE_NAME *ppFileName,
+    IN IO_FILE_NAME IoPath
+    );
+
+NTSTATUS
 PvfsWC16CanonicalPathName(
     PSTR *ppszPath,
     PWSTR pwszPathname
@@ -396,6 +402,14 @@ PvfsLookupPath(
     OUT PSTR *ppszDiskPath,
     IN OUT PPVFS_STAT pStat,
     IN PCSTR pszPath,
+    IN BOOLEAN bCaseSensitive
+    );
+
+NTSTATUS
+PvfsLookupPath2(
+    OUT PPVFS_FILE_NAME *ppOutputFileName,
+    IN OUT PPVFS_STAT pStat,
+    IN PPVFS_FILE_NAME InputFileName,
     IN BOOLEAN bCaseSensitive
     );
 

@@ -81,12 +81,11 @@ PvfsCreate(
     FILE_CREATE_OPTIONS CreateOptions = 0;
     BOOLEAN bIsDirectory = FALSE;
     PIRP pIrp = pIrpContext->pIrp;
-    PSTR pszFilename = NULL;
-    PSTR pszDiskFilename = NULL;
     PVFS_STAT Stat = {0};
     FILE_CREATE_OPTIONS FileDirCombo = (FILE_DIRECTORY_FILE|
                                         FILE_NON_DIRECTORY_FILE);
-
+    PPVFS_FILE_NAME pInputFileName = NULL;
+    PPVFS_FILE_NAME pResolvedFileName = NULL;
 
     /* Check to see if this is a Device Create (i.e. NULL RootFileHandle
        and empty Filename) */
@@ -129,12 +128,16 @@ PvfsCreate(
     {
         /* stat() the path and find out if this is a file or directory */
 
-        ntError = PvfsCanonicalPathName(
-                      &pszFilename,
+        ntError = PvfsCanonicalPathName2(
+                      &pInputFileName,
                       pIrp->Args.Create.FileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsLookupPath(&pszDiskFilename, &Stat, pszFilename, FALSE);
+        ntError = PvfsLookupPath2(
+                      &pResolvedFileName,
+                      &Stat,
+                      pInputFileName,
+                      FALSE);
 
         /* The path lookup may fail which is ok.  We'll catch whether
            or not this is a real error later on */
@@ -160,8 +163,15 @@ PvfsCreate(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    RtlCStringFree(&pszFilename);
-    RtlCStringFree(&pszDiskFilename);
+    if (pInputFileName)
+    {
+        PvfsFreeFileName(pInputFileName);
+    }
+
+    if (pResolvedFileName)
+    {
+        PvfsFreeFileName(pResolvedFileName);
+    }
 
     return ntError;
 

@@ -56,8 +56,7 @@ PvfsResolvePath(
     );
 
 
-/***********************************************************************
- **********************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsCanonicalPathName(
@@ -118,6 +117,46 @@ error:
     LwRtlCStringFree(&pszCompletePath);
 
     goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsCanonicalPathName2(
+    OUT PPVFS_FILE_NAME *ppFileName,
+    IN IO_FILE_NAME IoPath
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR inputPath = NULL;
+    PPVFS_FILE_NAME pOutputFileName = NULL;
+
+    *ppFileName = NULL;
+
+    ntError = PvfsCanonicalPathName(&inputPath, IoPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, inputPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppFileName = pOutputFileName;
+    pOutputFileName = NULL;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (pOutputFileName)
+        {
+            PvfsFreeFileName(pOutputFileName);
+        }
+    }
+
+    if (inputPath)
+    {
+        LwRtlCStringFree(&inputPath);
+    }
+
+    return ntError;
 }
 
 /***********************************************************************
@@ -550,6 +589,116 @@ error:
 
     goto cleanup;
 }
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsLookupPath2(
+    OUT PPVFS_FILE_NAME *ppOutputFileName,
+    IN OUT PPVFS_STAT pStat,
+    IN PPVFS_FILE_NAME InputFileName,
+    IN BOOLEAN bCaseSensitive
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+    PPVFS_FILE_NAME pOutputFileName = NULL;
+    PSTR pszDiskPath = NULL;
+    PSTR pszPath = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&pszPath, InputFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // Check the cache
+
+    ntError = PvfsPathCacheLookup(&pszDiskPath, pszPath);
+    if (ntError == STATUS_SUCCESS)
+    {
+        /* Check that the path is still good.  If not fallback
+           to manual checks */
+
+        ntError = PvfsSysStat(pszDiskPath, &Stat);
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, pszDiskPath);
+            BAIL_ON_NT_STATUS(ntError);
+
+            *pStat = Stat;
+            *ppOutputFileName = pOutputFileName;
+            pOutputFileName = NULL;
+
+            goto cleanup;
+        }
+
+        PvfsPathCacheRemove(pszDiskPath);   // Ignore errors
+        LwRtlCStringFree(&pszDiskPath);
+        pszDiskPath = NULL;
+    }
+
+    /* See if we are lucky */
+
+    ntError = PvfsSysStat(pszPath, &Stat);
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = RtlCStringDuplicate(&pszDiskPath, pszPath);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsPathCacheAdd(pszPath);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, pszDiskPath);
+        BAIL_ON_NT_STATUS(ntError);
+
+        *pStat = Stat;
+        *ppOutputFileName = pOutputFileName;
+        pOutputFileName = NULL;
+
+        goto cleanup;
+    }
+
+    /* Done if use case sensitive matches */
+
+    if (bCaseSensitive)
+    {
+        ntError = STATUS_OBJECT_NAME_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Resolve the path */
+
+    ntError = PvfsResolvePath(&pszDiskPath, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* This should succeed now */
+    ntError = PvfsSysStat(pszDiskPath, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, pszDiskPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *pStat = Stat;
+    *ppOutputFileName = pOutputFileName;
+    pOutputFileName = NULL;
+
+cleanup:
+    if (pszDiskPath)
+    {
+        LwRtlCStringFree(&pszDiskPath);
+    }
+
+    if (pOutputFileName)
+    {
+        PvfsFreeFileName(pOutputFileName);
+    }
+
+
+    return ntError;
+
+error:
+
+    goto cleanup;
+}
+
 
 /****************************************************************
  ***************************************************************/
