@@ -645,9 +645,6 @@ PvfsCreateSCB(
                                   pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsFindOwnerFCB(&pOwnerFcb, pszOwnerFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
     ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -691,6 +688,9 @@ PvfsCreateSCB(
     BAIL_ON_NT_STATUS(ntError);
 
     pScb->StreamType = StreamType;
+
+    ntError = PvfsFindOwnerFCB(&pOwnerFcb, pszOwnerFilename);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAddSCBToFCB(pOwnerFcb, pScb);
     BAIL_ON_NT_STATUS(ntError);
