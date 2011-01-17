@@ -298,7 +298,6 @@ PvfsReleaseSCB(
     // DeletOnClose when the CCB handle count reaches 0.  Not necessarily
     // when the RefCount reaches 0.
 
-
     if (ppScb == NULL || *ppScb == NULL)
     {
         goto cleanup;
@@ -317,10 +316,25 @@ PvfsReleaseSCB(
         }
         if (ntError == STATUS_SUCCESS)
         {
+            PPVFS_FCB pFcb = pScb->pOwnerFcb;
+            BOOLEAN isDefaultStream = FALSE;
+            BOOLEAN fcbLock = FALSE;
+
             LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
-            if (pScb->bDeleteOnClose)
+            isDefaultStream = PvfsIsDefaultStream(pScb);
+
+            if (isDefaultStream)
             {
+                LWIO_LOCK_RWMUTEX_SHARED(fcbLock, &pFcb->rwScbLock);
+            }
+
+            if (pScb->bDeleteOnClose &&
+                (!isDefaultStream || (pFcb->OpenHandleCount == 0)))
+            {
+                // Either (a) this is a non-default stream, or (b) it's a default
+                // stream and all open handles have been closed
+
                 /* Clear the cache entry and remove the file but ignore any errors */
 
                 ntError = PvfsExecuteDeleteOnClose(pScb);
@@ -341,7 +355,33 @@ PvfsReleaseSCB(
 
                     if (fullStreamName)
                     {
-                        PvfsCbTableRemove(pBucket, fullStreamName);
+                        if (isDefaultStream)
+                        {
+                            BOOLEAN fcbMutexLock = FALSE;
+
+                            ntError = PvfsCbTableRemove(
+                                          pFcb->BaseControlBlock.pBucket,
+                                          pFcb->pszFilename);
+                            LWIO_ASSERT(ntError == STATUS_SUCCESS);
+
+                            LWIO_UNLOCK_RWMUTEX(fcbLock, &pFcb->rwScbLock);
+
+                            LWIO_LOCK_MUTEX(fcbMutexLock, &pFcb->BaseControlBlock.Mutex);
+                            pFcb->BaseControlBlock.Removed = TRUE;
+                            pFcb->BaseControlBlock.pBucket = NULL;
+                            LWIO_UNLOCK_MUTEX(fcbMutexLock, &pFcb->BaseControlBlock.Mutex);
+
+                            PvfsNotifyScheduleFullReport(
+                                pScb->pOwnerFcb,
+                                S_ISDIR(Stat.s_mode) ?
+                                    FILE_NOTIFY_CHANGE_DIR_NAME :
+                                    FILE_NOTIFY_CHANGE_FILE_NAME,
+                                FILE_ACTION_REMOVED,
+                                pFcb->pszFilename);
+                        }
+
+                        ntError = PvfsCbTableRemove(pBucket, fullStreamName);
+                        LWIO_ASSERT(ntError == STATUS_SUCCESS);
 
                         LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
                         pScb->BaseControlBlock.Removed = TRUE;
@@ -365,6 +405,7 @@ PvfsReleaseSCB(
                 }
             }
 
+            LWIO_UNLOCK_RWMUTEX(fcbLock, &pFcb->rwScbLock);
             LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
         }
     }

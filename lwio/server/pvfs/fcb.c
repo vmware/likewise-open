@@ -218,60 +218,6 @@ error:
 
 }
 
-/***********************************************************************
- Make sure to alkways enter this unfunction with thee pScb->ControlMutex
- locked
- **********************************************************************/
-
-static
-NTSTATUS
-PvfsExecuteDeleteOnCloseFcb(
-    PPVFS_FCB pFcb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-
-    /* Always reset the delete-on-close state to be safe */
-
-    pFcb->bDeleteOnClose = FALSE;
-
-    /* Verify we are deleting the file we think we are */
-
-    ntError = PvfsValidatePathFCB(pFcb, &pFcb->FileId);
-    if (ntError == STATUS_SUCCESS)
-    {
-        ntError = PvfsSysRemove(pFcb->pszFilename);
-
-        /* Reset dev/inode state */
-
-        pFcb->FileId.Device = 0;
-        pFcb->FileId.Inode  = 0;
-
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    switch (ntError)
-    {
-    case STATUS_OBJECT_NAME_NOT_FOUND:
-        break;
-
-    default:
-        LWIO_LOG_ERROR(
-            "%s: Failed to execute delete-on-close on %s (%d,%d) (%s)\n",
-            PVFS_LOG_HEADER,
-            pFcb->pszFilename, pFcb->FileId.Device, pFcb->FileId.Inode,
-            LwNtStatusToName(ntError));
-        break;
-    }
-
-    goto cleanup;
-}
-
-
 ////////////////////////////////////////////////////////////////////////
 
 VOID
@@ -282,7 +228,6 @@ PvfsReleaseFCB(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bBucketLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
-    BOOLEAN bFcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
@@ -312,7 +257,7 @@ PvfsReleaseFCB(
             {
 
                 ntError = PvfsFlushLastWriteTimeFcb(pFcb, LastWriteTime);
-#if 0
+
                 if (ntError == STATUS_SUCCESS)
                 {
                     PvfsNotifyScheduleFullReport(
@@ -321,56 +266,7 @@ PvfsReleaseFCB(
                         FILE_ACTION_MODIFIED,
                         pFcb->pszFilename);
                 }
-#endif
             }
-
-            LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->BaseControlBlock.Mutex);
-
-            if (pFcb->bDeleteOnClose)
-            {
-                /* Clear the cache entry and remove the file but ignore any errors */
-
-                ntError = PvfsExecuteDeleteOnCloseFcb(pFcb);
-
-                /* The locking heirarchy requires that we drop the FCP control
-                   block mutex before trying to pick up the ScbTable exclusive
-                   lock */
-
-                if (!pFcb->BaseControlBlock.Removed)
-                {
-                    PPVFS_CB_TABLE_ENTRY pBucket = pFcb->BaseControlBlock.pBucket;
-
-                    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->BaseControlBlock.Mutex);
-
-                    /* Remove the SCB from the Bucket before setting pScb->pBucket
-                       to NULL */
-
-                    PvfsCbTableRemove(pBucket, pFcb->pszFilename);
-
-                    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->BaseControlBlock.Mutex);
-                    pFcb->BaseControlBlock.Removed = TRUE;
-                    pFcb->BaseControlBlock.pBucket = NULL;
-                    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->BaseControlBlock.Mutex);
-                }
-                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->BaseControlBlock.Mutex);
-
-                PvfsPathCacheRemove(pFcb->pszFilename);
-
-#if 0
-                if (ntError == STATUS_SUCCESS)
-                {
-                    PvfsNotifyScheduleFullReport(
-                        pFcb,
-                        S_ISDIR(Stat.s_mode) ?
-                            FILE_NOTIFY_CHANGE_DIR_NAME :
-                            FILE_NOTIFY_CHANGE_FILE_NAME,
-                        FILE_ACTION_REMOVED,
-                        pFcb->pszFilename);
-                }
-#endif
-            }
-
-            LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->BaseControlBlock.Mutex);
         }
     }
 
