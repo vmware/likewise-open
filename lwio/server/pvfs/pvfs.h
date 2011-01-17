@@ -417,10 +417,31 @@ PvfsParseStreamname(
     IN PCSTR pszFullStreamname
     );
 
+
+// From filename.c
+
 NTSTATUS
-PvfsParseFileName(
+PvfsBuildFileNameFromCString(
     IN OUT PPVFS_FILE_NAME pFileName,
     IN PCSTR FullFileName
+    );
+
+NTSTATUS
+PvfsAllocateFileNameFromCString(
+    OUT PPVFS_FILE_NAME *ppFileName,
+    IN PSTR SourceFileName
+    );
+
+NTSTATUS
+PvfsBuildFileNameFromScb(
+    IN OUT PPVFS_FILE_NAME pFileName,
+    IN PPVFS_SCB pScb
+    );
+
+NTSTATUS
+PvfsAllocateFileNameFromScb(
+    OUT PPVFS_FILE_NAME *ppFileName,
+    IN PPVFS_SCB
     );
 
 VOID
@@ -434,16 +455,11 @@ PvfsFreeFileName(
     );
 
 NTSTATUS
-PvfsParseFileName(
-    IN OUT PPVFS_FILE_NAME pFileName,
-    IN PCSTR FullFileName
+PvfsAllocateCStringFromFileName(
+    OUT PSTR *ppFullFileName,
+    IN PPVFS_FILE_NAME pFileName
     );
 
-NTSTATUS
-PvfsAllocateFileName(
-    OUT PPVFS_FILE_NAME *ppFileName,
-    IN PSTR SourceFileName
-    );
 
 /* From pathcache.c */
 

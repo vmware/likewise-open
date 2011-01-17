@@ -369,7 +369,7 @@ PvfsRenameFile(
     BOOLEAN currentBucketLock = FALSE;
     BOOLEAN scbLock = FALSE;
 
-    ntError = PvfsParseFileName(&newFileName, NewFileName);
+    ntError = PvfsBuildFileNameFromCString(&newFileName, NewFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (!PvfsIsDefaultStreamName(&newFileName))
