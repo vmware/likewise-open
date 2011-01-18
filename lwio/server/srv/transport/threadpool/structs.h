@@ -22,6 +22,8 @@ typedef struct _SRV_TRANSPORT_HANDLE_DATA {
     SRV_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pContext;
     SRV_TRANSPORT_LISTENER Listener;
+    SRV_TRANSPORT_LISTENER ListenerNetbiosSession;
+    BOOL NetbiosSessionEnabled;
 #ifdef AF_INET6
     SRV_TRANSPORT_LISTENER Listener6;
 #endif

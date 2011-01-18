@@ -75,6 +75,7 @@
 "BootstrapDefaultSharePath"=dword:00000001
 "MonitorIntervalMinutes"=dword:00000000
 "DefaultSharePath"="/lwcifs"
+"SupportNetBIOS"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv\logging]
 "EnableLogging"=dword:00000000

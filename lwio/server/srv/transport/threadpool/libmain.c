@@ -53,12 +53,14 @@ NTSTATUS
 SrvTransportInit(
     OUT PSRV_TRANSPORT_HANDLE phTransport,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
-    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
+    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
+    IN BOOL bNetbiosSessionEnabled
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     NTSTATUS v4Status = STATUS_SUCCESS;
     NTSTATUS v6Status = STATUS_SUCCESS;
+    NTSTATUS nbStatus = STATUS_SUCCESS;
     PSRV_TRANSPORT_HANDLE_DATA pTransport = NULL;
     PLW_THREAD_POOL_ATTRIBUTES pAttrs = NULL;
 
@@ -79,9 +81,28 @@ SrvTransportInit(
 
     /* Try to listen on both IPv6 and IPv4 interfaces */
     LWIO_LOG_VERBOSE("Attempting to create IPv6 listener");
-    v6Status = SrvListenerInit(&pTransport->Listener6, pTransport, TRUE);
+    v6Status = SrvListenerInit(
+                   &pTransport->Listener6,
+                   pTransport,
+                   TRUE,
+                   FALSE);
     LWIO_LOG_VERBOSE("Attempting to create IPv4 listener");
-    v4Status = SrvListenerInit(&pTransport->Listener, pTransport, FALSE);
+    v4Status = SrvListenerInit(
+                   &pTransport->Listener,
+                   pTransport,
+                   FALSE,
+                   FALSE);
+    pTransport->NetbiosSessionEnabled = bNetbiosSessionEnabled;
+    if (pTransport->NetbiosSessionEnabled)
+    {
+        LWIO_LOG_VERBOSE("Attempting to create IPv4 NetBIOS listener");
+        nbStatus = SrvListenerInit(
+                       &pTransport->ListenerNetbiosSession,
+                       pTransport,
+                       FALSE,
+                       TRUE);
+    }
+
 
     /* Don't fail if only one of the listeners could not be started.  This
        could be for a variety of reasons:
@@ -92,7 +113,9 @@ SrvTransportInit(
          as well, so the IPv4 listener will fail with an "address in use" error.
          This is the case on default linux configurations.
     */
-    if (v6Status != STATUS_SUCCESS && v4Status != STATUS_SUCCESS)
+    if (v6Status != STATUS_SUCCESS &&
+        v4Status != STATUS_SUCCESS &&
+        nbStatus != STATUS_SUCCESS)
     {
         LWIO_LOG_ERROR("Could not establish any listeners");
 
@@ -125,6 +148,10 @@ SrvTransportShutdown(
     {
         SrvListenerShutdown(&hTransport->Listener);
         SrvListenerShutdown(&hTransport->Listener6);
+        if (hTransport->NetbiosSessionEnabled)
+        {
+            SrvListenerShutdown(&hTransport->ListenerNetbiosSession);
+        }
         LwRtlFreeThreadPool(&hTransport->pPool);
         SrvFreeMemory(hTransport);
     }
@@ -232,3 +259,15 @@ SrvTransportSocketClose(
 {
     SrvSocketClose(pSocket);
 }
+
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

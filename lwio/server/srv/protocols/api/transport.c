@@ -266,7 +266,8 @@ SrvProtocolTransportDriverInit(
     ntStatus = SrvTransportInit(
                     &pTransportContext->hTransport,
                     pTransportDispatch,
-                    pTransportContext);
+                    pTransportContext,
+                    SrvProtocolConfigIsNetbiosEnabled());
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -992,9 +993,25 @@ SrvProtocolTransportDriverDetectPacket(
 
             pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
             pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
-            if (pPacket->pNetBIOSHeader->len > 0xFFFFFF)
+
+            if (pConnection->pServerAddress->sa_family == AF_INET &&
+                ((struct sockaddr_in *)pConnection->pServerAddress)->sin_port
+                == htons(NETBIOS_SERVER_PORT))
             {
-                // Packet is too large
+                // A netbios session can only be 17 bits in length
+                pPacket->netbiosOpcode = (pPacket->pNetBIOSHeader->len>>24);
+                pPacket->pNetBIOSHeader->len &= 0xFFFFFF;
+                if (pPacket->pNetBIOSHeader->len & 0xFE0000)
+                {
+                    // Unknown flags
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
+            else if (pPacket->pNetBIOSHeader->len > 0xFFFFFF)
+            {
+                // "Naked" SMB can only be 24 bits in length.  This packet
+                // is too large
                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
@@ -1025,10 +1042,20 @@ SrvProtocolTransportDriverDetectPacket(
         ulBytesAvailable -= sNumBytesRead;
     }
 
-    // Packet is complete
-    if (!pConnection->readerState.bNeedHeader &&
+    if (pConnection->readerState.pRequestPacket->netbiosOpcode !=
+         SRV_NETBIOS_OPCODE_SESSION_MESSAGE &&
+         !pConnection->readerState.sNumBytesToRead)
+    {
+        // Netbios packet
+
+        pPacketFound = pConnection->readerState.pRequestPacket;
+        pConnection->readerState.pRequestPacket = NULL;
+    }
+    else if (!pConnection->readerState.bNeedHeader &&
         !pConnection->readerState.sNumBytesToRead)
     {
+        // Packet is complete
+
         PSMB_PACKET pPacket    = pConnection->readerState.pRequestPacket;
         PBYTE pBuffer          = pPacket->pRawBuffer + sizeof(NETBIOS_HEADER);
         ULONG ulBytesAvailable = pPacket->bufferUsed - sizeof(NETBIOS_HEADER);
@@ -1366,6 +1393,14 @@ SrvProtocolTransportDriverCheckSignature(
 
     // Already in pConnection lock.
 
+    if(pPacket->netbiosOpcode != SRV_NETBIOS_OPCODE_SESSION_MESSAGE)
+    {
+        // You can't sign a netbios packet.  Just say "yes"
+
+       ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
     switch (pConnection->protocolVer)
     {
         case SMB_PROTOCOL_VERSION_1:
@@ -1419,9 +1454,13 @@ SrvProtocolTransportDriverCheckSignature(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-error:
+cleanup:
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static

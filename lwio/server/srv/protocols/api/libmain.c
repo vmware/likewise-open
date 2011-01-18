@@ -121,35 +121,75 @@ SrvProtocolExecute(
     ntStatus = SrvProtocolAddContext(pContext, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if ((pContext->pSmbRequest->pSMBHeader->command == COM_NEGOTIATE) &&
-        (SrvConnectionGetState(pContext->pConnection) !=
-                                        LWIO_SRV_CONN_STATE_INITIAL))
+    if (pContext->pSmbRequest->netbiosOpcode !=
+        SRV_NETBIOS_OPCODE_SESSION_MESSAGE)
     {
-        SrvConnectionSetInvalid(pContext->pConnection);
+        switch(pContext->pSmbRequest->netbiosOpcode)
+        {
+            case SRV_NETBIOS_OPCODE_SESSION_REQUEST:
+                SMBPacketAllocate(
+                    pContext->pConnection->hPacketAllocator,
+                    &pContext->pSmbResponse);
 
-        ntStatus = STATUS_CONNECTION_RESET;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+                ntStatus = SrvAllocateMemory(
+                               sizeof(NETBIOS_HEADER),
+                               (PVOID*)&pContext->pSmbResponse->pRawBuffer);
+                BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (pContext->pSmbRequest->protocolVer)
+                pContext->pSmbResponse->bufferUsed = sizeof(NETBIOS_HEADER);
+
+                pContext->pSmbResponse->pNetBIOSHeader =
+                    (NETBIOS_HEADER *) pContext->pSmbResponse->pRawBuffer;
+
+                // Store the netbios response opcode in the response packet
+                // netbios header length
+                pContext->pSmbResponse->pNetBIOSHeader->len =
+                    htonl(SRV_NETBIOS_OPCODE_SESSION_POSITIVE_RESPONSE<<24);
+
+                break;
+
+            case SRV_NETBIOS_OPCODE_KEEPALIVE:
+                //no-op
+                break;
+
+            default:
+                SrvConnectionSetInvalid(pContext->pConnection);
+
+                ntStatus = STATUS_CONNECTION_RESET;
+                break;
+        }
+    } else
     {
-        case SMB_PROTOCOL_VERSION_1:
+        if ((pContext->pSmbRequest->pSMBHeader->command == COM_NEGOTIATE) &&
+            (SrvConnectionGetState(pContext->pConnection) !=
+                                            LWIO_SRV_CONN_STATE_INITIAL))
+        {
+            SrvConnectionSetInvalid(pContext->pConnection);
 
-            ntStatus = SrvProtocolExecute_SMB_V1_Filter(pContext);
+            ntStatus = STATUS_CONNECTION_RESET;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
-            break;
+        switch (pContext->pSmbRequest->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
 
-        case SMB_PROTOCOL_VERSION_2:
+                ntStatus = SrvProtocolExecute_SMB_V1_Filter(pContext);
 
-            ntStatus = SrvProtocolExecute_SMB_V2(pContext);
+                break;
 
-            break;
+            case SMB_PROTOCOL_VERSION_2:
 
-        default:
+                ntStatus = SrvProtocolExecute_SMB_V2(pContext);
 
-            ntStatus = STATUS_INTERNAL_ERROR;
+                break;
 
-            break;
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -353,3 +393,13 @@ SrvProtocolShutdown(
     }
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

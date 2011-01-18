@@ -76,6 +76,7 @@ typedef struct _LWIO_SRV_PROTOCOL_WORKER
 
 typedef struct _SRV_PROTOCOL_CONFIG
 {
+    BOOLEAN bEnableNetbios;
     BOOLEAN bEnableSmb2;
     BOOLEAN bEnableSigning;
     BOOLEAN bRequireSigning;
