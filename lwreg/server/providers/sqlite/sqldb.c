@@ -2432,7 +2432,6 @@ RegDbUpdateKeyAclContent_inlock(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDb;
-    PSTR pszError = NULL;
     // Do not free
     sqlite3_stmt *pstUpdateKeyAcl = pConn->pstUpdateRegAclByCacheId;
 
@@ -2468,11 +2467,6 @@ cleanup:
     return status;
 
  error:
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
 
     goto cleanup;
 }
