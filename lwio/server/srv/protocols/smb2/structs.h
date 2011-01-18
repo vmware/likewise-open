@@ -436,8 +436,8 @@ typedef struct __SMB2_IOCTL_RESPONSE_HEADER
 
 typedef struct __SMB2_LOCK
 {
-    LONG64 ullFileOffset;
-    LONG64 ullByteRange;
+    ULONG64 ullFileOffset;
+    ULONG64 ullByteRange;
     ULONG  ulFlags;
     ULONG  ulReserved;
 } __attribute__((__packed__)) SMB2_LOCK, *PSMB2_LOCK;

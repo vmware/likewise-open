@@ -662,7 +662,7 @@ error:
 
             SrvFileSetLastFailedLockOffset(
                     pLockState->pFile,
-                    pLockState->llOffset);
+                    pLockState->Offset);
 
             // intentional fall through
 
@@ -947,32 +947,32 @@ SrvMatchesPendingLargeUnlockState(
 
     if (pLockState->pUnlockRangeLarge)
     {
-        USHORT iLock             = 0;
-        LONG64 llCandidateOffset = 0LL;
-        LONG64 llCandidateLength = 0LL;
+        USHORT iLock            = 0;
+        ULONG64 candidateOffset = 0;
+        ULONG64 candidateLength = 0;
 
-        llCandidateOffset = (((LONG64)pCandidateRange->ulOffsetHigh) << 32) |
-                            ((LONG64)pCandidateRange->ulOffsetLow);
+        candidateOffset = (((LONG64)pCandidateRange->ulOffsetHigh) << 32) |
+                           ((LONG64)pCandidateRange->ulOffsetLow);
 
-        llCandidateLength = (((LONG64)pCandidateRange->ulLengthHigh) << 32) |
-                            ((LONG64)pCandidateRange->ulLengthLow);
+        candidateLength = (((LONG64)pCandidateRange->ulLengthHigh) << 32) |
+                           ((LONG64)pCandidateRange->ulLengthLow);
 
         for (iLock = 0; iLock < pLockState->pRequestHeader->usNumUnlocks; iLock++)
         {
             PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
                         &pLockState->pUnlockRangeLarge[iLock];
-            LONG64 llOffset = 0LL;
-            LONG64 llLength = 0LL;
+            ULONG64 offset = 0;
+            ULONG64 length = 0;
 
-            llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
-                       ((LONG64)pLockInfo->ulOffsetLow);
+            offset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                      ((LONG64)pLockInfo->ulOffsetLow);
 
-            llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
-                                   ((LONG64)pLockInfo->ulLengthLow);
+            length = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                      ((LONG64)pLockInfo->ulLengthLow);
 
             if ((pCandidateRange->usPid == pLockInfo->usPid) &&
-                (llCandidateOffset == llOffset) &&
-                (llCandidateLength == llLength))
+                (candidateOffset == offset) &&
+                (candidateLength == length))
             {
                 usLockIndex = iLock;
                 bResult = TRUE;
@@ -1082,32 +1082,32 @@ SrvMatchesPendingLargeLockState(
 
     if (pLockState->pLockRangeLarge)
     {
-        USHORT iLock             = 0;
-        LONG64 llCandidateOffset = 0LL;
-        LONG64 llCandidateLength = 0LL;
+        USHORT iLock            = 0;
+        ULONG64 candidateOffset = 0;
+        ULONG64 candidateLength = 0;
 
-        llCandidateOffset = (((LONG64)pCandidateRange->ulOffsetHigh) << 32) |
-                            ((LONG64)pCandidateRange->ulOffsetLow);
+        candidateOffset = (((LONG64)pCandidateRange->ulOffsetHigh) << 32) |
+                           ((LONG64)pCandidateRange->ulOffsetLow);
 
-        llCandidateLength = (((LONG64)pCandidateRange->ulLengthHigh) << 32) |
-                            ((LONG64)pCandidateRange->ulLengthLow);
+        candidateLength = (((LONG64)pCandidateRange->ulLengthHigh) << 32) |
+                           ((LONG64)pCandidateRange->ulLengthLow);
 
         for (iLock = 0; iLock < pLockState->pRequestHeader->usNumLocks; iLock++)
         {
             PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
                         &pLockState->pLockRangeLarge[iLock];
-            LONG64 llOffset = 0LL;
-            LONG64 llLength = 0LL;
+            ULONG64 offset = 0;
+            ULONG64 length = 0;
 
-            llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
-                       ((LONG64)pLockInfo->ulOffsetLow);
+            offset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                      ((LONG64)pLockInfo->ulOffsetLow);
 
-            llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
-                                   ((LONG64)pLockInfo->ulLengthLow);
+            length = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                      ((LONG64)pLockInfo->ulLengthLow);
 
             if ((pCandidateRange->usPid == pLockInfo->usPid) &&
-                (llCandidateOffset == llOffset) &&
-                (llCandidateLength == llLength))
+                (candidateOffset == offset) &&
+                (candidateLength == length))
             {
                 usLockIndex = iLock;
                 bResult = TRUE;
@@ -1803,22 +1803,22 @@ SrvExecuteLockRequest(
             PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
                         &pLockState->pUnlockRangeLarge[pLockState->iUnlock];
 
-            pLockState->llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
-                                   ((LONG64)pLockInfo->ulOffsetLow);
+            pLockState->Offset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                                  ((LONG64)pLockInfo->ulOffsetLow);
 
-            pLockState->llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
-                                   ((LONG64)pLockInfo->ulLengthLow);
+            pLockState->Length = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                                  ((LONG64)pLockInfo->ulLengthLow);
 
-            pLockState->ulKey    = pLockInfo->usPid;
+            pLockState->Key    = pLockInfo->usPid;
         }
         else
         {
             PLOCKING_ANDX_RANGE pLockInfo =
                         &pLockState->pUnlockRange[pLockState->iUnlock];
 
-            pLockState->llOffset = pLockInfo->ulOffset;
-            pLockState->llLength = pLockInfo->ulLength;
-            pLockState->ulKey    = pLockInfo->usPid;
+            pLockState->Offset = pLockInfo->ulOffset;
+            pLockState->Length = pLockInfo->ulLength;
+            pLockState->Key    = pLockInfo->usPid;
         }
 
         if (!bFailImmediately)
@@ -1830,9 +1830,9 @@ SrvExecuteLockRequest(
                         pLockState->pFile->hFile,
                         pLockState->pAcb,
                         &pLockState->ioStatusBlock,
-                        pLockState->llOffset,
-                        pLockState->llLength,
-                        pLockState->ulKey);
+                        pLockState->Offset,
+                        pLockState->Length,
+                        pLockState->Key);
         if (ntStatus == STATUS_PENDING)
         {
             pLockState->bUnlockPending = TRUE;
@@ -1855,22 +1855,22 @@ SrvExecuteLockRequest(
             PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
                         &pLockState->pLockRangeLarge[pLockState->iLock];
 
-            pLockState->llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+            pLockState->Offset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
                                    ((LONG64)pLockInfo->ulOffsetLow);
 
-            pLockState->llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+            pLockState->Length = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
                                    ((LONG64)pLockInfo->ulLengthLow);
 
-            pLockState->ulKey    = pLockInfo->usPid;
+            pLockState->Key    = pLockInfo->usPid;
         }
         else
         {
             PLOCKING_ANDX_RANGE pLockInfo =
                         &pLockState->pLockRange[pLockState->iLock];
 
-            pLockState->llOffset = pLockInfo->ulOffset;
-            pLockState->llLength = pLockInfo->ulLength;
-            pLockState->ulKey    = pLockInfo->usPid;
+            pLockState->Offset = pLockInfo->ulOffset;
+            pLockState->Length = pLockInfo->ulLength;
+            pLockState->Key    = pLockInfo->usPid;
         }
 
         if (!bFailImmediately)
@@ -1882,9 +1882,9 @@ SrvExecuteLockRequest(
                         pLockState->pFile->hFile,
                         pLockState->pAcb,
                         &pLockState->ioStatusBlock,
-                        pLockState->llOffset,
-                        pLockState->llLength,
-                        pLockState->ulKey,
+                        pLockState->Offset,
+                        pLockState->Length,
+                        pLockState->Key,
                         bFailImmediately,
                         pLockState->bRequestExclusiveLock);
         if (ntStatus == STATUS_PENDING)
@@ -2030,47 +2030,47 @@ SrvClearLocks(
     {
         NTSTATUS        ntStatus      = STATUS_SUCCESS;
         IO_STATUS_BLOCK ioStatusBlock = {0};
-        LONG64          llOffset      = 0;
-        LONG64          llLength      = 0;
-        ULONG           ulKey         = 0;
+        ULONG64         Offset        = 0;
+        ULONG64         Length        = 0;
+        ULONG           Key           = 0;
 
         if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
         {
             PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
                         &pLockState->pLockRangeLarge[pLockState->iLock];
 
-            llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
-                       ((LONG64)pLockInfo->ulOffsetLow);
+            Offset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                      ((LONG64)pLockInfo->ulOffsetLow);
 
-            llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
-                       ((LONG64)pLockInfo->ulLengthLow);
+            Length = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                      ((LONG64)pLockInfo->ulLengthLow);
 
-            ulKey    = pLockInfo->usPid;
+            Key    = pLockInfo->usPid;
         }
         else
         {
             PLOCKING_ANDX_RANGE pLockInfo =
                         &pLockState->pLockRange[pLockState->iLock];
 
-            llOffset = pLockInfo->ulOffset;
-            llLength = pLockInfo->ulLength;
-            ulKey    = pLockInfo->usPid;
+            Offset = pLockInfo->ulOffset;
+            Length = pLockInfo->ulLength;
+            Key    = pLockInfo->usPid;
         }
 
         ntStatus = IoUnlockFile(
                         pLockState->pFile->hFile,
                         NULL,
                         &ioStatusBlock,
-                        llOffset,
-                        llLength,
-                        ulKey);
+                        Offset,
+                        Length,
+                        Key);
         if (ntStatus != STATUS_SUCCESS)
         {
             LWIO_LOG_ERROR("Failed to unlock range "
-                           "[fid:%d; offset:%lld; length:%lld][status:0x%x]",
+                           "[fid:%d; offset:%uld; length:%uld][status:0x%x]",
                             pLockState->pFile->fid,
-                            llOffset,
-                            llLength,
+                            Offset,
+                            Length,
                             ntStatus);
         }
         else
@@ -2257,7 +2257,7 @@ SrvConvertLockTimeout(
         ULONG64 ullOffset = 0;
         const ULONG64 ullMaxNonBlockingLockOffset = 0xEF000000;
         const ULONG ulLockConflictTimeout = 250;
-        ULONG64 ullLastFailedLockOffset = -1;
+        ULONG64 ullLastFailedLockOffset = (ULONG64)-1;
 
         // If a requested lock has previously conflicted with a held lock
         // we save the offset. If it is requested again in a non-blocking
