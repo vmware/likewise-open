@@ -122,7 +122,6 @@ SrvProcessNotify_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
     PLWIO_SRV_SESSION_2        pSession     = NULL;
     PLWIO_SRV_TREE_2           pTree        = NULL;
-    PLWIO_SRV_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PSRV_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
     PLWIO_ASYNC_STATE          pAsyncState       = NULL;
@@ -343,11 +342,6 @@ cleanup:
     if (pAsyncState)
     {
         SrvAsyncStateRelease(pAsyncState);
-    }
-
-    if (pFile)
-    {
-        SrvFile2Release(pFile);
     }
 
     if (pTree)
