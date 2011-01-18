@@ -133,7 +133,8 @@ KtKrb5KeytabOpen(
     *pCtx = ctx;
 
 error:
-    if (ret && ctx)
+
+    if (dwError && ctx)
     {
         krb5_free_context(ctx);
         ctx = NULL;
