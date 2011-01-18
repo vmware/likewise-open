@@ -225,7 +225,6 @@ SrvProcessFind_SMB_V2(
     PSMB2_FIND_REQUEST_HEADER  pRequestHeader  = NULL; // Do not free
     PSMB2_FIND_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     UNICODE_STRING             wszFilename     = {0};
-    PWSTR    pwszFilePath       = NULL;
     PWSTR    pwszFilesystemPath = NULL;
     BOOLEAN  bInLock           = FALSE;
     PBYTE    pData             = NULL; // Do not free
@@ -622,10 +621,6 @@ cleanup:
     if (pwszFilesystemPath)
     {
         SrvFreeMemory(pwszFilesystemPath);
-    }
-    if (pwszFilePath)
-    {
-        SrvFreeMemory(pwszFilePath);
     }
 
     if (pFile)
