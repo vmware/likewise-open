@@ -481,7 +481,10 @@ error:
 
     LW_SAFE_FREE_MEMORY(pszNew);
 
-    *ppszEscapedString = NULL;
+    if (ppszEscapedString)
+    {
+        *ppszEscapedString = NULL;
+    }
 
     goto cleanup;
 }
