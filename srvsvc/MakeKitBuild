@@ -1,4 +1,4 @@
-SUBDIRS="include utils logging_r client server etc"
+SUBDIRS="include utils logging_r client server etc test"
 
 configure()
 {
