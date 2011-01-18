@@ -619,11 +619,8 @@ LsaSrvFindObjects(
                 &ppCombinedObjects[dwIndex]);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (pLoginInfo)
-            {
-                LsaSrvFreeNameInfo(pLoginInfo);
-                pLoginInfo = NULL;
-            }
+            LsaSrvFreeNameInfo(pLoginInfo);
+            pLoginInfo = NULL;
         }
         break;
     }
