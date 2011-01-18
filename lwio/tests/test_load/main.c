@@ -65,7 +65,7 @@ LoadThread(
     static const CHAR szPayload[] = PAYLOAD;
     CHAR szCompare[sizeof(szPayload)];
     IO_STATUS_BLOCK ioStatus = {0};
-    LONG64 llOffset = 0;
+    ULONG64 offset = 0;
     CHAR szHostname[256] = {0};
     LW_PIO_CREDS pCreds = NULL;
 
@@ -174,7 +174,7 @@ LoadThread(
         {
             pFile = &pFiles[ulFile];
 
-            llOffset = 0;
+            offset = 0;
 
             if (pFile->hHandle)
             {
@@ -184,7 +184,7 @@ LoadThread(
                     &ioStatus, /* IO status block */
                     (PVOID) szPayload, /* Buffer */
                     sizeof(szPayload), /* Buffer size */
-                    &llOffset, /* File offset */
+                    &offset, /* File offset */
                     NULL); /* Key */
                 GOTO_ERROR_ON_STATUS(status);
             }
@@ -234,7 +234,7 @@ LoadThread(
 
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
-            llOffset = 0;
+            offset = 0;
 
             if (pFile->hHandle)
             {
@@ -244,7 +244,7 @@ LoadThread(
                     &ioStatus, /* IO status block */
                     szCompare, /* Buffer */
                     sizeof(szCompare), /* Buffer size */
-                    &llOffset, /* File offset */
+                    &offset, /* File offset */
                     NULL); /* Key */
                 GOTO_ERROR_ON_STATUS(status);
 

@@ -791,7 +791,7 @@ PvfsCheckLockedRegion(
     IN PPVFS_CCB pCcb,
     IN PVFS_OPERATION_TYPE Operation,
     IN ULONG Key,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     IN ULONG Length
     )
 {

@@ -121,7 +121,7 @@ LwNtCtxReadFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
-    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG64 ByteOffset,
     IN OPTIONAL PULONG Key
     );
 
@@ -133,7 +133,7 @@ LwNtCtxWriteFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length,
-    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG64 ByteOffset,
     IN OPTIONAL PULONG Key
     );
 
@@ -428,7 +428,7 @@ LwNtReadFile(
     LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
     LW_OUT LW_PVOID Buffer,
     LW_IN LW_ULONG Length,
-    LW_IN LW_OPTIONAL LW_PLONG64 ByteOffset,
+    LW_IN LW_OPTIONAL LW_PULONG64 ByteOffset,
     LW_IN LW_OPTIONAL LW_PULONG Key
     );
 
@@ -439,7 +439,7 @@ LwNtWriteFile(
     LW_OUT PIO_STATUS_BLOCK IoStatusBlock,
     LW_IN LW_PVOID Buffer,
     LW_IN LW_ULONG Length,
-    LW_IN LW_OPTIONAL LW_PLONG64 ByteOffset,
+    LW_IN LW_OPTIONAL LW_PULONG64 ByteOffset,
     LW_IN LW_OPTIONAL LW_PULONG Key
     );
 

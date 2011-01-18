@@ -367,7 +367,7 @@ SrvBuildWriteState(
 
     pWriteState->pRequestHeader = pRequestHeader;
     pWriteState->pData          = pData;
-    pWriteState->llOffset = pWriteState->pRequestHeader->offset;
+    pWriteState->Offset = pWriteState->pRequestHeader->offset;
     pWriteState->ulLength = pWriteState->pRequestHeader->dataLength;
 
     *ppWriteState = pWriteState;
@@ -412,7 +412,7 @@ SrvExecuteWrite(
                             0,
                             pWriteState->Zct.pZct,
                             pWriteState->ulLength,
-                            &pWriteState->llOffset,
+                            &pWriteState->Offset,
                             &pWriteState->ulKey,
                             &pWriteState->Zct.pZctCompletion);
             if (ntStatus == STATUS_NOT_SUPPORTED)
@@ -474,7 +474,7 @@ SrvExecuteWrite(
                             &pWriteState->ioStatusBlock,
                             pWriteState->pData,
                             pWriteState->ulLength,
-                            &pWriteState->llOffset,
+                            &pWriteState->Offset,
                             &pWriteState->ulKey);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -516,7 +516,7 @@ SrvExecuteWriteSetEndOfFile(
 
     if (!pWriteState->pFileEofInfo)
     {
-        pWriteState->fileEofInfo.EndOfFile = pWriteState->llOffset;
+        pWriteState->fileEofInfo.EndOfFile = pWriteState->Offset;
         pWriteState->pFileEofInfo = &pWriteState->fileEofInfo;
 
         SrvPrepareWriteStateAsync(pWriteState, pExecContext);

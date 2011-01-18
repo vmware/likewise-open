@@ -322,7 +322,7 @@ PvfsWriteFileWithContext(
     ULONG bufLen = pWriteCtx->pZctContext ? pIrp->Args.ReadWrite.ZctWriteBytesTransferred : pIrp->Args.ReadWrite.Length;
     ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     ULONG totalBytesWritten = 0;
-    LONG64 Offset = 0;
+    ULONG64 Offset = 0;
     BOOLEAN bMutexLocked = FALSE;
 
     /* Enter critical region - WriteFile() needs to fill
@@ -397,12 +397,12 @@ PvfsDoWriteIo(
     IN PPVFS_CCB pCcb,
     OUT PVOID pBuffer,
     IN ULONG BufferLength,
-    IN LONG64 Offset,
+    IN ULONG64 Offset,
     OUT PULONG pBytesWritten
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    LONG64 currentOffset = Offset;
+    ULONG64 currentOffset = Offset;
     size_t totalBytesWritten = 0;
 
     while (totalBytesWritten < BufferLength)
