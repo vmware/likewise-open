@@ -504,6 +504,8 @@ AD_ReadRegistry(
 cleanup:
     LW_SAFE_FREE_STRING(pszUmask);
     LW_SAFE_FREE_STRING(pszUnresolvedMemberList);
+    LW_SAFE_FREE_STRING(pszExcludeTrustsListMultiString);
+    LW_SAFE_FREE_STRING(pszIncludeTrustsListMultiString);
 
     AD_FreeConfigContents(&StagingConfig);
 
