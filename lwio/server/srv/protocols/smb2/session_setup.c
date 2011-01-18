@@ -217,6 +217,9 @@ SrvProcessSessionSetup_SMB_V2(
                              &pConnection->ulSessionKeyLength,
                              &pszClientPrincipalName,
                              &hContextHandle);
+             BAIL_ON_NT_STATUS(ntStatus);
+
+             bInitializedSessionKey = TRUE;
         }
         else
         {
@@ -226,8 +229,8 @@ SrvProcessSessionSetup_SMB_V2(
                              NULL,
                              &pszClientPrincipalName,
                              &hContextHandle);
+             BAIL_ON_NT_STATUS(ntStatus);
         }
-        BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvIoSecCreateSecurityContextFromGssContext(
                        &pCtxSmb2->pSession->pIoSecurityContext,
