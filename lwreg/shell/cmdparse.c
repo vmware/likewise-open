@@ -603,6 +603,7 @@ cleanup:
     return dwError;
 
 error:
+    LWREG_SAFE_FREE_MEMORY(pdwValue);
     goto cleanup;
 }
 
