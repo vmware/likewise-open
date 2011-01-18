@@ -776,7 +776,7 @@ LwNtCtxFsControlFileComplete(
 
     if (status == STATUS_SUCCESS)
     {
-        NtpCtxGetBufferResult(
+        (void) NtpCtxGetBufferResult(
             pContext->IoStatusBlock,
             pContext->OutputBuffer,
             pContext->OutputBufferLength,
