@@ -360,9 +360,9 @@ WkssFreeBinding(
     {
 	    rpc_binding_free((handle_t*)phBinding, &rpcStatus);
         BAIL_ON_RPC_STATUS(rpcStatus);
-    }
 
-    *phBinding = NULL;
+        *phBinding = NULL;
+    }
 
 cleanup:
     return;
