@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software
@@ -405,6 +405,7 @@ SrvBuildFindFirst2Response(
                     pwszFilesystemPath,
                     pwszSearchPattern2,
                     usSearchAttrs,
+                    usFlags,
                     ulSearchStorageType,
                     infoLevel,
                     (pSmbRequest->pHeader->flags2 & FLAG2_KNOWS_LONG_NAMES ? TRUE : FALSE),
