@@ -57,8 +57,8 @@ LwSrvInfoAcquireDataContext(
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    LWMsgContext* pContext;
-    LWMsgDataContext* pDataContext;
+    LWMsgContext* pContext = NULL;
+    LWMsgDataContext* pDataContext = NULL;
 
     Status = LwSrvInfoGetMarshalContext(&pContext);
     BAIL_ON_NT_STATUS(Status);
