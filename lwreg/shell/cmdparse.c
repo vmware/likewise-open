@@ -818,15 +818,16 @@ RegShellImportBinaryString(
         *ppBinaryValue = binaryValue;
         *pBinaryValueLen = binaryValueLen;
     }
+    else
+    {
+        LWREG_SAFE_FREE_MEMORY(binaryValue);
+    }
 
 cleanup:
     return dwError;
 
 error:
-    if (binaryValue)
-    {
-        RegMemoryFree(binaryValue);
-    }
+    LWREG_SAFE_FREE_MEMORY(binaryValue);
     goto cleanup;
 }
 
