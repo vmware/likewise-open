@@ -63,8 +63,8 @@ PvfsLockControl(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     IRP_ARGS_LOCK_CONTROL Args = pIrp->Args.LockControl;
-    LONG64 Offset = Args.ByteOffset;
-    LONG64 Length = Args.Length;
+    ULONG64 Offset = Args.ByteOffset;
+    ULONG64 Length = Args.Length;
     ULONG Key = Args.Key;
     PVFS_LOCK_FLAGS Flags = 0;
     PPVFS_CCB pCcb = NULL;
