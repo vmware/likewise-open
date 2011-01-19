@@ -1102,6 +1102,7 @@ PvfsResolvePath(
         if (workingPath)
         {
             PvfsFreeFileName(workingPath);
+            workingPath = NULL;
         }
     }
 
