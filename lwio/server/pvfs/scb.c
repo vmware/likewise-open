@@ -482,7 +482,8 @@ error:
 NTSTATUS
 PvfsGetFullStreamname_inScbLock(
     PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb
+    PPVFS_SCB pScb,
+    IN OPTIONAL PSTR pszOwnerFilename
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -498,7 +499,9 @@ PvfsGetFullStreamname_inScbLock(
             ntError = RtlCStringAllocatePrintf(
                           ppszFullStreamname,
                           "%s:%s:%s",
-                          pScb->pOwnerFcb->pszFilename,
+                          LwRtlCStringIsNullOrEmpty(pszOwnerFilename) ?
+                            pScb->pOwnerFcb->pszFilename :
+                            pszOwnerFilename,
                           pScb->pszStreamname,
                           PVFS_STREAM_DEFAULT_TYPE_S);
             break;
@@ -533,7 +536,7 @@ PvfsGetFullStreamname(
 
     LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
 
-    ntError = PvfsGetFullStreamname_inScbLock(ppszFullStreamname, pScb);
+    ntError = PvfsGetFullStreamname_inScbLock(ppszFullStreamname, pScb, NULL);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -1475,7 +1478,7 @@ PvfsRenameSCB(
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     }
 
-    ntError = PvfsGetFullStreamname_inScbLock(&currentFullStreamName, pScb);
+    ntError = PvfsGetFullStreamname_inScbLock(&currentFullStreamName, pScb, NULL);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsCbTableRemove_inlock(pCurrentBucket, currentFullStreamName);
@@ -1490,7 +1493,7 @@ PvfsRenameSCB(
     // FIXME!!  Here is where we would change the stream name itself
     // ntError = PvfsParseStreamname();
 
-    ntError = PvfsGetFullStreamname_inScbLock(&newFullStreamName, pScb);
+    ntError = PvfsGetFullStreamname_inScbLock(&newFullStreamName, pScb, NULL);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gScbTable(Excl),

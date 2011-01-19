@@ -612,7 +612,7 @@ NTSTATUS
 PvfsRenameFCB(
     PPVFS_FCB pFcb,
     PPVFS_CCB pCcb,
-    PSTR pszNewFilename
+    PPVFS_FILE_NAME pNewFilename
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -629,24 +629,22 @@ PvfsRenameFCB(
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
     PPVFS_FILE_NAME currentFileName = NULL;
-    PPVFS_FILE_NAME newFileName = NULL;
 
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */
 
-    ntError = PvfsFindParentFCB(&pNewParentFcb, pszNewFilename);
+    BAIL_ON_INVALID_PTR(pNewFilename, ntError);
+
+    ntError = PvfsFindParentFCB(&pNewParentFcb, pNewFilename->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gFcbTable, pszNewFilename);
+    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gFcbTable, pNewFilename->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gFcbTable(Excl) */
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bRenameLock, &gFcbTable.rwLock);
 
     ntError = PvfsAllocateFileNameFromScb(&currentFileName, pCcb->pScb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAllocateFileNameFromCString(&newFileName, pszNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gFcbTable(Excl),
@@ -657,7 +655,7 @@ PvfsRenameFCB(
     ntError = PvfsCbTableLookup_inlock(
                   (PPVFS_CONTROL_BLOCK*)&pTargetFcb,
                   pTargetBucket,
-                  pszNewFilename);
+                  pNewFilename->FileName);
     if (ntError == STATUS_SUCCESS)
     {
         /* Make sure we have a different SCB */
@@ -684,7 +682,7 @@ PvfsRenameFCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
 
-    ntError = PvfsSysRenameByFileName(currentFileName, newFileName);
+    ntError = PvfsSysRenameByFileName(currentFileName, pNewFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Clear the cache entry but ignore any errors */
@@ -720,7 +718,7 @@ PvfsRenameFCB(
 
     PVFS_FREE(&pFcb->pszFilename);
 
-    ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
+    ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pNewFilename->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Have to update the parent links as well */
@@ -757,7 +755,7 @@ PvfsRenameFCB(
     LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
         PVFS_FREE(&pCcb->pszFilename);
-        ntError = LwRtlCStringDuplicate(&pCcb->pszFilename, pszNewFilename);
+        ntError = LwRtlCStringDuplicate(&pCcb->pszFilename, pNewFilename->FileName);
         BAIL_ON_NT_STATUS(ntError);
 
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
@@ -788,11 +786,6 @@ cleanup:
     if (currentFileName)
     {
         PvfsFreeFileName(currentFileName);
-    }
-
-    if (newFileName)
-    {
-        PvfsFreeFileName(newFileName);
     }
 
     return ntError;

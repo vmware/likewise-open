@@ -85,7 +85,8 @@ PvfsGetFullStreamname(
 NTSTATUS
 PvfsGetFullStreamname_inScbLock(
     PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb
+    PPVFS_SCB pScb,
+    IN OPTIONAL PSTR pszOwnerFilename
     );
 
 

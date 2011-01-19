@@ -95,7 +95,7 @@ NTSTATUS
 PvfsRenameFCB(
     PPVFS_FCB pFcb,
     PPVFS_CCB pCcb,
-    PSTR pszNewFilename
+    PPVFS_FILE_NAME pNewFilename
     );
 
 BOOLEAN
