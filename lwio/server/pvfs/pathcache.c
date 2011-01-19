@@ -50,21 +50,26 @@
 
 typedef struct _PVFS_PATH_CACHE_ENTRY
 {
-    PSTR pszPathname;
+    PVFS_FILE_NAME FileName;
 
 } PVFS_PATH_CACHE_ENTRY, *PPVFS_PATH_CACHE_ENTRY;
 
-/*****************************************************************************
- ****************************************************************************/
+static
+VOID
+PvfsPathCacheFreeRecord(
+    IN OUT PPVFS_PATH_CACHE_ENTRY pRecord
+    );
+
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsPathCacheAdd(
-    IN PCSTR pszResolvedPath
+    IN PPVFS_FILE_NAME ResolvedFileName
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN cacheLock = FALSE;
 
     if (gpPathCache == NULL)
     {
@@ -72,7 +77,7 @@ PvfsPathCacheAdd(
            initialized, just report success and move on */
 
         ntError = STATUS_SUCCESS;
-        goto cleanup;
+        goto error;
     }
 
     ntError = PvfsAllocateMemory(
@@ -81,50 +86,42 @@ PvfsPathCacheAdd(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = LwRtlCStringDuplicate(
-                  &pCacheRecord->pszPathname,
-                  pszResolvedPath);
+    ntError = PvfsFileNameCopy(&pCacheRecord->FileName, ResolvedFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+    LWIO_LOCK_MUTEX(cacheLock, &gPathCacheLock);
     ntError = LwioLruSetValue(
                   gpPathCache,
-                  (PVOID)pCacheRecord->pszPathname,
+                  (PVOID)&pCacheRecord->FileName,
                   (PVOID)pCacheRecord);
-    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
+    LWIO_UNLOCK_MUTEX(cacheLock, &gPathCacheLock);
 
     BAIL_ON_NT_STATUS(ntError);
 
-cleanup:
-    return ntError;
-
 error:
-    if (pCacheRecord)
+    if (!NT_SUCCESS(ntError))
     {
-        if (pCacheRecord->pszPathname)
+        if (pCacheRecord)
         {
-            LwRtlCStringFree(&pCacheRecord->pszPathname);
+            PvfsPathCacheFreeRecord(pCacheRecord);
         }
-
-        PVFS_FREE(&pCacheRecord);
     }
 
-    goto cleanup;
+    return ntError;
 }
 
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsPathCacheLookup(
-    OUT PSTR *ppszResolvedPath,
-    IN  PCSTR pszOriginalPath
+    OUT PPVFS_FILE_NAME *ppResolvedFileName,
+    IN  PPVFS_FILE_NAME pOriginalFileName
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN cacheLock = FALSE;
     PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
-    PSTR pszResolvedPath = NULL;
+    PPVFS_FILE_NAME resolvedFileName = NULL;
 
     if (gpPathCache == NULL)
     {
@@ -134,104 +131,56 @@ PvfsPathCacheLookup(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+    LWIO_LOCK_MUTEX(cacheLock, &gPathCacheLock);
     ntError = LwioLruGetValue(
                   gpPathCache,
-                  (PCVOID)pszOriginalPath,
+                  (PCVOID)pOriginalFileName,
                   (PVOID*)&pCacheRecord);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = LwRtlCStringDuplicate(
-                  &pszResolvedPath,
-                  pCacheRecord->pszPathname);
+    ntError = PvfsFileNameDuplicate(&resolvedFileName, &pCacheRecord->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    *ppszResolvedPath = pszResolvedPath;
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
-
-    return ntError;
+    *ppResolvedFileName = resolvedFileName;
 
 error:
-    if (pszResolvedPath)
+    LWIO_UNLOCK_MUTEX(cacheLock, &gPathCacheLock);
+
+    if (!NT_SUCCESS(ntError))
     {
-        LwRtlCStringFree(&pszResolvedPath);
+        if (resolvedFileName)
+        {
+            PvfsFreeFileName(resolvedFileName);
+        }
     }
-    goto cleanup;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-NTSTATUS
-PvfsPathCacheLookup2(
-    OUT PSTR pszBuffer,
-    IN  size_t sBufferLength,
-    IN  PCSTR pszOriginalPath
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bLocked = FALSE;
-    PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
-
-    if (gpPathCache == NULL)
-    {
-        /* If the PathCache has been disabled, just fail
-           the lookup and move on */
-        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
-    ntError = LwioLruGetValue(
-                  gpPathCache,
-                  (PCVOID)pszOriginalPath,
-                  (PVOID*)&pCacheRecord);
-    BAIL_ON_NT_STATUS(ntError);
-
-    strncpy(pszBuffer, pCacheRecord->pszPathname, sBufferLength-1);
-    pszBuffer[sBufferLength-1] = '\0';
-
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsPathCacheRemove(
-    PCSTR pszPathname
+    IN PPVFS_FILE_NAME FileName
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN cacheLock = FALSE;
 
     if (gpPathCache != NULL)
     {
-        LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+        LWIO_LOCK_MUTEX(cacheLock, &gPathCacheLock);
 
-        /* Ignore errors from the remove */
-        ntError = LwioLruRemove(gpPathCache, (PVOID)pszPathname);
+        // Ignore errors from the remove
+        ntError = LwioLruRemove(gpPathCache, (PVOID)FileName);
 
-        LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
+        LWIO_UNLOCK_MUTEX(cacheLock, &gPathCacheLock);
     }
 
     return STATUS_SUCCESS;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
 LONG
@@ -289,18 +238,18 @@ PvfsPathCacheShutdown(
     VOID
     )
 {
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN cacheLock = FALSE;
 
     if (gpPathCache == NULL)
     {
         goto cleanup;
     }
 
-    LWIO_LOCK_MUTEX(bLocked, &gPathCacheLock);
+    LWIO_LOCK_MUTEX(cacheLock, &gPathCacheLock);
 
     LwioLruSafeFree(&gpPathCache);
 
-    LWIO_UNLOCK_MUTEX(bLocked, &gPathCacheLock);
+    LWIO_UNLOCK_MUTEX(cacheLock, &gPathCacheLock);
 
     pthread_mutex_destroy(&gPathCacheLock);
     gpPathCacheLock = NULL;
@@ -310,32 +259,56 @@ cleanup:
     return;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
 ULONG
 PvfsPathCacheKey(
-    PCVOID pszPath
+    PCVOID Key
     )
 {
     ULONG KeyResult = 0;
-    PCSTR pszPathname = (PCSTR)pszPath;
-    PCSTR pszChar = NULL;
+    PPVFS_FILE_NAME FileNameKey = (PPVFS_FILE_NAME)Key;
+    PCSTR cursor = NULL;
 
-    for (pszChar=pszPathname; pszChar && *pszChar; pszChar++)
+    for (cursor=FileNameKey->FileName; cursor && *cursor; cursor++)
     {
         KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) +
-                    (ULONG)tolower(*pszChar);
+                    (ULONG)tolower(*cursor);
+    }
+
+    if (FileNameKey->StreamName)
+    {
+        for (cursor=FileNameKey->FileName; cursor && *cursor; cursor++)
+        {
+            KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) +
+                        (ULONG)tolower(*cursor);
+        }
+
+        KeyResult = (PVFS_PATH_HASH_MULTIPLIER * KeyResult) + FileNameKey->Type;
     }
 
     return KeyResult;
 }
 
+////////////////////////////////////////////////////////////////////////
 
-/*****************************************************************************
- ****************************************************************************/
+
+static
+VOID
+PvfsPathCacheFreeRecord(
+    IN OUT PPVFS_PATH_CACHE_ENTRY pRecord
+    )
+{
+    PvfsDestroyFileName(&pRecord->FileName);
+
+    PVFS_FREE(&pRecord);
+
+    return;
+}
+
+
+////////////////////////////////////////////////////////////////////////
 
 static
 VOID
@@ -347,17 +320,18 @@ PvfsPathCacheFreeEntry(
 
     pRecord = (PPVFS_PATH_CACHE_ENTRY)entry.pValue;
 
-    LwRtlCStringFree(&pRecord->pszPathname);
-    PVFS_FREE(&pRecord);
+    if (pRecord)
+    {
+        PvfsPathCacheFreeRecord(pRecord);
+        entry.pValue = NULL;
+    }
 
     /* The Key was a pointer to the pszPathname in the record */
 
     return;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
 LONG
@@ -366,11 +340,9 @@ PvfsPathCachePathCompare(
     PCVOID pKey2
     )
 {
-    PSTR pszPath1 = (PSTR)pKey1;
-    PSTR pszPath2 = (PSTR)pKey2;
+    PPVFS_FILE_NAME FileName1 = (PPVFS_FILE_NAME)pKey1;
+    PPVFS_FILE_NAME FileName2 = (PPVFS_FILE_NAME)pKey2;
 
-    return strcasecmp(pszPath1, pszPath2);
+    return PvfsFileNameCompare(FileName1, FileName2, FALSE);
 }
-
-
 

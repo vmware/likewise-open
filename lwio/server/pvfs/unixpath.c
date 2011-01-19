@@ -51,8 +51,8 @@
 static
 NTSTATUS
 PvfsResolvePath(
-    PSTR *ppszResolvedPath,
-    PCSTR pszLookupPath
+    OUT PPVFS_FILE_NAME *ppResolvedPath,
+    IN PPVFS_FILE_NAME InputPath
     );
 
 
@@ -519,75 +519,37 @@ PvfsLookupPath(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
     PSTR pszDiskPath = NULL;
+    PPVFS_FILE_NAME originalFileName = NULL;
+    PPVFS_FILE_NAME resolvedFileName = NULL;
 
-    /* Check the cache */
+    *ppszDiskPath = NULL;
 
-    ntError = PvfsPathCacheLookup(&pszDiskPath, pszPath);
-    if (ntError == STATUS_SUCCESS)
-    {
-        /* Check that the path is still good.  If not fallback
-           to manual checks */
-
-        ntError = PvfsSysStat(pszDiskPath, &Stat);
-        if (ntError == STATUS_SUCCESS)
-        {
-            *pStat = Stat;
-            *ppszDiskPath = pszDiskPath;
-            goto cleanup;
-        }
-
-        PvfsPathCacheRemove(pszDiskPath);   // Ignore errors
-        LwRtlCStringFree(&pszDiskPath);
-        pszDiskPath = NULL;
-    }
-
-    /* See if we are lucky */
-
-    ntError = PvfsSysStat(pszPath, &Stat);
-    if (ntError == STATUS_SUCCESS)
-    {
-        ntError = RtlCStringDuplicate(&pszDiskPath, pszPath);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsPathCacheAdd(pszPath);
-        BAIL_ON_NT_STATUS(ntError);
-
-        *pStat = Stat;
-        *ppszDiskPath = pszDiskPath;
-
-        goto cleanup;
-    }
-
-    /* Done if use case sensitive matches */
-
-    if (bCaseSensitive)
-    {
-        ntError = STATUS_OBJECT_NAME_NOT_FOUND;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    /* Resolve the path */
-
-    ntError = PvfsResolvePath(&pszDiskPath, pszPath);
+    ntError = PvfsAllocateFileNameFromCString(&originalFileName, pszPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* This should succeed now */
-    ntError = PvfsSysStat(pszDiskPath, &Stat);
+    ntError = PvfsLookupPath2(
+                  &resolvedFileName,
+                  &Stat,
+                  originalFileName,
+                  bCaseSensitive);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCStringFromFileName(&pszDiskPath, resolvedFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     *pStat = Stat;
     *ppszDiskPath = pszDiskPath;
 
-cleanup:
-    return ntError;
-
 error:
-    if (pszDiskPath)
+    if (!NT_SUCCESS(ntError))
     {
-        LwRtlCStringFree(&pszDiskPath);
+        if (pszDiskPath)
+        {
+            LwRtlCStringFree(&pszDiskPath);
+        }
     }
 
-    goto cleanup;
+    return ntError;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -611,18 +573,15 @@ PvfsLookupPath2(
 
     // Check the cache
 
-    ntError = PvfsPathCacheLookup(&pszDiskPath, pszPath);
+    ntError = PvfsPathCacheLookup(&pOutputFileName, InputFileName);
     if (ntError == STATUS_SUCCESS)
     {
         /* Check that the path is still good.  If not fallback
            to manual checks */
 
-        ntError = PvfsSysStat(pszDiskPath, &Stat);
+        ntError = PvfsSysStatByFileName(pOutputFileName, &Stat);
         if (ntError == STATUS_SUCCESS)
         {
-            ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, pszDiskPath);
-            BAIL_ON_NT_STATUS(ntError);
-
             *pStat = Stat;
             *ppOutputFileName = pOutputFileName;
             pOutputFileName = NULL;
@@ -630,23 +589,20 @@ PvfsLookupPath2(
             goto cleanup;
         }
 
-        PvfsPathCacheRemove(pszDiskPath);   // Ignore errors
+        PvfsPathCacheRemove(pOutputFileName);   // Ignore errors
         LwRtlCStringFree(&pszDiskPath);
         pszDiskPath = NULL;
     }
 
     /* See if we are lucky */
 
-    ntError = PvfsSysStat(pszPath, &Stat);
+    ntError = PvfsSysStatByFileName(InputFileName, &Stat);
     if (ntError == STATUS_SUCCESS)
     {
-        ntError = RtlCStringDuplicate(&pszDiskPath, pszPath);
+        ntError = PvfsPathCacheAdd(InputFileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsPathCacheAdd(pszPath);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, pszDiskPath);
+        ntError = PvfsFileNameDuplicate(&pOutputFileName, InputFileName);
         BAIL_ON_NT_STATUS(ntError);
 
         *pStat = Stat;
@@ -666,14 +622,14 @@ PvfsLookupPath2(
 
     /* Resolve the path */
 
-    ntError = PvfsResolvePath(&pszDiskPath, pszPath);
+    ntError = PvfsAllocateCStringFromFileName(&pszPath, InputFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsResolvePath(&pOutputFileName, InputFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* This should succeed now */
-    ntError = PvfsSysStat(pszDiskPath, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, pszDiskPath);
+    ntError = PvfsSysStatByFileName(pOutputFileName, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     *pStat = Stat;
@@ -950,8 +906,8 @@ error:
 static
 NTSTATUS
 PvfsResolvePath(
-    PSTR *ppszResolvedPath,
-    PCSTR pszLookupPath
+    OUT PPVFS_FILE_NAME *ppResolvedPath,
+    IN PPVFS_FILE_NAME InputPath
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -968,6 +924,14 @@ PvfsResolvePath(
     DIR *pDir = NULL;
     struct dirent *pDirEntry = NULL;
     struct dirent dirEntry = { 0 };
+    PPVFS_FILE_NAME workingPath = NULL;
+    PPVFS_FILE_NAME resolvedWorkingPath = NULL;
+    PPVFS_FILE_NAME resolvedPath = NULL;
+    PPVFS_FILE_NAME finalResolvedPath = NULL;
+    PSTR pszLookupPath = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&pszLookupPath, InputPath);
+    BAIL_ON_NT_STATUS(ntError);
 
     if (*pszLookupPath != '/')
     {
@@ -1015,9 +979,12 @@ PvfsResolvePath(
                 pszComponent);
         }
 
+        ntError = PvfsAllocateFileNameFromCString(&workingPath, pszWorkingPath);
+        BAIL_ON_NT_STATUS(ntError);
+
         /* Try cache first */
 
-        ntError = PvfsPathCacheLookup(&pszResWorkingPath2, pszWorkingPath);
+        ntError = PvfsPathCacheLookup(&resolvedWorkingPath, workingPath);
         if (ntError == STATUS_SUCCESS)
         {
             if (pszResWorkingPath)
@@ -1025,19 +992,27 @@ PvfsResolvePath(
                 LwRtlCStringFree(&pszResWorkingPath);
             }
 
-            pszResWorkingPath = pszResWorkingPath2;
-            pszResWorkingPath2 = NULL;
+            ntError = PvfsAllocateCStringFromFileName(
+                          &pszResWorkingPath,
+                          resolvedWorkingPath);
+            BAIL_ON_NT_STATUS(ntError);
+
+            PvfsFreeFileName(resolvedWorkingPath);
+            PvfsFreeFileName(workingPath);
+
+            resolvedWorkingPath = NULL;
+            workingPath = NULL;
 
             pszCurrentResolvedPath = pszResWorkingPath;
         }
 
         /* Maybe an exact match on disk? */
 
-        else if (PvfsSysStat(pszWorkingPath, &Stat) == STATUS_SUCCESS)
+        else if (PvfsSysStatByFileName(workingPath, &Stat) == STATUS_SUCCESS)
         {
             pszCurrentResolvedPath = pszWorkingPath;
 
-            ntError = PvfsPathCacheAdd(pszCurrentResolvedPath);
+            ntError = PvfsPathCacheAdd(workingPath);
             BAIL_ON_NT_STATUS(ntError);
         }
 
@@ -1110,9 +1085,14 @@ PvfsResolvePath(
             pDir = NULL;
             BAIL_ON_NT_STATUS(ntError);
 
-            ntError = PvfsPathCacheAdd(pszResolvedPath);
+            ntError = PvfsAllocateFileNameFromCString(&resolvedPath, pszResolvedPath);
             BAIL_ON_NT_STATUS(ntError);
 
+            ntError = PvfsPathCacheAdd(resolvedPath);
+            BAIL_ON_NT_STATUS(ntError);
+
+            PvfsFreeFileName(resolvedPath);
+            resolvedPath = NULL;
         }
 
         Length = PATH_MAX - RtlCStringNumChars(pszCurrentResolvedPath);
@@ -1146,10 +1126,12 @@ PvfsResolvePath(
         pszCurrentResolvedPath = NULL;
     }
 
-    *ppszResolvedPath = pszResolvedPath;
-    pszResolvedPath = NULL;
+    ntError = PvfsAllocateFileNameFromCString(&finalResolvedPath, pszResolvedPath);
+    BAIL_ON_NT_STATUS(ntError);
 
-    ntError = STATUS_SUCCESS;
+    *ppResolvedPath = finalResolvedPath;
+    finalResolvedPath = NULL;
+
 
 cleanup:
     if (pszPath)
@@ -1175,6 +1157,26 @@ cleanup:
     if (pDir)
     {
         PvfsSysCloseDir(pDir);
+    }
+
+    if (resolvedWorkingPath)
+    {
+        PvfsFreeFileName(resolvedWorkingPath);
+    }
+
+    if (workingPath)
+    {
+        PvfsFreeFileName(workingPath);
+    }
+
+    if (resolvedPath)
+    {
+        PvfsFreeFileName(resolvedPath);
+    }
+
+    if (finalResolvedPath)
+    {
+        PvfsFreeFileName(finalResolvedPath);
     }
 
     return ntError;

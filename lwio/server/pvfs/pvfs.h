@@ -510,25 +510,17 @@ PvfsPathCacheShutdown(
 
 NTSTATUS
 PvfsPathCacheAdd(
-    IN PCSTR pszResolvedPath
+    IN PPVFS_FILE_NAME ResolvedFileName
     );
 
 NTSTATUS
 PvfsPathCacheRemove(
-    PCSTR pszPathname
+    IN PPVFS_FILE_NAME FileName
     );
-
 NTSTATUS
 PvfsPathCacheLookup(
-    OUT PSTR *ppszResolvedPath,
-    IN  PCSTR pszOriginalPath
-    );
-
-NTSTATUS
-PvfsPathCacheLookup2(
-    OUT PSTR pszBuffer,
-    IN  size_t sBufferLength,
-    IN  PCSTR pszOriginalPath
+    OUT PPVFS_FILE_NAME *ppResolvedFileName,
+    IN  PPVFS_FILE_NAME pOriginalFileName
     );
 
 
