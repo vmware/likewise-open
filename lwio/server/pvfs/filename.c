@@ -253,7 +253,7 @@ error:
 NTSTATUS
 PvfsAllocateFileNameFromCString(
     OUT PPVFS_FILE_NAME *ppFileName,
-    IN PSTR SourceFileName
+    IN PCSTR SourceFileName
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -323,6 +323,36 @@ error:
 ////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
+PvfsAllocateFileNameFromScb(
+    OUT PPVFS_FILE_NAME *ppFileName,
+    IN PPVFS_SCB pScb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FILE_NAME pFileName = NULL;
+
+    ntError = PvfsAllocateMemory((PVOID*)&pFileName, sizeof(*pFileName), TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsBuildFileNameFromScb(pFileName, pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppFileName = pFileName;
+    pFileName = NULL;
+
+error:
+    if (pFileName)
+    {
+        PvfsFreeFileName(pFileName);
+    }
+
+    return ntError;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
 PvfsAllocateCStringFromFileName(
     OUT PSTR *ppFullFileName,
     IN PPVFS_FILE_NAME pFileName
@@ -364,3 +394,142 @@ error:
 
     return ntError;
 }
+
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsFileNameCopy(
+    IN OUT PPVFS_FILE_NAME pDstFileName,
+    IN PPVFS_FILE_NAME pSrcFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    BAIL_ON_INVALID_PTR(pDstFileName, ntError);
+
+    ntError = LwRtlCStringDuplicate(
+                  &pDstFileName->FileName,
+                  pSrcFileName->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pSrcFileName->StreamName)
+    {
+        ntError = LwRtlCStringDuplicate(
+                      &pDstFileName->StreamName,
+                      pSrcFileName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        pDstFileName->StreamName = NULL;
+    }
+
+    pDstFileName->Type = pSrcFileName->Type;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        PvfsDestroyFileName(pDstFileName);
+    }
+
+    return ntError;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsFileNameDuplicate(
+    OUT PPVFS_FILE_NAME *ppDstFileName,
+    IN PPVFS_FILE_NAME pSrcFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FILE_NAME outFileName = NULL;
+
+    *ppDstFileName = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&outFileName,
+                  sizeof(*outFileName),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileNameCopy(outFileName, pSrcFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppDstFileName = outFileName;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (outFileName)
+        {
+            PvfsFreeFileName(outFileName);
+
+        }
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+LONG
+PvfsFileNameCompare(
+    IN PPVFS_FILE_NAME FileName1,
+    IN PPVFS_FILE_NAME FileName2,
+    IN BOOLEAN CaseSensitive
+    )
+{
+    LONG cmpResult = 0;
+
+    cmpResult = LwRtlCStringCompare(
+                    FileName1->FileName,
+                    FileName2->FileName,
+                    TRUE);
+
+    if (cmpResult == 0)
+    {
+        // Base FielName is the same
+
+        if ((FileName1->StreamName == NULL) && (FileName2->StreamName == NULL))
+        {
+            // Both default streams, so compare the Stream Type value
+
+            if (FileName1->Type == FileName2->Type)
+            {
+                cmpResult = 0;
+            }
+            else if (FileName1->Type < FileName2->Type)
+            {
+                cmpResult = -1;
+            }
+            else
+            {
+                cmpResult = 1;
+            }
+        }
+        else if (FileName1->StreamName == NULL)
+        {
+            cmpResult = 1;
+        }
+        else if (FileName2->StreamName == NULL)
+        {
+            cmpResult = -1;
+        }
+        else
+        {
+            cmpResult = LwRtlCStringCompare(
+                            FileName1->StreamName,
+                            FileName2->StreamName,
+                            TRUE);
+
+        }
+    }
+
+    return cmpResult;
+
+}
+

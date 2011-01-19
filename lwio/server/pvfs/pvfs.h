@@ -443,7 +443,7 @@ PvfsBuildFileNameFromCString(
 NTSTATUS
 PvfsAllocateFileNameFromCString(
     OUT PPVFS_FILE_NAME *ppFileName,
-    IN PSTR SourceFileName
+    IN PCSTR SourceFileName
     );
 
 NTSTATUS
@@ -474,8 +474,29 @@ PvfsAllocateCStringFromFileName(
     IN PPVFS_FILE_NAME pFileName
     );
 
+NTSTATUS
+PvfsFileNameDuplicate(
+    OUT PPVFS_FILE_NAME *ppDstFileName,
+    IN PPVFS_FILE_NAME pSrcFileName
+    );
 
-/* From pathcache.c */
+NTSTATUS
+PvfsFileNameCopy(
+    IN OUT PPVFS_FILE_NAME pDstFileName,
+    IN PPVFS_FILE_NAME pSrcFileName
+    );
+
+LONG
+PvfsFileNameCompare(
+    IN PPVFS_FILE_NAME FileName1,
+    IN PPVFS_FILE_NAME FileName2,
+    IN BOOLEAN CaseSensitive
+    );
+
+
+//
+// From pathcache.c
+//
 
 NTSTATUS
 PvfsPathCacheInit(
