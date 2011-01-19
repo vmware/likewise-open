@@ -179,6 +179,7 @@ PvfsAllocateSCB(
     pScb->bDeleteOnClose = FALSE;
     pScb->bOplockBreakInProgress = FALSE;
     pScb->pszStreamname = NULL;
+    pScb->pOwnerFcb = NULL;
 
     *ppScb = pScb;
 

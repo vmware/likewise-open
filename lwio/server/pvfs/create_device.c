@@ -56,7 +56,7 @@ PvfsCreateDevice(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN scbLock = FALSE;
     PPVFS_CCB pCcb = NULL;
 
     ntError = PvfsAllocateCCB(&pCcb);
@@ -65,13 +65,20 @@ PvfsCreateDevice(
     // Initialize CreateOptions since it might be used without setting
     pCcb->CreateOptions = 0;
 
-    LWIO_LOCK_MUTEX(bLocked, &gDeviceScbMutex);
+    LWIO_LOCK_MUTEX(scbLock, &gDeviceScbMutex);
 
     if (!gpPvfsDeviceScb)
     {
         ntError = PvfsAllocateSCB(&gpPvfsDeviceScb);
         BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsAllocateFCB(&gpPvfsDeviceScb->pOwnerFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsAddSCBToFCB(gpPvfsDeviceScb->pOwnerFcb, gpPvfsDeviceScb);
+        BAIL_ON_NT_STATUS(ntError);
     }
+
 
     ntError = PvfsAddCCBToSCB(gpPvfsDeviceScb, pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -80,7 +87,7 @@ PvfsCreateDevice(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &gDeviceScbMutex);
+    LWIO_UNLOCK_MUTEX(scbLock, &gDeviceScbMutex);
 
     return ntError;
 
