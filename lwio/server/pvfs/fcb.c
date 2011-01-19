@@ -625,6 +625,8 @@ PvfsRenameFCB(
     BOOLEAN bFcbRwLocked = FALSE;
     BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
+    PPVFS_FILE_NAME currentFileName = NULL;
+    PPVFS_FILE_NAME newFileName = NULL;
 
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */
@@ -637,6 +639,12 @@ PvfsRenameFCB(
 
     /* Locks - gFcbTable(Excl) */
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bRenameLock, &gFcbTable.rwLock);
+
+    ntError = PvfsAllocateFileNameFromScb(&currentFileName, pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateFileNameFromCString(&newFileName, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gFcbTable(Excl),
                pTargetBucket(Excl) */
@@ -673,12 +681,12 @@ PvfsRenameFCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
 
-    ntError = PvfsSysRename(pCcb->pScb->pOwnerFcb->pszFilename, pszNewFilename);
+    ntError = PvfsSysRenameByFileName(currentFileName, newFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Clear the cache entry but ignore any errors */
 
-    ntError = PvfsPathCacheRemove(pFcb->pszFilename);
+    ntError = PvfsPathCacheRemove(currentFileName);
 
     /* Remove the SCB from the table, update the lookup key, and then re-add.
        Otherwise you will get memory corruption as a freed pointer gets left
@@ -772,6 +780,16 @@ cleanup:
     if (pTargetFcb)
     {
         PvfsReleaseFCB(&pTargetFcb);
+    }
+
+    if (currentFileName)
+    {
+        PvfsFreeFileName(currentFileName);
+    }
+
+    if (newFileName)
+    {
+        PvfsFreeFileName(newFileName);
     }
 
     return ntError;
