@@ -361,6 +361,13 @@ SrvProcessReadAndX(
             if (pReadState->pZctCompletion)
             {
                 ntStatus = SrvCompleteZctRead(pReadState, pExecContext);
+                if (ntStatus != STATUS_PENDING)
+                {
+                    // A ZCT response was already sent, so eat up
+                    // any error here to prevent the protocol execute
+                    // layer from returning an error.
+                    ntStatus = STATUS_SUCCESS;
+                }
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
