@@ -219,5 +219,22 @@ PvfsSysSplice(
     );
 #endif
 
+
+//
+// New PVFS_FILE_NAME interfaces
+//
+
+NTSTATUS
+PvfsSysStatByFileName(
+    IN PPVFS_FILE_NAME FileName,
+	IN OUT PPVFS_STAT Stat
+	);
+
+NTSTATUS
+PvfsSysRenameByFileName(
+    IN PPVFS_FILE_NAME OriginalFileName,
+    IN PPVFS_FILE_NAME NewFielName
+    );
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 

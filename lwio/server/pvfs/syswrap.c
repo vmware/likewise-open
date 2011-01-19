@@ -107,6 +107,43 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSysStatByFileName(
+    IN PPVFS_FILE_NAME FileName,
+	IN OUT PPVFS_STAT Stat
+	)
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    struct stat sBuf = {0};
+    int unixerr = 0;
+    PSTR fileName = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&fileName, FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (stat(fileName, &sBuf) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    if (Stat) {
+        ntError = CopyUnixStatToPvfsStat(Stat, &sBuf);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+cleanup:
+    if (fileName)
+    {
+        LwRtlCStringFree(&fileName);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 /**********************************************************
  *********************************************************/
 
@@ -655,6 +692,44 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSysRenameByFileName(
+    IN PPVFS_FILE_NAME OriginalFileName,
+    IN PPVFS_FILE_NAME NewFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+    PSTR oldPath = NULL;
+    PSTR newPath = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&oldPath, OriginalFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCStringFromFileName(&newPath, NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (rename(oldPath, newPath) == -1 )
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+error:
+    if (oldPath)
+    {
+        LwRtlCStringFree(&oldPath);
+    }
+
+    if (newPath)
+    {
+        LwRtlCStringFree(&newPath);
+    }
+
+    return ntError;
 }
 
 /**********************************************************
