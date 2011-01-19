@@ -68,6 +68,9 @@ PvfsFreeFCB(
         pthread_rwlock_destroy(&pFcb->rwScbLock);
 
         PvfsListDestroy(&pFcb->pScbList);
+        PvfsListDestroy(&pFcb->pNotifyListIrp);
+        PvfsListDestroy(&pFcb->pNotifyListBuffer);
+
         PvfsDestroyCB(&pFcb->BaseControlBlock);
 
         PVFS_FREE(&pFcb);

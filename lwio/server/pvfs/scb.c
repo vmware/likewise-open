@@ -635,11 +635,12 @@ PvfsCreateSCB(
     PSTR pszStreamname = NULL;
     PVFS_STREAM_TYPE StreamType = PVFS_STREAM_TYPE_DATA;
 
-    ntError = PvfsParseStreamname(&pszOwnerFilename,
-                                  &pszFilePath,
-                                  &pszStreamname,
-                                  &StreamType,
-                                  pszFullStreamname);
+    ntError = PvfsParseStreamname(
+                  &pszOwnerFilename,
+                  &pszFilePath,
+                  &pszStreamname,
+                  &StreamType,
+                  pszFullStreamname);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFullStreamname);
@@ -723,6 +724,7 @@ cleanup:
 
     RTL_FREE(&pszOwnerFilename);
     RTL_FREE(&pszFilePath);
+    RTL_FREE(&pszStreamname);
 
     return ntError;
 

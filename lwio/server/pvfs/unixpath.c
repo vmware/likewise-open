@@ -549,6 +549,17 @@ error:
         }
     }
 
+    if (originalFileName)
+    {
+        PvfsFreeFileName(originalFileName);
+    }
+
+    if (resolvedFileName)
+    {
+        PvfsFreeFileName(resolvedFileName);
+    }
+
+
     return ntError;
 }
 
@@ -565,11 +576,6 @@ PvfsLookupPath2(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
     PPVFS_FILE_NAME pOutputFileName = NULL;
-    PSTR pszDiskPath = NULL;
-    PSTR pszPath = NULL;
-
-    ntError = PvfsAllocateCStringFromFileName(&pszPath, InputFileName);
-    BAIL_ON_NT_STATUS(ntError);
 
     // Check the cache
 
@@ -590,8 +596,6 @@ PvfsLookupPath2(
         }
 
         PvfsPathCacheRemove(pOutputFileName);   // Ignore errors
-        LwRtlCStringFree(&pszDiskPath);
-        pszDiskPath = NULL;
     }
 
     /* See if we are lucky */
@@ -622,9 +626,6 @@ PvfsLookupPath2(
 
     /* Resolve the path */
 
-    ntError = PvfsAllocateCStringFromFileName(&pszPath, InputFileName);
-    BAIL_ON_NT_STATUS(ntError);
-
     ntError = PvfsResolvePath(&pOutputFileName, InputFileName);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -634,23 +635,15 @@ PvfsLookupPath2(
 
     *pStat = Stat;
     *ppOutputFileName = pOutputFileName;
-    pOutputFileName = NULL;
 
 cleanup:
-    if (pszDiskPath)
-    {
-        LwRtlCStringFree(&pszDiskPath);
-    }
+    return ntError;
 
+error:
     if (pOutputFileName)
     {
         PvfsFreeFileName(pOutputFileName);
     }
-
-
-    return ntError;
-
-error:
 
     goto cleanup;
 }
@@ -928,12 +921,11 @@ PvfsResolvePath(
     PPVFS_FILE_NAME resolvedWorkingPath = NULL;
     PPVFS_FILE_NAME resolvedPath = NULL;
     PPVFS_FILE_NAME finalResolvedPath = NULL;
-    PSTR pszLookupPath = NULL;
 
-    ntError = PvfsAllocateCStringFromFileName(&pszLookupPath, InputPath);
+    ntError = PvfsAllocateCStringFromFileName(&pszPath, InputPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (*pszLookupPath != '/')
+    if (*pszPath != '/')
     {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
@@ -943,9 +935,6 @@ PvfsResolvePath(
     BAIL_ON_NT_STATUS(ntError);
 
     pszCurrentResolvedPath = pszResolvedPath;
-
-    ntError = RtlCStringDuplicate(&pszPath, pszLookupPath);
-    BAIL_ON_NT_STATUS(ntError);
 
     pszComponent = pszPath + 1;
 
@@ -1108,6 +1097,11 @@ PvfsResolvePath(
         if ((pszComponent = strchr(pszComponent, '/')) != NULL)
         {
             pszComponent++;
+        }
+
+        if (workingPath)
+        {
+            PvfsFreeFileName(workingPath);
         }
     }
 

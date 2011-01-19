@@ -146,20 +146,23 @@ PvfsBuildFileNameFromCString(
     }
 
     currentPosition = cursor;
+    streamName = currentPosition;
 
     // Get the stream name
     // Foo.txt:Summary:$DATA
     //         ^
 
-    cursor = strchr(currentPosition, PVFS_STREAM_DELIMINATOR_C);
-    if (cursor == NULL)
+    if (*cursor != PVFS_STREAM_DELIMINATOR_C)
     {
-        // Missing StreamType
-        ntError = STATUS_OBJECT_NAME_INVALID;
-        BAIL_ON_NT_STATUS(ntError);
+        // This is not a default stream name ("::")
+        cursor = strchr(currentPosition, PVFS_STREAM_DELIMINATOR_C);
+        if (cursor == NULL)
+        {
+            // Missing StreamType
+            ntError = STATUS_OBJECT_NAME_INVALID;
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
-
-    streamName = currentPosition;
 
     *cursor = '\0';
     cursor++;
@@ -181,8 +184,12 @@ PvfsBuildFileNameFromCString(
     ntError = LwRtlCStringDuplicate(&pFileName->FileName, fileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = LwRtlCStringDuplicate(&pFileName->FileName, streamName);
-    BAIL_ON_NT_STATUS(ntError);
+    if (*streamName != '\0')
+    {
+        // only allocate a stream name if we have a non-empty string
+        ntError = LwRtlCStringDuplicate(&pFileName->FileName, streamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = PvfsParseStreamType(&pFileName->Type, streamTypeString);
     BAIL_ON_NT_STATUS(ntError);
