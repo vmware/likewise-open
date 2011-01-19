@@ -84,8 +84,8 @@ PvfsCreate(
     PVFS_STAT Stat = {0};
     FILE_CREATE_OPTIONS FileDirCombo = (FILE_DIRECTORY_FILE|
                                         FILE_NON_DIRECTORY_FILE);
-    PPVFS_FILE_NAME pInputFileName = NULL;
-    PPVFS_FILE_NAME pResolvedFileName = NULL;
+    PPVFS_FILE_NAME createFileName = NULL;
+    PPVFS_FILE_NAME resolvedFileName = NULL;
 
     /* Check to see if this is a Device Create (i.e. NULL RootFileHandle
        and empty Filename) */
@@ -129,15 +129,21 @@ PvfsCreate(
         /* stat() the path and find out if this is a file or directory */
 
         ntError = PvfsCanonicalPathName2(
-                      &pInputFileName,
+                      &createFileName,
                       pIrp->Args.Create.FileName);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsLookupPath2(
-                      &pResolvedFileName,
+                      &resolvedFileName,
                       &Stat,
-                      pInputFileName,
+                      createFileName,
                       FALSE);
+
+        PvfsFreeFileName(createFileName);
+        createFileName = NULL;
+
+        PvfsFreeFileName(resolvedFileName);
+        resolvedFileName = NULL;
 
         /* The path lookup may fail which is ok.  We'll catch whether
            or not this is a real error later on */
@@ -163,14 +169,14 @@ PvfsCreate(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    if (pInputFileName)
+    if (createFileName)
     {
-        PvfsFreeFileName(pInputFileName);
+        PvfsFreeFileName(createFileName);
     }
 
-    if (pResolvedFileName)
+    if (resolvedFileName)
     {
-        PvfsFreeFileName(pResolvedFileName);
+        PvfsFreeFileName(resolvedFileName);
     }
 
     return ntError;

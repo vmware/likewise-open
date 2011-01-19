@@ -131,7 +131,7 @@ PvfsCanonicalPathName2(
     PSTR inputPath = NULL;
     PPVFS_FILE_NAME pOutputFileName = NULL;
 
-    *ppFileName = NULL;
+    LWIO_ASSERT(*ppFileName == NULL);
 
     ntError = PvfsCanonicalPathName(&inputPath, IoPath);
     BAIL_ON_NT_STATUS(ntError);
@@ -140,7 +140,6 @@ PvfsCanonicalPathName2(
     BAIL_ON_NT_STATUS(ntError);
 
     *ppFileName = pOutputFileName;
-    pOutputFileName = NULL;
 
 error:
     if (!NT_SUCCESS(ntError))
