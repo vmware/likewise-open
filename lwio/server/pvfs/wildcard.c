@@ -176,6 +176,16 @@ reset_state:
         cSrc = *pszString;
         cMatch = *pszMatch;
 
+
+        // Certain characters should never match and hence allow us to filter
+        // certain file patterns
+
+        if (cSrc == PVFS_STREAM_DELIMINATOR_C)
+        {
+            bMatched = FALSE;
+            goto cleanup;
+        }
+
         // Consumes the pattern from pszMatch
 
         eState = NextMatchState(&pszMatch, &dwCount);
