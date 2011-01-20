@@ -228,6 +228,36 @@ error:
 }
 
 
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSysMkDirByFileName(
+    IN PPVFS_FILE_NAME DirectoryName,
+    mode_t mode
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+    PSTR directoryName = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&directoryName, DirectoryName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if ((mkdir(directoryName, mode)) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+error:
+    if (directoryName)
+    {
+        LwRtlCStringFree(&directoryName);
+    }
+
+    return ntError;
+}
+
+
 /**********************************************************
  *********************************************************/
 
@@ -521,6 +551,34 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSysRemoveByFileName(
+    IN PPVFS_FILE_NAME FileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+    PSTR fileName = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&fileName, FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (remove(fileName) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+error:
+    if (fileName)
+    {
+        LwRtlCStringFree(&fileName);
+    }
+
+    return ntError;
 }
 
 /**********************************************************

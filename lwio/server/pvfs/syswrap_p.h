@@ -236,5 +236,16 @@ PvfsSysRenameByFileName(
     IN PPVFS_FILE_NAME NewFielName
     );
 
+NTSTATUS
+PvfsSysRemoveByFileName(
+    IN PPVFS_FILE_NAME FileName
+    );
+
+NTSTATUS
+PvfsSysMkDirByFileName(
+    IN PPVFS_FILE_NAME DirectoryName,
+    mode_t mode
+    );
+
 #endif     /* _PVFS_SYSWRAP_P_H */
 
