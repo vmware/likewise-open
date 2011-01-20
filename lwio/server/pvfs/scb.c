@@ -309,7 +309,7 @@ PvfsReleaseSCB(
     ntError = PvfsAllocateFileNameFromScb(&streamName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsGetFullStreamname(&fullStreamName, pScb);
+    ntError = PvfsAllocateCStringFromFileName(&fullStreamName, streamName);
     BAIL_ON_NT_STATUS(ntError);
 
     LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->rwCcbLock);
@@ -502,7 +502,7 @@ PvfsGetFullStreamname_inScbLock(
                           LwRtlCStringIsNullOrEmpty(pszOwnerFilename) ?
                             pScb->pOwnerFcb->pszFilename :
                             pszOwnerFilename,
-                          pScb->pszStreamname,
+                          pScb->pszStreamname ? pScb->pszStreamname : "",
                           PVFS_STREAM_DEFAULT_TYPE_S);
             break;
 
@@ -567,8 +567,8 @@ PvfsGetBasicStreamname_inScbLock(
                   ppszBasicStreamname,
                   "%s%s%s",
                   pScb->pOwnerFcb->pszFilename,
-                  *pScb->pszStreamname ? ":" : "",
-                  *pScb->pszStreamname ? pScb->pszStreamname : "");
+                  pScb->pszStreamname ? ":" : "",
+                  pScb->pszStreamname ? pScb->pszStreamname : "");
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -621,7 +621,7 @@ PvfsFindOwnerFCB(
 NTSTATUS
 PvfsCreateSCB(
     OUT PPVFS_SCB *ppScb,
-    IN PSTR pszFullStreamname,
+    IN PPVFS_FILE_NAME FileName,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess
@@ -633,21 +633,14 @@ PvfsCreateSCB(
     BOOLEAN bBucketLocked = FALSE;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
     BOOLEAN bScbLocked = FALSE;
+    PSTR fullFileName = NULL;
 
-    PSTR pszOwnerFilename = NULL;
-    PSTR pszFilePath = NULL;
-    PSTR pszStreamname = NULL;
-    PVFS_STREAM_TYPE StreamType = PVFS_STREAM_TYPE_DATA;
+    *ppScb = NULL;
 
-    ntError = PvfsParseStreamname(
-                  &pszOwnerFilename,
-                  &pszFilePath,
-                  &pszStreamname,
-                  &StreamType,
-                  pszFullStreamname);
+    ntError = PvfsAllocateCStringFromFileName(&fullFileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszFullStreamname);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, fullFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Protect against adding a duplicate */
@@ -657,7 +650,7 @@ PvfsCreateSCB(
     ntError = PvfsCbTableLookup_inlock(
                   (PPVFS_CONTROL_BLOCK*)&pScb,
                   pBucket,
-                  pszFullStreamname);
+                  fullFileName);
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
@@ -680,18 +673,23 @@ PvfsCreateSCB(
             *ppScb = PvfsReferenceSCB(pScb);
         }
 
-        goto cleanup;
+        goto error;
     }
 
     ntError = PvfsAllocateSCB(&pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlCStringDuplicate(&pScb->pszStreamname, pszStreamname);
-    BAIL_ON_NT_STATUS(ntError);
+    // FIXME!! These should be methods for accesing the file and stream names
 
-    pScb->StreamType = StreamType;
+    if (!PvfsIsDefaultStreamName(FileName))
+    {
+        ntError = RtlCStringDuplicate(&pScb->pszStreamname, FileName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
-    ntError = PvfsFindOwnerFCB(&pOwnerFcb, pszOwnerFilename);
+    pScb->StreamType = FileName->Type;
+
+    ntError = PvfsFindOwnerFCB(&pOwnerFcb, FileName->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAddSCBToFCB(pOwnerFcb, pScb);
@@ -700,7 +698,7 @@ PvfsCreateSCB(
     /* Add to the file handle table */
 
     LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
-    ntError = PvfsCbTableAdd_inlock(pBucket, pszFullStreamname, (PVOID)pScb);
+    ntError = PvfsCbTableAdd_inlock(pBucket, fullFileName, (PVOID)pScb);
     if (ntError == STATUS_SUCCESS)
     {
         pScb->BaseControlBlock.pBucket = pBucket;
@@ -711,9 +709,8 @@ PvfsCreateSCB(
     /* Return a reference to the SCB */
 
     *ppScb = PvfsReferenceSCB(pScb);
-    ntError = STATUS_SUCCESS;
 
-cleanup:
+error:
     LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
     if (pScb)
@@ -726,15 +723,13 @@ cleanup:
         PvfsReleaseFCB(&pOwnerFcb);
     }
 
-    RTL_FREE(&pszOwnerFilename);
-    RTL_FREE(&pszFilePath);
-    RTL_FREE(&pszStreamname);
+    if (fullFileName)
+    {
+        LwRtlCStringFree(&fullFileName);
+
+    }
 
     return ntError;
-
-error:
-
-    goto cleanup;
 }
 
 /*******************************************************
@@ -1618,7 +1613,7 @@ PvfsIsDefaultStream(
 
     LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
     if ((pScb->StreamType == PVFS_STREAM_TYPE_DATA) &&
-        (*pScb->pszStreamname == '\0'))
+        ((pScb->pszStreamname == NULL) || (*pScb->pszStreamname == '\0')))
     {
         isDefaultStream = TRUE;
     }

@@ -190,6 +190,8 @@ PvfsGetSecurityDescriptorFilename(
                                        DACL_SECURITY_INFORMATION |
                                        SACL_SECURITY_INFORMATION);
 
+    BAIL_ON_INVALID_PTR(pszFilename, ntError);
+
     /* Sanity check */
 
     if (SecInfo == 0)

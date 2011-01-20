@@ -93,8 +93,8 @@ PvfsSaveFileDeviceInfo(
 
 NTSTATUS
 PvfsRenameCCB(
-    PPVFS_CCB pCcb,
-    PSTR NewFileName
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_FILE_NAME DestFileName
     );
 
 #endif     /* _PVFS_CCB_P_H */

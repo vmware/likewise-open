@@ -123,30 +123,16 @@ PvfsAccessCheckAnyFileHandle(
     return ntError;
 }
 
-/***********************************************************
- **********************************************************/
-
-NTSTATUS
-PvfsAccessCheckDir(
-    PACCESS_TOKEN pToken,
-    PCSTR pszDirectory,
-    ACCESS_MASK Desired,
-    ACCESS_MASK *pGranted)
-{
-    /* For now this is just the same as file access */
-
-    return PvfsAccessCheckFile(pToken, pszDirectory, Desired, pGranted);
-}
-
 /***********************************************************************
  **********************************************************************/
 
 NTSTATUS
 PvfsAccessCheckFile(
     PACCESS_TOKEN pToken,
-    PCSTR pszFilename,
+    PPVFS_FILE_NAME FileName,
     ACCESS_MASK Desired,
-    ACCESS_MASK *pGranted)
+    ACCESS_MASK *pGranted
+    )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     ACCESS_MASK AccessMask = 0;
@@ -162,11 +148,12 @@ PvfsAccessCheckFile(
                                     GROUP_SECURITY_INFORMATION |
                                     DACL_SECURITY_INFORMATION  |
                                     SACL_SECURITY_INFORMATION);
-    PSTR pszParentPath = NULL;
     PSID pOwner = NULL;
     BOOLEAN bOwnerDefaulted = FALSE;
     BOOLEAN bWantsDelete = FALSE;
     BOOLEAN bWantsMaximumAccess = FALSE;
+    PPVFS_FILE_NAME parentDirectoryName = NULL;
+    PPVFS_FILE_NAME relativeFileName = NULL;
 
     BAIL_ON_INVALID_PTR(pToken, ntError);
     BAIL_ON_INVALID_PTR(pGranted, ntError);
@@ -174,7 +161,7 @@ PvfsAccessCheckFile(
     // Check the file object itself
 
     ntError = PvfsGetSecurityDescriptorFilename(
-                  pszFilename,
+                  PvfsGetCStringBaseFileName(FileName),
                   SecInfo,
                   (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer,
                   &ulRelativeSecDescLength);
@@ -248,11 +235,14 @@ PvfsAccessCheckFile(
                    &ntError);
         if (!bGranted)
         {
-            ntError = PvfsFileDirname(&pszParentPath, pszFilename);
+            ntError = PvfsSplitFileNamePath(
+                          &parentDirectoryName,
+                          &relativeFileName,
+                          FileName);
             BAIL_ON_NT_STATUS(ntError);
 
             ntError = PvfsGetSecurityDescriptorFilename(
-                          pszParentPath,
+                          PvfsGetCStringBaseFileName(parentDirectoryName),
                           SecInfo,
                           (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer,
                           &ulParentRelSecDescLength);
@@ -292,11 +282,16 @@ PvfsAccessCheckFile(
     *pGranted = AccessMask;
     ntError = STATUS_SUCCESS;
 
-cleanup:
-    if (pszParentPath)
+error:
+    if (parentDirectoryName)
     {
-        LwRtlCStringFree(&pszParentPath);
+        PvfsFreeFileName(relativeFileName);
     }
+    if (relativeFileName)
+    {
+        PvfsFreeFileName(parentDirectoryName);
+    }
+
 
     if (pParentSecDesc)
     {
@@ -309,9 +304,6 @@ cleanup:
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 

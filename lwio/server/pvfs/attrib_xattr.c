@@ -66,7 +66,7 @@
 
 NTSTATUS
 PvfsGetFilenameAttributesXattr(
-    IN PSTR pszPath,
+    IN PCSTR pszPath,
     OUT PFILE_ATTRIBUTES pAttributes
     )
 {

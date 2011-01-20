@@ -70,7 +70,7 @@ PvfsReleaseSCB(
 NTSTATUS
 PvfsCreateSCB(
     OUT PPVFS_SCB *ppScb,
-    IN PSTR pszFilename,
+    IN PPVFS_FILE_NAME FileName,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess

@@ -56,7 +56,7 @@
 
 NTSTATUS
 PvfsCheckShareMode(
-    IN PSTR pszFilename,
+    IN PPVFS_FILE_NAME FileName,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess,
     OUT PPVFS_SCB *ppScb
@@ -65,22 +65,20 @@ PvfsCheckShareMode(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_SCB pScb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
-    PSTR pszDefaultStreamname = NULL;
+    PSTR fullFileName = NULL;
 
-    ntError = RtlCStringAllocatePrintf(
-                       &pszDefaultStreamname,
-                       "%s::%s",
-                       pszFilename,
-                       PVFS_STREAM_DEFAULT_TYPE_S);
+    *ppScb = NULL;
+
+    ntError = PvfsAllocateCStringFromFileName(&fullFileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, pszDefaultStreamname);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, fullFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableLookup(
                   (PPVFS_CONTROL_BLOCK*)&pScb,
                   pBucket,
-                  pszDefaultStreamname);
+                  fullFileName);
     if (ntError == STATUS_SUCCESS)
     {
         ntError = PvfsEnforceShareMode(
@@ -97,7 +95,7 @@ PvfsCheckShareMode(
         {
             *ppScb = PvfsReferenceSCB(pScb);
         }
-        goto cleanup;
+        goto error;
     }
 
     if (ntError != STATUS_OBJECT_NAME_NOT_FOUND)
@@ -109,7 +107,7 @@ PvfsCheckShareMode(
 
     ntError = PvfsCreateSCB(
                   &pScb,
-                  pszDefaultStreamname,
+                  FileName,
                   TRUE,
                   SharedAccess,
                   DesiredAccess);
@@ -122,24 +120,24 @@ PvfsCheckShareMode(
         ntError == STATUS_SHARING_VIOLATION)
     {
         *ppScb = PvfsReferenceSCB(pScb);
-        goto cleanup;
+        goto error;
     }
     BAIL_ON_NT_STATUS(ntError);
 
     *ppScb = PvfsReferenceSCB(pScb);
-    ntError = STATUS_SUCCESS;
 
-cleanup:
-    if (pScb) {
+error:
+    if (fullFileName)
+    {
+        LwRtlCStringFree(&fullFileName);
+    }
+
+    if (pScb)
+    {
         PvfsReleaseSCB(&pScb);
     }
 
-    RTL_FREE(&pszDefaultStreamname);
-
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 

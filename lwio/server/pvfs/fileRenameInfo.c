@@ -110,18 +110,19 @@ PvfsSetFileRenameInfo(
     PPVFS_CCB pRootDirCcb = NULL;
     PFILE_RENAME_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PSTR pszNewFilename = NULL;
-    PSTR pszNewPathname = NULL;
-    PSTR pszNewDiskPathname = NULL;
     ACCESS_MASK DirGranted = 0;
     ACCESS_MASK DirDesired = 0;
-    PSTR pszNewFileDiskDirname = NULL;
-    PSTR pszNewFileDirname = NULL;
-    PSTR pszNewFileBasename = NULL;
-    PSTR pszCanonicalNewPathname = NULL;
     PVFS_STAT stat = { 0 };
+    PSTR pszNewFilename = NULL;
+    PSTR pszNewPathname = NULL;
     PSTR streamName = NULL;
-    PSTR currentStreamName = NULL;
+    PPVFS_FILE_NAME newFileName = NULL;
+    PPVFS_FILE_NAME newDirectoryName = NULL;
+    PPVFS_FILE_NAME newResolvedDirName = NULL;
+    PPVFS_FILE_NAME newRelativeFileName = NULL;
+    PPVFS_FILE_NAME newResolvedFileName = NULL;
+    PPVFS_FILE_NAME existingResolvedFileName = NULL;
+    PPVFS_FILE_NAME currentFileName = NULL;
 
     /* Sanity checks */
 
@@ -191,45 +192,55 @@ PvfsSetFileRenameInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsFileSplitPath(&pszNewFileDirname,
-                                &pszNewFileBasename,
-                                pszNewPathname);
+    ntError = PvfsAllocateFileNameFromCString(&newFileName, pszNewPathname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath(&pszNewFileDiskDirname, &stat, pszNewFileDirname, FALSE);
+    ntError = PvfsSplitFileNamePath(
+                  &newDirectoryName,
+                  &newRelativeFileName,
+                  newFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath2(
+                  &newResolvedDirName,
+                  &stat,
+                  newDirectoryName,
+                  FALSE);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = STATUS_OBJECT_PATH_NOT_FOUND;
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    if (PVFS_IS_DIR(pCcb)) {
+    if (PVFS_IS_DIR(pCcb))
+    {
         DirDesired = FILE_ADD_SUBDIRECTORY;
-    } else {
+    }
+    else
+    {
         DirDesired = FILE_ADD_FILE;
     }
-    ntError = PvfsAccessCheckDir(
+    ntError = PvfsAccessCheckFile(
                   pCcb->pUserToken,
-                  pszNewFileDiskDirname,
+                  newResolvedDirName,
                   DirDesired,
                   &DirGranted);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Real work starts here */
 
-    ntError = RtlCStringAllocatePrintf(
-                  &pszNewDiskPathname,
-                  "%s/%s",
-                  pszNewFileDiskDirname,
-                  pszNewFileBasename);
+    ntError = PvfsAppendFileName(
+                  &newResolvedFileName,
+                  newResolvedDirName,
+                  newRelativeFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for an existing file */
 
-    ntError = PvfsLookupPath(
-                  &pszCanonicalNewPathname,
+    ntError = PvfsLookupPath2(
+                  &existingResolvedFileName,
                   &stat,
-                  pszNewDiskPathname,
+                  newResolvedFileName,
                   FALSE);
     if (ntError == STATUS_SUCCESS)
     {
@@ -239,16 +250,16 @@ PvfsSetFileRenameInfo(
            (c) Rename to new file
         */
 
-        ntError = PvfsGetBasicStreamname(&currentStreamName, pCcb->pScb);
+        ntError = PvfsAllocateFileNameFromScb(&currentFileName, pCcb->pScb);
         BAIL_ON_NT_STATUS(ntError);
 
-        if (LwRtlCStringCompare(currentStreamName, pszNewDiskPathname, FALSE) != 0)
+        if (PvfsFileNameCompare(currentFileName, newResolvedFileName, FALSE) != 0)
         {
             if (pFileInfo->ReplaceIfExists)
             {
-                LwRtlCStringFree(&pszNewDiskPathname);
-                pszNewDiskPathname = pszCanonicalNewPathname;
-                pszCanonicalNewPathname = NULL;
+                PvfsFreeFileName(newResolvedFileName);
+                newResolvedFileName = existingResolvedFileName;
+                existingResolvedFileName = NULL;
             }
             else
             {
@@ -258,13 +269,13 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsRenameCCB(pCcb, pszNewDiskPathname);
+    ntError = PvfsRenameCCB(pCcb, newResolvedFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
-    ntError = PvfsGetBasicStreamname(&streamName, pCcb->pScb);
+    ntError = PvfsAllocateCStringFromFileName(&streamName, newResolvedFileName);
     if (ntError == STATUS_SUCCESS)
     {
         PvfsNotifyScheduleFullReport(
@@ -274,17 +285,52 @@ PvfsSetFileRenameInfo(
             streamName);
     }
 
-cleanup:
-    LwRtlCStringFree(&pszNewFilename);
-    LwRtlCStringFree(&pszCanonicalNewPathname);
-    LwRtlCStringFree(&pszNewPathname);
-    LwRtlCStringFree(&pszNewDiskPathname);
-    LwRtlCStringFree(&pszNewFileDirname);
-    LwRtlCStringFree(&pszNewFileDiskDirname);
-    LwRtlCStringFree(&pszNewFileBasename);
-    LwRtlCStringFree(&streamName);
-    LwRtlCStringFree(&currentStreamName);
+error:
+    // PVFS_FILE_NAME
+    if (newFileName)
+    {
+        PvfsFreeFileName(newFileName);
+    }
+    if (newDirectoryName)
+    {
+        PvfsFreeFileName(newDirectoryName);
+    }
+    if (newResolvedDirName)
+    {
+        PvfsFreeFileName(newResolvedDirName);
+    }
+    if (newRelativeFileName)
+    {
+        PvfsFreeFileName(newRelativeFileName);
+    }
+    if (newResolvedFileName)
+    {
+        PvfsFreeFileName(newResolvedFileName);
+    }
+    if (existingResolvedFileName)
+    {
+        PvfsFreeFileName(existingResolvedFileName);
+    }
+    if (currentFileName)
+    {
+        PvfsFreeFileName(currentFileName);
+    }
 
+    // PSTR
+    if (pszNewFilename)
+    {
+        LwRtlCStringFree(&pszNewFilename);
+    }
+    if (pszNewPathname)
+    {
+        LwRtlCStringFree(&pszNewPathname);
+    }
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
+    // CCB
     if (pCcb)
     {
         PvfsReleaseCCB(pCcb);
@@ -296,8 +342,5 @@ cleanup:
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 

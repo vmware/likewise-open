@@ -211,6 +211,7 @@ PvfsCreateFileDoSysOpen(
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     FILE_CREATE_RESULT CreateResult = 0;
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
+    PSTR fullFileName = NULL;
 
     BAIL_ON_INVALID_PTR(pSecCtx, ntError);
 
@@ -237,11 +238,16 @@ PvfsCreateFileDoSysOpen(
     ntError = MapPosixOpenFlags(&unixFlags, pCreateContext->GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAllocateCStringFromFileName(
+                  &fullFileName,
+                  pCreateContext->ResolvedFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
     do
     {
-        ntError = PvfsSysOpen(
+        ntError = PvfsSysOpenByFileName(
                       &fd,
-                      pCreateContext->pszDiskFilename,
+                      pCreateContext->ResolvedFileName,
                       unixFlags,
                       (mode_t)gPvfsDriverConfig.CreateFileMode);
 
@@ -285,8 +291,8 @@ PvfsCreateFileDoSysOpen(
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
 
-    pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
-    pCreateContext->pszDiskFilename = NULL;
+    pCreateContext->pCcb->pszFilename = fullFileName;
+    fullFileName = NULL;
 
     ntError = PvfsAddCCBToSCB(pCreateContext->pScb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -379,6 +385,11 @@ PvfsCreateFileDoSysOpen(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
+    if (fullFileName)
+    {
+        LwRtlCStringFree(&fullFileName);
+    }
+
     return ntError;
 
 error:
@@ -387,14 +398,15 @@ error:
                        pCreateContext->bFileExisted,
                        ntError);
 
-    if (fd != -1)
+    if (fd != -1 &&
+        (fullFileName || pCreateContext->pCcb->pszFilename))
     {
         PSTR pszRemovePath = NULL;
 
         /* Pick up where we started the pathname */
 
-        pszRemovePath = pCreateContext->pszDiskFilename ?
-                        pCreateContext->pszDiskFilename :
+        pszRemovePath = fullFileName ?
+                        fullFileName :
                         pCreateContext->pCcb->pszFilename;
 
         PvfsCleanupFailedCreate(
@@ -453,8 +465,8 @@ PvfsCreateDirDoSysOpen(
 
     if (!pCreateContext->bFileExisted)
     {
-        ntError = PvfsSysMkDir(
-                      pCreateContext->pszDiskFilename,
+        ntError = PvfsSysMkDirByFileName(
+                      pCreateContext->ResolvedFileName,
                       (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -467,8 +479,10 @@ PvfsCreateDirDoSysOpen(
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
-    pCreateContext->pszDiskFilename = NULL;
+    ntError = PvfsAllocateCStringFromFileName(
+                  &pCreateContext->pCcb->pszFilename,
+                  pCreateContext->ResolvedFileName);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = IoRtlEcpListFind(
                   pIrp->Args.Create.EcpList,
@@ -622,18 +636,30 @@ error:
 
     if (fd != -1)
     {
-        PSTR pszRemovePath = NULL;
+        if (pCreateContext->pCcb->pszFilename)
+        {
+            PvfsCleanupFailedCreate(
+                fd,
+                pCreateContext->pCcb->pszFilename,
+                !pCreateContext->bFileExisted);
+        }
+        else if (pCreateContext->ResolvedFileName)
+        {
+            PSTR fullFileName = NULL;
 
-        /* Pick up where we started the pathname */
+            ntError = PvfsAllocateCStringFromFileName(
+                          &fullFileName,
+                          pCreateContext->ResolvedFileName);
+            if (NT_SUCCESS(ntError))
+            {
+                PvfsCleanupFailedCreate(
+                    fd,
+                    fullFileName,
+                    !pCreateContext->bFileExisted);
 
-        pszRemovePath = pCreateContext->pszDiskFilename ?
-                        pCreateContext->pszDiskFilename :
-                        pCreateContext->pCcb->pszFilename;
-
-        PvfsCleanupFailedCreate(
-            fd,
-            pszRemovePath,
-            !pCreateContext->bFileExisted);
+                LwRtlCStringFree(&fullFileName);
+            }
+        }
     }
 
     goto cleanup;
@@ -819,23 +845,25 @@ error:
 NTSTATUS
 PvfsCheckDosAttributes(
     IN IRP_ARGS_CREATE CreateArgs,
-    IN OPTIONAL PSTR pszFilename,
+    IN OPTIONAL PPVFS_FILE_NAME FileName,
     IN ACCESS_MASK GrantedAccess
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     FILE_ATTRIBUTES Attributes = CreateArgs.FileAttributes;
-    BOOLEAN bFileExists = (pszFilename != NULL) ? TRUE : FALSE;
+    BOOLEAN bFileExists = (FileName != NULL) ? TRUE : FALSE;
 
     if (!((CreateArgs.CreateOptions & FILE_DELETE_ON_CLOSE) ||
           (GrantedAccess & FILE_GENERIC_WRITE)))
     {
-        goto cleanup;
+        goto error;
     }
 
-    if (pszFilename)
+    if (FileName)
     {
-        ntError = PvfsGetFilenameAttributes(pszFilename, &Attributes);
+        ntError = PvfsGetFilenameAttributes(
+                      PvfsGetCStringBaseFileName(FileName),
+                      &Attributes);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -862,11 +890,8 @@ PvfsCheckDosAttributes(
     }
 
 
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+    return ntError;
 }
 
 /*****************************************************************************
@@ -898,8 +923,15 @@ PvfsFreeCreateContext(
             PvfsReleaseSCB(&pCreateCtx->pScb);
         }
 
-        RtlCStringFree(&pCreateCtx->pszDiskFilename);
-        RtlCStringFree(&pCreateCtx->pszOriginalFilename);
+        if (pCreateCtx->OriginalFileName)
+        {
+            PvfsFreeFileName(pCreateCtx->OriginalFileName);
+        }
+
+        if (pCreateCtx->ResolvedFileName)
+        {
+            PvfsFreeFileName(pCreateCtx->ResolvedFileName);
+        }
 
         PVFS_FREE(ppContext);
     }
@@ -920,24 +952,19 @@ PvfsAllocateCreateContext(
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
     IRP_ARGS_CREATE Args = pIrpContext->pIrp->Args.Create;
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
-    PSTR pszOriginalFilename = NULL;
+    PPVFS_FILE_NAME originalFileName = NULL;
 
-    ntError = PvfsCanonicalPathName(
-                  &pszOriginalFilename,
-                  Args.FileName);
+    ntError = PvfsCanonicalPathName2(&originalFileName, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateMemory(
-                  (PVOID*)&pCreateCtx,
-                  sizeof(PVFS_PENDING_CREATE),
-                  TRUE);
+    ntError = PvfsAllocateMemory((PVOID*)&pCreateCtx, sizeof(*pCreateCtx), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCreateCtx->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateCtx->pszOriginalFilename = pszOriginalFilename;
-    pszOriginalFilename = NULL;
+    pCreateCtx->OriginalFileName = originalFileName;
+    originalFileName = NULL;
 
     ntError = PvfsAcquireAccessToken(pCreateCtx->pCcb, pSecCtx);
     BAIL_ON_NT_STATUS(ntError);
@@ -947,22 +974,21 @@ PvfsAllocateCreateContext(
     *ppCreate = pCreateCtx;
     pCreateCtx = NULL;
 
-cleanup:
-    return ntError;
-
 error:
-    if (pCreateCtx)
+    if (!NT_SUCCESS(ntError))
     {
-        PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+        if (pCreateCtx)
+        {
+            PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+        }
+
+        if (originalFileName)
+        {
+            PvfsFreeFileName(originalFileName);
+        }
     }
 
-    if (pszOriginalFilename)
-    {
-        LwRtlCStringFree(&pszOriginalFilename);
-    }
-
-
-    goto cleanup;
+    return ntError;
 }
 
 
@@ -1066,6 +1092,7 @@ PvfsSetMaximalAccessMask(
     PIRP pIrp = pIrpContext->pIrp;
     PACCESS_MASK pulMaxAccessMask = NULL;
     ULONG ulEcpSize = 0;
+    PPVFS_FILE_NAME fileName = NULL;
 
     ntError = IoRtlEcpListFind(
                   pIrp->Args.Create.EcpList,
@@ -1085,9 +1112,12 @@ PvfsSetMaximalAccessMask(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    ntError = PvfsAllocateFileNameFromCString(&fileName, pCcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsAccessCheckFile(
                   pCcb->pUserToken,
-                  pCcb->pszFilename,
+                  fileName,
                   MAXIMUM_ALLOWED,
                   pulMaxAccessMask);
     if (ntError != STATUS_SUCCESS)
@@ -1097,6 +1127,11 @@ PvfsSetMaximalAccessMask(
     }
 
 cleanup:
+    if (fileName)
+    {
+        PvfsFreeFileName(fileName);
+    }
+
     return ntError;
 
 error:
@@ -1109,8 +1144,7 @@ error:
 
 static
 NTSTATUS
-PvfsGetEcpShareName(
-    PIO_ECP_LIST pEcpList,
+PvfsGetEcpShareName(    PIO_ECP_LIST pEcpList,
     PWSTR* ppwszShareName)
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;

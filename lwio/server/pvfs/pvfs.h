@@ -165,7 +165,7 @@ PvfsSetCreateResult(
 NTSTATUS
 PvfsCheckDosAttributes(
     IN IRP_ARGS_CREATE CreateArgs,
-    IN PSTR pszFilename,
+    IN OPTIONAL PPVFS_FILE_NAME FileName,
     IN ACCESS_MASK GrantedAccess
     );
 
@@ -588,7 +588,7 @@ PvfsCStringUpper(
 
 NTSTATUS
 PvfsCheckShareMode(
-    IN PSTR pszFilename,
+    IN PPVFS_FILE_NAME FileName,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess,
     OUT PPVFS_SCB *ppScb

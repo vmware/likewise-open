@@ -105,6 +105,7 @@ PvfsBuildFileNameFromCString(
     PSTR fileName = NULL;
     PSTR streamName = NULL;
     PSTR streamTypeString = NULL;
+    PVFS_STREAM_TYPE streamTypeValue = PVFS_STREAM_TYPE_UNKNOWN;
 
     BAIL_ON_INVALID_PTR(pFileName, ntError);
 
@@ -167,19 +168,21 @@ PvfsBuildFileNameFromCString(
     *cursor = '\0';
     cursor++;
 
-    if (*cursor == '\0')
-    {
-        // Cannot end in a trailing ':'
-        ntError = STATUS_OBJECT_NAME_INVALID;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     currentPosition = cursor;
     streamTypeString = currentPosition;
 
-    // Get the stream type
-    // Foo.txt:Summary:$DATA
-    //                 ^
+    if (*cursor != '\0')
+    {
+        // Get the stream type
+        // Foo.txt:Summary:$DATA
+        //                 ^
+        ntError = PvfsParseStreamType(&streamTypeValue, streamTypeString);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        streamTypeValue = PVFS_STREAM_TYPE_DATA;
+    }
 
     ntError = LwRtlCStringDuplicate(&pFileName->FileName, fileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -187,12 +190,11 @@ PvfsBuildFileNameFromCString(
     if (*streamName != '\0')
     {
         // only allocate a stream name if we have a non-empty string
-        ntError = LwRtlCStringDuplicate(&pFileName->FileName, streamName);
+        ntError = LwRtlCStringDuplicate(&pFileName->StreamName, streamName);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsParseStreamType(&pFileName->Type, streamTypeString);
-    BAIL_ON_NT_STATUS(ntError);
+    pFileName->Type = streamTypeValue;
 
 cleanup:
     if (!NT_SUCCESS(ntError))

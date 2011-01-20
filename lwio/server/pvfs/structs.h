@@ -63,6 +63,25 @@
 #define PVFS_NTFS_C_SHARE_W         {'C','$',0}
 #define PVFS_UNIX_QUOTA_FILENAME    ".Quota.sys"
 
+#define PVFS_STREAM_DELIMINATOR_C ':'
+#define PVFS_STREAM_DELIMINATOR_S ":"
+
+#define PVFS_STREAM_DEFAULT_TYPE_S "$DATA"
+#define PVFS_STREAM_METADATA_DIR_NAME ":STREAM"
+
+typedef DWORD PVFS_STREAM_TYPE, *PPVFS_STREAM_TYPE;
+
+#define PVFS_STREAM_TYPE_UNKNOWN     0
+#define PVFS_STREAM_TYPE_DATA        1
+
+typedef struct _PVFS_FILE_NAME
+{
+    PSTR FileName;
+    PSTR StreamName;
+    PVFS_STREAM_TYPE Type;
+
+} PVFS_FILE_NAME, *PPVFS_FILE_NAME;
+
 /* HP-UX does not use blksize_t type for st_blksize
    (see stat(5))
  */
@@ -198,8 +217,8 @@ typedef struct _PVFS_CB_TABLE
 typedef struct _PVFS_PENDING_CREATE
 {
     PPVFS_IRP_CONTEXT pIrpContext;
-    PSTR pszOriginalFilename;
-    PSTR pszDiskFilename;
+    PPVFS_FILE_NAME OriginalFileName;
+    PPVFS_FILE_NAME ResolvedFileName;
     PPVFS_CCB pCcb;
     PPVFS_SCB pScb;
     ACCESS_MASK GrantedAccess;
@@ -300,26 +319,6 @@ typedef struct _PVFS_CONTROL_BLOCK
     BOOLEAN Removed;
 
 } PVFS_CONTROL_BLOCK, *PPVFS_CONTROL_BLOCK;
-
-#define PVFS_STREAM_DELIMINATOR_C ':'
-#define PVFS_STREAM_DELIMINATOR_S ":"
-
-#define PVFS_STREAM_DEFAULT_TYPE_S "$DATA"
-
-#define PVFS_STREAM_METADATA_DIR_NAME ":STREAM"
-
-typedef DWORD PVFS_STREAM_TYPE, *PPVFS_STREAM_TYPE;
-
-#define PVFS_STREAM_TYPE_UNKNOWN     0
-#define PVFS_STREAM_TYPE_DATA        1
-
-typedef struct _PVFS_FILE_NAME
-{
-    PSTR FileName;
-    PSTR StreamName;
-    PVFS_STREAM_TYPE Type;
-
-} PVFS_FILE_NAME, *PPVFS_FILE_NAME;
 
 struct _PVFS_SCB
 {

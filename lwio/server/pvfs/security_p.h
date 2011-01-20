@@ -68,18 +68,12 @@ PvfsAccessCheckAnyFileHandle(
     );
 
 NTSTATUS
-PvfsAccessCheckDir(
-    PACCESS_TOKEN pToken,
-    PCSTR pszDirectory,
-    ACCESS_MASK Desired,
-    ACCESS_MASK *pGranted);
-
-NTSTATUS
 PvfsAccessCheckFile(
     PACCESS_TOKEN pToken,
-    PCSTR pszFilename,
+    PPVFS_FILE_NAME FileName,
     ACCESS_MASK Desired,
-    ACCESS_MASK *pGranted);
+    ACCESS_MASK *pGranted
+    );
 
 NTSTATUS
 PvfsAccessCheckFileEnumerate(
