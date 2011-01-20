@@ -93,8 +93,8 @@ PvfsSysMkDir(
 
 NTSTATUS
 PvfsSysOpenDir(
-    PCSTR pszDirname,
-    DIR **ppDir
+    IN PCSTR pszDirname,
+    OUT OPTIONAL DIR **ppDir
     );
 
 NTSTATUS
@@ -234,6 +234,14 @@ NTSTATUS
 PvfsSysRenameByFileName(
     IN PPVFS_FILE_NAME OriginalFileName,
     IN PPVFS_FILE_NAME NewFielName
+    );
+
+NTSTATUS
+PvfsSysOpenByFileName(
+    OUT int *pFd,
+    IN PPVFS_FILE_NAME pFileName,
+    IN int iFlags,
+    IN mode_t Mode
     );
 
 NTSTATUS

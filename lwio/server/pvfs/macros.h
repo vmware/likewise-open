@@ -74,6 +74,19 @@
         }                                                   \
     } while(0)
 
+#define PVFS_BAIL_ON_INVALID_FILENAME(p, err)               \
+    do {                                                    \
+        if ((p) == NULL) {                                  \
+            err = STATUS_INVALID_PARAMETER;                 \
+            goto error;                                     \
+        }                                                   \
+        if (LwRtlCStringIsNullOrEmpty(p->FileName))         \
+        {                                                   \
+            err = STATUS_INVALID_HANDLE;                    \
+            goto error;                                     \
+        }                                                   \
+    } while(0)
+
 #define PVFS_BAIL_ON_UNIX_ERROR(unixerr, nterr)             \
     do {                                                    \
         unixerr = errno;                                    \

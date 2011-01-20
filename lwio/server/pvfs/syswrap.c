@@ -46,6 +46,81 @@
 
 #include "pvfs.h"
 
+static
+NTSTATUS
+PvfsSysGetDiskFileName(
+    OUT PSTR* ppszDiskFilename,
+    IN PPVFS_FILE_NAME pFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszDiskFilename = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszStreamDirname = NULL;
+
+    PVFS_BAIL_ON_INVALID_FILENAME(pFileName, ntError);
+
+    if (PvfsIsDefaultStreamName(pFileName))
+    {
+        ntError = LwRtlCStringDuplicate(&pszDiskFilename,
+                                        pFileName->FileName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        ntError = PvfsFileDirname(&pszDirname,
+                                  pFileName->FileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = LwRtlCStringAllocatePrintf(
+                      &pszStreamDirname,
+                      "%s/%s",
+                      pszDirname,
+                      PVFS_STREAM_METADATA_DIR_NAME);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysOpenDir(pszStreamDirname, NULL);
+        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+        {
+            // create meta data directory
+            ntError = PvfsSysMkDir(
+                          pszStreamDirname,
+                          (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = LwRtlCStringAllocatePrintf(
+                      &pszDiskFilename,
+                      "%s/%s",
+                      pszStreamDirname,
+                      pFileName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    *ppszDiskFilename = pszDiskFilename;
+
+cleanup:
+    if (pszDirname)
+    {
+        LwRtlCStringFree(&pszDirname);
+    }
+
+    if (pszStreamDirname)
+    {
+        LwRtlCStringFree(&pszStreamDirname);
+    }
+
+    return ntError;
+
+error:
+    if (pszDiskFilename)
+    {
+        LwRtlCStringFree(&pszDiskFilename);
+    }
+
+    goto cleanup;
+}
 
 /**********************************************************
  *********************************************************/
@@ -120,7 +195,7 @@ PvfsSysStatByFileName(
     int unixerr = 0;
     PSTR fileName = NULL;
 
-    ntError = PvfsAllocateCStringFromFileName(&fileName, FileName);
+    ntError = PvfsSysGetDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (stat(fileName, &sBuf) == -1) {
@@ -208,6 +283,44 @@ error:
  *********************************************************/
 
 NTSTATUS
+PvfsSysOpenByFileName(
+    OUT int *pFd,
+    IN PPVFS_FILE_NAME pFileName,
+    IN int iFlags,
+    IN mode_t Mode
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int fd = -1;
+    int unixerr = 0;
+    PSTR pszFilename = NULL;
+
+    ntError = PvfsSysGetDiskFileName(&pszFilename, pFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if ((fd = open(pszFilename, iFlags, Mode)) == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *pFd = fd;
+
+cleanup:
+    if (pszFilename)
+    {
+        LwRtlCStringFree(&pszFilename);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
 PvfsSysMkDir(
     PSTR pszDirname,
     mode_t mode
@@ -263,8 +376,8 @@ error:
 
 NTSTATUS
 PvfsSysOpenDir(
-    PCSTR pszDirname,
-    DIR **ppDir
+    IN PCSTR pszDirname,
+    OUT OPTIONAL DIR **ppDir
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -275,13 +388,21 @@ PvfsSysOpenDir(
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-    *ppDir = pDir;
-
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+    if (ntError || !ppDir)
+    {
+        if (pDir)
+        {
+            PvfsSysCloseDir(pDir);
+        }
+    }
+
+    if (ppDir)
+    {
+        *ppDir = pDir;
+    }
+
+    return ntError;
 }
 
 /**********************************************************
@@ -765,10 +886,10 @@ PvfsSysRenameByFileName(
     PSTR oldPath = NULL;
     PSTR newPath = NULL;
 
-    ntError = PvfsAllocateCStringFromFileName(&oldPath, OriginalFileName);
+    ntError = PvfsSysGetDiskFileName(&oldPath, OriginalFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateCStringFromFileName(&newPath, NewFileName);
+    ntError = PvfsSysGetDiskFileName(&newPath, NewFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (rename(oldPath, newPath) == -1 )
