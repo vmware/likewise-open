@@ -305,7 +305,7 @@ PvfsBuildFileNameFromScb(
     BAIL_ON_NT_STATUS(ntError);
 
     if (!((pScb->StreamType == PVFS_STREAM_TYPE_DATA) &&
-          (*pScb->pszStreamname == '\0')))
+          ((pScb->pszStreamname == NULL) || (*pScb->pszStreamname == '\0'))))
     {
         LwRtlCStringDuplicate(&pFileName->StreamName, pScb->pszStreamname);
         BAIL_ON_NT_STATUS(ntError);
@@ -540,3 +540,180 @@ PvfsFileNameCompare(
 
 }
 
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSplitFileNamePath(
+    OUT PPVFS_FILE_NAME *ppDirectoryName,
+    OUT PPVFS_FILE_NAME *ppRelativeFileName,
+    IN PPVFS_FILE_NAME SourceFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FILE_NAME fileNameDirectory= NULL;
+    PPVFS_FILE_NAME fileNameRelative = NULL;
+    PSTR directoryName = NULL;
+    PSTR relativeFileName = NULL;
+    PSTR streamName = NULL;
+
+    ntError = PvfsFileSplitPath(
+                  &directoryName,
+                  &relativeFileName,
+                  SourceFileName->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (SourceFileName->StreamName)
+    {
+        ntError = LwRtlCStringDuplicate(&streamName, SourceFileName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&fileNameDirectory,
+                  sizeof(*fileNameDirectory),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&fileNameRelative,
+                  sizeof(*fileNameRelative),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    fileNameDirectory->FileName = directoryName;
+    fileNameDirectory->StreamName = NULL;
+    fileNameDirectory->Type = PVFS_STREAM_TYPE_DATA;
+    directoryName = NULL;
+
+    fileNameRelative->FileName = relativeFileName;
+    fileNameRelative->StreamName = streamName;
+    fileNameRelative->Type = SourceFileName->Type;
+    relativeFileName = NULL;
+    streamName = NULL;
+
+    *ppDirectoryName = fileNameDirectory;
+    *ppRelativeFileName = fileNameRelative;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (fileNameDirectory)
+        {
+            PvfsFreeFileName(fileNameDirectory);
+        }
+        if (fileNameRelative)
+        {
+            PvfsFreeFileName(fileNameRelative);
+        }
+    }
+
+    if (directoryName)
+    {
+        LwRtlCStringFree(&directoryName);
+    }
+    if (relativeFileName)
+    {
+        LwRtlCStringFree(&relativeFileName);
+    }
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsAppendFileName(
+    OUT PPVFS_FILE_NAME *ppDstFileName,
+    IN PPVFS_FILE_NAME BaseFileName,
+    IN PPVFS_FILE_NAME RelativeFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FILE_NAME destFileName = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&destFileName,
+                  sizeof(*destFileName),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = LwRtlCStringAllocatePrintf(
+                  &destFileName->FileName,
+                  "%s/%s",
+                  BaseFileName->FileName,
+                  RelativeFileName->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (RelativeFileName->StreamName)
+    {
+        ntError = LwRtlCStringDuplicate(
+                      &destFileName->StreamName,
+                      RelativeFileName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    destFileName->Type = RelativeFileName->Type;
+
+    *ppDstFileName = destFileName;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (destFileName)
+        {
+            PvfsFreeFileName(destFileName);
+        }
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+PCSTR
+PvfsGetCStringBaseFileName(
+    IN PPVFS_FILE_NAME FileName
+    )
+{
+    return FileName->FileName;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsRenameBaseFileName(
+    IN OUT PPVFS_FILE_NAME FileName,
+    PCSTR NewBaseFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR newBaseFileName = NULL;
+
+    BAIL_ON_INVALID_PTR(NewBaseFileName, ntError);
+
+    ntError = LwRtlCStringDuplicate(&newBaseFileName, NewBaseFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (FileName->FileName)
+    {
+        LwRtlCStringFree(&FileName->FileName);
+    }
+
+    FileName->FileName = newBaseFileName;
+
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (newBaseFileName)
+        {
+            LwRtlCStringFree(&newBaseFileName);
+        }
+    }
+
+    return ntError;
+}

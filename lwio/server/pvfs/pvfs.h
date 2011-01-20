@@ -493,6 +493,30 @@ PvfsFileNameCompare(
     IN BOOLEAN CaseSensitive
     );
 
+NTSTATUS
+PvfsSplitFileNamePath(
+    OUT PPVFS_FILE_NAME *ppDirectoryName,
+    OUT PPVFS_FILE_NAME *ppRelativeFileName,
+    IN PPVFS_FILE_NAME SourceFileName
+    );
+NTSTATUS
+PvfsAppendFileName(
+    OUT PPVFS_FILE_NAME *ppDstFileName,
+    IN PPVFS_FILE_NAME BaseFileName,
+    IN PPVFS_FILE_NAME RelativeFileName
+    );
+
+PCSTR
+PvfsGetCStringBaseFileName(
+    IN PPVFS_FILE_NAME FileName
+    );
+
+NTSTATUS
+PvfsRenameBaseFileName(
+    IN OUT PPVFS_FILE_NAME FileName,
+    PCSTR NewBaseFileName
+    );
+
 
 //
 // From pathcache.c
