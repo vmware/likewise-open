@@ -184,8 +184,7 @@ PvfsWC16CanonicalPathName(
     pszCursor = pszPath;
     while (pszCursor && *pszCursor)
     {
-        if ((*pszCursor == ':') ||
-            (*pszCursor == '"') ||
+        if ((*pszCursor == '"') ||
             (*pszCursor == '*') ||
             (*pszCursor == '?') ||
             (*pszCursor == '<') ||

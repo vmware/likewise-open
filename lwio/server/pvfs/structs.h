@@ -54,7 +54,8 @@
      FILE_UNICODE_ON_DISK |           \
      FILE_PERSISTENT_ACLS |           \
      FILE_SUPPORTS_SPARSE_FILES |     \
-     FILE_VOLUME_QUOTAS)
+     FILE_VOLUME_QUOTAS |             \
+     FILE_NAMED_STREAMS)
 
 #define PVFS_NTFS_QUOTA_FILENAME    "$Extend\\$Quota:$Q:$INDEX_ALLOCATION"
 #define PVFS_NTFS_QUOTA_FILENAME_W  \

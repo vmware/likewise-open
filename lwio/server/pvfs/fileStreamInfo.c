@@ -100,7 +100,6 @@ PvfsQueryFileStreamInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-#ifdef ENABLE_STREAM_SUPPORT
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
@@ -159,8 +158,5 @@ cleanup:
 
 error:
     goto cleanup;
-#else
-    return STATUS_INVALID_PARAMETER;
-#endif
 }
 
