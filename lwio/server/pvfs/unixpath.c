@@ -686,6 +686,42 @@ error:
     goto cleanup;
 }
 
+/////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsLookupFile2(
+    OUT PPVFS_FILE_NAME *ppResolvedPath,
+    IN OUT PPVFS_STAT pStat,
+    IN PPVFS_FILE_NAME DirectoryName,
+    IN PPVFS_FILE_NAME RelativeFileName,
+    IN BOOLEAN bCaseSensitive
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_FILE_NAME absoluteFileName = NULL;
+
+    ntError = PvfsAppendFileName(
+                  &absoluteFileName,
+                  DirectoryName,
+                  RelativeFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupPath2(
+                  ppResolvedPath,
+                  pStat,
+                  absoluteFileName,
+                  bCaseSensitive);
+    BAIL_ON_NT_STATUS(ntError);
+
+error:
+    if (absoluteFileName)
+    {
+        PvfsFreeFileName(absoluteFileName);
+    }
+
+    return ntError;
+}
+
 /****************************************************************
  ***************************************************************/
 

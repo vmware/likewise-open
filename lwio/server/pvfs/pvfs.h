@@ -423,6 +423,15 @@ PvfsLookupFile(
     );
 
 NTSTATUS
+PvfsLookupFile2(
+    OUT PPVFS_FILE_NAME *ppResolvedPath,
+    IN OUT PPVFS_STAT pStat,
+    IN PPVFS_FILE_NAME DirectoryName,
+    IN PPVFS_FILE_NAME RelativeFileName,
+    IN BOOLEAN bCaseSensitive
+    );
+
+NTSTATUS
 PvfsParseStreamname(
     OUT PSTR *ppszOwnerFilename,
     OUT PSTR *ppszFilename, // the physical location of the stream
