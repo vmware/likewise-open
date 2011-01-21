@@ -513,7 +513,23 @@ cleanup:
         if (pSession)
         {
             /* Attempt to log off session, ignoring errors */
-            Logoff(pSession);
+            LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+            ntStatus = SMBSocketWaitSessionSetup(pSession->pSocket);
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                pSession->pSocket->bSessionSetupInProgress = TRUE;
+            }
+            LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                Logoff(pSession);
+
+                LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+                pSession->pSocket->bSessionSetupInProgress = FALSE;
+                pthread_cond_broadcast(&pSession->pSocket->event);
+                LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+            }
+
             SMBSessionFree(pSession);
         }
     }
