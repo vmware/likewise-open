@@ -836,28 +836,34 @@ error:
     goto cleanup;
 }
 
-/**********************************************************
- *********************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
-PvfsSysChown(
-    PPVFS_CCB pCcb,
+PvfsSysChownByFileName(
+    IN PPVFS_FILE_NAME pFileName,
     uid_t uid,
     gid_t gid
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
+    PSTR pszFilename = NULL;
 
-    if (chown(pCcb->pszFilename, uid, gid) == -1) {
+    ntError = PvfsSysGetDiskFileName(&pszFilename, pFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (chown(pszFilename, uid, gid) == -1)
+    {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+    if (pszFilename)
+    {
+        LwRtlCStringFree(&pszFilename);
+    }
+
+    return ntError;
 }
 
 

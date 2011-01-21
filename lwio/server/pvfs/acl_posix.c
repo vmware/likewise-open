@@ -809,6 +809,7 @@ PvfsSecurityPosixSetGroup(
     BOOLEAN bDefaulted = FALSE;
     BOOLEAN bIsUserSid = FALSE;
     ULONG Id = 0;
+    PVFS_FILE_NAME FileName = { 0 };
 
     BAIL_ON_INVALID_PTR(pSecDesc, ntError);
 
@@ -838,7 +839,10 @@ PvfsSecurityPosixSetGroup(
 
     if (gPvfsDriverConfig.VirtualUid != (uid_t)-1)
     {
-        ntError = PvfsSysChown(pCcb, pStat->s_uid, (gid_t)Id);
+        ntError = PvfsBuildFileNameFromScb(&FileName, pCcb->pScb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysChownByFileName(&FileName, pStat->s_uid, (gid_t)Id);
         BAIL_ON_NT_STATUS(ntError);
 
         pStat->s_gid = (gid_t)Id;
@@ -847,6 +851,8 @@ PvfsSecurityPosixSetGroup(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    PvfsDestroyFileName(&FileName);
+
     return ntError;
 
 error:

@@ -319,7 +319,10 @@ PvfsCreateFileDoSysOpen(
             }
         }
 
-        ntError = PvfsSysChown(pCreateContext->pCcb, ownerId, groupId);
+        ntError = PvfsSysChownByFileName(
+                      pCreateContext->ResolvedFileName,
+                      ownerId,
+                      groupId);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Security Descriptor */
@@ -551,17 +554,24 @@ PvfsCreateDirDoSysOpen(
             }
         }
 
-        ntError = PvfsSysChown(pCreateContext->pCcb, ownerId, groupId);
+        ntError = PvfsSysChownByFileName(
+                      pCreateContext->ResolvedFileName,
+                      ownerId,
+                      groupId);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Security Descriptor */
 
-        ntError = PvfsCreateFileSecurity(
-                      pCreateContext->pCcb->pUserToken,
-                      pCreateContext->pCcb,
-                      Args.SecurityDescriptor,
-                      TRUE);
-        BAIL_ON_NT_STATUS(ntError);
+        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb))
+        {
+            // Only need to set security on the File object (and not the stream)
+            ntError = PvfsCreateFileSecurity(
+                          pCreateContext->pCcb->pUserToken,
+                          pCreateContext->pCcb,
+                          Args.SecurityDescriptor,
+                          TRUE);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
 
     if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_ATTRIB) &&

@@ -166,12 +166,6 @@ PvfsSysWrite(
     PULONG pBytesWritten
     );
 
-NTSTATUS
-PvfsSysChown(
-    PPVFS_CCB pCcb,
-    uid_t uid,
-    gid_t gid
-    );
 
 NTSTATUS
 PvfsSysFchmod(
@@ -253,6 +247,13 @@ NTSTATUS
 PvfsSysMkDirByFileName(
     IN PPVFS_FILE_NAME DirectoryName,
     mode_t mode
+    );
+
+NTSTATUS
+PvfsSysChownByFileName(
+    IN PPVFS_FILE_NAME pFileName,
+    uid_t uid,
+    gid_t gid
     );
 
 #endif     /* _PVFS_SYSWRAP_P_H */
