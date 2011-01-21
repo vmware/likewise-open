@@ -523,5 +523,5 @@ PvfsRenameStream(
     PPVFS_FILE_NAME pNewStreamName
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    return PvfsRenameSCB(pCcb->pScb, pCcb, pNewStreamName);
 }

@@ -86,9 +86,9 @@ NTSTATUS
 PvfsGetFullStreamname_inScbLock(
     PSTR *ppszFullStreamname,
     PPVFS_SCB pScb,
-    IN OPTIONAL PSTR pszOwnerFilename
+    IN OPTIONAL PSTR pszOwnerFilename,
+    IN OPTIONAL PSTR pszStreamname
     );
-
 
 NTSTATUS
 PvfsGetBasicStreamname(
@@ -182,7 +182,7 @@ NTSTATUS
 PvfsRenameSCB(
     PPVFS_SCB pScb,
     PPVFS_CCB pCcb,
-    PSTR pszNewFilename
+    PPVFS_FILE_NAME pNewStreamName
     );
 
 BOOLEAN
