@@ -269,9 +269,9 @@ PvfsValidatePathSCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOLEAN bScbLocked = FALSE;
     PVFS_STAT Stat = {0};
-    PSTR streamName = NULL;
+    PVFS_FILE_NAME FileName = {0};
 
-    ntError = PvfsGetBasicStreamname(&streamName, pScb);
+    ntError = PvfsBuildFileNameFromScb(&FileName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     LWIO_LOCK_RWMUTEX_SHARED(bScbLocked, &pScb->BaseControlBlock.RwLock);
@@ -279,7 +279,7 @@ PvfsValidatePathSCB(
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
 
-    ntError = PvfsSysStat(streamName, &Stat);
+    ntError = PvfsSysStatByFileName(&FileName, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((pFileId->Device != Stat.s_dev) || (pFileId->Inode != Stat.s_ino))
@@ -291,10 +291,7 @@ PvfsValidatePathSCB(
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bScbLocked, &pScb->BaseControlBlock.RwLock);
 
-    if (streamName)
-    {
-        LwRtlCStringFree(&streamName);
-    }
+    PvfsDestroyFileName(&FileName);
 
     return ntError;
 
