@@ -726,9 +726,14 @@ SrvBuildNTCreateResponse_inlock(
     {
         pResponseHeader->fileType = 0;
         // TODO: Get these values from the driver
+#if 0
         pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
                                        SMB_DEVICE_STATE_NO_SUBSTREAMS |
                                        SMB_DEVICE_STATE_NO_REPARSE_TAG;
+#else
+        pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
+                                       SMB_DEVICE_STATE_NO_REPARSE_TAG;
+#endif
     }
 
     pResponseHeader->isDirectory =
