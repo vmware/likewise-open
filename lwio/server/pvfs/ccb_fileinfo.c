@@ -58,9 +58,32 @@ PvfsCcbQueryFileBasicInformation(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PVFS_STAT Stat = {0};
+    PVFS_FILE_NAME baseObjectFileName = { 0 };
 
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysFstat(pCcb->fd, &Stat);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        // Named Streams share meta-data with the owning FCB
+        ntError = PvfsBuildFileNameFromCString(
+                      &baseObjectFileName,
+                      pCcb->pScb->pOwnerFcb->pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsGetFilenameAttributes(
+                      PvfsGetCStringBaseFileName(&baseObjectFileName),
+                      &pFileInfo->FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysStatByFileName(&baseObjectFileName, &Stat);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, Stat.s_atime);
     BAIL_ON_NT_STATUS(ntError);
@@ -74,16 +97,11 @@ PvfsCcbQueryFileBasicInformation(
     ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
-    BAIL_ON_NT_STATUS(ntError);
-
-
-cleanup:
-    return ntError;
 
 error:
-    goto cleanup;
+    PvfsDestroyFileName(&baseObjectFileName);
 
+    return ntError;
 }
 
 
@@ -245,37 +263,58 @@ PvfsCcbQueryFileNetworkOpenInformation(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PVFS_STAT Stat = {0};
+    PVFS_STAT fileStat = { 0 };
+    PVFS_STAT streamStat = { 0 };
+    PVFS_FILE_NAME baseObjectFileName = { 0 };
 
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysFstat(pCcb->fd, &fileStat);
+        BAIL_ON_NT_STATUS(ntError);
+
+        streamStat = fileStat;
+    }
+    else
+    {
+        // Named Streams share meta-data with the owning FCB
+        ntError = PvfsBuildFileNameFromCString(
+                      &baseObjectFileName,
+                      pCcb->pScb->pOwnerFcb->pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsGetFilenameAttributes(
+                      PvfsGetCStringBaseFileName(&baseObjectFileName),
+                      &pFileInfo->FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysStatByFileName(&baseObjectFileName, &fileStat);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysFstat(pCcb->fd, &streamStat);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, fileStat.s_atime);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Timestamps */
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, Stat.s_atime);
+    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, fileStat.s_mtime);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, Stat.s_mtime);
+    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, fileStat.s_ctime);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, Stat.s_ctime);
+    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, fileStat.s_crtime);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pFileInfo->AllocationSize = Stat.s_alloc;
-    pFileInfo->EndOfFile      = Stat.s_size;
-
-cleanup:
-
-    return ntError;
+    pFileInfo->EndOfFile      = streamStat.s_size;
+    pFileInfo->AllocationSize = streamStat.s_alloc;
 
 error:
+    PvfsDestroyFileName(&baseObjectFileName);
 
-    goto cleanup;
+    return ntError;
 }
 
