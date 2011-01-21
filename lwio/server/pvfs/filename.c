@@ -160,28 +160,30 @@ PvfsBuildFileNameFromCString(
         if (cursor == NULL)
         {
             // Missing StreamType
-            ntError = STATUS_OBJECT_NAME_INVALID;
-            BAIL_ON_NT_STATUS(ntError);
+            streamTypeValue = PVFS_STREAM_TYPE_DATA;
         }
     }
 
-    *cursor = '\0';
-    cursor++;
-
-    currentPosition = cursor;
-    streamTypeString = currentPosition;
-
-    if (*cursor != '\0')
+    if (cursor != NULL)
     {
-        // Get the stream type
-        // Foo.txt:Summary:$DATA
-        //                 ^
-        ntError = PvfsParseStreamType(&streamTypeValue, streamTypeString);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-    else
-    {
-        streamTypeValue = PVFS_STREAM_TYPE_DATA;
+        *cursor = '\0';
+        cursor++;
+
+        currentPosition = cursor;
+        streamTypeString = currentPosition;
+
+        if (*cursor != '\0')
+        {
+            // Get the stream type
+            // Foo.txt:Summary:$DATA
+            //                 ^
+            ntError = PvfsParseStreamType(&streamTypeValue, streamTypeString);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+        else
+        {
+            streamTypeValue = PVFS_STREAM_TYPE_DATA;
+        }
     }
 
     ntError = LwRtlCStringDuplicate(&pFileName->FileName, fileName);
