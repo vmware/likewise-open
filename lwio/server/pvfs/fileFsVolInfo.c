@@ -108,6 +108,7 @@ PvfsQueryFileFsVolInfo(
     PWSTR pwszVolumeName = NULL;
     PCSTR pszVolName = "LIKEWISE";
     size_t VolNameLenBytes = RtlCStringNumChars(pszVolName) * sizeof(WCHAR);
+    PVFS_STAT stat = { 0 };
 
     /* Sanity checks */
 
@@ -131,7 +132,10 @@ PvfsQueryFileFsVolInfo(
 
     /* Real work starts here */
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->VolumeCreationTime, time(NULL));
+    ntError = PvfsSysFstat(pCcb->fd, &stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsUnixToWinTime(&pFileInfo->VolumeCreationTime, stat.s_crtime);
     BAIL_ON_NT_STATUS(ntError);
 
     pFileInfo->VolumeSerialNumber = 0x009a9a03;
