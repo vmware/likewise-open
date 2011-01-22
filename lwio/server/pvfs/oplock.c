@@ -111,6 +111,12 @@ PvfsOplockRequest(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    if (!PvfsIsDefaultStream(pCcb->pScb))
+    {
+        ntError = STATUS_OPLOCK_NOT_GRANTED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     if (!gPvfsDriverConfig.EnableOplocks)
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;

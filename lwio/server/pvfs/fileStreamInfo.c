@@ -46,7 +46,9 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
+//
+// File static function prototypes
+//
 
 static
 NTSTATUS
@@ -54,13 +56,17 @@ PvfsQueryFileStreamInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+static
+NTSTATUS
+PvfsMarshallFileStreamInfoBuffer(
+    IN OUT PFILE_STREAM_INFORMATION pFileStreamInfo,
+    IN OUT ULONG BytesAvailable,
+    OUT PULONG BytesConsumed,
+    IN PPVFS_FILE_NAME StreamName,
+    IN PPVFS_STAT pStat
+    );
 
-/* File Globals */
-
-
-
-/* Code */
-
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsFileStreamInfo(
@@ -93,6 +99,7 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
 
 static
 NTSTATUS
@@ -105,9 +112,13 @@ PvfsQueryFileStreamInfo(
     PPVFS_CCB pCcb = NULL;
     PFILE_STREAM_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PVFS_STAT Stat = {0};
-    PWSTR pwszStreamName = NULL;
-    size_t StreamNameLenBytes = RtlCStringNumChars("::$DATA") * sizeof(WCHAR);
+    PVOID buffer = Args.FileInformation;
+    ULONG bufferLength = Args.Length;
+    ULONG bufferConsumed = 0;
+    ULONG bufferOffset = 0;
+    PPVFS_FILE_NAME streamNames = NULL;
+    LONG streamCount = 0;
+    LONG i = 0;
 
     /* Sanity checks */
 
@@ -122,41 +133,130 @@ PvfsQueryFileStreamInfo(
     /* Make sure buffer is large enough for the static structure
        fields and the magic WCHAR("::$DATA") string */
 
-    if (Args.Length < (sizeof(*pFileInfo) + StreamNameLenBytes))
+    if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_STREAM_INFORMATION)Args.FileInformation;
+    // The input buffer must be large enough to hold the complete list of
+    // streams
 
-    /* Real work starts here */
-
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    ntError = PvfsSysEnumStreams(pCcb, &streamNames, &streamCount);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = RtlWC16StringAllocateFromCString(&pwszStreamName, "::$DATA");
-    BAIL_ON_NT_STATUS(ntError);
+    for (i=0; i<streamCount; i++)
+    {
+        PVFS_STAT streamStat = { 0 };
 
-    pFileInfo->NextEntryOffset = 0;
-    pFileInfo->StreamSize = Stat.s_size;
-    pFileInfo->StreamAllocationSize = Stat.s_alloc;
-    pFileInfo->StreamNameLength = StreamNameLenBytes;
-    memcpy(pFileInfo->StreamName, pwszStreamName, StreamNameLenBytes);
+        // Reset as we move the cursor forward
+        bufferConsumed = 0;
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo) + StreamNameLenBytes;
+        pFileInfo = (PFILE_STREAM_INFORMATION)(buffer + bufferOffset);
+
+        ntError = PvfsSysStatByFileName(&streamNames[i], &streamStat);
+        if (ntError != STATUS_SUCCESS)
+        {
+            // Skip failures
+            continue;
+        }
+
+        ntError = PvfsMarshallFileStreamInfoBuffer(
+                      pFileInfo,
+                      bufferLength - bufferOffset,
+                      &bufferConsumed,
+                      &streamNames[i],
+                      &streamStat);
+        BAIL_ON_NT_STATUS(ntError);
+
+        bufferOffset += bufferConsumed;
+        pFileInfo->NextEntryOffset = bufferConsumed;
+;
+    }
+
+    if (pFileInfo)
+    {
+        pFileInfo->NextEntryOffset = 0;
+    }
+
+    pIrp->IoStatusBlock.BytesTransferred = bufferOffset;
     ntError = STATUS_SUCCESS;
 
-cleanup:
-    if (pCcb) {
+error:
+    if (streamNames)
+    {
+        PvfsFreeFileNameList(streamNames, streamCount);
+    }
+
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
-    PVFS_FREE(&pwszStreamName);
-
     return ntError;
-
-error:
-    goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+PvfsMarshallFileStreamInfoBuffer(
+    IN OUT PFILE_STREAM_INFORMATION pFileStreamInfo,
+    IN OUT ULONG BytesAvailable,
+    OUT PULONG BytesConsumed,
+    IN PPVFS_FILE_NAME StreamName,
+    IN PPVFS_STAT pStat
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszStreamName = NULL;
+    PWSTR pwszStreamName = NULL;
+    ULONG streamNameSize = 0;
+    ULONG bytesNeeded = 0;
+
+    if (BytesAvailable < sizeof(*pFileStreamInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAllocateCStringStreamFileName(
+                  &pszStreamName,
+                  StreamName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = LwRtlWC16StringAllocateFromCString(&pwszStreamName, pszStreamName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    streamNameSize = LwRtlWC16StringNumChars(pwszStreamName) * sizeof(*pwszStreamName);
+
+    bytesNeeded = sizeof(*pFileStreamInfo) + streamNameSize - sizeof(WCHAR);
+
+    PVFS_ALIGN_MEMORY(bytesNeeded, 8);
+
+    if (BytesAvailable < bytesNeeded)
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pFileStreamInfo->NextEntryOffset = 0;
+    pFileStreamInfo->StreamSize = pStat->s_size;
+    pFileStreamInfo->StreamAllocationSize = pStat->s_alloc;
+    pFileStreamInfo->StreamNameLength = streamNameSize;
+    LwRtlCopyMemory(pFileStreamInfo->StreamName, pwszStreamName, streamNameSize);
+
+    *BytesConsumed = bytesNeeded;
+
+error:
+    if (pszStreamName)
+    {
+        LwRtlCStringFree(&pszStreamName);
+    }
+    if (pwszStreamName)
+    {
+        LwRtlWC16StringFree(&pwszStreamName);
+    }
+
+    return ntError;
+}

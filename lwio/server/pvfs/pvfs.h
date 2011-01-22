@@ -508,6 +508,14 @@ PvfsSplitFileNamePath(
     OUT PPVFS_FILE_NAME *ppRelativeFileName,
     IN PPVFS_FILE_NAME SourceFileName
     );
+
+NTSTATUS
+PvfsAppendBuildFileName(
+    OUT PPVFS_FILE_NAME DstFileName,
+    IN PPVFS_FILE_NAME BaseFileName,
+    IN PPVFS_FILE_NAME RelativeFileName
+    );
+
 NTSTATUS
 PvfsAppendFileName(
     OUT PPVFS_FILE_NAME *ppDstFileName,
@@ -520,12 +528,36 @@ PvfsGetCStringBaseFileName(
     IN PPVFS_FILE_NAME FileName
     );
 
+
+NTSTATUS
+PvfsAllocateCStringStreamFileName(
+    OUT PSTR *ppStreamName,
+    IN PPVFS_FILE_NAME FileName
+    );
+
 NTSTATUS
 PvfsRenameBaseFileName(
     IN OUT PPVFS_FILE_NAME FileName,
     PCSTR NewBaseFileName
     );
 
+NTSTATUS
+PvfsAllocateFileNameList(
+    OUT PPVFS_FILE_NAME *ppFileNameList,
+    IN ULONG ListLength
+    );
+
+VOID
+PvfsFreeFileNameList(
+    IN OUT PPVFS_FILE_NAME NameList,
+    IN ULONG ListLength
+    );
+
+NTSTATUS
+PvfsCopyStreamFileNameFromCString(
+    IN OUT PPVFS_FILE_NAME FileName,
+    IN PCSTR NewStreamName
+    );
 
 //
 // From pathcache.c

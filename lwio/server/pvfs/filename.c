@@ -487,6 +487,45 @@ error:
 
 ////////////////////////////////////////////////////////////////////////
 
+NTSTATUS
+PvfsCopyStreamFileNameFromCString(
+    IN OUT PPVFS_FILE_NAME FileName,
+    IN PCSTR NewStreamName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR newStreamName = NULL;
+
+    // Currently only supports changing the stream's name and not the type
+    // So we don't need to re-parse the incoming stream name string
+
+    BAIL_ON_INVALID_PTR(NewStreamName, ntError);
+
+    ntError = LwRtlCStringDuplicate(&newStreamName, NewStreamName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (FileName->StreamName)
+    {
+        LwRtlCStringFree(&FileName->StreamName);
+    }
+
+    FileName->StreamName = newStreamName;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (newStreamName)
+        {
+            LwRtlCStringFree(&newStreamName);
+        }
+    }
+
+    return ntError;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 LONG
 PvfsFileNameCompare(
     IN PPVFS_FILE_NAME FileName1,
@@ -630,6 +669,43 @@ error:
 ////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
+PvfsAppendBuildFileName(
+    OUT PPVFS_FILE_NAME DstFileName,
+    IN PPVFS_FILE_NAME BaseFileName,
+    IN PPVFS_FILE_NAME RelativeFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    ntError = LwRtlCStringAllocatePrintf(
+                  &DstFileName->FileName,
+                  "%s/%s",
+                  BaseFileName->FileName,
+                  RelativeFileName->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (RelativeFileName->StreamName)
+    {
+        ntError = LwRtlCStringDuplicate(
+                      &DstFileName->StreamName,
+                      RelativeFileName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    DstFileName->Type = RelativeFileName->Type;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        PvfsDestroyFileName(DstFileName);
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
 PvfsAppendFileName(
     OUT PPVFS_FILE_NAME *ppDstFileName,
     IN PPVFS_FILE_NAME BaseFileName,
@@ -645,22 +721,11 @@ PvfsAppendFileName(
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = LwRtlCStringAllocatePrintf(
-                  &destFileName->FileName,
-                  "%s/%s",
-                  BaseFileName->FileName,
-                  RelativeFileName->FileName);
+    ntError = PvfsAppendBuildFileName(
+                  destFileName,
+                  BaseFileName,
+                  RelativeFileName);
     BAIL_ON_NT_STATUS(ntError);
-
-    if (RelativeFileName->StreamName)
-    {
-        ntError = LwRtlCStringDuplicate(
-                      &destFileName->StreamName,
-                      RelativeFileName->StreamName);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    destFileName->Type = RelativeFileName->Type;
 
     *ppDstFileName = destFileName;
 
@@ -720,4 +785,93 @@ error:
     }
 
     return ntError;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsAllocateCStringStreamFileName(
+    OUT PSTR *ppStreamName,
+    IN PPVFS_FILE_NAME FileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR streamName = NULL;
+
+    switch (FileName->Type)
+    {
+        case PVFS_STREAM_TYPE_DATA:
+            ntError = LwRtlCStringAllocatePrintf(
+                          &streamName,
+                          ":%s:$DATA",
+                          FileName->StreamName ? FileName->StreamName : "");
+            break;
+
+        default:
+            ntError = STATUS_INVALID_PARAMETER;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppStreamName = streamName;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (streamName)
+        {
+            LwRtlCStringFree(&streamName);
+        }
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsAllocateFileNameList(
+    OUT PPVFS_FILE_NAME *ppFileNameList,
+    IN ULONG ListLength
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FILE_NAME nameList = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&nameList,
+                  sizeof(*nameList) * ListLength,
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppFileNameList = nameList;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+       if (nameList)
+        {
+            PvfsFreeFileNameList(nameList, ListLength);
+        }
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+VOID
+PvfsFreeFileNameList(
+    IN OUT PPVFS_FILE_NAME NameList,
+    IN ULONG ListLength
+    )
+{
+    ULONG i = 0;
+
+    for (i=0; i<ListLength; i++)
+    {
+        PvfsDestroyFileName(&NameList[i]);
+    }
+
+    PvfsFreeMemory((PVOID*)&NameList);
 }

@@ -237,6 +237,12 @@ PvfsFileFsControlInfo(
 /* From util_dir.c */
 
 NTSTATUS
+PvfsDirContextAddEntry(
+    PPVFS_DIRECTORY_CONTEXT pDirCtx,
+    PCSTR pszPathname
+    );
+
+NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
     PIO_MATCH_FILE_SPEC pFileSpec,

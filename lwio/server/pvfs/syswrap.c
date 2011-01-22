@@ -1097,3 +1097,146 @@ error:
     goto cleanup;
 }
 #endif
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSysEnumStreams(
+    IN PPVFS_CCB pCcb,
+    OUT PPVFS_FILE_NAME *ppStreamNames,
+    OUT PLONG StreamCount
+    )
+{
+    NTSTATUS ntError =  STATUS_SUCCESS;
+    LONG streamNameListLength = 0;
+    PPVFS_FILE_NAME streamNameList = NULL;
+    PPVFS_FILE_NAME fileName = NULL;
+    PPVFS_FILE_NAME parentDirectoryName = NULL;
+    PPVFS_FILE_NAME baseFileName = NULL;
+    PSTR streamDirectory = NULL;
+    PPVFS_DIRECTORY_CONTEXT streamDirectoryContext = NULL;
+    DIR *pDir = NULL;
+    struct dirent *pDirEntry = NULL;
+    struct dirent dirEntry = { 0 };
+    LONG i = 0;
+    LONG currentIndex = 0;
+
+    if (!PvfsIsDefaultStream(pCcb->pScb))
+    {
+        // Enumeration is only valid on the base file object itself
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAllocateFileNameFromScb(&fileName, pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSplitFileNamePath(
+                  &parentDirectoryName,
+                  &baseFileName,
+                  fileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = LwRtlCStringAllocatePrintf(
+                  &streamDirectory,
+                  "%s/%s/%s",
+                  PvfsGetCStringBaseFileName(parentDirectoryName),
+                  PVFS_STREAM_METADATA_DIR_NAME,
+                  PvfsGetCStringBaseFileName(baseFileName));
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&streamDirectoryContext,
+                  sizeof(*streamDirectoryContext),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysOpenDir(streamDirectory, &streamDirectoryContext->pDir);
+    if (ntError == STATUS_SUCCESS)
+    {
+        pDir = streamDirectoryContext->pDir;
+
+        for (ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry);
+             pDirEntry;
+             ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry))
+        {
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (RtlCStringIsEqual(pDirEntry->d_name, ".", FALSE) ||
+                RtlCStringIsEqual(pDirEntry->d_name, "..", FALSE))
+            {
+                continue;
+            }
+
+            ntError = PvfsDirContextAddEntry(streamDirectoryContext, pDirEntry->d_name);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    // Always include space
+    ntError = PvfsAllocateFileNameList(
+                  &streamNameList,
+                  streamDirectoryContext->dwNumEntries+1);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAppendBuildFileName(
+                  &streamNameList[currentIndex],
+                  parentDirectoryName,
+                  baseFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCopyStreamFileNameFromCString(
+                  &streamNameList[currentIndex],
+                  "");
+    BAIL_ON_NT_STATUS(ntError);
+
+    currentIndex++;
+
+    for (i=0; i<streamDirectoryContext->dwNumEntries; i++)
+    {
+        ntError = PvfsAppendBuildFileName(
+                      &streamNameList[currentIndex],
+                      parentDirectoryName,
+                      baseFileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsCopyStreamFileNameFromCString(
+                      &streamNameList[currentIndex],
+                      streamDirectoryContext->pDirEntries[i].pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
+        currentIndex++;
+    }
+
+    *ppStreamNames = streamNameList;
+    *StreamCount = currentIndex;
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        if (streamNameList)
+        {
+            PvfsFreeFileNameList(streamNameList, streamNameListLength);
+        }
+    }
+
+    if (pDir)
+    {
+        PvfsSysCloseDir(pDir);
+        streamDirectoryContext->pDir = NULL;
+    }
+
+    if (parentDirectoryName)
+    {
+        PvfsFreeFileName(parentDirectoryName);
+    }
+    if (baseFileName)
+    {
+        PvfsFreeFileName(baseFileName);
+    }
+
+    PvfsFreeDirectoryContext(streamDirectoryContext);
+
+    return ntError;
+}
+

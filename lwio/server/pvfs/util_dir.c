@@ -86,7 +86,6 @@ PvfsFreeDirectoryContext(
 /***********************************************************
  **********************************************************/
 
-static
 NTSTATUS
 PvfsDirContextAddEntry(
     PPVFS_DIRECTORY_CONTEXT pDirCtx,
