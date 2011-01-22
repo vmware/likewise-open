@@ -222,7 +222,7 @@ PvfsExecuteDeleteOnClose(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PSTR streamName = NULL;
+    PVFS_FILE_NAME streamName = {0};
 
     // Always reset the delete-pending state to be safe
 
@@ -233,13 +233,11 @@ PvfsExecuteDeleteOnClose(
     ntError = PvfsValidatePathSCB(pScb, &pScb->FileId);
     if (ntError == STATUS_SUCCESS)
     {
-        ntError = PvfsGetBasicStreamname(&streamName, pScb);
-
+        ntError = PvfsBuildFileNameFromScb(&streamName, pScb);
         // Don't BAIL_ON_NT_STATUS() so the FileId is always reset
-
         if (ntError == STATUS_SUCCESS)
         {
-            ntError = PvfsSysRemove(streamName);
+            ntError = PvfsSysRemoveByFileName(&streamName);
         }
 
         /* Reset dev/inode state */
@@ -251,10 +249,7 @@ PvfsExecuteDeleteOnClose(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    if (streamName)
-    {
-        LwRtlCStringFree(&streamName);
-    }
+    PvfsDestroyFileName(&streamName);
 
     return ntError;
 
@@ -266,9 +261,11 @@ error:
 
     default:
         LWIO_LOG_ERROR(
-            "%s: Failed to execute delete-on-close on %s (%d,%d) (%s)\n",
+            "%s: Failed to execute delete-on-close on %s%s%s (%d,%d) (%s)\n",
             PVFS_LOG_HEADER,
-            streamName ? streamName : "(invalid streamName)",
+            streamName.FileName ? streamName.FileName : "(invalid fileName)",
+            streamName.StreamName ? ":" : "",
+            streamName.StreamName ? streamName.StreamName : "",
             pScb->FileId.Device,
             pScb->FileId.Inode,
             LwNtStatusToName(ntError));

@@ -719,7 +719,7 @@ PvfsSysRemoveByFileName(
     int unixerr = 0;
     PSTR fileName = NULL;
 
-    ntError = PvfsAllocateCStringFromFileName(&fileName, FileName);
+    ntError = PvfsSysGetDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (remove(fileName) == -1)
