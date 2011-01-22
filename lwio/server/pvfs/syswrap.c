@@ -48,6 +48,65 @@
 
 static
 NTSTATUS
+PvfsBuildStreamDirName(
+    IN OUT PPVFS_FILE_NAME pStreamDirName,
+    IN PPVFS_FILE_NAME pFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszDirname = NULL;
+    PSTR pszBasename = NULL;
+    PSTR pszStreamDirname = NULL;
+
+    PVFS_BAIL_ON_INVALID_FILENAME(pFileName, ntError);
+
+    ntError = PvfsFileDirname(&pszDirname,
+                              pFileName->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileBasename(&pszBasename,
+                               pFileName->FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = LwRtlCStringAllocatePrintf(
+                  &pszStreamDirname,
+                  "%s/%s/%s",
+                  pszDirname,
+                  PVFS_STREAM_METADATA_DIR_NAME,
+                  pszBasename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsBuildFileNameFromCString(pStreamDirName,
+                                           pszStreamDirname);
+    BAIL_ON_NT_STATUS(ntError);
+
+ error:
+
+     if (!NT_SUCCESS(ntError))
+     {
+         PvfsDestroyFileName(pStreamDirName);
+     }
+
+     if (pszDirname)
+     {
+         LwRtlCStringFree(&pszDirname);
+     }
+
+     if (pszBasename)
+     {
+         LwRtlCStringFree(&pszBasename);
+     }
+
+     if (pszStreamDirname)
+     {
+         LwRtlCStringFree(&pszStreamDirname);
+     }
+
+     return ntError;
+}
+
+static
+NTSTATUS
 PvfsSysGetDiskFileName(
     OUT PSTR* ppszDiskFilename,
     IN PPVFS_FILE_NAME pFileName
@@ -914,9 +973,9 @@ error:
 }
 
 ////////////////////////////////////////////////////////////////////////
-
+static
 NTSTATUS
-PvfsSysRenameByFileName(
+PvfsSysRenameByFileNameInternal(
     IN PPVFS_FILE_NAME OriginalFileName,
     IN PPVFS_FILE_NAME NewFileName
     )
@@ -947,6 +1006,43 @@ error:
     {
         LwRtlCStringFree(&newPath);
     }
+
+    return ntError;
+}
+
+NTSTATUS
+PvfsSysRenameByFileName(
+    IN PPVFS_FILE_NAME OriginalFileName,
+    IN PPVFS_FILE_NAME NewFileName
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_FILE_NAME OriginalStreamDirName = {0};
+    PVFS_FILE_NAME NewStreamDirName = {0};
+
+    ntError = PvfsSysRenameByFileNameInternal(OriginalFileName,
+                                               NewFileName);
+
+    if (!PvfsIsDefaultStreamName(OriginalFileName))
+    {
+        return ntError;
+    }
+
+    ntError = PvfsBuildStreamDirName(&OriginalStreamDirName,
+                                     OriginalFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsBuildStreamDirName(&NewStreamDirName,
+                                     NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysRenameByFileNameInternal(&OriginalStreamDirName,
+                                              &NewStreamDirName);
+    BAIL_ON_NT_STATUS(ntError);
+
+error:
+    PvfsDestroyFileName(&OriginalStreamDirName);
+    PvfsDestroyFileName(&NewStreamDirName);
 
     return ntError;
 }
