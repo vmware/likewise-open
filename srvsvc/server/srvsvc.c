@@ -85,14 +85,14 @@ SrvSvcInitSecurity(
     dwError = SrvSvcSrvInitServerSecurityDescriptor(&pSessionSecDesc);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = LwCreateWellKnownSid(
+    dwError = LwAllocateWellKnownSid(
             WinBuiltinAdministratorsSid,
             NULL,
             &pBuiltinAdminsSid,
             &dwSidSize);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = LwCreateWellKnownSid(
+    dwError = LwAllocateWellKnownSid(
             WinWorldSid,
             NULL,
             &pWorldSid,
