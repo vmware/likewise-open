@@ -29,7 +29,6 @@ make()
 	scb.c \
 	fcb.c \
 	cbtable.c \
-	errno.c \
 	syswrap.c \
 	util_open.c \
 	util_dir.c \

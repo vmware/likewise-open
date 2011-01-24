@@ -64,6 +64,8 @@ PvfsMapUnixErrnoToNtStatus(
             "%s: Unable to map Unix errno (%d) to an NTSTATUS error.\n",
             PVFS_LOG_HEADER,
             err);
+
+        ntError = STATUS_UNSUCCESSFUL;
     }
 
     return ntError;

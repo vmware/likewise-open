@@ -91,7 +91,7 @@
     do {                                                    \
         unixerr = errno;                                    \
         if (unixerr != 0) {                                 \
-            nterr = PvfsMapUnixErrnoToNtStatus(unixerr);    \
+            nterr = LwErrnoToNtStatus(unixerr);    \
             BAIL_ON_NT_STATUS(nterr);                       \
         }                                                   \
     } while(0)

@@ -37,7 +37,6 @@ libpvfs_sys_la_SOURCES = \
     scb.c \
     fcb.c \
     cbtable.c \
-    errno.c \
     syswrap.c \
     util_open.c \
     util_dir.c \

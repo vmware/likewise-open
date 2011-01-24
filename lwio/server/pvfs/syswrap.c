@@ -380,11 +380,13 @@ PvfsSysReadDir(
     int unixerr = 0;
 
     unixerr = readdir_r(pDir, pDirEntry, ppDirEntry);
-    ntError = PvfsMapUnixErrnoToNtStatus(unixerr);
+    if (unixerr != 0)
+    {
+        ntError = LwErrnoToNtStatus(unixerr);
+    }
     BAIL_ON_NT_STATUS(ntError);
 
 error:
-
     return ntError;
 }
 
