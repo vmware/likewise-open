@@ -1399,7 +1399,6 @@ RegShellUtilGetValue(
 
 cleanup:
     LWREG_SAFE_FREE_MEMORY(pRetData);
-    RegCloseServer(hRegLocal);
     if (hFullKeyName)
     {
         RegCloseKey(hReg, hFullKeyName);
@@ -1412,6 +1411,7 @@ cleanup:
     {
         RegCloseKey(hReg, hRootKey);
     }
+    RegCloseServer(hRegLocal);
     return dwError;
 error:
     goto cleanup;
