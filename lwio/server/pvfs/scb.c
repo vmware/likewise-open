@@ -261,11 +261,11 @@ error:
 
     default:
         LWIO_LOG_ERROR(
-            "%s: Failed to execute delete-on-close on %s%s%s (%d,%d) (%s)\n",
+            "%s: Failed to execute delete-on-close on \"%s%s%s\" (%d,%d) (%s)\n",
             PVFS_LOG_HEADER,
-            streamName.FileName ? streamName.FileName : "(invalid fileName)",
-            streamName.StreamName ? ":" : "",
-            streamName.StreamName ? streamName.StreamName : "",
+            pScb->pOwnerFcb->pszFilename,
+            pScb->pszStreamname ? ":" : "",
+            pScb->pszStreamname ? pScb->pszStreamname : "",
             pScb->FileId.Device,
             pScb->FileId.Inode,
             LwNtStatusToName(ntError));
