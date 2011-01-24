@@ -43,6 +43,7 @@ libpvfs_sys_la_SOURCES = \
     util_dir.c \
     unixpath.c \
     filename.c \
+    stream.c \
     pathcache.c \
     string.c \
     wildcard.c \

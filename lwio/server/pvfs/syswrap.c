@@ -42,178 +42,10 @@
  *        Syscall wrapper functions
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
+ *          Wei Fu <wfu@likewise.com>
  */
 
 #include "pvfs.h"
-
-static
-NTSTATUS
-PvfsBuildStreamDirName(
-    IN OUT PPVFS_FILE_NAME pStreamDirName,
-    IN PPVFS_FILE_NAME pFileName
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PSTR pszDirname = NULL;
-    PSTR pszBasename = NULL;
-    PSTR pszStreamDirname = NULL;
-
-    PVFS_BAIL_ON_INVALID_FILENAME(pFileName, ntError);
-
-    ntError = PvfsFileDirname(&pszDirname,
-                              pFileName->FileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsFileBasename(&pszBasename,
-                               pFileName->FileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = LwRtlCStringAllocatePrintf(
-                  &pszStreamDirname,
-                  "%s/%s/%s",
-                  pszDirname,
-                  PVFS_STREAM_METADATA_DIR_NAME,
-                  pszBasename);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsBuildFileNameFromCString(pStreamDirName,
-                                           pszStreamDirname);
-    BAIL_ON_NT_STATUS(ntError);
-
- error:
-
-     if (!NT_SUCCESS(ntError))
-     {
-         PvfsDestroyFileName(pStreamDirName);
-     }
-
-     if (pszDirname)
-     {
-         LwRtlCStringFree(&pszDirname);
-     }
-
-     if (pszBasename)
-     {
-         LwRtlCStringFree(&pszBasename);
-     }
-
-     if (pszStreamDirname)
-     {
-         LwRtlCStringFree(&pszStreamDirname);
-     }
-
-     return ntError;
-}
-
-static
-NTSTATUS
-PvfsSysGetDiskFileName(
-    OUT PSTR* ppszDiskFilename,
-    IN PPVFS_FILE_NAME pFileName
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PSTR pszDiskFilename = NULL;
-    PSTR pszDirname = NULL;
-    PSTR pszBasename = NULL;
-    PSTR pszStreamParentDirname = NULL;
-    PSTR pszStreamDirname = NULL;
-
-    PVFS_BAIL_ON_INVALID_FILENAME(pFileName, ntError);
-
-    if (PvfsIsDefaultStreamName(pFileName))
-    {
-        ntError = LwRtlCStringDuplicate(&pszDiskFilename,
-                                        pFileName->FileName);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-    else
-    {
-        ntError = PvfsFileDirname(&pszDirname,
-                                  pFileName->FileName);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = LwRtlCStringAllocatePrintf(
-                      &pszStreamParentDirname,
-                      "%s/%s",
-                      pszDirname,
-                      PVFS_STREAM_METADATA_DIR_NAME);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsSysOpenDir(pszStreamParentDirname, NULL);
-        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
-        {
-            // create meta data directory
-            ntError = PvfsSysMkDir(
-                          pszStreamParentDirname,
-                          (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsFileBasename(&pszBasename,
-                                  pFileName->FileName);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = LwRtlCStringAllocatePrintf(
-                      &pszStreamDirname,
-                      "%s/%s",
-                      pszStreamParentDirname,
-                      pszBasename);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsSysOpenDir(pszStreamDirname, NULL);
-        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
-        {
-            // create stream directory for an object
-            ntError = PvfsSysMkDir(
-                          pszStreamDirname,
-                          (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = LwRtlCStringAllocatePrintf(
-                      &pszDiskFilename,
-                      "%s/%s",
-                      pszStreamDirname,
-                      pFileName->StreamName);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    *ppszDiskFilename = pszDiskFilename;
-
-cleanup:
-    if (pszDirname)
-    {
-        LwRtlCStringFree(&pszDirname);
-    }
-
-    if (pszBasename)
-    {
-        LwRtlCStringFree(&pszBasename);
-    }
-
-    if (pszStreamParentDirname)
-    {
-        LwRtlCStringFree(&pszStreamParentDirname);
-    }
-
-    if (pszStreamDirname)
-    {
-        LwRtlCStringFree(&pszStreamDirname);
-    }
-
-    return ntError;
-
-error:
-    if (pszDiskFilename)
-    {
-        LwRtlCStringFree(&pszDiskFilename);
-    }
-
-    goto cleanup;
-}
 
 /**********************************************************
  *********************************************************/
@@ -288,7 +120,7 @@ PvfsSysStatByFileName(
     int unixerr = 0;
     PSTR fileName = NULL;
 
-    ntError = PvfsSysGetDiskFileName(&fileName, FileName);
+    ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (stat(fileName, &sBuf) == -1) {
@@ -388,7 +220,7 @@ PvfsSysOpenByFileName(
     int unixerr = 0;
     PSTR pszFilename = NULL;
 
-    ntError = PvfsSysGetDiskFileName(&pszFilename, pFileName);
+    ntError = PvfsLookupStreamDiskFileName(&pszFilename, pFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((fd = open(pszFilename, iFlags, Mode)) == -1) {
@@ -778,7 +610,7 @@ PvfsSysRemoveByFileName(
     int unixerr = 0;
     PSTR fileName = NULL;
 
-    ntError = PvfsSysGetDiskFileName(&fileName, FileName);
+    ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (remove(fileName) == -1)
@@ -908,7 +740,7 @@ PvfsSysChownByFileName(
     int unixerr = 0;
     PSTR pszFilename = NULL;
 
-    ntError = PvfsSysGetDiskFileName(&pszFilename, pFileName);
+    ntError = PvfsLookupStreamDiskFileName(&pszFilename, pFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     if (chown(pszFilename, uid, gid) == -1)
@@ -949,66 +781,7 @@ error:
     goto cleanup;
 }
 
-/**********************************************************
- *********************************************************/
-
-NTSTATUS
-PvfsSysRename(
-    PCSTR pszOldname,
-    PCSTR pszNewname
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    int unixerr = 0;
-
-    if (rename(pszOldname, pszNewname) == -1 ) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
 ////////////////////////////////////////////////////////////////////////
-static
-NTSTATUS
-PvfsSysRenameByFileNameInternal(
-    IN PPVFS_FILE_NAME OriginalFileName,
-    IN PPVFS_FILE_NAME NewFileName
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    int unixerr = 0;
-    PSTR oldPath = NULL;
-    PSTR newPath = NULL;
-
-    ntError = PvfsSysGetDiskFileName(&oldPath, OriginalFileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysGetDiskFileName(&newPath, NewFileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (rename(oldPath, newPath) == -1 )
-    {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-
-error:
-    if (oldPath)
-    {
-        LwRtlCStringFree(&oldPath);
-    }
-
-    if (newPath)
-    {
-        LwRtlCStringFree(&newPath);
-    }
-
-    return ntError;
-}
 
 NTSTATUS
 PvfsSysRenameByFileName(
@@ -1017,32 +790,71 @@ PvfsSysRenameByFileName(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PVFS_FILE_NAME OriginalStreamDirName = {0};
-    PVFS_FILE_NAME NewStreamDirName = {0};
+    int unixerr = 0;
+    PSTR oldFilename = NULL;
+    PSTR newFilename = NULL;
+    PSTR oldStreamDir = NULL;
+    PSTR newStreamDir = NULL;
+    PVFS_STAT streamDirStat = { 0 };
 
-    ntError = PvfsSysRenameByFileNameInternal(OriginalFileName,
-                                               NewFileName);
+    ntError = PvfsLookupStreamDiskFileName(&oldFilename, OriginalFileName);
+    BAIL_ON_NT_STATUS(ntError);
 
-    if (!PvfsIsDefaultStreamName(OriginalFileName))
+    ntError = PvfsLookupStreamDiskFileName(&newFilename, NewFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (rename(oldFilename, newFilename) == -1 )
     {
-        return ntError;
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-    ntError = PvfsBuildStreamDirName(&OriginalStreamDirName,
-                                     OriginalFileName);
-    BAIL_ON_NT_STATUS(ntError);
+    if (PvfsIsDefaultStreamName(OriginalFileName))
+    {
+        // Have to rename the stream directory as well
 
-    ntError = PvfsBuildStreamDirName(&NewStreamDirName,
-                                     NewFileName);
-    BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsLookupStreamDirectoryPath(&oldStreamDir, OriginalFileName);
+        BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysRenameByFileNameInternal(&OriginalStreamDirName,
-                                              &NewStreamDirName);
-    BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsLookupStreamDirectoryPath(&newStreamDir, NewFileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysStat(oldStreamDir, &streamDirStat);
+        if (ntError == STATUS_SUCCESS)
+        {
+            if (rename(oldStreamDir, newStreamDir) == -1 )
+            {
+                // We are now in an inconstsent state -- What should we do?
+                // We cannot safely roll back to the original name
+                // as someone else may have it.  Let's BAIL for now although
+                // in the future we may decide that this should just log an error
+                // but not fail
+                PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+            }
+        }
+        else
+        {
+            // Squash the error is the stream directory did not exist
+            ntError = STATUS_SUCCESS;
+        }
+    }
 
 error:
-    PvfsDestroyFileName(&OriginalStreamDirName);
-    PvfsDestroyFileName(&NewStreamDirName);
+    if (oldFilename)
+    {
+        LwRtlCStringFree(&oldFilename);
+    }
+    if (newFilename)
+    {
+        LwRtlCStringFree(&newFilename);
+    }
+    if (oldStreamDir)
+    {
+        LwRtlCStringFree(&oldStreamDir);
+    }
+    if (newStreamDir)
+    {
+        LwRtlCStringFree(&newStreamDir);
+    }
 
     return ntError;
 }
@@ -1193,146 +1005,3 @@ error:
     goto cleanup;
 }
 #endif
-
-////////////////////////////////////////////////////////////////////////
-
-NTSTATUS
-PvfsSysEnumStreams(
-    IN PPVFS_CCB pCcb,
-    OUT PPVFS_FILE_NAME *ppStreamNames,
-    OUT PLONG StreamCount
-    )
-{
-    NTSTATUS ntError =  STATUS_SUCCESS;
-    LONG streamNameListLength = 0;
-    PPVFS_FILE_NAME streamNameList = NULL;
-    PPVFS_FILE_NAME fileName = NULL;
-    PPVFS_FILE_NAME parentDirectoryName = NULL;
-    PPVFS_FILE_NAME baseFileName = NULL;
-    PSTR streamDirectory = NULL;
-    PPVFS_DIRECTORY_CONTEXT streamDirectoryContext = NULL;
-    DIR *pDir = NULL;
-    struct dirent *pDirEntry = NULL;
-    struct dirent dirEntry = { 0 };
-    LONG i = 0;
-    LONG currentIndex = 0;
-
-    if (!PvfsIsDefaultStream(pCcb->pScb))
-    {
-        // Enumeration is only valid on the base file object itself
-        ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    ntError = PvfsAllocateFileNameFromScb(&fileName, pCcb->pScb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSplitFileNamePath(
-                  &parentDirectoryName,
-                  &baseFileName,
-                  fileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = LwRtlCStringAllocatePrintf(
-                  &streamDirectory,
-                  "%s/%s/%s",
-                  PvfsGetCStringBaseFileName(parentDirectoryName),
-                  PVFS_STREAM_METADATA_DIR_NAME,
-                  PvfsGetCStringBaseFileName(baseFileName));
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAllocateMemory(
-                  (PVOID*)&streamDirectoryContext,
-                  sizeof(*streamDirectoryContext),
-                  TRUE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysOpenDir(streamDirectory, &streamDirectoryContext->pDir);
-    if (ntError == STATUS_SUCCESS)
-    {
-        pDir = streamDirectoryContext->pDir;
-
-        for (ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry);
-             pDirEntry;
-             ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry))
-        {
-            BAIL_ON_NT_STATUS(ntError);
-
-            if (RtlCStringIsEqual(pDirEntry->d_name, ".", FALSE) ||
-                RtlCStringIsEqual(pDirEntry->d_name, "..", FALSE))
-            {
-                continue;
-            }
-
-            ntError = PvfsDirContextAddEntry(streamDirectoryContext, pDirEntry->d_name);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-    }
-
-    // Always include space
-    ntError = PvfsAllocateFileNameList(
-                  &streamNameList,
-                  streamDirectoryContext->dwNumEntries+1);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAppendBuildFileName(
-                  &streamNameList[currentIndex],
-                  parentDirectoryName,
-                  baseFileName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsCopyStreamFileNameFromCString(
-                  &streamNameList[currentIndex],
-                  "");
-    BAIL_ON_NT_STATUS(ntError);
-
-    currentIndex++;
-
-    for (i=0; i<streamDirectoryContext->dwNumEntries; i++)
-    {
-        ntError = PvfsAppendBuildFileName(
-                      &streamNameList[currentIndex],
-                      parentDirectoryName,
-                      baseFileName);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsCopyStreamFileNameFromCString(
-                      &streamNameList[currentIndex],
-                      streamDirectoryContext->pDirEntries[i].pszFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
-        currentIndex++;
-    }
-
-    *ppStreamNames = streamNameList;
-    *StreamCount = currentIndex;
-
-error:
-    if (!NT_SUCCESS(ntError))
-    {
-        if (streamNameList)
-        {
-            PvfsFreeFileNameList(streamNameList, streamNameListLength);
-        }
-    }
-
-    if (pDir)
-    {
-        PvfsSysCloseDir(pDir);
-        streamDirectoryContext->pDir = NULL;
-    }
-
-    if (parentDirectoryName)
-    {
-        PvfsFreeFileName(parentDirectoryName);
-    }
-    if (baseFileName)
-    {
-        PvfsFreeFileName(baseFileName);
-    }
-
-    PvfsFreeDirectoryContext(streamDirectoryContext);
-
-    return ntError;
-}
-

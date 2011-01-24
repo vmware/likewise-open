@@ -174,12 +174,6 @@ PvfsSysFchmod(
     );
 
 NTSTATUS
-PvfsSysRename(
-    PCSTR pszOldname,
-    PCSTR pszNewname
-    );
-
-NTSTATUS
 PvfsSysFsync(
     PPVFS_CCB pCcb
     );
@@ -256,12 +250,6 @@ PvfsSysChownByFileName(
     gid_t gid
     );
 
-NTSTATUS
-PvfsSysEnumStreams(
-    IN PPVFS_CCB pCcb,
-    OUT PPVFS_FILE_NAME *ppStreamNames,
-    OUT PLONG StreamCount
-    );
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 

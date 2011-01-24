@@ -142,7 +142,7 @@ PvfsQueryFileStreamInfo(
     // The input buffer must be large enough to hold the complete list of
     // streams
 
-    ntError = PvfsSysEnumStreams(pCcb, &streamNames, &streamCount);
+    ntError = PvfsEnumerateStreams(pCcb, &streamNames, &streamCount);
     BAIL_ON_NT_STATUS(ntError);
 
     for (i=0; i<streamCount; i++)

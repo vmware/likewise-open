@@ -984,6 +984,29 @@ PvfsReferenceCB(
     );
 
 
+//
+// From stream.c
+//
+
+NTSTATUS
+PvfsLookupStreamDirectoryPath(
+    OUT PSTR *ppStreamDirectoryName,
+    IN PPVFS_FILE_NAME pFileName
+    );
+
+NTSTATUS
+PvfsLookupStreamDiskFileName(
+    OUT PSTR* ppszDiskFilename,
+    IN PPVFS_FILE_NAME pFileName
+    );
+
+NTSTATUS
+PvfsEnumerateStreams(
+    IN PPVFS_CCB pCcb,
+    OUT PPVFS_FILE_NAME *ppStreamNames,
+    OUT PLONG StreamCount
+    );
+
 #endif /* __PVFS_H__ */
 
 
