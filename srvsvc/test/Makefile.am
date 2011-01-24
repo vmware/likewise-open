@@ -1,6 +1,6 @@
 AM_CPPFLAGS = -I$(top_srcdir)/include
 
-noinst_PROGRAMS = testsrvsvc
+noinst_PROGRAMS = testsrvsvc test_srvshare
 
 testsrvsvc_SOURCES = \
     net_connectionenum.c \
@@ -40,3 +40,13 @@ testsrvsvc_LDADD =        \
     $(DCERPC_LIBS)        \
     $(LIBUNISTR_LIBS)     \
     $(top_builddir)/client/libsrvsvc.la
+
+test_srvshare_SOURCES = test_srvshare.c
+
+test_srvshare_CFLAGS = \
+    $(AM_CPPFLAGS) \
+    $(SRVSVC_INCLUDES)
+
+test_srvshare_LDADD = \
+	-llwioclient -llwbase -llwbase_nothr \
+        -llwadvapi -llwadvapi_nothr -llsaclient
