@@ -282,7 +282,9 @@ PvfsSaveFileDeviceInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
     PPVFS_SCB pScb = pCcb->pScb;
-    BOOLEAN bLocked = FALSE;
+    PPVFS_FCB pFcb = pCcb->pScb->pOwnerFcb;
+    BOOLEAN scbLocked = FALSE;
+    BOOLEAN fcbLocked = FALSE;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
@@ -291,12 +293,23 @@ PvfsSaveFileDeviceInfo(
     pCcb->FileId.Inode  = Stat.s_ino;
     pCcb->FileSize = Stat.s_size;
 
-    LWIO_LOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
+    LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
     if ((pScb->FileId.Device == 0) || (pScb->FileId.Inode == 0))
     {
+        // Have to set the FileID on the Stream Block
         pScb->FileId = pCcb->FileId;
+        if (PvfsIsDefaultStream(pScb))
+        {
+            // Push the FIleId through to the File Block if unset
+            LWIO_LOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
+            if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
+            {
+                pFcb->FileId = pScb->FileId;
+            }
+            LWIO_UNLOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
+        }
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &pScb->BaseControlBlock.Mutex);
+    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
 cleanup:
     return ntError;
