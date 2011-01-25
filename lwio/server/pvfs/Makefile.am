@@ -83,6 +83,7 @@ libpvfs_sys_la_SOURCES = \
     fileAccessInfo.c \
     filePositionInfo.c \
     fileModeInfo.c \
+    fileLinkInfo.c \
     lwFilePosixInfo.c \
     lwFilePosixDirInfo.c \
     thread_worker.c \

@@ -83,7 +83,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileAllocationInformation,        PvfsFileEndOfFileInfo },
     { FileDispositionInformation,       PvfsFileDispositionInfo },
     { FileEndOfFileInformation,         PvfsFileEndOfFileInfo },
-    { FileLinkInformation,              NULL },
+    { FileLinkInformation,              PvfsFileLinkInfo },
     { FileRenameInformation,            PvfsFileRenameInfo },
     { FileShortNameInformation,         NULL },
     { FileValidDataLengthInformation,   NULL },

@@ -972,6 +972,29 @@ error:
 /**********************************************************
  *********************************************************/
 
+NTSTATUS
+PvfsSysLinkByFileName(
+    IN PPVFS_FILE_NAME pOldname,
+    IN PPVFS_FILE_NAME pNewname
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (link(pOldname->FileName, pNewname->FileName) == -1 ) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
 #define PVFS_DISABLE_FSYNC   1
 
 NTSTATUS

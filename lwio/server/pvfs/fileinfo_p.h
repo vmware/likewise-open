@@ -150,6 +150,12 @@ PvfsFileModeInfo(
     );
 
 NTSTATUS
+PvfsFileLinkInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsLwFilePosixInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext

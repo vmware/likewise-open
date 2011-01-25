@@ -250,6 +250,12 @@ PvfsSysChownByFileName(
     gid_t gid
     );
 
+NTSTATUS
+PvfsSysLinkByFileName(
+    IN PPVFS_FILE_NAME pOldname,
+    IN PPVFS_FILE_NAME pNewname
+    );
+
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 

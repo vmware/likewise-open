@@ -75,6 +75,7 @@ make()
 	fileAccessInfo.c \
 	filePositionInfo.c \
 	fileModeInfo.c \
+    fileLinkInfo.c \
 	lwFilePosixInfo.c \
 	lwFilePosixDirInfo.c \
 	thread_worker.c \
