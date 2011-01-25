@@ -222,6 +222,66 @@ error:
 }
 
 ////////////////////////////////////////////////////////////////////////
+// Requires that FCB->BaseControlBlock.Mutex is locked
+
+static
+NTSTATUS
+PvfsExecuteDeleteOnCloseFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_FILE_NAME fileName = {0};
+
+    // Always reset the delete-pending state to be safe
+
+    pFcb->bDeleteOnClose = FALSE;
+
+    // Verify we are deleting the file we think we are
+
+    ntError = PvfsValidatePathFCB(pFcb, &pFcb->FileId);
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename);
+        // Don't BAIL_ON_NT_STATUS() so the FileId is always reset
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysRemoveByFileName(&fileName);
+        }
+
+        /* Reset dev/inode state */
+
+        pFcb->FileId.Device = 0;
+        pFcb->FileId.Inode  = 0;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsDestroyFileName(&fileName);
+
+    return ntError;
+
+error:
+    switch (ntError)
+    {
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+        break;
+
+    default:
+        LWIO_LOG_ERROR(
+            "%s: (FCB) Failed to execute delete-on-close on \"%s\" (%d,%d) (%s)\n",
+            PVFS_LOG_HEADER,
+            pFcb->pszFilename,
+            pFcb->FileId.Device,
+            pFcb->FileId.Inode,
+            LwNtStatusToName(ntError));
+        break;
+    }
+
+    goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
 
 VOID
 PvfsReleaseFCB(
@@ -230,10 +290,12 @@ PvfsReleaseFCB(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bBucketLocked = FALSE;
-    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN scbListLocked = FALSE;
+    BOOLEAN fcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+    PVFS_FILE_NAME fileName = { 0 };
 
     /* Do housekeeping such as setting the last write time or honoring
        DeletOnClose when the CCB handle count reaches 0.  Not necessarily
@@ -247,19 +309,79 @@ PvfsReleaseFCB(
 
     pFcb = *ppFcb;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwScbLock);
+    ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_RWMUTEX_SHARED(scbListLocked, &pFcb->rwScbLock);
 
     if (pFcb->OpenHandleCount == 0)
     {
-        ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
+        ntError = PvfsSysStatByFileName(&fileName, &Stat);
         if (ntError == STATUS_SUCCESS)
         {
-            LONG64 LastWriteTime = PvfsClearLastWriteTimeFCB(pFcb);
+            LWIO_LOCK_MUTEX(
+                fcbControlLocked,
+                &pFcb->BaseControlBlock.Mutex);
 
-            if (LastWriteTime != 0)
+            if (pFcb->bDeleteOnClose)
             {
+                /* Clear the cache entry and remove the file; ignore any errors */
 
-                ntError = PvfsFlushLastWriteTimeFcb(pFcb, LastWriteTime);
+                ntError = PvfsExecuteDeleteOnCloseFCB(pFcb);
+
+                /* The locking heirarchy requires that we drop the FCB control
+                   block mutex before trying to pick up the ScbTable exclusive
+                   lock */
+
+                if (!pFcb->BaseControlBlock.Removed)
+                {
+                    PPVFS_CB_TABLE_ENTRY pBucket = pFcb->BaseControlBlock.pBucket;
+
+                    LWIO_UNLOCK_MUTEX(
+                        fcbControlLocked,
+                        &pFcb->BaseControlBlock.Mutex);
+
+                    /* Remove the SCB from the Bucket before setting
+                       pScb->BaseControlBlock.pBucket to NULL */
+
+                    ntError = PvfsCbTableRemove(pBucket, pFcb->pszFilename);
+                    LWIO_ASSERT(ntError == STATUS_SUCCESS);
+
+                    LWIO_LOCK_MUTEX(
+                        fcbControlLocked,
+                        &pFcb->BaseControlBlock.Mutex);
+
+                    pFcb->BaseControlBlock.Removed = TRUE;
+                    pFcb->BaseControlBlock.pBucket = NULL;
+
+                    LWIO_UNLOCK_MUTEX(
+                        fcbControlLocked,
+                        &pFcb->BaseControlBlock.Mutex);
+                }
+
+                LWIO_UNLOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
+
+                PvfsPathCacheRemove(&fileName);
+
+                PvfsNotifyScheduleFullReport(
+                    pFcb,
+                    S_ISDIR(Stat.s_mode) ?
+                        FILE_NOTIFY_CHANGE_DIR_NAME :
+                        FILE_NOTIFY_CHANGE_FILE_NAME,
+                    FILE_ACTION_REMOVED,
+                    pFcb->pszFilename);
+            }
+
+            LWIO_UNLOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
+
+        }
+        else
+        {
+            LONG64 lastWriteTime = PvfsClearLastWriteTimeFCB(pFcb);
+
+            if (lastWriteTime != 0)
+            {
+                ntError = PvfsFlushLastWriteTimeFcb(pFcb, lastWriteTime);
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -273,14 +395,13 @@ PvfsReleaseFCB(
         }
     }
 
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwScbLock);
+    LWIO_UNLOCK_RWMUTEX(scbListLocked, &pFcb->rwScbLock);
 
-
-        /* It is important to lock the ScbTable here so that there is no window
-           between the refcount check and the remove. Otherwise another open request
-           could search and locate the SCB in the tree and return free()'d memory.
-           However, if the SCB has no bucket pointer, it has already been removed
-           from the ScbTable so locking is unnecessary. */
+    // It is important to lock the ScbTable here so that there is no window
+    // between the refcount check and the remove. Otherwise another open request
+    // could search and locate the SCB in the tree and return free()'d memory.
+    // However, if the SCB has no bucket pointer, it has already been removed
+    // from the ScbTable so locking is unnecessary. */
 
     pBucket = pFcb->BaseControlBlock.pBucket;
 
@@ -316,7 +437,12 @@ PvfsReleaseFCB(
     *ppFcb = NULL;
 
 cleanup:
+    PvfsDestroyFileName(&fileName);
+
     return;
+
+error:
+    goto cleanup;
 }
 
 
@@ -887,5 +1013,4 @@ PvfsSetLastWriteTimeFCB(
     pFcb->LastWriteTime = LastWriteTime;
     LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->BaseControlBlock.RwLock);
 }
-
 
