@@ -193,7 +193,7 @@ static
 VOID
 PvfsCleanupFailedCreate(
     int fd,
-    PCSTR pszPath,
+    PPVFS_FILE_NAME pPath,
     BOOLEAN bWasCreated
     );
 
@@ -414,7 +414,7 @@ error:
 
         PvfsCleanupFailedCreate(
             fd,
-            pszRemovePath,
+            pCreateContext->ResolvedFileName,
             !pCreateContext->bFileExisted);
     }
 
@@ -650,25 +650,15 @@ error:
         {
             PvfsCleanupFailedCreate(
                 fd,
-                pCreateContext->pCcb->pszFilename,
+                pCreateContext->ResolvedFileName,
                 !pCreateContext->bFileExisted);
         }
         else if (pCreateContext->ResolvedFileName)
         {
-            PSTR fullFileName = NULL;
-
-            ntError = PvfsAllocateCStringFromFileName(
-                          &fullFileName,
-                          pCreateContext->ResolvedFileName);
-            if (NT_SUCCESS(ntError))
-            {
-                PvfsCleanupFailedCreate(
+            PvfsCleanupFailedCreate(
                     fd,
-                    fullFileName,
+                    pCreateContext->ResolvedFileName,
                     !pCreateContext->bFileExisted);
-
-                LwRtlCStringFree(&fullFileName);
-            }
         }
     }
 
@@ -1056,7 +1046,7 @@ static
 VOID
 PvfsCleanupFailedCreate(
     int fd,
-    PCSTR pszPath,
+    PPVFS_FILE_NAME pPath,
     BOOLEAN bWasCreated
     )
 {
@@ -1066,18 +1056,18 @@ PvfsCleanupFailedCreate(
 
     /* Remove the file if it was created and the Dev/Inode matches our fd */
 
-    if (bWasCreated && (pszPath != NULL))
+    if (bWasCreated && (pPath != NULL))
     {
         ntError = PvfsSysFstat(fd, &Stat1);
         if (ntError == STATUS_SUCCESS)
         {
-            ntError = PvfsSysStat(pszPath, &Stat2);
+            ntError = PvfsSysStatByFileName(pPath, &Stat2);
             if (ntError == STATUS_SUCCESS)
             {
                 if ((Stat1.s_dev == Stat1.s_dev) &&
                     (Stat2.s_ino == Stat2.s_ino))
                 {
-                    ntError = PvfsSysRemove(pszPath);
+                    ntError = PvfsSysRemoveByFileName(pPath);
                 }
             }
         }

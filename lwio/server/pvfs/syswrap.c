@@ -582,6 +582,87 @@ error:
 /**********************************************************
  *********************************************************/
 
+static
+NTSTATUS
+PvfsSysRemoveDir(
+    PSTR pszDirname
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    DIR *pDir = NULL;
+    struct dirent *pDirEntry = NULL;
+    struct dirent dirEntry = { 0 };
+    PSTR pszPath = NULL;
+    struct stat streamDirStat = { 0 };
+
+    ntError = PvfsSysOpenDir(pszDirname, &pDir);
+    BAIL_ON_NT_STATUS(ntError);
+
+    for (ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry);
+         pDirEntry;
+         ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry))
+    {
+        /* First check the error return */
+        BAIL_ON_NT_STATUS(ntError);
+
+        memset(&streamDirStat, 0, sizeof(struct stat));
+        if (pszPath)
+        {
+            LwRtlCStringFree(&pszPath);
+        }
+
+        ntError = LwRtlCStringAllocatePrintf(
+                          &pszPath,
+                          "%s/%s",
+                          pszDirname,
+                          pDirEntry->d_name);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (stat(pszPath, &streamDirStat) == 0)
+        {
+            if(S_ISDIR(streamDirStat.st_mode))
+            {
+                if (!LwRtlCStringIsEqual(pDirEntry->d_name, ".", FALSE) &&
+                    !LwRtlCStringIsEqual(pDirEntry->d_name, "..", FALSE))
+                {
+                    ntError = PvfsSysRemoveDir(pszPath);
+                    BAIL_ON_NT_STATUS(ntError);
+                }
+            }
+            else
+            {
+                ntError = PvfsSysRemove(pszPath);
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+        else
+        {
+            // Squash the error is the stream directory did not exist
+            ntError = STATUS_SUCCESS;
+        }
+    }
+
+    ntError = PvfsSysCloseDir(pDir);
+    BAIL_ON_NT_STATUS(ntError);
+    pDir = NULL;
+
+    ntError = PvfsSysRemove(pszDirname);
+    BAIL_ON_NT_STATUS(ntError);
+
+error:
+    if (pszPath)
+    {
+        LwRtlCStringFree(&pszPath);
+    }
+
+    if (pDir)
+    {
+        PvfsSysCloseDir(pDir);
+    }
+
+    return ntError;
+}
+
 NTSTATUS
 PvfsSysRemove(
     PCSTR pszPath
@@ -611,6 +692,8 @@ PvfsSysRemoveByFileName(
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
     PSTR fileName = NULL;
+    PSTR streamDir = NULL;
+    PVFS_STAT streamDirStat = { 0 };
 
     ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -620,10 +703,35 @@ PvfsSysRemoveByFileName(
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
+    if (PvfsIsDefaultStreamName(FileName))
+    {
+        // Have to remove the stream directory as well
+
+        ntError = PvfsLookupStreamDirectoryPath(&streamDir, FileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSysStat(streamDir, &streamDirStat);
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysRemoveDir(streamDir) ;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+        else
+        {
+            // Squash the error is the stream directory did not exist
+            ntError = STATUS_SUCCESS;
+        }
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
 error:
     if (fileName)
     {
         LwRtlCStringFree(&fileName);
+    }
+    if (streamDir)
+    {
+        LwRtlCStringFree(&streamDir);
     }
 
     return ntError;
