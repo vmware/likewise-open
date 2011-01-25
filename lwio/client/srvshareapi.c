@@ -113,7 +113,6 @@ LwIoSrvShareAdd(
                         CreateOptions,
                         NULL,
                         0,
-                        NULL,
                         NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -196,7 +195,6 @@ LwIoSrvShareDel(
                         CreateOptions,
                         NULL,
                         0,
-                        NULL,
                         NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -291,7 +289,6 @@ LwIoSrvShareEnum(
         CreateOptions,
         NULL,
         0,
-        NULL,
         NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -431,7 +428,6 @@ LwIoSrvShareGetInfo(
         CreateOptions,
         NULL,
         0,
-        NULL,
         NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -570,7 +566,6 @@ LwIoSrvShareSetInfo(
         CreateOptions,
         NULL,
         0,
-        NULL,
         NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
