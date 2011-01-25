@@ -71,7 +71,13 @@ PvfsCanonicalPathName(
 
     if (IoPath.FileName)
     {
-        ntError = PvfsWC16CanonicalPathName(&pszFilename, IoPath.FileName);
+        ULONG fileNameLen = LwRtlWC16StringNumChars(IoPath.FileName) *
+                            sizeof(WCHAR);
+
+        ntError = PvfsWC16CanonicalPathName(
+                        &pszFilename,
+                        IoPath.FileName,
+                        fileNameLen);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -164,15 +170,26 @@ error:
 NTSTATUS
 PvfsWC16CanonicalPathName(
     PSTR *ppszPath,
-    PWSTR pwszPathname
+    PWCHAR Pathname,
+    ULONG PathnameLen
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszPath = NULL;
     PSTR pszCursor = NULL;
+    PWSTR pwszPathname = NULL;
     size_t Length = 0;
     size_t Offset = 0;
     int i = 0;
+
+    ntError = PvfsAllocateMemory(
+                    (PVOID*)&pwszPathname,
+                    PathnameLen + sizeof(WCHAR),
+                    FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    memcpy(pwszPathname, Pathname, PathnameLen);
+    pwszPathname[PathnameLen / sizeof(WCHAR)] = 0;
 
     ntError = RtlCStringAllocateFromWC16String(
                   &pszPath,
@@ -245,6 +262,8 @@ PvfsWC16CanonicalPathName(
 
 cleanup:
     *ppszPath = pszPath;
+
+    LwRtlWC16StringFree(&pwszPathname);
 
     return ntError;
 

@@ -364,7 +364,8 @@ PvfsCanonicalPathName2(
 NTSTATUS
 PvfsWC16CanonicalPathName(
     PSTR *ppszPath,
-    PWSTR pwszPathname
+    PWCHAR Pathname,
+    ULONG PathnameLen
     );
 
 NTSTATUS

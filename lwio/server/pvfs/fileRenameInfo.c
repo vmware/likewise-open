@@ -158,7 +158,10 @@ PvfsSetFileRenameInfo(
     /* Make sure we can add the new object to the parent directory
        (not necessarily the same as the RootDirectory handle) */
 
-    ntError = PvfsWC16CanonicalPathName(&pszNewFilename, pFileInfo->FileName);
+    ntError = PvfsWC16CanonicalPathName(
+                    &pszNewFilename,
+                    pFileInfo->FileName,
+                    pFileInfo->FileNameLength);
     BAIL_ON_NT_STATUS(ntError);
 
     if (pRootDirCcb)
