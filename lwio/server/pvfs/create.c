@@ -515,9 +515,9 @@ PvfsCreateDirDoSysOpen(
 
     do
     {
-        ntError = PvfsSysOpen(
+        ntError = PvfsSysOpenByFileName(
                       &fd,
-                      pCreateContext->pCcb->pszFilename,
+                      pCreateContext->ResolvedFileName,
                       0,
                       0);
 
