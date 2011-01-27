@@ -105,7 +105,8 @@ PvfsLookupStreamDirectoryPath(
 NTSTATUS
 PvfsLookupStreamDiskFileName(
     OUT PSTR* ppszDiskFilename,
-    IN PPVFS_FILE_NAME pFileName
+    IN PPVFS_FILE_NAME pFileName,
+    IN BOOLEAN bCreatePath
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -136,16 +137,19 @@ PvfsLookupStreamDiskFileName(
                       PVFS_STREAM_METADATA_DIR_NAME);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsSysOpenDir(pszStreamParentDirname, NULL);
-        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+        if (bCreatePath)
         {
-            // create meta data directory
-            ntError = PvfsSysMkDir(
+            ntError = PvfsSysOpenDir(pszStreamParentDirname, NULL);
+            if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+            {
+                // create meta data directory
+                ntError = PvfsSysMkDir(
                           pszStreamParentDirname,
                           (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
+                BAIL_ON_NT_STATUS(ntError);
+            }
             BAIL_ON_NT_STATUS(ntError);
         }
-        BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsFileBasename(&pszBasename,
                                   pFileName->FileName);
@@ -158,16 +162,19 @@ PvfsLookupStreamDiskFileName(
                       pszBasename);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsSysOpenDir(pszStreamDirname, NULL);
-        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+        if (bCreatePath)
         {
-            // create stream directory for an object
-            ntError = PvfsSysMkDir(
-                          pszStreamDirname,
-                          (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
+            ntError = PvfsSysOpenDir(pszStreamDirname, NULL);
+            if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+            {
+                // create stream directory for an object
+                ntError = PvfsSysMkDir(
+                              pszStreamDirname,
+                              (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
+                BAIL_ON_NT_STATUS(ntError);
+            }
             BAIL_ON_NT_STATUS(ntError);
         }
-        BAIL_ON_NT_STATUS(ntError);
 
         ntError = LwRtlCStringAllocatePrintf(
                       &pszDiskFilename,

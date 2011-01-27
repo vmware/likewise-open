@@ -998,7 +998,8 @@ PvfsLookupStreamDirectoryPath(
 NTSTATUS
 PvfsLookupStreamDiskFileName(
     OUT PSTR* ppszDiskFilename,
-    IN PPVFS_FILE_NAME pFileName
+    IN PPVFS_FILE_NAME pFileName,
+    IN BOOLEAN bCreatePath
     );
 
 NTSTATUS

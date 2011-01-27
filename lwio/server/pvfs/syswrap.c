@@ -120,7 +120,7 @@ PvfsSysStatByFileName(
     int unixerr = 0;
     PSTR fileName = NULL;
 
-    ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
+    ntError = PvfsLookupStreamDiskFileName(&fileName, FileName, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     if (stat(fileName, &sBuf) == -1) {
@@ -201,6 +201,8 @@ cleanup:
     return ntError;
 
 error:
+    PvfsSysClose(fd);
+
     goto cleanup;
 }
 
@@ -219,8 +221,26 @@ PvfsSysOpenByFileName(
     int fd = -1;
     int unixerr = 0;
     PSTR pszFilename = NULL;
+    PVFS_STAT Stat = {0};
+    int Ownerfd = -1;
 
-    ntError = PvfsLookupStreamDiskFileName(&pszFilename, pFileName);
+    // Need make sure the object (file/directory) exists
+    // Before non-default stream objects can be created
+    if (!PvfsIsDefaultStreamName(pFileName))
+    {
+        ntError = PvfsSysStat(pFileName->FileName, &Stat);
+        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+        {
+            ntError = PvfsSysOpen(
+                      &Ownerfd,
+                      pFileName->FileName,
+                      iFlags,
+                      Mode);
+        }
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsLookupStreamDiskFileName(&pszFilename, pFileName, TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((fd = open(pszFilename, iFlags, Mode)) == -1) {
@@ -234,10 +254,12 @@ cleanup:
     {
         LwRtlCStringFree(&pszFilename);
     }
+    PvfsSysClose(Ownerfd);
 
     return ntError;
 
 error:
+    PvfsSysClose(fd);
     goto cleanup;
 }
 
@@ -277,8 +299,26 @@ PvfsSysMkDirByFileName(
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
     PSTR directoryName = NULL;
+    PVFS_STAT Stat = {0};
+    int Ownerfd = -1;
 
-    ntError = PvfsAllocateCStringFromFileName(&directoryName, DirectoryName);
+    // Need make sure the object (file/directory) exists
+    // Before non-default stream objects can be created
+    if (!PvfsIsDefaultStreamName(DirectoryName))
+    {
+        ntError = PvfsSysStat(DirectoryName->FileName, &Stat);
+        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+        {
+            ntError = PvfsSysOpen(
+                      &Ownerfd,
+                      DirectoryName->FileName,
+                      0,
+                      mode);
+        }
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsLookupStreamDiskFileName(&directoryName, DirectoryName, TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((mkdir(directoryName, mode)) == -1)
@@ -291,6 +331,8 @@ error:
     {
         LwRtlCStringFree(&directoryName);
     }
+
+    PvfsSysClose(Ownerfd);
 
     return ntError;
 }
@@ -361,6 +403,8 @@ cleanup:
     return ntError;
 
 error:
+    PvfsSysClose(fd);
+
     goto cleanup;
 }
 
@@ -695,7 +739,7 @@ PvfsSysRemoveByFileName(
     PSTR streamDir = NULL;
     PVFS_STAT streamDirStat = { 0 };
 
-    ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
+    ntError = PvfsLookupStreamDiskFileName(&fileName, FileName, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     if (remove(fileName) == -1)
@@ -850,7 +894,7 @@ PvfsSysChownByFileName(
     int unixerr = 0;
     PSTR pszFilename = NULL;
 
-    ntError = PvfsLookupStreamDiskFileName(&pszFilename, pFileName);
+    ntError = PvfsLookupStreamDiskFileName(&pszFilename, pFileName, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     if (chown(pszFilename, uid, gid) == -1)
@@ -907,10 +951,10 @@ PvfsSysRenameByFileName(
     PSTR newStreamDir = NULL;
     PVFS_STAT streamDirStat = { 0 };
 
-    ntError = PvfsLookupStreamDiskFileName(&oldFilename, OriginalFileName);
+    ntError = PvfsLookupStreamDiskFileName(&oldFilename, OriginalFileName, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupStreamDiskFileName(&newFilename, NewFileName);
+    ntError = PvfsLookupStreamDiskFileName(&newFilename, NewFileName, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     if (rename(oldFilename, newFilename) == -1 )
