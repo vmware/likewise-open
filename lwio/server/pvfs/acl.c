@@ -228,6 +228,8 @@ PvfsGetSecurityDescriptorFilename(
         if ((ntError == STATUS_RESOURCE_DATA_NOT_FOUND) ||
             (ntError == STATUS_NOT_SUPPORTED))
         {
+            eaNotFound = TRUE;
+
             secDescLength = origSecDescLength;
 
             ntError = PvfsGetSecurityDescriptorFilenamePosix(
