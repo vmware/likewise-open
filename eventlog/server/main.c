@@ -888,9 +888,12 @@ EVTLogConfigReload(
                  gServerInfo.dwMaxRecords,
                  gServerInfo.dwMaxAge,
                  gServerInfo.bRemoveAsNeeded? "true" : "false",
-                 gpszAllowReadTo,
-                 gpszAllowWriteTo,
-                 gpszAllowDeleteTo);
+                 gpszAllowReadTo ?
+                    gpszAllowReadTo: "",
+                 gpszAllowWriteTo ?
+                    gpszAllowWriteTo: "",
+                 gpszAllowDeleteTo ?
+                    gpszAllowDeleteTo: "");
 
     BAIL_ON_EVT_ERROR(dwError);
 
