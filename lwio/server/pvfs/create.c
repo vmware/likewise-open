@@ -327,12 +327,15 @@ PvfsCreateFileDoSysOpen(
 
         /* Security Descriptor */
 
-        ntError = PvfsCreateFileSecurity(
-                      pCreateContext->pCcb->pUserToken,
-                      pCreateContext->pCcb,
-                      Args.SecurityDescriptor,
-                      FALSE);
-        BAIL_ON_NT_STATUS(ntError);
+        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb))
+        {
+            ntError = PvfsCreateFileSecurity(
+                          pCreateContext->pCcb->pUserToken,
+                          pCreateContext->pCcb,
+                          Args.SecurityDescriptor,
+                          FALSE);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
 
     if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_ATTRIB) &&
