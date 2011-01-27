@@ -49,6 +49,20 @@
 
 /**********************************************************
  *********************************************************/
+static
+NTSTATUS
+PvfsSysOpen(
+    int *pFd,
+    PSTR pszFilename,
+    int iFlags,
+    mode_t Mode
+    );
+
+static
+NTSTATUS
+PvfsSysRemove(
+    PCSTR pszPath
+    );
 
 static
 NTSTATUS
@@ -177,6 +191,7 @@ error:
 /**********************************************************
  *********************************************************/
 
+static
 NTSTATUS
 PvfsSysOpen(
     int *pFd,
@@ -356,6 +371,49 @@ PvfsSysOpenDir(
     }
 
 error:
+    if (ntError || !ppDir)
+    {
+        if (pDir)
+        {
+            PvfsSysCloseDir(pDir);
+        }
+    }
+
+    if (ppDir)
+    {
+        *ppDir = pDir;
+    }
+
+    return ntError;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysOpenDirByFileName(
+    IN PPVFS_FILE_NAME pDirname,
+    OUT OPTIONAL DIR **ppDir
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+    DIR *pDir = NULL;
+    PSTR pszDirname = NULL;
+
+    ntError = PvfsLookupStreamDiskFileName(&pszDirname, pDirname, FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if ((pDir = opendir(pszDirname)) == NULL) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+error:
+    if (pszDirname)
+    {
+        LwRtlCStringFree(&pszDirname);
+    }
+
     if (ntError || !ppDir)
     {
         if (pDir)
@@ -707,6 +765,7 @@ error:
     return ntError;
 }
 
+static
 NTSTATUS
 PvfsSysRemove(
     PCSTR pszPath

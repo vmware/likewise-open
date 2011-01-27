@@ -72,14 +72,6 @@ PvfsSysFstat(
 	);
 
 NTSTATUS
-PvfsSysOpen(
-    int *pFd,
-    PSTR pszFilename,
-    int iFlags,
-    mode_t Mode
-    );
-
-NTSTATUS
 PvfsSysClose(
     int fd
     );
@@ -141,11 +133,6 @@ NTSTATUS
 PvfsSysFstatFs(
     PPVFS_CCB pCcb,
     PPVFS_STATFS pStatFs
-    );
-
-NTSTATUS
-PvfsSysRemove(
-    PCSTR pszPath
     );
 
 NTSTATUS
@@ -241,6 +228,12 @@ NTSTATUS
 PvfsSysMkDirByFileName(
     IN PPVFS_FILE_NAME DirectoryName,
     mode_t mode
+    );
+
+NTSTATUS
+PvfsSysOpenDirByFileName(
+    IN PPVFS_FILE_NAME pDirname,
+    OUT OPTIONAL DIR **ppDir
     );
 
 NTSTATUS

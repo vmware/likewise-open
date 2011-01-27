@@ -971,6 +971,7 @@ PvfsResolvePath(
     PPVFS_FILE_NAME resolvedWorkingPath = NULL;
     PPVFS_FILE_NAME resolvedPath = NULL;
     PPVFS_FILE_NAME finalResolvedPath = NULL;
+    PPVFS_FILE_NAME currentResolvedPath = NULL;
 
     ntError = PvfsAllocateCStringFromFileName(&pszPath, InputPath);
     BAIL_ON_NT_STATUS(ntError);
@@ -1061,7 +1062,10 @@ PvfsResolvePath(
         {
             /* Enumerate directory entries and look for a match */
 
-            ntError = PvfsSysOpenDir(pszCurrentResolvedPath, &pDir);
+            ntError = PvfsAllocateFileNameFromCString(&currentResolvedPath, pszCurrentResolvedPath);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = PvfsSysOpenDirByFileName(currentResolvedPath, &pDir);
             if (ntError == STATUS_NOT_A_DIRECTORY)
             {
                 ntError = STATUS_OBJECT_PATH_NOT_FOUND;
@@ -1222,6 +1226,11 @@ cleanup:
     if (finalResolvedPath)
     {
         PvfsFreeFileName(finalResolvedPath);
+    }
+
+    if (currentResolvedPath)
+    {
+        PvfsFreeFileName(currentResolvedPath);
     }
 
     return ntError;
