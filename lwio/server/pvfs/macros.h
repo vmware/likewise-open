@@ -61,6 +61,8 @@
 
 #define PVFS_IS_DEVICE_HANDLE(p)  ((p) == gpPvfsDeviceScb)
 
+#define PVFS_MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 #define PVFS_BAIL_ON_INVALID_CCB(p, err)                    \
     do {                                                    \
         if ((p) == NULL) {                                  \

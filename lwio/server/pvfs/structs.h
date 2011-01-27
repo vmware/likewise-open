@@ -45,6 +45,8 @@
 #ifndef _PVFS_STRUCTS_H
 #define _PVFS_STRUCTS_H
 
+#define PVFS_DEFAULT_SD_RELATIVE_SIZE     512
+
 // File System information
 
 #define PVFS_FS_NAME     "NTFS"
