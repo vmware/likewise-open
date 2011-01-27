@@ -86,6 +86,8 @@ typedef struct {
     DWORD dwPurgeInterval;
     /* Flag to prune database*/
     BOOLEAN bRemoveAsNeeded;
+    /* Flag to Register TCP/IP RPC endpoints */
+    BOOLEAN bRegisterTcpIp;
 
     /* Who is allowed to read events */
     EVTALLOWEDDATA  pAllowReadTo;
