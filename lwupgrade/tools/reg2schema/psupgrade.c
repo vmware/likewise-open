@@ -42,6 +42,7 @@
 #include "includes.h"
 
 
+static
 DWORD
 ParsePstoreSections(
     FILE *fp,
@@ -153,6 +154,7 @@ ParsePstoreSections(
  * only occurs once and under a Pstore subkey. This could break should
  * this valueName be duplicated under another subkey.
  */
+static
 PSTR
 FindDomain(
     FILE *fp)
