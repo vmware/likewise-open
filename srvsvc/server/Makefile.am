@@ -18,7 +18,6 @@ srvsvcd_SOURCES =              \
     winreg_srv.c               \
     globals.c                  \
     marshall.c                 \
-    memutil.c                  \
     security.c                 \
     signalhandler.c            \
     srvsvc_netshareadd.c       \
