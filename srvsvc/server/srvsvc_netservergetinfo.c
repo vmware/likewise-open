@@ -67,6 +67,7 @@ SrvSvcNetrServerGetInfo(
     LSA_BINDING hLsaBinding = NULL;
     CHAR szHostname[64] = {0};
     PWSTR pwszLocalHost = NULL;
+    PWSTR pwszHostname = NULL;
     POLICY_HANDLE hLocalPolicy = NULL;
     LsaPolicyInformation *pPolInfo = NULL;
     PCSTR pszComment = "Likewise CIFS";
@@ -100,6 +101,20 @@ SrvSvcNetrServerGetInfo(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (server_name)
+    {
+        dwError = SrvSvcSrvAllocateWC16String(
+                      &pwszHostname,
+                      server_name);
+    }
+    else
+    {
+        dwError = SrvSvcSrvAllocateWC16String(
+                      &pwszHostname,
+                      pwszLocalHost);
+    }
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
@@ -140,26 +155,13 @@ SrvSvcNetrServerGetInfo(
                       OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        if (!bStandalone)
-        {
-            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                          &pInfo101->sv101_name,
-                          &pPolInfo->dns.name);
-        }
-        else
-        {
-            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                          &pInfo101->sv101_name,
-                          &pPolInfo->account_domain.name);
-        }
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
         dwError = SrvSvcSrvAllocateWC16StringFromCString(
-                      &pInfo101->sv101_comment,
-                      pszComment);
+                      &pInfo101->sv101_name,
+                      szHostname);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo101->sv101_platform_id    = 500;
+        pInfo101->sv101_name           = pwszHostname;
         pInfo101->sv101_version_major  = 5;
         pInfo101->sv101_version_minor  = 1;
         pInfo101->sv101_type           = 0x0001003;
@@ -174,27 +176,13 @@ SrvSvcNetrServerGetInfo(
                       OUT_PPVOID(&pInfo102));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        if (!bStandalone)
-        {
-            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                          &pInfo102->sv102_name,
-                          &pPolInfo->dns.name);
-        }
-        else
-        {
-            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                          &pInfo102->sv102_name,
-                          &pPolInfo->account_domain.name);
-        }
-
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16StringFromCString(
+         dwError = SrvSvcSrvAllocateWC16StringFromCString(
                       &pInfo102->sv102_comment,
                       pszComment);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo102->sv102_platform_id    = 500;
+        pInfo102->sv102_name           = pwszHostname;
         pInfo102->sv102_version_major  = 5;
         pInfo102->sv102_version_minor  = 1;
         pInfo102->sv102_type           = 0x0001003;
