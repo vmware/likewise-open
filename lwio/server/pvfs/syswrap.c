@@ -65,6 +65,12 @@ PvfsSysRemove(
     );
 
 static
+BOOLEAN
+PvfsSysIsEmptyDir(
+    PSTR pszDirname
+    );
+
+static
 NTSTATUS
 CopyUnixStatToPvfsStat(
     PPVFS_STAT pPvfsStat,
@@ -683,6 +689,47 @@ error:
 
 /**********************************************************
  *********************************************************/
+static
+BOOLEAN
+PvfsSysIsEmptyDir(
+    PSTR pszDirname
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN isEmptyDir = TRUE;
+    DIR *pDir = NULL;
+    struct dirent *pDirEntry = NULL;
+    struct dirent dirEntry = { 0 };
+
+    ntError = PvfsSysOpenDir(pszDirname, &pDir);
+    BAIL_ON_NT_STATUS(ntError);
+
+    for (ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry);
+         pDirEntry;
+         ntError = PvfsSysReadDir(pDir, &dirEntry, &pDirEntry))
+    {
+        /* First check the error return */
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (!LwRtlCStringIsEqual(pDirEntry->d_name, ".", FALSE) &&
+            !LwRtlCStringIsEqual(pDirEntry->d_name, "..", FALSE))
+        {
+            isEmptyDir = FALSE;
+            break;
+        }
+    }
+
+error:
+    if (pDir)
+    {
+        PvfsSysCloseDir(pDir);
+    }
+
+    return NT_SUCCESS(ntError) ? isEmptyDir : FALSE;
+}
+
+/**********************************************************
+ *********************************************************/
 
 static
 NTSTATUS
@@ -793,18 +840,38 @@ PvfsSysRemoveByFileName(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    int unixerr = 0;
     PSTR fileName = NULL;
     PSTR streamDir = NULL;
     PVFS_STAT streamDirStat = { 0 };
+    PVFS_STAT fileStat = { 0 };
+    PSTR pszMetaDataPath = NULL;
 
     ntError = PvfsLookupStreamDiskFileName(&fileName, FileName, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (remove(fileName) == -1)
+    ntError = PvfsSysStat(fileName, &fileStat);
+    if (ntError == STATUS_SUCCESS)
     {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+        if(S_ISDIR(fileStat.s_mode))
+        {
+            ntError = LwRtlCStringAllocatePrintf(
+                          &pszMetaDataPath,
+                          "%s/%s",
+                          fileName,
+                          PVFS_STREAM_METADATA_DIR_NAME);
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (PvfsSysIsEmptyDir(pszMetaDataPath))
+            {
+                ntError = PvfsSysRemove(pszMetaDataPath);
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
     }
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysRemove(fileName);
+    BAIL_ON_NT_STATUS(ntError);
 
     if (PvfsIsDefaultStreamName(FileName))
     {
@@ -835,6 +902,10 @@ error:
     if (streamDir)
     {
         LwRtlCStringFree(&streamDir);
+    }
+    if (pszMetaDataPath)
+    {
+        LwRtlCStringFree(&pszMetaDataPath);
     }
 
     return ntError;
