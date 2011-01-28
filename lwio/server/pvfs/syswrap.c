@@ -742,7 +742,7 @@ PvfsSysRemoveDir(
     struct dirent *pDirEntry = NULL;
     struct dirent dirEntry = { 0 };
     PSTR pszPath = NULL;
-    struct stat streamDirStat = { 0 };
+    PVFS_STAT streamDirStat = { 0 };
 
     ntError = PvfsSysOpenDir(pszDirname, &pDir);
     BAIL_ON_NT_STATUS(ntError);
@@ -754,7 +754,7 @@ PvfsSysRemoveDir(
         /* First check the error return */
         BAIL_ON_NT_STATUS(ntError);
 
-        memset(&streamDirStat, 0, sizeof(struct stat));
+        memset(&streamDirStat, 0, sizeof(PVFS_STAT));
         if (pszPath)
         {
             LwRtlCStringFree(&pszPath);
@@ -767,9 +767,10 @@ PvfsSysRemoveDir(
                           pDirEntry->d_name);
         BAIL_ON_NT_STATUS(ntError);
 
-        if (stat(pszPath, &streamDirStat) == 0)
+        ntError = PvfsSysStat(pszPath, &streamDirStat);
+        if (ntError == STATUS_SUCCESS)
         {
-            if(S_ISDIR(streamDirStat.st_mode))
+            if(S_ISDIR(streamDirStat.s_mode))
             {
                 if (!LwRtlCStringIsEqual(pDirEntry->d_name, ".", FALSE) &&
                     !LwRtlCStringIsEqual(pDirEntry->d_name, "..", FALSE))
