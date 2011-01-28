@@ -56,51 +56,14 @@ SrvSvcNetrServerGetInfo(
     /* [out] */ srvsvc_NetSrvInfo *info
     )
 {
-    const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS |
-                                     LSA_ACCESS_VIEW_POLICY_INFO;
-
     DWORD dwError = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PWSTR pwszProtSeq = NULL;
-    PSTR pszLsaLpcSocketPath = NULL;
-    PWSTR pwszLsaLpcSocketPath = NULL;
-    LSA_BINDING hLsaBinding = NULL;
     CHAR szHostname[64] = {0};
-    PWSTR pwszLocalHost = NULL;
     PWSTR pwszHostname = NULL;
-    POLICY_HANDLE hLocalPolicy = NULL;
-    LsaPolicyInformation *pPolInfo = NULL;
     PCSTR pszComment = "Likewise CIFS";
     SERVER_INFO_101 *pInfo101 = NULL;
     SERVER_INFO_102 *pInfo102 = NULL;
-    BOOLEAN bStandalone = FALSE;
-
-    dwError = LwMbsToWc16s("ncalrpc", &pwszProtSeq);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = SrvSvcConfigGetLsaLpcSocketPath(&pszLsaLpcSocketPath);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-                  pszLsaLpcSocketPath,
-                  &pwszLsaLpcSocketPath);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwNtStatusToWin32Error(
-                  LsaInitBindingFull(
-                      &hLsaBinding,
-                      pwszProtSeq,
-                      NULL,
-                      pwszLsaLpcSocketPath,
-                      NULL,
-                      NULL,
-                      NULL));
-    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = gethostname(szHostname, sizeof(szHostname));
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (server_name)
@@ -111,40 +74,10 @@ SrvSvcNetrServerGetInfo(
     }
     else
     {
-        dwError = SrvSvcSrvAllocateWC16String(
+        dwError = SrvSvcSrvAllocateWC16StringFromCString(
                       &pwszHostname,
-                      pwszLocalHost);
+                      szHostname);
     }
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwNtStatusToWin32Error(
-                  LsaOpenPolicy2(
-                      hLsaBinding,
-                      pwszLocalHost,
-                      NULL,
-                      dwPolicyAccessMask,
-                      &hLocalPolicy));
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    // Query for the DNS name information.  Fallback to the
-    // account domain in case we are not joined to any domain
-
-    ntStatus = LsaQueryInfoPolicy(
-                   hLsaBinding,
-                   hLocalPolicy,
-                   LSA_POLICY_INFO_DNS,
-                   &pPolInfo);
-    if (ntStatus == STATUS_INVALID_INFO_CLASS)
-    {
-        bStandalone = TRUE;
-
-        ntStatus = LsaQueryInfoPolicy(
-                       hLsaBinding,
-                       hLocalPolicy,
-                       LSA_POLICY_INFO_ACCOUNT_DOMAIN,
-                       &pPolInfo);
-    }
-    dwError = LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     switch (level)
@@ -155,11 +88,6 @@ SrvSvcNetrServerGetInfo(
                       OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SrvSvcSrvAllocateWC16StringFromCString(
-                      &pInfo101->sv101_name,
-                      szHostname);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
         pInfo101->sv101_platform_id    = 500;
         pInfo101->sv101_name           = pwszHostname;
         pInfo101->sv101_version_major  = 5;
@@ -168,6 +96,7 @@ SrvSvcNetrServerGetInfo(
 
         info->info101 = pInfo101;
 
+        pwszHostname = NULL;
         break;
 
     case 102:
@@ -196,6 +125,7 @@ SrvSvcNetrServerGetInfo(
 
         info->info102 = pInfo102;
 
+        pwszHostname = NULL;
         break;
 
     default:
@@ -204,23 +134,6 @@ SrvSvcNetrServerGetInfo(
     }
 
 cleanup:
-    if (hLsaBinding && hLocalPolicy)
-    {
-        LsaClose(hLsaBinding, hLocalPolicy);
-    }
-
-    if (pPolInfo)
-    {
-        LsaRpcFreeMemory(pPolInfo);
-    }
-
-    LsaFreeBinding(&hLsaBinding);
-
-    LW_SAFE_FREE_MEMORY(pszLsaLpcSocketPath);
-    LW_SAFE_FREE_MEMORY(pwszLsaLpcSocketPath);
-    LW_SAFE_FREE_MEMORY(pwszProtSeq);
-    LW_SAFE_FREE_MEMORY(pwszLocalHost);
-
     return dwError;
 
 error:
