@@ -58,7 +58,7 @@ PvfsGetSecurityDescriptorFile(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BYTE secDescBufferStatic[PVFS_DEFAULT_SD_RELATIVE_SIZE];
+    BYTE secDescBufferStatic[PVFS_DEFAULT_SD_RELATIVE_SIZE] = { 0 };
     PBYTE secDescBuffer = secDescBufferStatic;
     ULONG secDescLength = PVFS_DEFAULT_SD_RELATIVE_SIZE;
     ULONG origSecDescLength = PVFS_DEFAULT_SD_RELATIVE_SIZE;
@@ -172,7 +172,7 @@ PvfsGetSecurityDescriptorFilename(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BYTE secDescBufferStatic[PVFS_DEFAULT_SD_RELATIVE_SIZE];
+    BYTE secDescBufferStatic[PVFS_DEFAULT_SD_RELATIVE_SIZE] = { 0 };
     PBYTE secDescBuffer = secDescBufferStatic;
     ULONG secDescLength = PVFS_DEFAULT_SD_RELATIVE_SIZE;
     ULONG origSecDescLength = PVFS_DEFAULT_SD_RELATIVE_SIZE;
