@@ -529,6 +529,10 @@ PvfsGetCStringBaseFileName(
     IN PPVFS_FILE_NAME FileName
     );
 
+PCSTR
+PvfsGetCStringBaseStreamName(
+    IN PPVFS_FILE_NAME FileName
+    );
 
 NTSTATUS
 PvfsAllocateCStringStreamFileName(
@@ -998,8 +1002,7 @@ PvfsLookupStreamDirectoryPath(
 NTSTATUS
 PvfsLookupStreamDiskFileName(
     OUT PSTR* ppszDiskFilename,
-    IN PPVFS_FILE_NAME pFileName,
-    IN BOOLEAN bCreatePath
+    IN PPVFS_FILE_NAME pFileName
     );
 
 NTSTATUS

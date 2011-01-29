@@ -753,6 +753,16 @@ PvfsGetCStringBaseFileName(
 
 ////////////////////////////////////////////////////////////////////////
 
+PCSTR
+PvfsGetCStringBaseStreamName(
+    IN PPVFS_FILE_NAME FileName
+    )
+{
+    return FileName->StreamName;
+}
+
+////////////////////////////////////////////////////////////////////////
+
 NTSTATUS
 PvfsRenameBaseFileName(
     IN OUT PPVFS_FILE_NAME FileName,
