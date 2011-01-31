@@ -87,7 +87,7 @@ NpfsDequeueBuffer(
 
     LengthRemaining = Length;
 
-    while (!NpfsMdlListIsEmpty(pMdlList))
+    while (LengthRemaining && !NpfsMdlListIsEmpty(pMdlList))
     {
         pMdl = LW_STRUCT_FROM_FIELD(pMdlList->Next, NPFS_MDL, link);
         BytesAvail = pMdl->Length - pMdl->Offset;
@@ -104,11 +104,6 @@ NpfsDequeueBuffer(
         {
             NpfsDequeueMdl(pMdlList, &pMdl);
             NpfsFreeMdl(pMdl);
-        }
-        else
-        {
-            ntStatus = STATUS_BUFFER_TOO_SMALL;
-            BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
