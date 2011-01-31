@@ -139,7 +139,21 @@
                                         usOpcode);                          \
         if (maxLogLevel >= (level))                                         \
         {                                                                   \
-            LW_RTL_LOG_AT_LEVEL((level), "srv", szFmt, ## __VA_ARGS__);     \
+            if ((level) >= LWIO_LOG_LEVEL_DEBUG)                            \
+            {                                                               \
+                LWIO_LOG_ALWAYS_CUSTOM(                                     \
+                        (level),                                            \
+                        "[%s() %s:%d] "                                     \
+                        szFmt,                                              \
+                        __FUNCTION__,                                       \
+                        LWIO_SAFE_LOG_STRING(SrvPathGetFileName(__FILE__)), \
+                        __LINE__,                                           \
+                        ## __VA_ARGS__);                                    \
+            }                                                               \
+            else                                                            \
+            {                                                               \
+                LWIO_LOG_ALWAYS_CUSTOM((level), szFmt, ## __VA_ARGS__);     \
+            }                                                               \
         }                                                                   \
     }
 

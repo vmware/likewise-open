@@ -623,24 +623,43 @@ SrvLogOpenState_SMB_V1(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        LW_RTL_LOG_RAW(
-            logLevel,
-            "srv",
-            pszFunction,
-            pszFile,
-            ulLine,
-            "Open state: "
-            "alloc-size(%u),creation-time(0x%x),desired-access(0x%x),"
-            "file-attrs(0x%x),flags(0x%x),open-function(%u),"
-            "search-attrs(0x%x),path(%s)",
-            pOpenState->pRequestHeader->ulAllocationSize,
-            pOpenState->pRequestHeader->ulCreationTime,
-            pOpenState->pRequestHeader->usDesiredAccess,
-            pOpenState->pRequestHeader->usFileAttributes,
-            pOpenState->pRequestHeader->usFlags,
-            pOpenState->pRequestHeader->usOpenFunction,
-            pOpenState->pRequestHeader->usSearchAttributes,
-            LWIO_SAFE_LOG_STRING(pszPath));
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Open state: "
+                    "alloc-size(%u),creation-time(0x%x),desired-access(0x%x),"
+                    "file-attrs(0x%x),flags(0x%x),open-function(%u),"
+                    "search-attrs(0x%x),path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pOpenState->pRequestHeader->ulAllocationSize,
+                    pOpenState->pRequestHeader->ulCreationTime,
+                    pOpenState->pRequestHeader->usDesiredAccess,
+                    pOpenState->pRequestHeader->usFileAttributes,
+                    pOpenState->pRequestHeader->usFlags,
+                    pOpenState->pRequestHeader->usOpenFunction,
+                    pOpenState->pRequestHeader->usSearchAttributes,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Open state: "
+                    "alloc-size(%u),creation-time(0x%x),desired-access(0x%x),"
+                    "file-attrs(0x%x),flags(0x%x),open-function(%u),"
+                    "search-attrs(0x%x),path(%s)",
+                    pOpenState->pRequestHeader->ulAllocationSize,
+                    pOpenState->pRequestHeader->ulCreationTime,
+                    pOpenState->pRequestHeader->usDesiredAccess,
+                    pOpenState->pRequestHeader->usFileAttributes,
+                    pOpenState->pRequestHeader->usFlags,
+                    pOpenState->pRequestHeader->usOpenFunction,
+                    pOpenState->pRequestHeader->usSearchAttributes,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
     }
 
 error:

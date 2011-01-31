@@ -530,17 +530,29 @@ SrvLogSetInfo_SMB_V1(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LW_RTL_LOG_RAW(
-        logLevel,
-        "srv",
-        pszFunction,
-        pszFile,
-        ulLine,
-        "SetInfo Parameters: last-write-date(%u),last-write-time(%u),file-attrs(0x%x),Filename(%s)",
-        pRequestHeader->lastWriteDate,
-        pRequestHeader->lastWriteTime,
-        pRequestHeader->usFileAttributes,
-        LWIO_SAFE_LOG_STRING(pszFilename));
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] SetInfo Parameters: last-write-date(%u),last-write-time(%u),file-attrs(0x%x),Filename(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pRequestHeader->lastWriteDate,
+                pRequestHeader->lastWriteTime,
+                pRequestHeader->usFileAttributes,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "SetInfo Parameters: last-write-date(%u),last-write-time(%u),file-attrs(0x%x),Filename(%s)",
+                pRequestHeader->lastWriteDate,
+                pRequestHeader->lastWriteTime,
+                pRequestHeader->usFileAttributes,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
 
 error:
 

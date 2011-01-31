@@ -562,25 +562,45 @@ SrvLogCreateParams_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LW_RTL_LOG_RAW(
-        logLevel,
-        "srv",
-        pszFunction,
-        pszFile,
-        ulLine,
-        "Create params: "
-        "create-disp(0x%x),desired-access(0x%x),num-contexts(%u),"
-        "create-options(0x%x),share-access(0x%x),flags(0x%x),"
-        "security-flags(0x%x),oplock-level(%u),file-name(%s)",
-        pCreateRequestHeader->ulCreateDisposition,
-        pCreateRequestHeader->ulDesiredAccess,
-        *pulNumContexts,
-        pCreateRequestHeader->ulCreateOptions,
-        pCreateRequestHeader->ulShareAccess,
-        (long long)pCreateRequestHeader->ullCreateFlags,
-        pCreateRequestHeader->ucSecurityFlags,
-        pCreateRequestHeader->ucOplockLevel,
-        LWIO_SAFE_LOG_STRING(pszFilename));
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] Create params: "
+                "create-disp(0x%x),desired-access(0x%x),num-contexts(%u),"
+                "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                "security-flags(0x%x),oplock-level(%u),file-name(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pCreateRequestHeader->ulCreateDisposition,
+                pCreateRequestHeader->ulDesiredAccess,
+                *pulNumContexts,
+                pCreateRequestHeader->ulCreateOptions,
+                pCreateRequestHeader->ulShareAccess,
+                (long long)pCreateRequestHeader->ullCreateFlags,
+                pCreateRequestHeader->ucSecurityFlags,
+                pCreateRequestHeader->ucOplockLevel,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "Create params: "
+                "create-disp(0x%x),desired-access(0x%x),num-contexts(%u),"
+                "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                "security-flags(0x%x),oplock-level(%u),file-name(%s)",
+                pCreateRequestHeader->ulCreateDisposition,
+                pCreateRequestHeader->ulDesiredAccess,
+                *pulNumContexts,
+                pCreateRequestHeader->ulCreateOptions,
+                pCreateRequestHeader->ulShareAccess,
+                (long long)pCreateRequestHeader->ullCreateFlags,
+                pCreateRequestHeader->ucSecurityFlags,
+                pCreateRequestHeader->ucOplockLevel,
+                LWIO_SAFE_LOG_STRING(pszFilename));
+    }
 
 error:
 

@@ -79,16 +79,27 @@ SrvLogRequest_SMB_V1(
                         &ulLen);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LW_RTL_LOG_RAW(
-            logLevel,
-            "srv",
-            pszFunction,
-            pszFile,
-            ulLine,
-            "SMB Request:[%u/%u bytes][%s]",
-            ulLen,
-            pExecContext->pSmbRequest->bufferUsed - sizeof(NETBIOS_HEADER),
-            LWIO_SAFE_LOG_STRING(pszBuffer));
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] SMB Request:[%u/%u bytes][%s]",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    ulLen,
+                    pExecContext->pSmbRequest->bufferUsed - sizeof(NETBIOS_HEADER),
+                    LWIO_SAFE_LOG_STRING(pszBuffer));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "SMB Request:[%u/%u bytes][%s]",
+                    ulLen,
+                    pExecContext->pSmbRequest->bufferUsed - sizeof(NETBIOS_HEADER),
+                    LWIO_SAFE_LOG_STRING(pszBuffer));
+        }
     }
 
 error:

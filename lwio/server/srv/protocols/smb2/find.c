@@ -699,23 +699,41 @@ SrvLogFindRequest_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        LW_RTL_LOG_RAW(
-            logLevel,
-            "srv",
-            pszFunction,
-            pszFile,
-            ulLine,
-            "Find request params: "
-            "file-id(persistent:0x%x,volatile:0x%x),"
-            "info-class(0x%x),search-flags(0x%x),file-index(%u),"
-            "out-buffer-length(%u),file-name(%s)",
-            (long long)pRequestHeader->fid.ullPersistentId,
-            (long long)pRequestHeader->fid.ullVolatileId,
-            pRequestHeader->ucInfoClass,
-            pRequestHeader->ucSearchFlags,
-            pRequestHeader->ulFileIndex,
-            pRequestHeader->ulOutBufferLength,
-            LWIO_SAFE_LOG_STRING(pszFilename));
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Find request params: "
+                    "file-id(persistent:0x%x,volatile:0x%x),"
+                    "info-class(0x%x),search-flags(0x%x),file-index(%u),"
+                    "out-buffer-length(%u),file-name(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    (long long)pRequestHeader->fid.ullPersistentId,
+                    (long long)pRequestHeader->fid.ullVolatileId,
+                    pRequestHeader->ucInfoClass,
+                    pRequestHeader->ucSearchFlags,
+                    pRequestHeader->ulFileIndex,
+                    pRequestHeader->ulOutBufferLength,
+                    LWIO_SAFE_LOG_STRING(pszFilename));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Find request params: "
+                    "file-id(persistent:0x%x,volatile:0x%x),"
+                    "info-class(0x%x),search-flags(0x%x),file-index(%u),"
+                    "out-buffer-length(%u),file-name(%s)",
+                    (long long)pRequestHeader->fid.ullPersistentId,
+                    (long long)pRequestHeader->fid.ullVolatileId,
+                    pRequestHeader->ucInfoClass,
+                    pRequestHeader->ucSearchFlags,
+                    pRequestHeader->ulFileIndex,
+                    pRequestHeader->ulOutBufferLength,
+                    LWIO_SAFE_LOG_STRING(pszFilename));
+        }
     }
 
 error:

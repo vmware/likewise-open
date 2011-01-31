@@ -654,14 +654,23 @@ SrvLogTreeConnect_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LW_RTL_LOG_RAW(
-        logLevel,
-        "srv",
-        pszFunction,
-        pszFile,
-        ulLine,
-        "TreeConnect Parameters: Path(%s)",
-        LWIO_SAFE_LOG_STRING(pszPath));
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] TreeConnect Parameters: Path(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                LWIO_SAFE_LOG_STRING(pszPath));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "TreeConnect Parameters: Path(%s)",
+                LWIO_SAFE_LOG_STRING(pszPath));
+    }
 
 error:
 

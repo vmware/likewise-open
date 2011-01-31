@@ -399,18 +399,31 @@ SrvLogNtRename_SMB_V1(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LW_RTL_LOG_RAW(
-        logLevel,
-        "srv",
-        pszFunction,
-        pszFile,
-        ulLine,
-        "NtRename Parameters: cluster-count(%u),info-level(%u),search-attrs(0x%x),old-name(%s),new-name(%s)",
-        pRequestHeader->ulClusterCount,
-        pRequestHeader->usInfoLevel,
-        pRequestHeader->usSearchAttributes,
-        LWIO_SAFE_LOG_STRING(pszOldName),
-        LWIO_SAFE_LOG_STRING(pszNewName));
+    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "[%s() %s:%u] NtRename Parameters: cluster-count(%u),info-level(%u),search-attrs(0x%x),old-name(%s),new-name(%s)",
+                LWIO_SAFE_LOG_STRING(pszFunction),
+                LWIO_SAFE_LOG_STRING(pszFile),
+                ulLine,
+                pRequestHeader->ulClusterCount,
+                pRequestHeader->usInfoLevel,
+                pRequestHeader->usSearchAttributes,
+                LWIO_SAFE_LOG_STRING(pszOldName),
+                LWIO_SAFE_LOG_STRING(pszNewName));
+    }
+    else
+    {
+        LWIO_LOG_ALWAYS_CUSTOM(
+                logLevel,
+                "NtRename Parameters: cluster-count(%u),info-level(%u),search-attrs(0x%x),old-name(%s),new-name(%s)",
+                pRequestHeader->ulClusterCount,
+                pRequestHeader->usInfoLevel,
+                pRequestHeader->usSearchAttributes,
+                LWIO_SAFE_LOG_STRING(pszOldName),
+                LWIO_SAFE_LOG_STRING(pszNewName));
+    }
 
 error:
 

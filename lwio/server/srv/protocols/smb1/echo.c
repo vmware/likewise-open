@@ -138,17 +138,29 @@ SrvLogEchoState_SMB_V1(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        LW_RTL_LOG_RAW(
-            logLevel,
-            "srv",
-            pszFunction,
-            pszFile,
-            ulLine,
-            "Delete directory state: EchoCount(%u),EchoBlob[%u/%u bytes](%s)",
-            pEchoHeader->echoCount,
-            ulLen,
-            pEchoHeader->byteCount,
-            LWIO_SAFE_LOG_STRING(pszHexString));
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] Delete directory state: EchoCount(%u),EchoBlob[%u/%u bytes](%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pEchoHeader->echoCount,
+                    ulLen,
+                    pEchoHeader->byteCount,
+                    LWIO_SAFE_LOG_STRING(pszHexString));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "Delete directory state: EchoCount(%u),EchoBlob[%u/%u bytes](%s)",
+                    pEchoHeader->echoCount,
+                    ulLen,
+                    pEchoHeader->byteCount,
+                    LWIO_SAFE_LOG_STRING(pszHexString));
+        }
     }
 
 error:

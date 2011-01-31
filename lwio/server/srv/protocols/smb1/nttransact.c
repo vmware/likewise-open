@@ -3121,27 +3121,49 @@ SrvLogNtTransactCreateState_SMB_V1(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        LW_RTL_LOG_RAW(
-            logLevel,
-            "srv",
-            pszFunction,
-            pszFile,
-            ulLine,
-            "NtTransact Create state: "
-            "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
-            "create-options(0x%x),share-access(0x%x),flags(0x%x),"
-            "sec-flags(0x%x),root-dir-fid(%u),ea-length(%u),sec-desc-length(%u),path(%s)",
-            pCreateState->pNtTransactCreateHeader->ullAllocationSize,
-            pCreateState->pNtTransactCreateHeader->ulCreateDisposition,
-            pCreateState->pNtTransactCreateHeader->ulDesiredAccess,
-            pCreateState->pNtTransactCreateHeader->ulCreateOptions,
-            pCreateState->pNtTransactCreateHeader->ullAllocationSize,
-            pCreateState->pNtTransactCreateHeader->ulFlags,
-            pCreateState->pNtTransactCreateHeader->ucSecurityFlags,
-            pCreateState->pNtTransactCreateHeader->ulRootDirectoryFid,
-            pCreateState->pNtTransactCreateHeader->ulEALength,
-            pCreateState->pNtTransactCreateHeader->ulSecurityDescLength,
-            LWIO_SAFE_LOG_STRING(pszPath));
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] NtTransact Create state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "sec-flags(0x%x),root-dir-fid(%u),ea-length(%u),sec-desc-length(%u),path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulCreateDisposition,
+                    pCreateState->pNtTransactCreateHeader->ulDesiredAccess,
+                    pCreateState->pNtTransactCreateHeader->ulCreateOptions,
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulFlags,
+                    pCreateState->pNtTransactCreateHeader->ucSecurityFlags,
+                    pCreateState->pNtTransactCreateHeader->ulRootDirectoryFid,
+                    pCreateState->pNtTransactCreateHeader->ulEALength,
+                    pCreateState->pNtTransactCreateHeader->ulSecurityDescLength,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "NtTransact Create state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "sec-flags(0x%x),root-dir-fid(%u),ea-length(%u),sec-desc-length(%u),path(%s)",
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulCreateDisposition,
+                    pCreateState->pNtTransactCreateHeader->ulDesiredAccess,
+                    pCreateState->pNtTransactCreateHeader->ulCreateOptions,
+                    pCreateState->pNtTransactCreateHeader->ullAllocationSize,
+                    pCreateState->pNtTransactCreateHeader->ulFlags,
+                    pCreateState->pNtTransactCreateHeader->ucSecurityFlags,
+                    pCreateState->pNtTransactCreateHeader->ulRootDirectoryFid,
+                    pCreateState->pNtTransactCreateHeader->ulEALength,
+                    pCreateState->pNtTransactCreateHeader->ulSecurityDescLength,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
     }
 
 error:

@@ -824,25 +824,45 @@ SrvLogCreateState_SMB_V1(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        LW_RTL_LOG_RAW(
-            logLevel,
-            "srv",
-            pszFunction,
-            pszFile,
-            ulLine,
-            "CreateAndX state: "
-            "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
-            "create-options(0x%x),share-access(0x%x),flags(0x%x),"
-            "security-flags(0x%x),root-dir-fid(%u),path(%s)",
-            pCreateState->pRequestHeader->allocationSize,
-            pCreateState->pRequestHeader->createDisposition,
-            pCreateState->pRequestHeader->desiredAccess,
-            pCreateState->pRequestHeader->createOptions,
-            pCreateState->pRequestHeader->shareAccess,
-            pCreateState->pRequestHeader->flags,
-            pCreateState->pRequestHeader->securityFlags,
-            pCreateState->pRequestHeader->rootDirectoryFid,
-            LWIO_SAFE_LOG_STRING(pszPath));
+        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "[%s() %s:%u] CreateAndX state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "security-flags(0x%x),root-dir-fid(%u),path(%s)",
+                    LWIO_SAFE_LOG_STRING(pszFunction),
+                    LWIO_SAFE_LOG_STRING(pszFile),
+                    ulLine,
+                    pCreateState->pRequestHeader->allocationSize,
+                    pCreateState->pRequestHeader->createDisposition,
+                    pCreateState->pRequestHeader->desiredAccess,
+                    pCreateState->pRequestHeader->createOptions,
+                    pCreateState->pRequestHeader->shareAccess,
+                    pCreateState->pRequestHeader->flags,
+                    pCreateState->pRequestHeader->securityFlags,
+                    pCreateState->pRequestHeader->rootDirectoryFid,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
+        else
+        {
+            LWIO_LOG_ALWAYS_CUSTOM(
+                    logLevel,
+                    "CreateAndX state: "
+                    "alloc-size(%llu),create-disp(0x%x),desired-access(0x%x),"
+                    "create-options(0x%x),share-access(0x%x),flags(0x%x),"
+                    "security-flags(0x%x),root-dir-fid(%u),path(%s)",
+                    pCreateState->pRequestHeader->allocationSize,
+                    pCreateState->pRequestHeader->createDisposition,
+                    pCreateState->pRequestHeader->desiredAccess,
+                    pCreateState->pRequestHeader->createOptions,
+                    pCreateState->pRequestHeader->shareAccess,
+                    pCreateState->pRequestHeader->flags,
+                    pCreateState->pRequestHeader->securityFlags,
+                    pCreateState->pRequestHeader->rootDirectoryFid,
+                    LWIO_SAFE_LOG_STRING(pszPath));
+        }
     }
 
 error:
