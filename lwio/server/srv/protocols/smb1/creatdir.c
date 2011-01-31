@@ -351,23 +351,14 @@ SrvLogCreateDirState_SMB_V1(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
-        {
-            LWIO_LOG_ALWAYS_CUSTOM(
-                    logLevel,
-                    "[%s() %s:%u] Create directory state: Path(%s)",
-                    LWIO_SAFE_LOG_STRING(pszFunction),
-                    LWIO_SAFE_LOG_STRING(pszFile),
-                    ulLine,
-                    LWIO_SAFE_LOG_STRING(pszPath));
-        }
-        else
-        {
-            LWIO_LOG_ALWAYS_CUSTOM(
-                    logLevel,
-                    "Create directory state: Path(%s)",
-                    LWIO_SAFE_LOG_STRING(pszPath));
-        }
+        LW_RTL_LOG_RAW(
+            logLevel,
+            "srv",
+            pszFunction,
+            pszFile,
+            ulLine,
+            "Create directory state: Path(%s)",
+            LWIO_SAFE_LOG_STRING(pszPath));
     }
 
 error:

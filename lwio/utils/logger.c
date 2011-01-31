@@ -249,22 +249,11 @@ LwioLogSetInfo(
     // The only information that is allowed
     // to be set after the log is initialized
     // is the log level
-    
+
     gLwioMaxLogLevel = pLogInfo->maxAllowedLogLevel;
-    
-    switch (gLWIO_LOG_TARGET)
-    {
-        case LWIO_LOG_TARGET_SYSLOG:
 
-            LwioSetSyslogMask(LWIO_LOG_LEVEL_DEBUG);
+    LwRtlLogSetLevel(gLwioMaxLogLevel);
 
-            break;
-
-        default:
-
-            break;
-    }
-    
 cleanup:
 
     return dwError;

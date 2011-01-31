@@ -278,33 +278,19 @@ SrvLogFindNext2Params_SMB_V1(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
-    {
-        LWIO_LOG_ALWAYS_CUSTOM(
-                logLevel,
-                "[%s() %s:%u] FindFirst2 Parameters: SearchId(%u),SearchCount(%u),Flags(0x%x),InfoLevel(%u),ResumeHandle(%u),ResumeFilename(%s)",
-                LWIO_SAFE_LOG_STRING(pszFunction),
-                LWIO_SAFE_LOG_STRING(pszFile),
-                ulLine,
-                *pusSearchId,
-                *pusSearchCount,
-                *pusFlags,
-                *pinfoLevel,
-                *pulResumeHandle,
-                LWIO_SAFE_LOG_STRING(pszResumeFilename));
-    }
-    else
-    {
-        LWIO_LOG_ALWAYS_CUSTOM(
-                logLevel,
-                "FindFirst2 Parameters: SearchId(%u),SearchCount(%u),Flags(0x%x),InfoLevel(%u),ResumeHandle(%u),ResumeFilename(%s)",
-                *pusSearchId,
-                *pusSearchCount,
-                *pusFlags,
-                *pinfoLevel,
-                *pulResumeHandle,
-                LWIO_SAFE_LOG_STRING(pszResumeFilename));
-    }
+    LW_RTL_LOG_RAW(
+        logLevel,
+        "srv",
+        pszFunction,
+        pszFile,
+        ulLine,
+        "FindFirst2 Parameters: SearchId(%u),SearchCount(%u),Flags(0x%x),InfoLevel(%u),ResumeHandle(%u),ResumeFilename(%s)",
+        *pusSearchId,
+        *pusSearchCount,
+        *pusFlags,
+        *pinfoLevel,
+        *pulResumeHandle,
+        LWIO_SAFE_LOG_STRING(pszResumeFilename));
 
 error:
 

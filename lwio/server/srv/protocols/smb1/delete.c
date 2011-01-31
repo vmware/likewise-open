@@ -703,27 +703,16 @@ SrvLogDeleteState_SMB_V1(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        if (logLevel >= LWIO_LOG_LEVEL_DEBUG)
-        {
-            LWIO_LOG_ALWAYS_CUSTOM(
-                    logLevel,
-                    "[%s() %s:%u] Delete directory state: SearchAttrs(0x%x),UseLongFilenames(%s),SearchPattern(%s)",
-                    LWIO_SAFE_LOG_STRING(pszFunction),
-                    LWIO_SAFE_LOG_STRING(pszFile),
-                    ulLine,
-                    pDeleteState->pRequestHeader->usSearchAttributes,
-                    pDeleteState->bUseLongFilenames ? "TRUE" : "FALSE",
-                    LWIO_SAFE_LOG_STRING(pszSearchPattern));
-        }
-        else
-        {
-            LWIO_LOG_ALWAYS_CUSTOM(
-                    logLevel,
-                    "Delete directory state: SearchAttrs(0x%x),UseLongFilenames(%s),SearchPattern(%s)",
-                    pDeleteState->pRequestHeader->usSearchAttributes,
-                    pDeleteState->bUseLongFilenames ? "TRUE" : "FALSE",
-                    LWIO_SAFE_LOG_STRING(pszSearchPattern));
-        }
+        LW_RTL_LOG_RAW(
+            logLevel,
+            "srv",
+            pszFunction,
+            pszFile,
+            ulLine,
+            "Delete directory state: SearchAttrs(0x%x),UseLongFilenames(%s),SearchPattern(%s)",
+            pDeleteState->pRequestHeader->usSearchAttributes,
+            pDeleteState->bUseLongFilenames ? "TRUE" : "FALSE",
+            LWIO_SAFE_LOG_STRING(pszSearchPattern));
     }
 
 error:
