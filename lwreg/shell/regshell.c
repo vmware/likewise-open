@@ -487,14 +487,29 @@ RegShellExportFile(
             hSubKey = hRootKey;
             hRootKey = NULL;
         }
+
+        dwError = LwRtlCStringAllocatePrintf(
+                      &pszRootFullPath,
+                      "%s%s",
+                      pszRootKey,
+                      pszFullPath);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        dwError = RegOpenKeyExA(hReg,
+                                NULL,
+                                HKEY_THIS_MACHINE,
+                                0,
+                                KEY_READ,
+                                &hSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+        dwError = LwRtlCStringAllocatePrintf(
+                  &pszRootFullPath,
+                  HKEY_THIS_MACHINE);
+        BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwRtlCStringAllocatePrintf(
-                  &pszRootFullPath,
-                  "%s%s",
-                  pszRootKey,
-                  pszFullPath);
-    BAIL_ON_REG_ERROR(dwError);
     dwError = RegQueryInfoKeyA(
                   hReg,
                   hSubKey,
