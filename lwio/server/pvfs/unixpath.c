@@ -69,15 +69,12 @@ PvfsCanonicalPathName(
     PSTR pszFilename = NULL;
     PSTR pszCompletePath = NULL;
 
-    if (IoPath.FileName)
+    if (IoPath.Name.Length)
     {
-        ULONG fileNameLen = LwRtlWC16StringNumChars(IoPath.FileName) *
-                            sizeof(WCHAR);
-
         ntError = PvfsWC16CanonicalPathName(
                         &pszFilename,
-                        IoPath.FileName,
-                        fileNameLen);
+                        IoPath.Name.Buffer,
+                        IoPath.Name.Length);
         BAIL_ON_NT_STATUS(ntError);
     }
 

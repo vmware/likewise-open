@@ -91,8 +91,7 @@ PvfsCreate(
        and empty Filename) */
 
     if (!pIrp->Args.Create.FileName.RootFileHandle &&
-        pIrp->Args.Create.FileName.FileName &&
-        *pIrp->Args.Create.FileName.FileName == '\0')
+        !pIrp->Args.Create.FileName.Name.Length)
     {
         ntError = PvfsCreateDevice(pIrpContext);
         BAIL_ON_NT_STATUS(ntError);

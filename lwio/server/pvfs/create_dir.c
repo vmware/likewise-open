@@ -494,17 +494,18 @@ PvfsCheckQuotaFile(
     PPVFS_CCB pRootCcb = NULL;
     WCHAR pwszShareName[] = PVFS_NTFS_C_SHARE_W;
     WCHAR pwszQuotaFileName[] = PVFS_NTFS_QUOTA_FILENAME_W;
+    UNICODE_STRING quotaFileName = LW_RTL_CONSTANT_STRING(pwszQuotaFileName);
 
-    if (pArgs->FileName.RootFileHandle && pArgs->FileName.FileName)
+    if (pArgs->FileName.RootFileHandle &&
+        RtlUnicodeStringIsEqual(
+                        &pArgs->FileName.Name,
+                        &quotaFileName,
+                        TRUE))
     {
         ntError = PvfsAcquireCCB(pArgs->FileName.RootFileHandle, &pRootCcb);
         BAIL_ON_NT_STATUS(ntError);
 
         if (RtlWC16StringIsEqual(
-                        pArgs->FileName.FileName,
-                        pwszQuotaFileName,
-                        TRUE) &&
-            RtlWC16StringIsEqual(
                         pRootCcb->pwszShareName,
                         pwszShareName,
                         TRUE))
