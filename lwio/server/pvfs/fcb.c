@@ -208,9 +208,7 @@ PvfsFlushLastWriteTimeFcb(
     ntError = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysUtime(pFcb->pszFilename,
-                           LastWriteTime,
-                           LastAccessTime);
+    ntError = PvfsSysUtimeByFcb(pFcb, LastWriteTime, LastAccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:

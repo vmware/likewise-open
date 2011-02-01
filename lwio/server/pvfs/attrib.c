@@ -255,13 +255,10 @@ PvfsSetFileAttributes(
         pCcb->pScb->pOwnerFcb,
         FILE_NOTIFY_CHANGE_ATTRIBUTES,
         FILE_ACTION_MODIFIED,
-        pCcb->pszFilename);
-
-cleanup:
-    return ntError;
+        pCcb->pScb->pOwnerFcb->pszFilename);
 
 error:
-    goto cleanup;
+    return ntError;
 }
 
 /****************************************************************

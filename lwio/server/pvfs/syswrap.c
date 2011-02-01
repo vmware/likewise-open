@@ -164,6 +164,17 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsSysStatByFcb(
+    IN PPVFS_FCB pFcb,
+    IN OUT PPVFS_STAT pStat
+    )
+{
+    return PvfsSysStat(pFcb->pszFilename, pStat);
+}
+
 /**********************************************************
  *********************************************************/
 
@@ -649,14 +660,13 @@ error:
     goto cleanup;
 }
 
-/**********************************************************
- *********************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
-PvfsSysUtime(
-    PSTR pszPathname,
-    LONG64 LastWriteTime,
-    LONG64 LastAccessTime
+PvfsSysUtimeByFcb(
+    IN PPVFS_FCB pFcb,
+    IN LONG64 LastWriteTime,
+    IN LONG64 LastAccessTime
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -665,14 +675,14 @@ PvfsSysUtime(
     time_t tAccess = 0;
     struct utimbuf TimeBuf = {0};
 
-    PVFS_ZERO_MEMORY(&TimeBuf);
-
-    if (LastWriteTime != 0) {
+    if (LastWriteTime != 0)
+    {
         ntError = PvfsWinToUnixTime(&tWrite, LastWriteTime);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    if (LastAccessTime != 0) {
+    if (LastAccessTime != 0)
+    {
         ntError = PvfsWinToUnixTime(&tAccess, LastAccessTime);
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -680,15 +690,13 @@ PvfsSysUtime(
     TimeBuf.actime = tAccess;
     TimeBuf.modtime = tWrite;
 
-    if (utime(pszPathname, &TimeBuf) == -1) {
+    if (utime(pFcb->pszFilename, &TimeBuf) == -1)
+    {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+    return ntError;
 }
 
 /**********************************************************

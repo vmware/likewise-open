@@ -121,14 +121,6 @@ PvfsSysFtruncate(
     off_t offset
     );
 
-
-NTSTATUS
-PvfsSysUtime(
-    PSTR pszPathname,
-    LONG64 LastWriteTime,
-    LONG64 LastAccessTime
-    );
-
 NTSTATUS
 PvfsSysFstatFs(
     PPVFS_CCB pCcb,
@@ -247,6 +239,23 @@ NTSTATUS
 PvfsSysLinkByFileName(
     IN PPVFS_FILE_NAME pOldname,
     IN PPVFS_FILE_NAME pNewname
+    );
+
+//
+// Syscall interfaces on base file objects (not the stream itself)
+//
+
+NTSTATUS
+PvfsSysStatByFcb(
+    IN PPVFS_FCB pFcb,
+    IN OUT PPVFS_STAT pStat
+    );
+
+NTSTATUS
+PvfsSysUtimeByFcb(
+    IN PPVFS_FCB pFcb,
+    IN LONG64 LastWriteTime,
+    IN LONG64 LastAccessTime
     );
 
 

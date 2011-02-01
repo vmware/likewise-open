@@ -101,24 +101,37 @@ PvfsGetFileAttributesXattr(
     )
 {
     NTSTATUS ntError = STATUS_NO_SECURITY_ON_OBJECT;
-    int iEaSize = 0;
-    int unixerr = 0;
+    int bytesRead = 0;
+    int unixErrno = 0;
 
-    iEaSize = fgetxattr(pCcb->fd,
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        // get the base file object attributes using our existing fd
+        bytesRead = fgetxattr(
+                        pCcb->fd,
                         PVFS_EA_ATTRIB_NAME,
                         (PVOID)pAttributes,
                         sizeof(*pAttributes));
-    if (iEaSize == -1) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+    else
+    {
+        // Retrieve the attributes from the base file object
+        bytesRead = getxattr(
+                        pCcb->pScb->pOwnerFcb->pszFilename,
+                        PVFS_EA_ATTRIB_NAME,
+                        (PVOID)pAttributes,
+                        sizeof(*pAttributes));
+    }
+
+    if (bytesRead == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixErrno, ntError);
     }
 
     ntError = STATUS_SUCCESS;
 
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+    return ntError;
 }
 
 /****************************************************************
@@ -130,26 +143,38 @@ PvfsSetFileAttributesXattr(
     IN FILE_ATTRIBUTES Attributes
     )
 {
-    NTSTATUS ntError = STATUS_ACCESS_DENIED;
-    int unixerr = 0;
-    int iRet = 0;
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixErrno = 0;
+    int bytesWritten = 0;
 
-    iRet = fsetxattr(pCcb->fd,
-                     PVFS_EA_ATTRIB_NAME,
-                     (PVOID)&Attributes,
-                     sizeof(Attributes),
-                     0);
-    if (iRet == -1) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        // Default stream is written to the actual fd
+        bytesWritten = fsetxattr(
+                           pCcb->fd,
+                           PVFS_EA_ATTRIB_NAME,
+                           (PVOID)&Attributes,
+                           sizeof(Attributes),
+                           0);
+    }
+    else
+    {
+        // Set the attributes on the base file object
+        bytesWritten = setxattr(
+                           pCcb->pScb->pOwnerFcb->pszFilename,
+                           PVFS_EA_ATTRIB_NAME,
+                           (PVOID)&Attributes,
+                           sizeof(Attributes),
+                           0);
     }
 
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
+    if (bytesWritten == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixErrno, ntError);
+    }
 
 error:
-    goto cleanup;
+    return ntError;
 }
 
 

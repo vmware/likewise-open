@@ -120,9 +120,12 @@ PvfsCcbSetFileBasicInformation(
     FILE_NOTIFY_CHANGE NotifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE |
                                       FILE_NOTIFY_CHANGE_LAST_ACCESS;
     PVFS_STAT Stat = {0};
-    PSTR streamName = NULL;
+    PPVFS_FILE_NAME fileName = NULL;
 
-    ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
+    ntError = PvfsValidatePathFCB(pCcb->pScb->pOwnerFcb, &pCcb->FileId);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateFileNameFromScb(&fileName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We cant's set the Change Time so ignore it */
@@ -151,7 +154,15 @@ PvfsCcbSetFileBasicInformation(
 
     if (WriteTime == 0 || AccessTime == 0)
     {
-        ntError = PvfsSysFstat(pCcb->fd, &Stat);
+        if (PvfsIsDefaultStream(pCcb->pScb))
+        {
+            ntError = PvfsSysFstat(pCcb->fd, &Stat);
+        }
+        else
+        {
+            // Have to grab the stat() on the base file object
+            ntError = PvfsSysStatByFcb(pCcb->pScb->pOwnerFcb, &Stat);
+        }
         BAIL_ON_NT_STATUS(ntError);
 
         if (WriteTime == 0)
@@ -171,7 +182,7 @@ PvfsCcbSetFileBasicInformation(
         }
     }
 
-    ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
+    ntError = PvfsSysUtimeByFcb(pCcb->pScb->pOwnerFcb, WriteTime, AccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
     if (pFileInfo->FileAttributes != 0)
@@ -182,28 +193,20 @@ PvfsCcbSetFileBasicInformation(
 
     if (NotifyFilter != 0)
     {
-        ntError = PvfsGetFullStreamname(&streamName, pCcb->pScb);
-
-        if (ntError == STATUS_SUCCESS)
-        {
-            PvfsNotifyScheduleFullReport(
-                pCcb->pScb->pOwnerFcb,
-                NotifyFilter,
-                FILE_ACTION_MODIFIED,
-                streamName);
-        }
+        PvfsNotifyScheduleFullReport(
+            pCcb->pScb->pOwnerFcb,
+            NotifyFilter,
+            FILE_ACTION_MODIFIED,
+            pCcb->pScb->pOwnerFcb->pszFilename);
     }
 
-cleanup:
-    if (streamName)
+error:
+    if (fileName)
     {
-        LwRtlCStringFree(&streamName);
+        PvfsFreeFileName(fileName);
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 NTSTATUS
