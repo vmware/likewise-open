@@ -327,7 +327,9 @@ SrvFinderCreateSearchSpace(
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
     fileName.RootFileHandle = hRootFileHandle;
-    fileName.FileName = pwszFilesystemPath;
+
+    ntStatus = LwRtlUnicodeStringInitEx(&fileName.Name, pwszFilesystemPath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (pShareInfo->ulFlags & SHARE_INFO_FLAG_ABE_ENABLED)
     {

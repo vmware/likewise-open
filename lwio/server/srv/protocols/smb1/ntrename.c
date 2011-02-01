@@ -201,7 +201,10 @@ SrvProcessNtRename(
                             &pRenameState->dirPath);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pRenameState->newName.FileName = pRenameState->pwszNewName;
+            ntStatus = SrvInitializeUnicodeString(
+                            pRenameState->pwszNewName,
+                            &pRenameState->newName.Name);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             pRenameState->newName.RootFileHandle = pTree->hFile;
 
@@ -498,7 +501,7 @@ SrvExecuteNtRename(
     {
         pRenameState->ulDataLen =
                 sizeof(FILE_RENAME_INFORMATION) +
-                wc16slen(pRenameState->newName.FileName) * sizeof(wchar16_t);
+                pRenameState->newName.Name.Length;
 
         ntStatus = SrvAllocateMemory(
                         pRenameState->ulDataLen,
@@ -511,10 +514,10 @@ SrvExecuteNtRename(
         pRenameState->pFileRenameInfo->ReplaceIfExists = FALSE;
         pRenameState->pFileRenameInfo->RootDirectory   = pRenameState->hDir;
         pRenameState->pFileRenameInfo->FileNameLength  =
-                wc16slen(pRenameState->newName.FileName) * sizeof(wchar16_t);
-        memcpy( (PBYTE)pRenameState->pFileRenameInfo->FileName,
-                (PBYTE)pRenameState->newName.FileName,
-                pRenameState->pFileRenameInfo->FileNameLength);
+                pRenameState->newName.Name.Length;
+        memcpy(pRenameState->pFileRenameInfo->FileName,
+               pRenameState->newName.Name.Buffer,
+               pRenameState->pFileRenameInfo->FileNameLength);
 
         SrvPrepareNtRenameStateAsync(pRenameState, pExecContext);
 
@@ -767,15 +770,9 @@ SrvFreeNtRenameState(
     // pSecurityDescriptor;
     // pSecurityQOS;
 
-    if (pRenameState->oldName.FileName)
-    {
-        SrvFreeMemory(pRenameState->oldName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pRenameState->oldName.Name);
 
-    if (pRenameState->dirPath.FileName)
-    {
-        SrvFreeMemory(pRenameState->dirPath.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pRenameState->dirPath.Name);
 
     if (pRenameState->hDir)
     {

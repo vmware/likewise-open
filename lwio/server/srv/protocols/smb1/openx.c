@@ -617,11 +617,10 @@ SrvLogOpenState_SMB_V1(
 
     if (pOpenState)
     {
-        if (pOpenState->pFilename->FileName)
-        {
-            ntStatus = SrvWc16sToMbs(pOpenState->pFilename->FileName, &pszPath);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+        ntStatus = SrvUnicodeStringToMbs(
+                        &pOpenState->pFilename->Name,
+                        &pszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         LW_RTL_LOG_RAW(
             logLevel,
@@ -1180,11 +1179,7 @@ SrvFreeOpenState(
 
     if (pOpenState->pFilename)
     {
-        if (pOpenState->pFilename->FileName)
-        {
-            SrvFreeMemory(pOpenState->pFilename->FileName);
-        }
-
+        SRV_FREE_UNICODE_STRING(&pOpenState->pFilename->Name);
         SrvFreeMemory(pOpenState->pFilename);
     }
 

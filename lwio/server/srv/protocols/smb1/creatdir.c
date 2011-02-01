@@ -591,10 +591,7 @@ SrvFreeCreatedirState(
     // pSecurityDescriptor;
     // pSecurityQOS;
 
-    if (pCreatedirState->fileName.FileName)
-    {
-        SrvFreeMemory(pCreatedirState->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pCreatedirState->fileName.Name);
 
     if (pCreatedirState->hFile)
     {

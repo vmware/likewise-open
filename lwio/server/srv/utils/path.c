@@ -50,10 +50,10 @@
 #include "includes.h"
 
 NTSTATUS
-SrvBuildFilePath(
-    PWSTR  pwszPrefix,
-    PWSTR  pwszSuffix,
-    PWSTR* ppwszFilename
+SrvBuildFilePathString(
+    IN PWSTR pwszPrefix,
+    IN PWSTR pwszSuffix,
+    OUT PWSTR* ppwszFilename
     )
 {
     NTSTATUS  ntStatus       = 0;
@@ -137,64 +137,95 @@ error:
 }
 
 NTSTATUS
-SrvGetParentPath(
-    PWSTR  pwszPath,
-    PWSTR* ppwszParentPath
+SrvBuildFilePath(
+    IN PWSTR pwszPrefix,
+    IN PWSTR pwszSuffix,
+    OUT PUNICODE_STRING pFilename
     )
 {
-    NTSTATUS  ntStatus       = STATUS_SUCCESS;
-    PWSTR     pwszParentPath = NULL;
-    PWSTR     pwszCursor     = NULL;
-    size_t    sLen           = 0;
-    wchar16_t wszBackSlash[] = { '\\', 0 };
-    wchar16_t wszFwdSlash[]  = { '/',  0 };
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszFilename = NULL;
+    UNICODE_STRING filename = { 0 };
 
-    if (!pwszPath ||
-        !(sLen = wc16slen(pwszPath)) ||
-        ((*pwszPath != wszBackSlash[0]) && (*pwszPath != wszFwdSlash[0])))
+    ntStatus = SrvBuildFilePathString(pwszPrefix, pwszSuffix, &pwszFilename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvInitializeUnicodeString(pwszFilename, &filename);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pwszFilename = NULL;
+
+cleanup:
+    if (pwszFilename)
+    {
+        SrvFreeMemory(pwszFilename);
+    }
+
+    *pFilename = filename;
+
+    return ntStatus;
+
+error:
+    SRV_FREE_UNICODE_STRING(&filename);
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvGetParentPath(
+    IN PUNICODE_STRING pPath,
+    OUT PUNICODE_STRING pParentPath
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    int i = 0;
+    PWCHAR pSeparator = NULL;
+    UNICODE_STRING parentPath = { 0 };
+
+    if (!RTL_STRING_NUM_CHARS(pPath) ||
+        !IoRtlPathIsSeparator(pPath->Buffer[0]))
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pwszCursor = pwszPath + sLen - 1;
-
-    while (!IsNullOrEmptyString(pwszCursor) && (pwszCursor != pwszPath))
+    for (i = RTL_STRING_NUM_CHARS(pPath) - 1; i >= 0; i--)
     {
-        if ((*pwszCursor == wszBackSlash[0]) || (*pwszCursor == wszFwdSlash[0]))
+        if (IoRtlPathIsSeparator(pPath->Buffer[i]))
         {
-            ntStatus = SrvAllocateMemory(
-                            (pwszCursor - pwszPath + 1) * sizeof(wchar16_t),
-                            (PVOID*)&pwszParentPath);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            memcpy( (PBYTE)pwszParentPath,
-                    (PBYTE)pwszPath,
-                    (pwszCursor - pwszPath) * sizeof(wchar16_t));
-
+            pSeparator = &pPath->Buffer[i];
             break;
         }
-
-        pwszCursor--;
     }
 
-    if (!pwszParentPath)
+    if (pSeparator)
     {
-        ntStatus = SrvAllocateStringW(&wszBackSlash[0], &pwszParentPath);
+        UNICODE_STRING found = { 0 };
+
+        found.Buffer = pPath->Buffer;
+        found.Length = LwRtlPointerToOffset(pPath->Buffer, &pPath->Buffer[i]);
+        found.MaximumLength = found.Length;
+
+        ntStatus = SrvAllocateUnicodeString(&found, &parentPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        WCHAR wszBackslash[] = { '\\', 0 };
+
+        ntStatus = SrvAllocateUnicodeStringW(wszBackslash, &parentPath);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppwszParentPath = pwszParentPath;
-
 cleanup:
+
+    *pParentPath = parentPath;
 
     return ntStatus;
 
 error:
 
-    *ppwszParentPath = NULL;
-
-    SRV_SAFE_FREE_MEMORY(pwszParentPath);
+    SRV_FREE_UNICODE_STRING(&parentPath);
 
     goto cleanup;
 }

@@ -629,7 +629,8 @@ SrvCreateDefaultSharePath(
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    filename.FileName = pwszDefaultSharePath;
+    ntStatus = LwRtlUnicodeStringInitEx(&filename.Name, pwszDefaultSharePath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoCreateFile(
                    &hFile,

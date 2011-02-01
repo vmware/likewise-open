@@ -1275,11 +1275,7 @@ SrvFreeCreateState_SMB_V2(
 
     if (pCreateState->pFilename)
     {
-        if (pCreateState->pFilename->FileName)
-        {
-            SrvFreeMemory(pCreateState->pFilename->FileName);
-        }
-
+        SRV_FREE_UNICODE_STRING(&pCreateState->pFilename->Name);
         SrvFreeMemory(pCreateState->pFilename);
     }
 

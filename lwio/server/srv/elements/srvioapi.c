@@ -61,13 +61,14 @@ SrvIoCreateFile(
         .GenericWrite   = FILE_GENERIC_WRITE,
         .GenericExecute = FILE_GENERIC_EXECUTE,
         .GenericAll     = FILE_ALL_ACCESS };
-    wchar16_t    wszBackslash[] = {'\\', 0};
-    IO_FILE_NAME fileName =
+    WCHAR wszBackslash[] = {'\\', 0};
+    UNICODE_STRING backslash = RTL_CONSTANT_STRING(wszBackslash);
+    IO_FILE_NAME fileName = { 0 };
+
+    if (pFileName)
     {
-          .RootFileHandle = pFileName ? pFileName->RootFileHandle : NULL,
-          .FileName       = pFileName ? pFileName->FileName       : NULL,
-          .IoNameOptions  = pFileName ? pFileName->IoNameOptions  : 0
-    };
+        fileName = *pFileName;
+    }
 
     pAccessToken = IoSecurityGetAccessToken(pSecurityContext);
     if (pAccessToken == NULL)
@@ -149,16 +150,18 @@ SrvIoCreateFile(
 
     if (fileName.RootFileHandle)
     {
-       if (!IsNullOrEmptyString(fileName.FileName) &&
-           (fileName.FileName[0] == wszBackslash[0]))
-       {
-           fileName.FileName++;
-       }
-
-       if (IsNullOrEmptyString(fileName.FileName) ||
-           !SMBWc16sCmp(fileName.FileName, &wszBackslash[0]))
+        if (LwRtlUnicodeStringIsPrefix(&backslash, &fileName.Name, TRUE))
         {
-            fileName.FileName = NULL;
+            fileName.Name.Buffer++;
+            fileName.Name.Length -= sizeof(fileName.Name.Buffer[0]);
+            fileName.Name.MaximumLength -= sizeof(fileName.Name.Buffer[0]);
+        }
+
+        if (LwRtlUnicodeStringIsEqual(&backslash, &fileName.Name, TRUE))
+        {
+            fileName.Name.Buffer = NULL;
+            fileName.Name.Length = 0;
+            fileName.Name.MaximumLength = 0;
         }
     }
 

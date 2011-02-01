@@ -1479,10 +1479,7 @@ SrvFreeSetInfoState_SMB_V2(
         IoCloseFile(pSetInfoState->hDir);
     }
 
-    if (pSetInfoState->dirPath.FileName)
-    {
-        SrvFreeMemory(pSetInfoState->dirPath.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pSetInfoState->dirPath.Name);
 
     if (pSetInfoState->pData2)
     {

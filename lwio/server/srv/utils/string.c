@@ -68,6 +68,15 @@ SrvWc16sToMbs(
 }
 
 NTSTATUS
+SrvUnicodeStringToMbs(
+    IN PUNICODE_STRING pString,
+    OUT PSTR* ppszString
+    )
+{
+    return LwRtlCStringAllocateFromUnicodeString(ppszString, pString);
+}
+
+NTSTATUS
 SrvAllocateStringW(
     PWSTR  pwszInputString,
     PWSTR* ppwszOutputString
@@ -105,6 +114,43 @@ SrvAllocateStringPrintf(
     va_end(args);
 
     return ntStatus;
+}
+
+NTSTATUS
+SrvInitializeUnicodeString(
+    IN PCWSTR pwszInputString,
+    OUT PUNICODE_STRING pOutputString
+    )
+{
+    return LwRtlUnicodeStringInitEx(pOutputString, pwszInputString);
+}
+
+NTSTATUS
+SrvAllocateUnicodeString(
+    IN PUNICODE_STRING pInputString,
+    OUT PUNICODE_STRING pOutputString
+    )
+{
+    return LwRtlUnicodeStringDuplicate(pOutputString, pInputString);
+}
+
+NTSTATUS
+SrvAllocateUnicodeStringW(
+    IN PCWSTR pwszInputString,
+    OUT PUNICODE_STRING pOutputString
+    )
+{
+    return LwRtlUnicodeStringAllocateFromWC16String(
+                pOutputString,
+                pwszInputString);
+}
+
+VOID
+SrvFreeUnicodeString(
+    IN PUNICODE_STRING pString
+    )
+{
+    LwRtlUnicodeStringFree(pString);
 }
 
 /**

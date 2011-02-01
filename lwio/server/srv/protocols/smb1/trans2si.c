@@ -588,14 +588,14 @@ SrvRenameFile(
         else if (pTrans2State->pFile)
         {
             ntStatus = SrvGetParentPath(
-                            pTrans2State->pFile->pFilename->FileName,
-                            &pTrans2State->dirPath.FileName);
+                            &pTrans2State->pFile->pFilename->Name,
+                            &pTrans2State->dirPath.Name);
         }
         else if (pTrans2State->hFile)
         {
             ntStatus = SrvGetParentPath(
-                            pTrans2State->fileName.FileName,
-                            &pTrans2State->dirPath.FileName);
+                            &pTrans2State->fileName.Name,
+                            &pTrans2State->dirPath.Name);
         }
         else
         {

@@ -58,7 +58,7 @@ SrvBuildTreeRelativePath_SMB_V2(
 {
     NTSTATUS ntStatus     = STATUS_SUCCESS;
     BOOLEAN  bInLock      = FALSE;
-    PWSTR    pwszFilePath = NULL;
+    UNICODE_STRING filePath = { 0 };
 
     if (SrvTree2IsNamedPipe(pTree))
     {
@@ -67,7 +67,7 @@ SrvBuildTreeRelativePath_SMB_V2(
         ntStatus = SrvBuildFilePath(
                         pTree->pShareInfo->pwszPath,
                         pwszFilename,
-                        &pwszFilePath);
+                        &filePath);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
@@ -80,7 +80,7 @@ SrvBuildTreeRelativePath_SMB_V2(
             ntStatus = SrvBuildFilePath(
                             NULL,
                             pwszFilename,
-                            &pwszFilePath);
+                            &filePath);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -89,7 +89,7 @@ SrvBuildTreeRelativePath_SMB_V2(
         pFilename->RootFileHandle = pTree->hFile;
     }
 
-    pFilename->FileName = pwszFilePath;
+    pFilename->Name = filePath;
 
 cleanup:
 

@@ -437,16 +437,12 @@ SrvDeleteFiles(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            if (pDeleteState->fileName.FileName)
-            {
-                SrvFreeMemory(pDeleteState->fileName.FileName);
-                pDeleteState->fileName.FileName = NULL;
-            }
+            SRV_FREE_UNICODE_STRING(&pDeleteState->fileName.Name);
 
             ntStatus = SrvBuildFilePath(
                             pDeleteState->pwszFilesystemPath,
                             pwszFilename,
-                            &pDeleteState->fileName.FileName);
+                            &pDeleteState->fileName.Name);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pDeleteState->fileName.RootFileHandle = pDeleteState->pTree->hFile;
@@ -597,7 +593,7 @@ SrvDeleteSingleFile(
         ntStatus = SrvBuildFilePath(
                         pDeleteState->pwszFilesystemPath,
                         pDeleteState->pwszSearchPattern2,
-                        &pDeleteState->fileName.FileName);
+                        &pDeleteState->fileName.Name);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pDeleteState->fileName.RootFileHandle = pDeleteState->pTree->hFile;
@@ -1034,10 +1030,7 @@ SrvFreeDeleteState(
         SrvFreeMemory(pDeleteState->pData);
     }
 
-    if (pDeleteState->fileName.FileName)
-    {
-        SrvFreeMemory(pDeleteState->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pDeleteState->fileName.Name);
 
     if (pDeleteState->pMutex)
     {

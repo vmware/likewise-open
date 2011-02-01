@@ -926,7 +926,7 @@ SrvBuildGetNamedPipeInfoResponse(
 
     pTransState = (PSRV_TRANS_STATE_SMB_V1)pCtxSmb1->hState;
 
-    ntStatus = SrvBuildFilePath(
+    ntStatus = SrvBuildFilePathString(
                     &wszPipenamePrefix[0],
                     pTransState->pFile->pwszFilename,
                     &pwszFilePath);
@@ -1566,10 +1566,7 @@ SrvFreeTransState(
         IoCloseFile(pTransState->hFile);
     }
 
-    if (pTransState->fileName.FileName)
-    {
-        SrvFreeMemory(pTransState->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pTransState->fileName.Name);
 
     if (pTransState->pData2)
     {

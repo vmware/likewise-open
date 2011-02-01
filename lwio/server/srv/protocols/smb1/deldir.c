@@ -643,10 +643,7 @@ SrvFreeDeletedirState(
     // pSecurityDescriptor;
     // pSecurityQOS;
 
-    if (pDeletedirState->fileName.FileName)
-    {
-        SrvFreeMemory(pDeletedirState->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pDeletedirState->fileName.Name);
 
     if (pDeletedirState->hFile)
     {

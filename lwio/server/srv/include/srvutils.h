@@ -245,16 +245,23 @@ SrvFreeMemory(
     );
 
 NTSTATUS
+SrvBuildFilePathString(
+    IN PWSTR pwszPrefix,
+    IN PWSTR pwszSuffix,
+    OUT PWSTR* ppwszFilename
+    );
+
+NTSTATUS
 SrvBuildFilePath(
-    PWSTR  pwszPrefix,
-    PWSTR  pwszSuffix,
-    PWSTR* ppwszFilename
+    IN PWSTR pwszPrefix,
+    IN PWSTR pwszSuffix,
+    OUT PUNICODE_STRING pFilename
     );
 
 NTSTATUS
 SrvGetParentPath(
-    PWSTR  pwszPath,
-    PWSTR* ppwszParentPath
+    IN PUNICODE_STRING pPath,
+    OUT PUNICODE_STRING pParentPath
     );
 
 PCSTR
@@ -331,6 +338,12 @@ SrvWc16sToMbs(
     );
 
 NTSTATUS
+SrvUnicodeStringToMbs(
+    IN PUNICODE_STRING pString,
+    OUT PSTR* ppszString
+    );
+
+NTSTATUS
 SrvAllocateStringW(
     IN  PWSTR  pwszInputString,
     OUT PWSTR* ppwszOutputString
@@ -348,6 +361,37 @@ SrvAllocateStringPrintf(
     PCSTR pszFormat,
     ...
     );
+
+NTSTATUS
+SrvInitializeUnicodeString(
+    IN PCWSTR pwszInputString,
+    OUT PUNICODE_STRING pOutputString
+    );
+
+NTSTATUS
+SrvAllocateUnicodeString(
+    IN PUNICODE_STRING pInputString,
+    OUT PUNICODE_STRING pOutputString
+    );
+
+NTSTATUS
+SrvAllocateUnicodeStringW(
+    IN PCWSTR pwszInputString,
+    OUT PUNICODE_STRING pOutputString
+    );
+
+VOID
+SrvFreeUnicodeString(
+    IN PUNICODE_STRING pString
+    );
+
+#define SRV_FREE_UNICODE_STRING(pString) \
+    do { \
+        if ((pString)->Buffer) \
+        { \
+            SrvFreeUnicodeString(pString); \
+        } \
+    } while (0)
 
 NTSTATUS
 SrvGetHexDump(

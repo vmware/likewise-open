@@ -695,10 +695,7 @@ SrvFreeSetInfoState(
         SrvSessionRelease(pInfoState->pSession);
     }
 
-    if (pInfoState->fileName.FileName)
-    {
-        SrvFreeMemory(pInfoState->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pInfoState->fileName.Name);
 
     if (pInfoState->hFile)
     {

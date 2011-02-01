@@ -3018,7 +3018,7 @@ SrvParseNtTransactCreateParameters(
             ntStatus = SrvBuildFilePath(
                             NULL, /* relative path */
                             pwszFilename,
-                            &pNTTransactState->pFilename->FileName);
+                            &pNTTransactState->pFilename->Name);
             BAIL_ON_NT_STATUS(ntStatus);
 
             LWIO_UNLOCK_RWMUTEX(bShareInLock, &pNTTransactState->pTree->mutex);
@@ -3115,11 +3115,10 @@ SrvLogNtTransactCreateState_SMB_V1(
 
     if (pCreateState)
     {
-        if (pCreateState->pFilename->FileName)
-        {
-            ntStatus = SrvWc16sToMbs(pCreateState->pFilename->FileName, &pszPath);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+        ntStatus = SrvUnicodeStringToMbs(
+                        &pCreateState->pFilename->Name,
+                        &pszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         LW_RTL_LOG_RAW(
             logLevel,
@@ -3722,11 +3721,7 @@ SrvFreeNTTransactState(
 
     if (pNTTransactState->pFilename)
     {
-        if (pNTTransactState->pFilename->FileName)
-        {
-            SrvFreeMemory(pNTTransactState->pFilename->FileName);
-        }
-
+        SRV_FREE_UNICODE_STRING(&pNTTransactState->pFilename->Name);
         SrvFreeMemory(pNTTransactState->pFilename);
     }
 

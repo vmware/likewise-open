@@ -181,9 +181,7 @@ SrvValidateCreate(
 {
     NTSTATUS ntStatus = 0;
 
-    RtlUnicodeStringInit(
-            pDeviceName,
-            pIrpContext->pIrp->Args.Create.FileName.FileName);
+    *pDeviceName = pIrpContext->pIrp->Args.Create.FileName.Name;
 
     return ntStatus;
 }

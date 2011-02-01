@@ -1458,7 +1458,7 @@ SrvProtocolBuildFilePath(
 
     LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
 
-    ntStatus = SrvBuildFilePath(
+    ntStatus = SrvBuildFilePathString(
                     pwszSharePath,
                     pFile->pwszFilename,
                     &pwszFilePath);
@@ -1519,7 +1519,7 @@ SrvProtocolBuildFilePath2(
 
     LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
 
-    ntStatus = SrvBuildFilePath(
+    ntStatus = SrvBuildFilePathString(
                     pwszSharePath,
                     pFile->pwszFilename,
                     &pwszFilePath);

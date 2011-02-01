@@ -471,15 +471,21 @@ SrvCreateTreeRootHandle_SMB_V2(
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
 
-    if (!pTConState->fileName.FileName)
+    if (!RTL_STRING_NUM_CHARS(&pTConState->fileName.Name))
     {
         LWIO_LOCK_RWMUTEX_SHARED(
                     bShareInLock,
                     &pTConState->pTree->pShareInfo->mutex);
 
-        ntStatus = SrvAllocateStringW(
+        if (LwRtlCStringIsNullOrEmpty(pTConState->pTree->pShareInfo->pwszPath))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = SrvAllocateUnicodeStringW(
                         pTConState->pTree->pShareInfo->pwszPath,
-                        &pTConState->fileName.FileName);
+                        &pTConState->fileName.Name);
         BAIL_ON_NT_STATUS(ntStatus);
 
         LWIO_UNLOCK_RWMUTEX(
@@ -845,10 +851,7 @@ SrvFreeTreeConnectState_SMB_V2(
     // pSecurityDescriptor;
     // pSecurityQOS;
 
-    if (pTConState->fileName.FileName)
-    {
-        SrvFreeMemory(pTConState->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pTConState->fileName.Name);
 
     if (pTConState->pwszPath)
     {

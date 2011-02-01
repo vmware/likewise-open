@@ -539,11 +539,7 @@ SrvFile2Free(
 
     if (pFile->pFilename)
     {
-        if (pFile->pFilename->FileName)
-        {
-            SrvFreeMemory (pFile->pFilename->FileName);
-        }
-
+        SRV_FREE_UNICODE_STRING(&pFile->pFilename->Name);
         SrvFreeMemory(pFile->pFilename);
     }
 

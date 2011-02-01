@@ -460,20 +460,14 @@ SrvFreeTrans2State(
         IoCloseFile(pTrans2State->hFile);
     }
 
-    if (pTrans2State->fileName.FileName)
-    {
-        SrvFreeMemory(pTrans2State->fileName.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pTrans2State->fileName.Name);
 
     if (pTrans2State->hDir)
     {
         IoCloseFile(pTrans2State->hDir);
     }
 
-    if (pTrans2State->dirPath.FileName)
-    {
-        SrvFreeMemory(pTrans2State->dirPath.FileName);
-    }
+    SRV_FREE_UNICODE_STRING(&pTrans2State->dirPath.Name);
 
     if (pTrans2State->pData2)
     {
