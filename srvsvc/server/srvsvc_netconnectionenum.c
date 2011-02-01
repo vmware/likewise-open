@@ -75,11 +75,11 @@ SrvSvcNetrConnectionEnum(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ENUM_CONNECTION;
-    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    WCHAR wszDriverName[] = SRV_DRIVER_NAME_W;
     IO_FILE_NAME filename =
                         {
                               .RootFileHandle = NULL,
-                              .FileName = &wszDriverName[0],
+                              .Name = RTL_CONSTANT_STRING(wszDriverName),
                               .IoNameOptions = 0
                         };
     CONNECTION_INFO_ENUM_IN_PARAMS EnumParamsIn = { 0 };

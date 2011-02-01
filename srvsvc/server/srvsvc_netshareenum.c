@@ -76,11 +76,11 @@ SrvSvcNetShareEnum(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ENUM_SHARE;
-    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    WCHAR wszDriverName[] = SRV_DRIVER_NAME_W;
     IO_FILE_NAME filename =
                         {
                               .RootFileHandle = NULL,
-                              .FileName = &wszDriverName[0],
+                              .Name = RTL_CONSTANT_STRING(wszDriverName),
                               .IoNameOptions = 0
                         };
     SHARE_INFO_ENUM_PARAMS EnumParamsIn = { 0 };

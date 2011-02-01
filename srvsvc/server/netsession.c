@@ -164,12 +164,12 @@ SrvSvcNetSessionEnum(
     DWORD     dwInLength  = 0;
     PBYTE     pOutBuffer  = NULL;
     DWORD     dwOutLength = 4096;
-    wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
+    WCHAR wszDriverName[] = SRV_DRIVER_NAME_W;
     IO_FILE_HANDLE  hFile           = NULL;
     IO_FILE_NAME    filename =
                         {
                               .RootFileHandle = NULL,
-                              .FileName = &wszDriverName[0],
+                              .Name = RTL_CONSTANT_STRING(wszDriverName),
                               .IoNameOptions = 0
                         };
     IO_STATUS_BLOCK         ioStatusBlock       = {0};
@@ -996,13 +996,13 @@ SrvSvcNetSessionDel(
 {
     DWORD     dwError  = 0;
     NTSTATUS  ntStatus = 0;
-    wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
+    WCHAR wszDriverName[] = SRV_DRIVER_NAME_W;
     IO_FILE_HANDLE  hFile           = NULL;
     IO_STATUS_BLOCK IoStatusBlock   = { 0 };
     IO_FILE_NAME    filename =
                         {
                               .RootFileHandle = NULL,
-                              .FileName = &wszDriverName[0],
+                              .Name = RTL_CONSTANT_STRING(wszDriverName),
                               .IoNameOptions = 0
                         };
     ACCESS_MASK             dwDesiredAccess     = 0;
