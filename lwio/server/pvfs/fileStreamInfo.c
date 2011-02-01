@@ -220,7 +220,7 @@ PvfsMarshallFileStreamInfoBuffer(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAllocateCStringStreamFileName(
+    ntError = PvfsAllocateCStringStreamFromFileName(
                   &pszStreamName,
                   StreamName);
     BAIL_ON_NT_STATUS(ntError);

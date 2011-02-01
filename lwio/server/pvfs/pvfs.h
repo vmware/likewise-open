@@ -535,7 +535,7 @@ PvfsGetCStringBaseStreamName(
     );
 
 NTSTATUS
-PvfsAllocateCStringStreamFileName(
+PvfsAllocateCStringStreamFromFileName(
     OUT PSTR *ppStreamName,
     IN PPVFS_FILE_NAME FileName
     );
