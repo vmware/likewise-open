@@ -62,8 +62,7 @@ NpfsCreate(
 
 NTSTATUS
 NpfsValidateCreate(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PUNICODE_STRING pPipeName
+    PNPFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS
@@ -181,8 +180,7 @@ NpfsCommonCreateNamedPipe(
 
 NTSTATUS
 NpfsValidateCreateNamedPipe(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PUNICODE_STRING  pPath
+    PNPFS_IRP_CONTEXT pIrpContext
     );
 
 /* ccb.c */

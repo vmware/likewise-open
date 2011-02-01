@@ -133,18 +133,18 @@ NpfsCommonCreate(
     )
 {
     NTSTATUS ntStatus = 0;
-    UNICODE_STRING PipeName = {0};
+    PUNICODE_STRING pPipeName = &pIrpContext->pIrp->Args.Create.FileName.Name;
     PNPFS_FCB pFCB = NULL;
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pCCB = NULL;
     BOOLEAN bReleaseLock = FALSE;
     PNPFS_IRP_CONTEXT pConnectContext = NULL;
 
-    ntStatus = NpfsValidateCreate(pIrpContext, &PipeName);
+    ntStatus = NpfsValidateCreate(pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ENTER_READER_RW_LOCK(&gServerLock);
-    ntStatus = NpfsFindFCB(&PipeName, &pFCB);
+    ntStatus = NpfsFindFCB(pPipeName, &pFCB);
     LEAVE_READER_RW_LOCK(&gServerLock);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -233,21 +233,10 @@ error:
 
 NTSTATUS
 NpfsValidateCreate(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PUNICODE_STRING pPipeName
+    PNPFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntStatus = 0;
-
-    RtlUnicodeStringInit(
-            pPipeName,
-            pIrpContext->pIrp->Args.Create.FileName.FileName
-            );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-    return(ntStatus);
+    return STATUS_SUCCESS;
 }
 
 static

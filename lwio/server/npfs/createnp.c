@@ -84,20 +84,20 @@ NpfsCommonCreateNamedPipe(
     )
 {
     NTSTATUS ntStatus = 0;
-    UNICODE_STRING  PathName = {0};
+    PUNICODE_STRING pPathName = &pIrpContext->pIrp->Args.Create.FileName.Name;
     PNPFS_FCB pFCB = NULL;
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pSCB = NULL;
 
     ENTER_WRITER_RW_LOCK(&gServerLock);
 
-    ntStatus = NpfsValidateCreateNamedPipe(pIrpContext, &PathName);
+    ntStatus = NpfsValidateCreateNamedPipe(pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsFindFCB(&PathName, &pFCB);
+    ntStatus = NpfsFindFCB(pPathName, &pFCB);
     if (ntStatus == STATUS_OBJECT_NAME_NOT_FOUND)
     {
-        ntStatus = NpfsCreateFCB(&PathName, &pFCB);
+        ntStatus = NpfsCreateFCB(pPathName, &pFCB);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -140,8 +140,7 @@ error:
 
 NTSTATUS
 NpfsValidateCreateNamedPipe(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PUNICODE_STRING  pPath
+    PNPFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -170,8 +169,6 @@ NpfsValidateCreateNamedPipe(
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    RtlUnicodeStringInit(pPath, pIrpContext->pIrp->Args.Create.FileName.FileName);
 
 error:
 
