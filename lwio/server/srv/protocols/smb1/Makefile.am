@@ -63,5 +63,5 @@ libsrv_protocols_smb1_la_CPPFLAGS = \
     -I@top_srcdir@/server/srv/include \
     -I@top_srcdir@/server/srv/protocols/include
 
-libsrv_protocols_smb1_la_LDFLAGS = -static
+libsrv_protocols_smb1_la_LDFLAGS =
 

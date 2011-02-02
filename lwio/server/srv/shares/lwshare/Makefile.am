@@ -17,5 +17,5 @@ liblwshare_la_CPPFLAGS = \
 liblwshare_la_LIBADD = \
     @SQLITE_LIBS@
 
-liblwshare_la_LDFLAGS = -static
+liblwshare_la_LDFLAGS =
 

@@ -31,5 +31,5 @@ libsrvelements_la_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/srv/include
 
-libsrvelements_la_LDFLAGS = -static
+libsrvelements_la_LDFLAGS =
 

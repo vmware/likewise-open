@@ -16,5 +16,5 @@ liblwregshare_la_CPPFLAGS = \
 liblwregshare_la_LIBADD = \
     @SQLITE_LIBS@
 
-liblwregshare_la_LDFLAGS = -static
+liblwregshare_la_LDFLAGS =
 

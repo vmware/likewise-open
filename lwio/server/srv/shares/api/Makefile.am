@@ -30,5 +30,5 @@ libshareapi_la_LIBADD = \
 
 endif
 
-libshareapi_la_LDFLAGS = -static
+libshareapi_la_LDFLAGS =
 

@@ -12,4 +12,4 @@ libstatisticsapi_la_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/srv/include
 
-libstatisticsapi_la_LDFLAGS = -static
+libstatisticsapi_la_LDFLAGS =

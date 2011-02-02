@@ -11,4 +11,4 @@ libsrvoem_la_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/srv/include
 
-libsrvoem_la_LDFLAGS = -static
+libsrvoem_la_LDFLAGS =
