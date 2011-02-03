@@ -85,12 +85,6 @@ PvfsRemoveSCBFromFCB(
     PPVFS_SCB pScb
     );
 
-BOOLEAN
-PvfsFileHasOtherOpens(
-    IN PPVFS_FCB pFcb,
-    IN PPVFS_CCB pCcb
-    );
-
 NTSTATUS
 PvfsRenameFCB(
     PPVFS_FCB pFcb,

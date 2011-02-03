@@ -675,59 +675,6 @@ error:
     goto cleanup;
 }
 
-/*****************************************************************************
- ****************************************************************************/
-
-BOOLEAN
-PvfsFileHasOtherOpens(
-    IN PPVFS_FCB pFcb,
-    IN PPVFS_CCB pCcb
-    )
-{
-    PLW_LIST_LINKS pScbCursor = NULL;
-    PPVFS_SCB pCurrentScb = NULL;
-    BOOLEAN bFcbReadLocked = FALSE;
-
-    PLW_LIST_LINKS pCcbCursor = NULL;
-    PPVFS_CCB pCurrentCcb = NULL;
-    BOOLEAN bScbReadLocked = FALSE;
-
-    BOOLEAN bNonSelfOpen = FALSE;
-
-
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwScbLock);
-
-    while((pScbCursor = PvfsListTraverse(pFcb->pScbList, pScbCursor)) != NULL)
-    {
-        pCurrentScb = LW_STRUCT_FROM_FIELD(
-                          pScbCursor,
-                          PVFS_SCB,
-                          FcbList);
-
-        LWIO_LOCK_RWMUTEX_SHARED(bScbReadLocked, &pCurrentScb->rwCcbLock);
-
-        while((pCcbCursor = PvfsListTraverse(pCurrentScb->pCcbList, pCcbCursor)) != NULL)
-        {
-            pCurrentCcb = LW_STRUCT_FROM_FIELD(
-                              pCcbCursor,
-                              PVFS_CCB,
-                              ScbList);
-
-            if (pCcb != pCurrentCcb)
-            {
-                bNonSelfOpen = TRUE;
-                break;
-            }
-        }
-
-        LWIO_UNLOCK_RWMUTEX(bScbReadLocked, &pCurrentScb->rwCcbLock);
-    }
-
-    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwScbLock);
-
-    return bNonSelfOpen;
-}
-
 
 /*****************************************************************************
  ****************************************************************************/
