@@ -206,5 +206,11 @@ PvfsIsDefaultStreamName(
     PPVFS_FILE_NAME pFileName
     );
 
+BOOLEAN
+PvfsIsDefaultStreamNameEx(
+    IN PPVFS_FILE_NAME pFileName,
+    IN BOOLEAN ExplicitFilename
+    );
+
 #endif   /* _PVFS_SCB_H */
 

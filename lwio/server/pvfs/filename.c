@@ -112,6 +112,7 @@ PvfsBuildFileNameFromCString(
     pFileName->FileName = NULL;
     pFileName->StreamName = NULL;
     pFileName->Type = PVFS_STREAM_TYPE_UNKNOWN;
+    pFileName->ExplicitName = TRUE;
 
     ntError = LwRtlCStringDuplicate(&fileName, FullFileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -132,6 +133,7 @@ PvfsBuildFileNameFromCString(
 
         pFileName->StreamName = NULL;
         pFileName->Type = PVFS_STREAM_TYPE_DATA;
+        pFileName->ExplicitName = FALSE;
 
         goto cleanup;
     }
@@ -375,14 +377,18 @@ PvfsAllocateCStringFromFileName(
     switch (pFileName->Type)
     {
         case PVFS_STREAM_TYPE_DATA:
+
             ntError = LwRtlCStringAllocatePrintf(
                           &outputFileName,
                           "%s%s%s%s%s",
                           pFileName->FileName,
-                          pFileName->StreamName ? PVFS_STREAM_DELIMINATOR_S : "",
+                          pFileName->StreamName ? PVFS_STREAM_DELIMINATOR_S :
+                                                  (pFileName->ExplicitName ? PVFS_STREAM_DELIMINATOR_S : ""),
                           pFileName->StreamName ? pFileName->StreamName : "",
-                          pFileName->StreamName ? PVFS_STREAM_DELIMINATOR_S : "",
-                          pFileName->StreamName ? PVFS_STREAM_DEFAULT_TYPE_S : "");
+                          pFileName->StreamName ? PVFS_STREAM_DELIMINATOR_S :
+                                                  (pFileName->ExplicitName ? PVFS_STREAM_DELIMINATOR_S : ""),
+                          pFileName->StreamName ? PVFS_STREAM_DEFAULT_TYPE_S :
+                                                  (pFileName->ExplicitName ? PVFS_STREAM_DEFAULT_TYPE_S : ""));
             break;
 
         default:
@@ -437,6 +443,7 @@ PvfsFileNameCopy(
     }
 
     pDstFileName->Type = pSrcFileName->Type;
+    pDstFileName->ExplicitName = pSrcFileName->ExplicitName;
 
 error:
     if (!NT_SUCCESS(ntError))
@@ -548,7 +555,8 @@ PvfsFileNameCompare(
         {
             // Both default streams, so compare the Stream Type value
 
-            if (FileName1->Type == FileName2->Type)
+            if (FileName1->Type == FileName2->Type &&
+                FileName1->ExplicitName == FileName2->ExplicitName)
             {
                 cmpResult = 0;
             }
@@ -556,7 +564,15 @@ PvfsFileNameCompare(
             {
                 cmpResult = -1;
             }
-            else
+            else if (FileName1->Type > FileName2->Type)
+            {
+                cmpResult = 1;
+            }
+            else if (FileName1->ExplicitName < FileName2->ExplicitName)
+            {
+                cmpResult = -1;
+            }
+            else if (FileName1->ExplicitName > FileName2->ExplicitName)
             {
                 cmpResult = 1;
             }

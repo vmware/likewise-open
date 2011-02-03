@@ -136,21 +136,13 @@ PvfsSysStatByFileName(
 	)
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    struct stat sBuf = {0};
-    int unixerr = 0;
     PSTR fileName = NULL;
 
     ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (stat(fileName, &sBuf) == -1) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-
-    if (Stat) {
-        ntError = CopyUnixStatToPvfsStat(Stat, &sBuf);
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = PvfsSysStat(fileName, Stat);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     if (fileName)
@@ -382,41 +374,22 @@ PvfsSysMkDirByFileName(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
-    PSTR directoryName = NULL;
-    PVFS_STAT Stat = {0};
-    int Ownerfd = -1;
 
-    // Need make sure the object (file/directory) exists
-    // Before non-default stream objects can be created
+    PVFS_BAIL_ON_INVALID_FILENAME(DirectoryName, ntError);
+
+    // Data stream is not directory
     if (!PvfsIsDefaultStreamName(DirectoryName))
     {
-        ntError = PvfsSysStat(DirectoryName->FileName, &Stat);
-        if (LW_STATUS_OBJECT_NAME_NOT_FOUND == ntError)
-        {
-            ntError = PvfsSysOpen(
-                      &Ownerfd,
-                      DirectoryName->FileName,
-                      0,
-                      mode);
-        }
+        ntError = STATUS_NOT_A_DIRECTORY;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsLookupStreamDiskFileName(&directoryName, DirectoryName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if ((mkdir(directoryName, mode)) == -1)
+    if ((mkdir(DirectoryName->FileName, mode)) == -1)
     {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 
 error:
-    if (directoryName)
-    {
-        LwRtlCStringFree(&directoryName);
-    }
-
-    PvfsSysClose(Ownerfd);
 
     return ntError;
 }
