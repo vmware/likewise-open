@@ -120,13 +120,23 @@ PvfsCcbSetFileBasicInformation(
     FILE_NOTIFY_CHANGE NotifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE |
                                       FILE_NOTIFY_CHANGE_LAST_ACCESS;
     PVFS_STAT Stat = {0};
-    PPVFS_FILE_NAME fileName = NULL;
+    BOOLEAN fcbControlLocked = FALSE;
+    PPVFS_FCB pFcb = PvfsReferenceFCB(pCcb->pScb->pOwnerFcb);
 
-    ntError = PvfsValidatePathFCB(pCcb->pScb->pOwnerFcb, &pCcb->FileId);
-    BAIL_ON_NT_STATUS(ntError);
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
+    }
+    else
+    {
+        // Have to grab the base file object
+        LWIO_LOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
 
-    ntError = PvfsAllocateFileNameFromScb(&fileName, pCcb->pScb);
-    BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsValidatePathFCB(pFcb, &pFcb->FileId);
+        BAIL_ON_NT_STATUS(ntError);
+
+        LWIO_UNLOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
+    }
 
     /* We cant's set the Change Time so ignore it */
 
@@ -147,7 +157,7 @@ PvfsCcbSetFileBasicInformation(
 
     if (WriteTime != 0)
     {
-        PvfsSetLastWriteTimeFCB(pCcb->pScb->pOwnerFcb, WriteTime);
+        PvfsSetLastWriteTimeFCB(pFcb, WriteTime);
     }
 
     /* Check if we need to preserve any original timestamps */
@@ -161,7 +171,7 @@ PvfsCcbSetFileBasicInformation(
         else
         {
             // Have to grab the stat() on the base file object
-            ntError = PvfsSysStatByFcb(pCcb->pScb->pOwnerFcb, &Stat);
+            ntError = PvfsSysStatByFcb(pFcb, &Stat);
         }
         BAIL_ON_NT_STATUS(ntError);
 
@@ -182,7 +192,7 @@ PvfsCcbSetFileBasicInformation(
         }
     }
 
-    ntError = PvfsSysUtimeByFcb(pCcb->pScb->pOwnerFcb, WriteTime, AccessTime);
+    ntError = PvfsSysUtimeByFcb(pFcb, WriteTime, AccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
     if (pFileInfo->FileAttributes != 0)
@@ -194,16 +204,18 @@ PvfsCcbSetFileBasicInformation(
     if (NotifyFilter != 0)
     {
         PvfsNotifyScheduleFullReport(
-            pCcb->pScb->pOwnerFcb,
+            pFcb,
             NotifyFilter,
             FILE_ACTION_MODIFIED,
-            pCcb->pScb->pOwnerFcb->pszFilename);
+            pFcb->pszFilename);
     }
 
 error:
-    if (fileName)
+    LWIO_UNLOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
+
+    if (pFcb)
     {
-        PvfsFreeFileName(fileName);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;
