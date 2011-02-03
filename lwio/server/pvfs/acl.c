@@ -477,7 +477,7 @@ PvfsSetSecurityDescriptorFile(
         pCcb->pScb->pOwnerFcb,
         FILE_NOTIFY_CHANGE_SECURITY,
         FILE_ACTION_MODIFIED,
-        pCcb->pszFilename);
+        pCcb->pScb->pOwnerFcb->pszFilename);
 
 error:
     if (pIncAbsSecDesc)
@@ -677,7 +677,7 @@ PvfsCreateFileSecurity(
     ntError = PvfsFileSplitPath(
                   &pszParentPath,
                   &pszBaseFilename,
-                  pCcb->pszFilename);
+                  pCcb->pScb->pOwnerFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     do

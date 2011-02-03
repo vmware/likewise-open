@@ -139,11 +139,24 @@ PvfsSetSecurityDescriptorFileXattr(
     int unixerr = 0;
     int iRet = 0;
 
-    iRet = fsetxattr(pCcb->fd,
-                     PVFS_EA_SECDESC_NAME,
-                     (PVOID)pSecDesc,
-                     (size_t)SecDescLen,
-                     0);
+    if (PvfsIsDefaultStream(pCcb->pScb))
+    {
+        // Default stream is written to the actual fd
+        iRet = fsetxattr(pCcb->fd,
+                         PVFS_EA_SECDESC_NAME,
+                         (PVOID)pSecDesc,
+                         (size_t)SecDescLen,
+                         0);
+    }
+    else
+    {
+        // Set the attributes on the base file object
+        iRet = setxattr(pCcb->pScb->pOwnerFcb->pszFilename,
+                        PVFS_EA_SECDESC_NAME,
+                        (PVOID)pSecDesc,
+                        (size_t)SecDescLen,
+                        0);
+    }
     if (iRet == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }

@@ -206,6 +206,7 @@ PvfsSysRenameByFileName(
 NTSTATUS
 PvfsSysOpenByFileName(
     OUT int *pFd,
+    OUT PBOOLEAN pbCreateOwnerFile,
     IN PPVFS_FILE_NAME pFileName,
     IN int iFlags,
     IN mode_t Mode

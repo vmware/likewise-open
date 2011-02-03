@@ -217,6 +217,7 @@ PvfsCreateFileDoSysOpen(
     FILE_CREATE_RESULT CreateResult = 0;
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
     PSTR fullFileName = NULL;
+    BOOLEAN bCreateOwnerfile = FALSE;
 
     BAIL_ON_INVALID_PTR(pSecCtx, ntError);
 
@@ -252,6 +253,7 @@ PvfsCreateFileDoSysOpen(
     {
         ntError = PvfsSysOpenByFileName(
                       &fd,
+                      &bCreateOwnerfile,
                       pCreateContext->ResolvedFileName,
                       unixFlags,
                       (mode_t)gPvfsDriverConfig.CreateFileMode);
@@ -332,7 +334,7 @@ PvfsCreateFileDoSysOpen(
 
         /* Security Descriptor */
 
-        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb))
+        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb) || bCreateOwnerfile)
         {
             ntError = PvfsCreateFileSecurity(
                           pCreateContext->pCcb->pUserToken,
@@ -451,6 +453,7 @@ PvfsCreateDirDoSysOpen(
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
     PBOOLEAN pbEnableAbe = NULL;
     ULONG ulEcpSize = 0;
+    BOOLEAN bCreateOwnerFile = FALSE;
 
     BAIL_ON_INVALID_PTR(pSecCtx, ntError);
 
@@ -525,6 +528,7 @@ PvfsCreateDirDoSysOpen(
     {
         ntError = PvfsSysOpenByFileName(
                       &fd,
+                      &bCreateOwnerFile,
                       pCreateContext->ResolvedFileName,
                       0,
                       0);
@@ -570,7 +574,7 @@ PvfsCreateDirDoSysOpen(
 
         /* Security Descriptor */
 
-        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb))
+        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb) || bCreateOwnerFile)
         {
             // Only need to set security on the File object (and not the stream)
             ntError = PvfsCreateFileSecurity(

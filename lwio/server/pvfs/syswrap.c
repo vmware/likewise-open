@@ -236,6 +236,7 @@ error:
 NTSTATUS
 PvfsSysOpenByFileName(
     OUT int *pFd,
+    OUT PBOOLEAN pbCreateOwnerFile,
     IN PPVFS_FILE_NAME pFileName,
     IN int iFlags,
     IN mode_t Mode
@@ -249,6 +250,7 @@ PvfsSysOpenByFileName(
     int Ownerfd = -1;
     PSTR pszStreamDirectoryName = NULL;
     PSTR pszMetadataPath = NULL;
+    BOOLEAN bCreateOwnerFile = FALSE;
 
     // Need make sure the object (file/directory) exists
     // Before non-default stream objects can be created
@@ -262,6 +264,10 @@ PvfsSysOpenByFileName(
                       pFileName->FileName,
                       iFlags,
                       Mode);
+            if (STATUS_SUCCESS == ntError)
+            {
+                bCreateOwnerFile = TRUE;
+            }
         }
         BAIL_ON_NT_STATUS(ntError);
 
@@ -314,6 +320,7 @@ PvfsSysOpenByFileName(
     }
 
     *pFd = fd;
+    *pbCreateOwnerFile = bCreateOwnerFile;
 
 cleanup:
 
@@ -336,6 +343,7 @@ cleanup:
 
 error:
     PvfsSysClose(fd);
+
     goto cleanup;
 }
 
