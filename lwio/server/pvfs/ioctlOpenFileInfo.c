@@ -285,9 +285,13 @@ PvfsFillOpenFileInfo0(
     PWSTR outStreamName = NULL;
     ULONG FilenameByteCount = 0;
     BOOLEAN bCcbListLocked = FALSE;
+    PVFS_FILE_NAME fileName = { 0 };
     PSTR streamName = NULL;
 
-    ntError = PvfsGetBasicStreamname(&streamName, pScb);
+    ntError = PvfsBuildFileNameFromScb(&fileName, pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCStringFromFileName(&streamName, &fileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = LwRtlWC16StringAllocateFromCString(&outStreamName, streamName);
@@ -319,21 +323,18 @@ PvfsFillOpenFileInfo0(
                   + FilenameByteCount
                   - sizeof(WCHAR);
 
-cleanup:
+error:
+    PvfsDestroyFileName(&fileName);
     if (streamName)
     {
         LwRtlCStringFree(&streamName);
     }
-
     if (outStreamName)
     {
         LwRtlWC16StringFree(&outStreamName);
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 /***********************************************************************
@@ -355,9 +356,13 @@ PvfsFillOpenFileInfo100(
     PWSTR outStreamName = NULL;
     ULONG FilenameByteCount = 0;
     BOOLEAN bCcbListLocked = FALSE;
+    PVFS_FILE_NAME fileName = { 0 };
     PSTR streamName = NULL;
 
-    ntError = PvfsGetBasicStreamname(&streamName, pScb);
+    ntError = PvfsBuildFileNameFromScb(&fileName, pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCStringFromFileName(&streamName, &fileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = LwRtlWC16StringAllocateFromCString(&outStreamName, streamName);
@@ -391,21 +396,18 @@ PvfsFillOpenFileInfo100(
                   + FilenameByteCount
                   - sizeof(WCHAR);
 
-cleanup:
+error:
+    PvfsDestroyFileName(&fileName);
     if (streamName)
     {
         LwRtlCStringFree(&streamName);
     }
-
     if (outStreamName)
     {
         LwRtlWC16StringFree(&outStreamName);
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 
 

@@ -110,7 +110,8 @@ PvfsQueryFileAllInfo(
     ULONG W16FilenameLenBytes = 0;
     ULONG Needed = 0;
     off_t CurrentOffset = 0;
-    PSTR pszWinFileName = NULL;
+    PVFS_FILE_NAME fileName = { 0 };
+    PSTR windowsFileName = NULL;
     PSTR pszCursor = NULL;
     BOOLEAN bDeletePending = FALSE;
 
@@ -193,18 +194,21 @@ PvfsQueryFileAllInfo(
 
     /* Name */
 
-    ntError = PvfsGetBasicStreamname(&pszWinFileName, pCcb->pScb);
+    ntError = PvfsBuildFileNameFromScb(&fileName, pCcb->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAllocateCStringFromFileName(&windowsFileName, &fileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Convert to a Windows pathname equivalent */
-    for (pszCursor=pszWinFileName; pszCursor && *pszCursor; pszCursor++)
+    for (pszCursor=windowsFileName; pszCursor && *pszCursor; pszCursor++)
     {
         if (*pszCursor == '/') {
             *pszCursor = '\\';
         }
     }
 
-    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, pszWinFileName);
+    ntError = LwRtlWC16StringAllocateFromCString(&pwszFilename, windowsFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     W16FilenameLen = RtlWC16StringNumChars(pwszFilename);
@@ -222,17 +226,22 @@ PvfsQueryFileAllInfo(
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
-cleanup:
-    LwRtlCStringFree(&pszWinFileName);
-    LwRtlWC16StringFree(&pwszFilename);
+error:
+    PvfsDestroyFileName(&fileName);
 
-    if (pCcb) {
+    if (windowsFileName)
+    {
+        LwRtlCStringFree(&windowsFileName);
+    }
+    if (pwszFilename)
+    {
+        LwRtlWC16StringFree(&pwszFilename);
+    }
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
     return ntError;
-
-error:
-    goto cleanup;
 }
 

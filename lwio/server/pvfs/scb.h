@@ -77,32 +77,6 @@ PvfsCreateSCB(
     );
 
 NTSTATUS
-PvfsGetFullStreamname(
-    PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb
-    );
-
-NTSTATUS
-PvfsGetFullStreamname_inScbLock(
-    PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb,
-    IN OPTIONAL PSTR pszOwnerFilename,
-    IN OPTIONAL PSTR pszStreamname
-    );
-
-NTSTATUS
-PvfsGetBasicStreamname(
-    PSTR *ppszBasicStreamname,
-    PPVFS_SCB pScb
-    );
-
-NTSTATUS
-PvfsGetBasicStreamname_inScbLock(
-    PSTR *ppszBasicStreamname,
-    PPVFS_SCB pScb
-    );
-
-NTSTATUS
 PvfsGetDirectorySCB(
     IN  PSTR pszFilename,
     OUT PPVFS_SCB *ppScb

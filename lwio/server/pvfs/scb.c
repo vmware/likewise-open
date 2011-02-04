@@ -443,153 +443,6 @@ error:
 ////////////////////////////////////////////////////////////////////////
 
 static
-PSTR
-PvfsGetStreamname(
-    PSTR pszStreamname
-    )
-{
-    return pszStreamname ? pszStreamname : "";
-}
-
-NTSTATUS
-PvfsGetFullStreamname_inScbLock(
-    PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb,
-    IN OPTIONAL PSTR pszOwnerFilename,
-    IN OPTIONAL PSTR pszStreamname
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN fcbRwLocked = FALSE;
-
-    LWIO_ASSERT(pScb->pOwnerFcb);
-
-    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
-
-    switch (pScb->StreamType)
-    {
-        case PVFS_STREAM_TYPE_DATA:
-            ntError = RtlCStringAllocatePrintf(
-                          ppszFullStreamname,
-                          "%s:%s:%s",
-
-                          LwRtlCStringIsNullOrEmpty(pszOwnerFilename) ?
-                            pScb->pOwnerFcb->pszFilename :
-                            pszOwnerFilename,
-
-                          LwRtlCStringIsNullOrEmpty(pszStreamname) ?
-                            PvfsGetStreamname(pScb->pszStreamname) :
-                            PvfsGetStreamname(pszStreamname),
-
-                          PVFS_STREAM_DEFAULT_TYPE_S);
-            break;
-
-        default:
-            ntError = STATUS_INVALID_PARAMETER;
-            break;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-NTSTATUS
-PvfsGetFullStreamname(
-    PSTR *ppszFullStreamname,
-    PPVFS_SCB pScb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN scbRwLocked = FALSE;
-
-    BAIL_ON_INVALID_PTR(pScb, ntError);
-
-    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
-
-    ntError = PvfsGetFullStreamname_inScbLock(ppszFullStreamname, pScb, NULL, NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-////////////////////////////////////////////////////////////////////////
-
-NTSTATUS
-PvfsGetBasicStreamname_inScbLock(
-    PSTR *ppszBasicStreamname,
-    PPVFS_SCB pScb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN fcbRwLocked = FALSE;
-
-    LWIO_ASSERT(pScb->pOwnerFcb);
-
-    LWIO_LOCK_RWMUTEX_SHARED(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
-
-    ntError = RtlCStringAllocatePrintf(
-                  ppszBasicStreamname,
-                  "%s%s%s",
-                  pScb->pOwnerFcb->pszFilename,
-                  pScb->pszStreamname ? ":" : "",
-                  pScb->pszStreamname ? pScb->pszStreamname : "");
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    LWIO_UNLOCK_RWMUTEX(fcbRwLocked, &pScb->pOwnerFcb->BaseControlBlock.RwLock);
-
-    return ntError;
-
-error:
-    goto cleanup;
-
-}
-
-////////////////////////////////////////////////////////////////////////
-
-NTSTATUS
-PvfsGetBasicStreamname(
-    PSTR *ppszBasicStreamname,
-    PPVFS_SCB pScb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN scbRwLocked = FALSE;
-
-    BAIL_ON_INVALID_PTR(pScb, ntError);
-
-    LWIO_LOCK_RWMUTEX_SHARED(scbRwLocked, &pScb->BaseControlBlock.RwLock);
-
-    ntError = PvfsGetBasicStreamname_inScbLock(ppszBasicStreamname, pScb);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
-
-    return ntError;
-
-error:
-    goto cleanup;
-
-}
-
-////////////////////////////////////////////////////////////////////////
-
-static
 NTSTATUS
 PvfsFindOwnerFCB(
     PPVFS_FCB *ppOwnerFcb,
@@ -1338,13 +1191,12 @@ PvfsOplockCleanPendingOpFree(
 
 NTSTATUS
 PvfsRenameSCB(
-    PPVFS_SCB pScb,
-    PPVFS_CCB pCcb,
-    PPVFS_FILE_NAME pNewStreamName
+    IN PPVFS_SCB pScb,
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_FILE_NAME pNewStreamName
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    PSTR pszNewStreamname = NULL;
     PPVFS_SCB pTargetScb = NULL;
     PPVFS_CB_TABLE_ENTRY pTargetBucket = NULL;
     PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
@@ -1354,36 +1206,28 @@ PvfsRenameSCB(
     BOOLEAN bCurrentBucketLocked = FALSE;
     BOOLEAN bScbRwLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
-    PPVFS_FILE_NAME currentFileName = NULL;
-    PSTR targetFullStreamName = NULL;
-    PSTR currentFullStreamName = NULL;
-    PSTR newFullStreamName = NULL;
+    PVFS_FILE_NAME currentFileName = { 0 };
+    PSTR currentStreamName = NULL;
+    PSTR newStreamName = NULL;
 
     ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(pScb, ntError);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
-
-    ntError = PvfsGetFullStreamname_inScbLock(&pszNewStreamname,
-                                              pScb,
-                                              NULL,
-                                              pNewStreamName->StreamName);
+    ntError = PvfsAllocateCStringFromFileName(&newStreamName, pNewStreamName);
     BAIL_ON_NT_STATUS(ntError);
-
-    LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
 
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */
 
-    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gScbTable, pszNewStreamname);
+    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gScbTable, newStreamName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gScbTable(Excl) */
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bRenameLock, &gScbTable.rwLock);
 
-    ntError = PvfsAllocateFileNameFromScb(&currentFileName, pScb);
+    ntError = PvfsBuildFileNameFromScb(&currentFileName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Locks - gScbTable(Excl),
@@ -1394,32 +1238,34 @@ PvfsRenameSCB(
     ntError = PvfsCbTableLookup_inlock(
                   (PPVFS_CONTROL_BLOCK*)&pTargetScb,
                   pTargetBucket,
-                  pszNewStreamname);
+                  newStreamName);
     if (ntError == STATUS_SUCCESS)
     {
         /* Make sure we have a different SCB */
 
         if (pTargetScb != pScb)
         {
-            LWIO_LOCK_MUTEX(bTargetScbControl, &pTargetScb->BaseControlBlock.Mutex);
+            LWIO_LOCK_MUTEX(
+                bTargetScbControl,
+                &pTargetScb->BaseControlBlock.Mutex);
+
             if (!pTargetScb->BaseControlBlock.Removed)
             {
                 pTargetScb->BaseControlBlock.Removed = TRUE;
                 pTargetScb->BaseControlBlock.pBucket = NULL;
 
-                LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->BaseControlBlock.Mutex);
+                LWIO_UNLOCK_MUTEX(
+                    bTargetScbControl,
+                    &pTargetScb->BaseControlBlock.Mutex);
 
-                ntError = PvfsGetFullStreamname(&targetFullStreamName, pTargetScb);
-                if (ntError == STATUS_SUCCESS)
-                {
-                    ntError = PvfsCbTableRemove_inlock(pTargetBucket, targetFullStreamName);
+                ntError = PvfsCbTableRemove_inlock(pTargetBucket, newStreamName);
 
-                    LWIO_ASSERT(ntError == STATUS_SUCCESS);
-
-                    LwRtlCStringFree(&targetFullStreamName);
-                }
+                LWIO_ASSERT(ntError == STATUS_SUCCESS);
             }
-            LWIO_UNLOCK_MUTEX(bTargetScbControl, &pTargetScb->BaseControlBlock.Mutex);
+
+            LWIO_UNLOCK_MUTEX(
+                bTargetScbControl,
+                &pTargetScb->BaseControlBlock.Mutex);
         }
     }
 
@@ -1429,12 +1275,13 @@ PvfsRenameSCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
 
-    ntError = PvfsSysRenameByFileName(currentFileName, pNewStreamName);
-    BAIL_ON_NT_STATUS(ntError);
+    ntError = PvfsSysRenameByFileName(&currentFileName, pNewStreamName);
+    // Ignore the error here and continue
+    // BAIL_ON_NT_STATUS(ntError);
 
     /* Clear the cache entry but ignore any errors */
 
-    ntError = PvfsPathCacheRemove(currentFileName);
+    ntError = PvfsPathCacheRemove(&currentFileName);
 
     /* Remove the SCB from the table, update the lookup key, and then re-add.
        Otherwise you will get memory corruption as a freed pointer gets left
@@ -1459,25 +1306,30 @@ PvfsRenameSCB(
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     }
 
-    ntError = PvfsGetFullStreamname_inScbLock(&currentFullStreamName, pScb, NULL, NULL);
+    ntError = PvfsAllocateCStringFromFileName(&currentStreamName, &currentFileName);
     if (ntError == STATUS_SUCCESS)
     {
-        ntError = PvfsCbTableRemove_inlock(pCurrentBucket, currentFullStreamName);
+        ntError = PvfsCbTableRemove_inlock(pCurrentBucket, currentStreamName);
 
         LWIO_ASSERT(ntError == STATUS_SUCCESS);
 
-        LwRtlCStringFree(&currentFullStreamName);
+        LwRtlCStringFree(&currentStreamName);
     }
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     BAIL_ON_NT_STATUS(ntError);
 
-    PVFS_FREE(&pScb->pszStreamname);
+    if (pScb->pszStreamname)
+    {
+        LwRtlCStringFree(&pScb->pszStreamname);
+    }
 
-    ntError = LwRtlCStringDuplicate(&pScb->pszStreamname, pNewStreamName->StreamName);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsGetFullStreamname_inScbLock(&newFullStreamName, pScb, NULL, NULL);
-    BAIL_ON_NT_STATUS(ntError);
+    if (pNewStreamName->StreamName)
+    {
+        ntError = LwRtlCStringDuplicate(
+                      &pScb->pszStreamname,
+                      pNewStreamName->StreamName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Locks - gScbTable(Excl),
                pTargetBucket(Excl),
@@ -1487,7 +1339,7 @@ PvfsRenameSCB(
     LWIO_LOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
     ntError = PvfsCbTableAdd_inlock(
                   pTargetBucket,
-                  newFullStreamName,
+                  newStreamName,
                   (PPVFS_CONTROL_BLOCK)pScb);
     if (ntError == STATUS_SUCCESS)
     {
@@ -1512,29 +1364,14 @@ error:
         PvfsReleaseSCB(&pTargetScb);
     }
 
-    if (currentFileName)
+    PvfsDestroyFileName(&currentFileName);
+    if (currentStreamName)
     {
-        PvfsFreeFileName(currentFileName);
+        LwRtlCStringFree(&currentStreamName);
     }
-
-    if (targetFullStreamName)
+    if (newStreamName)
     {
-        LwRtlCStringFree(&targetFullStreamName);
-    }
-
-    if (currentFullStreamName)
-    {
-        LwRtlCStringFree(&currentFullStreamName);
-    }
-
-    if (newFullStreamName)
-    {
-        LwRtlCStringFree(&newFullStreamName);
-    }
-
-    if (pszNewStreamname)
-    {
-        LwRtlCStringFree(&pszNewStreamname);
+        LwRtlCStringFree(&newStreamName);
     }
 
     return ntError;
