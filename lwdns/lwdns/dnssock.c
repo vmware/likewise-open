@@ -30,7 +30,11 @@ DNSOpen(
     DWORD  dwError = 0;
     HANDLE hDNSServer = (HANDLE)NULL;
 
-    BAIL_ON_INVALID_STRING(pszNameServer);
+    if (IsNullOrEmptyString(pszNameServer))
+    {
+        dwError = LWDNS_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
 
     switch (dwType)
     {
@@ -54,7 +58,7 @@ DNSOpen(
 
         default:
 
-            dwError = ERROR_INVALID_PARAMETER;
+            dwError = LWDNS_ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LWDNS_ERROR(dwError);
 
