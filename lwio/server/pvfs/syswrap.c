@@ -1121,6 +1121,7 @@ PvfsSysRenameByFileName(
     PSTR newFilename = NULL;
     PSTR oldStreamDir = NULL;
     PSTR newStreamDir = NULL;
+    PSTR newStreamDirParent = NULL;
     PVFS_STAT streamDirStat = { 0 };
 
     ntError = PvfsLookupStreamDiskFileName(&oldFilename, OriginalFileName);
@@ -1147,7 +1148,33 @@ PvfsSysRenameByFileName(
         ntError = PvfsSysStat(oldStreamDir, &streamDirStat);
         if (ntError == STATUS_SUCCESS)
         {
-            if (rename(oldStreamDir, newStreamDir) == -1 )
+            ntError = PvfsFileDirname(&newStreamDirParent, newStreamDir);
+            BAIL_ON_NT_STATUS(ntError);
+
+            LwRtlZeroMemory(&streamDirStat, sizeof(streamDirStat));
+
+            ntError = PvfsSysStat(newStreamDirParent, &streamDirStat);
+            switch (ntError)
+            {
+                case STATUS_SUCCESS:
+                    if (!S_ISDIR(streamDirStat.s_mode))
+                    {
+                        ntError = STATUS_NOT_A_DIRECTORY;
+                    }
+                    break;
+
+                case STATUS_OBJECT_NAME_NOT_FOUND:
+                    ntError = PvfsSysMkDir(
+                                  newStreamDirParent,
+                                  (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
+                    break;
+
+                default:
+                    break;
+            }
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (rename(oldStreamDir, newStreamDir) == -1)
             {
                 // We are now in an inconstsent state -- What should we do?
                 // We cannot safely roll back to the original name
@@ -1157,11 +1184,9 @@ PvfsSysRenameByFileName(
                 PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
             }
         }
-        else
-        {
-            // Squash the error is the stream directory did not exist
-            ntError = STATUS_SUCCESS;
-        }
+
+        // Squash the error is the stream directory did not exist
+        ntError = STATUS_SUCCESS;
     }
 
 error:
@@ -1181,6 +1206,11 @@ error:
     {
         LwRtlCStringFree(&newStreamDir);
     }
+    if (newStreamDirParent)
+    {
+        LwRtlCStringFree(&newStreamDirParent);
+    }
+
 
     return ntError;
 }
