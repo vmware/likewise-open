@@ -545,7 +545,7 @@ PvfsFileNameCompare(
     cmpResult = LwRtlCStringCompare(
                     FileName1->FileName,
                     FileName2->FileName,
-                    TRUE);
+                    CaseSensitive);
 
     if (cmpResult == 0)
     {
@@ -590,7 +590,7 @@ PvfsFileNameCompare(
             cmpResult = LwRtlCStringCompare(
                             FileName1->StreamName,
                             FileName2->StreamName,
-                            TRUE);
+                            CaseSensitive);
 
         }
     }

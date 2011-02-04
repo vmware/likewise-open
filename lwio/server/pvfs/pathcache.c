@@ -192,7 +192,7 @@ PvfsPathCachePathCompare(
 static
 ULONG
 PvfsPathCacheKey(
-    PCVOID pszPath
+    PCVOID Key
     );
 
 static
