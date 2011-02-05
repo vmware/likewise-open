@@ -1389,7 +1389,7 @@ PvfsScbIsPendingDelete(
     BOOLEAN bIsLocked = FALSE;
 
     LWIO_LOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
-    bPendingDelete = pScb->bDeleteOnClose;
+    bPendingDelete = pScb->bDeleteOnClose || PvfsFcbIsPendingDelete(pScb->pOwnerFcb);
     LWIO_UNLOCK_MUTEX(bIsLocked, &pScb->BaseControlBlock.Mutex);
 
     return bPendingDelete;
