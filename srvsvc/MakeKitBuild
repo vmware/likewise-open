@@ -21,6 +21,8 @@ configure()
 	mk_define HAVE_DECL_ISBLANK 0
     fi
 
+    mk_check_libraries pthread
+
     mk_check_functions \
 	HEADERDEPS="stdlib.h" \
 	strtol strtoll __strtoll strtoul strtoull __strtoull
