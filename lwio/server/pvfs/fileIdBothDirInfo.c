@@ -350,7 +350,7 @@ PvfsQueryFileIdBothDirInfo(
         pEntry  = &pCcb->pDirContext->pDirEntries[dwIndex];
         ntError = FillFileIdBothDirInfoBuffer(pFileInfo,
                                             dwBufLen - dwOffset,
-                                            pCcb->pszFilename,
+                                            pCcb->pScb->pOwnerFcb->pszFilename,
                                             pEntry,
                                             &dwConsumed);
 

@@ -78,7 +78,8 @@ PvfsGetFileAttributes(
     {
         PSTR pszRelativeFilename = NULL;
 
-        ntError = PvfsFileBasename(&pszRelativeFilename, pCcb->pszFilename);
+        ntError = PvfsFileBasename(&pszRelativeFilename,
+                                   pCcb->pScb->pOwnerFcb->pszFilename);
         BAIL_ON_NT_STATUS(ntError);
 
         *pAttributes |= FILE_ATTRIBUTE_ARCHIVE;

@@ -215,7 +215,7 @@ PvfsEnumerateDirectory(
             ntError = PvfsLookupFile(
                           &pszDiskFilename,
                           &Stat,
-                          pCcb->pszFilename,
+                          pCcb->pScb->pOwnerFcb->pszFilename,
                           pszPattern,
                           FALSE);
             BAIL_ON_NT_STATUS(ntError);
@@ -248,7 +248,7 @@ PvfsEnumerateDirectory(
         {
             // Prepare to enumerate the entire directory
             ntError = PvfsSysOpenDir(
-                          pCcb->pszFilename,
+                          pCcb->pScb->pOwnerFcb->pszFilename,
                           &pCcb->pDirContext->pDir);
             BAIL_ON_NT_STATUS(ntError);
 

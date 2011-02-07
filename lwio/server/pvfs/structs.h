@@ -434,7 +434,6 @@ struct _PVFS_CCB
     PPVFS_SCB pScb;
 
     /* Save parameters from the CreateFile() */
-    PSTR pszFilename;
     PWSTR pwszShareName;
     FILE_CREATE_OPTIONS CreateOptions;
     FILE_SHARE_FLAGS ShareFlags;

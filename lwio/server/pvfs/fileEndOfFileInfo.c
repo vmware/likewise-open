@@ -238,7 +238,7 @@ PvfsSetEndOfFileWithContext(
         pCcb->pScb->pOwnerFcb,
         FILE_NOTIFY_CHANGE_SIZE,
         FILE_ACTION_MODIFIED,
-        pCcb->pszFilename);
+        pCcb->pScb->pOwnerFcb->pszFilename);
 
 
 cleanup:

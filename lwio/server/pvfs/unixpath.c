@@ -86,7 +86,7 @@ PvfsCanonicalPathName(
         ntError = LwRtlCStringAllocatePrintf(
             &pszCompletePath,
             "%s%s%s",
-            pRootCcb->pszFilename,
+            pRootCcb->pScb->pOwnerFcb->pszFilename,
             (pszFilename ? (*pszFilename == '/' ? "" : "/") : ""),
             (pszFilename ? pszFilename : ""));
         BAIL_ON_NT_STATUS(ntError);

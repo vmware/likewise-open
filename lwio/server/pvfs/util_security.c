@@ -341,7 +341,7 @@ PvfsAccessCheckFileEnumerate(
     ntError = LwRtlCStringAllocatePrintf(
                   &pszFilename,
                   "%s/%s",
-                  pCcb->pszFilename,
+                  pCcb->pScb->pOwnerFcb->pszFilename,
                   pszRelativeFilename);
     BAIL_ON_NT_STATUS(ntError);
 

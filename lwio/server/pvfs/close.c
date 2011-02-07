@@ -136,10 +136,10 @@ PvfsClose(
     if (pCcb->ChangeEvent != 0)
     {
         PvfsNotifyScheduleFullReport(
-            pScb->pOwnerFcb,
-            pCcb->ChangeEvent,
-            FILE_ACTION_MODIFIED,
-            pCcb->pszFilename);
+                pScb->pOwnerFcb,
+                pCcb->ChangeEvent,
+                FILE_ACTION_MODIFIED,
+                pScb->pOwnerFcb->pszFilename);
     }
 
     PvfsZctCloseCcb(pCcb);

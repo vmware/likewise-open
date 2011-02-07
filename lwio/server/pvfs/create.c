@@ -216,7 +216,6 @@ PvfsCreateFileDoSysOpen(
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     FILE_CREATE_RESULT CreateResult = 0;
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
-    PSTR fullFileName = NULL;
     BOOLEAN bCreateOwnerfile = FALSE;
 
     BAIL_ON_INVALID_PTR(pSecCtx, ntError);
@@ -242,11 +241,6 @@ PvfsCreateFileDoSysOpen(
     /* Do the open() */
 
     ntError = MapPosixOpenFlags(&unixFlags, pCreateContext->GrantedAccess, Args);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAllocateCStringFromFileName(
-                  &fullFileName,
-                  pCreateContext->ResolvedFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     do
@@ -297,9 +291,6 @@ PvfsCreateFileDoSysOpen(
     pCreateContext->pCcb->ShareFlags = Args.ShareAccess;
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
-
-    pCreateContext->pCcb->pszFilename = fullFileName;
-    fullFileName = NULL;
 
     ntError = PvfsAddCCBToSCB(pCreateContext->pScb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -387,7 +378,7 @@ PvfsCreateFileDoSysOpen(
             pCreateContext->pCcb->pScb->pOwnerFcb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
             FILE_ACTION_ADDED,
-            pCreateContext->pCcb->pszFilename);
+            pCreateContext->pCcb->pScb->pOwnerFcb->pszFilename);
     }
 
     /* The CCB has been handled off to the FileHandle so make sure
@@ -398,11 +389,6 @@ PvfsCreateFileDoSysOpen(
 cleanup:
     pIrp->IoStatusBlock.CreateResult = CreateResult;
 
-    if (fullFileName)
-    {
-        LwRtlCStringFree(&fullFileName);
-    }
-
     return ntError;
 
 error:
@@ -411,17 +397,9 @@ error:
                        pCreateContext->bFileExisted,
                        ntError);
 
-    if (fd != -1 &&
-        (fullFileName || pCreateContext->pCcb->pszFilename))
+    if (fd != -1 && pCreateContext->ResolvedFileName)
     {
-        PSTR pszRemovePath = NULL;
-
         /* Pick up where we started the pathname */
-
-        pszRemovePath = fullFileName ?
-                        fullFileName :
-                        pCreateContext->pCcb->pszFilename;
-
         PvfsCleanupFailedCreate(
             fd,
             pCreateContext->ResolvedFileName,
@@ -491,11 +469,6 @@ PvfsCreateDirDoSysOpen(
                   (PVOID)&pCreateContext->pCcb->pDirContext,
                   sizeof(PVFS_DIRECTORY_CONTEXT),
                   TRUE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAllocateCStringFromFileName(
-                  &pCreateContext->pCcb->pszFilename,
-                  pCreateContext->ResolvedFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = IoRtlEcpListFind(
@@ -637,7 +610,7 @@ PvfsCreateDirDoSysOpen(
             pCreateContext->pCcb->pScb->pOwnerFcb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
             FILE_ACTION_ADDED,
-            pCreateContext->pCcb->pszFilename);
+            pCreateContext->pCcb->pScb->pOwnerFcb->pszFilename);
     }
 
     /* The CCB has been handled off to the FileHandle so make sure
@@ -658,7 +631,7 @@ error:
 
     if (fd != -1)
     {
-        if (pCreateContext->pCcb->pszFilename)
+        if (pCreateContext->ResolvedFileName)
         {
             PvfsCleanupFailedCreate(
                 fd,
@@ -1124,7 +1097,7 @@ PvfsSetMaximalAccessMask(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAllocateFileNameFromCString(&fileName, pCcb->pszFilename);
+    ntError = PvfsAllocateFileNameFromScb(&fileName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAccessCheckFile(

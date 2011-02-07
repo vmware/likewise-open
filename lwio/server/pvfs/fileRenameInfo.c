@@ -176,7 +176,7 @@ PvfsSetFileRenameInfo(
             ntError = RtlCStringAllocatePrintf(
                           &pszNewPathname,
                           "%s%s",
-                          pRootDirCcb->pszFilename,
+                          pRootDirCcb->pScb->pOwnerFcb->pszFilename,
                           pszNewFilename);
         }
         else
@@ -184,7 +184,7 @@ PvfsSetFileRenameInfo(
             ntError = RtlCStringAllocatePrintf(
                           &pszNewPathname,
                           "%s/%s",
-                          pRootDirCcb->pszFilename,
+                          pRootDirCcb->pScb->pOwnerFcb->pszFilename,
                           pszNewFilename);
         }
         BAIL_ON_NT_STATUS(ntError);

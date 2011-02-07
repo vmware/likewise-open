@@ -105,6 +105,8 @@ PvfsQueryLwFilePosixInfo(
     PLW_FILE_POSIX_INFORMATION pFilePosixInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT stat = { 0 };
+    PVFS_FILE_NAME FileName = {0};
+    PSTR pszDiskFilename = NULL;
 
     /* Sanity checks */
 
@@ -154,7 +156,14 @@ PvfsQueryLwFilePosixInfo(
     {
         pFilePosixInfo->GenerationNumber = 0;
         strcpy((char*)&pFilePosixInfo->InodeNumber, "/pvfs");
-        strncpy(((char*)&pFilePosixInfo->InodeNumber) + 5, pCcb->pszFilename, 10);
+
+        ntError = PvfsBuildFileNameFromScb(&FileName, pCcb->pScb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsLookupStreamDiskFileName(&pszDiskFilename, &FileName);
+        BAIL_ON_NT_STATUS(ntError);
+
+        strncpy(((char*)&pFilePosixInfo->InodeNumber) + 5, pszDiskFilename, 10);
     }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFilePosixInfo);
@@ -163,6 +172,13 @@ PvfsQueryLwFilePosixInfo(
 cleanup:
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
+    }
+
+    PvfsDestroyFileName(&FileName);
+
+    if (pszDiskFilename)
+    {
+        LwRtlCStringFree(&pszDiskFilename);
     }
 
     return ntError;

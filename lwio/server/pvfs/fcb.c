@@ -697,7 +697,6 @@ PvfsRenameFCB(
     BOOLEAN bTargetBucketLocked = FALSE;
     BOOLEAN bCurrentBucketLocked = FALSE;
     BOOLEAN bFcbRwLocked = FALSE;
-    BOOLEAN bCcbLocked = FALSE;
     BOOLEAN bRenameLock = FALSE;
     PPVFS_FILE_NAME currentFileName = NULL;
 
@@ -822,22 +821,12 @@ PvfsRenameFCB(
     LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
 
-
-    LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
-
-        PVFS_FREE(&pCcb->pszFilename);
-        ntError = LwRtlCStringDuplicate(&pCcb->pszFilename, pNewFilename->FileName);
-        BAIL_ON_NT_STATUS(ntError);
-
-    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
-
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bRenameLock, &gFcbTable.rwLock);
     LWIO_UNLOCK_RWMUTEX(bFcbRwLocked, &pFcb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_MUTEX(bCurrentFcbControl, &pFcb->BaseControlBlock.Mutex);
-    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
     if (pNewParentFcb)
     {

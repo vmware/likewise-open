@@ -83,7 +83,6 @@ PvfsAllocateCCB(
     PVFS_CLEAR_FILEID(pCCB->FileId);
 
     pCCB->pScb = NULL;
-    pCCB->pszFilename = NULL;
     pCCB->pwszShareName = NULL;
     pCCB->pDirContext = NULL;
     pCCB->pUserToken = NULL;
@@ -147,7 +146,6 @@ PvfsFreeCCB(
 
     PvfsListDestroy(&pCCB->pZctContextList);
 
-    LwRtlCStringFree(&pCCB->pszFilename);
     LwRtlWC16StringFree(&pCCB->pwszShareName);
 
     PVFS_FREE(&pCCB->LockTable.ExclusiveLocks.pLocks);

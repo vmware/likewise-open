@@ -189,7 +189,7 @@ PvfsQueryLwFilePosixDirInfo(
         ntError = FillLwFilePosixDirInfoBuffer(
                       pFileInfo,
                       ulBufLen - ulOffset,
-                      pCcb->pszFilename,
+                      pCcb->pScb->pOwnerFcb->pszFilename,
                       pEntry,
                       &ulConsumed);
 

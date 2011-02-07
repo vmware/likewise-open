@@ -132,7 +132,7 @@ PvfsQueryFileNameInfo(
 
     /* Name */
 
-    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pszFilename);
+    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pScb->pOwnerFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Convert to a Windows pathname equivalent */

@@ -186,7 +186,7 @@ PvfsSetFileLinkInfo(
             ntError = RtlCStringAllocatePrintf(
                           &pszNewPathname,
                           "%s%s",
-                          pRootDirCcb->pszFilename,
+                          pRootDirCcb->pScb->pOwnerFcb->pszFilename,
                           pszNewFilename);
         }
         else
@@ -194,7 +194,7 @@ PvfsSetFileLinkInfo(
             ntError = RtlCStringAllocatePrintf(
                           &pszNewPathname,
                           "%s/%s",
-                          pRootDirCcb->pszFilename,
+                          pRootDirCcb->pScb->pOwnerFcb->pszFilename,
                           pszNewFilename);
         }
         BAIL_ON_NT_STATUS(ntError);
@@ -253,7 +253,7 @@ PvfsSetFileLinkInfo(
 
     ntError = PvfsAllocateFileNameFromCString(
                     &targetFilename,
-                    pCcb->pszFilename);
+                    pCcb->pScb->pOwnerFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysLinkByFileName(targetFilename, newDiskPathname);
