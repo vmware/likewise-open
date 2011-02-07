@@ -237,10 +237,6 @@ PvfsEnumerateStreams(
                   baseFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCopyStreamFileNameFromCString(
-                  &streamNameList[currentIndex],
-                  "");
-    BAIL_ON_NT_STATUS(ntError);
 
     currentIndex++;
 
