@@ -7,6 +7,6 @@ make()
         INSTALLDIR="$LW_TOOL_DIR" \
         SOURCES="$TEST_SRVSHARE_SOURCES" \
         INCLUDEDIRS=". ../include" \
-        HEADERDEPS="lsa/lsa.h lw/base.h lw/rtlgoto.h lwio/lwio.h lwadvapi/h" \
+        HEADERDEPS="lsa/lsa.h lw/base.h lw/rtlgoto.h lwio/lwio.h lwadvapi.h" \
         LIBDEPS="lwioclient lwbase lwbase_nothr lwadvapi lwadvapi_nothr lsaclient"
 }
