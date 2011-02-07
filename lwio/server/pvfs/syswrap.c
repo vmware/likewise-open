@@ -484,44 +484,6 @@ error:
  *********************************************************/
 
 NTSTATUS
-PvfsSysDirFd(
-    PPVFS_CCB pCcb,
-    int *pFd
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    int unixerr = 0;
-    int fd = -1;
-
-#ifdef HAVE_DIRFD
-    if ((fd = dirfd(pCcb->pDirContext->pDir)) == -1)
-    {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-#else
-    if ((fd = open(pCcb->pszFilename, 0, 0)) == -1)
-    {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-#endif
-
-    *pFd = fd;
-
-cleanup:
-    return ntError;
-
-error:
-    PvfsSysClose(fd);
-
-    goto cleanup;
-}
-
-
-
-/**********************************************************
- *********************************************************/
-
-NTSTATUS
 PvfsSysReadDir(
     DIR *pDir,
     struct dirent *pDirEntry,

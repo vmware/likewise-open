@@ -90,12 +90,6 @@ PvfsSysOpenDir(
     );
 
 NTSTATUS
-PvfsSysDirFd(
-    PPVFS_CCB pCcb,
-    int *pFd
-    );
-
-NTSTATUS
 PvfsSysReadDir(
     DIR *pDir,
     struct dirent *pDirEntry,
