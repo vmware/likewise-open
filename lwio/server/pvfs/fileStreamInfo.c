@@ -171,7 +171,6 @@ PvfsQueryFileStreamInfo(
 
         bufferOffset += bufferConsumed;
         pFileInfo->NextEntryOffset = bufferConsumed;
-;
     }
 
     if (pFileInfo)
