@@ -1175,10 +1175,9 @@ PvfsResolvePath(
     ntError = PvfsAllocateFileNameFromCString(&finalResolvedPath, pszResolvedPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    finalResolvedPath->ExplicitName = InputPath->ExplicitName;
-
     *ppResolvedPath = finalResolvedPath;
     finalResolvedPath = NULL;
+
 
 cleanup:
     if (pszPath)

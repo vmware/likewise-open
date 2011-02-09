@@ -138,12 +138,6 @@ PvfsCreate(
                       createFileName,
                       FALSE);
 
-        if (S_ISDIR(Stat.s_mode) &&
-            PvfsIsDefaultStreamNameEx(resolvedFileName, TRUE))
-        {
-            ntError = STATUS_NOT_A_DIRECTORY;
-        }
-
         PvfsFreeFileName(createFileName);
         createFileName = NULL;
 
