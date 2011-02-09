@@ -170,8 +170,13 @@ LsaCrackDomainQualifiedName(
 
         if (!LW_IS_NULL_OR_EMPTY_STR(pszId+idx+1)) {
             dwError = LwAllocateString(pszId+idx+1, &pNameInfo->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
         }
+        else
+        {
+            dwError = ERROR_INVALID_NAME;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
         pNameInfo->nameType = NameType_NT4;
     }
     else if ((pszIndex = strchr(pszId, '@')) != NULL) {
@@ -181,8 +186,13 @@ LsaCrackDomainQualifiedName(
 
         if (!LW_IS_NULL_OR_EMPTY_STR(pszId+idx+1)) {
             dwError = LwAllocateString(pszId+idx+1, &pNameInfo->pszDomainNetBiosName);
-            BAIL_ON_LSA_ERROR(dwError);
         }
+        else
+        {
+            dwError = ERROR_INVALID_NAME;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
         pNameInfo->nameType = NameType_UPN;
     }
     else {
