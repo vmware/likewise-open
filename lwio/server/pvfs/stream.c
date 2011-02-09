@@ -224,21 +224,28 @@ PvfsEnumerateStreams(
             BAIL_ON_NT_STATUS(ntError);
         }
     }
-
-    // Always include space for the default stream
-    ntError = PvfsAllocateFileNameList(
-                  &streamNameList,
-                  streamDirectoryContext->dwNumEntries+1);
+    else if (STATUS_OBJECT_NAME_NOT_FOUND == ntError)
+    {
+        ntError = STATUS_SUCCESS;
+    }
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAppendBuildFileName(
-                  &streamNameList[currentIndex],
-                  parentDirectoryName,
-                  baseFileName);
-    BAIL_ON_NT_STATUS(ntError);
+    // Always include space for the default stream only for file not dir
+    if (!PVFS_IS_DIR(pCcb))
+    {
+        ntError = PvfsAllocateFileNameList(
+                      &streamNameList,
+                      streamDirectoryContext->dwNumEntries+1);
+        BAIL_ON_NT_STATUS(ntError);
 
+        ntError = PvfsAppendBuildFileName(
+                      &streamNameList[currentIndex],
+                      parentDirectoryName,
+                      baseFileName);
+        BAIL_ON_NT_STATUS(ntError);
 
-    currentIndex++;
+        currentIndex++;
+    }
 
     for (i=0; i<streamDirectoryContext->dwNumEntries; i++)
     {
@@ -256,9 +263,6 @@ PvfsEnumerateStreams(
         currentIndex++;
     }
 
-    *ppStreamNames = streamNameList;
-    *StreamCount = currentIndex;
-
 error:
     if (!NT_SUCCESS(ntError))
     {
@@ -266,7 +270,12 @@ error:
         {
             PvfsFreeFileNameList(streamNameList, streamNameListLength);
         }
+        currentIndex = 0;
+        streamNameList = NULL;
     }
+
+    *ppStreamNames = streamNameList;
+    *StreamCount = currentIndex;
 
     if (pszTargetStreamDir)
     {
