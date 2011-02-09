@@ -846,6 +846,9 @@ MemCacheFindUserByName(
         case NameType_UPN:
             pIndex = pConn->pUPNToSecurityObject;
 
+            BAIL_ON_INVALID_STRING(pUserNameInfo->pszName);
+            BAIL_ON_INVALID_STRING(pUserNameInfo->pszFullDomainName);
+
             dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s@%s",
@@ -856,6 +859,9 @@ MemCacheFindUserByName(
        case NameType_NT4:
             pIndex = pConn->pNT4ToSecurityObject;
 
+            BAIL_ON_INVALID_STRING(pUserNameInfo->pszDomainNetBiosName);
+            BAIL_ON_INVALID_STRING(pUserNameInfo->pszName);
+
             dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s\\%s",
@@ -865,6 +871,8 @@ MemCacheFindUserByName(
             break;
        case NameType_Alias:
             pIndex = pConn->pUserAliasToSecurityObject;
+
+            BAIL_ON_INVALID_STRING(pUserNameInfo->pszName);
 
             dwError = LwAllocateStringPrintf(
                             &pszKey,
@@ -993,6 +1001,9 @@ MemCacheFindGroupByName(
        case NameType_NT4:
             pIndex = pConn->pNT4ToSecurityObject;
 
+            BAIL_ON_INVALID_STRING(pGroupNameInfo->pszDomainNetBiosName);
+            BAIL_ON_INVALID_STRING(pGroupNameInfo->pszName);
+
             dwError = LwAllocateStringPrintf(
                             &pszKey,
                             "%s\\%s",
@@ -1002,6 +1013,8 @@ MemCacheFindGroupByName(
             break;
        case NameType_Alias:
             pIndex = pConn->pGroupAliasToSecurityObject;
+
+            BAIL_ON_INVALID_STRING(pGroupNameInfo->pszName);
 
             dwError = LwAllocateStringPrintf(
                             &pszKey,
@@ -1412,8 +1425,10 @@ MemCacheRemoveObjectByHashKey(
     dwError = LwAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
-                    pObject->pszNetbiosDomainName,
-                    pObject->pszSamAccountName);
+                    pObject->pszNetbiosDomainName ?
+                        pObject->pszNetbiosDomainName : "",
+                    pObject->pszSamAccountName ?
+                        pObject->pszSamAccountName : "");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaHashRemoveKey(
@@ -1513,8 +1528,10 @@ MemCacheClearExistingObjectKeys(
     dwError = LwAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
-                    pObject->pszNetbiosDomainName,
-                    pObject->pszSamAccountName);
+                    pObject->pszNetbiosDomainName ?
+                        pObject->pszNetbiosDomainName : "",
+                    pObject->pszSamAccountName ?
+                        pObject->pszSamAccountName : "");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MemCacheRemoveObjectByHashKey(
@@ -2423,6 +2440,9 @@ MemCacheStoreObjectEntryInLock(
     // space)
     size_t sObjectSize = sizeof(*pObject) + HEAP_HEADER_SIZE;
 
+    BAIL_ON_INVALID_STRING(pObject->pszNetbiosDomainName);
+    BAIL_ON_INVALID_STRING(pObject->pszSamAccountName);
+
     dwError = MemCacheClearExistingObjectKeys(
                     pConn,
                     pObject);
@@ -2461,6 +2481,7 @@ MemCacheStoreObjectEntryInLock(
     sObjectSize += MemCacheGetStringSpace(pObject->pszNetbiosDomainName);
     sObjectSize += MemCacheGetStringSpace(pObject->pszSamAccountName);
 
+    // These parameters are checked for NULL at the top of the function
     dwError = LwAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
