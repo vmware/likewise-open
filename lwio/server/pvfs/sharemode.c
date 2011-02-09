@@ -209,6 +209,7 @@ struct _SHARE_MODE_ACCESS_COMPATIBILITY
     { FILE_SHARE_DELETE, (DELETE) }
 };
 
+static
 NTSTATUS
 _PvfsEnforceShareMode(
     IN PPVFS_SCB pScb,
@@ -228,6 +229,9 @@ _PvfsEnforceShareMode(
     DWORD TableSize = sizeof(ShareModeTable) /
                       sizeof(struct _SHARE_MODE_ACCESS_COMPATIBILITY);
     int i = 0;
+
+    BOOLEAN bFcbLocked = FALSE;
+    PPVFS_SCB pTargetScb = NULL;
 
     RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
 
@@ -282,11 +286,42 @@ _PvfsEnforceShareMode(
         pCcb = NULL;
     }
 
-    /* Cone - No conflicts*/
+    pCursor = NULL;
+
+    // If a DefaultStream && asking for DELETE
+    //   - iterate over open handles of all open streams
+    //   - All stream handles must be opened with FILE_SHARE_DELETE
+
+    if (PvfsIsDefaultStream(pScb) && (DesiredAccess & DELETE))
+    {
+        LWIO_ASSERT(pScb->pOwnerFcb);
+
+        LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pScb->pOwnerFcb->rwScbLock);
+
+        while ((pCursor = PvfsListTraverse(pScb->pOwnerFcb->pScbList, pCursor)) != NULL)
+        {
+            pTargetScb = LW_STRUCT_FROM_FIELD(
+                             pCursor,
+                             PVFS_SCB,
+                             FcbList);
+
+            if (pTargetScb != pScb)
+            {
+                ntError = _PvfsEnforceShareMode(
+                              pTargetScb,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                              DELETE);
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+    }
+
+    /* Done - No conflicts*/
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pScb->pOwnerFcb->rwScbLock);
     LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwCcbLock);
 
     return ntError;
