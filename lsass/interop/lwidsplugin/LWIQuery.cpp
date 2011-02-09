@@ -801,17 +801,28 @@ LWIQuery::QueryGroupsForUser(
     DWORD iGroup = 0;
     BOOLEAN fFoundPrimaryGroup = FALSE;
 
+    LOG("QueryGroupsForUser(gid: %d, UserSid: %s",
+        gid,
+        pszUserSid ? pszUserSid : "<null>");
+
     macError = GetUserGroups(pszUserSid, &ppGroups, &dwNumGroupsFound);
     GOTO_CLEANUP_ON_MACERROR(macError);
 
+    LOG("QueryGroupsForUser found %d entries", dwNumGroupsFound);
+
     for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
     {
-        if (gid == ppGroups[iGroup]->groupInfo.gid)
+        if (ppGroups[iGroup])
         {
-            fFoundPrimaryGroup = TRUE;
+            if (gid == ppGroups[iGroup]->groupInfo.gid)
+            {
+                fFoundPrimaryGroup = TRUE;
+            }
+
+            macError = AddGroupRecordHelper(ppGroups[iGroup], false);
+            GOTO_CLEANUP_ON_MACERROR(macError);
+            LOG("QueryGroupsForUser adding group id", ppGroups[iGroup]);
         }
-        macError = AddGroupRecordHelper(ppGroups[iGroup], false);
-        GOTO_CLEANUP_ON_MACERROR(macError);
     }
 
     if (!fFoundPrimaryGroup)
