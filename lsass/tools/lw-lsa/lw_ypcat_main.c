@@ -81,7 +81,8 @@ static
 DWORD
 EnumerateUsers(
     HANDLE  hLsaConnection,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     );
 
 static
@@ -89,7 +90,8 @@ DWORD
 EnumerateGroups(
     HANDLE  hLsaConnection,
     BOOLEAN bCheckGroupMembersOnline,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     );
 
 static
@@ -104,14 +106,16 @@ static
 VOID
 PrintUserInfo_2(
     PLSA_USER_INFO_2 pUserInfo,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     );
 
 static
 VOID
 PrintGroupInfo_1(
     PLSA_GROUP_INFO_1 pGroupInfo,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     );
 
 static
@@ -152,6 +156,7 @@ lw_ypcat_main(
     BOOLEAN bNoNicknameFile = FALSE;
     PCSTR   pszNicknameFilePath = "/var/yp/nicknames";
     BOOLEAN bCheckGroupMembersOnline = FALSE;
+    BOOLEAN bIndexById = FALSE;
 
     dwError = ParseArgs(
                     argc,
@@ -222,12 +227,34 @@ lw_ypcat_main(
     if (!strcasecmp(pszMapName, "passwd.byname") ||
         !strcasecmp(pszMapName, "passwd"))
     {
-        dwError = EnumerateUsers(hLsaConnection, bPrintKeys);
+        dwError = EnumerateUsers(hLsaConnection, bPrintKeys, bIndexById);
+    }
+    else if (!strcasecmp(pszMapName, "passwd.byid") ||
+             !strcasecmp(pszMapName, "passwd.byuid"))
+    {
+        bIndexById = TRUE;
+
+        dwError = EnumerateUsers(hLsaConnection, bPrintKeys, bIndexById);
     }
     else if (!strcasecmp(pszMapName, "group.byname") ||
              !strcasecmp(pszMapName, "group"))
     {
-        dwError = EnumerateGroups(hLsaConnection, bCheckGroupMembersOnline, bPrintKeys);
+        dwError = EnumerateGroups(
+                        hLsaConnection,
+                        bCheckGroupMembersOnline,
+                        bPrintKeys,
+                        bIndexById);
+    }
+    else if (!strcasecmp(pszMapName, "group.byid") ||
+             !strcasecmp(pszMapName, "group.bygid"))
+    {
+        bIndexById = TRUE;
+
+        dwError = EnumerateGroups(
+                        hLsaConnection,
+                        bCheckGroupMembersOnline,
+                        bPrintKeys,
+                        bIndexById);
     }
     else
     {
@@ -444,7 +471,8 @@ static
 DWORD
 EnumerateUsers(
     HANDLE  hLsaConnection,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     )
 {
     DWORD  dwError = 0;
@@ -486,7 +514,7 @@ EnumerateUsers(
         {
             PLSA_USER_INFO_2 pUserInfo = (PLSA_USER_INFO_2)*(ppUserInfoList + iUser);
 
-            PrintUserInfo_2(pUserInfo, bPrintKeys);
+            PrintUserInfo_2(pUserInfo, bPrintKeys, bIndexById);
         }
 
     } while (dwNumUsersFound);
@@ -514,7 +542,8 @@ DWORD
 EnumerateGroups(
     HANDLE  hLsaConnection,
     BOOLEAN bCheckGroupMembersOnline,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     )
 {
     DWORD  dwError = 0;
@@ -557,7 +586,7 @@ EnumerateGroups(
         {
             PLSA_GROUP_INFO_1 pGroupInfo = (PLSA_GROUP_INFO_1)*(ppGroupInfoList + iGroup);
 
-            PrintGroupInfo_1(pGroupInfo, bPrintKeys);
+            PrintGroupInfo_1(pGroupInfo, bPrintKeys, bIndexById);
         }
 
     } while (dwNumGroupsFound);
@@ -666,12 +695,20 @@ static
 VOID
 PrintUserInfo_2(
     PLSA_USER_INFO_2 pUserInfo,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     )
 {
     if (bPrintKeys)
     {
-        printf("%s ", pUserInfo->pszName);
+        if (bIndexById)
+        {
+            printf("%u ", (unsigned int)pUserInfo->uid);
+        }
+        else
+        {
+            printf("%s ", pUserInfo->pszName);
+        }
     }
 
     printf("%s:%s:%u:%u:%s:%s:%s\n",
@@ -691,14 +728,22 @@ static
 VOID
 PrintGroupInfo_1(
     PLSA_GROUP_INFO_1 pGroupInfo,
-    BOOLEAN bPrintKeys
+    BOOLEAN bPrintKeys,
+    BOOLEAN bIndexById
     )
 {
     PSTR* ppszMembers = NULL;
 
     if (bPrintKeys)
     {
-        printf("%s ", pGroupInfo->pszName);
+        if (bIndexById)
+        {
+            printf("%u ", (unsigned int)pGroupInfo->gid);
+        }
+        else
+        {
+            printf("%s ", pGroupInfo->pszName);
+        }
     }
 
     printf("%s:%s:%u:",
