@@ -337,7 +337,6 @@ RegShellUtilAddKeySecDesc(
     }
 
 cleanup:
-    RegCloseServer(hRegLocal);
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
@@ -346,6 +345,7 @@ cleanup:
     {
         RegCloseKey(hReg, pNextKey);
     }
+    RegCloseServer(hRegLocal);
     LWREG_SAFE_FREE_STRING(pszFullPath);
     LWREG_SAFE_FREE_STRING(pszSubKey);
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
@@ -448,7 +448,6 @@ RegShellUtilDeleteKey(
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
-    RegCloseServer(hRegLocal);
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
@@ -457,6 +456,7 @@ cleanup:
     {
         RegCloseKey(hReg, pRootKey);
     }
+    RegCloseServer(hRegLocal);
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
 
     LWREG_SAFE_FREE_STRING(pszFullPath);
@@ -539,7 +539,6 @@ RegShellUtilDeleteTree(
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
-    RegCloseServer(hRegLocal);
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
@@ -548,6 +547,7 @@ cleanup:
     {
         RegCloseKey(hReg, pRootKey);
     }
+    RegCloseServer(hRegLocal);
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     LWREG_SAFE_FREE_STRING(pszFullPath);
     LWREG_SAFE_FREE_STRING(pszParentPath);
@@ -687,7 +687,6 @@ done:
     *pdwRetSubKeyCount = dwSubKeyCount;
 
 cleanup:
-    RegCloseServer(hRegLocal);
     if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -696,6 +695,7 @@ cleanup:
     {
         RegCloseKey(hReg, pRootKey);
     }
+    RegCloseServer(hRegLocal);
     LWREG_SAFE_FREE_STRING(pszParentPath);
     LWREG_SAFE_FREE_STRING(pszKeyName);
 
@@ -834,7 +834,6 @@ RegShellUtilSetValue(
     }
 
 cleanup:
-    RegCloseServer(hRegLocal);
     if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -843,6 +842,7 @@ cleanup:
     {
         RegCloseKey(hReg, pRootKey);
     }
+    RegCloseServer(hRegLocal);
     LWREG_SAFE_FREE_STRING(pszParentPath);
     return dwError;
 
@@ -1024,7 +1024,6 @@ RegShellUtilGetValues(
     *pdwValueArrayLen = indx;
 
 cleanup:
-    RegCloseServer(hRegLocal);
     if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -1033,6 +1032,7 @@ cleanup:
     {
         RegCloseKey(hReg, pRootKey);
     }
+    RegCloseServer(hRegLocal);
     LWREG_SAFE_FREE_STRING(pszValueName);
     LWREG_SAFE_FREE_STRING(pszParentPath);
     LWREG_SAFE_FREE_MEMORY(pSubKey);
