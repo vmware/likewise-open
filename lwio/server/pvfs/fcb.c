@@ -317,9 +317,7 @@ PvfsReleaseFCB(
         ntError = PvfsSysStatByFileName(&fileName, &Stat);
         if (ntError == STATUS_SUCCESS)
         {
-            LWIO_LOCK_MUTEX(
-                fcbControlLocked,
-                &pFcb->BaseControlBlock.Mutex);
+            LWIO_LOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
 
             if (pFcb->bDeleteOnClose)
             {
@@ -335,26 +333,16 @@ PvfsReleaseFCB(
                 {
                     PPVFS_CB_TABLE_ENTRY pBucket = pFcb->BaseControlBlock.pBucket;
 
-                    LWIO_UNLOCK_MUTEX(
-                        fcbControlLocked,
-                        &pFcb->BaseControlBlock.Mutex);
+                    pFcb->BaseControlBlock.Removed = TRUE;
+                    pFcb->BaseControlBlock.pBucket = NULL;
+
+                    LWIO_UNLOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
 
                     /* Remove the SCB from the Bucket before setting
                        pScb->BaseControlBlock.pBucket to NULL */
 
                     ntError = PvfsCbTableRemove(pBucket, pFcb->pszFilename);
                     LWIO_ASSERT(ntError == STATUS_SUCCESS);
-
-                    LWIO_LOCK_MUTEX(
-                        fcbControlLocked,
-                        &pFcb->BaseControlBlock.Mutex);
-
-                    pFcb->BaseControlBlock.Removed = TRUE;
-                    pFcb->BaseControlBlock.pBucket = NULL;
-
-                    LWIO_UNLOCK_MUTEX(
-                        fcbControlLocked,
-                        &pFcb->BaseControlBlock.Mutex);
                 }
 
                 LWIO_UNLOCK_MUTEX(fcbControlLocked, &pFcb->BaseControlBlock.Mutex);
@@ -413,10 +401,11 @@ PvfsReleaseFCB(
 
         if (!pFcb->BaseControlBlock.Removed)
         {
-            PvfsCbTableRemove_inlock(pBucket, pFcb->pszFilename);
-
             pFcb->BaseControlBlock.Removed = TRUE;
             pFcb->BaseControlBlock.pBucket = NULL;
+
+            ntError = PvfsCbTableRemove_inlock(pBucket, pFcb->pszFilename);
+            LWIO_ASSERT(ntError == STATUS_SUCCESS);
         }
 
         if (pBucket)

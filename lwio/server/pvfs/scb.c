@@ -336,26 +336,16 @@ PvfsReleaseSCB(
                 {
                     PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
 
-                    LWIO_UNLOCK_MUTEX(
-                        bScbControlLocked,
-                        &pScb->BaseControlBlock.Mutex);
+                    pScb->BaseControlBlock.Removed = TRUE;
+                    pScb->BaseControlBlock.pBucket = NULL;
+
+                    LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
                     /* Remove the SCB from the Bucket before setting
                        pScb->BaseControlBlock.pBucket to NULL */
 
                     ntError = PvfsCbTableRemove(pBucket, fullStreamName);
                     LWIO_ASSERT(ntError == STATUS_SUCCESS);
-
-                    LWIO_LOCK_MUTEX(
-                        bScbControlLocked,
-                        &pScb->BaseControlBlock.Mutex);
-
-                    pScb->BaseControlBlock.Removed = TRUE;
-                    pScb->BaseControlBlock.pBucket = NULL;
-
-                    LWIO_UNLOCK_MUTEX(
-                        bScbControlLocked,
-                        &pScb->BaseControlBlock.Mutex);
                 }
 
                 LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
@@ -395,12 +385,11 @@ PvfsReleaseSCB(
 
         if (!pScb->BaseControlBlock.Removed)
         {
-            ntError = PvfsCbTableRemove_inlock(pBucket, fullStreamName);
-
-            LWIO_ASSERT(ntError == STATUS_SUCCESS);
-
             pScb->BaseControlBlock.Removed = TRUE;
             pScb->BaseControlBlock.pBucket = NULL;
+
+            ntError = PvfsCbTableRemove_inlock(pBucket, fullStreamName);
+            LWIO_ASSERT(ntError == STATUS_SUCCESS);
         }
 
         if (pBucket)
@@ -510,17 +499,16 @@ PvfsCreateSCB(
     ntError = PvfsAllocateSCB(&pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    // FIXME!! These should be methods for accesing the file and stream names
-
     if (!PvfsIsDefaultStreamName(FileName))
     {
-        ntError = RtlCStringDuplicate(&pScb->pszStreamname, FileName->StreamName);
+        ntError = RtlCStringDuplicate(&pScb->pszStreamname,
+                                      PvfsGetCStringBaseStreamName(FileName));
         BAIL_ON_NT_STATUS(ntError);
     }
 
     pScb->StreamType = FileName->Type;
 
-    ntError = PvfsFindOwnerFCB(&pOwnerFcb, FileName->FileName);
+    ntError = PvfsFindOwnerFCB(&pOwnerFcb, (PSTR)PvfsGetCStringBaseFileName(FileName));
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAddSCBToFCB(pOwnerFcb, pScb);
