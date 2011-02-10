@@ -160,7 +160,7 @@ PvfsCreateFileSupersede(
                   &resolvedDirName,
                   &statPath,
                   directoryName,
-                  FALSE);
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for file existence.  Remove it if necessary */
@@ -170,7 +170,7 @@ PvfsCreateFileSupersede(
                   &statFile,
                   resolvedDirName,
                   relativeName,
-                  FALSE);
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     pCreateCtx->bFileExisted = TRUE;
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
@@ -368,7 +368,7 @@ PvfsCreateFileCreate(
                   &pCreateCtx->ResolvedFileName,
                   &Stat,
                   pCreateCtx->OriginalFileName,
-                  FALSE);
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     switch (ntError)
     {
         case STATUS_SUCCESS:
@@ -398,7 +398,11 @@ PvfsCreateFileCreate(
                   pCreateCtx->OriginalFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath2(&resolvedDirName, &Stat, directoryName, FALSE);
+    ntError = PvfsLookupPath2(
+                  &resolvedDirName,
+                  &Stat,
+                  directoryName,
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAppendFileName(
@@ -495,7 +499,7 @@ PvfsCreateFileOpenOrOverwrite(
                   &pCreateCtx->ResolvedFileName,
                   &Stat,
                   pCreateCtx->OriginalFileName,
-                  FALSE);
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     BAIL_ON_NT_STATUS(ntError);
 
     if (S_ISDIR(Stat.s_mode))
@@ -639,7 +643,11 @@ PvfsCreateFileOpenOrOverwriteIf(
                   pCreateCtx->OriginalFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsLookupPath2(&resolvedDirName, &statPath, directoryName, FALSE);
+    ntError = PvfsLookupPath2(
+                  &resolvedDirName,
+                  &statPath,
+                  directoryName,
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for file existence */
@@ -649,7 +657,7 @@ PvfsCreateFileOpenOrOverwriteIf(
                   &statFile,
                   resolvedDirName,
                   relativeFileName,
-                  FALSE);
+                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
     pCreateCtx->bFileExisted = TRUE;
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
