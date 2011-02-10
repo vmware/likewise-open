@@ -1175,14 +1175,7 @@ AD_DsEnumerateDomainTrusts(
         }
         else
         {
-            switch (winError)
-            {
-            case ERROR_ACCESS_DENIED:
-                dwError = winError;
-                break;
-            default:
-                dwError = LW_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
-            }
+            dwError = winError;
 
             if (AD_WinErrorIsConnectionError(winError))
             {
