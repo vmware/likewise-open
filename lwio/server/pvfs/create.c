@@ -341,13 +341,22 @@ PvfsCreateFileDoSysOpen(
         }
     }
 
-    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_ATTRIB) &&
-        (Args.FileAttributes != 0))
+    if (pCreateContext->SetPropertyFlags & PVFS_SET_PROP_ATTRIB)
     {
-        ntError = PvfsSetFileAttributes(
-                      pCreateContext->pCcb,
-                      Args.FileAttributes);
-        BAIL_ON_NT_STATUS(ntError);
+        // Overwrite should remove pre-existing streams
+        if (PvfsIsDefaultStream(pCreateContext->pCcb->pScb))
+        {
+            ntError = PvfsRemoveStreams(pCreateContext->pCcb);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        if (Args.FileAttributes != 0)
+        {
+            ntError = PvfsSetFileAttributes(
+                          pCreateContext->pCcb,
+                          Args.FileAttributes);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
 
     /* Save the delete-on-close flag to the SCB */
