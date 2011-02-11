@@ -178,6 +178,7 @@ PvfsWC16CanonicalPathName(
     size_t Length = 0;
     size_t Offset = 0;
     int i = 0;
+    BOOLEAN parsingStreamName = FALSE;
 
     ntError = PvfsAllocateMemory(
                     (PVOID*)&pwszPathname,
@@ -198,12 +199,19 @@ PvfsWC16CanonicalPathName(
     pszCursor = pszPath;
     while (pszCursor && *pszCursor)
     {
-        if ((*pszCursor == '"') ||
+        // This really needs to be done cleaner
+        if (*pszCursor == ':')
+        {
+            parsingStreamName = TRUE;
+        }
+
+        if (!parsingStreamName &&
+            ((*pszCursor == '?') ||
             (*pszCursor == '*') ||
-            (*pszCursor == '?') ||
-            (*pszCursor == '<') ||
-            (*pszCursor == '>') ||
-            (*pszCursor == '|'))
+             (*pszCursor == '"') ||
+             (*pszCursor == '<') ||
+             (*pszCursor == '>') ||
+             (*pszCursor == '|')))
         {
             ntError = STATUS_OBJECT_NAME_INVALID;
             BAIL_ON_NT_STATUS(ntError);
@@ -220,7 +228,6 @@ PvfsWC16CanonicalPathName(
                 goto cleanup;
             }
         }
-
 
         if (*pszCursor == '\\')
         {
