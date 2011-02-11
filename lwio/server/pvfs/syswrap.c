@@ -136,21 +136,13 @@ PvfsSysStatByFileName(
 	)
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    struct stat sBuf = {0};
-    int unixerr = 0;
     PSTR fileName = NULL;
 
     ntError = PvfsLookupStreamDiskFileName(&fileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (stat(fileName, &sBuf) == -1) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-
-    if (Stat) {
-        ntError = CopyUnixStatToPvfsStat(Stat, &sBuf);
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = PvfsSysStat(fileName, Stat);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     if (fileName)
@@ -448,49 +440,6 @@ PvfsSysOpenDir(
     }
 
 error:
-    if (ntError || !ppDir)
-    {
-        if (pDir)
-        {
-            PvfsSysCloseDir(pDir);
-        }
-    }
-
-    if (ppDir)
-    {
-        *ppDir = pDir;
-    }
-
-    return ntError;
-}
-
-/**********************************************************
- *********************************************************/
-
-NTSTATUS
-PvfsSysOpenDirByFileName(
-    IN PPVFS_FILE_NAME pDirname,
-    OUT OPTIONAL DIR **ppDir
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    int unixerr = 0;
-    DIR *pDir = NULL;
-    PSTR pszDirname = NULL;
-
-    ntError = PvfsLookupStreamDiskFileName(&pszDirname, pDirname);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if ((pDir = opendir(pszDirname)) == NULL) {
-        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-    }
-
-error:
-    if (pszDirname)
-    {
-        LwRtlCStringFree(&pszDirname);
-    }
-
     if (ntError || !ppDir)
     {
         if (pDir)
