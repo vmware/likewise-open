@@ -240,7 +240,7 @@ PvfsExecuteDeleteOnCloseFCB(
     ntError = PvfsValidatePathFCB(pFcb, &pFcb->FileId);
     if (ntError == STATUS_SUCCESS)
     {
-        ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename);
+        ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename, 0);
         // Don't BAIL_ON_NT_STATUS() so the FileId is always reset
         if (ntError == STATUS_SUCCESS)
         {
@@ -307,7 +307,7 @@ PvfsReleaseFCB(
 
     pFcb = *ppFcb;
 
-    ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename);
+    ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     LWIO_LOCK_RWMUTEX_SHARED(scbListLocked, &pFcb->rwScbLock);

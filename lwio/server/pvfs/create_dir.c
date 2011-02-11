@@ -144,6 +144,15 @@ PvfsCreateDirCreate(
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (IsSetFlag(
+            pCreateCtx->OriginalFileName->NameOptions,
+            PVFS_FILE_NAME_OPTION_DEFINED_STREAM_TYPE))
+    {
+        // Disallow named streams here (shouldn't happen) and "::$DATA"
+        ntError = STATUS_NOT_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     /* We expect this call to fail with OBJECT_NAME_NOT_FOUND */
 
     ntError = PvfsLookupPath2(
@@ -279,6 +288,15 @@ PvfsCreateDirOpen(
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (IsSetFlag(
+            pCreateCtx->OriginalFileName->NameOptions,
+            PVFS_FILE_NAME_OPTION_DEFINED_STREAM_TYPE))
+    {
+        // Disallow named streams here (shouldn't happen) and "::$DATA"
+        ntError = STATUS_NOT_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     ntError = PvfsLookupPath2(
                   &pCreateCtx->ResolvedFileName,
                   &Stat,
@@ -369,6 +387,15 @@ PvfsCreateDirOpenIf(
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (IsSetFlag(
+            pCreateCtx->OriginalFileName->NameOptions,
+            PVFS_FILE_NAME_OPTION_DEFINED_STREAM_TYPE))
+    {
+        // Disallow named streams here (shouldn't happen) and "::$DATA"
+        ntError = STATUS_NOT_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = PvfsSplitFileNamePath(
                   &directoryName,

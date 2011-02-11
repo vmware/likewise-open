@@ -141,6 +141,11 @@ PvfsPathCacheLookup(
     ntError = PvfsFileNameDuplicate(&resolvedFileName, &pCacheRecord->FileName);
     BAIL_ON_NT_STATUS(ntError);
 
+    // We want maintain the NameOptions from the OriginalFileName and
+    // not the version in the path cache
+
+    resolvedFileName->NameOptions = pOriginalFileName->NameOptions;
+
     *ppResolvedFileName = resolvedFileName;
 
 error:

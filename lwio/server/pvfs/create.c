@@ -139,6 +139,16 @@ PvfsCreate(
                       pIrp->Args.Create.FileName.IoNameOptions &
                                     IO_NAME_OPTION_CASE_SENSITIVE);
 
+        if (NT_SUCCESS(ntError) &&
+            S_ISDIR(Stat.s_mode) &&
+            IsSetFlag(
+                resolvedFileName->NameOptions,
+                PVFS_FILE_NAME_OPTION_DEFINED_STREAM_TYPE))
+        {
+            ntError = STATUS_FILE_IS_A_DIRECTORY;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         PvfsFreeFileName(createFileName);
         createFileName = NULL;
 

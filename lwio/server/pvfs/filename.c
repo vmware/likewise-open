@@ -65,6 +65,8 @@ PvfsDestroyFileName(
     }
 
     pFileName->Type = PVFS_STREAM_TYPE_UNKNOWN;
+
+    pFileName->NameOptions = 0;
 }
 
 
@@ -96,7 +98,8 @@ PvfsParseStreamType(
 NTSTATUS
 PvfsBuildFileNameFromCString(
     IN OUT PPVFS_FILE_NAME pFileName,
-    IN PCSTR FullFileName
+    IN PCSTR FullFileName,
+    IN PVFS_FILE_NAME_OPTIONS NameOptions
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -106,12 +109,14 @@ PvfsBuildFileNameFromCString(
     PSTR streamName = NULL;
     PSTR streamTypeString = NULL;
     PVFS_STREAM_TYPE streamTypeValue = PVFS_STREAM_TYPE_UNKNOWN;
+    PVFS_FILE_NAME_OPTIONS nameOptions = 0;
 
     BAIL_ON_INVALID_PTR(pFileName, ntError);
 
     pFileName->FileName = NULL;
     pFileName->StreamName = NULL;
     pFileName->Type = PVFS_STREAM_TYPE_UNKNOWN;
+    pFileName->NameOptions = 0;
 
     ntError = LwRtlCStringDuplicate(&fileName, FullFileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -159,7 +164,7 @@ PvfsBuildFileNameFromCString(
         cursor = strchr(currentPosition, PVFS_STREAM_DELIMINATOR_C);
         if (cursor == NULL)
         {
-            // Missing StreamType
+            // Missing StreamType (but assumed to be specified)
             streamTypeValue = PVFS_STREAM_TYPE_DATA;
         }
     }
@@ -185,6 +190,9 @@ PvfsBuildFileNameFromCString(
             streamTypeValue = PVFS_STREAM_TYPE_DATA;
         }
     }
+    nameOptions = PVFS_FILE_NAME_OPTION_DEFINED_STREAM_TYPE;
+
+    // Copy to the OUT FileName
 
     ntError = LwRtlCStringDuplicate(&pFileName->FileName, fileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -197,6 +205,7 @@ PvfsBuildFileNameFromCString(
     }
 
     pFileName->Type = streamTypeValue;
+    pFileName->NameOptions = nameOptions | NameOptions;
 
 cleanup:
     if (!NT_SUCCESS(ntError))
@@ -264,7 +273,8 @@ error:
 NTSTATUS
 PvfsAllocateFileNameFromCString(
     OUT PPVFS_FILE_NAME *ppFileName,
-    IN PCSTR SourceFileName
+    IN PCSTR SourceFileName,
+    IN PVFS_FILE_NAME_OPTIONS NameOptions
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -273,7 +283,7 @@ PvfsAllocateFileNameFromCString(
     ntError = PvfsAllocateMemory((PVOID*)&pFileName, sizeof(*pFileName), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsBuildFileNameFromCString(pFileName, SourceFileName);
+    ntError = PvfsBuildFileNameFromCString(pFileName, SourceFileName, NameOptions);
     BAIL_ON_NT_STATUS(ntError);
 
     *ppFileName = pFileName;
@@ -437,6 +447,7 @@ PvfsFileNameCopy(
     }
 
     pDstFileName->Type = pSrcFileName->Type;
+    pDstFileName->NameOptions = pSrcFileName->NameOptions;
 
 error:
     if (!NT_SUCCESS(ntError))

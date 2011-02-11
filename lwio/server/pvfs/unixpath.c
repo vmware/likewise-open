@@ -139,7 +139,7 @@ PvfsCanonicalPathName2(
     ntError = PvfsCanonicalPathName(&inputPath, IoPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, inputPath);
+    ntError = PvfsAllocateFileNameFromCString(&pOutputFileName, inputPath, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     *ppFileName = pOutputFileName;
@@ -535,7 +535,7 @@ PvfsLookupPath(
 
     *ppszDiskPath = NULL;
 
-    ntError = PvfsAllocateFileNameFromCString(&originalFileName, pszPath);
+    ntError = PvfsAllocateFileNameFromCString(&originalFileName, pszPath, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsLookupPath2(
@@ -1019,7 +1019,7 @@ PvfsResolvePath(
                 pszComponent);
         }
 
-        ntError = PvfsAllocateFileNameFromCString(&workingPath, pszWorkingPath);
+        ntError = PvfsAllocateFileNameFromCString(&workingPath, pszWorkingPath, 0);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Try cache first */
@@ -1062,7 +1062,7 @@ PvfsResolvePath(
         {
             /* Enumerate directory entries and look for a match */
 
-            ntError = PvfsAllocateFileNameFromCString(&currentResolvedPath, pszCurrentResolvedPath);
+            ntError = PvfsAllocateFileNameFromCString(&currentResolvedPath, pszCurrentResolvedPath, 0);
             BAIL_ON_NT_STATUS(ntError);
 
             ntError = PvfsSysOpenDirByFileName(currentResolvedPath, &pDir);
@@ -1128,7 +1128,7 @@ PvfsResolvePath(
             pDir = NULL;
             BAIL_ON_NT_STATUS(ntError);
 
-            ntError = PvfsAllocateFileNameFromCString(&resolvedPath, pszResolvedPath);
+            ntError = PvfsAllocateFileNameFromCString(&resolvedPath, pszResolvedPath, 0);
             BAIL_ON_NT_STATUS(ntError);
 
             ntError = PvfsPathCacheAdd(resolvedPath);
@@ -1175,7 +1175,10 @@ PvfsResolvePath(
         pszCurrentResolvedPath = NULL;
     }
 
-    ntError = PvfsAllocateFileNameFromCString(&finalResolvedPath, pszResolvedPath);
+    ntError = PvfsAllocateFileNameFromCString(
+                  &finalResolvedPath,
+                  pszResolvedPath,
+                  InputPath->NameOptions);
     BAIL_ON_NT_STATUS(ntError);
 
     *ppResolvedPath = finalResolvedPath;

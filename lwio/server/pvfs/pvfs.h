@@ -447,13 +447,15 @@ PvfsParseStreamname(
 NTSTATUS
 PvfsBuildFileNameFromCString(
     IN OUT PPVFS_FILE_NAME pFileName,
-    IN PCSTR FullFileName
+    IN PCSTR FullFileName,
+    IN PVFS_FILE_NAME_OPTIONS NameOptions
     );
 
 NTSTATUS
 PvfsAllocateFileNameFromCString(
     OUT PPVFS_FILE_NAME *ppFileName,
-    IN PCSTR SourceFileName
+    IN PCSTR SourceFileName,
+    IN PVFS_FILE_NAME_OPTIONS NameOptions
     );
 
 NTSTATUS
