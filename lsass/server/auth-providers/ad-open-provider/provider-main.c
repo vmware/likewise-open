@@ -684,13 +684,6 @@ AD_TransitionNotJoined(
     )
 {
     DWORD dwError = 0;
-    PLSA_MACHINE_ACCOUNT_INFO_W pAccount = NULL;
-
-    // Ignore error
-    AD_GetMachineAccountInfoW(&pAccount);
-
-    dwError = LsaPstoreCallPluginDeletePasswordInfo(pAccount);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheEmptyCache(pState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
@@ -704,11 +697,6 @@ AD_TransitionNotJoined(
     pState->joinState = LSA_AD_NOT_JOINED;
 
 error:
-
-    if (pAccount)
-    {
-        LsaAdFreeMachineAccountInfoW(pAccount);
-    }
     return dwError;
 }
 
@@ -1437,6 +1425,7 @@ AD_JoinDomain(
     PSTR pszCanonicalDnsDomainName = NULL;
     PSTR pszCanonicalHostname = NULL;
     PSTR pszCanonicalHostDnsDomain = NULL;
+    PLSA_MACHINE_PASSWORD_INFO_W pPasswordInfo = NULL;
 
     if (peerUID != 0)
     {
@@ -1512,6 +1501,16 @@ AD_JoinDomain(
         pRequest->dwFlags);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = AD_GetMachinePasswordInfoW(&pPasswordInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaPstoreCallPluginSetPasswordInfo(pPasswordInfo);
+    if (dwError)
+    {
+        LSA_LOG_ERROR("Calling the pstore plugins failed with code %d\n",
+                dwError);
+    }
+
     dwError = AD_PostJoinDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1522,6 +1521,10 @@ AD_JoinDomain(
 
 cleanup:
 
+    if (pPasswordInfo)
+    {
+        LsaPstoreFreePasswordInfoW(pPasswordInfo);
+    }
     if (bLocked)
     {
         LsaAdProviderStateRelease(gpLsaAdProviderState);
@@ -1605,6 +1608,7 @@ AD_LeaveDomain(
     PLSA_AD_IPC_LEAVE_DOMAIN_REQ pRequest = NULL;
     PSTR pszMessage = NULL;
     BOOLEAN bLocked = FALSE;
+    PLSA_MACHINE_ACCOUNT_INFO_W pAccount = NULL;
 
     if (peerUID != 0)
     {
@@ -1641,9 +1645,15 @@ AD_LeaveDomain(
     dwError = AD_PreLeaveDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
+    // Ignore error
+    AD_GetMachineAccountInfoW(&pAccount);
+
     dwError = LsaLeaveDomain(
         pRequest->pszUsername,
         pRequest->pszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaPstoreCallPluginDeletePasswordInfo(pAccount);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_PostLeaveDomain(hProvider, gpLsaAdProviderState);
@@ -1671,6 +1681,10 @@ cleanup:
     if (pDataContext)
     {
         lwmsg_data_context_delete(pDataContext);
+    }
+    if (pAccount)
+    {
+        LsaAdFreeMachineAccountInfoW(pAccount);
     }
 
     return dwError;

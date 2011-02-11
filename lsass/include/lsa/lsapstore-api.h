@@ -149,6 +149,11 @@ LsaPstoreSetPasswordInfoW(
 ///
 
 DWORD
+LsaPstoreCallPluginSetPasswordInfo(
+    IN PLSA_MACHINE_PASSWORD_INFO_W pPasswordInfo
+    );
+
+DWORD
 LsaPstoreCallPluginDeletePasswordInfo(
     IN OPTIONAL PLSA_MACHINE_ACCOUNT_INFO_W pAccountInfo
     );
