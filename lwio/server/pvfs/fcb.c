@@ -446,7 +446,7 @@ PvfsFindParentFCB(
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN PSTR pszFilename,
+    IN PCSTR pszFilename,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess
@@ -462,7 +462,7 @@ PvfsCreateFCB(
     ntError = PvfsFindParentFCB(&pParentFcb, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, pszFilename);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, (PVOID)pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Protect against adding a duplicate */
@@ -476,16 +476,6 @@ PvfsCreateFCB(
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
-
-#if 0
-        if (bCheckShareAccess)
-        {
-            ntError = PvfsEnforceShareMode(
-                          pFcb,
-                          SharedAccess,
-                          DesiredAccess);
-        }
-#endif
 
         /* If we have success, then we are good.  If we have a sharing
            violation, give the caller a chance to break the oplock and
