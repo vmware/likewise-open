@@ -380,12 +380,31 @@ PvfsWriteFileWithContext(
 
     if (totalBytesWritten > 0)
     {
-        pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_LAST_WRITE;
+        pCcb->ChangeEvent |= (FILE_NOTIFY_CHANGE_LAST_WRITE|
+                              FILE_NOTIFY_CHANGE_STREAM_SIZE);
 
         if ((Offset + totalBytesWritten) > pCcb->FileSize)
         {
             pCcb->FileSize = Offset + totalBytesWritten;
-            pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_SIZE;
+            pCcb->ChangeEvent |= (FILE_NOTIFY_CHANGE_SIZE|
+                                  FILE_NOTIFY_CHANGE_STREAM_SIZE);
+        }
+
+        pCcb->WriteCount++;
+
+        // BUG 11834 - Finder in OSX 10.5/10.6 will hang long lived change
+        // notify requests that result in the client reusing an existing
+        // (PID, MID) tuple.  Work around this by generating a change notify
+        // event every Nth write
+
+        if ((gPvfsDriverConfig.WriteChangeNotify != 0) &&
+            ((pCcb->WriteCount % gPvfsDriverConfig.WriteChangeNotify) == 0))
+        {
+            PvfsNotifyScheduleFullReport(
+                pCcb->pScb->pOwnerFcb,
+                pCcb->ChangeEvent,
+                FILE_ACTION_MODIFIED,
+                pCcb->pScb->pOwnerFcb->pszFilename);
         }
     }
 

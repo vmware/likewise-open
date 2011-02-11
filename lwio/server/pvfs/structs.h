@@ -459,6 +459,7 @@ struct _PVFS_CCB
 
     FILE_NOTIFY_CHANGE ChangeEvent;
     LONG64 FileSize;
+    ULONG WriteCount;
 
     PPVFS_LIST pZctContextList;
 };
@@ -612,6 +613,8 @@ typedef struct _PVFS_DRIVER_CONFIG
 
     DWORD     WorkerThreadPoolSize;
     DWORD     PathCacheSize;
+
+    DWORD     WriteChangeNotify;
 
 } PVFS_DRIVER_CONFIG, *PPVFS_DRIVER_CONFIG;
 
