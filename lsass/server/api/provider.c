@@ -149,3 +149,175 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LsaSrvProviderGetMachineAccountInfoA(
+    IN PCSTR pszProvider,
+    OUT PLSA_MACHINE_ACCOUNT_INFO_A* ppAccountInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    PLSA_MACHINE_ACCOUNT_INFO_A pAccountInfo = NULL;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pProvider->pFnTable2->pfnGetMachineAccountInfoA)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = pProvider->pFnTable2->pfnGetMachineAccountInfoA(
+                    &pAccountInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        if (pAccountInfo)
+        {
+            LsaSrvFreeMachineAccountInfoA(pAccountInfo);
+            pAccountInfo = NULL;
+        }
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    *ppAccountInfo = pAccountInfo;
+
+    return dwError;
+}
+
+DWORD
+LsaSrvProviderGetMachineAccountInfoW(
+    IN PCSTR pszProvider,
+    OUT PLSA_MACHINE_ACCOUNT_INFO_W* ppAccountInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    PLSA_MACHINE_ACCOUNT_INFO_W pAccountInfo = NULL;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pProvider->pFnTable2->pfnGetMachineAccountInfoW)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = pProvider->pFnTable2->pfnGetMachineAccountInfoW(
+                    &pAccountInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        if (pAccountInfo)
+        {
+            LsaSrvFreeMachineAccountInfoW(pAccountInfo);
+            pAccountInfo = NULL;
+        }
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    *ppAccountInfo = pAccountInfo;
+
+    return dwError;
+}
+
+DWORD
+LsaSrvProviderGetMachinePasswordInfoA(
+    IN PCSTR pszProvider,
+    OUT PLSA_MACHINE_PASSWORD_INFO_A* ppPasswordInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    PLSA_MACHINE_PASSWORD_INFO_A pPasswordInfo = NULL;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pProvider->pFnTable2->pfnGetMachinePasswordInfoA)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = pProvider->pFnTable2->pfnGetMachinePasswordInfoA(
+                    &pPasswordInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        if (pPasswordInfo)
+        {
+            LsaSrvFreeMachinePasswordInfoA(pPasswordInfo);
+            pPasswordInfo = NULL;
+        }
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    *ppPasswordInfo = pPasswordInfo;
+
+    return dwError;
+}
+
+DWORD
+LsaSrvProviderGetMachinePasswordInfoW(
+    IN PCSTR pszProvider,
+    OUT PLSA_MACHINE_PASSWORD_INFO_W* ppPasswordInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    PLSA_MACHINE_PASSWORD_INFO_W pPasswordInfo = NULL;
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pProvider->pFnTable2->pfnGetMachinePasswordInfoW)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = pProvider->pFnTable2->pfnGetMachinePasswordInfoW(
+                    &pPasswordInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        if (pPasswordInfo)
+        {
+            LsaSrvFreeMachinePasswordInfoW(pPasswordInfo);
+            pPasswordInfo = NULL;
+        }
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    *ppPasswordInfo = pPasswordInfo;
+
+    return dwError;
+}

@@ -1,10 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +20,7 @@
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,31 +28,23 @@
  *
  * Module Name:
  *
- *        ipc.h
+ *     ad-types.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *     Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Interprocess Communication (Private Include)
+ *     Types used by AD provider APIs
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
-#include <config.h>
 
-#include <lsasystem.h>
+#ifndef __LSA_AD_TYPES_H__
+#define __LSA_AD_TYPES_H__
 
-#include <lsadef.h>
-#include <lsa/lsa.h>
+typedef DWORD LSA_NET_JOIN_FLAGS, *PLSA_NET_JOIN_FLAGS;
 
-#include <lwmsg/lwmsg.h>
-#include <lwmem.h>
-#include <lwstr.h>
+#define LSA_NET_JOIN_DOMAIN_NOTIMESYNC 1
+#define LSA_NET_JOIN_DOMAIN_MULTIPLE   2
 
-#include <lwsecurityidentifier.h>
-#include <lsautils.h>
-
-#include "lsaipc.h"
-#include "lsaadprovider.h"
-#include <lsa/lsapstore-types.h>
+#endif /* __LSA_AD_TYPES_H__ */

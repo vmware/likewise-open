@@ -39,6 +39,7 @@ liblsass_auth_provider_ad_open_la_SOURCES = \
        enumstate.c               \
        globals.c                 \
        machinepwd.c              \
+       machinepwdinfo.c          \
        offline.c                 \
        offline-helper.c          \
        online.c                  \
@@ -59,7 +60,8 @@ liblsass_auth_provider_ad_open_la_SOURCES = \
        batch_enum.c              \
        memcache.c                \
        specialdomain.c           \
-       unprov.c
+       unprov.c                  \
+       ioctl.c
 
 if !ENABLE_MINIMAL
 PROVIDER_CPPFLAGS += -DAD_CACHE_ENABLE_SQLITE @SQLITE_INCLUDES@
@@ -73,6 +75,7 @@ endif
 liblsass_auth_provider_ad_open_la_CPPFLAGS = \
 	$(AM_CPPFLAGS)                \
     -DLW_ENABLE_THREADS=1         \
+	-I$(srcdir)/join/include \
 	-I@top_srcdir@/server/include \
         $(PROVIDER_CPPFLAGS)          \
 	@LWBASE_INCLUDES@             \
@@ -85,6 +88,7 @@ liblsass_auth_provider_ad_open_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 liblsass_auth_provider_ad_open_la_LIBADD = \
 	@top_builddir@/common/liblsacommon.la \
 	@top_builddir@/join/liblsajoin.la \
+	@top_builddir@/pstore/liblsapstore.la \
 	$(ADDITIONAL_LIBS) \
 	@LWBASE_LIBS@ \
 	@PSTORE_LIBS@ \

@@ -50,6 +50,8 @@
 
 #include <lsa/lsa2.h>
 #include <sys/types.h>
+#include <lsa/ad-types.h>
+#include <lsa/lsapstore-types.h>
 
 DWORD
 LsaAdEmptyCache(
@@ -110,7 +112,7 @@ LsaAdJoinDomain(
     PCSTR pszOSName,
     PCSTR pszOSVersion,
     PCSTR pszOSServicePack,
-    DWORD dwFlags
+    LSA_NET_JOIN_FLAGS dwFlags
     );
 
 DWORD
@@ -118,6 +120,48 @@ LsaAdLeaveDomain(
     HANDLE hLsaConnection,
     PCSTR pszUsername,
     PCSTR pszPassword
+    );
+
+DWORD
+LsaAdLeaveDomain2(
+    HANDLE hLsaConnection,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
+    PCSTR pszDomain,
+    LSA_NET_JOIN_FLAGS dwFlags
+    );
+
+LW_DWORD
+LsaAdGetMachineAccountInfo(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT PLSA_MACHINE_ACCOUNT_INFO_A* ppAccountInfo
+    );
+
+LW_VOID
+LsaAdFreeMachineAccountInfo(
+    IN PLSA_MACHINE_ACCOUNT_INFO_A pAccountInfo
+    );
+
+LW_VOID
+LsaAdFreeMachineAccountInfoW(
+    IN PLSA_MACHINE_ACCOUNT_INFO_W pAccountInfo
+    );
+
+LW_DWORD
+LsaAdGetMachinePasswordInfo(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT PLSA_MACHINE_PASSWORD_INFO_A* ppPasswordInfo
+    );
+
+LW_VOID
+LsaAdFreeMachinePasswordInfo(
+    LW_IN PLSA_MACHINE_PASSWORD_INFO_A pPasswordInfo
+    );
+
+LW_DWORD
+LsaAdGetComputerDn(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT LW_PSTR* ppszComputerDn
     );
 
 #endif /* __LSACLIENT_AD_H__ */

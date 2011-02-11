@@ -53,6 +53,7 @@
 #include "lsa/lsa.h"
 #include "lsa/lsa2.h"
 #include "lsa/join.h"
+#include "lsa/lsapstore-types.h"
 
 #include <openssl/md4.h>
 #include <openssl/rand.h>
@@ -83,7 +84,6 @@
 #include "lsasrvcred.h"
 #include "lwldap.h"
 #include "lsaldap.h"
-//#include "lsadb.h"
 #include "adcache.h"
 #include "adcachespi.h"
 
@@ -120,6 +120,7 @@
 #include "offline-helper.h"
 #include "lsasqlite.h"
 #include "lsasqlite_p.h"
+#include "ioctl.h"
 
 #include "externs.h"
 

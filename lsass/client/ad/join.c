@@ -53,7 +53,7 @@ LsaAdJoinDomain(
     PCSTR pszOSName,
     PCSTR pszOSVersion,
     PCSTR pszOSServicePack,
-    DWORD dwFlags
+    LSA_NET_JOIN_FLAGS dwFlags
     )
 {
     DWORD dwError = 0;
@@ -86,7 +86,7 @@ LsaAdJoinDomain(
 
     dwError = LsaProviderIoControl(
         hLsaConnection,
-        LSA_AD_TAG_PROVIDER,
+        LSA_PROVIDER_TAG_AD,
         LSA_AD_IO_JOINDOMAIN,
         (DWORD) blobSize,
         pBlob,
@@ -115,6 +115,23 @@ LsaAdLeaveDomain(
     HANDLE hLsaConnection,
     PCSTR pszUsername,
     PCSTR pszPassword
+    )
+{
+    return LsaAdLeaveDomain2(
+               hLsaConnection,
+               pszUsername,
+               pszPassword,
+               NULL,
+               0);
+}
+
+DWORD
+LsaAdLeaveDomain2(
+    HANDLE hLsaConnection,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
+    PCSTR pszDomain,
+    LSA_NET_JOIN_FLAGS dwFlags
     )
 {
     DWORD dwError = 0;
@@ -161,4 +178,228 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+LW_DWORD
+LsaAdGetMachineAccountInfo(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT PLSA_MACHINE_ACCOUNT_INFO_A* ppAccountInfo
+    )
+{
+    DWORD dwError = 0;
+    size_t inputBufferSize = 0;
+    PVOID pInputBuffer = NULL;
+    DWORD dwOutputBufferSize = 0;
+    PVOID pOutputBuffer = NULL;
+    LWMsgContext* pContext = NULL;
+    LWMsgDataContext* pDataContext = NULL;
+    PLSA_MACHINE_ACCOUNT_INFO_A pAccountInfo = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaAdIPCSetMemoryFunctions(pContext);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaProviderIoControl(
+                  hLsaConnection,
+                  LSA_PROVIDER_TAG_AD,
+                  LSA_AD_IO_GET_MACHINE_ACCOUNT,
+                  inputBufferSize,
+                  pInputBuffer,
+                  &dwOutputBufferSize,
+                  &pOutputBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                              pDataContext,
+                              LsaAdIPCGetMachineAccountInfoSpec(),
+                              pOutputBuffer,
+                              dwOutputBufferSize,
+                              OUT_PPVOID(&pAccountInfo)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        if (pAccountInfo)
+        {
+            LsaAdFreeMachineAccountInfo(pAccountInfo);
+            pAccountInfo = NULL;
+        }
+    }
+
+    if (pOutputBuffer)
+    {
+        LwFreeMemory(pOutputBuffer);
+    }
+
+    if (pInputBuffer)
+    {
+        LwFreeMemory(pInputBuffer);
+    }
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    *ppAccountInfo = pAccountInfo;
+
+    return dwError;
+}
+
+LW_DWORD
+LsaAdGetMachinePasswordInfo(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT PLSA_MACHINE_PASSWORD_INFO_A* ppPasswordInfo
+    )
+{
+    DWORD dwError = 0;
+    size_t inputBufferSize = 0;
+    PVOID pInputBuffer = NULL;
+    DWORD dwOutputBufferSize = 0;
+    PVOID pOutputBuffer = NULL;
+    LWMsgContext* pContext = NULL;
+    LWMsgDataContext* pDataContext = NULL;
+    PLSA_MACHINE_PASSWORD_INFO_A pPasswordInfo = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaAdIPCSetMemoryFunctions(pContext);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaProviderIoControl(
+                  hLsaConnection,
+                  LSA_PROVIDER_TAG_AD,
+                  LSA_AD_IO_GET_MACHINE_PASSWORD,
+                  inputBufferSize,
+                  pInputBuffer,
+                  &dwOutputBufferSize,
+                  &pOutputBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                              pDataContext,
+                              LsaAdIPCGetMachinePasswordInfoSpec(),
+                              pOutputBuffer,
+                              dwOutputBufferSize,
+                              OUT_PPVOID(&pPasswordInfo)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        if (pPasswordInfo)
+        {
+            LsaAdFreeMachinePasswordInfo(pPasswordInfo);
+            pPasswordInfo = NULL;
+        }
+    }
+
+    if (pOutputBuffer)
+    {
+        LwFreeMemory(pOutputBuffer);
+    }
+
+    if (pInputBuffer)
+    {
+        LwFreeMemory(pInputBuffer);
+    }
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    *ppPasswordInfo = pPasswordInfo;
+
+    return dwError;
+}
+
+LW_DWORD
+LsaAdGetComputerDn(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT LW_PSTR* ppszComputerDn
+    )
+{
+    DWORD dwError = 0;
+    size_t inputBufferSize = 0;
+    PVOID pInputBuffer = NULL;
+    DWORD dwOutputBufferSize = 0;
+    PVOID pOutputBuffer = NULL;
+    LWMsgContext* pContext = NULL;
+    LWMsgDataContext* pDataContext = NULL;
+    PSTR pszComputerDn = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaAdIPCSetMemoryFunctions(pContext);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaProviderIoControl(
+                    hLsaConnection,
+                    LSA_PROVIDER_TAG_AD,
+                    LSA_AD_IO_GET_COMPUTER_DN,
+                    inputBufferSize,
+                    pInputBuffer,
+                    &dwOutputBufferSize,
+                    &pOutputBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                                    pDataContext,
+                                    LsaAdIPCGetStringSpec(),
+                                    pOutputBuffer,
+                                    dwOutputBufferSize,
+                                    OUT_PPVOID(&pszComputerDn)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+    if (dwError)
+    {
+        LW_SAFE_FREE_STRING(pszComputerDn);
+    }
+
+    if (pOutputBuffer)
+    {
+        LwFreeMemory(pOutputBuffer);
+    }
+
+    if (pInputBuffer)
+    {
+        LwFreeMemory(pInputBuffer);
+    }
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    *ppszComputerDn = pszComputerDn;
+
+    return dwError;
 }

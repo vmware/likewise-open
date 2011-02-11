@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +24,7 @@
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,31 +32,79 @@
  *
  * Module Name:
  *
- *        ipc.h
+ *     lsapstore-backend-legacy-internal.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *     LSASS Password Store API Implementation
  *
- *        Interprocess Communication (Private Include)
+ *     Legacy Backend Internals API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
-#include <config.h>
 
-#include <lsasystem.h>
+#ifndef __LSA_PSTORE_BACKEND_LEGACY_INTERNAL__
+#define __LSA_PSTORE_BACKEND_LEGACY_INTERNAL__
 
-#include <lsadef.h>
-#include <lsa/lsa.h>
+// Just for legacy password info type:
+#include <lwps/lwps.h>
 
-#include <lwmsg/lwmsg.h>
-#include <lwmem.h>
-#include <lwstr.h>
+#include <lw/types.h>
+#include <lw/attrs.h>
 
-#include <lwsecurityidentifier.h>
-#include <lsautils.h>
+typedef struct _LWPS_LEGACY_STATE *PLWPS_LEGACY_STATE;
 
-#include "lsaipc.h"
-#include "lsaadprovider.h"
-#include <lsa/lsapstore-types.h>
+DWORD
+LwpsLegacyOpenProvider(
+    OUT PLWPS_LEGACY_STATE* ppContext
+    );
+
+VOID
+LwpsLegacyCloseProvider(
+    IN PLWPS_LEGACY_STATE pContext
+    );
+
+DWORD
+LwpsLegacyReadPassword(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN OPTIONAL PCSTR pszQueryDomainName,
+    OUT PLWPS_PASSWORD_INFO* ppInfo
+    );
+
+DWORD
+LwpsLegacyWritePassword(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN PLWPS_PASSWORD_INFO pInfo
+    );
+
+DWORD
+LwpsLegacyDeletePassword(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LwpsLegacySetDefaultJoinedDomain(
+    IN PLWPS_LEGACY_STATE pContext,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LwpsLegacyGetJoinedDomains(
+    IN PLWPS_LEGACY_STATE pContext,
+    OUT PSTR** pppszDomainList,
+    OUT PDWORD pdwDomainCount
+    );
+
+VOID
+LwpsLegacyFreePassword(
+    IN PLWPS_PASSWORD_INFO pInfo
+    );
+
+VOID
+LwpsLegacyFreeStringArray(
+    IN PSTR* ppszDomainList,
+    IN DWORD dwCount
+    );
+
+#endif

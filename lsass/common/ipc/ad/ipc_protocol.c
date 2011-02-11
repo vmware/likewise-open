@@ -47,6 +47,12 @@
 
 #include "ipc.h"
 
+static LWMsgTypeSpec gLsaAdIPCStringSpec[] =
+{
+    LWMSG_PSTR,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaAdIPCEnumUsersFromCacheReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ),
@@ -121,6 +127,39 @@ static LWMsgTypeSpec gLsaAdIPCLeaveDomainReqSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaAdIPCGetMachineAccountInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_MACHINE_ACCOUNT_INFO_A),
+    LWMSG_MEMBER_PSTR(LSA_MACHINE_ACCOUNT_INFO_A, DnsDomainName),
+    LWMSG_MEMBER_PSTR(LSA_MACHINE_ACCOUNT_INFO_A, NetbiosDomainName),
+    LWMSG_MEMBER_PSTR(LSA_MACHINE_ACCOUNT_INFO_A, DomainSid),
+    LWMSG_MEMBER_PSTR(LSA_MACHINE_ACCOUNT_INFO_A, SamAccountName),
+    LWMSG_MEMBER_UINT32(LSA_MACHINE_ACCOUNT_INFO_A, AccountFlags),
+    LWMSG_MEMBER_UINT32(LSA_MACHINE_ACCOUNT_INFO_A, KeyVersionNumber),
+    LWMSG_MEMBER_PSTR(LSA_MACHINE_ACCOUNT_INFO_A, Fqdn),
+    LWMSG_MEMBER_INT64(LSA_MACHINE_ACCOUNT_INFO_A, LastChangeTime),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaAdIPCGetMachinePasswordInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_MACHINE_PASSWORD_INFO_A),
+    LWMSG_MEMBER_TYPESPEC(LSA_MACHINE_PASSWORD_INFO_A, Account, gLsaAdIPCGetMachineAccountInfoSpec),
+    LWMSG_MEMBER_PSTR(LSA_MACHINE_PASSWORD_INFO_A, Password),
+    LWMSG_ATTR_SENSITIVE,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+LWMsgTypeSpec*
+LsaAdIPCGetStringSpec(
+    VOID
+    )
+{
+    return gLsaAdIPCStringSpec;
+}
+
 LWMsgTypeSpec*
 LsaAdIPCGetEnumUsersFromCacheReqSpec(
     void
@@ -167,4 +206,50 @@ LsaAdIPCGetLeaveDomainReqSpec(
     )
 {
     return gLsaAdIPCLeaveDomainReqSpec;
+}
+
+LWMsgTypeSpec*
+LsaAdIPCGetMachineAccountInfoSpec(
+    VOID
+    )
+{
+    return gLsaAdIPCGetMachineAccountInfoSpec;
+}
+
+LWMsgTypeSpec*
+LsaAdIPCGetMachinePasswordInfoSpec(
+    VOID
+    )
+{
+    return gLsaAdIPCGetMachinePasswordInfoSpec;
+}
+
+static
+LWMsgStatus
+LsaAdIPCAllocate(
+    IN size_t Size,
+    OUT PVOID* ppMemory,
+    IN PVOID pContext
+    )
+{
+    DWORD dwError = LwAllocateMemory((DWORD)Size, ppMemory);
+    return dwError ? LWMSG_STATUS_MEMORY : LWMSG_STATUS_SUCCESS;
+}
+
+static
+VOID
+LsaAdIPCFree(
+    IN PVOID pMemory,
+    IN PVOID pContext
+    )
+{
+    LwFreeMemory(pMemory);
+}
+
+VOID
+LsaAdIPCSetMemoryFunctions(
+    IN LWMsgContext* pContext
+    )
+{
+    lwmsg_context_set_memory_functions(pContext, LsaAdIPCAllocate, LsaAdIPCFree, NULL, NULL);
 }

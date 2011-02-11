@@ -58,6 +58,7 @@
 #include <lsadef.h>
 #include <lwsecurityidentifier.h>
 #include <lsautils.h>
+#include "lsa/lsapstore-types.h"
 
 #include "lsalogger_p.h"
 #include "lsahash_p.h"

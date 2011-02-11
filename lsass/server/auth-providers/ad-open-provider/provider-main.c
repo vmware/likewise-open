@@ -49,6 +49,8 @@
  */
 
 #include "adprovider.h"
+#include <lsa/lsapstore-api.h>
+#include <lsa/ad.h>
 
 typedef struct _LSA_STARTUP_THREAD_INFO
 {
@@ -682,6 +684,13 @@ AD_TransitionNotJoined(
     )
 {
     DWORD dwError = 0;
+    PLSA_MACHINE_ACCOUNT_INFO_W pAccount = NULL;
+
+    // Ignore error
+    AD_GetMachineAccountInfoW(&pAccount);
+
+    dwError = LsaPstoreCallPluginDeletePasswordInfo(pAccount);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheEmptyCache(pState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
@@ -696,6 +705,10 @@ AD_TransitionNotJoined(
 
 error:
 
+    if (pAccount)
+    {
+        LsaAdFreeMachineAccountInfoW(pAccount);
+    }
     return dwError;
 }
 
@@ -1421,6 +1434,9 @@ AD_JoinDomain(
     PSTR pszMessage = NULL;
     BOOLEAN bLocked = FALSE;
     PSTR pszDC = NULL;
+    PSTR pszCanonicalDnsDomainName = NULL;
+    PSTR pszCanonicalHostname = NULL;
+    PSTR pszCanonicalHostDnsDomain = NULL;
 
     if (peerUID != 0)
     {
@@ -1448,17 +1464,34 @@ AD_JoinDomain(
 
     LSA_LOG_TRACE("Domain join request: %s", pszMessage);
 
+    // Note that IPC spec disallows NULL strings for all but OU.
+
+    dwError = LwAllocateString(pRequest->pszDomain, &pszCanonicalDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateString(pRequest->pszHostname, &pszCanonicalHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateString(pRequest->pszHostDnsDomain, &pszCanonicalHostDnsDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LwStrToUpper(pszCanonicalDnsDomainName);
+    LwStrToLower(pszCanonicalHostname);
+    LwStrToLower(pszCanonicalHostDnsDomain);
+
+    LSA_LOG_DEBUG("Joining domain %s", LW_SAFE_LOG_STRING(pszCanonicalDnsDomainName));
+
     dwError = LWNetGetDomainController(
-                    pRequest->pszDomain,
+                    pszCanonicalDnsDomainName,
                     &pszDC);
     if (dwError)
     {
-        LSA_LOG_VERBOSE("Failed to find DC for domain %s", LSA_SAFE_LOG_STRING(pRequest->pszDomain));
+        LSA_LOG_VERBOSE("Failed to find DC for domain %s", LSA_SAFE_LOG_STRING(pszCanonicalDnsDomainName));
         BAIL_ON_LSA_ERROR(dwError);
     }
     LSA_LOG_VERBOSE("Affinitized to DC '%s' for join request to domain '%s'",
             LSA_SAFE_LOG_STRING(pszDC),
-            LSA_SAFE_LOG_STRING(pRequest->pszDomain));
+            LSA_SAFE_LOG_STRING(pszCanonicalDnsDomainName));
 
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
@@ -1467,9 +1500,9 @@ AD_JoinDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaJoinDomain(
-        pRequest->pszHostname,
-        pRequest->pszHostDnsDomain,
-        pRequest->pszDomain,
+        pszCanonicalHostname,
+        pszCanonicalHostDnsDomain,
+        pszCanonicalDnsDomainName,
         pRequest->pszOU,
         pRequest->pszUsername,
         pRequest->pszPassword,
@@ -1494,6 +1527,9 @@ cleanup:
         LsaAdProviderStateRelease(gpLsaAdProviderState);
     }
 
+    LW_SAFE_FREE_MEMORY(pszCanonicalDnsDomainName);
+    LW_SAFE_FREE_MEMORY(pszCanonicalHostname);
+    LW_SAFE_FREE_MEMORY(pszCanonicalHostDnsDomain);
     LW_SAFE_FREE_MEMORY(pszMessage);
 
     if (pRequest)
@@ -3187,6 +3223,30 @@ AD_ProviderIoControl(
                           pInputBuffer,
                           pdwOutputBufferSize,
                           ppOutputBuffer);
+            break;
+        case LSA_AD_IO_GET_MACHINE_ACCOUNT:
+            dwError = AD_IoctlGetMachineAccount(
+                            hProvider,
+                            dwInputBufferSize,
+                            pInputBuffer,
+                            pdwOutputBufferSize,
+                            ppOutputBuffer);
+            break;
+        case LSA_AD_IO_GET_MACHINE_PASSWORD:
+            dwError = AD_IoctlGetMachinePassword(
+                            hProvider,
+                            dwInputBufferSize,
+                            pInputBuffer,
+                            pdwOutputBufferSize,
+                            ppOutputBuffer);
+            break;
+        case LSA_AD_IO_GET_COMPUTER_DN:
+            dwError = AD_IoctlGetComputerDn(
+                            hProvider,
+                            dwInputBufferSize,
+                            pInputBuffer,
+                            pdwOutputBufferSize,
+                            ppOutputBuffer);
             break;
         default:
             dwError = LW_ERROR_NOT_HANDLED;

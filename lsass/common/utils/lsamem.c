@@ -203,3 +203,69 @@ LsaFreeStringBufferContents(
     pBuffer->sLen = 0;
     pBuffer->sCapacity = 0;
 }
+
+static
+inline
+VOID
+LsaAdpFreeMachineAccountInfoContents(
+    IN OUT PLSA_MACHINE_ACCOUNT_INFO_A pAccountInfo
+    )
+{
+    LW_SAFE_FREE_STRING(pAccountInfo->DnsDomainName);
+    LW_SAFE_FREE_STRING(pAccountInfo->NetbiosDomainName);
+    LW_SAFE_FREE_STRING(pAccountInfo->DomainSid);
+    LW_SAFE_FREE_STRING(pAccountInfo->SamAccountName);
+    LW_SAFE_FREE_STRING(pAccountInfo->Fqdn);
+}
+
+static
+inline
+VOID
+LsaAdpFreeMachineAccountInfoContentsW(
+    IN OUT PLSA_MACHINE_ACCOUNT_INFO_W pAccountInfo
+    )
+{
+    LW_SAFE_FREE_MEMORY(pAccountInfo->DnsDomainName);
+    LW_SAFE_FREE_MEMORY(pAccountInfo->NetbiosDomainName);
+    LW_SAFE_FREE_MEMORY(pAccountInfo->DomainSid);
+    LW_SAFE_FREE_MEMORY(pAccountInfo->SamAccountName);
+    LW_SAFE_FREE_MEMORY(pAccountInfo->Fqdn);
+}
+
+LW_VOID
+LsaAdFreeMachineAccountInfo(
+    IN PLSA_MACHINE_ACCOUNT_INFO_A pAccountInfo
+    )
+{
+    if (pAccountInfo)
+    {
+        LsaAdpFreeMachineAccountInfoContents(pAccountInfo);
+        LwFreeMemory(pAccountInfo);
+    }
+}
+
+LW_VOID
+LsaAdFreeMachineAccountInfoW(
+    IN PLSA_MACHINE_ACCOUNT_INFO_W pAccountInfo
+    )
+{
+    if (pAccountInfo)
+    {
+        LsaAdpFreeMachineAccountInfoContentsW(pAccountInfo);
+        LwFreeMemory(pAccountInfo);
+    }
+}
+
+LW_VOID
+LsaAdFreeMachinePasswordInfo(
+    LW_IN PLSA_MACHINE_PASSWORD_INFO_A pPasswordInfo
+    )
+{
+    if (pPasswordInfo)
+    {
+        LsaAdpFreeMachineAccountInfoContents(&pPasswordInfo->Account);
+        LW_SECURE_FREE_STRING(pPasswordInfo->Password);
+        LwFreeMemory(pPasswordInfo);
+    }
+}
+

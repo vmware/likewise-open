@@ -49,6 +49,7 @@
 #define __LSAADPROVIDER_H__
 
 #include "lsautils.h"
+#include <lsa/ad-types.h>
 
 #define LSA_AD_TAG_PROVIDER "lsa-activedirectory-provider"
 
@@ -61,6 +62,10 @@
 #define LSA_AD_IO_ENUMGROUPSCACHE        7
 #define LSA_AD_IO_JOINDOMAIN             8
 #define LSA_AD_IO_LEAVEDOMAIN            9
+#define LSA_AD_IO_GET_MACHINE_ACCOUNT   12
+#define LSA_AD_IO_GET_MACHINE_PASSWORD  13
+#define LSA_AD_IO_GET_COMPUTER_DN       14
+
 
 typedef struct __LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ {
     PCSTR pszResume;
@@ -95,14 +100,20 @@ typedef struct __LSA_AD_IPC_JOIN_DOMAIN_REQ
     PCSTR pszOSName;
     PCSTR pszOSVersion;
     PCSTR pszOSServicePack;
-    DWORD dwFlags;
+    LSA_NET_JOIN_FLAGS dwFlags;
 } LSA_AD_IPC_JOIN_DOMAIN_REQ, *PLSA_AD_IPC_JOIN_DOMAIN_REQ;
 
 typedef struct __LSA_AD_IPC_LEAVE_DOMAIN_REQ
 {
     PCSTR pszUsername;
     PCSTR pszPassword;
+    LSA_NET_JOIN_FLAGS dwFlags;
 } LSA_AD_IPC_LEAVE_DOMAIN_REQ, *PLSA_AD_IPC_LEAVE_DOMAIN_REQ;
+
+LWMsgTypeSpec*
+LsaAdIPCGetStringSpec(
+    VOID
+    );
 
 LWMsgTypeSpec*
 LsaAdIPCGetEnumUsersFromCacheReqSpec(
@@ -132,6 +143,21 @@ LsaAdIPCGetJoinDomainReqSpec(
 LWMsgTypeSpec*
 LsaAdIPCGetLeaveDomainReqSpec(
     void
+    );
+
+LWMsgTypeSpec*
+LsaAdIPCGetMachineAccountInfoSpec(
+    VOID
+    );
+
+LWMsgTypeSpec*
+LsaAdIPCGetMachinePasswordInfoSpec(
+    VOID
+    );
+
+VOID
+LsaAdIPCSetMemoryFunctions(
+    IN LWMsgContext* pContext
     );
 
 #endif /* __LSAADPROVIDER_H__ */

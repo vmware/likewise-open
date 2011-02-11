@@ -857,6 +857,7 @@ AC_DEFINE_UNQUOTED([USEC_T], [$USEC_T], [Type of tv_usec field of struct timeval
 
 AC_CHECK_SIZEOF([long long int])
 AC_CHECK_SIZEOF([long int])
+AC_CHECK_SIZEOF([time_t], [#include <time.h>])
 
 # Checks for library functions.
 AC_FUNC_FORK
@@ -1079,6 +1080,8 @@ AC_CONFIG_FILES([Makefile
                  interop/nsswitch/solaris/Makefile
                  interop/lwmapsecurity/Makefile
                  interop/lwidsplugin/Makefile
+                 pstore/Makefile
+                 pstore/test/Makefile
                  server/Makefile
                  server/api/Makefile
                  server/include/Makefile

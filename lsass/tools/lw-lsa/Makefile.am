@@ -34,6 +34,7 @@ bin_PROGRAMS = lw-lsa
 
 lw_lsa_SOURCES = \
 	ad_cache_main.c \
+	ad_get_machine.c \
 	add_group_add_group.c \
 	add_group_main.c \
 	add_user_add_user.c \

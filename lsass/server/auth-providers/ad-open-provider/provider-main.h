@@ -445,6 +445,26 @@ AD_UpdateObject(
     IN OUT PLSA_SECURITY_OBJECT pObject
     );
 
+DWORD
+AD_GetMachineAccountInfoA(
+    OUT PLSA_MACHINE_ACCOUNT_INFO_A* ppAccountInfo
+    );
+
+DWORD
+AD_GetMachineAccountInfoW(
+    OUT PLSA_MACHINE_ACCOUNT_INFO_W* ppAccountInfo
+    );
+
+DWORD
+AD_GetMachinePasswordInfoA(
+    OUT PLSA_MACHINE_PASSWORD_INFO_A* ppPasswordInfo
+    );
+
+DWORD
+AD_GetMachinePasswordInfoW(
+    OUT PLSA_MACHINE_PASSWORD_INFO_W* ppPasswordInfo
+    );
+
 #endif /* __PROVIDER_MAIN_H__ */
 
 

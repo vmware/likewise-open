@@ -48,6 +48,7 @@
 #define __LSAPROVIDER_H__
 
 #include <lsa/lsa2.h>
+#include <lsa/lsapstore-types.h>
 
 typedef DWORD (*PFNSHUTDOWNPROVIDER)(
     VOID
@@ -265,6 +266,22 @@ typedef DWORD (*PFN_LSA_PROVIDER_GET_SMARTCARD_USER_OBJECT)(
     OUT PSTR* ppszSmartCardReader
     );
 
+typedef DWORD (*PFN_LSA_PROVIDER_GET_MACHINE_ACCOUNT_INFO_A)(
+    OUT PLSA_MACHINE_ACCOUNT_INFO_A* ppAccountInfo
+    );
+
+typedef DWORD (*PFN_LSA_PROVIDER_GET_MACHINE_ACCOUNT_INFO_W)(
+    OUT PLSA_MACHINE_ACCOUNT_INFO_W* ppAccountInfo
+    );
+
+typedef DWORD (*PFN_LSA_PROVIDER_GET_MACHINE_PASSWORD_INFO_A)(
+    OUT PLSA_MACHINE_PASSWORD_INFO_A* ppPasswordInfo
+    );
+
+typedef DWORD (*PFN_LSA_PROVIDER_GET_MACHINE_PASSWORD_INFO_W)(
+    OUT PLSA_MACHINE_PASSWORD_INFO_W* ppPasswordInfo
+    );
+
 typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
 
     PFN_LSA_PROVIDER_FIND_OBJECTS pfnFindObjects;
@@ -332,6 +349,12 @@ typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
     //
 
     PFN_LSA_PROVIDER_GET_SMARTCARD_USER_OBJECT pfnGetSmartCardUserObject;
+
+    // All of the pfnGetMachine*Info{,W}() calls are optional
+    PFN_LSA_PROVIDER_GET_MACHINE_ACCOUNT_INFO_A pfnGetMachineAccountInfoA;
+    PFN_LSA_PROVIDER_GET_MACHINE_ACCOUNT_INFO_W pfnGetMachineAccountInfoW;
+    PFN_LSA_PROVIDER_GET_MACHINE_PASSWORD_INFO_A pfnGetMachinePasswordInfoA;
+    PFN_LSA_PROVIDER_GET_MACHINE_PASSWORD_INFO_W pfnGetMachinePasswordInfoW;
 
 #if 1
     //
