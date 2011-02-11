@@ -137,14 +137,6 @@ PvfsCreateFileSupersede(
     PPVFS_FILE_NAME resolvedDirName = NULL;
     PPVFS_FILE_NAME relativeName = NULL;
 
-    /* Caller had to have asked for DELETE access */
-
-    if (!(Args.DesiredAccess & DELETE))
-    {
-        ntError = STATUS_CANNOT_DELETE;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -187,10 +179,13 @@ PvfsCreateFileSupersede(
             BAIL_ON_NT_STATUS(ntError);
         }
 
+        // The caller must have DELETE permission on the file even if not
+        // specifically requested
+
         ntError = PvfsAccessCheckFile(
                       pCreateCtx->pCcb->pUserToken,
                       pCreateCtx->ResolvedFileName,
-                      Args.DesiredAccess,
+                      Args.DesiredAccess | DELETE,
                       &pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
