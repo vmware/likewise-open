@@ -66,6 +66,21 @@
        } \
     } while(0)
 
+#define LW_SECURE_FREE_STRING(str) LW_SAFE_CLEAR_FREE_STRING(str)
+
+#define LW_SECURE_FREE_WSTRING(str) \
+    do { \
+       if (str) \
+       { \
+           if (*(str)) \
+           { \
+               memset(str, 0, wc16slen(str) * sizeof(str[0])); \
+           } \
+           LwFreeMemory(str); \
+           (str) = NULL; \
+       } \
+    } while(0)
+
 #define LW_SAFE_FREE_STRING(str) \
     do { \
         if (str) \
