@@ -47,6 +47,7 @@
  */
 
 #include "adprovider.h"
+#include <lsa/lsapstore-api.h>
 
 #define DEFAULT_THREAD_WAITSECS  (30 * LSA_SECONDS_IN_MINUTE)
 #define ERROR_THREAD_WAITSECS  (5 * LSA_SECONDS_IN_MINUTE)
@@ -199,6 +200,7 @@ ADSyncMachinePasswordThreadRoutine(
     PSTR pszHostname = NULL;
     PSTR pszDnsDomainName = NULL;
     DWORD dwGoodUntilTime = 0;
+    PLSA_MACHINE_PASSWORD_INFO_W pPasswordInfo = NULL;
 
     LSA_LOG_INFO("Machine Password Sync Thread starting");
 
@@ -278,6 +280,16 @@ ADSyncMachinePasswordThreadRoutine(
 
                 dwError = 0;
                 goto lsa_wait_resync;
+            }
+
+            dwError = AD_GetMachinePasswordInfoW(&pPasswordInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaPstoreCallPluginSetPasswordInfo(pPasswordInfo);
+            if (dwError)
+            {
+                LSA_LOG_ERROR("Calling the pstore plugins failed with code %d\n",
+                        dwError);
             }
 
             if (AD_EventlogEnabled())
@@ -367,6 +379,10 @@ retry_wait:
 
 cleanup:
 
+    if (pPasswordInfo)
+    {
+        LsaPstoreFreePasswordInfoW(pPasswordInfo);
+    }
     if (pAcctInfo)
     {
         LwpsFreePasswordInfo(gAdMachinePasswordSyncState.hPasswordStore, pAcctInfo);

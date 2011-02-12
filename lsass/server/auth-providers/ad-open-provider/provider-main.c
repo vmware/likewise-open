@@ -1485,6 +1485,17 @@ AD_JoinDomain(
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
 
+    // Ignore error
+    AD_GetMachinePasswordInfoW(&pPasswordInfo);
+
+    dwError = LsaPstoreCallPluginDeletePasswordInfo(&pPasswordInfo->Account);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pPasswordInfo)
+    {
+        LsaPstoreFreePasswordInfoW(pPasswordInfo);
+    }
+
     dwError = AD_PreJoinDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
