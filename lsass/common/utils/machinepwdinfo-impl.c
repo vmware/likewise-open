@@ -51,9 +51,6 @@
 #include "machinepwdinfo-impl.h"
 #include "lsautils.h" // only for bail macro -- sigh
 
-// For legacy conversion support
-#include <lwps/lwps.h>
-
 // These includes work around bugs in lwstr.h:
 #include <string.h>
 #include <wc16str.h>
