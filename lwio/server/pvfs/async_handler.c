@@ -60,7 +60,7 @@ PvfsQueueCancelIrp(
     PVOID pCancelContext
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pCancelContext;
     USHORT SetFlag = 0;
 
@@ -77,9 +77,7 @@ PvfsQueueCancelIrp(
         switch(pIrpContext->QueueType)
         {
         case PVFS_QUEUE_TYPE_IO:
-            /* Nothing to do.  Let the general Io Work queue processing
-               handle it */
-            ntError = STATUS_SUCCESS;
+            // General IrpContext processing will detect the cancellation
             break;
 
         case PVFS_QUEUE_TYPE_OPLOCK:
@@ -99,8 +97,8 @@ PvfsQueueCancelIrp(
             break;
 
         default:
-            /* Should never be reachable */
-            ntError = STATUS_INTERNAL_ERROR;
+            // IrpContext must always have a valid QueueType if pended
+            LWIO_ASSERT(FALSE);
             break;
         }
     }
@@ -142,37 +140,43 @@ PvfsQueueCancelIrpIfRequested(
     return ntError;
 }
 
-/***********************************************************************
- **********************************************************************/
+/*****************************************************************************
+ ****************************************************************************/
 
 NTSTATUS
-PvfsScheduleIoWorkItem(
-    IN PPVFS_WORK_CONTEXT pWorkContext
+PvfsCreateWorkContext(
+    OUT PPVFS_WORK_CONTEXT *ppWorkContext,
+    IN  LONG lFlags,
+    IN  PVOID pContext,
+    IN  PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion,
+    IN  PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
 
-    if (IsSetFlag(pWorkContext->Flags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
-    {
-        pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkContext->pContext;
-        pIrpCtx->QueueType = PVFS_QUEUE_TYPE_IO;
-
-        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
-    }
-
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkContext);
-
-    if (ntError != STATUS_SUCCESS &&
-        IsSetFlag(pWorkContext->Flags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
-    {
-        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
-
-        PvfsAsyncIrpComplete(pIrpCtx);
-    }
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pWorkCtx,
+                  sizeof(PVFS_WORK_CONTEXT),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = STATUS_PENDING;
+    pWorkCtx->Flags = lFlags;
+    pWorkCtx->pContext = pContext;
+
+    if (IsSetFlag(lFlags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
+    {
+        PvfsReferenceIrpContext((PPVFS_IRP_CONTEXT)pContext);
+    }
+
+    pWorkCtx->pfnCompletion = pfnCompletion;
+    pWorkCtx->pfnFreeContext = pfnFreeContext;
+
+    *ppWorkContext = pWorkCtx;
+
+    InterlockedIncrement(&gPvfsWorkContextCount);
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -181,12 +185,10 @@ error:
     goto cleanup;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
-PvfsCreateWorkContext(
+PvfsCreateIrpWorkContext(
     OUT PPVFS_WORK_CONTEXT *ppWorkContext,
     IN  LONG lFlags,
     IN  PVOID pContext,
@@ -268,418 +270,4 @@ PvfsFreeWorkContext(
 
     return;
 }
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncCreate(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsCreate,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncClose(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsClose,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-
-    goto cleanup;
-}
-
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncLockControl(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsLockControl,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-
-    goto cleanup;
-}
-
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncRead(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsRead,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncWrite(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsWrite,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncFlushBuffers(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsFlushBuffers,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncQueryInformationFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsQueryInformationFile,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncSetInformationFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsSetInformationFile,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncQueryDirInformation(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsQueryDirInformation,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncQueryVolumeInformation(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsQueryVolumeInformation,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncQuerySecurityFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsQuerySecurityFile,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-/************************************************************
- ***********************************************************/
-
-NTSTATUS
-PvfsAsyncSetSecurityFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  TRUE,
-                  (PVOID)pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsSetSecurityFile,
-                  NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsScheduleIoWorkItem(pWorkCtx);
-    if (ntError == STATUS_PENDING)
-    {
-        pWorkCtx = NULL;
-    }
-
-cleanup:
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
 

@@ -75,7 +75,6 @@
 #include "listq.h"
 #include "structs.h"
 #include "async_handler.h"
-#include "threads.h"
 #include "externs.h"
 #include "macros.h"
 #include "fileinfo_p.h"
@@ -337,6 +336,11 @@ PvfsIrpContextMarkIfSetFlag(
     PPVFS_IRP_CONTEXT pIrpContext,
     USHORT BitToCheck,
     USHORT BitToSet
+    );
+
+NTSTATUS
+PvfsScheduleIrpContext(
+    IN PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 /* From errno.c */

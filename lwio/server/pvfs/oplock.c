@@ -177,18 +177,6 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static
-NTSTATUS
-PvfsOplockProcessReadyItems(
-    PPVFS_SCB pScb
-    );
-
-static
-VOID
-PvfsFreeOplockReadyItemsContext(
-    IN OUT PPVFS_SCB *ppScb
-    );
-
 NTSTATUS
 PvfsOplockBreakAck(
     IN     PPVFS_IRP_CONTEXT pIrpContext,
@@ -325,8 +313,13 @@ error:
 }
 
 
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+PvfsProcessOplockDeferredOperation(
+PVOID Context
+    );
 
 NTSTATUS
 PvfsOplockMarkPendedOpsReady(
@@ -336,30 +329,11 @@ PvfsOplockMarkPendedOpsReady(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pData = NULL;
     BOOLEAN bScbLocked = FALSE;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-
-    /*****
-     * Here we will mark all the deferred operations as ready by
-     * removing them from the "pending" queue and adding them to the
-     * "ready" queue.  Then we will add a global work item to process
-     * all of them at once.
-     *****/
+    PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
 
     LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
     pScb->bOplockBreakInProgress = FALSE;
-
-    PvfsReferenceSCB(pScb);
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  FALSE,
-                  (PVOID)pScb,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockProcessReadyItems,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsFreeOplockReadyItemsContext);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* We remove/add like this rather than changing pointers
-       to deal with a non-empty ready queue */
 
     while (!PvfsListIsEmpty(pScb->pOplockPendingOpsQueue))
     {
@@ -368,26 +342,74 @@ PvfsOplockMarkPendedOpsReady(
                       &pData);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsListAddTail(
-                      pScb->pOplockReadyOpsQueue,
-                      pData);
-        BAIL_ON_NT_STATUS(ntError);
+        pPendingOp = LW_STRUCT_FROM_FIELD(
+                         pData,
+                         PVFS_OPLOCK_PENDING_OPERATION,
+                         PendingOpList);
+
+        ntError = LwRtlQueueWorkItem(
+                      gPvfsDriverState.ThreadPool,
+                      PvfsProcessOplockDeferredOperation,
+                      pPendingOp,
+                      LW_SCHEDULE_HIGH_PRIORITY);
+        if (!NT_SUCCESS(ntError))
+        {
+            pPendingOp->pIrpContext->pIrp->IoStatusBlock.Status = ntError;
+            PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
+            PvfsFreePendingOp(&pPendingOp);
+        }
 
         pData = NULL;
     }
 
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
+error:
     LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
     return ntError;
+}
 
-error:
-    PvfsFreeWorkContext(&pWorkCtx);
+////////////////////////////////////////////////////////////////////////
 
-    goto cleanup;
+static
+VOID
+PvfsProcessOplockDeferredOperation(
+PVOID Context
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
+    BOOLEAN irpIsActive = FALSE;
+
+    pPendingOp = (PPVFS_OPLOCK_PENDING_OPERATION)Context;
+
+    PvfsQueueCancelIrpIfRequested(pPendingOp->pIrpContext);
+
+    irpIsActive = PvfsIrpContextMarkIfNotSetFlag(
+                  pPendingOp->pIrpContext,
+                  PVFS_IRP_CTX_FLAG_CANCELLED,
+                  PVFS_IRP_CTX_FLAG_ACTIVE);
+
+    if (irpIsActive)
+    {
+        ntError = pPendingOp->pfnCompletion(pPendingOp->pCompletionContext);
+    }
+    else
+    {
+        ntError = STATUS_CANCELLED;
+    }
+
+    /* Cancelled IRPs are handled here since they have already
+       been removed from the list */
+
+    if (ntError != STATUS_PENDING)
+    {
+        pPendingOp->pIrpContext->pIrp->IoStatusBlock.Status = ntError;
+        PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
+    }
+
+    PvfsFreePendingOp(&pPendingOp);
+
+    return;
 }
 
 
@@ -1269,15 +1291,9 @@ error:
  ****************************************************************************/
 
 static
-NTSTATUS
+VOID
 PvfsOplockCleanOplockQueue(
     PVOID pContext
-    );
-
-static
-VOID
-PvfsOplockCleanOplockFree(
-    PVOID *ppContext
     );
 
 NTSTATUS
@@ -1286,49 +1302,40 @@ PvfsScheduleCancelOplock(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  FALSE,
-                  pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockCleanOplockQueue,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanOplockFree);
+    ntError = LwRtlQueueWorkItem(
+                  gPvfsDriverState.ThreadPool,
+                  PvfsOplockCleanOplockQueue,
+                  pIrpCtx,
+                  LW_SCHEDULE_HIGH_PRIORITY);
     BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-
-    return ntError;
 
 error:
-    if (pIrpCtx)
+    if (!NT_SUCCESS(ntError))
     {
-        PvfsReleaseIrpContext(&pIrpCtx);
+        if (pIrpCtx)
+        {
+            PvfsReleaseIrpContext(&pIrpCtx);
+        }
     }
 
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    goto cleanup;
+    return ntError;
 }
 
 /*****************************************************************************
  ****************************************************************************/
 
 static
-NTSTATUS
+VOID
 PvfsOplockCleanOplockQueue(
     PVOID pContext
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
     PPVFS_SCB pScb = PvfsReferenceSCB(pIrpCtx->pScb);
     BOOLEAN bScbLocked = FALSE;
@@ -1398,23 +1405,8 @@ PvfsOplockCleanOplockQueue(
         PvfsReleaseIrpContext(&pIrpCtx);
     }
 
-    return ntError;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
-VOID
-PvfsOplockCleanOplockFree(
-    PVOID *ppContext
-    )
-{
-    /* No op -- context released in PvfsOplockCleanOplockQueue */
     return;
 }
-
 
 /*****************************************************************************
  ****************************************************************************/
@@ -1594,108 +1586,6 @@ PvfsFreePendingOp(
 
     return;
 }
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
-NTSTATUS
-PvfsOplockProcessReadyItems(
-    PPVFS_SCB pScb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PIRP pIrp = NULL;
-    BOOLEAN bScbLocked = FALSE;
-    PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
-    PLW_LIST_LINKS pData = NULL;
-    BOOLEAN bFinished = FALSE;
-    BOOLEAN bActive = FALSE;
-
-    while (!bFinished)
-    {
-        /* Only keep the SCB locked long enough to get an item from
-           the ready queue.  The completion fn may need to relock the
-           SCB and we don't want to deadlock */
-
-        LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
-
-        if (PvfsListIsEmpty(pScb->pOplockReadyOpsQueue))
-        {
-            bFinished = TRUE;
-            continue;
-        }
-
-        ntError = PvfsListRemoveHead(
-                      pScb->pOplockReadyOpsQueue,
-                      &pData);
-        BAIL_ON_NT_STATUS(ntError);
-
-        LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
-
-        pPendingOp = LW_STRUCT_FROM_FIELD(
-                         pData,
-                         PVFS_OPLOCK_PENDING_OPERATION,
-                         PendingOpList);
-
-        pIrp = pPendingOp->pIrpContext->pIrp;
-
-        PvfsQueueCancelIrpIfRequested(pPendingOp->pIrpContext);
-
-        bActive = PvfsIrpContextMarkIfNotSetFlag(
-                      pPendingOp->pIrpContext,
-                      PVFS_IRP_CTX_FLAG_CANCELLED,
-                      PVFS_IRP_CTX_FLAG_ACTIVE);
-
-        if (bActive)
-        {
-            ntError = pPendingOp->pfnCompletion(pPendingOp->pCompletionContext);
-        }
-        else
-        {
-            ntError = STATUS_CANCELLED;
-        }
-
-        /* Cancelled IRPs are handled here since they have already
-           been removed from the list */
-
-        if (ntError != STATUS_PENDING)
-        {
-            pIrp->IoStatusBlock.Status = ntError;
-
-            PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
-        }
-
-        PvfsFreePendingOp(&pPendingOp);
-    }
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
-
-    return ntError;
-error:
-    goto cleanup;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
-VOID
-PvfsFreeOplockReadyItemsContext(
-    IN OUT PPVFS_SCB *ppScb
-    )
-{
-    if (ppScb && *ppScb)
-    {
-        PvfsReleaseSCB(ppScb);
-    }
-
-    return;
-}
-
 
 /*****************************************************************************
  ****************************************************************************/

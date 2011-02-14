@@ -106,6 +106,7 @@ PvfsAllocateIrpContext(
     pIrpContext->Flags = PVFS_IRP_CTX_FLAG_NONE;
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_NONE;
     pIrpContext->pScb = NULL;
+    pIrpContext->Callback = NULL;
 
     pIrpContext->pIrp = pIrp;
 
@@ -330,5 +331,92 @@ PvfsReleaseIrpContext(
     *ppIrpContext = NULL;
 }
 
+////////////////////////////////////////////////////////////////////////
 
+static
+VOID
+PvfsProcessIrpContext(
+    PVOID
+    );
 
+NTSTATUS
+PvfsScheduleIrpContext(
+    IN PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+
+    // Take a reference for the work queue
+    pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
+
+    pIrpCtx->QueueType = PVFS_QUEUE_TYPE_IO;
+    PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
+
+    ntError = LwRtlQueueWorkItem(
+                  gPvfsDriverState.ThreadPool,
+                  PvfsProcessIrpContext,
+                  pIrpCtx,
+                  0);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = STATUS_PENDING;
+
+error:
+    if (ntError != STATUS_PENDING)
+    {
+        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        PvfsAsyncIrpComplete(pIrpCtx);
+
+        if (pIrpCtx)
+        {
+            PvfsReleaseIrpContext(&pIrpCtx);
+        }
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+PvfsProcessIrpContext(
+    IN PVOID Context
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    BOOLEAN bActive = FALSE;
+
+    // We were given a reference to the IrpContext when it was queued
+
+    pIrpCtx = (PPVFS_IRP_CONTEXT)Context;
+
+    PvfsQueueCancelIrpIfRequested(pIrpCtx);
+
+    bActive = PvfsIrpContextMarkIfNotSetFlag(
+                  pIrpCtx,
+                  PVFS_IRP_CTX_FLAG_CANCELLED,
+                  PVFS_IRP_CTX_FLAG_ACTIVE);
+
+    if (bActive)
+    {
+        ntError = pIrpCtx->Callback(pIrpCtx);
+    }
+    else
+    {
+        ntError = STATUS_CANCELLED;
+    }
+
+    if (ntError != STATUS_PENDING)
+    {
+        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+
+        PvfsAsyncIrpComplete(pIrpCtx);
+    }
+
+    PvfsReleaseIrpContext(&pIrpCtx);
+
+    return;
+}

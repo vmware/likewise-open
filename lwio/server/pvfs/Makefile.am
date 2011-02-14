@@ -86,8 +86,6 @@ libpvfs_sys_la_SOURCES = \
     fileLinkInfo.c \
     lwFilePosixInfo.c \
     lwFilePosixDirInfo.c \
-    thread_worker.c \
-    work_queue.c \
     oplock.c \
     notify.c \
     ioctlOpenFileInfo.c \

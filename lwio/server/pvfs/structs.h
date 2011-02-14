@@ -343,7 +343,6 @@ struct _PVFS_SCB
     BOOLEAN bOplockBreakInProgress;
     PPVFS_LIST pOplockList;
     PPVFS_LIST pOplockPendingOpsQueue;
-    PPVFS_LIST pOplockReadyOpsQueue;
     // End BaseMutex
 
 
@@ -482,6 +481,8 @@ typedef enum
 #define PVFS_IRP_CTX_FLAG_COMPLETE         0x0008
 #define PVFS_IRP_CTX_FLAG_REQUEST_CANCEL   0x0010
 
+typedef NTSTATUS (*PPVFS_IRP_CONTEXT_CALLBACK)(PPVFS_IRP_CONTEXT);
+
 struct _PVFS_IRP_CONTEXT
 {
     LONG RefCount;
@@ -492,6 +493,8 @@ struct _PVFS_IRP_CONTEXT
 
     PPVFS_SCB pScb;
     PIRP pIrp;
+
+    PPVFS_IRP_CONTEXT_CALLBACK Callback;
 };
 
 /* Used for Query/Set level handlers */
@@ -535,7 +538,6 @@ typedef struct _PVFS_WORK_CONTEXT
     PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext;
 
 } PVFS_WORK_CONTEXT, *PPVFS_WORK_CONTEXT;
-
 
 typedef struct _PVFS_OPEN_FILE_INFO
 {
@@ -647,6 +649,15 @@ typedef struct _PVFS_QUOTA_ENTRY
     struct _PVFS_QUOTA_ENTRY* pNext;
 } PVFS_QUOTA_ENTRY, *PPVFS_QUOTA_ENTRY;
 
+
+typedef struct _PVFS_DRIVER_STATE
+{
+    PCSTR DriverName;
+    PCSTR DriverDescription;
+
+    PLW_THREAD_POOL ThreadPool;
+
+} PVFS_DRIVER_STATE, *PPVFS_DRIVER_STATE;
 
 #endif    /* _PVFS_STRUCTS_H */
 

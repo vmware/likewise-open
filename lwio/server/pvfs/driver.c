@@ -67,8 +67,17 @@ PvfsDriverInitialize(
     VOID
     );
 
+static
+NTSTATUS
+PvfsCreateDriverState(
+    PPVFS_DRIVER_STATE State
+    );
 
-/* Code */
+static
+VOID
+PvfsDestroyDriverState(
+    PPVFS_DRIVER_STATE State
+    );
 
 /************************************************************
   **********************************************************/
@@ -130,10 +139,6 @@ PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-
-    ntError = PvfsStopWorkerThreads();
-
     PvfsCbTableDestroy(&gScbTable);
 
     PvfsCbTableDestroy(&gFcbTable);
@@ -154,6 +159,8 @@ PvfsDriverShutdown(
     {
         IoDeviceDelete(&gPvfsDeviceHandle);
     }
+
+    PvfsDestroyDriverState(&gPvfsDriverState);
 
     IO_LOG_ENTER_LEAVE("");
 }
@@ -179,9 +186,7 @@ PvfsDestroyUnixIdCache(
     return;
 }
 
-/************************************************************
- Driver Dispatch Routine
- ***********************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
 NTSTATUS
@@ -198,103 +203,95 @@ PvfsDriverDispatch(
 
     switch (pIrpCtx->pIrp->Type)
     {
+        case IRP_TYPE_LOCK_CONTROL:
+            pIrpCtx->Callback = PvfsLockControl;
+            break;
 
-    /* Always async - none currently */
+        case IRP_TYPE_READ:
+            pIrpCtx->Callback = PvfsRead;
+            break;
 
-    /* Conditionally Async.  Any call that determines it will block
-       (e.g oplock breaks, or blocking locks) will still be handled async
-       as necessary */
+        case IRP_TYPE_WRITE:
+            pIrpCtx->Callback = PvfsWrite;
+            break;
 
-    case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsLockControl(pIrpCtx);
-        break;
+        case IRP_TYPE_SET_INFORMATION:
+            pIrpCtx->Callback = PvfsSetInformationFile;
+            break;
 
-    case IRP_TYPE_READ:
-        ntError = PvfsRead(pIrpCtx);
-        break;
+        case IRP_TYPE_QUERY_INFORMATION:
+            pIrpCtx->Callback = PvfsQueryInformationFile;
+            break;
 
-    case IRP_TYPE_WRITE:
-        ntError = PvfsWrite(pIrpCtx);
-        break;
+        case IRP_TYPE_QUERY_DIRECTORY:
+            pIrpCtx->Callback = PvfsQueryDirInformation;
+            break;
 
-    case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsSetInformationFile(pIrpCtx);
-        break;
+        case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+            pIrpCtx->Callback = PvfsQueryVolumeInformation;
+            break;
 
-    case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQueryInformationFile(pIrpCtx);
-        break;
+        case IRP_TYPE_QUERY_SECURITY:
+            pIrpCtx->Callback = PvfsQuerySecurityFile;
+            break;
 
-    case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsQueryDirInformation(pIrpCtx);
-        break;
+        case IRP_TYPE_SET_SECURITY:
+            pIrpCtx->Callback = PvfsSetSecurityFile;
+            break;
 
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsQueryVolumeInformation(pIrpCtx);
-        break;
+        case IRP_TYPE_FLUSH_BUFFERS:
+            pIrpCtx->Callback = PvfsFlushBuffers;
+            break;
 
-    case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsQuerySecurityFile(pIrpCtx);
-        break;
+        case IRP_TYPE_DEVICE_IO_CONTROL:
+            pIrpCtx->Callback = PvfsDispatchDeviceIoControl;
+            break;
 
-    case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsSetSecurityFile(pIrpCtx);
-        break;
+        case IRP_TYPE_SET_VOLUME_INFORMATION:
+            pIrpCtx->Callback = PvfsSetVolumeInformation;
+            break;
 
-    case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = PvfsFlushBuffers(pIrpCtx);
-        break;
+        case IRP_TYPE_QUERY_QUOTA:
+            pIrpCtx->Callback = PvfsQueryQuota;
+            break;
 
-    case IRP_TYPE_CLOSE:
-        ntError = PvfsClose(pIrpCtx);
-        break;
+        case IRP_TYPE_SET_QUOTA:
+            pIrpCtx->Callback = PvfsSetQuota;
+            break;
 
-    /* Synchronous by default, but can block and return PENDING.
-       Cannot be async by default since STATUS_PENDING means has a
-       different meaning when returned from the following IRPs */
+        //
+        // Special Cases...STATUS_PENDING has special meaning
+        //
+        case IRP_TYPE_CREATE:
+            ntError = PvfsCreate(pIrpCtx);
+            break;
 
-    case IRP_TYPE_CREATE:
-        ntError = PvfsCreate(pIrpCtx);
-        break;
+        case IRP_TYPE_FS_CONTROL:
+            ntError = PvfsDispatchFsIoControl(pIrpCtx);
+            break;
 
-    case IRP_TYPE_FS_CONTROL:
-        ntError = PvfsDispatchFsIoControl(pIrpCtx);
-        break;
+        case IRP_TYPE_READ_DIRECTORY_CHANGE:
+            ntError = PvfsReadDirectoryChange(pIrpCtx);
+            break;
 
-    case IRP_TYPE_READ_DIRECTORY_CHANGE:
-        ntError = PvfsReadDirectoryChange(pIrpCtx);
-        break;
+        case IRP_TYPE_CLOSE:
+            ntError = PvfsClose(pIrpCtx);
+            break;
 
-    /* Currently only support synchronous calls */
-
-    case IRP_TYPE_DEVICE_IO_CONTROL:
-        ntError = PvfsDispatchDeviceIoControl(pIrpCtx);
-        break;
-
-    case IRP_TYPE_SET_VOLUME_INFORMATION:
-        ntError = PvfsSetVolumeInformation(pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_QUOTA:
-        ntError = PvfsQueryQuota(pIrpCtx);
-        break;
-
-    case IRP_TYPE_SET_QUOTA:
-        ntError = PvfsSetQuota(pIrpCtx);
-        break;
-
-    default:
-        ntError = STATUS_INVALID_PARAMETER;
-        break;
+        //
+        // Safety net
+        //
+        default:
+            ntError = STATUS_INVALID_PARAMETER;
+            break;
     }
 
-    if ((ntError != STATUS_SUCCESS) && (ntError != STATUS_PENDING))
+    if (pIrpCtx->Callback)
     {
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsScheduleIrpContext(pIrpCtx);
     }
 
-cleanup:
-
+error:
     if (ntError != STATUS_PENDING)
     {
         pIrp->IoStatusBlock.Status = ntError;
@@ -303,11 +300,7 @@ cleanup:
     PvfsReleaseIrpContext(&pIrpCtx);
 
     return ntError;
-
-error:
-    goto cleanup;
 }
-
 
 /************************************************************
  ***********************************************************/
@@ -335,14 +328,68 @@ PvfsDriverInitialize(
     ntError = PvfsPathCacheInit();
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsInitWorkerThreads();
+    ntError = PvfsCreateDriverState(&gPvfsDriverState);
     BAIL_ON_NT_STATUS(ntError);
 
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+    return ntError;
 }
 
+////////////////////////////////////////////////////////////////////////
 
+static
+NTSTATUS
+PvfsCreateDriverState(
+    PPVFS_DRIVER_STATE State
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PLW_THREAD_POOL_ATTRIBUTES pThreadAttributes = NULL;
+
+    // Create the worker thread pool.  Avoid any tasks threads for now
+
+    ntError = LwRtlCreateThreadPoolAttributes(&pThreadAttributes);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LwRtlSetThreadPoolAttribute(
+        pThreadAttributes,
+        LW_THREAD_POOL_OPTION_TASK_THREADS,
+        0);
+
+    ntError = LwRtlCreateThreadPool(&State->ThreadPool, pThreadAttributes);
+    BAIL_ON_NT_STATUS(ntError);
+
+
+
+error:
+    if (!NT_SUCCESS(ntError))
+    {
+        PvfsDestroyDriverState(State);
+    }
+
+    if (pThreadAttributes)
+    {
+        LwRtlFreeThreadPoolAttributes(&pThreadAttributes);
+    }
+
+    return ntError;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+PvfsDestroyDriverState(
+    PPVFS_DRIVER_STATE State
+    )
+{
+    if (State)
+    {
+        if (State->ThreadPool)
+        {
+            LwRtlFreeThreadPool(&State->ThreadPool);
+        }
+    }
+
+    return;
+}
