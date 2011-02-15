@@ -199,6 +199,8 @@ NpfsFreePipe(
     NpfsReleaseFCB(pFCB);
     RTL_FREE(&pPipe->pSessionKey);
     RtlReleaseAccessToken(&pPipe->pClientAccessToken);
+    pthread_cond_destroy(&pPipe->PipeCondition);
+    pthread_mutex_destroy(&pPipe->PipeMutex);
     NpfsFreeMemory(pPipe);
 
     return(ntStatus);
