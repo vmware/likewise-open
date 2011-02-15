@@ -518,7 +518,9 @@ SrvRequestCreateXOplocks(
     pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (SrvTreeIsNamedPipe(pCreateState->pTree) ||
-        (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
+        (!(pCreateState->pRequestHeader->flags &
+          (SMB_OPLOCK_REQUEST_BATCH|SMB_OPLOCK_REQUEST_EXCLUSIVE))))
     {
         pOplockCursor = &noOplockChain[0];
 
@@ -543,7 +545,11 @@ SrvRequestCreateXOplocks(
     }
     else
     {
-        pOplockCursor = &noOplockChain[0];
+        /* We should never get here, since we don't want to uselessly
+         * allocate an OplockState; this is handled at the top of the
+         * function.
+         */
+        LWIO_ASSERT(0);
     }
 
     while (bContinue && (pOplockCursor->oplockRequest != SMB_OPLOCK_LEVEL_NONE))
