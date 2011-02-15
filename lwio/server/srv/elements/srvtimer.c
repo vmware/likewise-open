@@ -153,7 +153,8 @@ SrvTimerMain(
             status = WireGetCurrentNTTime(&llCurTime);
             BAIL_ON_NT_STATUS(status);
 
-            if (llCurTime >= pTimerRequest->llExpiry)
+            if (llCurTime >= pTimerRequest->llExpiry &&
+                !pTimerRequest->bCanceled)
             {
                 SrvTimerDetachRequest_inlock(pContext, pTimerRequest);
 
@@ -370,6 +371,7 @@ SrvTimerPostRequestSpecific(
     pTimerRequest->llExpiry = llExpiry;
     pTimerRequest->pUserData = pUserData;
     pTimerRequest->pfnTimerExpiredCB = pfnTimerExpiredCB;
+    pTimerRequest->bCanceled = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
@@ -468,6 +470,7 @@ SrvTimerCancelRequestSpecific(
 
         pIter->pfnTimerExpiredCB = NULL;
         pUserData = pIter->pUserData;
+        pIter->bCanceled = TRUE;
     }
     else
     {
