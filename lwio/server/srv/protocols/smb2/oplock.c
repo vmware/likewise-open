@@ -273,21 +273,23 @@ SrvProcessOplock_SMB_V2(
                     break;
 
                 case SMB_OPLOCK_LEVEL_II:
-
+                {
                     /* Level2 can only break to none. No Ack needed.
                        Remove any remaining oplock state */
 
-                    pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)SrvFile2RemoveOplockState(pFile);
-                    if (pOplockState)
+                    PSRV_OPLOCK_STATE_SMB_V2   pOplockState2 = NULL;
+
+                    pOplockState2 = (PSRV_OPLOCK_STATE_SMB_V2)SrvFile2RemoveOplockState(pFile);
+                    if (pOplockState2)
                     {
-                        SrvReleaseOplockState_SMB_V2(pOplockState);
-                        pOplockState = NULL;
+                        SrvReleaseOplockState_SMB_V2(pOplockState2);
+                        pOplockState2 = NULL;
                     }
 
                     ntStatus = STATUS_SUCCESS;
 
                     break;
-
+                }
                 case SMB_OPLOCK_LEVEL_NONE:
                 default:
 
