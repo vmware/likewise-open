@@ -69,6 +69,7 @@ typedef struct _SRV_TIMER_REQUEST
     LONG64                 llExpiry;
     PVOID                  pUserData;
     PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
+    BOOLEAN                bCanceled;
 
     struct _SRV_TIMER_REQUEST* pNext;
     struct _SRV_TIMER_REQUEST* pPrev;
