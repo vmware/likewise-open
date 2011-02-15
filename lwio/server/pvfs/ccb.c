@@ -337,7 +337,7 @@ PvfsRenameStream(
 NTSTATUS
 PvfsRenameCCB(
     IN PPVFS_CCB pCcb,
-    IN PPVFS_FILE_NAME DestFileName
+    IN PPVFS_FILE_NAME pDestFileName
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -349,31 +349,69 @@ PvfsRenameCCB(
     ntError = PvfsBuildFileNameFromScb(&srcFileName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (LwRtlCStringIsEqual(
+    if (!PvfsIsDefaultStreamName(&srcFileName) &&
+        !PvfsIsDefaultStreamName(pDestFileName))
+    {
+        // Two named streams
+        if (LwRtlCStringIsEqual(
             srcFileName.StreamName,
-            DestFileName->StreamName,
+            pDestFileName->StreamName,
             FALSE))
-    {
-        // Both src and dst stream names ar ethe same some only
-        // renaming the underlying file object
+        {
+            // Both src and dst stream names ar ethe same some only
+            // renaming the underlying file object
 
-        ntError = PvfsRenameFile(pCcb, DestFileName);
+            ntError = PvfsRenameFile(pCcb, pDestFileName);
+        }
+        else if (LwRtlCStringIsEqual(
+                     srcFileName.FileName,
+                     pDestFileName->FileName,
+                     FALSE))
+        {
+            // Renaming the named stream, file name stays the same
+
+            ntError = PvfsRenameStream(pCcb, pDestFileName);
+        }
+        else
+        {
+            // Don't allow renaming both the file name and stream name at the
+            // same time (yet)
+
+            ntError = STATUS_OBJECT_NAME_INVALID;
+        }
     }
-    else if (LwRtlCStringIsEqual(
-                 srcFileName.FileName,
-                 DestFileName->FileName,
-                 FALSE))
+    else if (PvfsIsDefaultStreamName(&srcFileName) &&
+             PvfsIsDefaultStreamName(pDestFileName))
     {
-        // Renaming the named stream, file name stays the same
-
-        ntError = PvfsRenameStream(pCcb, DestFileName);
+        // Two default streams rename object itself
+        ntError = PvfsRenameFile(pCcb, pDestFileName);
+    }
+    else if (!PvfsIsDefaultStreamName(&srcFileName) &&
+             PvfsIsDefaultStreamName(pDestFileName))
+    {
+        // rename name stream -> default stream
+        // (1) A stream on a directory cannot be renamed to the default data stream
+        // (2) Renaming" the default data stream is allowed, but this is not a true rename,
+        // it leaves behind a zero-length default data stream.
+        if (!LwRtlCStringIsEqual(
+                         srcFileName.FileName,
+                         pDestFileName->FileName,
+                         FALSE) || PVFS_IS_DIR(pCcb))
+        {
+            ntError = STATUS_OBJECT_NAME_INVALID;
+        }
+        else
+        {
+            ntError = PvfsRenameStream(pCcb, pDestFileName);
+        }
     }
     else
     {
-        // Don't allow renaming both the file name and stream name at the
-        // same time (yet)
-
-        ntError = STATUS_INVALID_PARAMETER;
+        // disallow rename object->stream
+        // TODO:
+        // we may want to allow "Renaming" the default data stream
+        // it is not a true rename, and it leaves behind a zero-length default data streams
+        ntError = STATUS_OBJECT_NAME_INVALID;
     }
     BAIL_ON_NT_STATUS(ntError);
 

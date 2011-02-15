@@ -707,7 +707,7 @@ PvfsRenameFCB(
                   pNewFilename->FileName);
     if (ntError == STATUS_SUCCESS)
     {
-        /* Make sure we have a different SCB */
+        /* Make sure we have a different FCB */
 
         if (pTargetFcb != pFcb)
         {
