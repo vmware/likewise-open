@@ -189,21 +189,20 @@ SrvConfigFreeContents_SMB_V1(
     {
         if (ConfigTable[dwEntry].Type == LwIoTypeString)
         {
-            PSTR pszString = ConfigTable[dwEntry].pValue;
-            if (pszString != NULL)
+            PSTR *ppszString = ConfigTable[dwEntry].pValue;
+            if (*ppszString != NULL)
             {
-                SrvFreeMemory(pszString);
+                SrvFreeMemory(*ppszString);
             }
         }
-	if (ConfigTable[dwEntry].Type == LwIoTypeMultiString)
+        if (ConfigTable[dwEntry].Type == LwIoTypeMultiString)
         {
-            PSTR *ppszStrings = ConfigTable[dwEntry].pValue;
-            if (ppszStrings != NULL)
+            PSTR **pppszStrings = ConfigTable[dwEntry].pValue;
+            if (*pppszStrings != NULL)
             {
-                LwIoMultiStringFree(ppszStrings);
+                LwIoMultiStringFree(pppszStrings);
             }
         }
-
     }
 }
 
