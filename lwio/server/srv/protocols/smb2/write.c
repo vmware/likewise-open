@@ -1130,7 +1130,7 @@ SrvDetectZctWrite_SMB_V2(
                             pWrite,
                             pData,
                             pFile,
-                            pPacket->pSMB2Header->ulPid,
+                            0,
                             &pWriteState);
             BAIL_ON_NT_STATUS(ntStatus);
 
