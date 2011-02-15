@@ -1130,6 +1130,13 @@ SrvSocketProcessTaskDisconnect(
         pSocket->fd = -1;
     }
 
+    // Cleanup, if socket disconnected while servicing a ZCT command
+    if (pSocket->pZct)
+    {
+        pSocket->pZct = NULL;
+        pSocket->ZctSize = 0;
+    }
+
     LwRtlCancelTask(pSocket->pTask);
 }
 
