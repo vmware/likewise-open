@@ -503,10 +503,6 @@ SrvAttemptReadIo_SMB_V2(
                 LwZctDestroy(&pReadState->pZct);
                 pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
             }
-            else if (ntStatus == STATUS_END_OF_FILE)
-            {
-                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             // completed synchronously
@@ -521,10 +517,6 @@ SrvAttemptReadIo_SMB_V2(
             SrvReleaseReadStateAsync_SMB_V2(pReadState);
             pReadState->bStartedRead = FALSE;
             LwZctDestroy(&pReadState->pZct);
-            pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
-        }
-        else if (ntStatus == STATUS_END_OF_FILE)
-        {
             pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -546,10 +538,6 @@ SrvAttemptReadIo_SMB_V2(
                             pReadState->ulBytesToRead,
                             &pReadState->Offset,
                             &pReadState->ulKey);
-            if (ntStatus == STATUS_END_OF_FILE)
-            {
-                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             // completed synchronously
@@ -558,10 +546,6 @@ SrvAttemptReadIo_SMB_V2(
         }
 
         ntStatus = pReadState->ioStatusBlock.Status;
-        if (ntStatus == STATUS_END_OF_FILE)
-        {
-            ntStatus = STATUS_SUCCESS;
-        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
