@@ -600,7 +600,7 @@ SrvProcessLockRequest_SMB_V2(
         {
             INT iPriorLock = 0;
 
-            // No prior lock range must exist that matches this unlock
+            // No prior lock range must exist that matches this lock
             for (; iPriorLock < pLockRequestState->iLock; iPriorLock++)
             {
                 PSMB2_LOCK pPriorLock =
@@ -837,17 +837,20 @@ SrvBuildLockResponse_SMB_V2(
     PSRV_EXEC_CONTEXT      pExecContext
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState = NULL;
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
+
+    pLockRequestState = (PSRV_LOCK_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SrvCreditorAdjustCredits(
                     pExecContext->pConnection->pCreditor,
@@ -863,12 +866,13 @@ SrvBuildLockResponse_SMB_V2(
                 ulBytesAvailable,
                 COM2_LOCK,
                 pSmbRequest->pHeader->usEpoch,
-                pExecContext->usCreditsGranted,
+                (pLockRequestState->bInitInterimResponse ? 0 : pExecContext->usCreditsGranted),
                 pSmbRequest->pHeader->ulPid,
                 pSmbRequest->pHeader->ullCommandSequence,
                 pCtxSmb2->pTree->ulTid,
                 pCtxSmb2->pSession->ullUid,
-                0LL, /* Async Id */
+                (pLockRequestState->bInitInterimResponse ?
+                 pLockRequestState->ullAsyncId : 0LL),
                 STATUS_SUCCESS,
                 TRUE,
                 LwIsSetFlag(
