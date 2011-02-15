@@ -154,7 +154,7 @@ SrvShareInitList(
                             pShareInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            InterlockedIncrement(&pShareInfo->refcount);
+            SrvShareAcquireInfo(pShareInfo);
         }
 
     } while (ulNumSharesFound == ulBatchLimit);
