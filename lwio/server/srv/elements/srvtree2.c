@@ -154,7 +154,7 @@ SrvTree2Create(
                     ulTid);
 
     pTree->pShareInfo = pShareInfo;
-    InterlockedIncrement(&pShareInfo->refcount);
+    SrvShareAcquireInfo(pShareInfo);
 
     pTree->ullNextAvailableFid = 0xFFFFFFFF00000001LL;
 
