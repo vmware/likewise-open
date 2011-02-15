@@ -2256,7 +2256,6 @@ SrvConvertLockTimeout(
         int i = 0;
         ULONG64 ullOffset = 0;
         const ULONG64 ullMaxNonBlockingLockOffset = 0xEF000000;
-        const ULONG ulLockConflictTimeout = 250;
         ULONG64 ullLastFailedLockOffset = (ULONG64)-1;
 
         // If a requested lock has previously conflicted with a held lock
@@ -2297,7 +2296,8 @@ SrvConvertLockTimeout(
                 (ullOffset & 0x8000000000000000LL) == 0))
 
             {
-                pLockState->pRequestHeader->ulTimeout = ulLockConflictTimeout;
+                pLockState->pRequestHeader->ulTimeout =
+                    SrvConfigGetLockConflictTimeoutMillisecs_SMB_V1();
                 break;
             }
         }

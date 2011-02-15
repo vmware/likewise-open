@@ -66,7 +66,7 @@
  *         [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv\smb1]
  *
  *      6) In prototypes.h add a getter function definition in the // config.c
- *         sectio of the file.
+ *         section of the file.
  *
  *      7) In config.c add a getter function definition at the end of the
  *         file.
@@ -161,6 +161,8 @@ SrvConfigGetDefaults_SMB_V1(
     assert(pConfig);
 
     /* Add new config parameters in alphabetic order. */
+    pConfig->dwLockConflictTimeoutMillisecs =
+        SRV_DEFAULT_LOCK_CONFLICT_TIMEOUT_MSECS_SMB_V1;
     pConfig->dwOplockTimeoutMillisecs = SRV_DEFAULT_TIMEOUT_MSECS_SMB_V1;
 }
 
@@ -206,6 +208,23 @@ SrvConfigFreeContents_SMB_V1(
 }
 
 /* Config Getter Functions */
+
+DWORD
+SrvConfigGetLockConflictTimeoutMillisecs_SMB_V1(
+    VOID
+    )
+{
+    DWORD dwTimeout = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
+
+    dwTimeout = gProtocolGlobals_SMB_V1.config.dwLockConflictTimeoutMillisecs;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
+
+    return dwTimeout;
+}
 
 DWORD
 SrvConfigGetOplockTimeoutMillisecs_SMB_V1(
