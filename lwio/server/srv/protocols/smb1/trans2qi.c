@@ -52,10 +52,11 @@ SrvMarshallFileStreamInfo(
 static
 NTSTATUS
 SrvMarshallFileAllInfo(
-    PBYTE   pFileAllInfo,
-    USHORT  usBytesAvailable,
-    PBYTE*  ppData,
-    PUSHORT pusDataLen
+    PLWIO_SRV_TREE pTree,
+    PBYTE          pFileAllInfo,
+    USHORT         usBytesAvailable,
+    PBYTE*         ppData,
+    PUSHORT        pusDataLen
     );
 
 static
@@ -210,6 +211,15 @@ static
 NTSTATUS
 SrvBuildQueryAccessInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvGetAndCheckTreePath_inlock(
+    PLWIO_SRV_TREE pTree,
+    WCHAR*         pwszFileName,
+    ULONG          ulFileNameLength,
+    PWCHAR*        pwszTreePath
     );
 
 NTSTATUS
@@ -1744,6 +1754,7 @@ SrvBuildQueryAllInfoResponse(
     *pSmbResponse->pWordCount = 10 + setupCount;
 
     ntStatus = SrvMarshallFileAllInfo(
+                    pTrans2State->pTree,
                     pTrans2State->pData2,
                     pTrans2State->usBytesUsed,
                     &pData,
@@ -1797,10 +1808,11 @@ error:
 static
 NTSTATUS
 SrvMarshallFileAllInfo(
-    PBYTE   pInfoBuffer,
-    USHORT  usBytesAvailable,
-    PBYTE*  ppData,
-    PUSHORT pusDataLen
+    PLWIO_SRV_TREE pTree,
+    PBYTE          pInfoBuffer,
+    USHORT         usBytesAvailable,
+    PBYTE*         ppData,
+    PUSHORT        pusDataLen
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -1808,9 +1820,23 @@ SrvMarshallFileAllInfo(
     USHORT   usBytesRequired = 0;
     PFILE_ALL_INFORMATION pFileAllInfo = (PFILE_ALL_INFORMATION)pInfoBuffer;
     PTRANS2_FILE_ALL_INFORMATION pFileAllInfoPacked = NULL;
+    WCHAR*   pwszTreePath = NULL;
+    ULONG    ulTreePathLen;
+    BOOLEAN  bShareInLock    = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
+
+    ntStatus = SrvGetAndCheckTreePath_inlock(pTree,
+                       pFileAllInfo->NameInformation.FileName,
+                       pFileAllInfo->NameInformation.FileNameLength,
+                       &pwszTreePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTreePathLen = wc16slen(pwszTreePath) * sizeof(wchar16_t);
 
     usBytesRequired = sizeof(*pFileAllInfoPacked) +
-                      pFileAllInfo->NameInformation.FileNameLength;
+                      pFileAllInfo->NameInformation.FileNameLength -
+                      ulTreePathLen;
 
     ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1831,15 +1857,18 @@ SrvMarshallFileAllInfo(
 
     pFileAllInfoPacked->EaSize         = pFileAllInfo->EaInformation.EaSize;
 
-    pFileAllInfoPacked->FileNameLength = pFileAllInfo->NameInformation.FileNameLength;
+    pFileAllInfoPacked->FileNameLength = pFileAllInfo->NameInformation.FileNameLength - ulTreePathLen;
     memcpy(pFileAllInfoPacked->FileName,
-           pFileAllInfo->NameInformation.FileName,
-           pFileAllInfo->NameInformation.FileNameLength);
+           pFileAllInfo->NameInformation.FileName +
+           ulTreePathLen / sizeof(wchar16_t),
+           pFileAllInfoPacked->FileNameLength);
 
     *ppData = pData;
     *pusDataLen = usBytesRequired;
 
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
     return ntStatus;
 
@@ -2106,46 +2135,37 @@ SrvMarshallFileNameInfo(
     NTSTATUS ntStatus        = STATUS_SUCCESS;
     PBYTE    pData           = NULL;
     USHORT   usBytesRequired = 0;
-    BOOLEAN  bShareInLock         = FALSE;
-    PWSTR     pwszTreePath   = NULL; // Do not free
+    PWSTR    pwszTreePath   = NULL; // Do not free
     PFILE_NAME_INFORMATION pFileNameInfo =
                                         (PFILE_NAME_INFORMATION)pInfoBuffer;
     PTRANS2_FILE_NAME_INFORMATION pFileNameInfoPacked = NULL;
+    ULONG ulPrefixLength;
+    BOOLEAN  bShareInLock    = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
 
-    ntStatus = SrvGetTreeRelativePath(
-                    pTree->pShareInfo->pwszPath,
-                    &pwszTreePath);
+    ntStatus = SrvGetAndCheckTreePath_inlock(pTree,
+                       pFileNameInfo->FileName,
+                       pFileNameInfo->FileNameLength,
+                       &pwszTreePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (STATUS_SUCCESS != SrvMatchPathPrefix(
-                                pFileNameInfo->FileName,
-                                pFileNameInfo->FileNameLength/sizeof(wchar16_t),
-                                pwszTreePath))
-    {
-        ntStatus = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ULONG ulPrefixLength = wc16slen(pwszTreePath) * sizeof(wchar16_t);
+    ulPrefixLength = wc16slen(pwszTreePath) * sizeof(wchar16_t);
 
-        usBytesRequired = sizeof(TRANS2_FILE_NAME_INFORMATION) +
-                              pFileNameInfo->FileNameLength - ulPrefixLength;
+    usBytesRequired = sizeof(TRANS2_FILE_NAME_INFORMATION) +
+            pFileNameInfo->FileNameLength - ulPrefixLength;
 
-        ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
-        BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        pFileNameInfoPacked = (PTRANS2_FILE_NAME_INFORMATION)pData;
+    pFileNameInfoPacked = (PTRANS2_FILE_NAME_INFORMATION)pData;
 
-        pFileNameInfoPacked->ulFileNameLength =
-                    pFileNameInfo->FileNameLength - ulPrefixLength;
+    pFileNameInfoPacked->ulFileNameLength =
+            pFileNameInfo->FileNameLength - ulPrefixLength;
 
-        memcpy((PBYTE)pFileNameInfoPacked->FileName,
-               (PBYTE)pFileNameInfo->FileName + ulPrefixLength,
-               pFileNameInfoPacked->ulFileNameLength);
-    }
+    memcpy((PBYTE)pFileNameInfoPacked->FileName,
+            (PBYTE)pFileNameInfo->FileName + ulPrefixLength,
+            pFileNameInfoPacked->ulFileNameLength);
 
     *ppData = pData;
     *pusDataLen = usBytesRequired;
@@ -2934,6 +2954,37 @@ error:
     goto cleanup;
 }
 
+/* Tree->pShareInfo->mutex must be held by callers of this function */
+
+static
+NTSTATUS
+SrvGetAndCheckTreePath_inlock(
+    PLWIO_SRV_TREE pTree,
+    WCHAR*         pwszFileName,
+    ULONG          ulFileNameLength,
+    PWCHAR*        pwszTreePath
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+
+    ntStatus = SrvGetTreeRelativePath(
+                   pTree->pShareInfo->pwszPath,
+                   pwszTreePath);
+
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (STATUS_SUCCESS != SrvMatchPathPrefix(
+                              pwszFileName,
+                              ulFileNameLength/sizeof(wchar16_t),
+                              *pwszTreePath))
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+    return ntStatus;
+}
 
 
 /*
