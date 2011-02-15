@@ -176,10 +176,10 @@ SrvElementsConfigFreeContents(
         }
         if (configTable[ulEntry].Type == LwIoTypeMultiString)
         {
-            PSTR *ppszStrings = configTable[ulEntry].pValue;
-            if (ppszStrings != NULL)
+            PSTR **pppszStrings = configTable[ulEntry].pValue;
+            if (*pppszStrings != NULL)
             {
-                LwIoMultiStringFree(ppszStrings);
+                LwIoMultiStringFree(pppszStrings);
             }
         }
 
