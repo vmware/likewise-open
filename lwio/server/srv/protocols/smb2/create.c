@@ -1041,7 +1041,9 @@ SrvRequestCreateOplocks_SMB_V2(
     pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
     if (SrvTree2IsNamedPipe(pCreateState->pTree) ||
-        (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
+        ((pCreateState->pRequestHeader->ucOplockLevel != SMB2_OPLOCK_LEVEL_I) &&
+         (pCreateState->pRequestHeader->ucOplockLevel != SMB2_OPLOCK_LEVEL_BATCH)))
     {
         pOplockCursor = &noOplockChain[0];
 
@@ -1072,9 +1074,11 @@ SrvRequestCreateOplocks_SMB_V2(
 
         default:
 
-            pOplockCursor = &noOplockChain[0];
-
-            break;
+            /* We should never reach the default case here, since we
+             * don't want to uselessly allocate an OplockState;
+             * this is handled at the top of the function.
+             */
+            LWIO_ASSERT(0);
     }
 
     while (bContinue && (pOplockCursor->oplockRequest != SMB_OPLOCK_LEVEL_NONE))
