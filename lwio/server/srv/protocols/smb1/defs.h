@@ -129,18 +129,27 @@ typedef UCHAR SMB_OPLOCK_REQUEST;
 
 /* SMB_V1 Configuration */
 
+#define SRV_DEFAULT_LOCK_CONFLICT_TIMEOUT_MSECS_SMB_V1 250
 #define SRV_DEFAULT_TIMEOUT_MSECS_SMB_V1 (30 * 1000)
 
-#define SRV_CONFIG_TABLE_INITIALIZER_SMB_V1                     \
-{                                                               \
-    {                                                           \
-        .pszName        = "OplockTimeoutMillisecs",             \
-        .bUsePolicy     = FALSE,                                \
-        .Type           = LwIoTypeDword,                        \
-        .dwMin          = 0,                                    \
-        .dwMax          = 60000,                                \
-        .pValue         = &pConfig->dwOplockTimeoutMillisecs    \
-    },                                                          \
+#define SRV_CONFIG_TABLE_INITIALIZER_SMB_V1                         \
+{                                                                   \
+    {                                                               \
+        .pszName        = "LockConflictTimeoutMillisecs",           \
+        .bUsePolicy     = FALSE,                                    \
+        .Type           = LwIoTypeDword,                            \
+        .dwMin          = 0,                                        \
+        .dwMax          = 1000,                                     \
+        .pValue         = &pConfig->dwLockConflictTimeoutMillisecs  \
+    },                                                              \
+    {                                                               \
+        .pszName        = "OplockTimeoutMillisecs",                 \
+        .bUsePolicy     = FALSE,                                    \
+        .Type           = LwIoTypeDword,                            \
+        .dwMin          = 0,                                        \
+        .dwMax          = 60000,                                    \
+        .pValue         = &pConfig->dwOplockTimeoutMillisecs        \
+    },                                                              \
 };
 
 #define SRV_NATIVE_OS_W         {'U', 'n', 'i', 'x', 0 }

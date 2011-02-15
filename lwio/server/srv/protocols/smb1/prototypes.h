@@ -89,6 +89,11 @@ SrvConfigShutdown_SMB_V1(
 // config.c - getter functions
 
 ULONG
+SrvConfigGetLockConflictTimeoutMillisecs_SMB_V1(
+    VOID
+    );
+
+ULONG
 SrvConfigGetOplockTimeoutMillisecs_SMB_V1(
     VOID
     );
