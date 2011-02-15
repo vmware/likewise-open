@@ -1147,11 +1147,12 @@ SrvProtocolTransportDriverDetectPacket(
         pPacketFound = pConnection->readerState.pRequestPacket;
         pConnection->readerState.pRequestPacket = NULL;
     }
-    // partial packet with known protocol version
+    // Partial packet with known protocol version
     else if (!pConnection->readerState.bNeedHeader &&
              (pConnection->serverProperties.ulZctWriteThreshold > 0) &&
              (pConnection->readerState.zctState == SRV_ZCT_STATE_UNKNOWN) &&
-             (pConnection->state == LWIO_SRV_CONN_STATE_READY) &&
+             ((pConnection->state == LWIO_SRV_CONN_STATE_NEGOTIATE) ||
+              (pConnection->state == LWIO_SRV_CONN_STATE_READY)) &&
              (pConnection->protocolVer != SMB_PROTOCOL_VERSION_UNKNOWN) &&
              !SrvConnectionIsSigningActive_inlock(pConnection))
     {
