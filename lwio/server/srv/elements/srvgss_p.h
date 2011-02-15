@@ -101,7 +101,7 @@ typedef struct _SRV_GSS_NEGOTIATE_CONTEXT
 {
     SRV_GSS_CONTEXT_STATE state;
 
-    gss_ctx_id_t* pGssContext;
+    gss_ctx_id_t GssContext;
 
 } SRV_GSS_NEGOTIATE_CONTEXT, *PSRV_GSS_NEGOTIATE_CONTEXT;
 

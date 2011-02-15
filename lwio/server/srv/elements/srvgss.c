@@ -231,7 +231,7 @@ SrvGssGetSessionDetails(
     if (ppSessionKey)
     {
         ntStatus = SrvGssGetSessionKey(
-                        *pGssNegotiate->pGssContext,
+                        pGssNegotiate->GssContext,
                         &pSessionKey,
                         &dwSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -240,7 +240,7 @@ SrvGssGetSessionDetails(
     if (ppszClientPrincipalName)
     {
         ntStatus = SrvGssGetClientPrincipalName(
-                       *pGssNegotiate->pGssContext,
+                       pGssNegotiate->GssContext,
                        &pszClientPrincipalName);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -258,7 +258,7 @@ SrvGssGetSessionDetails(
 
     if (pContextHandle)
     {
-        *pContextHandle = *pGssNegotiate->pGssContext;
+        *pContextHandle = pGssNegotiate->GssContext;
     }
 
 cleanup:
@@ -303,12 +303,7 @@ SrvGssBeginNegotiate(
 
     pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_INITIAL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(gss_ctx_id_t),
-                    (PVOID*)&pGssNegotiate->pGssContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *pGssNegotiate->pGssContext = GSS_C_NO_CONTEXT;
+    pGssNegotiate->GssContext = GSS_C_NO_CONTEXT;
 
     *phGssResume = (HANDLE)pGssNegotiate;
 
@@ -408,17 +403,13 @@ SrvGssEndNegotiate(
 
     pGssNegotiateContext = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssResume;
 
-    if (pGssNegotiateContext->pGssContext &&
-        (*pGssNegotiateContext->pGssContext != GSS_C_NO_CONTEXT))
+    if (pGssNegotiateContext->GssContext != GSS_C_NO_CONTEXT)
     {
         gss_delete_sec_context(
                         &ulMinorStatus,
-                        pGssNegotiateContext->pGssContext,
+                        &pGssNegotiateContext->GssContext,
                         GSS_C_NO_BUFFER);
     }
-
-    if (pGssNegotiateContext->pGssContext)
-        SrvFreeMemory(pGssNegotiateContext->pGssContext);
 
     SrvFreeMemory(pGssNegotiateContext);
 }
@@ -451,7 +442,7 @@ SrvGssContinueNegotiate(
 
     ulMajorStatus = gss_accept_sec_context(
                         (OM_uint32 *)&ulMinorStatus,
-                        pGssNegotiate->pGssContext,
+                        &pGssNegotiate->GssContext,
                         NULL,
                         &input_desc,
                         NULL,
