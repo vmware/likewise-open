@@ -47,23 +47,6 @@
 #ifndef _PVFS_ASYNC_HANDLER_H_
 #define _PVFS_ASYNC_HANDLER_H_
 
-
-/* Work Context API */
-
-NTSTATUS
-PvfsCreateWorkContext(
-    OUT PPVFS_WORK_CONTEXT *ppWorkContext,
-    IN  LONG lFlags,
-    IN  PVOID pContext,
-    IN  PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion,
-    IN  PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext
-    );
-
-VOID
-PvfsFreeWorkContext(
-    IN OUT PPVFS_WORK_CONTEXT *ppWorkContext
-    );
-
 /* Cancellation routine */
 
 VOID
