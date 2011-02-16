@@ -643,9 +643,13 @@ SrvRenameFile(
                                                             pTrans2State->hDir;
     }
 
-    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        pTrans2State->bSetInfoAttempted = TRUE;
 
-    ntStatus = IoSetInformationFile(
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+        ntStatus = IoSetInformationFile(
                     (pTrans2State->pFile ? pTrans2State->pFile->hFile :
                                            pTrans2State->hFile),
                     pTrans2State->pAcb,
@@ -653,9 +657,10 @@ SrvRenameFile(
                     (PFILE_RENAME_INFORMATION)pTrans2State->pData2,
                     pTrans2State->usBytesAllocated,
                     FileRenameInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
 
 error:
 
@@ -774,9 +779,9 @@ SrvSetEaList(
 
     if (!pTrans2State->bSetInfoAttempted)
     {
-        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+        pTrans2State->bSetInfoAttempted = TRUE;
 
-		pTrans2State->bSetInfoAttempted = TRUE;
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
         ntStatus = IoSetInformationFile(
                         (pTrans2State->pFile ? pTrans2State->pFile->hFile :
