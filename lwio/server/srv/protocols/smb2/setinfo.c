@@ -311,10 +311,10 @@ SrvProcessSetInfo_SMB_V2(
 
         case SRV_SET_INFO_STAGE_SMB_V2_ATTEMPT_IO:
 
+            pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE;
+
             ntStatus = SrvSetInfo_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 

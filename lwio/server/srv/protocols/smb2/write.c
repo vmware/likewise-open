@@ -244,10 +244,11 @@ SrvProcessWrite_SMB_V2(
 
         case SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE:
 
+            pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_IO;
+
             ntStatus = SrvExecuteWrite_SMB_V2(pWriteState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_IO;
 
             // intentional fall through
 
