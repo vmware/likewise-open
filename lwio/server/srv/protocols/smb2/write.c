@@ -244,10 +244,10 @@ SrvProcessWrite_SMB_V2(
 
         case SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE:
 
-            pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_IO;
-
             ntStatus = SrvExecuteWrite_SMB_V2(pWriteState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_IO;
 
 
             // intentional fall through
@@ -475,6 +475,7 @@ SrvExecuteWrite_SMB_V2(
         if (!pWriteState->bStartedIo)
         {
             SrvPrepareWriteStateAsync_SMB_V2(pWriteState, pExecContext);
+            pWriteState->bStartedIo = TRUE;
 
             ntStatus = IoWriteFile(
                             pWriteState->pFile->hFile,
@@ -488,9 +489,8 @@ SrvExecuteWrite_SMB_V2(
 
             // completed synchronously
             SrvReleaseWriteStateAsync_SMB_V2(pWriteState);
+            pWriteState->bStartedIo = FALSE;
         }
-
-        pWriteState->bStartedIo = FALSE;
 
         ntStatus = pWriteState->ioStatusBlock.Status;
         BAIL_ON_NT_STATUS(ntStatus);

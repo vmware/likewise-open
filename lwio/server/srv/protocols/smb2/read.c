@@ -255,10 +255,10 @@ SrvProcessRead_SMB_V2(
 
         case SRV_READ_STAGE_SMB_V2_ATTEMPT_READ:
 
-            pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED;
-
             ntStatus = SrvAttemptReadIo_SMB_V2(pReadState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED;
 
             // intentional fall through
 
