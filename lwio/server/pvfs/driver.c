@@ -195,7 +195,7 @@ PvfsDriverDispatch(
     IN PIRP pIrp
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
@@ -204,7 +204,8 @@ PvfsDriverDispatch(
     switch (pIrpCtx->pIrp->Type)
     {
         case IRP_TYPE_LOCK_CONTROL:
-            pIrpCtx->Callback = PvfsLockControl;
+            // pIrpCtx->Callback = PvfsLockControl;
+            ntError = PvfsLockControl(pIrpCtx);
             break;
 
         case IRP_TYPE_READ:
