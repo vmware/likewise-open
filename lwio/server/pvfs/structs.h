@@ -47,6 +47,14 @@
 
 // File System information
 
+// #define PVFS_ENABLE_VOLUME_QUOTAS     1
+
+#ifdef PVFS_ENABLE_VOLUME_QUOTAS
+#  define PVFS_FILE_VOLUME_QUOTAS   FILE_VOLUME_QUOTAS
+#else
+#  define PVFS_FILE_VOLUME_QUOTAS   0
+#endif
+
 #define PVFS_FS_NAME     "NTFS"
 #define PVFS_FILE_SYSTEM_ATTRIBUTES   \
     (FILE_CASE_SENSITIVE_SEARCH |     \
@@ -54,7 +62,7 @@
      FILE_UNICODE_ON_DISK |           \
      FILE_PERSISTENT_ACLS |           \
      FILE_SUPPORTS_SPARSE_FILES |     \
-     FILE_VOLUME_QUOTAS)
+     PVFS_FILE_VOLUME_QUOTAS)
 
 #define PVFS_NTFS_QUOTA_FILENAME    "$Extend\\$Quota:$Q:$INDEX_ALLOCATION"
 #define PVFS_NTFS_QUOTA_FILENAME_W  \

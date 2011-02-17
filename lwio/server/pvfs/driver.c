@@ -269,6 +269,7 @@ PvfsDriverDispatch(
         ntError = PvfsSetVolumeInformation(pIrpCtx);
         break;
 
+#ifdef PVFS_ENABLE_VOLUME_QUOTAS
     case IRP_TYPE_QUERY_QUOTA:
         ntError = PvfsQueryQuota(pIrpCtx);
         break;
@@ -276,6 +277,12 @@ PvfsDriverDispatch(
     case IRP_TYPE_SET_QUOTA:
         ntError = PvfsSetQuota(pIrpCtx);
         break;
+#else
+    case IRP_TYPE_SET_QUOTA:
+    case IRP_TYPE_QUERY_QUOTA:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+#endif
 
     default:
         ntError = STATUS_INVALID_PARAMETER;

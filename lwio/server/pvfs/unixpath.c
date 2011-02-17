@@ -158,6 +158,7 @@ PvfsWC16CanonicalPathName(
             BAIL_ON_NT_STATUS(ntError);
         }
 
+#ifdef PVFS_ENABLE_VOLUME_QUOTAS
         if (*pszCursor == '$')
         {
             if (LwRtlCStringIsEqual(pszPath, PVFS_NTFS_QUOTA_FILENAME, TRUE))
@@ -169,7 +170,7 @@ PvfsWC16CanonicalPathName(
                 goto cleanup;
             }
         }
-
+#endif
 
         if (*pszCursor == '\\')
         {
