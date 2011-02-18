@@ -318,7 +318,7 @@ error:
 static
 VOID
 PvfsProcessOplockDeferredOperation(
-PVOID Context
+    PVOID Context
     );
 
 NTSTATUS
@@ -373,7 +373,7 @@ error:
 static
 VOID
 PvfsProcessOplockDeferredOperation(
-PVOID Context
+    PVOID Context
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
