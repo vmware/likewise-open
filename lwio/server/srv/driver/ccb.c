@@ -18,12 +18,16 @@ SrvCCBCreate(
 {
     NTSTATUS ntStatus = 0;
     PSRV_CCB pCCB = NULL;
+    PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcInfo = NULL;
+
+    pProcInfo = IoSecurityGetProcessInfo(pIrpContext->pIrp->Args.Create.SecurityContext);
 
     ntStatus = SrvAllocateMemory(sizeof(SRV_CCB), (PVOID*)&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCCB->CcbType = SRV_CCB_DEVICE;
     pCCB->refCount = 1;
+    pCCB->UnixUid = pProcInfo ? pProcInfo->Uid : -1;
 
     *ppCCB = pCCB;
 
