@@ -344,7 +344,10 @@ cleanup:
         LwRtlCStringFree(&pszMetadataPath);
     }
 
-    PvfsSysClose(Ownerfd);
+    if (Ownerfd != -1)
+    {
+        PvfsSysClose(Ownerfd);
+    }
 
     return ntError;
 
@@ -505,6 +508,8 @@ PvfsSysClose(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     int unixerr = 0;
+
+    LWIO_ASSERT(fd != -1);
 
     if (close(fd) == -1) {
         PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);

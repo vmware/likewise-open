@@ -126,7 +126,10 @@ PvfsClose(
 
     /* Close the fd */
 
-    ntError = PvfsSysClose(pCcb->fd);
+    if (pCcb->fd != -1)
+    {
+        ntError = PvfsSysClose(pCcb->fd);
+    }
 
     /* Technically, it would be more proper to do this in the utility
        functions in PvfsFreeSCB, but we will end up with memory corruption
