@@ -99,6 +99,7 @@ SrvDeviceIoCommon(
     ULONG ulOutBufferSize = 0;
     ULONG ulBytesTransferred = 0;
     ULONG ControlCode = 0;
+    PSRV_CCB pCcb = IoFileGetContext(pIrp->FileHandle);
 
     ControlCode      = pIrp->Args.IoFsControl.ControlCode;
     pInBuffer        = pIrp->Args.IoFsControl.InputBuffer;
@@ -106,7 +107,11 @@ SrvDeviceIoCommon(
     pOutBuffer       = pIrp->Args.IoFsControl.OutputBuffer;
     ulOutBufferSize  = pIrp->Args.IoFsControl.OutputBufferLength;
 
-    switch (ControlCode)
+    if (pCcb->UnixUid != 0)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+    }
+    else switch (ControlCode)
     {
 
       case SRV_DEVCTL_ADD_SHARE:
