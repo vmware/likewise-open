@@ -297,6 +297,11 @@ error:
     {
         PvfsFreeFileName(baseFileName);
     }
+    if (fileName)
+    {
+        PvfsFreeFileName(fileName);
+    }
+
 
     if (pDir)
     {
