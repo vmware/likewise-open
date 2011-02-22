@@ -204,8 +204,7 @@ PvfsDriverDispatch(
     switch (pIrpCtx->pIrp->Type)
     {
         case IRP_TYPE_LOCK_CONTROL:
-            // pIrpCtx->Callback = PvfsLockControl;
-            ntError = PvfsLockControl(pIrpCtx);
+            pIrpCtx->Callback = PvfsLockControl;
             break;
 
         case IRP_TYPE_READ:
@@ -260,6 +259,9 @@ PvfsDriverDispatch(
             pIrpCtx->Callback = PvfsSetQuota;
             break;
 
+        case IRP_TYPE_CLOSE:
+            pIrpCtx->Callback = PvfsClose;
+            break;
         //
         // Special Cases...STATUS_PENDING has special meaning
         //
@@ -273,10 +275,6 @@ PvfsDriverDispatch(
 
         case IRP_TYPE_READ_DIRECTORY_CHANGE:
             ntError = PvfsReadDirectoryChange(pIrpCtx);
-            break;
-
-        case IRP_TYPE_CLOSE:
-            ntError = PvfsClose(pIrpCtx);
             break;
 
         //
