@@ -205,13 +205,19 @@ PvfsWC16CanonicalPathName(
             parsingStreamName = TRUE;
         }
 
-        if (!parsingStreamName &&
+        if (
+            (!parsingStreamName &&
             ((*pszCursor == '?') ||
             (*pszCursor == '*') ||
              (*pszCursor == '"') ||
              (*pszCursor == '<') ||
              (*pszCursor == '>') ||
              (*pszCursor == '|')))
+            ||
+            (parsingStreamName &&
+            ((*pszCursor == '/') ||
+            (*pszCursor == '\\')))
+           )
         {
             ntError = STATUS_OBJECT_NAME_INVALID;
             BAIL_ON_NT_STATUS(ntError);
