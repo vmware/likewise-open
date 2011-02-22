@@ -114,6 +114,8 @@ PvfsSetFileRenameInfo(
     ACCESS_MASK DirDesired = 0;
     PVFS_STAT stat = { 0 };
     PSTR pszNewFilename = NULL;
+    PPVFS_FILE_NAME inputNewFilename = NULL;
+    PCSTR pszFilename = NULL;
     PSTR pszNewPathname = NULL;
     PSTR streamName = NULL;
     PPVFS_FILE_NAME newFileName = NULL;
@@ -148,14 +150,6 @@ PvfsSetFileRenameInfo(
                     pFileInfo->FileNameLength);
     BAIL_ON_NT_STATUS(ntError);
 
-    // if current file handle is a name stream,
-    // a new name for stream must begin with ':'
-    if (!bIsDefaultStream && (!pszNewFilename || *pszNewFilename != ':'))
-    {
-        ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     if (pFileInfo->RootDirectory)
     {
         ntError =  PvfsAcquireCCB(pFileInfo->RootDirectory, &pRootDirCcb);
@@ -171,10 +165,15 @@ PvfsSetFileRenameInfo(
     ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAllocateFileNameFromCString(&inputNewFilename, pszNewFilename, 0);
+    BAIL_ON_NT_STATUS(ntError);
+    pszFilename = PvfsGetCStringBaseFileName(inputNewFilename);
+
     /* Make sure we can add the new object to the parent directory
        (not necessarily the same as the RootDirectory handle) */
 
-    if (bIsDefaultStream)
+    if (bIsDefaultStream ||
+        (!bIsDefaultStream && pszFilename && *pszFilename))
     {
         if (pRootDirCcb)
         {
@@ -341,6 +340,10 @@ error:
     if (currentFileName)
     {
         PvfsFreeFileName(currentFileName);
+    }
+    if (inputNewFilename)
+    {
+        PvfsFreeFileName(inputNewFilename);
     }
 
     // PSTR
