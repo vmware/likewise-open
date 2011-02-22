@@ -3,7 +3,7 @@ make()
     DRIVER_SOURCES="\
         ccb.c          \
 	config.c       \
-    connections.c  \
+	connections.c  \
 	device.c       \
 	deviceclose.c  \
 	devicecreate.c \
@@ -14,8 +14,7 @@ make()
 	monitor.c      \
 	sessions.c     \
 	srvshares.c    \
-	srvstats.c     \
-	srvworker.c"
+	srvstats.c"
 
     mk_dlo \
         DLO=libsrv.sys \

@@ -321,22 +321,3 @@ SrvProcessStatistics(
     IN     ULONG  ulOutBufferSize,
     IN OUT PULONG pulBytesTransferred
     );
-
-// srvworker.c
-
-NTSTATUS
-SrvWorkerInit(
-    PLWIO_SRV_WORKER pWorker,
-    ULONG            ulCpu
-    );
-
-VOID
-SrvWorkerIndicateStop(
-    PLWIO_SRV_WORKER pWorker
-    );
-
-VOID
-SrvWorkerFreeContents(
-    PLWIO_SRV_WORKER pWorker
-    );
-

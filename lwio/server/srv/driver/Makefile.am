@@ -22,8 +22,7 @@ libsrv_sys_la_SOURCES = \
     monitor.c      \
     sessions.c     \
     srvshares.c    \
-    srvstats.c     \
-    srvworker.c
+    srvstats.c
 
 libsrv_sys_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

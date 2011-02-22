@@ -33,27 +33,26 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        driver.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - SRV
  *
- *        Protocols
+ *        Main Driver Global APIs
  *
- *        Globals
- *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>?
  *
  */
 
-#include "includes.h"
+#ifndef _SRV_DRIVER_H_
+#define _SRV_DRIVER_H_
 
-SRV_RUNTIME_GLOBALS_SMB_V1 gProtocolGlobals_SMB_V1 =
-{
-    .pMutex                     = NULL,
-    .pConfigLock                = NULL,
-    .config                     = {},
-};
+NTSTATUS
+SrvScheduleWorkItem(
+    IN PVOID Context,
+    IN LW_WORK_ITEM_FUNCTION_COMPAT Callback,
+    IN LW_WORK_ITEM_FLAGS Flags
+    );
 
-
+#endif  /// _SRV_DROVER_H_

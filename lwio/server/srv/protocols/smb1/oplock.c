@@ -653,25 +653,20 @@ SrvEnqueueOplockAckTask(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(
-                    gProtocolGlobals_SMB_V1.pWorkQueue,
-                    pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pExecContext = NULL;
-
-cleanup:
-
-    if (pExecContext)
-    {
-        SrvReleaseExecContext(pExecContext);
-    }
-
-    return ntStatus;
+    ntStatus = SrvScheduleExecContext(pExecContext);
+    // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
 error:
 
-    goto cleanup;
+    if (!NT_SUCCESS(ntStatus))
+    {
+        if (pExecContext)
+        {
+            SrvReleaseExecContext(pExecContext);
+        }
+    }
+
+    return ntStatus;
 }
 
 VOID
@@ -822,33 +817,31 @@ SrvOplockAsyncCB(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueueFront(
-                    gProtocolGlobals_SMB_V1.pWorkQueue,
-                    pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvSchedulePriorityExecContext(pExecContext);
+    // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
-    pExecContext = NULL;
 
 cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
-
-    if (pOplockState)
-    {
-        SrvReleaseOplockState(pOplockState);
-    }
 
     if (pExecContext)
     {
         SrvReleaseExecContext(pExecContext);
     }
 
+    if (pOplockState)
+    {
+        SrvReleaseOplockState(pOplockState);
+    }
+
     return;
 
 error:
 
-    LWIO_LOG_ERROR("Error: Failed processing oplock break [status:0x%x]",
-                   ntStatus);
+    LWIO_LOG_ERROR(
+        "Error: Failed processing oplock break [status:0x%x]",
+        LwNtStatusToName(ntStatus));
 
     // TODO: indicate error on file handle somehow
 

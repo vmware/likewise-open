@@ -63,15 +63,13 @@ SrvSendInterimResponse_SMB_V2(
 
 NTSTATUS
 SrvProtocolInit_SMB_V2(
-    PSMB_PROD_CONS_QUEUE pWorkQueue
+    VOID
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     pthread_mutex_init(&gProtocolGlobals_SMB_V2.mutex, NULL);
     gProtocolGlobals_SMB_V2.pMutex = &gProtocolGlobals_SMB_V2.mutex;
-
-    gProtocolGlobals_SMB_V2.pWorkQueue = pWorkQueue;
 
     /* Configuration setup should always come first as other initalization
      * routines may rely on configuration parameters to be set */
@@ -999,8 +997,6 @@ SrvProtocolShutdown_SMB_V2(
     VOID
     )
 {
-    gProtocolGlobals_SMB_V2.pWorkQueue = NULL;
-
     if (gProtocolGlobals_SMB_V2.pMutex)
     {
         pthread_mutex_destroy(&gProtocolGlobals_SMB_V2.mutex);

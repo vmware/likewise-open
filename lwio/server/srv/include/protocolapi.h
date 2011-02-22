@@ -56,7 +56,6 @@ typedef VOID (*PFN_SRV_PROTOCOL_SEND_COMPLETE)(
 
 NTSTATUS
 SrvProtocolInit(
-    PSMB_PROD_CONS_QUEUE       pWorkQueue,        /* IN */
     PLWIO_PACKET_ALLOCATOR     hPacketAllocator,  /* IN */
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList         /* IN */
     );
@@ -64,6 +63,16 @@ SrvProtocolInit(
 NTSTATUS
 SrvProtocolExecute(
     PSRV_EXEC_CONTEXT pContext /* IN */
+    );
+
+NTSTATUS
+SrvScheduleExecContext(
+    IN PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvSchedulePriorityExecContext(
+    IN PSRV_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS

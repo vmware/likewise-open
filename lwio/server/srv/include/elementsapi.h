@@ -769,6 +769,7 @@ typedef struct _SRV_EXEC_CONTEXT
     PSMB_PACKET                        pInterimResponse;
 
     BOOLEAN                            bInternal;
+    BOOLEAN                            bInline;
 
     ULONG64                            ullAsyncId;
     USHORT                             usCreditsGranted;

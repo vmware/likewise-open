@@ -84,6 +84,7 @@ SrvBuildExecContext(
     }
 
     pContext->bInternal = bInternal;
+    pContext->bInline = TRUE;
 
     *ppContext = pContext;
 
@@ -231,3 +232,4 @@ SrvFreeExecContext(
 
     SrvFreeMemory(pContext);
 }
+

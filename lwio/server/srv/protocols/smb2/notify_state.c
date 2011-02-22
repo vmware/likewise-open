@@ -186,34 +186,30 @@ SrvNotifyAsyncCB_SMB_V2(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(
-                    gProtocolGlobals_SMB_V2.pWorkQueue,
-                    pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pExecContext = NULL;
+    ntStatus = SrvScheduleExecContext(pExecContext);
+    // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
 cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
-
-    if (pNotifyState)
-    {
-        SrvNotifyStateRelease_SMB_V2(pNotifyState);
-    }
 
     if (pExecContext)
     {
         SrvReleaseExecContext(pExecContext);
     }
 
+    if (pNotifyState)
+    {
+        SrvNotifyStateRelease_SMB_V2(pNotifyState);
+    }
+
     return;
 
 error:
 
-    LWIO_LOG_ERROR("Error: Failed processing change notify call back "
-                   "[status:0x%x]",
-                   ntStatus);
+    LWIO_LOG_ERROR(
+        "Error: Failed processing change notify call back (%s)\n",
+        LwNtStatusToName(ntStatus));
 
     // TODO: indicate error on file handle somehow
 

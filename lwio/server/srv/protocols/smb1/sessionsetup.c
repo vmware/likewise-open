@@ -85,6 +85,16 @@ SrvProcessSessionSetup(
     ULONG                       iMsg            = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1         pSmbRequest     = &pCtxSmb1->pRequests[iMsg];
 
+    if (pExecContext->bInline)
+    {
+        ntStatus = SrvScheduleExecContext(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = STATUS_PENDING;
+
+        goto cleanup;
+    }
+
     if (*pSmbRequest->pWordCount == 12)
     {
         ntStatus = SrvProcessSessionSetup_WC_12(pExecContext);
@@ -100,9 +110,13 @@ SrvProcessSessionSetup(
 
     BAIL_ON_NT_STATUS(ntStatus);
 
-error:
+cleanup:
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static

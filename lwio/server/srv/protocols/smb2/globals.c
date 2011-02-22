@@ -52,7 +52,6 @@
 SRV_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2 =
 {
     .pMutex          = NULL,
-    .pWorkQueue      = NULL,
     .pConfigLock     = NULL
 };
 

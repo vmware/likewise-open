@@ -33,27 +33,22 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        srv.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - SRV
  *
- *        Protocols
+ *        Main SRV Internal Module Cumlative Header
  *
- *        Globals
- *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>?
  *
  */
 
-#include "includes.h"
+#ifndef _SRV_MAIN_H_
+#define _SRV_MAIN_H_
 
-SRV_RUNTIME_GLOBALS_SMB_V1 gProtocolGlobals_SMB_V1 =
-{
-    .pMutex                     = NULL,
-    .pConfigLock                = NULL,
-    .config                     = {},
-};
+#include "elementsapi.h"
+#include "driver.h"
 
-
+#endif  /// _SRV_MAIN_H_
