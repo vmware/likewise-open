@@ -5,7 +5,7 @@ bin_PROGRAMS = lwnet-set-log-level
 lwnet_set_log_level_LDADD = \
     @top_builddir@/client/liblwnetclientapi.la \
     @top_builddir@/common/liblwnetcommon.la \
-    -llwadvapi
+    -llwadvapi -llwadvapi_nothr
 
 lwnet_set_log_level_SOURCES = \
     main.c
