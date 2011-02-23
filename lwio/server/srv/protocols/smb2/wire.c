@@ -980,6 +980,13 @@ SMB2UnmarshalCreateContexts(
                 pSrvCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_SEC_DESC;
             }
+            else if (!strncmp(pSrvCContext->pszName,
+                        SMB2_CONTEXT_NAME_LEASE,
+                        sizeof(SMB2_CONTEXT_NAME_LEASE) - 1))
+            {
+                pSrvCContext->contextItemType =
+                               SMB2_CONTEXT_ITEM_TYPE_LEASE;
+            }
         }
 
         pCContext = (PSMB2_CREATE_CONTEXT)((PBYTE)pCContext +
