@@ -34,7 +34,8 @@ liblwdns_la_LIBADD = \
     @SOCKET_LIBS@    \
     @NSL_LIBS@       \
     @PTHREAD_LIBS@   \
-    $(LWBASE_LIBS)
+    $(LWBASE_LIBS)   \
+    $(LWBASE_NOTHR_LIBS)
 
 liblwdns_la_LDFLAGS = \
     @KRB5_LDFLAGS@   \
