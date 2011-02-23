@@ -11,4 +11,6 @@ libregclient_la_CPPFLAGS = \
     @LWMSG_INCLUDES@
 
 libregclient_la_LIBADD = \
-	@top_builddir@/common/libregcommon.la
+	@top_builddir@/common/libregcommon.la \
+	@LWBASE_LIBS@ \
+	@LWMSG_LIBS@
