@@ -33,7 +33,7 @@ common_liblwsmcommon_la_LIBADD = @LIB_LWMSG@ @LIB_LWADVAPI@ @LIB_LWBASE@
 client_liblwsm_la_SOURCES = \
 	client/client.c \
 	client/call.c
-client_liblwsm_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la @LIB_PTHREAD@
+client_liblwsm_la_LIBADD = $(top_builddir)/common/liblwsmcommon.la -llwmsg -llwmsg_nothr -llwadvapi_nothr @LIB_PTHREAD@
 client_liblwsm_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/client/liblwsm.sym
 
 server_liblwsmloader_la_SOURCES = server/loader.c
@@ -57,7 +57,7 @@ server_driver_la_LIBADD = \
     $(top_builddir)/server/liblwsmloader.la \
     $(top_builddir)/common/liblwsmcommon.la \
     @LIB_PTHREAD@ \
-    -llwioclient
+    -llwioclient -llwadvapi -llwadvapi_nothr
 server_driver_la_LDFLAGS = $(AM_LDFLAGS) $(LOADER_LDFLAGS)
 
 server_stub_la_SOURCES = server/stub.c
@@ -91,7 +91,7 @@ client_lwsm_SOURCES = client/main.c
 client_lwsm_LDADD = \
 	$(top_builddir)/client/liblwsm.la \
 	$(top_builddir)/common/liblwsmcommon.la \
-	-llwadvapi -llwadvapi_nothr @LIB_PTHREAD@
+	-llwadvapi -llwadvapi_nothr -llwmsg -llwmsg_nothr @LIB_PTHREAD@
 
 # documentation
 
