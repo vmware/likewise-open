@@ -256,7 +256,15 @@ PvfsCreateFileSupersede(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    pCreateCtx->Status = ntError;
+
     ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // Must add the CCB to the SCB before oplock break processing so
+    // we can accurately represent the handle count
+
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = STATUS_SUCCESS;
@@ -436,6 +444,9 @@ PvfsCreateFileCreate(
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Can be no oplock break here since the file does not exist yet */
 
     ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
@@ -534,7 +545,15 @@ PvfsCreateFileOpenOrOverwrite(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    pCreateCtx->Status = ntError;
+
     ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // Must add the CCB to the SCB before oplock break processing so
+    // we can accurately represent the handle count
+
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We can only potentially force an oplock break IFF
@@ -722,7 +741,15 @@ PvfsCreateFileOpenOrOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    pCreateCtx->Status = ntError;
+
     ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pScb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // Must add the CCB to the SCB before oplock break processing so
+    // we can accurately represent the handle count
+
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We can only potentially force an oplock break IFF
