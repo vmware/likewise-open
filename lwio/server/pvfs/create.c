@@ -388,6 +388,15 @@ PvfsCreateFileDoSysOpen(
                        pCreateContext->bFileExisted,
                        STATUS_SUCCESS);
 
+    // We are done unless the we broke an oplock and
+    // FILE_COMPLETE_IF_OPLOCKED was specified
+
+    if (!(IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED) &&
+          pCreateContext->pCcb->pScb->bOplockBreakInProgress))
+    {
+        SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE);
+    }
+
     if (CreateResult == FILE_CREATED)
     {
         PvfsNotifyScheduleFullReport(
@@ -616,6 +625,10 @@ PvfsCreateDirDoSysOpen(
                        Args.CreateDisposition,
                        pCreateContext->bFileExisted,
                        STATUS_SUCCESS);
+
+    // We are done (no directory oplocks to deal with)
+
+    SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE);
 
     if (CreateResult == FILE_CREATED)
     {

@@ -75,6 +75,12 @@ PvfsQuerySecurityFile(
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (!IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     BAIL_ON_INVALID_PTR(Args.SecurityDescriptor, ntError);
 
     ntError = PvfsAccessCheckFileHandle(pCcb, READ_CONTROL);
@@ -127,6 +133,12 @@ PvfsSetSecurityFile(
 
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    if (!IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     BAIL_ON_INVALID_PTR(Args.SecurityDescriptor, ntError);
 
