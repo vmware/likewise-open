@@ -365,7 +365,7 @@ PvfsCreateFileDoSysOpen(
 
     if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
     {
-        pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
+        SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_PENDING_DELETE);
     }
 
     ntError = PvfsSetMaximalAccessMask(
@@ -504,7 +504,7 @@ PvfsCreateDirDoSysOpen(
 
         if (*pbEnableAbe)
         {
-            pCreateContext->pCcb->EcpFlags |= PVFS_ECP_ENABLE_ABE;
+            SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_ENABLE_ABE);
         }
     }
 
@@ -594,7 +594,7 @@ PvfsCreateDirDoSysOpen(
             BAIL_ON_NT_STATUS(ntError);
         }
 
-        pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
+        SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_PENDING_DELETE);
     }
 
     ntError = PvfsSetMaximalAccessMask(

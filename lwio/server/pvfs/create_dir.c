@@ -555,7 +555,7 @@ PvfsCheckQuotaFile(
                         TRUE))
         {
             // Is the root Quota file
-            pCcb->bQuotaFile = TRUE;
+            SetFlag(pCcb->Flags, PVFS_CCB_FLAG_QUOTA_FILE);
         }
     }
 

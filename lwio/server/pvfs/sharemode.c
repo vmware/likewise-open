@@ -246,7 +246,7 @@ _PvfsEnforceShareMode(
 
         /* Ignore handles that are in the midst of being closed */
 
-        if (pCcb->bCloseInProgress)
+        if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CLOSE_IN_PROGRESS))
         {
             continue;
         }

@@ -226,7 +226,7 @@ PvfsEnumerateDirectory(
                           pszDiskFilename);
             BAIL_ON_NT_STATUS(ntError);
 
-            if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
+            if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_ENABLE_ABE))
             {
                 ntError = PvfsAccessCheckFileEnumerate(
                               pCcb,
@@ -298,7 +298,7 @@ PvfsEnumerateDirectory(
 
         if (PvfsWildcardMatch(pDirEntry->d_name, pszPattern, bCaseSensitive))
         {
-            if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
+            if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_ENABLE_ABE))
             {
                 ntError = PvfsAccessCheckFileEnumerate(
                               pCcb,

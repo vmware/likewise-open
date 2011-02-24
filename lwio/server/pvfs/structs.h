@@ -422,6 +422,20 @@ typedef enum _PVFS_OPLOCK_STATE
 
 #define PVFS_ECP_ENABLE_ABE      0x00000001
 
+
+//
+// Flags to represent PVFS_CCB state
+//
+
+typedef LONG PVFS_CCB_FLAGS, *PPVFS_CCB_FLAGS;
+
+#define PVFS_CCB_FLAG_NONE               0x00000000
+#define PVFS_CCB_FLAG_ENABLE_ABE         0x00000001
+#define PVFS_CCB_FLAG_PENDING_DELETE     0x00000002
+#define PVFS_CCB_FLAG_CLOSE_IN_PROGRESS  0x00000004
+#define PVFS_CCB_FLAG_QUOTA_FILE         0x00000008
+#define PVFS_CCB_FLAG_CREATE_COMPLETE    0x00000010
+
 struct _PVFS_CCB
 {
     LW_LIST_LINKS ScbList;
@@ -429,8 +443,7 @@ struct _PVFS_CCB
     pthread_mutex_t ControlBlock;
 
     LONG RefCount;
-    BOOLEAN bPendingDeleteHandle;
-    BOOLEAN bCloseInProgress;
+    PVFS_CCB_FLAGS Flags;
 
     /* Open fd to the File or Directory */
     int fd;
@@ -444,13 +457,11 @@ struct _PVFS_CCB
     FILE_CREATE_OPTIONS CreateOptions;
     FILE_SHARE_FLAGS ShareFlags;
     ACCESS_MASK AccessGranted;
-    BOOLEAN bQuotaFile;
 
     PACCESS_TOKEN pUserToken;
 
     /* Handle for Directory enumeration */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
-    DWORD EcpFlags;
 
     PVFS_LOCK_TABLE LockTable;
 
