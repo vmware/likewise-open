@@ -738,6 +738,15 @@ PvfsOplockBreakAck(
     );
 
 NTSTATUS
+PvfsOplockBreakNotify(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
+
+NTSTATUS
 PvfsOplockBreakIfLocked(
     IN PPVFS_IRP_CONTEXT pIrpContext,
     IN PPVFS_CCB pCcb,

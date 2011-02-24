@@ -315,6 +315,21 @@ error:
 
 ////////////////////////////////////////////////////////////////////////
 
+NTSTATUS
+PvfsOplockBreakNotify(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 static
 VOID
 PvfsProcessOplockDeferredOperation(
