@@ -25,10 +25,20 @@ make()
         mdl.c \
         write.c"
 
-    mk_dlo \
-        DLO=libnpfs.sys \
-        SOURCES="$NPFS_SOURCES" \
-        INCLUDEDIRS=". ../include ../../include" \
-        HEADERDEPS="lw/base.h" \
-        LIBDEPS="iomgr"
+    if [ "$LWIO_BUILTIN_DRIVERS" = "yes" ]
+    then
+        mk_group \
+            GROUP=npfs \
+            SOURCES="$NPFS_SOURCES" \
+            INCLUDEDIRS=". ../include ../../include" \
+            HEADERDEPS="lw/base.h" \
+            LIBDEPS="iomgr"
+    else
+        mk_dlo \
+            DLO=libnpfs.sys \
+            SOURCES="$NPFS_SOURCES" \
+            INCLUDEDIRS=". ../include ../../include" \
+            HEADERDEPS="lw/base.h" \
+            LIBDEPS="iomgr"
+    fi
 }

@@ -85,10 +85,20 @@ make()
 	quota.c \
 	zct.c"
 
-    mk_dlo \
-        DLO=libpvfs.sys \
-        SOURCES="$PVFS_SOURCES" \
-        INCLUDEDIRS=". ../include ../../include" \
-        HEADERDEPS="lw/base.h" \
-        LIBDEPS="iomgr $LIB_ATTR"
+    if [ "$LWIO_BUILTIN_DRIVERS" = "yes" ]
+    then
+        mk_group \
+            GROUP=pvfs \
+            SOURCES="$PVFS_SOURCES" \
+            INCLUDEDIRS=". ../include ../../include" \
+            HEADERDEPS="lw/base.h" \
+            LIBDEPS="iomgr $LIB_ATTR"
+    else
+        mk_dlo \
+            DLO=libpvfs.sys \
+            SOURCES="$PVFS_SOURCES" \
+            INCLUDEDIRS=". ../include ../../include" \
+            HEADERDEPS="lw/base.h" \
+            LIBDEPS="iomgr $LIB_ATTR"
+    fi
 }

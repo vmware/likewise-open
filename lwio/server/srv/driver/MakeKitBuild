@@ -16,11 +16,23 @@ make()
 	srvshares.c    \
 	srvstats.c"
 
-    mk_dlo \
-        DLO=libsrv.sys \
-        SOURCES="$DRIVER_SOURCES" \
-        GROUPS="../protocols/api/api ../transport/threadpool/threadpool ../elements/elements ../shares/api/api ../utils/utils ../statistics/statistics ../oem/oem" \
-        INCLUDEDIRS=". ../include ../../include ../../../include ../../../../include" \
-        HEADERDEPS="lw/base.h uuid/uuid.h reg/lwntreg.h lwnet.h" \
-        LIBDEPS="lwbase lwiosmbcommon lwioshareinfo iomgr"
+
+    if [ "$LWIO_BUILTIN_DRIVERS" = "yes" ]
+    then
+        mk_group \
+            GROUP=../srv \
+            SOURCES="$DRIVER_SOURCES" \
+            GROUPDEPS="../protocols/api/api ../transport/threadpool/threadpool ../elements/elements ../shares/api/api ../utils/utils ../statistics/statistics ../oem/oem" \
+            INCLUDEDIRS=". ../include ../../include ../../../include ../../../../include" \
+            HEADERDEPS="lw/base.h uuid/uuid.h reg/lwntreg.h lwnet.h" \
+            LIBDEPS="lwbase lwiosmbcommon lwioshareinfo iomgr"
+    else
+        mk_dlo \
+            DLO=libsrv.sys \
+            SOURCES="$DRIVER_SOURCES" \
+            GROUPS="../protocols/api/api ../transport/threadpool/threadpool ../elements/elements ../shares/api/api ../utils/utils ../statistics/statistics ../oem/oem" \
+            INCLUDEDIRS=". ../include ../../include ../../../include ../../../../include" \
+            HEADERDEPS="lw/base.h uuid/uuid.h reg/lwntreg.h lwnet.h" \
+            LIBDEPS="lwbase lwiosmbcommon lwioshareinfo iomgr"
+    fi
 }
