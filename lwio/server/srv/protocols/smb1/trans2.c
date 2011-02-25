@@ -357,14 +357,12 @@ SrvExecuteTrans2AsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTrans2State->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
-    if (ntStatus != STATUS_SUCCESS)
-    {
-        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
-                       ntStatus);
+    ntStatus = SrvScheduleExecContext(pExecContext);
+    // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
-        SrvReleaseExecContext(pExecContext);
-    }
+    SrvReleaseExecContext(pExecContext);
+
+    return;
 }
 
 VOID

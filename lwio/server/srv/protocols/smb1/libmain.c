@@ -57,15 +57,13 @@ SrvGetCommandDescription_SMB_V1(
 
 NTSTATUS
 SrvProtocolInit_SMB_V1(
-    PSMB_PROD_CONS_QUEUE pWorkQueue
+    VOID
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
     pthread_mutex_init(&gProtocolGlobals_SMB_V1.mutex, NULL);
     gProtocolGlobals_SMB_V1.pMutex = &gProtocolGlobals_SMB_V1.mutex;
-
-    gProtocolGlobals_SMB_V1.pWorkQueue = pWorkQueue;
 
     /* Configuration setup should always come first as other initalization
      * routines may rely on configuration parameters to be set */
@@ -289,7 +287,14 @@ SrvProtocolExecute_SMB_V1(
 
             case COM_LW_OPLOCK:
 
-                ntStatus = SrvProcessOplock(pExecContext);
+                if (!pExecContext->bInternal)
+                {
+                    ntStatus = STATUS_INVALID_PARAMETER;
+                }
+                else
+                {
+                    ntStatus = SrvProcessOplock(pExecContext);
+                }
 
                 break;
 
@@ -1010,8 +1015,6 @@ SrvProtocolShutdown_SMB_V1(
     VOID
     )
 {
-    gProtocolGlobals_SMB_V1.pWorkQueue = NULL;
-
     if (gProtocolGlobals_SMB_V1.pMutex)
     {
         pthread_mutex_destroy(&gProtocolGlobals_SMB_V1.mutex);

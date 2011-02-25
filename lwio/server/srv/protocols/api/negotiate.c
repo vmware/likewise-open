@@ -42,16 +42,26 @@ SrvBuildNegotiateResponseForDialect(
 
 NTSTATUS
 SrvProcessNegotiate(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    IN PSRV_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
+    PSMB_PACKET pSmbRequest = pExecContext->pSmbRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PSTR  pszDialectArray[128];
     ULONG ulNumDialects = 128;
     ULONG ulOffset = 0;
+
+    if (pExecContext->bInline)
+    {
+        ntStatus = SrvScheduleExecContext(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = STATUS_PENDING;
+
+        goto cleanup;
+    }
 
     ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
@@ -72,7 +82,7 @@ SrvProcessNegotiate(
 
     SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_NEGOTIATE);
 
-    *ppSmbResponse = pSmbResponse;
+    pExecContext->pSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -80,7 +90,7 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
+    pExecContext->pSmbResponse = NULL;
 
     if (pSmbResponse)
     {

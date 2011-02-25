@@ -73,6 +73,16 @@ SrvProcessNegotiate_SMB_V2(
     PUSHORT pusDialects      = NULL; // Do not free
     USHORT  iDialect         = 0;
 
+    if (pExecContext->bInline)
+    {
+        ntStatus = SrvScheduleExecContext(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = STATUS_PENDING;
+
+        goto cleanup;
+    }
+
     ntStatus = SMB2UnmarshalNegotiateRequest(
                         pSmbRequest,
                         &pNegotiateRequestHeader,

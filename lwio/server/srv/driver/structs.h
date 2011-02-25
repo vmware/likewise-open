@@ -89,28 +89,6 @@ typedef struct _SRV_IRP_CONTEXT
 
 } SRV_IRP_CONTEXT, *PSRV_IRP_CONTEXT;
 
-typedef struct _LWIO_SRV_WORKER_CONTEXT
-{
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    BOOLEAN bStop;
-
-    ULONG   workerId;
-
-} LWIO_SRV_WORKER_CONTEXT, *PLWIO_SRV_WORKER_CONTEXT;
-
-typedef struct _LWIO_SRV_WORKER
-{
-    pthread_t  worker;
-    pthread_t* pWorker;
-
-    ULONG      workerId;
-
-    LWIO_SRV_WORKER_CONTEXT context;
-
-} LWIO_SRV_WORKER, *PLWIO_SRV_WORKER;
-
 typedef struct _LWIO_SRV_MONITOR_CONTEXT
 {
     pthread_mutex_t  mutex;
@@ -143,11 +121,7 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
     LWIO_SRV_SHARE_ENTRY_LIST shareList;
 
-    SMB_PROD_CONS_QUEUE       workQueue;
-    ULONG                     ulMaxNumWorkItemsInQueue;
-
-    PLWIO_SRV_WORKER          pWorkerArray;
-    ULONG                     ulNumWorkers;
+    PLW_THREAD_POOL           ThreadPool;
 
     PLWIO_SRV_MONITOR         pMonitor;
 

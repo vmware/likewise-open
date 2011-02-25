@@ -107,10 +107,8 @@ SrvProtocolConfigGetIdleTimeout(
 
 NTSTATUS
 SrvProcessNegotiate(
-        IN  PLWIO_SRV_CONNECTION pConnection,
-        IN  PSMB_PACKET          pSmbRequest,
-        OUT PSMB_PACKET*         ppSmbResponse
-        );
+    IN PSRV_EXEC_CONTEXT pExecContext
+    );
 
 // transport.c
 

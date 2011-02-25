@@ -79,7 +79,7 @@
 #include <srvutils.h>
 #include <srvoem.h>
 #include <statisticsapi.h>
-#include <elementsapi.h>
+#include <srv.h>
 #include <transportapi.h>
 #include <protocolapi.h>
 

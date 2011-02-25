@@ -75,7 +75,7 @@
 #include <srvoem.h>
 #include <srvutils.h>
 #include <statisticsapi.h>
-#include <elementsapi.h>
+#include <srv.h>
 #include <transportapi.h>
 #include <protocolapi.h>
 

@@ -1249,8 +1249,8 @@ SrvProtocolTransportDriverDispatchPacket(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_TRANSPORT_CONTEXT pDriverContext = (PSRV_PROTOCOL_TRANSPORT_CONTEXT) pConnection->pProtocolTransportDriverContext;
     PSRV_EXEC_CONTEXT pContext = NULL;
+    BOOLEAN bInLock = TRUE;
 
     if (pConnection->readerState.pContinueExecContext)
     {
@@ -1270,39 +1270,17 @@ SrvProtocolTransportDriverDispatchPacket(
                         &pContext->pStatInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (SrvMpxTrackerIsNtCancelPacket(pPacket))
-        {
-            BOOLEAN bInLock = TRUE;
-            NTSTATUS ntStatus2 = STATUS_SUCCESS;
-
-            // Process NT cancel directly.
-            LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-            ntStatus2 = SrvProtocolExecute(pContext);
-            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
-
-            if (ntStatus2)
-            {
-                LWIO_LOG_ERROR("Failed to process cancel (status = 0x%08x)", ntStatus2);
-            }
-
-            // This does not need to be queued.
-            goto cleanup;
-        }
-        else
+        if (!SrvMpxTrackerIsNtCancelPacket(pPacket))
         {
             ntStatus = SrvMpxTrackerAddExecContext_inlock(pConnection, pContext);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
-    // Called from the context of a task thread - cannot wait if the queue is
-    // full.
-    ntStatus = SrvProdConsEnqueueNowait(
-                    pDriverContext->pGlobals->pWorkQueue,
-                    pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pContext = NULL;
+    // Directly process in line if possible
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    ntStatus =  SrvProtocolExecute(pContext);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
 cleanup:
 

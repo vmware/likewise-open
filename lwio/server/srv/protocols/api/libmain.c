@@ -63,7 +63,6 @@ SrvProtocolFreeExecContext(
 
 NTSTATUS
 SrvProtocolInit(
-    PSMB_PROD_CONS_QUEUE pWorkQueue,
     PLWIO_PACKET_ALLOCATOR hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     )
@@ -74,7 +73,6 @@ SrvProtocolInit(
     pthread_rwlock_init(&gProtocolApiGlobals.mutex, NULL);
     gProtocolApiGlobals.pMutex = &gProtocolApiGlobals.mutex;
 
-    gProtocolApiGlobals.pWorkQueue = pWorkQueue;
     gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
     gProtocolApiGlobals.pShareList = pShareList;
 
@@ -83,13 +81,13 @@ SrvProtocolInit(
     ntStatus = SrvProtocolReadConfig(&gProtocolApiGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProtocolInit_SMB_V1(pWorkQueue);
+    ntStatus = SrvProtocolInit_SMB_V1();
     BAIL_ON_NT_STATUS(ntStatus);
 
     bSupportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
     if (bSupportSMBV2)
     {
-        ntStatus = SrvProtocolInit_SMB_V2(pWorkQueue);
+        ntStatus = SrvProtocolInit_SMB_V2();
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -106,6 +104,8 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
+
 NTSTATUS
 SrvProtocolExecute(
     PSRV_EXEC_CONTEXT pContext
@@ -113,6 +113,8 @@ SrvProtocolExecute(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
+
+    SrvAcquireExecContext(pContext);
 
     LWIO_LOCK_MUTEX(bInLock, &pContext->execMutex);
 
@@ -218,29 +220,95 @@ SrvProtocolExecute(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pContext->execMutex);
-
-    return ntStatus;
-
 error:
+    LWIO_UNLOCK_MUTEX(bInLock, &pContext->execMutex);
 
     switch (ntStatus)
     {
         case STATUS_PENDING:
-
             ntStatus = STATUS_SUCCESS;
-
             break;
 
         default:
-
             break;
     }
 
-    goto cleanup;
+    SrvReleaseExecContext(pContext);
+
+    return ntStatus;
 }
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvProtocolExecuteCallback(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pExecContext = (PSRV_EXEC_CONTEXT)pContext;
+
+    ntStatus = SrvProtocolExecute(pExecContext);
+    // TODO - Add additional logging here if (!NT_SUCCESS(ntStatus))
+
+    SrvReleaseExecContext(pExecContext);
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+SrvScheduleExecContextEx(
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    IN LW_WORK_ITEM_FLAGS Flags
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    SrvAcquireExecContext(pExecContext);
+    pExecContext->bInline = FALSE;
+
+    ntStatus = SrvScheduleWorkItem(
+                   pExecContext,
+                   SrvProtocolExecuteCallback,
+                   Flags);
+
+    if (!NT_SUCCESS(ntStatus))
+    {
+        LWIO_LOG_ERROR(
+            "Failed to schedule execution context (%s)\n",
+            LwNtStatusToName(ntStatus));
+
+        SrvReleaseExecContext(pExecContext);
+    }
+
+    return ntStatus;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+SrvScheduleExecContext(
+    IN PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return SrvScheduleExecContextEx(pExecContext, 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+SrvSchedulePriorityExecContext(
+    IN PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    return SrvScheduleExecContextEx(pExecContext, LW_WORK_ITEM_HIGH_PRIOTIRY);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 SrvProtocolAddContext(
@@ -293,12 +361,9 @@ SrvProtocolExecute_SMB_V1_Filter(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
-                ntStatus = SrvProcessNegotiate(
-                                pConnection,
-                                pSmbRequest,
-                                &pContext->pSmbResponse);
+                ntStatus = SrvProcessNegotiate(pContext);
 
-                if (ntStatus)
+                if ((ntStatus != STATUS_SUCCESS) && (ntStatus != STATUS_PENDING))
                 {
                     ntStatus = SrvProtocolBuildErrorResponse_SMB_V1(
                                     pConnection,

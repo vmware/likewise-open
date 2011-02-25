@@ -79,7 +79,7 @@
 #include <statisticsapi.h>
 #include <srvoem.h>
 #include <srvutils.h>
-#include <elementsapi.h>
+#include <srv.h>
 
 #include "mt19937ar.h"
 

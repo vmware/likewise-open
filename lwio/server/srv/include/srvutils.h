@@ -277,55 +277,6 @@ SrvMatchPathPrefix(
     );
 
 NTSTATUS
-SrvProdConsInit(
-    ULONG                         ulNumMaxItems,
-    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
-    PSMB_PROD_CONS_QUEUE*         ppQueue
-    );
-
-NTSTATUS
-SrvProdConsInitContents(
-    PSMB_PROD_CONS_QUEUE          pQueue,
-    ULONG                         ulNumMaxItems,
-    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem
-    );
-
-NTSTATUS
-SrvProdConsEnqueue(
-    PSMB_PROD_CONS_QUEUE pQueue,
-    PVOID                pItem
-    );
-
-NTSTATUS
-SrvProdConsEnqueueNowait(
-    PSMB_PROD_CONS_QUEUE pQueue,
-    PVOID                pItem
-    );
-
-NTSTATUS
-SrvProdConsEnqueueFront(
-    PSMB_PROD_CONS_QUEUE pQueue,
-    PVOID                pItem
-    );
-
-NTSTATUS
-SrvProdConsDequeue(
-    PSMB_PROD_CONS_QUEUE pQueue,
-    PVOID*               ppItem
-    );
-
-NTSTATUS
-SrvProdConsTimedDequeue(
-    PSMB_PROD_CONS_QUEUE pQueue,
-    struct timespec*     pTimespec,
-    PVOID*               ppItem
-    );
-
-VOID
-SrvProdConsFree(
-    PSMB_PROD_CONS_QUEUE pQueue
-    );
-NTSTATUS
 SrvMbsToWc16s(
     IN  PCSTR  pszString,
     OUT PWSTR* ppwszString

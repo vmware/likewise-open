@@ -110,12 +110,6 @@ SrvShutdown(
     VOID
     );
 
-static
-VOID
-SrvUnblockOneWorker(
-    IN PSMB_PROD_CONS_QUEUE pWorkQueue
-    );
-
 NTSTATUS
 IO_DRIVER_ENTRY(srv)(
     IN IO_DRIVER_HANDLE hDriver,
@@ -319,8 +313,7 @@ SrvInitialize(
     )
 {
     NTSTATUS ntStatus = 0;
-    INT      iWorker = 0;
-    ULONG    ulNumCpus = LwRtlGetCpuCount();
+    PLW_THREAD_POOL_ATTRIBUTES threadPoolAttrs = NULL;
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
@@ -343,12 +336,6 @@ SrvInitialize(
                         &gSMBSrvGlobals.hPacketAllocator);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    ntStatus = SrvProdConsInitContents(
-                    &gSMBSrvGlobals.workQueue,
-                    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
-                    &SrvReleaseExecContextHandle);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareInit();
     BAIL_ON_NT_STATUS(ntStatus);
@@ -375,11 +362,9 @@ SrvInitialize(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvProtocolInit(
-                    &gSMBSrvGlobals.workQueue,
                     gSMBSrvGlobals.hPacketAllocator,
                     &gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
-
 
     if (gSMBSrvGlobals.config.ulMonitorIntervalMinutes)
     {
@@ -392,26 +377,27 @@ SrvInitialize(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(
-                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER),
-                    (PVOID*)&gSMBSrvGlobals.pWorkerArray);
+    ntStatus = LwRtlCreateThreadPoolAttributes(&threadPoolAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    gSMBSrvGlobals.ulNumWorkers = gSMBSrvGlobals.config.ulNumWorkers;
+    ntStatus = LwRtlSetThreadPoolAttribute(
+                   threadPoolAttrs,
+                   LW_THREAD_POOL_OPTION_TASK_THREADS,
+                   0);
+    // Ignorning return as this can never fail
 
-    for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
-    {
-        PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
-
-        pWorker->workerId = iWorker + 1;
-
-        ntStatus = SrvWorkerInit(pWorker, iWorker % ulNumCpus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    ntStatus = LwRtlCreateThreadPool(
+                   &gSMBSrvGlobals.ThreadPool,
+                   threadPoolAttrs);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.hDevice = hDevice;
 
 error:
+    if (threadPoolAttrs)
+    {
+        LwRtlFreeThreadPoolAttributes(&threadPoolAttrs);
+    }
 
     return ntStatus;
 }
@@ -890,35 +876,6 @@ SrvShutdown(
     {
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
 
-        if (gSMBSrvGlobals.pWorkerArray)
-        {
-            INT iWorker = 0;
-
-            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-            {
-                PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
-
-                SrvWorkerIndicateStop(pWorker);
-            }
-
-            // Must indicate stop for all workers before queueing the
-            // unblocks.
-            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-            {
-                SrvUnblockOneWorker(&gSMBSrvGlobals.workQueue);
-            }
-
-            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-            {
-                PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
-
-                SrvWorkerFreeContents(pWorker);
-            }
-
-            SrvFreeMemory(gSMBSrvGlobals.pWorkerArray);
-            gSMBSrvGlobals.pWorkerArray = NULL;
-        }
-
         SrvProtocolShutdown();
 
         if (gSMBSrvGlobals.pMonitor)
@@ -940,8 +897,6 @@ SrvShutdown(
 
         SrvShareShutdown();
 
-        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
-
         if (gSMBSrvGlobals.hPacketAllocator)
         {
             SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
@@ -961,32 +916,25 @@ SrvShutdown(
     return ntStatus;
 }
 
-static
-VOID
-SrvUnblockOneWorker(
-    IN PSMB_PROD_CONS_QUEUE pWorkQueue
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+SrvScheduleWorkItem(
+    IN PVOID Context,
+    IN LW_WORK_ITEM_FUNCTION_COMPAT Callback,
+    IN LW_WORK_ITEM_FLAGS Flags
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT pExecContext = NULL;
 
-    ntStatus = SrvBuildEmptyExecContext(&pExecContext);
+    ntStatus = LwRtlQueueWorkItem(
+                   gSMBSrvGlobals.ThreadPool,
+                   Callback,
+                   Context,
+                   Flags);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvProdConsEnqueue(pWorkQueue, pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return;
 
 error:
-
-    if (pExecContext)
-    {
-        SrvReleaseExecContext(pExecContext);
-    }
-
-    goto cleanup;
+    return ntStatus;
 }
 

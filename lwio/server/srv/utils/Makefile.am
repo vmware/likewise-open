@@ -6,7 +6,6 @@ libsrvutils_la_SOURCES = \
     logfilter.c          \
     memory.c             \
     path.c               \
-    prodcons.c           \
     socket.c             \
     string.c
 

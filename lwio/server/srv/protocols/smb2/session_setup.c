@@ -83,6 +83,16 @@ SrvProcessSessionSetup_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (pExecContext->bInline)
+    {
+        ntStatus = SrvScheduleExecContext(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = STATUS_PENDING;
+
+        goto cleanup;
+    }
+
     ntStatus = SMB2UnmarshallSessionSetup(
                     pSmbRequest,
                     &pSessionSetupHeader,

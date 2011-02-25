@@ -1014,14 +1014,12 @@ SrvExecuteReadAsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
-    if (ntStatus != STATUS_SUCCESS)
-    {
-        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
-                       ntStatus);
+    ntStatus = SrvScheduleExecContext(pExecContext);
+    // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
-        SrvReleaseExecContext(pExecContext);
-    }
+    SrvReleaseExecContext(pExecContext);
+
+    return;
 }
 
 static
@@ -1044,14 +1042,12 @@ SrvExecuteReadSendZctCB(
     pReadState->stage = SRV_READ_STAGE_SMB_V1_ZCT_COMPLETE;
     LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
-    if (ntStatus != STATUS_SUCCESS)
-    {
-        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
-                       ntStatus);
+    ntStatus = SrvScheduleExecContext(pExecContext);
+    // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
-        SrvReleaseExecContext(pExecContext);
-    }
+    SrvReleaseExecContext(pExecContext);
+
+    return;
 }
 
 static

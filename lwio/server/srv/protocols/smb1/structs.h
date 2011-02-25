@@ -1201,8 +1201,6 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
     pthread_mutex_t       mutex;
     pthread_mutex_t       *pMutex;
 
-    PSMB_PROD_CONS_QUEUE  pWorkQueue;
-
     pthread_rwlock_t      configLock;
     pthread_rwlock_t      *pConfigLock;
     SRV_CONFIG_SMB_V1     config;
