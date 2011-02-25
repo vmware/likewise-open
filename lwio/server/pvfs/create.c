@@ -136,7 +136,8 @@ PvfsCreate(
                       &resolvedFileName,
                       &Stat,
                       createFileName,
-                      FALSE);
+                      pIrp->Args.Create.FileName.IoNameOptions &
+                                    IO_NAME_OPTION_CASE_SENSITIVE);
 
         PvfsFreeFileName(createFileName);
         createFileName = NULL;

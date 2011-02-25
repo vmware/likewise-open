@@ -590,23 +590,26 @@ PvfsLookupPath2(
 
     // Check the cache
 
-    ntError = PvfsPathCacheLookup(&pOutputFileName, InputFileName);
-    if (ntError == STATUS_SUCCESS)
+    if (!bCaseSensitive)
     {
-        /* Check that the path is still good.  If not fallback
-           to manual checks */
-
-        ntError = PvfsSysStatByFileName(pOutputFileName, &Stat);
+        ntError = PvfsPathCacheLookup(&pOutputFileName, InputFileName);
         if (ntError == STATUS_SUCCESS)
         {
-            *pStat = Stat;
-            *ppOutputFileName = pOutputFileName;
-            pOutputFileName = NULL;
+            /* Check that the path is still good.  If not fallback
+               to manual checks */
 
-            goto cleanup;
+            ntError = PvfsSysStatByFileName(pOutputFileName, &Stat);
+            if (ntError == STATUS_SUCCESS)
+            {
+                *pStat = Stat;
+                *ppOutputFileName = pOutputFileName;
+                pOutputFileName = NULL;
+
+                goto cleanup;
+            }
+
+            PvfsPathCacheRemove(pOutputFileName);   // Ignore errors
         }
-
-        PvfsPathCacheRemove(pOutputFileName);   // Ignore errors
     }
 
     /* See if we are lucky */

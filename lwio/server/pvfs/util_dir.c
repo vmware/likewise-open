@@ -217,7 +217,7 @@ PvfsEnumerateDirectory(
                           &Stat,
                           pCcb->pScb->pOwnerFcb->pszFilename,
                           pszPattern,
-                          FALSE);
+                          pFileSpec->Options & IO_NAME_OPTION_CASE_SENSITIVE);
             BAIL_ON_NT_STATUS(ntError);
 
             ntError = PvfsFileSplitPath(
