@@ -195,7 +195,7 @@ PvfsSetFileRenameInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAllocateFileNameFromCString(&newFileName, pszNewPathname);
+    ntError = PvfsAllocateFileNameFromCString(&newFileName, pszNewPathname, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSplitFileNamePath(

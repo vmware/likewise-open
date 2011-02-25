@@ -205,7 +205,7 @@ PvfsSetFileLinkInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsAllocateFileNameFromCString(&newFilename, pszNewPathname);
+    ntError = PvfsAllocateFileNameFromCString(&newFilename, pszNewPathname, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSplitFileNamePath(&newFileDirname,
@@ -253,7 +253,8 @@ PvfsSetFileLinkInfo(
 
     ntError = PvfsAllocateFileNameFromCString(
                     &targetFilename,
-                    pCcb->pScb->pOwnerFcb->pszFilename);
+                    pCcb->pScb->pOwnerFcb->pszFilename,
+                    0);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysLinkByFileName(targetFilename, newDiskPathname);

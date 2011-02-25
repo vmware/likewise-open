@@ -73,7 +73,8 @@ PvfsCcbQueryFileBasicInformation(
         // Named Streams share meta-data with the owning FCB
         ntError = PvfsBuildFileNameFromCString(
                       &baseObjectFileName,
-                      pCcb->pScb->pOwnerFcb->pszFilename);
+                      pCcb->pScb->pOwnerFcb->pszFilename,
+                      0);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsGetFilenameAttributes(
@@ -297,7 +298,8 @@ PvfsCcbQueryFileNetworkOpenInformation(
         // Named Streams share meta-data with the owning FCB
         ntError = PvfsBuildFileNameFromCString(
                       &baseObjectFileName,
-                      pCcb->pScb->pOwnerFcb->pszFilename);
+                      pCcb->pScb->pOwnerFcb->pszFilename,
+                      0);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsGetFilenameAttributes(
