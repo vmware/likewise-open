@@ -257,10 +257,10 @@ SrvProcessWriteAndX(
 
         case SRV_WRITEX_STAGE_SMB_V1_ATTEMPT_WRITE:
 
-            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_IO;
-
             ntStatus = SrvExecuteWriteAndX(pWriteState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_IO;
 
             // intentional fall through
 
@@ -520,6 +520,8 @@ SrvExecuteWriteAndX(
         if (!pWriteState->bStartedIo)
         {
             SrvPrepareWriteXStateAsync(pWriteState, pExecContext);
+
+            pWriteState->bStartedIo = TRUE;
 
             ntStatus = IoWriteFile(
                             pWriteState->pFile->hFile,
