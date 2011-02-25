@@ -71,7 +71,6 @@ PvfsFreeSCB(
 
         PvfsListDestroy(&pScb->pPendingLockQueue);
         PvfsListDestroy(&pScb->pOplockPendingOpsQueue);
-        PvfsListDestroy(&pScb->pOplockReadyOpsQueue);
         PvfsListDestroy(&pScb->pOplockList);
         PvfsListDestroy(&pScb->pCcbList);
 
@@ -144,12 +143,6 @@ PvfsAllocateSCB(
 
     ntError = PvfsListInit(
                   &pScb->pOplockPendingOpsQueue,
-                  PVFS_SCB_MAX_PENDING_OPERATIONS,
-                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsListInit(
-                  &pScb->pOplockReadyOpsQueue,
                   PVFS_SCB_MAX_PENDING_OPERATIONS,
                   (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
     BAIL_ON_NT_STATUS(ntError);
@@ -979,20 +972,12 @@ PvfsFreeOplockRecord(
     return;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
-NTSTATUS
-PvfsOplockCleanPendingOpQueue(
-    PVOID pContext
-    );
+////////////////////////////////////////////////////////////////////////
 
 static
 VOID
-PvfsOplockCleanPendingOpFree(
-    PVOID *ppContext
+PvfsOplockCleanPendingOpQueue(
+    PVOID pContext
     );
 
 NTSTATUS
@@ -1001,41 +986,32 @@ PvfsScheduleCancelPendingOp(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  FALSE,
+    ntError = LwRtlQueueWorkItem(
+                  gPvfsDriverState.ThreadPool,
+                  PvfsOplockCleanPendingOpQueue,
                   pIrpCtx,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockCleanPendingOpQueue,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanPendingOpFree);
+                  LW_SCHEDULE_HIGH_PRIORITY);
     BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
 
 error:
-    if (pIrpCtx)
+    if (!NT_SUCCESS(ntError))
     {
-        PvfsReleaseIrpContext(&pIrpCtx);
+        if (pIrpCtx)
+        {
+            PvfsReleaseIrpContext(&pIrpCtx);
+        }
     }
 
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    goto cleanup;
+    return ntError;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
 NTSTATUS
@@ -1047,7 +1023,7 @@ PvfsOplockCleanPendingOpInternal(
     );
 
 static
-NTSTATUS
+VOID
 PvfsOplockCleanPendingOpQueue(
     PVOID pContext
     )
@@ -1056,26 +1032,14 @@ PvfsOplockCleanPendingOpQueue(
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
     PPVFS_SCB pScb = PvfsReferenceSCB(pIrpCtx->pScb);
 
-    /* We have to check both the "pending" and the "ready" queues.
-       Although, it is possible that the "ready" queue processed a
-       cancelled IRP before we get to it here. */
-
     ntError = PvfsOplockCleanPendingOpInternal(
                   pScb,
                   pScb->pOplockPendingOpsQueue,
                   pIrpCtx,
                   FALSE);
-    if (ntError != STATUS_SUCCESS)
-    {
-        ntError = PvfsOplockCleanPendingOpInternal(
-                      pScb,
-                      pScb->pOplockReadyOpsQueue,
-                      pIrpCtx,
-                      TRUE);
-    }
     BAIL_ON_NT_STATUS(ntError);
 
-cleanup:
+error:
     if (pScb)
     {
         PvfsReleaseSCB(&pScb);
@@ -1086,15 +1050,10 @@ cleanup:
         PvfsReleaseIrpContext(&pIrpCtx);
     }
 
-    return ntError;
-
-error:
-    goto cleanup;
+    return;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
 NTSTATUS
@@ -1158,21 +1117,6 @@ PvfsOplockCleanPendingOpInternal(
 
     return ntError;
 }
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
- VOID
-PvfsOplockCleanPendingOpFree(
-    PVOID *ppContext
-    )
-{
-    /* No op -- context released in PvfsOplockCleanPendingOpQueue */
-    return;
-}
-
 
 /*****************************************************************************
  ****************************************************************************/

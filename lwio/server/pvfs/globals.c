@@ -46,7 +46,8 @@
 
 #include "pvfs.h"
 
-PSTR gpszPVFSProviderName = "Posix Virtual File System";
+PVFS_DRIVER_CONFIG gPvfsDriverConfig;
+
 IO_DEVICE_HANDLE gPvfsDeviceHandle = (IO_DEVICE_HANDLE)NULL;
 
 GENERIC_MAPPING gPvfsFileGenericMapping = {
@@ -55,11 +56,6 @@ GENERIC_MAPPING gPvfsFileGenericMapping = {
     .GenericExecute = FILE_GENERIC_EXECUTE,
     .GenericAll     = FILE_ALL_ACCESS
 };
-
-PVFS_WORKER_POOL gWorkPool = {0};
-
-PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
-PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue = NULL;
 
 pthread_mutex_t* gpPathCacheLock = NULL;
 pthread_mutex_t  gPathCacheLock;
@@ -83,9 +79,6 @@ PPVFS_ID_CACHE  gUidMruCache[PVFS_MAX_MRU_SIZE];
 pthread_mutex_t gGidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
 PPVFS_ID_CACHE  gGidMruCache[PVFS_MAX_MRU_SIZE];
 
-PVFS_DRIVER_CONFIG gPvfsDriverConfig;
-
-
 LONG gPvfsIrpContextCount = 0;
 LONG gPvfsScbCount = 0;
 LONG gPvfsFcbCount = 0;
@@ -94,3 +87,8 @@ LONG gPvfsWorkContextCount = 0;
 
 FILE_FS_CONTROL_INFORMATION gPvfsFileFsControlInformation = { 0 };
 
+PVFS_DRIVER_STATE gPvfsDriverState = {
+    .DriverName = "PVFS",
+    .DriverDescription = "Posix Virtual File System",
+    .ThreadPool = NULL
+};

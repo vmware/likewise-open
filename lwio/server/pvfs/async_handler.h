@@ -64,12 +64,6 @@ PvfsFreeWorkContext(
     IN OUT PPVFS_WORK_CONTEXT *ppWorkContext
     );
 
-NTSTATUS
-PvfsScheduleIoWorkItem(
-    IN PPVFS_WORK_CONTEXT pWorkContext
-    );
-
-
 /* Cancellation routine */
 
 VOID
@@ -82,70 +76,6 @@ NTSTATUS
 PvfsQueueCancelIrpIfRequested(
     PPVFS_IRP_CONTEXT pIrpContext
     );
-
-
-/* Pvfs IRP Async API */
-
-NTSTATUS
-PvfsAsyncCreate(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncClose(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncLockControl(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncRead(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncWrite(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncFlushBuffers(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncQueryInformationFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncSetInformationFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncQueryDirInformation(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncQueryVolumeInformation(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncQuerySecurityFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
-NTSTATUS
-PvfsAsyncSetSecurityFile(
-    PPVFS_IRP_CONTEXT  pIrpContext
-    );
-
 
 /* Pvfs IRP Wrapper API */
 

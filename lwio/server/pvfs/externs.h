@@ -45,19 +45,12 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-#include "macros.h"
-#include "threads.h"
+extern PVFS_DRIVER_CONFIG gPvfsDriverConfig;
+extern PVFS_DRIVER_STATE  gPvfsDriverState;
 
-
-extern PSTR             gpszPVFSProviderName;
 extern IO_DEVICE_HANDLE gPvfsDeviceHandle;
 
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
-
-extern PVFS_WORKER_POOL gWorkPool;
-
-extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
-extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
 
 extern pthread_mutex_t  gPathCacheLock;
 extern pthread_mutex_t* gpPathCacheLock;

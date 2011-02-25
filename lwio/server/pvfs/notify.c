@@ -460,8 +460,8 @@ error:
  ****************************************************************************/
 
 static
-NTSTATUS
-PvfsNotifyFullReport(
+VOID
+PvfsNotifyProcessEvent(
     PVOID pContext
     );
 
@@ -480,7 +480,6 @@ PvfsNotifyScheduleFullReport(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_NOTIFY_REPORT_RECORD pReport = NULL;
 
     BAIL_ON_INVALID_PTR(pFcb, ntError);
@@ -498,28 +497,23 @@ PvfsNotifyScheduleFullReport(
     ntError = LwRtlCStringDuplicate(&pReport->pszFilename, pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  FALSE,
+    ntError = LwRtlQueueWorkItem(
+                  gPvfsDriverState.ThreadPool,
+                  PvfsNotifyProcessEvent,
                   pReport,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsNotifyFullReport,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsNotifyFullReportCtxFree);
+                  0);
     BAIL_ON_NT_STATUS(ntError);
-
-    pReport = NULL;
-
-    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-
-    return;
 
 error:
-    PvfsNotifyFullReportCtxFree(&pReport);
-    PvfsFreeWorkContext(&pWorkCtx);
+    if (!NT_SUCCESS(ntError))
+    {
+        if (pReport)
+        {
+            PvfsNotifyFullReportCtxFree(&pReport);
+        }
+    }
 
-    goto cleanup;
+    return;
 }
 
 
@@ -543,8 +537,8 @@ PvfsNotifyFullReportIrp(
     );
 
 static
-NTSTATUS
-PvfsNotifyFullReport(
+VOID
+PvfsNotifyProcessEvent(
     PVOID pContext
     )
 {
@@ -578,7 +572,7 @@ PvfsNotifyFullReport(
     }
 
 
-cleanup:
+error:
     if (pCursor)
     {
         PvfsReleaseFCB(&pCursor);
@@ -589,10 +583,12 @@ cleanup:
         PvfsReleaseFCB(&pReportParentFcb);
     }
 
-    return ntError;
+    if (pReport)
+    {
+        PvfsNotifyFullReportCtxFree(&pReport);
+    }
 
-error:
-    goto cleanup;
+    return;
 }
 
 /*****************************************************************************
@@ -912,21 +908,12 @@ PvfsNotifyFullReportCtxFree(
     return;
 }
 
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
-NTSTATUS
-PvfsNotifyCleanIrpList(
-    PVOID pContext
-    );
+////////////////////////////////////////////////////////////////////////
 
 static
 VOID
-PvfsNotifyCleanIrpListFree(
-    PVOID *ppContext
+PvfsNotifyCleanIrpList(
+    PVOID pContext
     );
 
 NTSTATUS
@@ -935,49 +922,39 @@ PvfsScheduleCancelNotify(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  FALSE,
+    ntError = LwRtlQueueWorkItem(
+                  gPvfsDriverState.ThreadPool,
+                  PvfsNotifyCleanIrpList,
                   pIrpCtx,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsNotifyCleanIrpList,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsNotifyCleanIrpListFree);
+                  LW_SCHEDULE_HIGH_PRIORITY);
     BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-
-    return ntError;
 
 error:
-    if (pIrpCtx)
+    if (!NT_SUCCESS(ntError))
     {
-        PvfsReleaseIrpContext(&pIrpCtx);
+        if (pIrpCtx)
+        {
+            PvfsReleaseIrpContext(&pIrpCtx);
+        }
     }
 
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    goto cleanup;
+    return ntError;
 }
 
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
-NTSTATUS
+VOID
 PvfsNotifyCleanIrpList(
     PVOID pContext
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
     PPVFS_FCB pFcb = NULL;
     BOOLEAN bFcbLocked = FALSE;
@@ -1043,21 +1020,6 @@ PvfsNotifyCleanIrpList(
         PvfsReleaseIrpContext(&pIrpCtx);
     }
 
-    return ntError;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
-VOID
-PvfsNotifyCleanIrpListFree(
-    PVOID *ppContext
-    )
-{
-    /* No op -- context released in PvfsNotifyCleanIrpList */
     return;
 }
-
 

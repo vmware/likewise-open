@@ -1157,19 +1157,12 @@ error:
 }
 
 
-/*****************************************************************************
- ****************************************************************************/
-
-static
-NTSTATUS
-PvfsCleanPendingLockQueue(
-    PVOID pContext
-    );
+////////////////////////////////////////////////////////////////////////
 
 static
 VOID
-PvfsCleanPendingLockFree(
-    PVOID *ppContext
+PvfsCleanPendingLockQueue(
+    PVOID pContext
     );
 
 NTSTATUS
@@ -1178,48 +1171,39 @@ PvfsScheduleCancelLock(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     BAIL_ON_INVALID_PTR(pIrpContext->pScb, ntError);
 
     pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
-    ntError = PvfsCreateWorkContext(
-                  &pWorkCtx,
-                  FALSE,
-                  pIrpContext,
-                  (PPVFS_WORK_CONTEXT_CALLBACK)PvfsCleanPendingLockQueue,
-                  (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsCleanPendingLockFree);
+    ntError = LwRtlQueueWorkItem(
+                  gPvfsDriverState.ThreadPool,
+                  PvfsCleanPendingLockQueue,
+                  pIrpCtx,
+                  LW_SCHEDULE_HIGH_PRIORITY);
     BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
 
 error:
-    if (pIrpCtx)
+    if (!NT_SUCCESS(ntError))
     {
-        PvfsReleaseIrpContext(&pIrpCtx);
+        if (pIrpCtx)
+        {
+            PvfsReleaseIrpContext(&pIrpCtx);
+        }
     }
 
-    PvfsFreeWorkContext(&pWorkCtx);
-
-    goto cleanup;
+    return ntError;
 }
 
-/*****************************************************************************
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 static
-NTSTATUS
+VOID
 PvfsCleanPendingLockQueue(
     PVOID pContext
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pContext;
     PPVFS_SCB pScb = PvfsReferenceSCB(pIrpContext->pScb);
     BOOLEAN bLocked = FALSE;
@@ -1282,22 +1266,8 @@ PvfsCleanPendingLockQueue(
         PvfsReleaseIrpContext(&pIrpContext);
     }
 
-    return ntError;
-}
-
-/*****************************************************************************
- ****************************************************************************/
-
-static
- VOID
-PvfsCleanPendingLockFree(
-    PVOID *ppContext
-    )
-{
-    /* No op -- context released in PvfsOplockCleanPendingLockQueue */
     return;
 }
-
 
 /*****************************************************************************
  ****************************************************************************/

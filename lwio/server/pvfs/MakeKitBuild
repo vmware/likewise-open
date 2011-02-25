@@ -75,11 +75,9 @@ make()
 	fileAccessInfo.c \
 	filePositionInfo.c \
 	fileModeInfo.c \
-    fileLinkInfo.c \
+	fileLinkInfo.c \
 	lwFilePosixInfo.c \
 	lwFilePosixDirInfo.c \
-	thread_worker.c \
-	work_queue.c \
 	oplock.c \
 	notify.c \
 	ioctlOpenFileInfo.c \
