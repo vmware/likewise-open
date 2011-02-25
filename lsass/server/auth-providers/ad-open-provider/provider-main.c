@@ -1494,6 +1494,7 @@ AD_JoinDomain(
     if (pPasswordInfo)
     {
         LsaPstoreFreePasswordInfoW(pPasswordInfo);
+        pPasswordInfo = NULL;
     }
 
     dwError = AD_PreJoinDomain(hProvider, gpLsaAdProviderState);
