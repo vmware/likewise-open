@@ -138,6 +138,7 @@ SrvSetFileInfo(
         case SMB_SET_FILE_UNIX_HLINK :
         case SMB_SET_FILE_POSITION_INFO :
         case SMB_SET_FILE_MODE_INFO :
+        case SMB_SET_FILE_VALID_DATA_INFO :
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
