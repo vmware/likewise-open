@@ -75,8 +75,6 @@ PvfsAllocateCCB(
 
     PVFS_INIT_LINKS(&pCCB->ScbList);
 
-    pCCB->bPendingDeleteHandle = FALSE;
-    pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
 
     pCCB->fd = -1;
@@ -86,11 +84,10 @@ PvfsAllocateCCB(
     pCCB->pwszShareName = NULL;
     pCCB->pDirContext = NULL;
     pCCB->pUserToken = NULL;
-    pCCB->EcpFlags = 0;
     pCCB->ChangeEvent = 0;
     pCCB->WriteCount = 0;
-    pCCB->bQuotaFile = FALSE;
     pCCB->AccessGranted = 0;
+    pCCB->Flags = PVFS_CCB_FLAG_NONE;
 
     LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 

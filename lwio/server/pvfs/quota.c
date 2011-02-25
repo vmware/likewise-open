@@ -778,7 +778,8 @@ PvfsQuotaSanityCheck(
     ntError = PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (!PVFS_IS_DIR(pCcb) || !pCcb->bQuotaFile)
+    if (!PVFS_IS_DIR(pCcb) ||
+        !IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_QUOTA_FILE))
     {
         ntError = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NT_STATUS(ntError);

@@ -70,9 +70,9 @@ PvfsClose(
     /* Mark the handle as closed in an effort to prevent
        a potential sharing violation */
 
-    pCcb->bCloseInProgress = TRUE;
+    SetFlag(pCcb->Flags, PVFS_CCB_FLAG_CLOSE_IN_PROGRESS);
 
-    if (pCcb->bPendingDeleteHandle)
+    if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_PENDING_DELETE))
     {
         /* delete-on-close-handle becomes delete-on-close-file */
 
