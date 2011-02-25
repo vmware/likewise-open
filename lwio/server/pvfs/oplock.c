@@ -546,6 +546,13 @@ PvfsOplockBreakIfLocked(
         }
         else
         {
+            // TODO: This state may be unnecessary since we are adding the
+            // CCB to teh SCB list before testing for an oplock break.
+            // Any new oplock requests will take the incomplete CCB into
+            // account so we should not get into an inconsistent state.
+            // However, leacing this in place for now until the new Lease
+            // code is in place.  --gcarter@likewise.com
+
             ntError = STATUS_OPLOCK_BREAK_IN_PROGRESS;
         }
         LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
