@@ -185,12 +185,6 @@ PvfsCreateDirCreate(
                   relativeFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (PvfsIsDefaultStreamNameEx(pCreateCtx->ResolvedFileName, TRUE))
-    {
-        ntError = STATUS_NOT_A_DIRECTORY;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
     /* check parent here */
 
     ntError = PvfsAccessCheckFile(
@@ -288,8 +282,7 @@ PvfsCreateDirOpen(
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (!S_ISDIR(Stat.s_mode) ||
-        PvfsIsDefaultStreamNameEx(pCreateCtx->ResolvedFileName, TRUE))
+    if (!S_ISDIR(Stat.s_mode))
     {
         ntError = STATUS_NOT_A_DIRECTORY;
         BAIL_ON_NT_STATUS(ntError);
@@ -400,12 +393,6 @@ PvfsCreateDirOpenIf(
                       relativeFileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        if (PvfsIsDefaultStreamNameEx(pCreateCtx->ResolvedFileName, TRUE))
-        {
-            ntError = STATUS_NOT_A_DIRECTORY;
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
         ntError = PvfsAccessCheckFile(
                       pCreateCtx->pCcb->pUserToken,
                       resolvedDirName,
@@ -418,8 +405,7 @@ PvfsCreateDirOpenIf(
     }
     else
     {
-        if (!S_ISDIR(statFile.s_mode) ||
-            PvfsIsDefaultStreamNameEx(pCreateCtx->ResolvedFileName, TRUE))
+        if (!S_ISDIR(statFile.s_mode))
         {
             ntError = STATUS_NOT_A_DIRECTORY;
             BAIL_ON_NT_STATUS(ntError);

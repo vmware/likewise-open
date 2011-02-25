@@ -1455,24 +1455,3 @@ PvfsIsDefaultStreamName(
 
     return isDefaultStream;
 }
-
-////////////////////////////////////////////////////////////////////////
-
-BOOLEAN
-PvfsIsDefaultStreamNameEx(
-    IN PPVFS_FILE_NAME pFileName,
-    IN BOOLEAN ExplicitFilename
-    )
-{
-    BOOLEAN isDefaultStream = FALSE;
-
-    if (pFileName->FileName &&
-        (pFileName->StreamName == NULL) &&
-        (pFileName->Type == PVFS_STREAM_TYPE_DATA) &&
-        (pFileName->ExplicitName == ExplicitFilename))
-    {
-        isDefaultStream = TRUE;
-    }
-
-    return isDefaultStream;
-}

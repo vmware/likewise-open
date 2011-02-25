@@ -82,7 +82,6 @@ typedef struct _PVFS_FILE_NAME
     PSTR FileName;
     PSTR StreamName;
     PVFS_STREAM_TYPE Type;
-    BOOLEAN ExplicitName;
 
 } PVFS_FILE_NAME, *PPVFS_FILE_NAME;
 
