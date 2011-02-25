@@ -391,14 +391,52 @@ PvfsCreateFileDoSysOpen(
     // We are done unless the we broke an oplock and
     // FILE_COMPLETE_IF_OPLOCKED was specified
 
-    if (!(IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED) &&
-          pCreateContext->pCcb->pScb->bOplockBreakInProgress))
+    if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
     {
+        BOOLEAN scbLocked = FALSE;
+        PPVFS_SCB pScb = pCreateContext->pCcb->pScb;
+
+        // TODO: This lock may be unnecessary since we are only testing
+        // the OplockBreakInProgress boolean.  but I can't quite convince
+        // myself.  --gcarter@likewise.com
+
+        LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+#if 0
+        if (pScb->bOplockBreakInProgress)
+        {
+            // Make sure this error doesn't get squashed later
+            ntError = STATUS_OPLOCK_BREAK_IN_PROGRESS;
+        }
+        else
+        {
+            // FILE_COMPLETE_IF_OPLOCKED was already specified but the
+            // oplock break ACK has already occurred so the FileHandle
+            // is ready for use
+            SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE);
+        }
+#else
+        if (pCreateContext->OplockBroken)
+        {
+            ntError = STATUS_OPLOCK_BREAK_IN_PROGRESS;
+        }
+        else
+        {
+            SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE);
+        }
+#endif
+        LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+    }
+    else
+    {
+        // FILE_COMPLETE_IF_OPLOCKED was not specified so the only way to
+        // get here was a normal CreateFile path
         SetFlag(pCreateContext->pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE);
     }
 
     if (CreateResult == FILE_CREATED)
     {
+        // TODO: May need to defer the norify event if the FileHandle is
+        // not ready for use.  --gcarter@likewise.com
         PvfsNotifyScheduleFullReport(
             pCreateContext->pCcb->pScb->pOwnerFcb,
             FILE_NOTIFY_CHANGE_FILE_NAME,
