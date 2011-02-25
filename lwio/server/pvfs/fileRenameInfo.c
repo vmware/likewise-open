@@ -123,11 +123,9 @@ PvfsSetFileRenameInfo(
     PPVFS_FILE_NAME newResolvedFileName = NULL;
     PPVFS_FILE_NAME existingResolvedFileName = NULL;
     PPVFS_FILE_NAME currentFileName = NULL;
+    BOOLEAN bIsDefaultStream = TRUE;
 
     /* Sanity checks */
-
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-    BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
@@ -136,6 +134,25 @@ PvfsSetFileRenameInfo(
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    bIsDefaultStream = PvfsIsDefaultStream(pCcb->pScb);
+
+    ntError = PvfsWC16CanonicalPathName(
+                    &pszNewFilename,
+                    pFileInfo->FileName,
+                    pFileInfo->FileNameLength);
+    BAIL_ON_NT_STATUS(ntError);
+
+    // if current file handle is a name stream,
+    // a new name for stream must begin with ':'
+    if (!bIsDefaultStream && (!pszNewFilename || *pszNewFilename != ':'))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -151,47 +168,54 @@ PvfsSetFileRenameInfo(
     }
 
     /* Make sure we have DELETE permissions on the source file */
-
     ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Make sure we can add the new object to the parent directory
        (not necessarily the same as the RootDirectory handle) */
 
-    ntError = PvfsWC16CanonicalPathName(
-                    &pszNewFilename,
-                    pFileInfo->FileName,
-                    pFileInfo->FileNameLength);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (pRootDirCcb)
+    if (bIsDefaultStream)
     {
-        pszNewPathname = NULL;
-
-        /* Check if we need to separate the root path from
-           the relative path witha a '/' */
-
-        if (*pszNewFilename == '/')
+        if (pRootDirCcb)
         {
-            ntError = RtlCStringAllocatePrintf(
-                          &pszNewPathname,
-                          "%s%s",
-                          pRootDirCcb->pScb->pOwnerFcb->pszFilename,
-                          pszNewFilename);
+            pszNewPathname = NULL;
+
+            /* Check if we need to separate the root path from
+            the relative path with a '/' */
+
+            if (*pszNewFilename == '/')
+            {
+                ntError = RtlCStringAllocatePrintf(
+                              &pszNewPathname,
+                              "%s%s",
+                              pRootDirCcb->pScb->pOwnerFcb->pszFilename,
+                              pszNewFilename);
+            }
+            else
+            {
+                ntError = RtlCStringAllocatePrintf(
+                              &pszNewPathname,
+                              "%s/%s",
+                              pRootDirCcb->pScb->pOwnerFcb->pszFilename,
+                              pszNewFilename);
+            }
+            BAIL_ON_NT_STATUS(ntError);
         }
         else
         {
-            ntError = RtlCStringAllocatePrintf(
-                          &pszNewPathname,
-                          "%s/%s",
-                          pRootDirCcb->pScb->pOwnerFcb->pszFilename,
-                          pszNewFilename);
+            ntError = RtlCStringDuplicate(&pszNewPathname, pszNewFilename);
+            BAIL_ON_NT_STATUS(ntError);
         }
-        BAIL_ON_NT_STATUS(ntError);
     }
     else
     {
-        ntError = RtlCStringDuplicate(&pszNewPathname, pszNewFilename);
+        // make up newstream full path using pOwnerFcb and the streamname info
+        // pszNewFilanem has a leading ':'
+        ntError = RtlCStringAllocatePrintf(
+                      &pszNewPathname,
+                      "%s%s",
+                      pCcb->pScb->pOwnerFcb->pszFilename,
+                      pszNewFilename);
         BAIL_ON_NT_STATUS(ntError);
     }
 
