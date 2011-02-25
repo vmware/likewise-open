@@ -1141,6 +1141,7 @@ PvfsRenameSCB(
     PVFS_FILE_NAME currentFileName = { 0 };
     PSTR currentStreamName = NULL;
     PSTR newStreamName = NULL;
+    PVFS_STAT Stat = {0};
 
     ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
@@ -1149,6 +1150,18 @@ PvfsRenameSCB(
 
     ntError = PvfsAllocateCStringFromFileName(&newStreamName, pNewStreamName);
     BAIL_ON_NT_STATUS(ntError);
+
+    // if target unnamed stream is non-zero length fail rename
+    if (PvfsIsDefaultStreamName(pNewStreamName))
+    {
+        ntError = PvfsSysStatByFileName(pNewStreamName, &Stat);
+        if (STATUS_SUCCESS == ntError && Stat.s_size != 0)
+        {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+        // otherwise ignore this ntError
+    }
 
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */

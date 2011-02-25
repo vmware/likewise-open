@@ -358,7 +358,7 @@ PvfsRenameCCB(
             pDestFileName->StreamName,
             FALSE))
         {
-            // Both src and dst stream names ar ethe same some only
+            // Both src and dst stream names are the same
             // renaming the underlying file object
 
             ntError = PvfsRenameFile(pCcb, pDestFileName);
@@ -390,9 +390,7 @@ PvfsRenameCCB(
              PvfsIsDefaultStreamName(pDestFileName))
     {
         // rename name stream -> default stream
-        // (1) A stream on a directory cannot be renamed to the default data stream
-        // (2) Renaming" the default data stream is allowed, but this is not a true rename,
-        // it leaves behind a zero-length default data stream.
+        // A stream on a directory cannot be renamed to the default data stream
         if (!LwRtlCStringIsEqual(
                          srcFileName.FileName,
                          pDestFileName->FileName,
@@ -407,7 +405,7 @@ PvfsRenameCCB(
     }
     else
     {
-        // disallow rename object->stream
+        // disallow rename object->stream as what smbtorture expects
         // TODO:
         // we may want to allow "Renaming" the default data stream
         // it is not a true rename, and it leaves behind a zero-length default data streams
