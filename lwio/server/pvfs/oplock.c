@@ -511,7 +511,7 @@ PvfsOplockBreakIfLocked(
 
        However, the handle on which the break is currently in progress is ok
        and should be give full access without blocking or retriggering another
-       round of break prcessing.  Since We only set the OplockBreakInProgress
+       round of break processing.  Since We only set the OplockBreakInProgress
        flag when breaking a batch/level1 oplock, if the CCB's own
        PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS flag is set, then we assume that
        it is in fact this handle that matches.  The alternative solution
