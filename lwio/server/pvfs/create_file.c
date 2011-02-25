@@ -286,6 +286,7 @@ PvfsCreateFileSupersede(
 
         case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         case STATUS_PENDING:
+            pCreateCtx->OplockBroken = TRUE;
             if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
             {
                 ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
@@ -583,6 +584,7 @@ PvfsCreateFileOpenOrOverwrite(
 
         case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         case STATUS_PENDING:
+            pCreateCtx->OplockBroken = TRUE;
             if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
             {
                 ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
@@ -778,6 +780,7 @@ PvfsCreateFileOpenOrOverwriteIf(
 
         case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         case STATUS_PENDING:
+            pCreateCtx->OplockBroken = TRUE;
             if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
             {
                 ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
