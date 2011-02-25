@@ -320,6 +320,9 @@ SrvProcessSetInfo_SMB_V2(
 
         case SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE:
 
+            ntStatus = pSetInfoState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvBuildSetInfoResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
