@@ -218,12 +218,6 @@ PvfsSysMkDirByFileName(
     );
 
 NTSTATUS
-PvfsSysOpenDirByFileName(
-    IN PPVFS_FILE_NAME pDirname,
-    OUT OPTIONAL DIR **ppDir
-    );
-
-NTSTATUS
 PvfsSysChownByFileName(
     IN PPVFS_FILE_NAME pFileName,
     uid_t uid,
