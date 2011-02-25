@@ -447,7 +447,7 @@ struct _PVFS_CCB
 
     PACCESS_TOKEN pUserToken;
 
-    /* Handle for Directory enumeraqtion */
+    /* Handle for Directory enumeration */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
     DWORD EcpFlags;
 
