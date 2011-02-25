@@ -1,0 +1,41 @@
+SUBDIRS="driver etc test"
+
+configure()
+{
+    mk_config_header HEADER="include/config.h"
+
+    lw_define_feature_macros
+
+    mk_check_endian
+
+    mk_export MOD_EXT="$MK_DLO_EXT"
+    mk_export providerdir="$MK_LIBDIR"
+
+    MK_CFLAGS="$MK_CFLAGS -Wall -Werror -Wmissing-prototypes"
+
+    mk_check_libraries \
+        FAIL="yes" \
+        iomgr lwbase lwbase_nothr
+
+    mk_check_headers \
+        FAIL="yes" \
+        lwio/lwio.h lw/base.h
+
+    mk_check_headers \
+        inttypes.h stdlib.h sys/varargs.h dlfcn.h pthread.h \
+        time.h sys/time.h strings.h stdbool.h sys/socket.h netinet/tcp.h \
+        netdb.h wc16str.h wc16printf.h sys/param.h sys/pstat.h \
+        procfs.h sys/procfs.h sys/vfs.h netinet/in.h netinet/in6.h
+
+    mk_check_types \
+        HEADERDEPS="sys/types.h sys/socket.h" \
+        "socklen_t"
+
+    # FIXME: do a real test here
+    mk_define GETSOCKNAME_TAKES_SOCKLEN_T 1
+
+    mk_check_libraries \
+        pthread nsl socket
+
+    mk_output_file etc/templatedriver.reg
+}
