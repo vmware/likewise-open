@@ -174,6 +174,7 @@ SrvProcessCreate_SMB_V2(
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    NTSTATUS                   ntStatus2     = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
@@ -298,76 +299,97 @@ SrvProcessCreate_SMB_V2(
                             pCreateState->pRequestHeader->ulShareAccess,
                             pCreateState->pRequestHeader->ulCreateDisposition,
                             pCreateState->pRequestHeader->ulCreateOptions,
+                            // pCreateState->pRequestHeader->ulCreateOptions | FILE_COMPLETE_IF_OPLOCKED,
                             (pCreateState->pExtAContext ?
                                 pCreateState->pExtAContext->pData : NULL),
                             (pCreateState->pExtAContext ?
                                 pCreateState->pExtAContext->ulDataLength : 0),
                             pCreateState->pEcpList);
-            switch (ntStatus)
-            {
-                case STATUS_PENDING:
-                {
-                    // TODO: Might have to cancel the entire operation
-                    //
-                    NTSTATUS ntStatus2 = SrvBuildInterimResponse_SMB_V2(
-                                                pExecContext,
-                                                pCreateState->ullAsyncId);
-                    if (ntStatus2 != STATUS_SUCCESS)
-                    {
-                        LWIO_LOG_ERROR(
-                                "Failed to create interim response [code:0x%8x]",
-                                ntStatus2);
-                    }
-
-                    bUnregisterAsync = FALSE;
-                }
-                    break;
-
-                case STATUS_SUCCESS:
-
-                    // completed synchronously; remove asynchronous state
-                    //
-                    SrvConnection2RemoveAsyncState(
-                            pConnection,
-                            pCreateState->ullAsyncId);
-
-                    pCreateState->ullAsyncId = 0LL;
-
-                    bUnregisterAsync = FALSE;
-
-                default:
-
-                    break;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+            SrvReleaseCreateStateAsync_SMB_V2(pCreateState);
 
             // intentional fall through
 
         case SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED:
 
             ntStatus = pCreateState->ioStatusBlock.Status;
-            BAIL_ON_NT_STATUS(ntStatus);
+
+            if ((ntStatus != STATUS_SUCCESS) &&
+                (ntStatus != STATUS_OPLOCK_BREAK_IN_PROGRESS))
+            {
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pCreateState->ulCreateAction =
-                            pCreateState->ioStatusBlock.CreateResult;
+                pCreateState->ioStatusBlock.CreateResult;
+
+            ntStatus2 = ntStatus;
 
             ntStatus = SrvTree2CreateFile(
-                            pCreateState->pTree,
-                            pCreateState->pwszFilename,
-                            &pCreateState->hFile,
-                            &pCreateState->pFilename,
-                            pCreateState->pRequestHeader->ulDesiredAccess,
-                            0LL,
-                            pCreateState->pRequestHeader->ulFileAttributes,
-                            pCreateState->pRequestHeader->ulShareAccess,
-                            pCreateState->pRequestHeader->ulCreateDisposition,
-                            pCreateState->pRequestHeader->ulCreateOptions,
-                            &pCreateState->pFile);
+                           pCreateState->pTree,
+                           pCreateState->pwszFilename,
+                           &pCreateState->hFile,
+                           &pCreateState->pFilename,
+                           pCreateState->pRequestHeader->ulDesiredAccess,
+                           0,
+                           pCreateState->pRequestHeader->ulFileAttributes,
+                           pCreateState->pRequestHeader->ulShareAccess,
+                           pCreateState->pRequestHeader->ulCreateDisposition,
+                           pCreateState->pRequestHeader->ulCreateOptions,
+                           &pCreateState->pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO;
+
+            ntStatus = ntStatus2;
+
+            // Go back to evaluate the origain IoCreateFile return code
+
+            switch (ntStatus)
+            {
+                case STATUS_SUCCESS:
+                    SrvConnection2RemoveAsyncState(
+                        pConnection,
+                        pCreateState->ullAsyncId);
+                    pCreateState->ullAsyncId = 0LL;
+                    bUnregisterAsync = FALSE;
+                    break;
+
+                case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+                    // TODO: Might have to cancel the entire operation
+
+                    ntStatus2 = SrvBuildInterimResponse_SMB_V2(
+                                    pExecContext,
+                                    pCreateState->ullAsyncId);
+                    if (ntStatus2 != STATUS_SUCCESS)
+                    {
+                        LWIO_LOG_ERROR(
+                            "Failed to build interim response for SMB2Create() (%s)",
+                            LwNtStatusToName(ntStatus2));
+                    }
+
+                    bUnregisterAsync = FALSE;
+
+                    SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+
+                    ntStatus = IoFsControlFile(
+                                   pCreateState->pFile->hFile,
+                                   pCreateState->pAcb,
+                                   &pCreateState->ioStatusBlock,
+                                   IO_FSCTL_OPLOCK_BREAK_NOTIFY,
+                                   NULL,
+                                   0,
+                                   NULL,
+                                   0);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    SrvReleaseCreateStateAsync_SMB_V2(pCreateState);
+                    break;
+
+                default:
+                    BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             // intentional fall through
 
@@ -485,6 +507,7 @@ error:
 
     switch (ntStatus)
     {
+        case STATUS_OPLOCK_BREAK_IN_PROGRESS:
         case STATUS_PENDING:
 
             // TODO: Add an indicator to the file object to trigger a
