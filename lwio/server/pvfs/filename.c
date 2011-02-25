@@ -177,18 +177,18 @@ PvfsBuildFileNameFromCString(
         currentPosition = cursor;
         streamTypeString = currentPosition;
 
-        if (*cursor != '\0')
+        if (*cursor == '\0')
         {
-            // Get the stream type
-            // Foo.txt:Summary:$DATA
-            //                 ^
-            ntError = PvfsParseStreamType(&streamTypeValue, streamTypeString);
+            // Cannot end in a trailing ':'
+            ntError = STATUS_OBJECT_NAME_INVALID;
             BAIL_ON_NT_STATUS(ntError);
         }
-        else
-        {
-            streamTypeValue = PVFS_STREAM_TYPE_DATA;
-        }
+
+        // Get the stream type
+        // Foo.txt:Summary:$DATA
+        //                 ^
+        ntError = PvfsParseStreamType(&streamTypeValue, streamTypeString);
+        BAIL_ON_NT_STATUS(ntError);
     }
     nameOptions = PVFS_FILE_NAME_OPTION_DEFINED_STREAM_TYPE;
 
@@ -243,7 +243,7 @@ PvfsParseStreamType(
         (*StreamTypeString == '\0') ||
         (*StreamTypeString != '$'))
     {
-        ntError = STATUS_INVALID_PARAMETER;
+        ntError = STATUS_OBJECT_NAME_INVALID;
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -253,7 +253,7 @@ PvfsParseStreamType(
     }
     else
     {
-        ntError = STATUS_INVALID_PARAMETER;
+        ntError = STATUS_OBJECT_NAME_INVALID;
         BAIL_ON_NT_STATUS(ntError);
     }
 
