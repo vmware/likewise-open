@@ -230,9 +230,9 @@ PvfsEnumerateStreams(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    // Always include space for the default stream only for file not dir
     if (!PVFS_IS_DIR(pCcb))
     {
+        // Always include space for the default stream only for file not dir
         ntError = PvfsAllocateFileNameList(
                       &streamNameList,
                       streamDirectoryContext->dwNumEntries+1);
@@ -245,6 +245,13 @@ PvfsEnumerateStreams(
         BAIL_ON_NT_STATUS(ntError);
 
         currentIndex++;
+    }
+    else if (streamDirectoryContext->dwNumEntries > 0)
+    {
+        ntError = PvfsAllocateFileNameList(
+                      &streamNameList,
+                      streamDirectoryContext->dwNumEntries);
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     for (i=0; i<streamDirectoryContext->dwNumEntries; i++)
