@@ -203,6 +203,11 @@ PvfsDriverDispatch(
 
     switch (pIrpCtx->pIrp->Type)
     {
+        case IRP_TYPE_CREATE:
+            // ntError = PvfsCreate(pIrpCtx);
+            pIrpCtx->Callback = PvfsCreate;
+            break;
+
         case IRP_TYPE_LOCK_CONTROL:
             pIrpCtx->Callback = PvfsLockControl;
             break;
@@ -226,6 +231,12 @@ PvfsDriverDispatch(
         case IRP_TYPE_QUERY_DIRECTORY:
             pIrpCtx->Callback = PvfsQueryDirInformation;
             break;
+
+
+        case IRP_TYPE_READ_DIRECTORY_CHANGE:
+            pIrpCtx->Callback = PvfsReadDirectoryChange;
+            break;
+
 
         case IRP_TYPE_QUERY_VOLUME_INFORMATION:
             pIrpCtx->Callback = PvfsQueryVolumeInformation;
@@ -265,16 +276,9 @@ PvfsDriverDispatch(
         //
         // Special Cases...STATUS_PENDING has special meaning
         //
-        case IRP_TYPE_CREATE:
-            ntError = PvfsCreate(pIrpCtx);
-            break;
 
         case IRP_TYPE_FS_CONTROL:
             ntError = PvfsDispatchFsIoControl(pIrpCtx);
-            break;
-
-        case IRP_TYPE_READ_DIRECTORY_CHANGE:
-            ntError = PvfsReadDirectoryChange(pIrpCtx);
             break;
 
         //
