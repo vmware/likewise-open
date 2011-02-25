@@ -168,10 +168,10 @@ SrvConfigFreeContents_SMB_V2(
         }
         if (ConfigTable[dwEntry].Type == LwIoTypeMultiString)
         {
-            PSTR *ppszStrings = ConfigTable[dwEntry].pValue;
-            if (ppszStrings != NULL)
+            PSTR **pppszStrings = ConfigTable[dwEntry].pValue;
+            if (*pppszStrings != NULL)
             {
-                LwIoMultiStringFree(ppszStrings);
+                LwIoMultiStringFree(pppszStrings);
             }
         }
 
