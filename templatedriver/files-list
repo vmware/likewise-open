@@ -24,3 +24,7 @@
 ./driver/Makefile.am
 ./autogen.sh
 ./TODO
+./test/MakeKitBuild
+./MakeKitBuild
+./etc/MakeKitBuild
+./driver/MakeKitBuild
