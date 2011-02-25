@@ -156,6 +156,14 @@ PvfsConfigRegistryInit(
         0xffffffff,
         &pConfig->PathCacheSize);
 
+    LwIoReadConfigDword(
+        pReg,
+        "WriteChangeNotify",
+        TRUE,
+        0,
+        0xffffffff,
+        &pConfig->WriteChangeNotify);
+
 cleanup:
 
     if (pReg)
@@ -194,6 +202,7 @@ PvfsConfigDefaultInit(
 
     pConfig->WorkerThreadPoolSize = 4;
     pConfig->PathCacheSize = 10240;
+    pConfig->WriteChangeNotify = 100;
 
     return STATUS_SUCCESS;
 }
