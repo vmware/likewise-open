@@ -354,9 +354,9 @@ PvfsRenameCCB(
     {
         // Two named streams
         if (LwRtlCStringIsEqual(
-            srcFileName.StreamName,
-            pDestFileName->StreamName,
-            FALSE))
+                PvfsGetCStringBaseStreamName(&srcFileName),
+                PvfsGetCStringBaseStreamName(pDestFileName),
+                FALSE))
         {
             // Both src and dst stream names are the same
             // renaming the underlying file object
@@ -364,8 +364,8 @@ PvfsRenameCCB(
             ntError = PvfsRenameFile(pCcb, pDestFileName);
         }
         else if (LwRtlCStringIsEqual(
-                     srcFileName.FileName,
-                     pDestFileName->FileName,
+                     PvfsGetCStringBaseFileName(&srcFileName),
+                     PvfsGetCStringBaseFileName(pDestFileName),
                      FALSE))
         {
             // Renaming the named stream, file name stays the same
@@ -392,8 +392,8 @@ PvfsRenameCCB(
         // rename name stream -> default stream
         // A stream on a directory cannot be renamed to the default data stream
         if (!LwRtlCStringIsEqual(
-                         srcFileName.FileName,
-                         pDestFileName->FileName,
+                         PvfsGetCStringBaseFileName(&srcFileName),
+                         PvfsGetCStringBaseFileName(pDestFileName),
                          FALSE) || PVFS_IS_DIR(pCcb))
         {
             ntError = STATUS_OBJECT_NAME_INVALID;

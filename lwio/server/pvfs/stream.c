@@ -117,7 +117,7 @@ PvfsLookupStreamDiskFileName(
     if (PvfsIsDefaultStreamName(pFileName))
     {
         ntError = LwRtlCStringDuplicate(&pszDiskFilename,
-                                        pFileName->FileName);
+                                        PvfsGetCStringBaseFileName(pFileName));
         BAIL_ON_NT_STATUS(ntError);
     }
     else
@@ -130,7 +130,7 @@ PvfsLookupStreamDiskFileName(
                       &pszDiskFilename,
                       "%s/%s",
                       pszStreamDirname,
-                      pFileName->StreamName);
+                      PvfsGetCStringBaseStreamName(pFileName));
         BAIL_ON_NT_STATUS(ntError);
     }
 
