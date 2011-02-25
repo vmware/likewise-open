@@ -237,11 +237,16 @@ PvfsCreateFileDoSysOpen(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsEnforceShareMode(
-                   pCreateContext->pScb,
-                   Args.ShareAccess,
-                   pCreateContext->GrantedAccess);
-    BAIL_ON_NT_STATUS(ntError);
+    if (pCreateContext->Status == STATUS_SHARING_VIOLATION)
+    {
+        // Retry share mode checks in case they succeed now
+        ntError = PvfsEnforceShareMode(
+                       pCreateContext->pScb,
+                       Args.ShareAccess,
+                       pCreateContext->GrantedAccess);
+        pCreateContext->Status = ntError;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Do the open() */
 
@@ -296,9 +301,6 @@ PvfsCreateFileDoSysOpen(
     pCreateContext->pCcb->ShareFlags = Args.ShareAccess;
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
-
-    ntError = PvfsAddCCBToSCB(pCreateContext->pScb, pCreateContext->pCcb);
-    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -529,9 +531,6 @@ PvfsCreateDirDoSysOpen(
     pCreateContext->pCcb->ShareFlags = Args.ShareAccess;
     pCreateContext->pCcb->AccessGranted = pCreateContext->GrantedAccess;
     pCreateContext->pCcb->CreateOptions = Args.CreateOptions;
-
-    ntError = PvfsAddCCBToSCB(pCreateContext->pScb, pCreateContext->pCcb);
-    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -969,6 +968,8 @@ PvfsAllocateCreateContext(
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
+
+    pCreateCtx->Status = STATUS_SUCCESS;
 
     *ppCreate = pCreateCtx;
     pCreateCtx = NULL;

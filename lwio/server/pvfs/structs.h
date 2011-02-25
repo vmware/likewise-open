@@ -234,6 +234,7 @@ typedef struct _PVFS_PENDING_CREATE
     ACCESS_MASK GrantedAccess;
     BOOLEAN bFileExisted;
     PVFS_SET_FILE_PROPERTY_FLAGS SetPropertyFlags;
+    NTSTATUS Status;
 
 } PVFS_PENDING_CREATE, *PPVFS_PENDING_CREATE;
 

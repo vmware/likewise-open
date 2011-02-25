@@ -229,6 +229,9 @@ PvfsCreateDirCreate(
     pCreateCtx->bFileExisted = FALSE;
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -337,6 +340,9 @@ PvfsCreateDirOpen(
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->bFileExisted = TRUE;
+
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);
@@ -475,6 +481,9 @@ PvfsCreateDirOpenIf(
         pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|
                                        PVFS_SET_PROP_ATTRIB;
     }
+
+    ntError = PvfsAddCCBToSCB(pCreateCtx->pScb, pCreateCtx->pCcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);

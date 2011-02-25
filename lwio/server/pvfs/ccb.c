@@ -90,6 +90,7 @@ PvfsAllocateCCB(
     pCCB->ChangeEvent = 0;
     pCCB->WriteCount = 0;
     pCCB->bQuotaFile = FALSE;
+    pCCB->AccessGranted = 0;
 
     LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 
