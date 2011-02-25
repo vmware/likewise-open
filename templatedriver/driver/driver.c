@@ -55,8 +55,16 @@ TemplateDriverDispatch(
     IN PIRP pIrp
     );
 
+
 NTSTATUS
-IO_DRIVER_ENTRY(srv)(
+DriverEntry(
+    IN IO_DRIVER_HANDLE hDriver,
+    IN ULONG ulInterfaceVersion
+    );
+
+
+NTSTATUS
+IO_DRIVER_ENTRY(templatedriver)(
     IN IO_DRIVER_HANDLE hDriver,
     IN ULONG ulInterfaceVersion
     )

@@ -1,0 +1,12 @@
+make()
+{
+    TEST_SOURCES="\
+        test.c"
+
+    mk_program \
+        PROGRAM=test \
+        INSTALLDIR="$LW_TOOL_DIR" \
+        SOURCES="$TEST_SOURCES" \
+        INCLUDEDIRS=". ../include" \
+        HEADERDEPS="lw/base.h lwio/lwio.h"
+}

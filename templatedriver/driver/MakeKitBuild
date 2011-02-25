@@ -1,0 +1,15 @@
+make()
+{
+    DRIVER_SOURCES="\
+        dispatch.c	\
+        driver.c	\
+        globals.c	\
+        initialize.c"
+
+    mk_dlo \
+        DLO=libtemplatedriver.sys \
+        SOURCES="$DRIVER_SOURCES" \
+        INCLUDEDIRS=". ../include" \
+        HEADERDEPS="lwio/lwio.h lw/base.h" \
+        LIBDEPS="iomgr lwbase lwbase_nothr $LIB_PTHREAD"
+}
