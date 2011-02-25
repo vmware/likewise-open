@@ -54,3 +54,5 @@ perl -pi -w -e "s/^REGFILES=\"(.*)\"/REGFILES=\"\1 $DRIVER_NAME.reg\"/" "${ROOT_
 perl -pi -w -e "s/^PKG_COMPONENTS=\"(.*)\"/PKG_COMPONENTS=\"\1 $DRIVER_NAME\"/" "${ROOT_DIR}/build/packages/lwio/lwio.func"
 
 perl -pi -w -e "s/^\"Load\"=\"(.*)\"/\"Load\"=\"\1,$DRIVER_NAME\"/" "${ROOT_DIR}/lwio/etc/lwiod.reg.in"
+
+perl -pi -w -e "s/^(.*lwio.*libschannel.*dcerpc.*) \\\\$/\1 $DRIVER_NAME \\\\/" "${ROOT_DIR}/MakeKitBuild"
