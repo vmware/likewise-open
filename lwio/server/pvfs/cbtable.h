@@ -100,7 +100,7 @@ NTSTATUS
 PvfsCbTableLookup(
     PPVFS_CONTROL_BLOCK *ppCb,
     PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
+    PCSTR KeyString
     );
 
 NTSTATUS

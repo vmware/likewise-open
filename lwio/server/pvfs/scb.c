@@ -435,7 +435,7 @@ static
 NTSTATUS
 PvfsFindOwnerFCB(
     PPVFS_FCB *ppOwnerFcb,
-    PSTR pszFullStreamname
+    PCSTR pszFilename
     );
 
 NTSTATUS
@@ -508,7 +508,7 @@ PvfsCreateSCB(
 
     pScb->StreamType = FileName->Type;
 
-    ntError = PvfsFindOwnerFCB(&pOwnerFcb, (PSTR)PvfsGetCStringBaseFileName(FileName));
+    ntError = PvfsFindOwnerFCB(&pOwnerFcb, PvfsGetCStringBaseFileName(FileName));
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAddSCBToFCB(pOwnerFcb, pScb);
@@ -559,7 +559,7 @@ static
 NTSTATUS
 PvfsFindOwnerFCB(
     PPVFS_FCB *ppOwnerFcb,
-    PSTR pszFullStreamname
+    PCSTR pszFilename
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -567,18 +567,18 @@ PvfsFindOwnerFCB(
     PPVFS_FCB pFcb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, (PVOID)pszFullStreamname);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, (PVOID)pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableLookup(
                   (PPVFS_CONTROL_BLOCK*)&pFcb,
                   pBucket,
-                  pszFullStreamname);
+                  pszFilename);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = PvfsCreateFCB(
                       &pFcb,
-                      pszFullStreamname,
+                      pszFilename,
                       FALSE,
                       0,
                       0);

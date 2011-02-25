@@ -67,7 +67,7 @@ PvfsReleaseFCB(
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN PSTR pszFilename,
+    IN PCSTR pszFilename,
     IN BOOLEAN bCheckShareAccess,
     IN FILE_SHARE_FLAGS SharedAccess,
     IN ACCESS_MASK DesiredAccess
