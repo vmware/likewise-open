@@ -1191,6 +1191,7 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V1
 /* Add new config parameters in alphabetic order. */
 typedef struct _SRV_CONFIG_SMB_V1
 {
+    DWORD dwLockConflictTimeoutMillisecs;
     DWORD dwOplockTimeoutMillisecs;
 
 } SRV_CONFIG_SMB_V1, *PSRV_CONFIG_SMB_V1;
