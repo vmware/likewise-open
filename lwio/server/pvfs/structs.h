@@ -515,30 +515,6 @@ struct _PVFS_OPLOCK_RECORD
 
 };
 
-
-typedef NTSTATUS (*PPVFS_WORK_CONTEXT_CALLBACK)(
-    IN PVOID pContext
-    );
-
-typedef VOID (*PPVFS_WORK_CONTEXT_FREE_CTX)(
-    IN PVOID *ppContext
-    );
-
-#define PVFS_WORK_CTX_FLAG_IRP_CONTEXT    0x00000001
-#define PVFS_WORK_CTX_FLAG_TERMINATE      0x00000002
-
-typedef struct _PVFS_WORK_CONTEXT
-{
-    LW_LIST_LINKS WorkList;
-
-    LONG Flags;
-    PVOID pContext;
-
-    PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion;
-    PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext;
-
-} PVFS_WORK_CONTEXT, *PPVFS_WORK_CONTEXT;
-
 typedef struct _PVFS_OPEN_FILE_INFO
 {
     ULONG Level;
