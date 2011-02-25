@@ -62,22 +62,27 @@ PvfsClose(
     PPVFS_CCB pCcb = NULL;
     PPVFS_SCB pScb = NULL;
 
-    /* make sure we have a proper CCB */
-
     ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Mark the handle as closed in an effort to prevent
-       a potential sharing violation */
+    ///
+    /// State transitions
+    ///
+
+    // Mark the handle as closed to prevent a future sharing violations
 
     SetFlag(pCcb->Flags, PVFS_CCB_FLAG_CLOSE_IN_PROGRESS);
 
-    if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_PENDING_DELETE))
+    if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_PENDING_DELETE) &&
+        IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
     {
-        /* delete-on-close-handle becomes delete-on-close-file */
-
         PvfsScbSetPendingDelete(pCcb->pScb, TRUE);
     }
+
+    ///
+    /// FileHandle resource cleanup
+    ///
+
 
     if (PVFS_IS_DIR(pCcb))
     {
@@ -147,7 +152,8 @@ PvfsClose(
 
     PvfsZctCloseCcb(pCcb);
 
-cleanup:
+error:
+
     /* This is the final Release that will free the memory */
 
     if (pScb)
@@ -163,8 +169,5 @@ cleanup:
     /* We can't really do anything here in the case of failure */
 
     return STATUS_SUCCESS;
-
-error:
-    goto cleanup;
 }
 
