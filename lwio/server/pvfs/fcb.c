@@ -673,6 +673,7 @@ PvfsRenameFCB(
     PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
     BOOLEAN bCurrentFcbControl = FALSE;
     BOOLEAN bTargetFcbControl = FALSE;
+    BOOLEAN bTargetFcbLocked = FALSE;
     BOOLEAN bTargetBucketLocked = FALSE;
     BOOLEAN bCurrentBucketLocked = FALSE;
     BOOLEAN bFcbRwLocked = FALSE;
@@ -711,6 +712,19 @@ PvfsRenameFCB(
 
         if (pTargetFcb != pFcb)
         {
+            LWIO_LOCK_RWMUTEX_SHARED(bTargetFcbLocked, &pTargetFcb->rwScbLock);
+
+            // if TargetScb has open handles cannot rename
+            // This except in the batch-oplock case
+
+            if (pTargetFcb->OpenHandleCount > 0 )
+            {
+                ntError = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+            LWIO_UNLOCK_RWMUTEX(bTargetFcbLocked, &pTargetFcb->rwScbLock);
+
             LWIO_LOCK_MUTEX(bTargetFcbControl, &pTargetFcb->BaseControlBlock.Mutex);
             if (!pTargetFcb->BaseControlBlock.Removed)
             {
@@ -801,6 +815,7 @@ PvfsRenameFCB(
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bTargetFcbLocked, &pTargetFcb->rwScbLock);
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bRenameLock, &gFcbTable.rwLock);
