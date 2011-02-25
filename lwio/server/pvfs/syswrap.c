@@ -352,7 +352,10 @@ cleanup:
     return ntError;
 
 error:
-    PvfsSysClose(fd);
+    if (fd != -1)
+    {
+        PvfsSysClose(fd);
+    }
 
     goto cleanup;
 }
