@@ -307,3 +307,44 @@ error:
 
     return ntError;
 }
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsRemoveStreams(
+    IN PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FILE_NAME streamList = NULL;
+    LONG streamCount = 0;
+    LONG i = 0;
+
+    ntError = PvfsEnumerateStreams(pCcb, &streamList, &streamCount);
+    BAIL_ON_NT_STATUS(ntError);
+
+    for (i=0; i<streamCount; i++)
+    {
+        // TODO: This likely needs support from an internal delete-pending
+        // mechanism.  We'll assume for now that the share mode checks
+        // are a safety net, but there could be open handles to these
+        // stream still
+
+        if (!PvfsIsDefaultStreamName(&streamList[i]))
+        {
+            // Only delete named streams
+            ntError = PvfsSysRemoveByFileName(&streamList[i]);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    ntError = STATUS_SUCCESS;
+
+error:
+    if (streamList)
+    {
+        PvfsFreeFileNameList(streamList, streamCount);
+    }
+
+    return ntError;
+}

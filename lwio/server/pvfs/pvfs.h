@@ -1014,6 +1014,11 @@ PvfsEnumerateStreams(
     OUT PLONG StreamCount
     );
 
+NTSTATUS
+PvfsRemoveStreams(
+    IN PPVFS_CCB pCcb
+    );
+
 #endif /* __PVFS_H__ */
 
 
