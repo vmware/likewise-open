@@ -1,0 +1,10 @@
+[HKEY_THIS_MACHINE\Services\templatedriver]
+"Description"="TemplateDriver"
+"Path"="@providerdir@/libtemplatedriver.sys@MOD_EXT@"
+"Arguments"="templatedriver"
+"Environment"=""
+"Dependencies"="lwio"
+"Type"=dword:00000003
+
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\templatedriver]
+"Path"="@providerdir@/libtemplatedriver.sys@MOD_EXT@"
