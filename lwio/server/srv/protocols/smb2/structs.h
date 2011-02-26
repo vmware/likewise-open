@@ -1052,6 +1052,7 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
     PBYTE                         pSecurityQOS;
     IO_FILE_HANDLE                hDir;
     IO_FILE_NAME                  dirPath;
+    BOOLEAN                       SetInfoRequested;
 
     PBYTE                         pData2;
     ULONG                         ulData2Length;
