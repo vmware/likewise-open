@@ -298,8 +298,7 @@ SrvProcessCreate_SMB_V2(
                             pCreateState->pRequestHeader->ulFileAttributes,
                             pCreateState->pRequestHeader->ulShareAccess,
                             pCreateState->pRequestHeader->ulCreateDisposition,
-                            pCreateState->pRequestHeader->ulCreateOptions,
-                            // pCreateState->pRequestHeader->ulCreateOptions | FILE_COMPLETE_IF_OPLOCKED,
+                            pCreateState->pRequestHeader->ulCreateOptions | FILE_COMPLETE_IF_OPLOCKED,
                             (pCreateState->pExtAContext ?
                                 pCreateState->pExtAContext->pData : NULL),
                             (pCreateState->pExtAContext ?
