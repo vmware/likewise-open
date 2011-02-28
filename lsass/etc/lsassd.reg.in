@@ -8,6 +8,7 @@
 "Dependencies"="netlogon lwio lwreg rdr npfs"
 "Type"=dword:00000001
 "Autostart"=dword:00000001
+"FdLimit"=@fdlimit@
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters]
 "EnableEventlog"=dword:00000000
