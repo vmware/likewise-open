@@ -64,6 +64,7 @@ typedef struct _SM_EXECUTABLE
     PWSTR pwszPath;
     PWSTR* ppwszArgs;
     PWSTR* ppwszEnv;
+    DWORD dwFdLimit;
     PLW_SERVICE_OBJECT pObject;
     SM_LINK link;
     SM_LINK threadLink;
@@ -231,6 +232,27 @@ error:
 
 static
 DWORD
+LwSmSetLimits(
+    PSM_EXECUTABLE pExec
+    )
+{
+    DWORD dwError = 0;
+    struct rlimit limit = {0};
+
+    if (pExec->dwFdLimit)
+    {
+        limit.rlim_cur = pExec->dwFdLimit;
+        limit.rlim_max = pExec->dwFdLimit;
+
+        /* Ignore errors */
+        (void) setrlimit(RLIMIT_NOFILE, &limit);
+    }
+
+    return dwError;
+}
+
+static
+DWORD
 LwSmExecProgram(
     PSM_EXECUTABLE pExec,
     int* pNotifyPipe
@@ -249,6 +271,10 @@ LwSmExecProgram(
     sigemptyset(&set);
 
     dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
+    BAIL_ON_ERROR(dwError);
+
+    /* Set any applicable limits */
+    dwError = LwSmSetLimits(pExec);
     BAIL_ON_ERROR(dwError);
 
     dwError = LwWc16sToMbs(pExec->pwszPath, &pszPath);
@@ -446,6 +472,7 @@ LwSmExecutableConstruct(
     pExec->type = pInfo->type;
     pExec->state = LW_SERVICE_STATE_STOPPED;
     pExec->pObject = pObject;
+    pExec->dwFdLimit = pInfo->dwFdLimit;
     LwSmLinkInit(&pExec->link);
     LwSmLinkInit(&pExec->threadLink);
 
