@@ -11,13 +11,11 @@ if [ "$1" == "" ] ; then
     usage
 fi
 
-if [ "$BUILD_ROOT" == "" ] ; then
-    echo "ERROR: The script must be run in a standard build environment"
-    exit 1
-fi
+SCRIPT_FILE=`which $0`
+SCRIPT_DIR=`dirname "${SCRIPT_FILE}"`
+ROOT_DIR=`dirname $SCRIPT_DIR`
 
 DRIVER_NAME=`echo $1 | tr "[:upper:]" "[:lower:]"`
-ROOT_DIR=${BUILD_ROOT}/src/${BUILD_OS_TYPE}
 DRIVER_DIR=${ROOT_DIR}/${DRIVER_NAME}
 
 if [ -e "${DRIVER_DIR}" ] ; then
@@ -49,9 +47,11 @@ perl -pi -w -e "s/TEMPLATEDRIVER/$DRIVER_NAME_CAP/g"       $TEMPLATE_FILES
 cp "${ROOT_DIR}/build/components/templatedriver.comp" "${DRIVER_COMPONENT_FILE}"
 perl -pi -w -e "s/templatedriver/$DRIVER_NAME/g" "${DRIVER_COMPONENT_FILE}"
 
-perl -pi -w -e "s/^REGFILES=\"(.*)\"/REGFILES=\"\1 $DRIVER_NAME.reg\"/" "${ROOT_DIR}/build/products/lwiso/config"
-
-perl -pi -w -e "s/^PKG_COMPONENTS=\"(.*)\"/PKG_COMPONENTS=\"\1 $DRIVER_NAME\"/" "${ROOT_DIR}/build/packages/lwio/lwio.func"
+# do not update these files in oem branches
+if [ "$BUILD_ROOT" != "" ] ; then
+    perl -pi -w -e "s/^REGFILES=\"(.*)\"/REGFILES=\"\1 $DRIVER_NAME.reg\"/" "${ROOT_DIR}/build/products/lwiso/config"
+    perl -pi -w -e "s/^PKG_COMPONENTS=\"(.*)\"/PKG_COMPONENTS=\"\1 $DRIVER_NAME\"/" "${ROOT_DIR}/build/packages/lwio/lwio.func"
+fi
 
 perl -pi -w -e "s/^\"Load\"=\"(.*)\"/\"Load\"=\"\1,$DRIVER_NAME\"/" "${ROOT_DIR}/lwio/etc/lwiod.reg.in"
 
