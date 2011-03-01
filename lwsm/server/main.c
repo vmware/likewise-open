@@ -164,16 +164,16 @@ main(
     dwError = LwSmPopulateTable();
     BAIL_ON_ERROR(dwError);
 
+    /* Start IPC server */
+    dwError = LwSmStartIpcServer();
+    BAIL_ON_ERROR(dwError);
+
     /* Start the 'Autostart' services */
     if (!gState.bDisableAutostart)
     {
         dwError = LwSmAutostartServices();
         BAIL_ON_ERROR(dwError);
     }
-
-    /* Start IPC server */
-    dwError = LwSmStartIpcServer();
-    BAIL_ON_ERROR(dwError);
 
     /* If we are starting as a daemon, indicate that we
        are ready to the parent process.  This ensures that
