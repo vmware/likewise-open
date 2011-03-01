@@ -223,13 +223,13 @@ SrvProcessOplock(
             {
                 case IO_OPLOCK_BROKEN_TO_NONE:
 
-                    ucOplockLevel = 0;
+                    ucOplockLevel = SMB_OPLOCK_LEVEL_BROKEN_TO_NONE;
 
                     break;
 
                 case IO_OPLOCK_BROKEN_TO_LEVEL_2:
 
-                    ucOplockLevel = 1;
+                    ucOplockLevel = SMB_OPLOCK_LEVEL_BROKEN_TO_LEVEL_II;
 
                     break;
 
@@ -404,7 +404,7 @@ SrvAcknowledgeOplockBreak(
     {
         case IO_OPLOCK_BROKEN_TO_NONE:
 
-            // ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+            ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
 
             break;
 
