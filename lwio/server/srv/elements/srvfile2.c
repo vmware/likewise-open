@@ -322,7 +322,7 @@ SrvFile2GetOplockLevel(
     PLWIO_SRV_FILE_2 pFile
     )
 {
-    UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    UCHAR ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
 
     BOOLEAN bInLock = FALSE;
 

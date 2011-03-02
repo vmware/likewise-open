@@ -1019,19 +1019,19 @@ SrvRequestCreateOplocks_SMB_V2(
     NTSTATUS        ntStatus           = STATUS_SUCCESS;
     SRV_OPLOCK_INFO batchOplockChain[] =
             {
-               { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB_OPLOCK_LEVEL_BATCH },
-               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
-               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+               { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB2_OPLOCK_LEVEL_BATCH },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB2_OPLOCK_LEVEL_II    },
+               { SMB2_OPLOCK_LEVEL_NONE,           SMB2_OPLOCK_LEVEL_NONE  }
             };
     SRV_OPLOCK_INFO exclOplockChain[] =
             {
-               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB_OPLOCK_LEVEL_I     },
-               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
-               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB2_OPLOCK_LEVEL_I     },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB2_OPLOCK_LEVEL_II    },
+               { SMB2_OPLOCK_LEVEL_NONE,           SMB2_OPLOCK_LEVEL_NONE  }
             };
     SRV_OPLOCK_INFO noOplockChain[] =
             {
-               { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
+               { SMB2_OPLOCK_LEVEL_NONE,           SMB2_OPLOCK_LEVEL_NONE  }
             };
     PSRV_OPLOCK_INFO           pOplockCursor = NULL;
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
@@ -1083,7 +1083,7 @@ SrvRequestCreateOplocks_SMB_V2(
             LWIO_ASSERT(0);
     }
 
-    while (bContinue && (pOplockCursor->oplockRequest != SMB_OPLOCK_LEVEL_NONE))
+    while (bContinue && (pOplockCursor->oplockRequest != SMB2_OPLOCK_LEVEL_NONE))
     {
         pOplockState->oplockBuffer_in.OplockRequestType =
                         pOplockCursor->oplockRequest;
@@ -1405,32 +1405,7 @@ SrvBuildCreateResponse_SMB_V2(
     ulBytesAvailable -= sizeof(SMB2_CREATE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(SMB2_CREATE_RESPONSE_HEADER);
 
-    switch (pCreateState->ucOplockLevel)
-    {
-        case SMB_OPLOCK_LEVEL_BATCH:
-
-            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_BATCH;
-
-            break;
-
-        case SMB_OPLOCK_LEVEL_I:
-
-            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_I;
-
-            break;
-
-        case SMB_OPLOCK_LEVEL_II:
-
-            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_II;
-
-            break;
-
-        default:
-
-            pResponseHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
-
-            break;
-    }
+    pResponseHeader->ucOplockLevel = pCreateState->ucOplockLevel;
 
     pResponseHeader->ucReserved        = 0;
     pResponseHeader->ulCreateAction    = pCreateState->ulCreateAction;

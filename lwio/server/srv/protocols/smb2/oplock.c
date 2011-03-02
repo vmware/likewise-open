@@ -162,7 +162,7 @@ SrvProcessOplock_SMB_V2(
     PLWIO_SRV_TREE_2           pTree         = NULL;
     PLWIO_SRV_FILE_2           pFile         = NULL;
     PSRV_OPLOCK_STATE_SMB_V2   pOplockState  = NULL;
-    UCHAR                      ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    UCHAR                      ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
     BOOLEAN                    bFileLocked   = FALSE;
 
     ntStatus = SrvConnection2FindSession_SMB_V2(
@@ -215,13 +215,13 @@ SrvProcessOplock_SMB_V2(
             {
                 case IO_OPLOCK_BROKEN_TO_NONE:
 
-                    ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+                    ucOplockLevel = SMB2_OPLOCK_LEVEL_BROKEN_TO_NONE;
 
                     break;
 
                 case IO_OPLOCK_BROKEN_TO_LEVEL_2:
 
-                    ucOplockLevel = SMB_OPLOCK_LEVEL_II;
+                    ucOplockLevel = SMB2_OPLOCK_LEVEL_BROKEN_TO_LEVEL_II;
 
                     break;
 
@@ -243,8 +243,8 @@ SrvProcessOplock_SMB_V2(
 
             switch (SrvFile2GetOplockLevel(pFile)) // current op-lock level
             {
-                case SMB_OPLOCK_LEVEL_I:
-                case SMB_OPLOCK_LEVEL_BATCH:
+                case SMB2_OPLOCK_LEVEL_I:
+                case SMB2_OPLOCK_LEVEL_BATCH:
                     {
                         LONG64 llExpiry = 0LL;
 
@@ -272,7 +272,7 @@ SrvProcessOplock_SMB_V2(
 
                     break;
 
-                case SMB_OPLOCK_LEVEL_II:
+                case SMB2_OPLOCK_LEVEL_II:
                 {
                     /* Level2 can only break to none. No Ack needed.
                        Remove any remaining oplock state */
@@ -290,7 +290,7 @@ SrvProcessOplock_SMB_V2(
 
                     break;
                 }
-                case SMB_OPLOCK_LEVEL_NONE:
+                case SMB2_OPLOCK_LEVEL_NONE:
                 default:
 
                     ntStatus = STATUS_INTERNAL_ERROR;
@@ -415,7 +415,6 @@ SrvProcessOplockBreak_SMB_V2(
     if (pOplockState)
     {
         BOOLEAN bInLock = FALSE;
-        UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
 
         // Release the timer on the break ack now
 
@@ -446,37 +445,10 @@ SrvProcessOplockBreak_SMB_V2(
                         FALSE);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        switch (pRequestHeader->ucOplockLevel)
-        {
-            case SMB2_OPLOCK_LEVEL_BATCH:
-
-                    ucOplockLevel = SMB_OPLOCK_LEVEL_BATCH;
-
-                    break;
-
-            case SMB2_OPLOCK_LEVEL_I:
-
-                ucOplockLevel = SMB_OPLOCK_LEVEL_I;
-
-                break;
-
-            case SMB2_OPLOCK_LEVEL_II:
-
-                ucOplockLevel = SMB_OPLOCK_LEVEL_II;
-
-                break;
-
-            default:
-
-                ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
-
-                break;
-        }
-
         ntStatus = SrvBuildOplockBreakResponse_SMB_V2(
                         pExecContext,
                         pOplockState,
-                        ucOplockLevel);
+                        pRequestHeader->ucOplockLevel);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else if (pRequestHeader->ucOplockLevel != SMB2_OPLOCK_LEVEL_NONE)
@@ -525,7 +497,7 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     )
 {
     NTSTATUS            ntStatus      = STATUS_SUCCESS;
-    UCHAR               ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    UCHAR               ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
     PLWIO_SRV_SESSION_2 pSession      = NULL;
     PLWIO_SRV_TREE_2    pTree         = NULL;
     PLWIO_SRV_FILE_2    pFile         = NULL;
@@ -550,13 +522,13 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     {
         case IO_OPLOCK_BROKEN_TO_NONE:
 
-            ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+            ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
 
             break;
 
         case IO_OPLOCK_BROKEN_TO_LEVEL_2:
 
-            ucOplockLevel = SMB_OPLOCK_LEVEL_II;
+            ucOplockLevel = SMB2_OPLOCK_LEVEL_II;
 
             break;
 
@@ -575,8 +547,8 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     else
     {
         if (pucNewOplockLevel &&
-            (*pucNewOplockLevel == SMB_OPLOCK_LEVEL_NONE) &&
-            (ucOplockLevel == SMB_OPLOCK_LEVEL_II))
+            (*pucNewOplockLevel == SMB2_OPLOCK_LEVEL_NONE) &&
+            (ucOplockLevel == SMB2_OPLOCK_LEVEL_II))
         {
             pOplockState->oplockBuffer_ack.Response =
                                                 IO_OPLOCK_BREAK_ACK_NO_LEVEL_2;
@@ -699,33 +671,8 @@ SrvBuildOplockBreakNotification_SMB_V2(
 
     pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
     pOplockBreakHeader->fid      = pOplockState->fid;
+    pOplockBreakHeader->ucOplockLevel = ucOplockLevel;
 
-    switch (ucOplockLevel)
-    {
-        case SMB_OPLOCK_LEVEL_BATCH:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_BATCH;
-
-            break;
-
-        case SMB_OPLOCK_LEVEL_I:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_I;
-
-            break;
-
-        case SMB_OPLOCK_LEVEL_II:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_II;
-
-            break;
-
-        default:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
-
-            break;
-    }
 
     // pOutBuffer       += sizeof(SMB2_OPLOCK_BREAK_HEADER);
     // ulBytesUsed       = sizeof(SMB2_OPLOCK_BREAK_HEADER);
@@ -819,33 +766,7 @@ SrvBuildOplockBreakResponse_SMB_V2(
     pOplockBreakHeader->fid      = pOplockState->fid;
     pOplockBreakHeader->ucReserved = 0;
     pOplockBreakHeader->ulReserved = 0;
-
-    switch (ucOplockLevel)
-    {
-        case SMB_OPLOCK_LEVEL_BATCH:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_BATCH;
-
-            break;
-
-        case SMB_OPLOCK_LEVEL_I:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_I;
-
-            break;
-
-        case SMB_OPLOCK_LEVEL_II:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_II;
-
-            break;
-
-        default:
-
-            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
-
-            break;
-    }
+    pOplockBreakHeader->ucOplockLevel = ucOplockLevel;
 
     // pOutBuffer       += sizeof(SMB2_OPLOCK_BREAK_HEADER);
     // ulBytesUsed       = sizeof(SMB2_OPLOCK_BREAK_HEADER);
