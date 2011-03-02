@@ -879,8 +879,8 @@ PvfsStreamIsOplockedExclusive(
     }
 
     if (pOplock &&
-        ((pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_BATCH) ||
-         (pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1)))
+        ((pOplock->OplockType == IO_LEASE_REQUEST_RWH) ||
+         (pOplock->OplockType == IO_LEASE_REQUEST_RW)))
     {
         bExclusiveOplock = TRUE;
     }
