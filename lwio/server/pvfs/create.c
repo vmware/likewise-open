@@ -1200,8 +1200,10 @@ error:
 
 static
 NTSTATUS
-PvfsGetEcpShareName(    PIO_ECP_LIST pEcpList,
-    PWSTR* ppwszShareName)
+PvfsGetEcpShareName(
+    PIO_ECP_LIST pEcpList,
+    PWSTR* ppwszShareName
+    )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PUNICODE_STRING pShareName = NULL;
