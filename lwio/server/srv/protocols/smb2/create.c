@@ -1015,14 +1015,14 @@ SrvRequestCreateOplocks_SMB_V2(
     NTSTATUS        ntStatus           = STATUS_SUCCESS;
     SRV_OPLOCK_INFO batchOplockChain[] =
             {
-               { IO_LEASE_REQUEST_RWH,   SMB2_OPLOCK_LEVEL_BATCH },
-               { IO_LEASE_REQUEST_R, SMB2_OPLOCK_LEVEL_II    },
+               { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB2_OPLOCK_LEVEL_BATCH },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB2_OPLOCK_LEVEL_II    },
                { SMB2_OPLOCK_LEVEL_NONE,           SMB2_OPLOCK_LEVEL_NONE  }
             };
     SRV_OPLOCK_INFO exclOplockChain[] =
             {
-               { IO_LEASE_REQUEST_RW, SMB2_OPLOCK_LEVEL_I     },
-               { IO_LEASE_REQUEST_R, SMB2_OPLOCK_LEVEL_II    },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB2_OPLOCK_LEVEL_I     },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB2_OPLOCK_LEVEL_II    },
                { SMB2_OPLOCK_LEVEL_NONE,           SMB2_OPLOCK_LEVEL_NONE  }
             };
     SRV_OPLOCK_INFO noOplockChain[] =

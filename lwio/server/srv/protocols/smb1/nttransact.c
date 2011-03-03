@@ -3272,14 +3272,14 @@ SrvRequestNTTransactOplocks(
     NTSTATUS        ntStatus           = STATUS_SUCCESS;
     SRV_OPLOCK_INFO batchOplockChain[] =
             {
-               { IO_LEASE_REQUEST_RWH,   SMB_OPLOCK_LEVEL_BATCH },
-               { IO_LEASE_REQUEST_R, SMB_OPLOCK_LEVEL_II    },
+               { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB_OPLOCK_LEVEL_BATCH },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
                { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
             };
     SRV_OPLOCK_INFO exclOplockChain[] =
             {
-               { IO_LEASE_REQUEST_RW, SMB_OPLOCK_LEVEL_I     },
-               { IO_LEASE_REQUEST_R, SMB_OPLOCK_LEVEL_II    },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB_OPLOCK_LEVEL_I     },
+               { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
                { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
             };
     SRV_OPLOCK_INFO noOplockChain[] =
