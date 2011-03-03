@@ -1568,7 +1568,7 @@ LsaDataBlobAllocate(
     LW_DWORD dwSize
     );
 
-LW_DWORD
+LW_VOID
 LsaDataBlobFree(
     PLW_LSA_DATA_BLOB* ppBlob
     );
