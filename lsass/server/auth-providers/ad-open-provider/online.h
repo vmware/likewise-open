@@ -183,10 +183,11 @@ AD_OnlineAuthenticateUserPam(
 
 DWORD
 AD_OnlineCheckUserPassword(
-    HANDLE hProvider,
-    PLSA_SECURITY_OBJECT pUserInfo,
-    PCSTR  pszPassword,
-    PDWORD pdwGoodUntilTime
+    IN HANDLE hProvider,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
+    IN PCSTR  pszPassword,
+    OUT PDWORD pdwGoodUntilTime,
+    OUT OPTIONAL PLSA_SECURITY_OBJECT *ppUpdatedUserInfo
     );
 
 DWORD

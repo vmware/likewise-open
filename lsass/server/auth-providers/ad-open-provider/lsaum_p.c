@@ -1530,7 +1530,8 @@ LsaUmpRefreshUserCreds(
                     (HANDLE)NULL,
                     pUserInfo,
                     pszPassword,
-                    &pUserItem->dwTgtEndTime);
+                    &pUserItem->dwTgtEndTime,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     // At this point the user's TGT has been refreshed.
