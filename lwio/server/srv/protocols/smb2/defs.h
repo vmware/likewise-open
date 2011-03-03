@@ -50,6 +50,9 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
+// Default interim response timer in milliseconds
+#define SRV_SMB2_INTERIM_RESPONSE_TIMEOUT  500
+
 #define LWIO_DEFAULT_TIMEOUT_MSECS_SMB_V2 (30 * 1000)
 
 #define SRV_CONFIG_TABLE_INITIALIZER_SMB_V2                     \
