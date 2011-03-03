@@ -358,15 +358,11 @@ SrvProcessCreate_SMB_V2(
                 case STATUS_OPLOCK_BREAK_IN_PROGRESS:
                     // TODO: Might have to cancel the entire operation
 
-                    ntStatus2 = SrvBuildInterimResponse_SMB_V2(
-                                    pExecContext,
-                                    pCreateState->ullAsyncId);
-                    if (ntStatus2 != STATUS_SUCCESS)
-                    {
-                        LWIO_LOG_ERROR(
-                            "Failed to build interim response for SMB2Create() (%s)",
-                            LwNtStatusToName(ntStatus2));
-                    }
+                    SrvTimedInterimResponse_SMB_V2(
+                        pExecContext,
+                        pCreateState->ullAsyncId,
+                        0);
+                    // Any error already logged so ignore
 
                     bUnregisterAsync = FALSE;
 

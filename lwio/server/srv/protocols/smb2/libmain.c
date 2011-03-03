@@ -510,17 +510,6 @@ SrvProcessRequestSpecific_SMB_V2(
         case COM2_CREATE:
 
             ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
-            if ((ntStatus == STATUS_PENDING) && pExecContext->pInterimResponse)
-            {
-                NTSTATUS ntStatus2 = STATUS_SUCCESS;
-
-                ntStatus2 = SrvSendInterimResponse_SMB_V2(pExecContext);
-                if (ntStatus2 != STATUS_SUCCESS)
-                {
-                    ntStatus = ntStatus2;
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
-            }
 
             break;
 
