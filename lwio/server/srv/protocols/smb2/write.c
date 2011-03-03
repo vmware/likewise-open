@@ -54,11 +54,12 @@
 static
 NTSTATUS
 SrvBuildWriteState_SMB_V2(
-    PSMB2_WRITE_REQUEST_HEADER pRequestHeader,
-    PBYTE                      pData,
-    PLWIO_SRV_FILE_2           pFile,
-    ULONG                      ulKey,
-    PSRV_WRITE_STATE_SMB_V2*   ppWriteState
+    IN PSMB2_WRITE_REQUEST_HEADER pRequestHeader,
+    IN PBYTE pData,
+    IN PLWIO_SRV_FILE_2 pFile,
+    IN ULONG ulKey,
+    IN ULONG64 AsyncId,
+    OUT PSRV_WRITE_STATE_SMB_V2* ppWriteState
     );
 
 static
@@ -132,6 +133,18 @@ SrvBuildWriteResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+VOID
+SrvCancelWriteStateHandle_SMB_V2(
+    HANDLE hWriteState
+    );
+
+static
+PSRV_WRITE_STATE_SMB_V2
+SrvAcquireWriteState_SMB_V2(
+    PSRV_WRITE_STATE_SMB_V2 pWriteState
+    );
+
 NTSTATUS
 SrvProcessWrite_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
@@ -146,6 +159,8 @@ SrvProcessWrite_SMB_V2(
     PLWIO_SRV_TREE_2           pTree        = NULL;
     PLWIO_SRV_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
+    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
+    BOOLEAN unregisterAsyncState = FALSE;
 
     pWriteState = (PSRV_WRITE_STATE_SMB_V2)pCtxSmb2->hState;
     if (pWriteState)
@@ -216,17 +231,30 @@ SrvProcessWrite_SMB_V2(
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvConnection2CreateAsyncState(
+                       pConnection,
+                       COM2_WRITE,
+                       &SrvCancelWriteStateHandle_SMB_V2,
+                       &SrvReleaseWriteStateHandle_SMB_V2,
+                       &pAsyncState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        unregisterAsyncState = TRUE;
+
         ntStatus = SrvBuildWriteState_SMB_V2(
                             pRequestHeader,
                             pData,
                             pFile,
                             0,
+                            pAsyncState->ullAsyncId,
                             &pWriteState);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pCtxSmb2->hState = pWriteState;
         InterlockedIncrement(&pWriteState->refCount);
         pCtxSmb2->pfnStateRelease = &SrvReleaseWriteStateHandle_SMB_V2;
+
+        pAsyncState->hAsyncState = SrvAcquireWriteState_SMB_V2(pWriteState);
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pWriteState->mutex);
@@ -245,6 +273,10 @@ SrvProcessWrite_SMB_V2(
         case SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE:
 
             ntStatus = SrvExecuteWrite_SMB_V2(pWriteState, pExecContext);
+            if (pCtxSmb2->InterimResponseTimer)
+            {
+                unregisterAsyncState = FALSE;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_IO;
@@ -284,6 +316,8 @@ SrvProcessWrite_SMB_V2(
 
         case SRV_WRITE_STAGE_SMB_V2_BUILD_RESPONSE:
 
+            // TODO - How to reset the pWriteState->AsyncId if necessary???
+
             ntStatus = SrvBuildWriteResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -297,6 +331,30 @@ SrvProcessWrite_SMB_V2(
     }
 
 cleanup:
+
+    if (STATUS_PENDING != ntStatus)
+    {
+        if (pCtxSmb2->InterimResponseTimer)
+        {
+            PSRV_EXEC_CONTEXT pExecContext2 = NULL;
+
+            SrvTimerCancelRequest(
+                pCtxSmb2->InterimResponseTimer,
+                (PVOID*)&pExecContext2);
+
+            SrvTimerRelease(pCtxSmb2->InterimResponseTimer);
+            pCtxSmb2->InterimResponseTimer = NULL;
+
+            if (pExecContext2)
+            {
+                SrvReleaseExecContext(pExecContext2);
+            }
+        }
+
+        SrvConnection2RemoveAsyncState(
+            pConnection,
+            pWriteState->AsyncId);
+    }
 
     if (pFile)
     {
@@ -318,6 +376,11 @@ cleanup:
         LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
 
         SrvReleaseWriteState_SMB_V2(pWriteState);
+    }
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
@@ -347,14 +410,17 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
+
 static
 NTSTATUS
 SrvBuildWriteState_SMB_V2(
-    PSMB2_WRITE_REQUEST_HEADER pRequestHeader,
-    PBYTE                      pData,
-    PLWIO_SRV_FILE_2           pFile,
-    ULONG                      ulKey,
-    PSRV_WRITE_STATE_SMB_V2*   ppWriteState
+    IN PSMB2_WRITE_REQUEST_HEADER pRequestHeader,
+    IN PBYTE pData,
+    IN PLWIO_SRV_FILE_2 pFile,
+    IN ULONG ulKey,
+    IN ULONG64 AsyncId,
+    OUT PSRV_WRITE_STATE_SMB_V2* ppWriteState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -378,6 +444,8 @@ SrvBuildWriteState_SMB_V2(
     pWriteState->pFile          = SrvFile2Acquire(pFile);
 
     pWriteState->ulKey          = ulKey;
+
+    pWriteState->AsyncId = AsyncId;
 
     *ppWriteState = pWriteState;
 
@@ -485,6 +553,14 @@ SrvExecuteWrite_SMB_V2(
                             pWriteState->ulLength,
                             &pWriteState->Offset,
                             &pWriteState->ulKey);
+            if (ntStatus == STATUS_PENDING)
+            {
+                SrvTimedInterimResponse_SMB_V2(
+                    pExecContext,
+                    pWriteState->AsyncId,
+                    SRV_SMB2_INTERIM_RESPONSE_TIMEOUT);
+                // Ignore error.  Has already been logged
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             // completed synchronously
@@ -861,7 +937,7 @@ SrvBuildWriteResponse_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
-                    0LL, /* Async Id */
+                    pExecContext->ullAsyncId,
                     STATUS_SUCCESS,
                     TRUE,
                     LwIsSetFlag(
@@ -1128,6 +1204,7 @@ SrvDetectZctWrite_SMB_V2(
                             pData,
                             pFile,
                             0,
+                            0,
                             &pWriteState);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1188,4 +1265,54 @@ error:
     }
 
     goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvCancelWriteStateHandle_SMB_V2_inlock(
+    PSRV_WRITE_STATE_SMB_V2 pWriteState
+    )
+{
+    if (pWriteState->pAcb && pWriteState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pWriteState->pAcb->AsyncCancelContext);
+        IoDereferenceAsyncCancelContext(&pWriteState->pAcb->AsyncCancelContext);
+    }
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvCancelWriteStateHandle_SMB_V2(
+    HANDLE hWriteState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    PSRV_WRITE_STATE_SMB_V2 pWriteState = (PSRV_WRITE_STATE_SMB_V2)hWriteState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pWriteState->mutex);
+
+    SrvCancelWriteStateHandle_SMB_V2_inlock(pWriteState);
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+PSRV_WRITE_STATE_SMB_V2
+SrvAcquireWriteState_SMB_V2(
+    PSRV_WRITE_STATE_SMB_V2 pWriteState
+    )
+{
+    InterlockedIncrement(&pWriteState->refCount);
+
+    return pWriteState;
 }
