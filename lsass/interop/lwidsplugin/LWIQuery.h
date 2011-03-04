@@ -75,7 +75,7 @@ protected:
     long GetGroupInformationById(gid_t gid);
     long GetGroupInformationByName(const char* pszName);
 
-    static long SetDistinguishedName(PDSRECORD pRecord, const char* pszUsername, bool bSetValue);
+    static long SetDistinguishedName(PDSRECORD pRecord, const char* pszUsername, const char* pszNameAsQueried, bool bSetValue);
     static long SetGeneratedUID(PDSRECORD pRecord, const PLWIUSER pUser, bool bSetValue);
     static long SetGeneratedUID(PDSRECORD pRecord, const PLWIGROUP pGroup, bool bSetValue);
     static long SetNFSHomeDirectory(PDSRECORD pRecord, const PLWIUSER pUser, bool bSetValue);
@@ -106,9 +106,9 @@ protected:
     static void FreeMessageHeader(PDSMESSAGEHEADER pHeader);
     static long CreateMemberList(DWORD dwMemberCount, PLSA_SECURITY_OBJECT* ppMembers, PLWIMEMBERLIST* ppMemberList);
     static void FreeMemberList(PLWIMEMBERLIST pMemberList);
-    long AddUserRecordHelper(PLSA_SECURITY_OBJECT pUserObject);
+    long AddUserRecordHelper(PLSA_SECURITY_OBJECT pUserObject, OPTIONAL const char* pszNameAsQueried);
     long AddUserRecord(PLWIUSER pUser, OPTIONAL const char* AltName);
-    long AddGroupRecordHelper(PLSA_SECURITY_OBJECT pGroupObject, bool bExpandMembers);
+    long AddGroupRecordHelper(PLSA_SECURITY_OBJECT pGroupObject, bool bExpandMembers, OPTIONAL const char* pszNameAsQueried);
     long AddGroupRecord(PLWIGROUP pGroup, OPTIONAL const char* AltName);
     static long BuildRecord(const char* pszType, const char* pszName, PDSRECORD* ppRecord);
     long CommitRecord(PDSRECORD pRecord);

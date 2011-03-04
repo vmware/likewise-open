@@ -358,7 +358,7 @@ LWIQuery::ProcessUserAttributes(
             switch (iAttr)
             {
             case LWIAttrLookup::idx_kDS1AttrDistinguishedName:
-                macError = SetDistinguishedName(pRecord, pUser->pw_name, bSetValue);
+                macError = SetDistinguishedName(pRecord, pUser->pw_name, pUser->pw_name_as_queried, bSetValue);
                 GOTO_CLEANUP_ON_MACERROR(macError);
                 break;
             case LWIAttrLookup::idx_kDS1AttrGeneratedUID:
@@ -527,7 +527,7 @@ LWIQuery::ProcessGroupAttributes(
             switch (iAttr)
             {
             case LWIAttrLookup::idx_kDS1AttrDistinguishedName:
-                macError = SetDistinguishedName(pRecord, pGroup->gr_name, bSetValue);
+                macError = SetDistinguishedName(pRecord, pGroup->gr_name, pGroup->gr_name_as_queried, bSetValue);
                 GOTO_CLEANUP_ON_MACERROR(macError);
                 break;
             case LWIAttrLookup::idx_kDS1AttrGeneratedUID:
@@ -605,8 +605,11 @@ LWIQuery::QueryAllUserInformation(const char* pszName)
 
     for (iUser = 0; iUser < dwNumUsersFound; iUser++)
     {
-        macError = AddUserRecordHelper(ppUserObjects[iUser]);
-        GOTO_CLEANUP_ON_MACERROR(macError);
+        if (ppUserObjects[iUser]->enabled)
+        {
+            macError = AddUserRecordHelper(ppUserObjects[iUser], NULL);
+            GOTO_CLEANUP_ON_MACERROR(macError);
+        }
     }
 
 cleanup:
@@ -633,8 +636,11 @@ LWIQuery::QueryAllGroupInformation(const char* pszName)
 
     for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
     {
-        macError = AddGroupRecordHelper(ppGroupObjects[iGroup], false);
-        GOTO_CLEANUP_ON_MACERROR(macError);
+        if (ppGroupObjects[iGroup]->enabled)
+        {
+            macError = AddGroupRecordHelper(ppGroupObjects[iGroup], false, NULL);
+            GOTO_CLEANUP_ON_MACERROR(macError);
+        }
     }
 
 cleanup:
@@ -663,8 +669,11 @@ LWIQuery::QueryUserInformationByName(const char* pszName)
         macError = GetUserObjectFromName(pszName, &ppUserObjects);
         GOTO_CLEANUP_ON_MACERROR(macError);
 
-        macError = AddUserRecordHelper(ppUserObjects[0]);
-        GOTO_CLEANUP_ON_MACERROR(macError);
+        if (ppUserObjects[0]->enabled)
+        {
+            macError = AddUserRecordHelper(ppUserObjects[0], pszName);
+            GOTO_CLEANUP_ON_MACERROR(macError);
+        }
     }
 
 cleanup:
@@ -685,8 +694,11 @@ LWIQuery::QueryUserInformationById(uid_t uid)
     macError = GetUserObjectFromId(uid, &ppUserObjects);
     GOTO_CLEANUP_ON_MACERROR(macError);
 
-    macError = AddUserRecordHelper(ppUserObjects[0]);
-    GOTO_CLEANUP_ON_MACERROR(macError);
+    if (ppUserObjects[0]->enabled)
+    {
+        macError = AddUserRecordHelper(ppUserObjects[0], NULL);
+        GOTO_CLEANUP_ON_MACERROR(macError);
+    }
 
 cleanup:
 
@@ -812,14 +824,14 @@ LWIQuery::QueryGroupsForUser(
 
     for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
     {
-        if (ppGroups[iGroup])
+        if (ppGroups[iGroup] && ppGroups[iGroup]->enabled)
         {
             if (gid == ppGroups[iGroup]->groupInfo.gid)
             {
                 fFoundPrimaryGroup = TRUE;
             }
 
-            macError = AddGroupRecordHelper(ppGroups[iGroup], false);
+            macError = AddGroupRecordHelper(ppGroups[iGroup], false, NULL);
             GOTO_CLEANUP_ON_MACERROR(macError);
             LOG("QueryGroupsForUser adding group id", ppGroups[iGroup]);
         }
@@ -898,8 +910,11 @@ LWIQuery::GetGroupInformationById(
     macError = GetGroupObjectFromId(gid, &ppGroupObjects);
     GOTO_CLEANUP_ON_MACERROR(macError);
 
-    macError = AddGroupRecordHelper(ppGroupObjects[0], false);
-    GOTO_CLEANUP_ON_MACERROR(macError);
+    if (ppGroupObjects[0]->enabled)
+    {
+        macError = AddGroupRecordHelper(ppGroupObjects[0], false, NULL);
+        GOTO_CLEANUP_ON_MACERROR(macError);
+    }
 
 cleanup:
 
@@ -922,8 +937,11 @@ LWIQuery::GetGroupInformationByName(
     macError = GetGroupObjectFromName(pszName, &ppGroupObjects);
     GOTO_CLEANUP_ON_MACERROR(macError);
 
-    macError = AddGroupRecordHelper(ppGroupObjects[0], true);
-    GOTO_CLEANUP_ON_MACERROR(macError);
+    if (ppGroupObjects[0]->enabled)
+    {
+        macError = AddGroupRecordHelper(ppGroupObjects[0], false, pszName);
+        GOTO_CLEANUP_ON_MACERROR(macError);
+    }
 
 cleanup:
 
@@ -937,7 +955,7 @@ cleanup:
 
 
 long
-LWIQuery::SetDistinguishedName(PDSRECORD pRecord, const char* pszUsername, bool bSetValue)
+LWIQuery::SetDistinguishedName(PDSRECORD pRecord, const char* pszUsername, const char* pszNameAsQueried, bool bSetValue)
 {
     long macError = eDSNoErr;
     PDSATTRIBUTE pAttribute = NULL;
@@ -946,11 +964,22 @@ LWIQuery::SetDistinguishedName(PDSRECORD pRecord, const char* pszUsername, bool 
     if (bSetValue)
     {
         macError = AddAttributeAndValue(kDS1AttrDistinguishedName, pszUsername, pRecord, &pAttribute);
+        if (macError) goto exit;
+
+        if (pszNameAsQueried && strcmp(pszUsername, pszNameAsQueried))
+        {
+            LOG("Returning addional realname %s", pszNameAsQueried);
+            macError = SetAttributeValue(pAttribute, pszNameAsQueried);
+            if (macError) goto exit;
+        }
     }
     else
     {
         macError = AddAttribute(kDS1AttrDistinguishedName, pRecord, &pAttribute);
+        if (macError) goto exit;
     }
+
+exit:
 
     return macError;
 }
@@ -1464,7 +1493,8 @@ LWIQuery::FreeMemberList(PLWIMEMBERLIST pMemberList)
 
 long
 LWIQuery::AddUserRecordHelper(
-    IN PLSA_SECURITY_OBJECT pUserObject
+    IN PLSA_SECURITY_OBJECT pUserObject,
+    IN OPTIONAL const char* pszNameAsQueried
     )
 {
     long macError = eDSNoErr;
@@ -1492,6 +1522,7 @@ LWIQuery::AddUserRecordHelper(
 
     macError = CreateLWIUser(pUserObject->userInfo.pszUnixName, /* Record Name */
                              pszUserName, /* Display name */
+                             NULL, /* Name as queried */
                              NULL, /* Password */
                              NULL, /* Class */
                              pUserObject->userInfo.pszGecos,
@@ -1548,7 +1579,8 @@ cleanup:
 long
 LWIQuery::AddGroupRecordHelper(
     IN PLSA_SECURITY_OBJECT pGroupObject,
-    IN bool bExpandMembers
+    IN bool bExpandMembers,
+    IN OPTIONAL const char* pszNameAsQueried
     )
 {
     long macError = eDSNoErr;
@@ -1567,6 +1599,7 @@ LWIQuery::AddGroupRecordHelper(
     }
 
     macError = CreateLWIGroup(pGroupObject->groupInfo.pszUnixName, /* Group Display Name */
+                              pszNameAsQueried, /* Name as queried */
                               pGroupObject->groupInfo.pszPasswd,
                               pGroupObject->groupInfo.pszUnixName, /* Group Name */
                               NULL, /* Comment */

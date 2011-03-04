@@ -134,6 +134,7 @@ LWIAttrValDataQuery::QueryUserInformation(LWIQuery* pQuery, sDoAttrValueSearchWi
     switch (attrIndex)
     {
         case LWIAttrLookup::idx_kDSNAttrRecordName:
+        case LWIAttrLookup::idx_kDS1AttrDistinguishedName:
             macError = pQuery->QueryUserInformationByName(pAttrValueSearchWithData->fInPatt2Match->fBufferData);
             GOTO_CLEANUP_ON_MACERROR(macError);
             break;
@@ -168,6 +169,7 @@ LWIAttrValDataQuery::QueryGroupInformation(LWIQuery* pQuery, sDoAttrValueSearchW
     switch (attrIndex)
     {
         case LWIAttrLookup::idx_kDSNAttrRecordName:
+        case LWIAttrLookup::idx_kDS1AttrDistinguishedName:
             macError = pQuery->QueryGroupInformationByName(pAttrValueSearchWithData->fInPatt2Match->fBufferData);
             GOTO_CLEANUP_ON_MACERROR(macError);
             break;

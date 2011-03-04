@@ -20,6 +20,7 @@ long
 CreateLWIUser(
     PCSTR pszName,
     PCSTR pszDisplayName,
+    PCSTR pszNameAsQueried,
     PCSTR pszPassword,
     PCSTR pszClass,
     PCSTR pszGecos,
