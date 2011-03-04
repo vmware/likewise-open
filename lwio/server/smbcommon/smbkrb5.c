@@ -201,7 +201,7 @@ SMBGSSContextBuild(
 
             dwError = SMBAllocateStringPrintf(
                             &pszTargetName,
-                            "cifs/%.*s@",
+                            "cifs/%s@",
                             pszServerName);
             BAIL_ON_LWIO_ERROR(dwError);
 
