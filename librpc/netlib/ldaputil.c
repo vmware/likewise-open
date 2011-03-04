@@ -421,7 +421,6 @@ wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name)
 int
 LdapMachAcctCreate(
     LDAP *ld,
-    const wchar16_t *machname,
     const wchar16_t *machacct_name,
     const wchar16_t *ou
     )
@@ -429,7 +428,8 @@ LdapMachAcctCreate(
     int lderr = LDAP_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     wchar16_t *cn_name = NULL;
-    wchar16_t *machname_lc = NULL;
+    wchar16_t *machname = NULL;
+    size_t machname_len = 0;
     wchar16_t *dname = NULL;
     char *dn = NULL;
     wchar16_t *objclass[5] = {0};
@@ -440,13 +440,17 @@ LdapMachAcctCreate(
     LDAPMod *acctflags_m = NULL;
     LDAPMod *attrs[5];
 
-    if (!ld || !machname || !machacct_name || !ou) return LDAP_PARAM_ERROR;
+    if (!ld || !machacct_name || !ou) return LDAP_PARAM_ERROR;
 
-    machname_lc = wc16sdup(machname);
-    wc16slower(machname_lc);
+    machname = wc16sdup(machacct_name);
+    machname_len = wc16slen(machname);
+    if (machname_len)
+    {
+        machname[--machname_len] = 0;
+    }
 
     cn_name = ambstowc16s("cn");
-    dname = LdapAttrValDn(cn_name, machname_lc, ou);
+    dname = LdapAttrValDn(cn_name, machname, ou);
     goto_if_no_memory_lderr(dname, done);
 
     dn = awc16stombs(dname);
@@ -460,7 +464,7 @@ LdapMachAcctCreate(
 
     flags = UF_ACCOUNTDISABLE | UF_WORKSTATION_TRUST_ACCOUNT;
 
-    LdapModAddStrValue(&name_m, "name", machname_lc);
+    LdapModAddStrValue(&name_m, "name", machname);
     LdapModAddStrValue(&samacct_m, "sAMAccountName", machacct_name);
     LdapModAddStrValue(&objectclass_m, "objectClass", objclass[0]);
     LdapModAddStrValue(&objectclass_m, "objectClass", objclass[1]);
@@ -483,7 +487,7 @@ done:
     LdapModFree(&objectclass_m);
     LdapModFree(&acctflags_m);
 
-    SAFE_FREE(machname_lc);
+    SAFE_FREE(machname);
     SAFE_FREE(dname);
     SAFE_FREE(dn);
     SAFE_FREE(cn_name);

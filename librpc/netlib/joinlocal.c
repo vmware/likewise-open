@@ -485,7 +485,7 @@ MachAcctCreate(
     BAIL_ON_INVALID_PTR(machacct_name);
     BAIL_ON_INVALID_PTR(ou);
 
-    lderr = LdapMachAcctCreate(ld, machine_name, machacct_name, ou);
+    lderr = LdapMachAcctCreate(ld, machacct_name, ou);
     if (lderr == LDAP_ALREADY_EXISTS && rejoin) {
         lderr = LdapGetDirectoryInfo(&info, &res, ld);
         BAIL_ON_LDERR_ERROR(lderr);
