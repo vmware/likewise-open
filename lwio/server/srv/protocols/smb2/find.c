@@ -1089,6 +1089,9 @@ SrvMarshalIdBothDirInfoSearchResults(
         {
             USHORT usAlignment = (8 - (ulOffset % 8));
 
+            // Clear padding
+            LwRtlZeroMemory(pDataCursor, usAlignment);
+
             pDataCursor += usAlignment;
             ulOffset += usAlignment;
             ulDataOffset += usAlignment;
@@ -1449,6 +1452,9 @@ SrvMarshalBothDirInfoSearchResults(
         {
             USHORT usAlignment = (8 - (ulOffset % 8));
 
+            // Clear padding
+            LwRtlZeroMemory(pDataCursor, usAlignment);
+
             pDataCursor += usAlignment;
             ulOffset += usAlignment;
             ulDataOffset += usAlignment;
@@ -1789,6 +1795,9 @@ SrvMarshalIdFullDirInfoSearchResults(
         {
             USHORT usAlignment = (8 - (ulOffset % 8));
 
+            // Clear padding
+            LwRtlZeroMemory(pDataCursor, usAlignment);
+
             pDataCursor += usAlignment;
             ulOffset += usAlignment;
             ulDataOffset += usAlignment;
@@ -2128,6 +2137,9 @@ SrvMarshalFullDirInfoSearchResults(
         {
             USHORT usAlignment = (8 - (ulOffset % 8));
 
+            // Clear padding
+            LwRtlZeroMemory(pDataCursor, usAlignment);
+
             pDataCursor += usAlignment;
             ulOffset += usAlignment;
             ulDataOffset += usAlignment;
@@ -2466,6 +2478,9 @@ SrvMarshalDirectoryInfoSearchResults(
         {
             USHORT usAlignment = (8 - (ulOffset % 8));
 
+            // Clear padding
+            LwRtlZeroMemory(pDataCursor, usAlignment);
+
             pDataCursor += usAlignment;
             ulOffset += usAlignment;
             ulDataOffset += usAlignment;
@@ -2803,6 +2818,9 @@ SrvMarshalNamesInfoSearchResults(
         if (ulOffset % 8)
         {
             USHORT usAlignment = (8 - (ulOffset % 8));
+
+            // Clear padding
+            LwRtlZeroMemory(pDataCursor, usAlignment);
 
             pDataCursor += usAlignment;
             ulOffset += usAlignment;
