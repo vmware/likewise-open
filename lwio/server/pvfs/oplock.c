@@ -128,15 +128,15 @@ PvfsOplockRequest(
 
     switch(pOplockRequest->OplockRequestType)
     {
-    case IO_LEASE_REQUEST_RWH:
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
         ntError = PvfsOplockGrantBatchOrLevel1(pIrpContext, pCcb, TRUE);
         break;
 
-    case IO_LEASE_REQUEST_RW:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         ntError = PvfsOplockGrantBatchOrLevel1(pIrpContext, pCcb, FALSE);
         break;
 
-    case IO_LEASE_REQUEST_R:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         ntError = PvfsOplockGrantLevel2(pIrpContext, pCcb);
         break;
 
@@ -770,7 +770,7 @@ PvfsOplockBreakIfLocked(
 
         /* No break -- just continue processing */
 
-        if (BreakResult == IO_LEASE_NOT_BROKEN)
+        if (BreakResult == IO_OPLOCK_NOT_BROKEN)
         {
             PvfsIrpContextClearFlag(pOplock->pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
             pOplockLink = PvfsListTraverse(pScb->pOplockList, pOplockLink);
@@ -928,7 +928,7 @@ PvfsOplockBreakAllLevel2Oplocks(
 
         /* This should never fire */
 
-        if (pOplock->OplockType != IO_LEASE_REQUEST_R)
+        if (pOplock->OplockType != IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2)
         {
             ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
             BAIL_ON_NT_STATUS(ntError);
@@ -972,7 +972,7 @@ PvfsOplockBreakOnCreate(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
-    ULONG BreakResult = IO_LEASE_NOT_BROKEN;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
 
     /* Don't break our own oplock */
 
@@ -983,8 +983,8 @@ PvfsOplockBreakOnCreate(
 
     switch (pOplock->OplockType)
     {
-    case IO_LEASE_REQUEST_RWH:
-    case IO_LEASE_REQUEST_RW:
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         switch(pIrpContext->pIrp->Args.Create.CreateDisposition)
         {
         case FILE_SUPERSEDE:
@@ -1016,7 +1016,7 @@ PvfsOplockBreakOnCreate(
         ntError = STATUS_PENDING;
         break;
 
-    case IO_LEASE_REQUEST_R:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         switch(pIrpContext->pIrp->Args.Create.CreateDisposition)
         {
         case FILE_SUPERSEDE:
@@ -1041,7 +1041,7 @@ PvfsOplockBreakOnCreate(
             break;
 
         default:
-            BreakResult = IO_LEASE_NOT_BROKEN;
+            BreakResult = IO_OPLOCK_NOT_BROKEN;
             break;
         }
 
@@ -1052,7 +1052,7 @@ PvfsOplockBreakOnCreate(
         break;
     }
 
-    if (BreakResult != IO_LEASE_NOT_BROKEN)
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
@@ -1088,7 +1088,7 @@ PvfsOplockBreakOnRead(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
-    ULONG BreakResult = IO_LEASE_NOT_BROKEN;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
 
     /* Don't break our own lock */
 
@@ -1099,8 +1099,8 @@ PvfsOplockBreakOnRead(
 
     switch (pOplock->OplockType)
     {
-    case IO_LEASE_REQUEST_RWH:
-    case IO_LEASE_REQUEST_RW:
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
         if (!PvfsOplockIsMine(pCcb, pOplock))
         {
@@ -1127,8 +1127,8 @@ PvfsOplockBreakOnRead(
 
         break;
 
-    case IO_LEASE_REQUEST_R:
-        BreakResult = IO_LEASE_NOT_BROKEN;
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
+        BreakResult = IO_OPLOCK_NOT_BROKEN;
         ntError = STATUS_SUCCESS;
         break;
 
@@ -1136,7 +1136,7 @@ PvfsOplockBreakOnRead(
         break;
     }
 
-    if (BreakResult != IO_LEASE_NOT_BROKEN)
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
@@ -1173,12 +1173,12 @@ PvfsOplockBreakOnWrite(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
-    ULONG BreakResult = IO_LEASE_NOT_BROKEN;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
 
     switch (pOplock->OplockType)
     {
-    case IO_LEASE_REQUEST_RWH:
-    case IO_LEASE_REQUEST_RW:
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
         if (!PvfsOplockIsMine(pCcb, pOplock))
         {
@@ -1204,7 +1204,7 @@ PvfsOplockBreakOnWrite(
         }
         break;
 
-    case IO_LEASE_REQUEST_R:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
@@ -1228,7 +1228,7 @@ PvfsOplockBreakOnWrite(
         break;
     }
 
-    if (BreakResult != IO_LEASE_NOT_BROKEN)
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
@@ -1265,12 +1265,12 @@ PvfsOplockBreakOnLockControl(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
-    ULONG BreakResult = IO_LEASE_NOT_BROKEN;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
 
     switch (pOplock->OplockType)
     {
-    case IO_LEASE_REQUEST_RWH:
-    case IO_LEASE_REQUEST_RW:
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
         if (!PvfsOplockIsMine(pCcb, pOplock))
         {
@@ -1296,7 +1296,7 @@ PvfsOplockBreakOnLockControl(
         }
         break;
 
-    case IO_LEASE_REQUEST_R:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
@@ -1320,7 +1320,7 @@ PvfsOplockBreakOnLockControl(
         break;
     }
 
-    if (BreakResult != IO_LEASE_NOT_BROKEN)
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
@@ -1357,12 +1357,12 @@ PvfsOplockBreakOnSetFileInformation(
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
-    ULONG BreakResult = IO_LEASE_NOT_BROKEN;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
 
     switch (pOplock->OplockType)
     {
-    case IO_LEASE_REQUEST_RWH:
-    case IO_LEASE_REQUEST_RW:
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
         /* Don't break our own lock */
         if (!PvfsOplockIsMine(pCcb, pOplock))
         {
@@ -1388,7 +1388,7 @@ PvfsOplockBreakOnSetFileInformation(
         }
         break;
 
-    case IO_LEASE_REQUEST_R:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
@@ -1412,7 +1412,7 @@ PvfsOplockBreakOnSetFileInformation(
         break;
     }
 
-    if (BreakResult != IO_LEASE_NOT_BROKEN)
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
@@ -1569,8 +1569,8 @@ PvfsOplockGrantBatchOrLevel1(
     PPVFS_SCB pScb = NULL;
     BOOLEAN bScbControlLocked = FALSE;
     ULONG OplockType = bIsBatchOplock ?
-                           IO_LEASE_REQUEST_RWH :
-                           IO_LEASE_REQUEST_RW;
+                           IO_OPLOCK_REQUEST_OPLOCK_BATCH :
+                           IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1;
 
     BAIL_ON_INVALID_PTR(pCcb->pScb, ntError);
 
@@ -1666,7 +1666,7 @@ PvfsOplockGrantLevel2(
                       pScb,
                       pIrpContext,
                       pCcb,
-                      IO_LEASE_REQUEST_R);
+                      IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2);
         BAIL_ON_NT_STATUS(ntError);
     }
 
