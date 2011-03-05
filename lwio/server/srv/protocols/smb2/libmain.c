@@ -426,11 +426,6 @@ SrvProcessRequestSpecific_SMB_V2(
             ntStatus = SrvProcessNegotiate_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvConnectionSetProtocolVersion(
-                            pExecContext->pConnection,
-                            SMB_PROTOCOL_VERSION_2);
-            BAIL_ON_NT_STATUS(ntStatus);
-
             SrvConnectionSetState(
                     pExecContext->pConnection,
                     LWIO_SRV_CONN_STATE_NEGOTIATE);

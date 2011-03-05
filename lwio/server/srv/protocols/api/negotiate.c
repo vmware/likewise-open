@@ -33,11 +33,11 @@
 static
 NTSTATUS
 SrvBuildNegotiateResponseForDialect(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSTR*                ppszDialectArray,
-    ULONG                ulNumDialects,
-    PSMB_PACKET*         ppSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET pSmbRequest,
+    IN PSTR* ppszDialectArray,
+    IN ULONG ulNumDialects,
+    OUT PSMB_PACKET* ppSmbResponse
     );
 
 NTSTATUS
@@ -105,82 +105,103 @@ error:
 static
 NTSTATUS
 SrvBuildNegotiateResponseForDialect(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSTR*                ppszDialectArray,
-    ULONG                ulNumDialects,
-    PSMB_PACKET*         ppSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET pSmbRequest,
+    IN PSTR* ppszDialectArray,
+    IN ULONG ulNumDialects,
+    OUT PSMB_PACKET* ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = 0;
-    ULONG iDialect = 0;
-    BOOLEAN bSupportSMBV2 = FALSE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG dialectIdx = 0;
+    BOOLEAN supportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
     PSMB_PACKET pSmbResponse = NULL;
+    SMB_PROTOCOL_VERSION protocolVersion = SMB_PROTOCOL_VERSION_UNKNOWN;
+    SMB_PROTOCOL_DIALECT protocolDialect = SMB_PROTOCOL_DIALECT_UNKNOWN;
 
-    bSupportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
-    if (bSupportSMBV2)
+    for (dialectIdx = ulNumDialects-1; dialectIdx >= 0; dialectIdx--)
     {
-        for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
+        if (supportSMBV2 &&
+            LwRtlCStringIsEqual(
+                ppszDialectArray[dialectIdx],
+                SRV_NEGOTIATE_DIALECT_STRING_SMB_2_1,
+                TRUE))
         {
-            if (!strcmp(ppszDialectArray[iDialect],
-                        SRV_NEGOTIATE_DIALECT_SMB_2))
-            {
-                ntStatus = SrvBuildNegotiateResponse_SMB_V2(
-                                pConnection,
-                                pSmbRequest,
-                                &pSmbResponse);
-                BAIL_ON_NT_STATUS(ntStatus);
+            protocolVersion = SMB_PROTOCOL_VERSION_2;
+            protocolDialect = SMB_PROTOCOL_DIALECT_SMB_2_1;
+        }
+        else if (supportSMBV2 &&
+                 LwRtlCStringIsEqual(
+                     ppszDialectArray[dialectIdx],
+                     SRV_NEGOTIATE_DIALECT_STRING_SMB_2,
+                     TRUE))
+        {
+            protocolVersion = SMB_PROTOCOL_VERSION_2;
+            protocolDialect = SMB_PROTOCOL_DIALECT_SMB_2_0;
+        }
+        else if (LwRtlCStringIsEqual(
+                     ppszDialectArray[dialectIdx],
+                     SRV_NEGOTIATE_DIALECT_STRING_NTLM_0_12,
+                     TRUE))
+        {
+            protocolVersion = SMB_PROTOCOL_VERSION_1;
+            protocolDialect = SMB_PROTOCOL_DIALECT_NTLM_0_12;
+        }
 
-                ntStatus = SrvConnectionSetProtocolVersion(
-                                pConnection,
-                                SMB_PROTOCOL_VERSION_2);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                goto done;
-            }
+        if (protocolVersion != SMB_PROTOCOL_VERSION_UNKNOWN)
+        {
+            // Found the dialect we want so exit loop
+            break;
         }
     }
 
-    for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
+    switch (protocolVersion)
     {
-        if (!strcmp(ppszDialectArray[iDialect],
-                    SRV_NEGOTIATE_DIALECT_NTLM_0_12))
-        {
+        case SMB_PROTOCOL_VERSION_UNKNOWN:
+            ntStatus = SrvBuildNegotiateResponse_SMB_V1_Invalid(
+                           pConnection,
+                           pSmbRequest,
+                           &pSmbResponse);
+            break;
+
+        case SMB_PROTOCOL_VERSION_1:
             ntStatus = SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
-                                pConnection,
-                                pSmbRequest,
-                                iDialect,
-                                &pSmbResponse);
-            BAIL_ON_NT_STATUS(ntStatus);
+                           pConnection,
+                           pSmbRequest,
+                           protocolDialect,
+                           dialectIdx,
+                           &pSmbResponse);
+            break;
 
-            goto done;
-        }
+        case SMB_PROTOCOL_VERSION_2:
+            ntStatus = SrvBuildNegotiateResponse_SMB_V2(
+                           pConnection,
+                           pSmbRequest,
+                           protocolDialect,
+                           &pSmbResponse);
+            break;
     }
-
-    ntStatus = SrvBuildNegotiateResponse_SMB_V1_Invalid(
-                        pConnection,
-                        pSmbRequest,
-                        &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-done:
+    ntStatus = SrvConnectionSetProtocolVersion(
+                   pConnection,
+                   protocolVersion,
+                   protocolDialect);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+    if (!NT_SUCCESS(ntStatus))
+    {
+        if (pSmbResponse)
+        {
+            SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
+            pSmbResponse = NULL;
+        }
+    }
 
     *ppSmbResponse = pSmbResponse;
 
-cleanup:
-
     return ntStatus;
-
-error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketRelease(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
-    goto cleanup;
 }
 
 

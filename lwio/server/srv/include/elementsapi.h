@@ -600,6 +600,7 @@ typedef struct _SRV_CONNECTION
     SRV_CLIENT_PROPERTIES clientProperties;
 
     SMB_PROTOCOL_VERSION protocolVer;
+    SMB_PROTOCOL_DIALECT Dialect;
 
     ULONG           ulSequence;
 
@@ -934,14 +935,16 @@ SrvConnectionGetProtocolVersion_inlock(
 
 NTSTATUS
 SrvConnectionSetProtocolVersion(
-    PLWIO_SRV_CONNECTION pConnection,
-    SMB_PROTOCOL_VERSION protoVer
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN SMB_PROTOCOL_VERSION Version,
+    IN SMB_PROTOCOL_DIALECT Dialect
     );
 
 NTSTATUS
 SrvConnectionSetProtocolVersion_inlock(
-    PLWIO_SRV_CONNECTION pConnection,
-    SMB_PROTOCOL_VERSION protoVer
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN SMB_PROTOCOL_VERSION protoVer,
+    IN SMB_PROTOCOL_DIALECT Dialect
     );
 
 NTSTATUS

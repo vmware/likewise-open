@@ -1132,7 +1132,8 @@ SrvProtocolTransportDriverDetectPacket(
             case SMB_PROTOCOL_VERSION_UNKNOWN:
                 ntStatus = SrvConnectionSetProtocolVersion_inlock(
                                 pConnection,
-                                pPacket->protocolVer);
+                                pPacket->protocolVer,
+                                0);
                 break;
 
             default:

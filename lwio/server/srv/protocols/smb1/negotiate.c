@@ -32,10 +32,11 @@
 
 NTSTATUS
 SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    USHORT               idxDialect,
-    PSMB_PACKET*         ppSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET pSmbRequest,
+    IN SMB_PROTOCOL_DIALECT Dialect,
+    IN USHORT idxDialect,
+    OUT PSMB_PACKET* ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;

@@ -71,9 +71,10 @@ SrvProtocolFreeContext_SMB_V2(
 
 NTSTATUS
 SrvBuildNegotiateResponse_SMB_V2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET pSmbRequest,
+    IN SMB_PROTOCOL_DIALECT Dialect,
+    OUT PSMB_PACKET* ppSmbResponse
     );
 
 VOID

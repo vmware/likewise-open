@@ -409,8 +409,9 @@ SrvConnectionGetProtocolVersion_inlock(
 
 NTSTATUS
 SrvConnectionSetProtocolVersion(
-    PLWIO_SRV_CONNECTION pConnection,
-    SMB_PROTOCOL_VERSION protoVer
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN SMB_PROTOCOL_VERSION Version,
+    IN SMB_PROTOCOL_DIALECT Dialect
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -418,7 +419,10 @@ SrvConnectionSetProtocolVersion(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    ntStatus = SrvConnectionSetProtocolVersion_inlock(pConnection, protoVer);
+    ntStatus = SrvConnectionSetProtocolVersion_inlock(
+                   pConnection,
+                   Version,
+                   Dialect);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
@@ -427,14 +431,15 @@ SrvConnectionSetProtocolVersion(
 
 NTSTATUS
 SrvConnectionSetProtocolVersion_inlock(
-    PLWIO_SRV_CONNECTION pConnection,
-    SMB_PROTOCOL_VERSION protoVer
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN SMB_PROTOCOL_VERSION Version,
+    IN SMB_PROTOCOL_DIALECT Dialect
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWRTL_RB_TREE pNewSessionCollection = NULL;
 
-    if (protoVer != pConnection->protocolVer)
+    if (Version != pConnection->protocolVer)
     {
         if (SrvConnectionIsInvalid_inlock(pConnection))
         {
@@ -449,13 +454,14 @@ SrvConnectionSetProtocolVersion_inlock(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        pConnection->protocolVer = protoVer;
+        pConnection->protocolVer = Version;
+        pConnection->Dialect = Dialect;
 
         // Replace existing session collection with new one of appropriate
         // type.  This is needed because the collection needs compare/free
         // functions that match the session type.
 
-        switch (protoVer)
+        switch (Version)
         {
             case SMB_PROTOCOL_VERSION_1:
 

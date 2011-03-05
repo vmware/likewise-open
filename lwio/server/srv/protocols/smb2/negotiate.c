@@ -51,10 +51,12 @@
 static
 NTSTATUS
 SrvMarshalNegotiateResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PBYTE                pSessionKey,
-    ULONG                ulSessionKeyLength,
-    PSRV_MESSAGE_SMB_V2  pSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN ULONG SequenceNumber,
+    IN USHORT ProtocolDialect,
+    IN PBYTE pSecurityToken,
+    IN ULONG SecurityTokenLength,
+    IN OUT PSRV_MESSAGE_SMB_V2  pSmbResponse
     );
 
 NTSTATUS
@@ -72,6 +74,9 @@ SrvProcessNegotiate_SMB_V2(
     PSMB2_NEGOTIATE_REQUEST_HEADER pNegotiateRequestHeader = NULL;// Do not free
     PUSHORT pusDialects      = NULL; // Do not free
     USHORT  iDialect         = 0;
+    SMB_PROTOCOL_VERSION protocolVersion = SMB_PROTOCOL_VERSION_UNKNOWN;
+    SMB_PROTOCOL_DIALECT protocolDialect = SMB_PROTOCOL_DIALECT_UNKNOWN;
+    USHORT usDialect = 0;
 
     if (pExecContext->bInline)
     {
@@ -115,37 +120,52 @@ SrvProcessNegotiate_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    for (; iDialect < pNegotiateRequestHeader->usDialectCount; iDialect++)
+    for (iDialect = pNegotiateRequestHeader->usDialectCount - 1;
+         iDialect >= 0;
+         iDialect--)
     {
-        USHORT usDialect = pusDialects[iDialect];
+        usDialect = pusDialects[iDialect];
 
-        if (usDialect == 0x0202)
+        switch (usDialect)
         {
-            SRV_LOG_DEBUG(
-                    pExecContext->pLogContext,
-                    SMB_PROTOCOL_VERSION_2,
-                    pSmbRequest->pHeader->command,
-                    "Negotiate dialect selected: ",
-                    "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
-                    "credits(%u),flags(0x%x),chain-offset(%u),dialect(0x%x)",
-                    pSmbRequest->pHeader->command,
-                    (long long)pSmbRequest->pHeader->ullSessionId,
-                    (long long)pSmbRequest->pHeader->ullCommandSequence,
-                    pSmbRequest->pHeader->ulPid,
-                    pSmbRequest->pHeader->ulTid,
-                    pSmbRequest->pHeader->usCredits,
-                    pSmbRequest->pHeader->ulFlags,
-                    pSmbRequest->pHeader->ulChainOffset,
-                    usDialect);
+            case SMB2_NEGOTIATE_DIALECT_V2:
+                protocolVersion = SMB_PROTOCOL_VERSION_2;
+                protocolDialect = SMB_PROTOCOL_DIALECT_SMB_2_0;
+                break;
 
+            case SMB2_NEGOTIATE_DIALECT_V2_1:
+                protocolVersion = SMB_PROTOCOL_VERSION_2;
+                protocolDialect = SMB_PROTOCOL_DIALECT_SMB_2_1;
+                break;
+        }
+
+        if (protocolVersion != SMB_PROTOCOL_VERSION_UNKNOWN)
+        {
             break;
         }
     }
 
-    if (iDialect < pNegotiateRequestHeader->usDialectCount)
+    if (protocolVersion != SMB_PROTOCOL_VERSION_UNKNOWN)
     {
         PBYTE pNegHintsBlob = NULL; /* Do not free */
         ULONG ulNegHintsLength = 0;
+
+        SRV_LOG_DEBUG(
+            pExecContext->pLogContext,
+            SMB_PROTOCOL_VERSION_2,
+            pSmbRequest->pHeader->command,
+            "Negotiate dialect selected: ",
+            "command(%u),uid(%llu),cmd-seq(%llu),pid(%u),tid(%u),"
+            "credits(%u),flags(0x%x),chain-offset(%u),dialect(0x%x)",
+            pSmbRequest->pHeader->command,
+            (long long)pSmbRequest->pHeader->ullSessionId,
+            (long long)pSmbRequest->pHeader->ullCommandSequence,
+            pSmbRequest->pHeader->ulPid,
+            pSmbRequest->pHeader->ulTid,
+            pSmbRequest->pHeader->usCredits,
+            pSmbRequest->pHeader->ulFlags,
+            pSmbRequest->pHeader->ulChainOffset,
+            usDialect);
 
         ntStatus = SrvGssNegHints(&pNegHintsBlob, &ulNegHintsLength);
 
@@ -156,6 +176,8 @@ SrvProcessNegotiate_SMB_V2(
         {
             ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
                             pConnection,
+                            pSmbRequest->pHeader->ullCommandSequence,
+                            usDialect,
                             pNegHintsBlob,
                             ulNegHintsLength,
                             pSmbResponse);
@@ -169,6 +191,12 @@ SrvProcessNegotiate_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = SrvConnectionSetProtocolVersion(
+                   pExecContext->pConnection,
+                   protocolVersion,
+                   protocolDialect);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     return ntStatus;
@@ -180,9 +208,10 @@ error:
 
 NTSTATUS
 SrvBuildNegotiateResponse_SMB_V2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET pSmbRequest,
+    IN SMB_PROTOCOL_DIALECT Dialect,
+    OUT PSMB_PACKET* ppSmbResponse
     )
 {
     NTSTATUS    ntStatus         = STATUS_SUCCESS;
@@ -190,6 +219,8 @@ SrvBuildNegotiateResponse_SMB_V2(
     PBYTE       pNegHintsBlob    = NULL; /* Do not free */
     ULONG       ulNegHintsLength = 0;
     SRV_MESSAGE_SMB_V2 response  = {0};
+    USHORT dialect = 0;
+    ULONG64 sequenceNumber = 0;
 
     ntStatus = SrvCreditorAcquireCredit(pConnection->pCreditor, 0);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -211,6 +242,21 @@ SrvBuildNegotiateResponse_SMB_V2(
 
     ntStatus = SrvGssNegHints(&pNegHintsBlob, &ulNegHintsLength);
 
+    switch (Dialect)
+    {
+        case SMB_PROTOCOL_DIALECT_SMB_2_0:
+            dialect = SMB_NEGOTIATE_RESPONSE_DIALECT_V2_0;
+            break;
+
+        case SMB_PROTOCOL_DIALECT_SMB_2_1:
+            dialect = SMB_NEGOTIATE_RESPONSE_DIALECT_V2_1;
+            break;
+
+        default:
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     /* Microsoft clients ignore the security blob on the neg prot response
        so don't fail here if we can't get a negHintsBlob */
 
@@ -222,6 +268,8 @@ SrvBuildNegotiateResponse_SMB_V2(
 
         ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
                         pConnection,
+                        sequenceNumber,
+                        dialect,
                         pNegHintsBlob,
                         ulNegHintsLength,
                         &response);
@@ -258,10 +306,12 @@ error:
 static
 NTSTATUS
 SrvMarshalNegotiateResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PBYTE                pSessionKey,
-    ULONG                ulSessionKeyLength,
-    PSRV_MESSAGE_SMB_V2  pSmbResponse
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN ULONG SequenceNumber,
+    IN USHORT ProtocolDialect,
+    IN PBYTE pSecurityToken,
+    IN ULONG SecurityTokenLength,
+    IN OUT PSRV_MESSAGE_SMB_V2  pSmbResponse
     )
 {
     NTSTATUS ntStatus         = STATUS_SUCCESS;
@@ -278,7 +328,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
 
     ntStatus = SrvCreditorAdjustCredits(
                     pConnection->pCreditor,
-                    0,
+                    SequenceNumber,
                     0,
                     1,
                     &usCreditsGranted);
@@ -322,23 +372,33 @@ SrvMarshalNegotiateResponse_SMB_V2(
     ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
 
-    pNegotiateHeader->usDialect = 0x0202;
+    pNegotiateHeader->usDialect = ProtocolDialect;
 
     pNegotiateHeader->ucFlags = 0;
 
     // Always set the "Signing Supported" flag for SMbv2
 
-    pNegotiateHeader->ucFlags |= 0x1;
+    pNegotiateHeader->ucFlags |= SMB2_NEGOTIATE_SECURITY_FLAG_SIGNING_ENABLED;
 
     if (pServerProperties->bRequireSecuritySignatures)
     {
-        pNegotiateHeader->ucFlags |= 0x2;
+        pNegotiateHeader->ucFlags |= SMB2_NEGOTIATE_SECURITY_FLAG_SIGNING_REQUIRED;
     }
 
     pNegotiateHeader->ulMaxReadSize = pServerProperties->MaxBufferSize;
     pNegotiateHeader->ulMaxWriteSize = pServerProperties->MaxBufferSize;
-    pNegotiateHeader->ulCapabilities = 0;
     pNegotiateHeader->ulMaxTxSize = pServerProperties->MaxBufferSize;
+
+    pNegotiateHeader->ulCapabilities = 0;
+
+    switch (ProtocolDialect)
+    {
+        case SMB_NEGOTIATE_RESPONSE_DIALECT_V2_1:
+        case SMB2_NEGOTIATE_DIALECT_V2_1:
+            // pNegotiateHeader->ulCapabilities |= SMB2_NEGOTIATE_CAPABILITY_FLAG_LEASING;
+            break;
+    }
+
 
     ntStatus = WireGetCurrentNTTime(&llCurTime);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -370,9 +430,9 @@ SrvMarshalNegotiateResponse_SMB_V2(
     }
 
     pNegotiateHeader->usBlobOffset = ulOffset;
-    pNegotiateHeader->usBlobLength = ulSessionKeyLength;
+    pNegotiateHeader->usBlobLength = SecurityTokenLength;
 
-    if (ulBytesAvailable < ulSessionKeyLength)
+    if (ulBytesAvailable < SecurityTokenLength)
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -380,11 +440,11 @@ SrvMarshalNegotiateResponse_SMB_V2(
 
     pDataCursor = pSmbResponse->pBuffer + ulOffset;
 
-    memcpy(pDataCursor, pSessionKey, ulSessionKeyLength);
+    memcpy(pDataCursor, pSecurityToken, SecurityTokenLength);
 
     pNegotiateHeader->usLength = ulBytesUsed + 1; /* add one for dynamic part */
 
-    ulTotalBytesUsed += ulSessionKeyLength;
+    ulTotalBytesUsed += SecurityTokenLength;
     // ulBytesUsed += ulSessionKeyLength;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
