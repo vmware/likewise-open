@@ -239,6 +239,16 @@ SrvProcessFind_SMB_V2(
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
+    if (pExecContext->bInline)
+    {
+        ntStatus = SrvScheduleExecContext(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = STATUS_PENDING;
+
+        goto cleanup;
+    }
+
     ntStatus = SrvConnection2FindSession_SMB_V2(
                     pCtxSmb2,
                     pConnection,

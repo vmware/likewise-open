@@ -84,6 +84,16 @@ SrvProcessTrans2FindNext2(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
 
+    if (pExecContext->bInline)
+    {
+        ntStatus = SrvScheduleExecContext(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = STATUS_PENDING;
+
+        goto cleanup;
+    }
+
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
     ntStatus = SrvUnmarshallFindNext2Params(
