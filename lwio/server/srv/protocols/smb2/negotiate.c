@@ -73,7 +73,7 @@ SrvProcessNegotiate_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_NEGOTIATE_REQUEST_HEADER pNegotiateRequestHeader = NULL;// Do not free
     PUSHORT pusDialects      = NULL; // Do not free
-    USHORT  iDialect         = 0;
+    SHORT dialectIdx = 0;
     SMB_PROTOCOL_VERSION protocolVersion = SMB_PROTOCOL_VERSION_UNKNOWN;
     SMB_PROTOCOL_DIALECT protocolDialect = SMB_PROTOCOL_DIALECT_UNKNOWN;
     USHORT usDialect = 0;
@@ -120,11 +120,11 @@ SrvProcessNegotiate_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    for (iDialect = pNegotiateRequestHeader->usDialectCount - 1;
-         iDialect >= 0;
-         iDialect--)
+    for (dialectIdx = pNegotiateRequestHeader->usDialectCount - 1;
+         dialectIdx >= 0;
+         dialectIdx--)
     {
-        usDialect = pusDialects[iDialect];
+        usDialect = pusDialects[dialectIdx];
 
         switch (usDialect)
         {

@@ -113,7 +113,7 @@ SrvBuildNegotiateResponseForDialect(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    ULONG dialectIdx = 0;
+    SHORT dialectIdx = 0;
     BOOLEAN supportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
     PSMB_PACKET pSmbResponse = NULL;
     SMB_PROTOCOL_VERSION protocolVersion = SMB_PROTOCOL_VERSION_UNKNOWN;
