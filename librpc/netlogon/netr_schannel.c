@@ -117,9 +117,9 @@ NetrOpenSchannel(
 
     wc16stombs(pszHostname, pwszHostname, HostnameSize);
 
-    ntStatus = InitNetlogonBindingDefault(&hSchannelBinding,
-                                          pszHostname,
-                                          pIoCreds);
+    rpcStatus = InitNetlogonBindingDefault(&hSchannelBinding,
+                                           pszHostname,
+                                           pIoCreds);
     BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_set_auth_info(hSchannelBinding,
