@@ -98,6 +98,39 @@ SrvElementsResourcesShutdown(
     VOID
     );
 
+// srvasyncclose.c
+
+NTSTATUS
+SrvElementsCreateAsyncCloseFileState(
+    OUT PSRV_ASYNC_CLOSE_FILE_STATE* ppState
+    );
+
+NTSTATUS
+SrvAsyncCloseFileTrackerCreate(
+    OUT PSRV_ASYNC_CLOSE_FILE_TRACKER* ppTracker
+    );
+
+VOID
+SrvAsyncCloseFileTrackerFree(
+    IN PSRV_ASYNC_CLOSE_FILE_TRACKER pTracker
+    );
+
+VOID
+SrvAsyncCloseFileTrackerWaitPending(
+    IN PSRV_ASYNC_CLOSE_FILE_TRACKER pTracker
+    );
+
+VOID
+SrvAsyncCloseFileStateFree(
+    IN PSRV_ASYNC_CLOSE_FILE_STATE pState
+    );
+
+VOID
+SrvAsyncCloseFileStateExecute(
+    IN PSRV_ASYNC_CLOSE_FILE_STATE pState,
+    IN IO_FILE_HANDLE FileHandle
+    );
+
 // srvconnection.c
 
 NTSTATUS

@@ -92,6 +92,9 @@ SrvElementsInit(
     pthread_rwlock_init(&gSrvElements.statsLock, NULL);
     gSrvElements.pStatsLock = &gSrvElements.statsLock;
 
+    ntStatus = SrvAsyncCloseFileTrackerCreate(&gSrvElements.pAsyncCloseFileTracker);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 error:
 
     return ntStatus;
@@ -212,6 +215,13 @@ SrvElementsShutdown(
     {
         pthread_mutex_destroy(&gSrvElements.mutex);
         gSrvElements.pMutex = NULL;
+    }
+
+    if (gSrvElements.pAsyncCloseFileTracker)
+    {
+        SrvAsyncCloseFileTrackerWaitPending(gSrvElements.pAsyncCloseFileTracker);
+        SrvAsyncCloseFileTrackerFree(gSrvElements.pAsyncCloseFileTracker);
+        gSrvElements.pAsyncCloseFileTracker = NULL;
     }
 
 error:

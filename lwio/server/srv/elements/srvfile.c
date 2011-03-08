@@ -111,6 +111,11 @@ SrvFileCreate(
     ntStatus = SrvAllocateStringW(pwszFilename, &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    // Allocate async close file state before setting hFile field.
+    ntStatus = SrvElementsCreateAsyncCloseFileState(
+                    &pFile->pAsyncCloseFileState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pFile->fid = fid;
     pFile->hFile = *phFile;
     *phFile = NULL;
@@ -543,12 +548,13 @@ SrvFileFree(
 
     if (pFile->hFile)
     {
-        // TODO: Use IoAsyncCloseFile here and other Srv*Free()
-        // and SrvFile*() functions -- with callback that just
-        // frees IOSB -- but make sure to pre-allocate IOSB
-        // when SRV_FILE is created.  Or add IoNoWaitCloseFile()
-        // to iomgr.
-        IoCloseFile(pFile->hFile);
+        SrvAsyncCloseFileStateExecute(
+                pFile->pAsyncCloseFileState,
+                pFile->hFile);
+    }
+    else if (pFile->pAsyncCloseFileState)
+    {
+        SrvAsyncCloseFileStateFree(pFile->pAsyncCloseFileState);
     }
 
     SrvFileUnblockIdleTimeout(pFile);
