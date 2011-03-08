@@ -1445,6 +1445,14 @@ AD_LeaveDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_PreLeaveDomain(hProvider, gpLsaAdProviderState);
+    if (dwError == LW_ERROR_NOT_JOINED_TO_AD)
+    {
+        // not joined, ensure pstore is clean
+        dwError = LwpsDeleteEntriesInAllStores();
+        BAIL_ON_LSA_ERROR(dwError);
+
+        goto cleanup;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaNetLeaveDomain(
