@@ -235,17 +235,33 @@ SrvProcessCloseAndX(
 
         case SRV_CLOSE_STAGE_SMB_V1_ATTEMPT_CLOSE:
 
-            // TODO: Call IoRundownFile() asynchronously since that
-            //       sends close to file system while keeping handle around
-            //       (until IoCloseFile() is called).
-
             SrvFileRundown(pCloseState->pFile);
 
+            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_DO_IO_RUNDOWN;
+
+            // intentional fall through
+
+        case SRV_CLOSE_STAGE_SMB_V1_DO_IO_RUNDOWN:
+
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE;
+
+            SrvPrepareCloseStateAsync(pCloseState, pExecContext);
+
+            ntStatus = IoRundownFile(pCloseState->pFile->hFile,
+                                     pCloseState->pAcb,
+                                     &pCloseState->ioStatusBlock);
+            if (ntStatus == STATUS_PENDING)
+            {
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            SrvReleaseCloseStateAsync(pCloseState);
 
             // intentional fall through
 
         case SRV_CLOSE_STAGE_SMB_V1_BUILD_RESPONSE:
+
+            BAIL_ON_NT_STATUS(pCloseState->ioStatusBlock.Status);
 
             ntStatus = SrvBuildCloseResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
