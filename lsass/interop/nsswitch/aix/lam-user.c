@@ -32,6 +32,8 @@
 #include "lam-user.h"
 #include "lam-group.h"
 
+#include <ctype.h>
+
 DWORD
 LsaNssFindUserByAixName(
     HANDLE hLsaConnection,
@@ -401,6 +403,55 @@ error:
     goto cleanup;
 }
 
+static DWORD
+LsaNssParseAuditClasses(
+        PCSTR pszAuditClasses,
+        PSTR *ppResult)
+{
+    int length = strlen(pszAuditClasses);
+    PSTR pResult = NULL;
+    PSTR pCopy = NULL;
+    DWORD dwError;
+
+    dwError = LwAllocateMemory(length + 1, (PVOID*) &pResult);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pCopy = pResult;
+
+    while (*pszAuditClasses && *pszAuditClasses != '\n')
+    {
+        while (*pszAuditClasses &&
+                (*pszAuditClasses == ',' || isspace(*pszAuditClasses)))
+        {
+            ++pszAuditClasses;
+        }
+
+        if (*pszAuditClasses == '\0')
+        {
+            break;
+        }
+
+        while (*pszAuditClasses &&
+                *pszAuditClasses != ',' && !isspace(*pszAuditClasses))
+        {
+            *pCopy++ = *pszAuditClasses++;
+        }
+
+        *pCopy++ = '\0';
+    }
+
+    /* Add a second NUL byte to terminate the set of strings. */
+    *pCopy++ = '\0';
+
+cleanup:
+    *ppResult = pResult;
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pResult);
+    goto cleanup;
+}
+
 VOID
 LsaNssGetUserAttr(
         HANDLE hLsaConnection,
@@ -412,6 +463,8 @@ LsaNssGetUserAttr(
     DWORD dwError = LW_ERROR_SUCCESS;
     const DWORD dwGroupInfoLevel = 0;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    FILE *fp = NULL;
+    PSTR pszDefaultAuditClasses = NULL;
 
     if (!strcmp(pszAttribute, S_ID))
     {
@@ -487,6 +540,56 @@ LsaNssGetUserAttr(
                     &pResult->attr_un.au_char);
         BAIL_ON_LSA_ERROR(dwError);
     }
+    else if (!strcmp(pszAttribute, S_AUDITCLASSES))
+    {
+        if (geteuid() != 0)
+        {
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        pResult->attr_un.au_char = NULL;
+        fp = fopen("/etc/likewise/auditclasses", "r");
+        if (fp != NULL)
+        {
+            char buf[1024];
+            int length = strlen(pInfo->pszName);
+
+            while (fgets(buf, sizeof(buf), fp) != NULL)
+            {
+                if (buf[length] == ':' &&
+                        !strncmp(buf, pInfo->pszName, length))
+                {
+                    dwError = LsaNssParseAuditClasses(
+                                buf + length + 1,
+                                &pResult->attr_un.au_char);
+                    BAIL_ON_LSA_ERROR(dwError);
+                    break;
+                }
+                else if (strchr(buf, ':') != NULL)
+                {
+                    /* This is a line for another user. */
+                    continue;
+                }
+
+                /* This is the default audit classes line. */
+                if (pszDefaultAuditClasses == NULL)
+                {
+                    dwError = LwAllocateString(buf, &pszDefaultAuditClasses);
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+            }
+
+            if (pResult->attr_un.au_char == NULL &&
+                    pszDefaultAuditClasses != NULL)
+            {
+                dwError = LsaNssParseAuditClasses(
+                            pszDefaultAuditClasses,
+                            &pResult->attr_un.au_char);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
     else if (!strcmp(pszAttribute, S_LOCKED))
     {
         pResult->attr_un.au_int = pInfo->bAccountLocked;
@@ -527,6 +630,14 @@ cleanup:
     {
         pResult->attr_flag = 0;
     }
+
+    if (fp != NULL)
+    {
+        fclose(fp);
+    }
+
+    LW_SAFE_FREE_STRING(pszDefaultAuditClasses);
+
     return;
 
 error:
