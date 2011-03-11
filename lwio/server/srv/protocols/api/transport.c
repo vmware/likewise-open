@@ -309,12 +309,7 @@ SrvProtocolTransportDriverShutdown(
     )
 {
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
-
-    if (pGlobals->pConnections)
-    {
-        LwRtlRBTreeFree(pGlobals->pConnections);
-        pGlobals->pConnections = NULL;
-    }
+    BOOLEAN bInLock = FALSE;
 
     if (pTransportContext->hTransport)
     {
@@ -325,6 +320,18 @@ SrvProtocolTransportDriverShutdown(
         pTransportContext->hTransport = NULL;
     }
 
+    if (pGlobals->pMutex)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, pGlobals->pMutex);
+
+        if (pGlobals->pConnections)
+        {
+            LwRtlRBTreeFree(pGlobals->pConnections);
+            pGlobals->pConnections = NULL;
+        }
+
+        LWIO_UNLOCK_RWMUTEX(bInLock, pGlobals->pMutex);
+    }
     // Zero the transport dispatch but leave the socket dispatch for
     // the Producer/Consumer Queue shutdown in case there is an existing socket
     // on a connection
@@ -410,10 +417,17 @@ SrvProtocolTransportDriverConnectionNew(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
 
-    ntStatus = LwRtlRBTreeAdd(
+    if (gProtocolApiGlobals.pConnections)
+    {
+        ntStatus = LwRtlRBTreeAdd(
                     gProtocolApiGlobals.pConnections,
                     &pConnection->resource.ulResourceId,
                     pConnection);
+    }
+    else
+    {
+        ntStatus = STATUS_PROCESS_IS_TERMINATING;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppConnection = SrvConnectionAcquire(pConnection);;
@@ -619,11 +633,12 @@ SrvProtocolTransportDriverConnectionDone(
                 &pResource);
 
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
-
-        LwRtlRBTreeRemove(
+        if (gProtocolApiGlobals.pConnections)
+        {
+            LwRtlRBTreeRemove(
                 gProtocolApiGlobals.pConnections,
                 &pConnection->resource.ulResourceId);
-
+        }
         LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
     }
 
