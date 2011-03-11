@@ -945,12 +945,17 @@ SrvTimedInterimResponseCB_SMB_V2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT pExecContext = (PSRV_EXEC_CONTEXT)pUserData;
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Ctx = (PSRV_EXEC_CONTEXT_SMB_V2)pExecContext->pProtocolContext->pSmb2Context;
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Ctx = NULL;
     BOOLEAN execContextLocked = FALSE;
 
     LWIO_LOCK_MUTEX(execContextLocked, &pExecContext->execMutex);
 
-    if (pSmb2Ctx->AsyncId)
+    if (pExecContext->pProtocolContext)
+    {
+        pSmb2Ctx = (PSRV_EXEC_CONTEXT_SMB_V2)pExecContext->pProtocolContext->pSmb2Context;;
+    }
+
+    if (pSmb2Ctx && pSmb2Ctx->AsyncId)
     {
         ntStatus = SrvBuildInterimResponse_SMB_V2(
                        pExecContext,
@@ -974,8 +979,11 @@ error:
         pExecContext->ullAsyncId = 0;
     }
 
-    SrvTimerRelease(pSmb2Ctx->InterimResponseTimer);
-    pSmb2Ctx->InterimResponseTimer = NULL;
+    if (pSmb2Ctx && pSmb2Ctx->InterimResponseTimer)
+    {
+        SrvTimerRelease(pSmb2Ctx->InterimResponseTimer);
+        pSmb2Ctx->InterimResponseTimer = NULL;
+    }
 
     LWIO_UNLOCK_MUTEX(execContextLocked, &pExecContext->execMutex);
 
