@@ -65,7 +65,6 @@
 
 #include <lwiodef.h>
 #include <lwioutils.h>
-#include <lwiolog_r.h>
 #include <srvecp.h>
 
 #include <lw/ntstatus.h>

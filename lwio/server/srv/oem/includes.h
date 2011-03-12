@@ -55,7 +55,6 @@
 
 #include <lwiodef.h>
 #include <lwioutils.h>
-#include <lwiolog_r.h>
 
 #include <lw/ntstatus.h>
 
