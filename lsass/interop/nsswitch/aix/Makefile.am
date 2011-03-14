@@ -83,3 +83,7 @@ lsass_64_la_LIBADD = \
 lsass_la_LDFLAGS = -shared -module -avoid-version -Wl,-brtl
 
 lsass_64_la_LDFLAGS = -shared -module -avoid-version -Wl,-brtl
+
+if !ENABLE_COMPAT
+lsassconf_DATA = auditclasses.sample
+endif

@@ -1,0 +1,29 @@
+#
+# Sample auditclasses file.
+#
+# A line with no label specifies the default audit classes for
+# users that are not explicitly listed:
+#
+general, files
+
+#
+# A line starting with a username specifies the audit classes for
+# that AD user.  The username must be specified as the "canonical"
+# name for the user: either "DOMAIN\username" or just "username"
+# if "--assumeDefaultDomain yes" was passed to domainjoin-cli
+# with "--userDomainPrefix DOMAIN".  In Likewise Enterprise, if
+# the user has an alias specified in the cell the alias name must
+# be used here.
+#
+DOMAIN\user1: general, files, tcpip
+user2: general, cron
+
+#
+# A line starting with an @ specifies the audit classes for members
+# of an AD group.  These classes are added to the audit classes
+# for the user (or the default, if the user is not listed here).
+# Whether to specify "DOMAIN\groupname" or just "groupname" follows
+# the same rules as for users.
+#
+@DOMAIN\mail_users: mail
+group2: cron
