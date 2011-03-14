@@ -90,13 +90,6 @@ LsaNetGetErrorString(
     );
 
 DWORD
-LsaBuildOrgUnitDN(
-    PCSTR pszDomain,
-    PCSTR pszOU,
-    PSTR* ppszOU_DN
-    );
-
-DWORD
 LsaSrvJoinFindComputerDN(
     HANDLE hDirectory,
     PCSTR  pszHostName,
