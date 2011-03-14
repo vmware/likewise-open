@@ -403,20 +403,101 @@ error:
     goto cleanup;
 }
 
-static DWORD
-LsaNssParseAuditClasses(
-        PCSTR pszAuditClasses,
-        PSTR *ppResult)
+typedef struct _LW_AUDIT_CLASS_LIST
 {
-    int length = strlen(pszAuditClasses);
-    PSTR pResult = NULL;
-    PSTR pCopy = NULL;
-    DWORD dwError;
+    PSTR    *ppszAuditClasses;
+    DWORD   dwCount;
+    DWORD   dwAlloc;
+    DWORD   dwLength;
+} LW_AUDIT_CLASS_LIST, *PLW_AUDIT_CLASS_LIST;
 
-    dwError = LwAllocateMemory(length + 1, (PVOID*) &pResult);
+#define AUDIT_CLASS_ALLOC_INCR  8
+
+static
+VOID
+LwNssFreeAuditClassList(
+        PLW_AUDIT_CLASS_LIST pAuditClassList
+        )
+{
+    if (pAuditClassList->ppszAuditClasses)
+    {
+        DWORD dwAuditClass;
+
+        for (dwAuditClass = 0;
+                dwAuditClass < pAuditClassList->dwCount;
+                ++dwAuditClass)
+        {
+            LwFreeString(pAuditClassList->ppszAuditClasses[dwAuditClass]);
+        }
+
+        LwFreeMemory(pAuditClassList);
+    }
+}
+
+static DWORD
+LsaNssAddAuditClass(
+        PLW_AUDIT_CLASS_LIST pAuditClassList,
+        PCSTR psAuditClass, /* Not NUL-terminated. */
+        DWORD dwLength
+        )
+{
+    PSTR pszAuditClassCopy = NULL;
+    DWORD dwIndex = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
+
+    for (dwIndex = 0; dwIndex < pAuditClassList->dwCount; ++dwIndex)
+    {
+        if (!strncmp(
+                pAuditClassList->ppszAuditClasses[dwIndex],
+                psAuditClass,
+                dwLength))
+        {
+            /* The audit class is already in the list. */
+            goto cleanup;
+        }
+    }
+
+    dwError = LwAllocateMemory(dwLength + 1, (PVOID *) &pszAuditClassCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pCopy = pResult;
+    strncpy(pszAuditClassCopy, psAuditClass, dwLength);
+    pszAuditClassCopy[dwLength] = '\0';
+
+    if (pAuditClassList->dwCount == pAuditClassList->dwAlloc)
+    {
+        PSTR *ppszNewAuditClasses;
+
+        dwError = LwReallocMemory(
+                    pAuditClassList->ppszAuditClasses,
+                    (PVOID *) &ppszNewAuditClasses,
+                    (pAuditClassList->dwAlloc + AUDIT_CLASS_ALLOC_INCR) *
+                        sizeof(*ppszNewAuditClasses));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pAuditClassList->ppszAuditClasses = ppszNewAuditClasses;
+        pAuditClassList->dwAlloc += AUDIT_CLASS_ALLOC_INCR;
+    }
+
+    pAuditClassList->ppszAuditClasses[pAuditClassList->dwCount++] =
+        pszAuditClassCopy;
+    pAuditClassList->dwLength += dwLength + 1;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszAuditClassCopy);
+    goto cleanup;
+}
+
+static DWORD
+LsaNssAddAuditClasses(
+        PLW_AUDIT_CLASS_LIST pAuditClassList,
+        PCSTR pszAuditClasses)
+{
+    PCSTR psAuditClass;
+    DWORD dwLength;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     while (*pszAuditClasses && *pszAuditClasses != '\n')
     {
@@ -431,24 +512,26 @@ LsaNssParseAuditClasses(
             break;
         }
 
+        psAuditClass = pszAuditClasses;
+
         while (*pszAuditClasses &&
                 *pszAuditClasses != ',' && !isspace(*pszAuditClasses))
         {
-            *pCopy++ = *pszAuditClasses++;
+            ++pszAuditClasses;
         }
 
-        *pCopy++ = '\0';
+        dwLength = pszAuditClasses - psAuditClass;
+        dwError = LsaNssAddAuditClass(
+                    pAuditClassList,
+                    psAuditClass,
+                    dwLength);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    /* Add a second NUL byte to terminate the set of strings. */
-    *pCopy++ = '\0';
-
 cleanup:
-    *ppResult = pResult;
     return dwError;
 
 error:
-    LW_SAFE_FREE_STRING(pResult);
     goto cleanup;
 }
 
@@ -465,6 +548,8 @@ LsaNssGetUserAttr(
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     FILE *fp = NULL;
     PSTR pszDefaultAuditClasses = NULL;
+    PSTR pszGroups = NULL;
+    PLW_AUDIT_CLASS_LIST pAuditClassList = NULL;
 
     if (!strcmp(pszAttribute, S_ID))
     {
@@ -553,41 +638,155 @@ LsaNssGetUserAttr(
         if (fp != NULL)
         {
             char buf[1024];
-            int length = strlen(pInfo->pszName);
+            DWORD dwLength = strlen(pInfo->pszName);
+            LW_BOOL bSawUser = LW_FALSE;
+            PSTR pszCopy = NULL;
+            DWORD dwAuditClass = 0;
+
+            dwError = LwAllocateMemory(
+                        sizeof(*pAuditClassList),
+                        (PVOID *) &pAuditClassList);
+            BAIL_ON_LSA_ERROR(dwError);
 
             while (fgets(buf, sizeof(buf), fp) != NULL)
             {
-                if (buf[length] == ':' &&
-                        !strncmp(buf, pInfo->pszName, length))
+                char *line = buf;
+                char *comment = NULL;
+                char *colon = NULL;
+
+                while (isspace(*line))
                 {
-                    dwError = LsaNssParseAuditClasses(
-                                buf + length + 1,
-                                &pResult->attr_un.au_char);
-                    BAIL_ON_LSA_ERROR(dwError);
-                    break;
+                    ++line;
                 }
-                else if (strchr(buf, ':') != NULL)
+
+                if ((comment = strchr(line, '#')) != NULL)
                 {
-                    /* This is a line for another user. */
+                    *comment = '\0';
+                }
+
+                if (*line == '\0')
+                {
+                    // blank or comment-only line.
                     continue;
                 }
 
-                /* This is the default audit classes line. */
-                if (pszDefaultAuditClasses == NULL)
+                if (line[dwLength] == ':' &&
+                        !strncmp(line, pInfo->pszName, dwLength))
                 {
-                    dwError = LwAllocateString(buf, &pszDefaultAuditClasses);
+                    dwError = LsaNssAddAuditClasses(
+                                pAuditClassList,
+                                line + dwLength + 1);
                     BAIL_ON_LSA_ERROR(dwError);
+                    bSawUser = LW_TRUE;
+                }
+                else if ((colon = strchr(line, ':')) != NULL)
+                {
+                    if (*line == '@')
+                    {
+                        // Audit class for a group; see if the user is in it.
+                        PCSTR pszGroup;
+                        PCSTR psAuditGroup = line + 1; // not NUL-terminated.
+                        LW_BOOL bMatch = LW_FALSE;
+
+                        if (pszGroups == NULL)
+                        {
+                            dwError = LsaNssGetGroupList(
+                                        hLsaConnection,
+                                        pInfo,
+                                        &pszGroups);
+                            BAIL_ON_LSA_ERROR(dwError);
+                        }
+
+                        pszGroup = pszGroups;
+                        while (*pszGroup != '\0')
+                        {
+                            bMatch = LW_TRUE;
+                            psAuditGroup = line + 1;
+
+                            while (*pszGroup != '\0')
+                            {
+                                if (bMatch && *pszGroup != *psAuditGroup++)
+                                {
+                                    bMatch = LW_FALSE;
+                                    // no "break" here - keep reading pszGroup.
+                                }
+
+                                ++pszGroup;
+                            }
+
+                            if (bMatch)
+                            {
+                                break;
+                            }
+
+                            ++pszGroup;
+                        }
+
+                        if (bMatch)
+                        {
+                            dwError = LsaNssAddAuditClasses(
+                                        pAuditClassList,
+                                        colon + 1);
+                            BAIL_ON_LSA_ERROR(dwError);
+                        }
+                    }
+                    /* Else this is a line for another user. */
+                }
+                else
+                {
+                    /* This is the default audit classes line. */
+                    if (pszDefaultAuditClasses == NULL)
+                    {
+                        dwError = LwAllocateString(line, &pszDefaultAuditClasses);
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
                 }
             }
 
-            if (pResult->attr_un.au_char == NULL &&
-                    pszDefaultAuditClasses != NULL)
+            if (!bSawUser && pszDefaultAuditClasses != NULL)
             {
-                dwError = LsaNssParseAuditClasses(
-                            pszDefaultAuditClasses,
-                            &pResult->attr_un.au_char);
+                dwError = LsaNssAddAuditClasses(
+                            pAuditClassList,
+                            pszDefaultAuditClasses);
                 BAIL_ON_LSA_ERROR(dwError);
             }
+
+            if (pAuditClassList->dwLength)
+            {
+                dwLength = pAuditClassList->dwLength + 1;
+            }
+            else
+            {
+                dwLength = 2;
+            }
+
+            dwError = LwAllocateMemory(
+                        dwLength,
+                        (PVOID *) &pResult->attr_un.au_char);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pszCopy = pResult->attr_un.au_char;
+
+            for (dwAuditClass = 0;
+                    dwAuditClass < pAuditClassList->dwCount;
+                    ++dwAuditClass)
+            {
+                PCSTR pszSource = pAuditClassList->ppszAuditClasses[dwAuditClass];
+
+                while (*pszSource)
+                {
+                    *pszCopy++ = *pszSource++;
+                }
+
+                *pszCopy++ = '\0';
+            }
+
+            if (pAuditClassList->dwCount == 0)
+            {
+                *pszCopy++ = '\0';
+            }
+
+            *pszCopy++ = '\0';
         }
     }
     else if (!strcmp(pszAttribute, S_LOCKED))
@@ -637,6 +836,12 @@ cleanup:
     }
 
     LW_SAFE_FREE_STRING(pszDefaultAuditClasses);
+    LW_SAFE_FREE_STRING(pszGroups);
+
+    if (pAuditClassList)
+    {
+        LwNssFreeAuditClassList(pAuditClassList);
+    }
 
     return;
 
