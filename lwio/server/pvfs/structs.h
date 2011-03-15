@@ -578,13 +578,20 @@ typedef struct _PVFS_NOTIFY_REPORT_RECORD
 
 /* SID/UID/GID caches */
 
-typedef struct _PVFS_ID_CACHE
+typedef struct _PVFS_ID_CACHE_ENTRY
 {
     union {
         uid_t Uid;
         gid_t Gid;
     } UnixId;
     PSID pSid;
+} PVFS_ID_CACHE_ENTRY, *PPVFS_ID_CACHE_ENTRY;
+
+typedef struct _PVFS_ID_CACHE
+{
+    pthread_mutex_t Mutex;
+    PPVFS_ID_CACHE_ENTRY Cache[PVFS_MAX_MRU_SIZE];
+
 } PVFS_ID_CACHE, *PPVFS_ID_CACHE;
 
 typedef enum {
@@ -607,7 +614,6 @@ typedef struct _PVFS_DRIVER_CONFIG
     uid_t    VirtualUid;
     gid_t    VirtualGid;
 
-    DWORD     WorkerThreadPoolSize;
     DWORD     PathCacheSize;
 
     DWORD     WriteChangeNotify;
@@ -643,15 +649,41 @@ typedef struct _PVFS_QUOTA_ENTRY
     struct _PVFS_QUOTA_ENTRY* pNext;
 } PVFS_QUOTA_ENTRY, *PPVFS_QUOTA_ENTRY;
 
+#define PVFS_STATE_FLAG_INITIALIZED     0x00000001
 
 typedef struct _PVFS_DRIVER_STATE
 {
-    PCSTR DriverName;
-    PCSTR DriverDescription;
+    LONG Flags;
+
+    pthread_mutex_t Mutex;
+
+    PSTR DriverName;
+    PSTR DriverDescription;
+
+    IO_DEVICE_HANDLE IoDeviceHandle;
+    PPVFS_SCB DeviceScb;
 
     PLW_THREAD_POOL ThreadPool;
 
+    PVFS_ID_CACHE UidCache;
+    PVFS_ID_CACHE GidCache;
+
+    struct  {
+        LONG IrpContext;
+        LONG Fcb;
+        LONG Scb;
+        LONG Ccb;
+    } Counters;
+
+    PVFS_CB_TABLE FcbTable;
+    PVFS_CB_TABLE ScbTable;
+
+    GENERIC_MAPPING GenericSecurityMap;
+
+    PLW_MAP_SECURITY_CONTEXT MapSecurityContext;
+
 } PVFS_DRIVER_STATE, *PPVFS_DRIVER_STATE;
+
 
 #endif    /* _PVFS_STRUCTS_H */
 

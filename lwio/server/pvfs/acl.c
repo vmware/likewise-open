@@ -450,7 +450,7 @@ PvfsSetSecurityDescriptorFile(
                       (PSECURITY_DESCRIPTOR_RELATIVE)secDescBuffer,
                       (PSECURITY_DESCRIPTOR_RELATIVE)newSecDescBuffer,
                       &newSecDescLength,
-                      &gPvfsFileGenericMapping);
+                      &gPvfsDriverState.GenericSecurityMap);
         BAIL_ON_NT_STATUS(ntError);
 
         finalSecDesc = (PSECURITY_DESCRIPTOR_RELATIVE)newSecDescBuffer;
@@ -719,7 +719,7 @@ PvfsCreateFileSecurity(
                   bIsDirectory,
                   SEF_DACL_AUTO_INHERIT|SEF_SACL_AUTO_INHERIT,
                   pUserToken,
-                  &gPvfsFileGenericMapping);
+                  &gPvfsDriverState.GenericSecurityMap);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSetSecurityDescriptorFile(

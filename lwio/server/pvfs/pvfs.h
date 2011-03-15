@@ -72,6 +72,35 @@
 #include "lwlist.h"
 #include "srvecp.h"
 
+/* Unix (POSIX) APIs */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
+#include <utime.h>
+
+#ifdef HAVE_SYS_VFS_H
+#  include <sys/vfs.h>
+#endif
+
+#ifdef HAVE_ATTR_XATTR_H
+#  include <attr/xattr.h>
+#endif
+
+///
+/// Driver defines
+///
+
+#define PVFS_CONF_REGISTRY_LOCAL  "Services\\lwio\\Parameters\\Drivers\\pvfs"
+#define PVFS_CONF_REGISTRY_POLICY "Policy\\Services\\lwio\\Parameters\\Drivers\\pvfs"
+
+#define PVFS_MAX_MRU_SIZE                10240
+
+///
+/// PVFS Headers
+////
+
 #include "listq.h"
 #include "structs.h"
 #include "async_handler.h"
@@ -89,31 +118,9 @@
 #include "acl.h"
 #include "attrib.h"
 
-/* Unix (POSIX) APIs */
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-#include <utime.h>
-
-#ifdef HAVE_SYS_VFS_H
-#  include <sys/vfs.h>
-#endif
-
-#ifdef HAVE_ATTR_XATTR_H
-#  include <attr/xattr.h>
-#endif
-
-/* Driver defines */
-
-#define PVFS_CONF_REGISTRY_LOCAL  "Services\\lwio\\Parameters\\Drivers\\pvfs"
-#define PVFS_CONF_REGISTRY_POLICY "Policy\\Services\\lwio\\Parameters\\Drivers\\pvfs"
-
-#define PVFS_WORKERS_MAX_WORK_ITEMS      1024
-#define PVFS_MAX_MRU_SIZE                10240
-
-/* Top level API functions */
+///
+/// Top level API functions
+///
 
 NTSTATUS
 PvfsCreate(

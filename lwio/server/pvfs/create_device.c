@@ -65,35 +65,37 @@ PvfsCreateDevice(
     // Initialize CreateOptions since it might be used without setting
     pCcb->CreateOptions = 0;
 
-    LWIO_LOCK_MUTEX(scbLock, &gDeviceScbMutex);
+    LWIO_LOCK_MUTEX(scbLock, &gPvfsDriverState.Mutex);
 
-    if (!gpPvfsDeviceScb)
+    if (!gPvfsDriverState.DeviceScb)
     {
-        ntError = PvfsAllocateSCB(&gpPvfsDeviceScb);
+        ntError = PvfsAllocateSCB(&gPvfsDriverState.DeviceScb);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsAllocateFCB(&gpPvfsDeviceScb->pOwnerFcb);
+        ntError = PvfsAllocateFCB(&gPvfsDriverState.DeviceScb->pOwnerFcb);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = LwRtlCStringAllocatePrintf(
-                      &gpPvfsDeviceScb->pOwnerFcb->pszFilename,
+                      &gPvfsDriverState.DeviceScb->pOwnerFcb->pszFilename,
                       "/%s",
                       gPvfsDriverState.DriverDescription);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsAddSCBToFCB(gpPvfsDeviceScb->pOwnerFcb, gpPvfsDeviceScb);
+        ntError = PvfsAddSCBToFCB(
+                      gPvfsDriverState.DeviceScb->pOwnerFcb,
+                      gPvfsDriverState.DeviceScb);
         BAIL_ON_NT_STATUS(ntError);
     }
 
 
-    ntError = PvfsAddCCBToSCB(gpPvfsDeviceScb, pCcb);
+    ntError = PvfsAddCCBToSCB(gPvfsDriverState.DeviceScb, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsStoreCCB(pIrpContext->pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(scbLock, &gDeviceScbMutex);
+    LWIO_UNLOCK_MUTEX(scbLock, &gPvfsDriverState.Mutex);
 
     return ntError;
 

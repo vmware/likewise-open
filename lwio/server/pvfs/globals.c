@@ -48,47 +48,43 @@
 
 PVFS_DRIVER_CONFIG gPvfsDriverConfig;
 
-IO_DEVICE_HANDLE gPvfsDeviceHandle = (IO_DEVICE_HANDLE)NULL;
-
-GENERIC_MAPPING gPvfsFileGenericMapping = {
-    .GenericRead    = FILE_GENERIC_READ,
-    .GenericWrite   = FILE_GENERIC_WRITE,
-    .GenericExecute = FILE_GENERIC_EXECUTE,
-    .GenericAll     = FILE_ALL_ACCESS
-};
-
 pthread_mutex_t* gpPathCacheLock = NULL;
 pthread_mutex_t  gPathCacheLock;
 
 PLWIO_LRU        gpPathCache = NULL;
 
-pthread_mutex_t gDeviceScbMutex = PTHREAD_MUTEX_INITIALIZER;
-PPVFS_SCB gpPvfsDeviceScb = NULL;
-
-pthread_mutex_t gPvfsIrpContextMutex = PTHREAD_MUTEX_INITIALIZER;
-
-PVFS_CB_TABLE gScbTable;
-
-PVFS_CB_TABLE gFcbTable;
-
-PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
-
-pthread_mutex_t gUidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
-PPVFS_ID_CACHE  gUidMruCache[PVFS_MAX_MRU_SIZE];
-
-pthread_mutex_t gGidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
-PPVFS_ID_CACHE  gGidMruCache[PVFS_MAX_MRU_SIZE];
-
-LONG gPvfsIrpContextCount = 0;
-LONG gPvfsScbCount = 0;
-LONG gPvfsFcbCount = 0;
-LONG gPvfsCcbCount = 0;
-LONG gPvfsWorkContextCount = 0;
-
 FILE_FS_CONTROL_INFORMATION gPvfsFileFsControlInformation = { 0 };
 
 PVFS_DRIVER_STATE gPvfsDriverState = {
+    .Flags = 0,
+
+    .Mutex = PTHREAD_MUTEX_INITIALIZER,
     .DriverName = "PVFS",
     .DriverDescription = "Posix Virtual File System",
-    .ThreadPool = NULL
+
+    .IoDeviceHandle = (HANDLE)NULL,
+    .DeviceScb = NULL,
+
+    .ThreadPool = NULL,
+
+    .GidCache =
+        {
+            .Cache = { 0 },
+            .Mutex = PTHREAD_MUTEX_INITIALIZER,
+        },
+    .UidCache =
+        {
+            .Cache = { 0 },
+            .Mutex = PTHREAD_MUTEX_INITIALIZER,
+        },
+
+    .MapSecurityContext = NULL,
+
+    .GenericSecurityMap =
+        {
+            .GenericRead    = FILE_GENERIC_READ,
+            .GenericWrite   = FILE_GENERIC_WRITE,
+            .GenericExecute = FILE_GENERIC_EXECUTE,
+            .GenericAll     = FILE_ALL_ACCESS
+        }
 };

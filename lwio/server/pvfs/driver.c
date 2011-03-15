@@ -109,7 +109,7 @@ IO_DRIVER_ENTRY(pvfs)(
                              NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    gPvfsDeviceHandle = deviceHandle;
+    gPvfsDriverState.IoDeviceHandle = deviceHandle;
 
     ntError = PvfsDriverInitialize();
     BAIL_ON_NT_STATUS(ntError);
@@ -129,8 +129,8 @@ error:
 static
 VOID
 PvfsDestroyUnixIdCache(
-    PPVFS_ID_CACHE *ppCacheArray,
-    LONG Length
+    IN OUT PPVFS_ID_CACHE_ENTRY CacheArray[],
+    IN LONG Length
     );
 
 static
@@ -139,28 +139,21 @@ PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
-    PvfsCbTableDestroy(&gScbTable);
+    BOOLEAN driverLocked = FALSE;
 
-    PvfsCbTableDestroy(&gFcbTable);
-
-    PvfsPathCacheShutdown();
-
-    PvfsDestroyUnixIdCache(gUidMruCache, PVFS_MAX_MRU_SIZE);
-    PvfsDestroyUnixIdCache(gGidMruCache, PVFS_MAX_MRU_SIZE);
-
-    if (gpPvfsLwMapSecurityCtx)
+    if (IsSetFlag(gPvfsDriverState.Flags, PVFS_STATE_FLAG_INITIALIZED))
     {
-        PvfsSecurityShutdownMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
+        LWIO_LOCK_MUTEX(driverLocked, &gPvfsDriverState.Mutex);
+
+        PvfsPathCacheShutdown();
+        PvfsShutdownQuota();
+
+        LWIO_UNLOCK_MUTEX(driverLocked, &gPvfsDriverState.Mutex);
+
+        PvfsDestroyDriverState(&gPvfsDriverState);
+
+        ClearFlag(gPvfsDriverState.Flags, PVFS_STATE_FLAG_INITIALIZED);
     }
-
-    PvfsShutdownQuota();
-
-    if (gPvfsDeviceHandle)
-    {
-        IoDeviceDelete(&gPvfsDeviceHandle);
-    }
-
-    PvfsDestroyDriverState(&gPvfsDriverState);
 
     IO_LOG_ENTER_LEAVE("");
 }
@@ -168,18 +161,18 @@ PvfsDriverShutdown(
 static
 VOID
 PvfsDestroyUnixIdCache(
-    PPVFS_ID_CACHE *ppCacheArray,
-    LONG Length
+    IN OUT PPVFS_ID_CACHE_ENTRY CacheArray[],
+    IN LONG Length
     )
 {
     LONG i = 0;
 
     for (i=0; i<Length; i++)
     {
-        if (ppCacheArray[i] != NULL)
+        if (CacheArray[i] != NULL)
         {
-            RTL_FREE(&ppCacheArray[i]->pSid);
-            PVFS_FREE(&ppCacheArray[i]);
+            RTL_FREE(&CacheArray[i]->pSid);
+            PVFS_FREE(&CacheArray[i]);
         }
     }
 
@@ -316,16 +309,13 @@ PvfsDriverInitialize(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
+    if (IsSetFlag(gPvfsDriverState.Flags, PVFS_STATE_FLAG_INITIALIZED))
+    {
+        ntError = STATUS_SUCCESS;
+        goto error;
+    }
+
     ntError = PvfsConfigRegistryInit(&gPvfsDriverConfig);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsCbTableInitialize(&gScbTable);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsCbTableInitialize(&gFcbTable);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsPathCacheInit();
@@ -333,6 +323,8 @@ PvfsDriverInitialize(
 
     ntError = PvfsCreateDriverState(&gPvfsDriverState);
     BAIL_ON_NT_STATUS(ntError);
+
+    SetFlag(gPvfsDriverState.Flags, PVFS_STATE_FLAG_INITIALIZED);
 
 error:
     return ntError;
@@ -348,6 +340,15 @@ PvfsCreateDriverState(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PLW_THREAD_POOL_ATTRIBUTES pThreadAttributes = NULL;
+
+    ntError = PvfsSecurityInitMapSecurityCtx(&State->MapSecurityContext);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableInitialize(&State->ScbTable);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCbTableInitialize(&State->FcbTable);
+    BAIL_ON_NT_STATUS(ntError);
 
     // Create the worker thread pool.  Avoid any tasks threads for now
 
@@ -386,13 +387,35 @@ PvfsDestroyDriverState(
     PPVFS_DRIVER_STATE State
     )
 {
-    if (State)
+    BOOLEAN driverLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(driverLocked, &State->Mutex);
+
+    if (State->ThreadPool)
     {
-        if (State->ThreadPool)
-        {
-            LwRtlFreeThreadPool(&State->ThreadPool);
-        }
+        LwRtlFreeThreadPool(&State->ThreadPool);
     }
+
+
+    PvfsDestroyUnixIdCache(State->UidCache.Cache, PVFS_MAX_MRU_SIZE);
+    PvfsDestroyUnixIdCache(State->GidCache.Cache, PVFS_MAX_MRU_SIZE);
+
+    if (State->MapSecurityContext)
+    {
+        PvfsSecurityShutdownMapSecurityCtx(&State->MapSecurityContext);
+    }
+
+    if (State->IoDeviceHandle)
+    {
+        IoDeviceDelete(&State->IoDeviceHandle);
+    }
+
+    PvfsCbTableDestroy(&State->ScbTable);
+    PvfsCbTableDestroy(&State->FcbTable);
+
+    LWIO_LOCK_MUTEX(driverLocked, &State->Mutex);
+
+    pthread_mutex_destroy(&State->Mutex);
 
     return;
 }

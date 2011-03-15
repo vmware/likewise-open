@@ -78,7 +78,7 @@ PvfsFreeSCB(
 
         PVFS_FREE(&pScb);
 
-        InterlockedDecrement(&gPvfsScbCount);
+        InterlockedDecrement(&gPvfsDriverState.Counters.Scb);
     }
 
     return;
@@ -176,7 +176,7 @@ PvfsAllocateSCB(
 
     *ppScb = pScb;
 
-    InterlockedIncrement(&gPvfsScbCount);
+    InterlockedIncrement(&gPvfsDriverState.Counters.Scb);
 
     ntError = STATUS_SUCCESS;
 
@@ -453,7 +453,7 @@ PvfsCreateSCB(
     ntError = PvfsAllocateCStringFromFileName(&fullFileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, fullFileName);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gPvfsDriverState.ScbTable, fullFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Protect against adding a duplicate */
@@ -560,7 +560,7 @@ PvfsFindOwnerFCB(
     PPVFS_FCB pFcb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gFcbTable, (PVOID)pszFilename);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gPvfsDriverState.FcbTable, (PVOID)pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableLookup(
@@ -1167,16 +1167,16 @@ PvfsRenameSCB(
     /* If the target has an existing SCB, remove it from the Table and let
        the existing ref counters play out (e.g. pending change notifies. */
 
-    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gScbTable, newStreamName);
+    ntError = PvfsCbTableGetBucket(&pTargetBucket, &gPvfsDriverState.ScbTable, newStreamName);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Locks - gScbTable(Excl) */
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bRenameLock, &gScbTable.rwLock);
+    /* Locks - gPvfsDriverState.ScbTable(Excl) */
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bRenameLock, &gPvfsDriverState.ScbTable.rwLock);
 
     ntError = PvfsBuildFileNameFromScb(&currentFileName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Locks - gScbTable(Excl),
+    /* Locks - gPvfsDriverState.ScbTable(Excl),
                pTargetBucket(Excl) */
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTargetBucketLocked, &pTargetBucket->rwLock);
@@ -1228,7 +1228,7 @@ PvfsRenameSCB(
         }
     }
 
-    /* Locks - gScbTable(Excl),
+    /* Locks - gPvfsDriverState.ScbTable(Excl),
                pTargetBucket(Excl),
                pScb->BaseControlBlock.RwLock(Excl) */
 
@@ -1255,7 +1255,7 @@ PvfsRenameSCB(
     pScb->BaseControlBlock.pBucket = NULL;
     LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
 
-    /* Locks - gScbTable(Excl)
+    /* Locks - gPvfsDriverState.ScbTable(Excl)
                pTargetBucket(Excl)
                pScb->BaseControlBlock.RwLock(Excl),
                pCurrentBucket(Excl) */
@@ -1290,7 +1290,7 @@ PvfsRenameSCB(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Locks - gScbTable(Excl),
+    /* Locks - gPvfsDriverState.ScbTable(Excl),
                pTargetBucket(Excl),
                pScb->BaseControlBlock.RwLock(Excl),
                pScb->BaseControlBlock.Mutex */
@@ -1315,7 +1315,7 @@ error:
     LWIO_UNLOCK_RWMUTEX(bTargetScbLocked, &pTargetScb->rwCcbLock);
     LWIO_UNLOCK_RWMUTEX(bTargetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(bCurrentBucketLocked, &pCurrentBucket->rwLock);
-    LWIO_UNLOCK_RWMUTEX(bRenameLock, &gScbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bRenameLock, &gPvfsDriverState.ScbTable.rwLock);
     LWIO_UNLOCK_RWMUTEX(bScbRwLocked, &pScb->BaseControlBlock.RwLock);
     LWIO_UNLOCK_MUTEX(bCurrentScbControl, &pScb->BaseControlBlock.Mutex);
 
