@@ -56,8 +56,9 @@ typedef VOID (*PFN_SRV_PROTOCOL_SEND_COMPLETE)(
 
 NTSTATUS
 SrvProtocolInit(
-    PLWIO_PACKET_ALLOCATOR     hPacketAllocator,  /* IN */
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList         /* IN */
+    IN PLW_THREAD_POOL ThreadPool,
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );
 
 NTSTATUS

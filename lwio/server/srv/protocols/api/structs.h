@@ -100,7 +100,6 @@ typedef struct _SRV_PROTOCOL_API_GLOBALS
     pthread_rwlock_t               mutex;
     pthread_rwlock_t*              pMutex;
 
-    PSMB_PROD_CONS_QUEUE           pWorkQueue;
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator;
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList;
     SRV_PROTOCOL_CONFIG            config;

@@ -52,6 +52,7 @@
 NTSTATUS
 SrvTransportInit(
     OUT PSRV_TRANSPORT_HANDLE phTransport,
+    IN PLW_THREAD_POOL ThreadPool,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
     IN BOOL bNetbiosSessionEnabled
@@ -62,22 +63,13 @@ SrvTransportInit(
     NTSTATUS v6Status = STATUS_SUCCESS;
     NTSTATUS nbStatus = STATUS_SUCCESS;
     PSRV_TRANSPORT_HANDLE_DATA pTransport = NULL;
-    PLW_THREAD_POOL_ATTRIBUTES pAttrs = NULL;
 
     ntStatus = SrvAllocateMemory(sizeof(*pTransport), OUT_PPVOID(&pTransport));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTransport->Dispatch = *pProtocolDispatch;
     pTransport->pContext = pProtocolDispatchContext;
-
-    ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* We don't presently use work threads, so turn them off */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_WORK_THREADS, 0);
-
-    ntStatus = LwRtlCreateThreadPool(&pTransport->pPool, pAttrs);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pTransport->pPool = ThreadPool;
 
     /* Try to listen on both IPv6 and IPv4 interfaces */
     LWIO_LOG_VERBOSE("Attempting to create IPv6 listener");
@@ -125,8 +117,6 @@ SrvTransportInit(
 
 cleanup:
 
-    LwRtlFreeThreadPoolAttributes(&pAttrs);
-
     *phTransport = pTransport;
 
     return ntStatus;
@@ -152,7 +142,7 @@ SrvTransportShutdown(
         {
             SrvListenerShutdown(&hTransport->ListenerNetbiosSession);
         }
-        LwRtlFreeThreadPool(&hTransport->pPool);
+        // hTransport->pPool is owned by driver
         SrvFreeMemory(hTransport);
     }
 }
