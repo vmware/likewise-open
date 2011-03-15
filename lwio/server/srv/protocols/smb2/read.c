@@ -167,7 +167,6 @@ SrvProcessRead_SMB_V2(
     PLWIO_SRV_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE pAsyncState  = NULL;
-    BOOLEAN unregisterAsyncState = FALSE;
 
     pReadState = (PSRV_READ_STATE_SMB_V2)pCtxSmb2->hState;
     if (pReadState)
@@ -242,8 +241,6 @@ SrvProcessRead_SMB_V2(
                        &pAsyncState);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        unregisterAsyncState = TRUE;
-
         ntStatus = SrvBuildReadState_SMB_V2(
                         pRequestHeader,
                         pFile,
@@ -286,10 +283,6 @@ SrvProcessRead_SMB_V2(
         case SRV_READ_STAGE_SMB_V2_ATTEMPT_READ:
 
             ntStatus = SrvAttemptReadIo_SMB_V2(pReadState, pExecContext);
-            if (pCtxSmb2->InterimResponseTimer)
-            {
-                unregisterAsyncState = FALSE;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED;

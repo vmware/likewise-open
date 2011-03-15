@@ -160,7 +160,6 @@ SrvProcessWrite_SMB_V2(
     PLWIO_SRV_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
-    BOOLEAN unregisterAsyncState = FALSE;
 
     pWriteState = (PSRV_WRITE_STATE_SMB_V2)pCtxSmb2->hState;
     if (pWriteState)
@@ -239,8 +238,6 @@ SrvProcessWrite_SMB_V2(
                        &pAsyncState);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        unregisterAsyncState = TRUE;
-
         ntStatus = SrvBuildWriteState_SMB_V2(
                             pRequestHeader,
                             pData,
@@ -273,10 +270,6 @@ SrvProcessWrite_SMB_V2(
         case SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE:
 
             ntStatus = SrvExecuteWrite_SMB_V2(pWriteState, pExecContext);
-            if (pCtxSmb2->InterimResponseTimer)
-            {
-                unregisterAsyncState = FALSE;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_IO;
