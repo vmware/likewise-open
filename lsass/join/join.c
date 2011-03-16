@@ -185,7 +185,8 @@ LsaMachAcctSearch(
     LDAP *ldconn,
     const wchar16_t *name,
     const wchar16_t *dn_context,
-    wchar16_t **dn
+    wchar16_t **pDn,
+    wchar16_t **pDnsName
     );
 
 
@@ -682,7 +683,12 @@ LsaJoinDomainInternal(
     dwError = LsaDirectoryConnect(pwszDCName, &pLdap, &pwszBaseDn);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaMachAcctSearch(pLdap, pwszMachineAcctName, pwszBaseDn, &pwszDn);
+    dwError = LsaMachAcctSearch(
+                  pLdap,
+                  pwszMachineAcctName,
+                  pwszBaseDn,
+                  &pwszDn,
+                  NULL);
     if (dwError == ERROR_INVALID_PARAMETER)
     {
         dwError = LW_ERROR_LDAP_INSUFFICIENT_ACCESS;
@@ -980,15 +986,15 @@ LsaGetAccountName(
                 BAIL_ON_LSA_ERROR(err);
             }
 
-            err = LsaMachAcctSearch( ld, searchname, base_dn, &dn );
-            if ( err != ERROR_SUCCESS )
+            err = LsaMachAcctSearch(ld, searchname, base_dn, NULL, &dnsname);
+            if ( err != ERROR_SUCCESS || !dnsname)
             {
                 err = ERROR_SUCCESS;
 
                 err = LwAllocateWc16String(&samname, machname);
                 BAIL_ON_LSA_ERROR(err);
             }
-            LW_SAFE_FREE_MEMORY(dn);
+            LW_SAFE_FREE_MEMORY(dnsname);
         }
     }
 
@@ -1009,6 +1015,8 @@ LsaGetAccountName(
         {
             err = LsaWc16sHash(dnsname, &hash);
             BAIL_ON_LSA_ERROR(err);
+
+            LW_SAFE_FREE_MEMORY(dnsname);
         }
         else
         {
@@ -1046,8 +1054,8 @@ LsaGetAccountName(
                 BAIL_ON_LSA_ERROR(err);
             }
 
-            err = LsaMachAcctSearch( ld, searchname, base_dn, &dn );
-            if ( err != ERROR_SUCCESS )
+            err = LsaMachAcctSearch(ld, searchname, base_dn, NULL, &dnsname);
+            if ( err != ERROR_SUCCESS || !dnsname)
             {
                 err = ERROR_SUCCESS;
 
@@ -1056,7 +1064,7 @@ LsaGetAccountName(
 
                 break;
             }
-            LW_SAFE_FREE_MEMORY(dn);
+            LW_SAFE_FREE_MEMORY(dnsname);
         }
         if (offset == 10)
         {
@@ -2593,7 +2601,8 @@ LsaMachAcctSearch(
     LDAP *ldconn,
     const wchar16_t *name,
     const wchar16_t *dn_context,
-    wchar16_t **dn
+    wchar16_t **pDn,
+    wchar16_t **pDnsName
     )
 {
     DWORD dwError = ERROR_SUCCESS;
@@ -2601,32 +2610,64 @@ LsaMachAcctSearch(
     LDAPMessage *res = NULL;
     wchar16_t *dn_attr_name = NULL;
     wchar16_t **dn_attr_val = NULL;
+    wchar16_t *dns_name_attr_name = NULL;
+    wchar16_t **dns_name_attr_val = NULL;
+    wchar16_t *dn = NULL;
+    wchar16_t *dnsName = NULL;
 
     BAIL_ON_INVALID_POINTER(ldconn);
     BAIL_ON_INVALID_POINTER(name);
     BAIL_ON_INVALID_POINTER(dn_context);
-    BAIL_ON_INVALID_POINTER(dn);
-
-    *dn = NULL;
 
     lderr = LdapMachAcctSearch(&res, ldconn, name, dn_context);
     BAIL_ON_LDAP_ERROR(lderr);
 
-    dwError = LwMbsToWc16s("distinguishedName", &dn_attr_name);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pDn)
+    {
+        dwError = LwMbsToWc16s("distinguishedName", &dn_attr_name);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dn_attr_val = LdapAttributeGet(ldconn, res, dn_attr_name, NULL);
-    if (!dn_attr_val) {
-        lderr = LDAP_NO_SUCH_ATTRIBUTE;
-        BAIL_ON_LDAP_ERROR(lderr);
+        dn_attr_val = LdapAttributeGet(ldconn, res, dn_attr_name, NULL);
+        if (!dn_attr_val) {
+            lderr = LDAP_NO_SUCH_ATTRIBUTE;
+            BAIL_ON_LDAP_ERROR(lderr);
+        }
+
+        dwError = LwAllocateWc16String(&dn, dn_attr_val[0]);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LwAllocateWc16String(dn, dn_attr_val[0]);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pDnsName)
+    {
+        dwError = LwMbsToWc16s("dNSHostName", &dns_name_attr_name);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dns_name_attr_val = LdapAttributeGet(
+                                ldconn,
+                                res,
+                                dns_name_attr_name,
+                                NULL);
+        if (dns_name_attr_val) {
+            dwError = LwAllocateWc16String(&dnsName, dns_name_attr_val[0]);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
 
 cleanup:
+
+    if (pDn)
+    {
+        *pDn = dn;
+    }
+    if (pDnsName)
+    {
+        *pDnsName = dnsName;
+    }
+
     LW_SAFE_FREE_MEMORY(dn_attr_name);
     LdapAttributeValueFree(dn_attr_val);
+    LW_SAFE_FREE_MEMORY(dns_name_attr_name);
+    LdapAttributeValueFree(dns_name_attr_val);
 
     if (res) {
         LdapMessageFree(res);
@@ -2641,7 +2682,8 @@ cleanup:
     return dwError;
 
 error:
-    *dn = NULL;
+    LW_SAFE_FREE_MEMORY(dn);
+    LW_SAFE_FREE_MEMORY(dnsName);
     goto cleanup;
 }
 
