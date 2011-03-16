@@ -64,6 +64,7 @@
 "DomainManagerIncludeTrustsList"=sza:""
 "CacheType"="memory"
 "MemoryCacheSizeCap"=dword:00000000
+"AddDomainToLocalGroupsEnabled"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
 "LoginShellTemplate"="/bin/sh"

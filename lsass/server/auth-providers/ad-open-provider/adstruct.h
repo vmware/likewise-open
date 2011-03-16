@@ -138,6 +138,7 @@ typedef struct _LSA_AD_CONFIG {
         PSTR*           ppszTrustExceptionList;
         DWORD           dwTrustExceptionCount;
     } DomainManager;
+    BOOLEAN             bAddDomainToLocalGroupsEnabled;
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
 struct _ADSTATE_CONNECTION;

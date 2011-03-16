@@ -1374,8 +1374,11 @@ AD_PreJoinDomain(
         break;
 
     case LSA_AD_JOINED:
-        dwError = LsaDisableDomainGroupMembership();
-        BAIL_ON_LSA_ERROR(dwError);
+        if (AD_GetAddDomainToLocalGroupsEnabled())
+        {
+            dwError = LsaDisableDomainGroupMembership();
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         dwError = AD_TransitionNotJoined(pState);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1526,8 +1529,11 @@ AD_JoinDomain(
     dwError = AD_PostJoinDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaEnableDomainGroupMembership(pRequest->pszHostDnsDomain);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (AD_GetAddDomainToLocalGroupsEnabled())
+    {
+        dwError = LsaEnableDomainGroupMembership(pRequest->pszHostDnsDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     LSA_LOG_INFO("Joined domain: %s", pRequest->pszDomain);
 
@@ -1651,8 +1657,11 @@ AD_LeaveDomain(
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
 
-    dwError = LsaDisableDomainGroupMembership();
-    BAIL_ON_LSA_ERROR(dwError);
+    if (AD_GetAddDomainToLocalGroupsEnabled())
+    {
+        dwError = LsaDisableDomainGroupMembership();
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = AD_PreLeaveDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);

@@ -258,5 +258,10 @@ AD_GetDomainManagerTrustExceptionList(
     OUT PDWORD pdwTrustsCount
     );
 
+BOOLEAN
+AD_GetAddDomainToLocalGroupsEnabled(
+    VOID
+    );
+
 #endif /* __AD_CFG_H__ */
 

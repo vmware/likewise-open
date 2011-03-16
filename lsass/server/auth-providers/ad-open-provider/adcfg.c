@@ -133,6 +133,7 @@ AD_InitializeConfig(
     pConfig->DomainManager.bIgnoreAllTrusts = FALSE;
     pConfig->DomainManager.ppszTrustExceptionList = NULL;
     pConfig->DomainManager.dwTrustExceptionCount = 0;
+    pConfig->bAddDomainToLocalGroupsEnabled = FALSE;
 
     dwError = LwAllocateString(
                     AD_DEFAULT_SHELL,
@@ -534,6 +535,16 @@ AD_ReadRegistry(
             &pszIncludeTrustsListMultiString,
             NULL
         },
+        {
+            "ADdDomainToLocalGroupsEnabled",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &StagingConfig.bAddDomainToLocalGroupsEnabled,
+            NULL
+        }
     };
 
     LSA_CONFIG LsaConfigDescription[] =
@@ -1755,4 +1766,21 @@ AD_GetDomainManagerTrustExceptionList(
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
     return dwError;
+}
+
+BOOLEAN
+AD_GetAddDomainToLocalGroupsEnabled(
+    VOID
+    )
+{
+    BOOLEAN result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.bAddDomainToLocalGroupsEnabled;
+
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    return result;
 }
