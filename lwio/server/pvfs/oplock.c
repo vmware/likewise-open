@@ -1101,29 +1101,25 @@ PvfsOplockBreakOnRead(
     {
     case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
-        /* Don't break our own lock */
-        if (!PvfsOplockIsMine(pCcb, pOplock))
+        BreakResult = IO_OPLOCK_BROKEN_TO_LEVEL_2;
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
+        if (pOplock->pCcb->OplockState != PVFS_OPLOCK_STATE_GRANTED)
         {
-            BreakResult = IO_OPLOCK_BROKEN_TO_LEVEL_2;
-
-            LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-
-            if (pOplock->pCcb->OplockState != PVFS_OPLOCK_STATE_GRANTED)
-            {
-                ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
-                LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-                BAIL_ON_NT_STATUS(ntError);
-            }
-
-            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
-            pOplock->pCcb->OplockBreakResult = BreakResult;
-
+            ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
-
-            pScb->bOplockBreakInProgress = TRUE;
-
-            ntError = STATUS_PENDING;
+            BAIL_ON_NT_STATUS(ntError);
         }
+
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
+
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
+        pScb->bOplockBreakInProgress = TRUE;
+
+        ntError = STATUS_PENDING;
 
         break;
 
