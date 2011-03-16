@@ -536,7 +536,7 @@ AD_ReadRegistry(
             NULL
         },
         {
-            "ADdDomainToLocalGroupsEnabled",
+            "AddDomainToLocalGroupsEnabled",
             TRUE,
             LsaTypeBoolean,
             0,
