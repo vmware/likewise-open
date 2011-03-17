@@ -1,9 +1,6 @@
 make()
 {
     UTILS_SOURCES="\
-	fileutils.c  \
-	globals.c    \
-	hostinfo.c   \
 	memory.c     \
 	strings.c    \
 	sysfuncs.c"

@@ -3,9 +3,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 lib_LTLIBRARIES = libsrvsvcutils.la
 
 libsrvsvcutils_la_SOURCES = \
-    fileutils.c  \
-    globals.c    \
-    hostinfo.c   \
     memory.c     \
     strings.c    \
     sysfuncs.c
