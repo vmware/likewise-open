@@ -1,0 +1,6 @@
+
+SUBDIRS = \
+         api       \
+         etc       \
+         reader    \
+         daemon
