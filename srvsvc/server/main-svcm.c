@@ -154,7 +154,7 @@ SrvSvcSetServerDefaults(
     VOID
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
 
     dwError = SrvSvcReadConfigSettings();
 
@@ -167,7 +167,7 @@ SrvSvcRpcInitialize(
     VOID
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
     DWORD dwBindAttempts = 0;
     BOOLEAN bInLock = FALSE;
     static const DWORD dwMaxBindAttempts = 5;
@@ -231,15 +231,10 @@ SrvSvcRpcInitialize(
     {
     }
 
-cleanup:
-
+error:
     SRVSVC_UNLOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
 
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 
 
@@ -248,7 +243,7 @@ SrvSvcRpcShutdown(
     VOID
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
     SRVSVC_LOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
@@ -291,15 +286,10 @@ SrvSvcRpcShutdown(
         gSrvsServerInfo.pSessionSecDesc = NULL;
     }
 
-cleanup:
-
+error:
     SRVSVC_UNLOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
 
     return;
-
-error:
-
-    goto cleanup;
 }
 
 
@@ -308,19 +298,18 @@ SrvSvcDSNotify(
     VOID
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
 
     dwError = LwDsCacheAddPidException(getpid());
     if (dwError == LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK)
     {
-        SRVSVC_LOG_ERROR(   "Could not register process pid (%d) "
-                            "with Mac DirectoryService Cache plugin",
-                            (int) getpid());
+        SRVSVC_LOG_ERROR("Could not register process pid (%d) "
+                         "with Mac DirectoryService Cache plugin",
+                         (int) getpid());
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
 error:
-
     return dwError;
 }
 
@@ -339,13 +328,13 @@ SrvSvcSMNotify(
     VOID
     )
 {
-    DWORD dwError     = 0;
+    DWORD dwError = ERROR_SUCCESS;
     PCSTR pszSmNotify = NULL;
-    int   notifyFd    = -1;
+    int notifyFd = -1;
 
     if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
     {
-        int  ret        = 0;
+        int ret = 0;
         char notifyCode = 0;
 
         notifyFd = atoi(pszSmNotify);
@@ -366,16 +355,11 @@ SrvSvcSMNotify(
         }
     }
 
-cleanup:
-
+error:
     if (notifyFd >= 0)
     {
         close(notifyFd);
     }
 
     return dwError;
-
-error:
-
-    goto cleanup;
 }

@@ -2,25 +2,25 @@ make()
 {
     SERVER_SOURCES="\
         accesstoken.c              \
-	config.c                   \
-	netfile.c                  \
-	netsession.c               \
-	srvsvc.c                   \
-	srvsvc_srv.c               \
-	winreg.c                   \
-	winreg_srv.c               \
-	globals.c                  \
-	marshall.c                 \
-	security.c                 \
-	srvsvc_netshareadd.c       \
-	srvsvc_netsharedel.c       \
-	srvsvc_netsharegetinfo.c   \
-	srvsvc_netsharesetinfo.c   \
-	srvsvc_netshareenum.c      \
-	srvsvc_netservergetinfo.c  \
-	srvsvc_netnamevalidate.c   \
+        config.c                   \
+        netfile.c                  \
+        netsession.c               \
+        srvsvc.c                   \
+        srvsvc_srv.c               \
+        winreg.c                   \
+        winreg_srv.c               \
+        globals.c                  \
+        marshall.c                 \
+        security.c                 \
+        srvsvc_netshareadd.c       \
+        srvsvc_netsharedel.c       \
+        srvsvc_netsharegetinfo.c   \
+        srvsvc_netsharesetinfo.c   \
+        srvsvc_netshareenum.c      \
+        srvsvc_netservergetinfo.c  \
+        srvsvc_netnamevalidate.c   \
         srvsvc_netconnectionenum.c \
-	utils.c                    \
+        utils.c                    \
         main-svcm.c"
 
     lw_dceidl \
@@ -45,14 +45,14 @@ make()
 	LIBDEPS="dcerpc"
 
     lw_service \
-	SERVICE=srvsvc \
-	SOURCES="$SERVER_SOURCES" \
-	GROUPS="stubs" \
-	INCLUDEDIRS=". ../include" \
-	CPPFLAGS="-DSRVSVC_BUILD" \
-	HEADERDEPS="lw/base.h lwadvapi.h lwio/lwio.h dce/rpc.h compat/dcerpc.h lwnet.h \
+        SERVICE=srvsvc \
+        SOURCES="$SERVER_SOURCES" \
+        GROUPS="stubs" \
+        INCLUDEDIRS=". ../include" \
+        CPPFLAGS="-DSRVSVC_BUILD" \
+        HEADERDEPS="lw/base.h lwadvapi.h lwio/lwio.h dce/rpc.h compat/dcerpc.h lwnet.h \
                     lw/rpc/lsa.h" \
-	LIBDEPS="srvsvcutils lsarpc lwioshareinfo lwbase \
+        LIBDEPS="srvsvcutils lsarpc lwioshareinfo lwbase \
                  lwbase_nothr lwioclient lwadvapi lwadvapi_nothr $LIB_PTHREAD" \
-	DEPS="srvsvc_h.h winreg_h.h"
+        DEPS="srvsvc_h.h winreg_h.h"
 }
