@@ -5,5 +5,4 @@ SUBDIRS=      \
     etc       \
     utils     \
     client    \
-    server    \
-    test
+    server
