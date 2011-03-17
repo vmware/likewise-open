@@ -54,13 +54,6 @@
 #define IsNullOrEmptyString(pszStr)     \
     (pszStr == NULL || *pszStr == '\0')
 
-#define SRVSVC_SAFE_FREE_STRING(str) \
-        do {                      \
-           if (str) {             \
-              SrvSvcFreeString(str); \
-              (str) = NULL;       \
-           }                      \
-        } while(0);
 
 /*
  * Logging
@@ -111,80 +104,6 @@ SrvSvcSrvAllocateMemory(
 void
 SrvSvcSrvFreeMemory(
     PVOID pMemory
-    );
-
-DWORD
-SrvSvcStrndup(
-    PCSTR  pszInputString,
-    size_t size,
-    PSTR * ppszOutputString
-    );
-
-VOID
-SrvSvcFreeString(
-    PSTR pszString
-    );
-
-BOOLEAN
-SrvSvcIsWhiteSpace(
-    char c
-    );
-
-/*
- * Modify PSTR in-place to convert sequences
- * of whitespace characters into
- * single spaces (0x20)
- */
-DWORD
-SrvSvcCompressWhitespace(
-    PSTR pszString
-    );
-
-/*
- * Convert a 16-bit string to an 8-bit string
- * Allocate new memory in the process
- */
-DWORD
-SrvSvcLpwStrToLpStr(
-    PCWSTR pszwString,
-    PSTR*  ppszString
-    );
-
-VOID
-SrvSvcStripWhitespace(
-    PSTR pszString,
-    BOOLEAN bLeading,
-    BOOLEAN bTrailing
-    );
-
-VOID
-SrvSvcStrToUpper(
-    PSTR pszString
-    );
-
-VOID
-SrvSvcStrToLower(
-    PSTR pszString
-    );
-
-DWORD
-SrvSvcAllocateStringPrintf(
-    PSTR* ppszOutputString,
-    PCSTR pszFormat,
-    ...
-    );
-
-DWORD
-SrvSvcAllocateStringPrintfV(
-    PSTR*   ppszOutputString,
-    PCSTR   pszFormat,
-    va_list args
-    );
-
-DWORD
-SrvSvcAllocateString(
-    PCSTR  pszInputString,
-    PSTR*  ppszOutputString
     );
 
 

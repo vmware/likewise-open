@@ -19,19 +19,6 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-// sysfuncs.c
-
-#if !HAVE_DECL_ISBLANK
-int isblank(int c);
-#endif
-
-void
-SrvSvc_vsyslog(
-    int priority,
-    const char *format,
-    va_list ap
-    );
-
 #if !defined(HAVE_RPL_MALLOC)
 
 void*

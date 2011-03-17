@@ -69,13 +69,6 @@ SrvSvcConfigGetLsaLpcSocketPath(
     PSTR* ppszPath
     );
 
-// main.c
-
-VOID
-SrvSvcSetProcessShouldExit(
-    BOOLEAN val
-    );
-
 // netfile.c
 
 NET_API_STATUS
@@ -321,6 +314,7 @@ VOID
 SrvSvcSrvFreeConnectionInfo1(
     IN PCONNECTION_INFO_1 pConnectionInfo1
     );
+
 
 /*
 local variables:

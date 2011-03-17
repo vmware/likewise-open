@@ -4,7 +4,6 @@ lib_LTLIBRARIES = libsrvsvcutils.la
 
 libsrvsvcutils_la_SOURCES = \
     memory.c     \
-    strings.c    \
     sysfuncs.c
 
 libsrvsvcutils_la_LIBADD = \

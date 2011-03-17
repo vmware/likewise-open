@@ -2,7 +2,6 @@ make()
 {
     UTILS_SOURCES="\
 	memory.c     \
-	strings.c    \
 	sysfuncs.c"
 
     mk_library \
