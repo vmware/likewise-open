@@ -146,8 +146,17 @@ typedef struct _SRV_CREDITOR
     PSRV_DEBITOR pInUse_head;   // Non-interim sequences being processed
     PSRV_DEBITOR pInUse_tail;
 
-    USHORT  usCreditLimit;  // how many credits can be acquired from global pool
-    USHORT  usTotalCredits; // total number of currently available credits
+    // how many credits can be acquired from global pool
+    USHORT  usCreditLimit;
+
+    // total number of currently available credits
+    USHORT  usTotalCredits;
+
+    // the maximum starting credits that can be granted
+    USHORT  usCreditStart;
+
+    // the number of credits granted in the last round
+    USHORT  usNumCreditsLastGranted;
 
 } SRV_CREDITOR;
 

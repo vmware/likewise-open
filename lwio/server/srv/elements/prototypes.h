@@ -69,6 +69,11 @@ SrvElementsConfigGetClientCreditLimit(
     VOID
     );
 
+USHORT
+SrvElementsConfigGetClientCreditStart(
+    VOID
+    );
+
 VOID
 SrvElementsConfigShutdown(
     VOID

@@ -48,7 +48,8 @@
  */
 
 #define LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT (250000)
-#define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT (5)
+#define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT (32)
+#define LWIO_SRV_CREDIT_INCREMENT (2)
 
 #define SRV_ELEMENTS_CONFIG_TABLE_INITIALIZER                   \
 {                                                               \
@@ -65,7 +66,7 @@
         .bUsePolicy     = FALSE,                                \
         .Type           = LwIoTypeDword,                        \
         .dwMin          = 1,                                    \
-        .dwMax          = 32,                                   \
+        .dwMax          = 256,                                  \
         .pValue         = &pConfig->usClientCreditLimit         \
     },                                                          \
 };

@@ -96,8 +96,8 @@
 
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv\smb2]
 "OplockTimeoutMillisecs"=dword:00007530
-"GlobalCreditLimit"=dword:000061A8
-"ClientCreditLimit"=dword:00000005
+"GlobalCreditLimit"=dword:0003d090
+"ClientCreditLimit"=dword:00000080
 
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\iotest]
 "Path"="@providerdir@/libiotest.sys@MOD_EXT@"
