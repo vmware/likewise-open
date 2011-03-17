@@ -42,7 +42,6 @@
 
 #include "includes.h"
 
-static
 DWORD
 SrvSvcSetServerDefaults(
     VOID
@@ -92,43 +91,26 @@ SrvSvcStartAsDaemon(
     VOID
     );
 
-static
-pid_t
-pid_from_pid_file(
-    VOID
-    );
-
-static
-VOID
-SrvSvcCreatePIDFile(
-    VOID
-    );
-
-static
 DWORD
 SrvSvcRpcInitialize(
     VOID
     );
 
-static
 VOID
 SrvSvcRpcShutdown(
     VOID
     );
 
-static
 DWORD
 SrvSvcDSNotify(
     VOID
     );
 
-static
 VOID
 SrvSvcDSShutdown(
     VOID
     );
 
-static
 DWORD
 SrvSvcSMNotify(
     VOID
@@ -147,15 +129,6 @@ main(
     dwError = SrvSvcParseArgs(argc, argv, &gServerInfo);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcInitLogging_r(
-                    get_program_name(argv[0]),
-                    gServerInfo.logTarget,
-                    gServerInfo.maxAllowedLogLevel,
-                    gServerInfo.szLogFilePath);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    SRVSVC_LOG_VERBOSE("Logging Started");
-
     if (atexit(SrvSvcExitHandler) < 0)
     {
         dwError = errno;
@@ -168,12 +141,8 @@ main(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
-    SrvSvcCreatePIDFile();
-
     dwError = SrvSvcReadConfigSettings();
     BAIL_ON_SRVSVC_ERROR(dwError);
-
-    SrvSvcBlockSelectedSignals();
 
     dwError = SrvSvcInitSecurity();
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -187,11 +156,7 @@ main(
     dwError = SrvSvcSMNotify();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcHandleSignals();
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
  cleanup:
-
     SRVSVC_LOG_INFO("Likewise Server Service exiting...");
 
     SrvSvcSetProcessShouldExit(TRUE);
@@ -199,8 +164,6 @@ main(
     SrvSvcDSShutdown();
 
     SrvSvcRpcShutdown();
-
-    SrvSvcShutdownLogging_r();
 
     SrvSvcSetProcessExitCode(dwError);
 
@@ -214,15 +177,13 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 SrvSvcSetServerDefaults(
     VOID
     )
 {
     DWORD dwError = 0;
-
-    setlocale(LC_ALL, "");
 
     dwError = SrvSvcReadConfigSettings();
 
@@ -241,14 +202,11 @@ SrvSvcParseArgs(
 
     typedef enum {
         PARSE_MODE_OPEN = 0,
-        PARSE_MODE_LOGFILE,
-        PARSE_MODE_LOGLEVEL
     } ParseMode;
 
     ParseMode parseMode = PARSE_MODE_OPEN;
     int iArg = 1;
     PSTR pArg = NULL;
-    BOOLEAN bLogTargetSet = FALSE;
 
     do
     {
@@ -261,12 +219,8 @@ SrvSvcParseArgs(
         {
             case PARSE_MODE_OPEN:
 
-                if (strcmp(pArg, "--logfile") == 0)
-                {
-                    parseMode = PARSE_MODE_LOGFILE;
-                }
-                else if ((strcmp(pArg, "--help") == 0) ||
-                         (strcmp(pArg, "-h") == 0))
+                if ((strcmp(pArg, "--help") == 0) ||
+                    (strcmp(pArg, "-h") == 0))
                 {
                     ShowUsage(get_program_name(argv[0]));
                     exit(0);
@@ -274,22 +228,6 @@ SrvSvcParseArgs(
                 else if (strcmp(pArg, "--start-as-daemon") == 0)
                 {
                     pServerInfo->dwStartAsDaemon = 1;
-
-                    // If other arguments set before this set the log target
-                    // don't over-ride that setting
-                    if (!bLogTargetSet)
-                    {
-                        pServerInfo->logTarget = SRVSVC_LOG_TARGET_SYSLOG;
-                    }
-                }
-                else if (strcmp(pArg, "--syslog") == 0)
-                {
-                    bLogTargetSet = TRUE;
-                    pServerInfo->logTarget = SRVSVC_LOG_TARGET_SYSLOG;
-                }
-                else if (strcmp(pArg, "--loglevel") == 0)
-                {
-                    parseMode = PARSE_MODE_LOGLEVEL;
                 }
                 else
                 {
@@ -300,86 +238,8 @@ SrvSvcParseArgs(
                 }
 
                 break;
-
-            case PARSE_MODE_LOGFILE:
-
-                strncpy(
-                    pServerInfo->szLogFilePath,
-                    pArg,
-                    sizeof(pServerInfo->szLogFilePath)-1);
-                pServerInfo->szLogFilePath[sizeof(pServerInfo->szLogFilePath)-1] = '\0';
-
-                SrvSvcStripWhitespace(pServerInfo->szLogFilePath, TRUE, TRUE);
-
-                if (!strcmp(pServerInfo->szLogFilePath, "."))
-                {
-                    pServerInfo->logTarget = SRVSVC_LOG_TARGET_CONSOLE;
-                }
-                else
-                {
-                    pServerInfo->logTarget = SRVSVC_LOG_TARGET_FILE;
-                }
-
-                bLogTargetSet = TRUE;
-
-                parseMode = PARSE_MODE_OPEN;
-
-                break;
-
-            case PARSE_MODE_LOGLEVEL:
-
-                if (!strcasecmp(pArg, "error"))
-                {
-                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_ERROR;
-                }
-                else if (!strcasecmp(pArg, "warning"))
-                {
-                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_WARNING;
-                }
-                else if (!strcasecmp(pArg, "info"))
-                {
-                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_INFO;
-                }
-                else if (!strcasecmp(pArg, "verbose"))
-                {
-                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_VERBOSE;
-                }
-                else if (!strcasecmp(pArg, "debug"))
-                {
-                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_DEBUG;
-                }
-                else
-                {
-                    SRVSVC_LOG_ERROR("Error: Invalid log level [%s]", pArg);
-                    ShowUsage(get_program_name(argv[0]));
-                    exit(1);
-                }
-
-                parseMode = PARSE_MODE_OPEN;
-
-                break;
         }
     } while (iArg < argc);
-
-    if (pServerInfo->dwStartAsDaemon)
-    {
-        if (pServerInfo->logTarget == SRVSVC_LOG_TARGET_CONSOLE)
-        {
-            SRVSVC_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
-
-            dwError = SRVSVC_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SRVSVC_ERROR(dwError);
-        }
-    }
-    else
-    {
-        if (!bLogTargetSet)
-        {
-            pServerInfo->logTarget = SRVSVC_LOG_TARGET_CONSOLE;
-        }
-    }
-
-error:
 
     return dwError;
 }
@@ -579,100 +439,7 @@ SrvSvcStartAsDaemon(
     return (dwError);
 }
 
-static
-pid_t
-pid_from_pid_file(
-    VOID
-    )
-{
-    pid_t pid = 0;
-    int fd = -1;
-    int result;
-    char contents[PID_FILE_CONTENTS_SIZE];
 
-    fd = open(PID_FILE, O_RDONLY, 0644);
-    if (fd < 0) {
-        goto error;
-    }
-
-    result = read(fd, contents, sizeof(contents)-1);
-    if (result <= 0) {
-        goto error;
-    }
-    contents[result-1] = 0;
-
-    result = atoi(contents);
-    if (result <= 0) {
-        result = -1;
-        goto error;
-    }
-
-    pid = (pid_t) result;
-    result = kill(pid, 0);
-    if (result != 0 || errno == ESRCH) {
-        unlink(PID_FILE);
-        pid = 0;
-    }
-
- error:
-    if (fd != -1) {
-        close(fd);
-    }
-
-    return pid;
-}
-
-static
-VOID
-SrvSvcCreatePIDFile(
-    VOID
-    )
-{
-    int result = -1;
-    pid_t pid;
-    char contents[PID_FILE_CONTENTS_SIZE];
-    size_t len;
-    int fd = -1;
-
-    pid = pid_from_pid_file();
-    if (pid > 0) {
-        fprintf(stderr, "Daemon already running as %d\n", (int) pid);
-        result = -1;
-        goto error;
-    }
-
-    fd = open(PID_FILE, O_CREAT | O_WRONLY | O_EXCL, 0644);
-    if (fd < 0) {
-        fprintf(stderr, "Could not create pid file: %s\n", strerror(errno));
-        result = 1;
-        goto error;
-    }
-
-    pid = getpid();
-    snprintf(contents, sizeof(contents)-1, "%d\n", (int) pid);
-    contents[sizeof(contents)-1] = 0;
-    len = strlen(contents);
-
-    result = (int) write(fd, contents, len);
-    if ( result != (int) len ) {
-        fprintf(stderr, "Could not write to pid file: %s\n", strerror(errno));
-        result = -1;
-        goto error;
-    }
-
-    result = 0;
-
- error:
-    if (fd != -1) {
-        close(fd);
-    }
-
-    if (result < 0) {
-        exit(1);
-    }
-}
-
-static
 DWORD
 SrvSvcRpcInitialize(
     VOID
@@ -753,7 +520,7 @@ error:
     goto cleanup;
 }
 
-static
+
 VOID
 SrvSvcRpcShutdown(
     VOID
@@ -813,7 +580,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 SrvSvcDSNotify(
     VOID
@@ -835,7 +602,7 @@ error:
     return dwError;
 }
 
-static
+
 VOID
 SrvSvcDSShutdown(
     VOID
@@ -844,7 +611,7 @@ SrvSvcDSShutdown(
     LwDsCacheRemovePidException(getpid());
 }
 
-static
+
 DWORD
 SrvSvcSMNotify(
     VOID

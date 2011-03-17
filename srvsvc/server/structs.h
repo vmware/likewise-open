@@ -95,12 +95,6 @@ typedef struct _SRVSVC_RUNTIME_GLOBALS
 
     DWORD           dwStartAsDaemon;             /* Should start as daemon */
 
-    SRVSVC_LOG_TARGET logTarget;                   /* where are we logging   */
-
-    SRVSVC_LOG_LEVEL  maxAllowedLogLevel;          /* how much logging ?     */
-
-    CHAR            szLogFilePath[PATH_MAX + 1]; /* log file path */
-
     BOOLEAN         bProcessShouldExit;          /* Process termination flag */
 
     DWORD           dwExitCode;                  /* Process Exit Code */

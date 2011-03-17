@@ -45,16 +45,14 @@
 
 #include "includes.h"
 
-SRVSVC_RUNTIME_GLOBALS gServerInfo =
+
+SRVSVC_RUNTIME_GLOBALS gSrvsServerInfo =
 {
     .mutex                 = PTHREAD_MUTEX_INITIALIZER,
     .pRpcListenerThread    = NULL,
     .pServerBinding        = NULL,
     .pRegistryBinding      = NULL,
     .dwStartAsDaemon       = 0,
-    .logTarget             = SRVSVC_LOG_TARGET_DISABLED,
-    .maxAllowedLogLevel    = SRVSVC_LOG_LEVEL_ERROR,
-    .szLogFilePath         = "",
     .bProcessShouldExit    = 0,
     .dwExitCode            = 0,
     .pServerSecDesc        = NULL,
@@ -71,4 +69,4 @@ SRVSVC_RUNTIME_GLOBALS gServerInfo =
                                 }
 };
 
-PSRVSVC_RUNTIME_GLOBALS gpServerInfo = &gServerInfo;
+PSRVSVC_RUNTIME_GLOBALS gpSrvsServerInfo = &gSrvsServerInfo;

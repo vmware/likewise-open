@@ -4,6 +4,6 @@ SUBDIRS=      \
     include   \
     etc       \
     utils     \
-    logging_r \
     client    \
-    server
+    server    \
+    test

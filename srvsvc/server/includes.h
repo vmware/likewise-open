@@ -74,8 +74,6 @@
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>
 
-#include <srvsvclog_r.h>
-
 #include "srvsvc_srv.h"
 #include "srvsvc_h.h"
 
@@ -89,6 +87,7 @@
 #include "marshall.h"
 
 #include "externs.h"
+#include "srvsvcd.h"
 
 
 /*

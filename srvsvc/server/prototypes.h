@@ -144,18 +144,6 @@ SrvSvcSrvDestroyServerSecurityDescriptor(
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
     );
 
-// signalhandler.c
-
-VOID
-SrvSvcBlockSelectedSignals(
-    VOID
-    );
-
-DWORD
-SrvSvcHandleSignals(
-    VOID
-    );
-
 // srvsvc.c
 
 NET_API_STATUS

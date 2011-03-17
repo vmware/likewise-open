@@ -389,7 +389,6 @@ AC_CONFIG_FILES([Makefile
                  etc/Makefile
 		 etc/srvsvcd.reg
                  utils/Makefile
-                 logging_r/Makefile
                  client/Makefile
                  test/Makefile
                  server/Makefile

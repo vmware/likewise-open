@@ -39,7 +39,7 @@ make()
     mk_library \
 	LIB=srvsvc \
 	SOURCES="$CLIENT_SOURCES" \
-	GROUPS="srvsvc_stub ../logging_r/logging_r" \
+	GROUPS="srvsvc_stub" \
 	CPPFLAGS="-DLIBRPC_BUILD -DSRVSVC_BUILD" \
 	INCLUDEDIRS=". ../include" \
 	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwadvapi.h compat/dcerpc.h" \

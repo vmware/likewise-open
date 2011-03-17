@@ -47,9 +47,3 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 #include "includes.h"
-
-HANDLE                 ghSrvSvcLog        = (HANDLE)NULL;
-SRVSVC_LOG_LEVEL       gSrvSvcMaxLogLevel = SRVSVC_LOG_LEVEL_ERROR;
-SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET = SRVSVC_LOG_TARGET_DISABLED;
-PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger   = NULL;
-

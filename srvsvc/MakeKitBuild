@@ -1,4 +1,4 @@
-SUBDIRS="include utils logging_r client server etc test"
+SUBDIRS="include utils client server etc test"
 
 configure()
 {
@@ -6,9 +6,20 @@ configure()
 
     lw_define_feature_macros
 
+    mk_declare_system_var MOD_EXT
+
+    # Do defines/exports of system-dependent variables
+    mk_multiarch_do
+        mk_define LIBDIR "\"$MK_LIBDIR\""
+        mk_define MOD_EXT "\"$MK_DLO_EXT\""
+        MOD_EXT="$MK_DLO_EXT"
+    mk_multiarch_done
+
     MK_CFLAGS="$MK_CFLAGS -Wall -Werror -fno-strict-aliasing"
 
+    mk_export LIBDIR="$MK_LIBDIR"
     mk_export SBINDIR="$MK_SBINDIR"
+    mk_export MOD_EXT
 
     mk_define CACHEDIR "\"$LW_CACHEDIR\""
 

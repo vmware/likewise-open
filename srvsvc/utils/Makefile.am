@@ -3,17 +3,12 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 lib_LTLIBRARIES = libsrvsvcutils.la
 
 libsrvsvcutils_la_SOURCES = \
-    consolelog.c \
-    filelog.c    \
     fileutils.c  \
     globals.c    \
     hostinfo.c   \
-    logger.c     \
-    loginfo.c    \
     memory.c     \
     strings.c    \
-    sysfuncs.c   \
-    syslog.c
+    sysfuncs.c
 
 libsrvsvcutils_la_LIBADD = \
     $(DCERPC_LIBS)         \

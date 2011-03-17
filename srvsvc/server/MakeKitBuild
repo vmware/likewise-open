@@ -12,7 +12,6 @@ make()
 	globals.c                  \
 	marshall.c                 \
 	security.c                 \
-	signalhandler.c            \
 	srvsvc_netshareadd.c       \
 	srvsvc_netsharedel.c       \
 	srvsvc_netsharegetinfo.c   \
@@ -20,9 +19,9 @@ make()
 	srvsvc_netshareenum.c      \
 	srvsvc_netservergetinfo.c  \
 	srvsvc_netnamevalidate.c   \
-    srvsvc_netconnectionenum.c \
+        srvsvc_netconnectionenum.c \
 	utils.c                    \
-	main.c"
+        main-svcm.c"
 
     lw_dceidl \
 	IDL=../idl/srvsvc.idl \
@@ -45,11 +44,10 @@ make()
 	HEADERDEPS="dce/rpc.h lw/base.h" \
 	LIBDEPS="dcerpc"
 
-    mk_program \
-	PROGRAM=srvsvcd \
+    lw_service \
+	SERVICE=srvsvc \
 	SOURCES="$SERVER_SOURCES" \
-	GROUPS="stubs ../logging_r/logging_r" \
-	INSTALLDIR="${MK_SBINDIR}" \
+	GROUPS="stubs" \
 	INCLUDEDIRS=". ../include" \
 	CPPFLAGS="-DSRVSVC_BUILD" \
 	HEADERDEPS="lw/base.h lwadvapi.h lwio/lwio.h dce/rpc.h compat/dcerpc.h lwnet.h \

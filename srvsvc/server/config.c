@@ -61,12 +61,12 @@ SrvSvcConfigGetLsaLpcSocketPath(
     DWORD   dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
+    SRVSVC_LOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
 
-    dwError = LwAllocateString(gServerInfo.config.szLsaLpcSocketPath,
+    dwError = LwAllocateString(gSrvsServerInfo.config.szLsaLpcSocketPath,
                                ppszPath);
 
-    SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);
+    SRVSVC_UNLOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
 
     return dwError;
 }

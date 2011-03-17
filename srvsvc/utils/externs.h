@@ -49,10 +49,5 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
-
 #endif /* __EXTERNS_H__ */
 

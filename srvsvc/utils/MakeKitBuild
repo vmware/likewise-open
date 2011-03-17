@@ -1,17 +1,12 @@
 make()
 {
     UTILS_SOURCES="\
-	consolelog.c \
-	filelog.c    \
 	fileutils.c  \
 	globals.c    \
 	hostinfo.c   \
-	logger.c     \
-	loginfo.c    \
 	memory.c     \
 	strings.c    \
-	sysfuncs.c   \
-	syslog.c"
+	sysfuncs.c"
 
     mk_library \
 	LIB=srvsvcutils \

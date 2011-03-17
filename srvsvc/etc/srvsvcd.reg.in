@@ -6,11 +6,11 @@
     doc = ""
 }
 "Path" = {
-    default = "@SBINDIR@/srvsvcd"
+    default = "@LIBDIR@/lw-svcm/srvsvc@MOD_EXT@"
     doc = ""
 }
 "Arguments" = {
-    default = "@SBINDIR@/srvsvcd --syslog"
+    default = ""
     doc = ""
 }
 "Environment" = {
@@ -22,6 +22,6 @@
     doc = ""
 }
 "Type" = {
-    default = dword:00000001
+    default = dword:00000002
     doc = ""
 }

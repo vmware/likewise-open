@@ -177,8 +177,8 @@ SrvSvcInitSecurity(
             FALSE));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    gServerInfo.pServerSecDesc = pAbsolute;
-    gServerInfo.pSessionSecDesc = pSessionSecDesc;
+    gSrvsServerInfo.pServerSecDesc = pAbsolute;
+    gSrvsServerInfo.pSessionSecDesc = pSessionSecDesc;
 
 cleanup:
 
@@ -219,11 +219,11 @@ SrvSvcAccessCheck(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (!RtlAccessCheck(
-            gServerInfo.pServerSecDesc,
+            gSrvsServerInfo.pServerSecDesc,
             pToken,
             access,
             0,
-            &gServerInfo.genericMapping,
+            &gSrvsServerInfo.genericMapping,
             &granted,
             &status))
     {
@@ -318,7 +318,7 @@ _NetrConnectionEnum(
     dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &SrvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+    if (!RtlAccessCheck(gSrvsServerInfo.pSessionSecDesc,
                         SrvCtx.pUserToken,
                         dwRequiredAccessRights,
                         0,
@@ -381,7 +381,7 @@ _NetrFileEnum(
     dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+    if (!RtlAccessCheck(gSrvsServerInfo.pSessionSecDesc,
                         srvCtx.pUserToken,
                         dwRequiredAccessRights,
                         0,
@@ -454,7 +454,7 @@ _NetrFileGetInfo(
     dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+    if (!RtlAccessCheck(gSrvsServerInfo.pSessionSecDesc,
                         srvCtx.pUserToken,
                         dwRequiredAccessRights,
                         0,
@@ -502,7 +502,7 @@ _NetrFileClose(
     dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+    if (!RtlAccessCheck(gSrvsServerInfo.pSessionSecDesc,
                         srvCtx.pUserToken,
                         dwRequiredAccessRights,
                         0,
@@ -588,7 +588,7 @@ _NetrSessionEnum(
     dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+    if (!RtlAccessCheck(gSrvsServerInfo.pSessionSecDesc,
                         srvCtx.pUserToken,
                         dwRequiredAccessRights,
                         0,
@@ -658,7 +658,7 @@ _NetrSessionDel(
     dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+    if (!RtlAccessCheck(gSrvsServerInfo.pSessionSecDesc,
                         srvCtx.pUserToken,
                         dwRequiredAccessRights,
                         0,

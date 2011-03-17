@@ -48,6 +48,9 @@
 #ifndef __SRVSVCUTILS_H__
 #define __SRVSVCUTILS_H__
 
+#include <lw/rtllog.h>
+
+
 #define IsNullOrEmptyString(pszStr)     \
     (pszStr == NULL || *pszStr == '\0')
 
@@ -65,146 +68,39 @@
 
 typedef enum
 {
-    SRVSVC_LOG_LEVEL_ALWAYS = 0,
-    SRVSVC_LOG_LEVEL_ERROR,
-    SRVSVC_LOG_LEVEL_WARNING,
-    SRVSVC_LOG_LEVEL_INFO,
-    SRVSVC_LOG_LEVEL_VERBOSE,
-    SRVSVC_LOG_LEVEL_DEBUG
+    SRVSVC_LOG_LEVEL_ALWAYS = LW_RTL_LOG_LEVEL_ALWAYS,
+    SRVSVC_LOG_LEVEL_ERROR = LW_RTL_LOG_LEVEL_ERROR,
+    SRVSVC_LOG_LEVEL_WARNING = LW_RTL_LOG_LEVEL_WARNING,
+    SRVSVC_LOG_LEVEL_INFO = LW_RTL_LOG_LEVEL_INFO,
+    SRVSVC_LOG_LEVEL_VERBOSE = LW_RTL_LOG_LEVEL_VERBOSE,
+    SRVSVC_LOG_LEVEL_DEBUG = LW_RTL_LOG_LEVEL_DEBUG,
+    SRVSVC_LOG_LEVEL_TRACE = LW_RTL_LOG_LEVEL_TRACE
 } SRVSVC_LOG_LEVEL;
 
-typedef enum
-{
-    SRVSVC_LOG_TARGET_DISABLED = 0,
-    SRVSVC_LOG_TARGET_CONSOLE,
-    SRVSVC_LOG_TARGET_FILE,
-    SRVSVC_LOG_TARGET_SYSLOG
-} SRVSVC_LOG_TARGET;
-
-typedef VOID (*PFN_SRVSVC_LOG_MESSAGE)(
-                            HANDLE           hLog,
-                            SRVSVC_LOG_LEVEL logLevel,
-                            PCSTR            pszFormat,
-                            va_list          msgList
-                            );
-
-typedef struct _SRVSVC_LOG_INFO
-{
-    SRVSVC_LOG_LEVEL  maxAllowedLogLevel;
-    SRVSVC_LOG_TARGET logTarget;
-    PSTR              pszPath;
-} SRVSVC_LOG_INFO, *PSRVSVC_LOG_INFO;
-
-#if defined(LW_ENABLE_THREADS)
-
-extern pthread_mutex_t gSrvSvcLogLock;
-
-#define SRVSVC_LOCK_LOGGER   pthread_mutex_lock(&gSrvSvcLogLock)
-#define SRVSVC_UNLOCK_LOGGER pthread_mutex_unlock(&gSrvSvcLogLock)
-
-#define _SRVSVC_LOG_PREFIX_THREAD(Format) \
-    "0x%lx:" Format, ((unsigned long)pthread_self())
-
-#else
-
-#define SRVSVC_LOCK_LOGGER
-#define SRVSVC_UNLOCK_LOGGER
-
-#define _SRVSVC_LOG_PREFIX_THREAD(Format) \
-    Format
-
-#endif
-
-#define _SRVSVC_LOG_PREFIX_LOCATION(Format, Function, File, Line) \
-    _SRVSVC_LOG_PREFIX_THREAD("[%s() %s:%d] " Format), \
-    (Function), \
-    (File), \
-    (Line)
-
-#define _SRVSVC_LOG_WITH_THREAD(Level, Format, ...) \
-    _SRVSVC_LOG_MESSAGE(Level, \
-                      _SRVSVC_LOG_PREFIX_THREAD(Format), \
-                      ## __VA_ARGS__)
-
-#define _SRVSVC_LOG_WITH_LOCATION(Level, Format, Function, File, Line, ...) \
-    _SRVSVC_LOG_MESSAGE(Level, \
-                  _SRVSVC_LOG_PREFIX_LOCATION(Format, Function, File, Line), \
-                  ## __VA_ARGS__)
-
-#define _SRVSVC_LOG_WITH_DEBUG(Level, Format, ...) \
-    _SRVSVC_LOG_WITH_LOCATION(Level, Format, \
-                            __FUNCTION__, __FILE__, __LINE__, \
-                            ## __VA_ARGS__)
-
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcMaxLogLevel;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
-
-#define _SRVSVC_LOG_MESSAGE(Level, Format, ...) \
-    SrvSvcLogMessage(gpfnSrvSvcLogger, ghSrvSvcLog, Level, Format, ## __VA_ARGS__)
-
-#define _SRVSVC_LOG_IF(Level, Format, ...)                              \
-    do {                                                                \
-        SRVSVC_LOCK_LOGGER;                                             \
-        if (gpfnSrvSvcLogger && (gSrvSvcMaxLogLevel >= (Level)))        \
-        {                                                               \
-            if (gSrvSvcMaxLogLevel >= SRVSVC_LOG_LEVEL_DEBUG)           \
-            {                                                           \
-                _SRVSVC_LOG_WITH_DEBUG(Level, Format, ## __VA_ARGS__);  \
-            }                                                           \
-            else                                                        \
-            {                                                           \
-                _SRVSVC_LOG_WITH_THREAD(Level, Format, ## __VA_ARGS__); \
-            }                                                           \
-        }                                                               \
-        SRVSVC_UNLOCK_LOGGER;                                           \
-    } while (0)
-
 #define SRVSVC_SAFE_LOG_STRING(x) \
-    ( (x) ? (x) : "<null>" )
+  LW_RTL_LOG_SAFE_STRING(x)
 
-#define SRVSVC_LOG_ALWAYS(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_ALWAYS(Format, ...) \
+    LW_RTL_LOG_ALWAYS(Format, ## __VA_ARGS__)
 
-#define SRVSVC_LOG_ERROR(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_ERROR, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_ERROR(Format, ...) \
+    LW_RTL_LOG_ERROR(Format, ## __VA_ARGS__)
 
-#define SRVSVC_LOG_WARNING(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_WARNING, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_WARNING(Format, ...) \
+    LW_RTL_LOG_WARNING(Format, ## __VA_ARGS__)
 
-#define SRVSVC_LOG_INFO(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_INFO, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_INFO(Format, ...) \
+    LW_RTL_LOG_INFO(Format, ## __VA_ARGS__)
 
-#define SRVSVC_LOG_VERBOSE(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_VERBOSE, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_VERBOSE(Format, ...) \
+    LW_RTL_LOG_VERBOSE(Format, ## __VA_ARGS__)
 
-#define SRVSVC_LOG_DEBUG(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_DEBUG(Format, ...) \
+    LW_RTL_LOG_DEBUG(Format, ## __VA_ARGS__)
 
-#define SRVSVC_LOG_TRACE(szFmt, ...) \
-    _SRVSVC_LOG_IF(SRVSVC_LOG_LEVEL_TRACE, szFmt, ## __VA_ARGS__)
+#define SRVSVC_LOG_TRACE(Format, ...) \
+    LW_RTL_LOG_TRACE(Format, ## __VA_ARGS__)
 
-typedef struct _LOGFILEINFO {
-    CHAR szLogPath[PATH_MAX+1];
-    FILE* logHandle;
-} LOGFILEINFO, *PLOGFILEINFO;
-
-typedef struct _SYSLOGINFO {
-    CHAR szIdentifier[PATH_MAX+1];
-    DWORD dwOption;
-    DWORD dwFacility;
-} SYSLOGINFO, *PSYSLOGINFO;
-
-typedef struct _LOGINFO {
-    pthread_mutex_t lock;
-    DWORD dwLogLevel;
-    DWORD logTarget;
-    union _logdata {
-        LOGFILEINFO logfile;
-        SYSLOGINFO syslog;
-    } data;
-    BOOLEAN  bLoggingInitiated;
-} LOGINFO, *PLOGINFO;
 
 DWORD
 SrvSvcSrvAllocateMemory(
@@ -367,41 +263,5 @@ SrvSvcGetHostname(
     PSTR* ppszHostname
     );
 
-DWORD
-SrvSvcInitLogging(
-    PCSTR             pszProgramName,
-    SRVSVC_LOG_TARGET logTarget,
-    SRVSVC_LOG_LEVEL  maxAllowedLogLevel,
-    PCSTR             pszPath
-    );
-
-DWORD
-SrvSvcLogGetInfo(
-    PSRVSVC_LOG_INFO* ppLogInfo
-    );
-
-DWORD
-SrvSvcLogSetInfo(
-    PSRVSVC_LOG_INFO pLogInfo
-    );
-
-VOID
-SrvSvcLogMessage(
-    PFN_SRVSVC_LOG_MESSAGE pfnLogger,
-    HANDLE                 hLog,
-    SRVSVC_LOG_LEVEL       logLevel,
-    PCSTR                  pszFormat,
-    ...
-    );
-
-DWORD
-SrvSvcShutdownLogging(
-    VOID
-    );
-
-DWORD
-SrvSvcValidateLogLevel(
-    DWORD dwLogLevel
-    );
 
 #endif /* __SRVSVCUTILS_H__ */

@@ -19,8 +19,13 @@
  * Memory related macros
  */
 
-#define SRVSVC_SAFE_FREE(ptr) \
-            do { if (ptr) free(ptr); (ptr) = NULL; } while (0)
+#define SRVSVC_SAFE_FREE(ptr)      \
+             do {                  \
+                 if (ptr) {        \
+                     free(ptr);    \
+                     (ptr) = NULL; \
+                 }                 \
+             } while (0)
 
 /*
  * Error check macros
