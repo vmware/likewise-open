@@ -273,6 +273,24 @@ SrvElementsConfigGetClientCreditLimit(
     return usCreditLimit;
 }
 
+USHORT
+SrvElementsConfigGetClientCreditStart(
+    VOID
+    )
+{
+    USHORT   usCreditStart = 0;
+    BOOLEAN bInLock   = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, gSrvElements.pConfigLock);
+
+    usCreditStart = MIN(1, (gSrvElements.config.usClientCreditLimit / 8));
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, gSrvElements.pConfigLock);
+
+    return usCreditStart;
+}
+
+
 VOID
 SrvElementsConfigShutdown(
     VOID
