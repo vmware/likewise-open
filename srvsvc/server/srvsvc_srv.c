@@ -388,13 +388,9 @@ SrvSvcListenForRPC(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
-
-    raise(SIGTERM);
-
     return NULL;
 
 error:
-
     SRVSVC_LOG_ERROR("Failed to begin RPC listening.  Error code [%d]\n", dwError);
 
     goto cleanup;
