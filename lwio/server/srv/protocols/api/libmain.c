@@ -71,7 +71,8 @@ SrvProtocolInit(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bSupportSMBV2 = FALSE;
 
-    pthread_rwlock_init(&gProtocolApiGlobals.mutex, NULL);
+    ntStatus = LwErrnoToNtStatus(pthread_rwlock_init(&gProtocolApiGlobals.mutex, NULL));
+    BAIL_ON_NT_STATUS(ntStatus);
     gProtocolApiGlobals.pMutex = &gProtocolApiGlobals.mutex;
 
     ntStatus = LwErrnoToNtStatus(pthread_rwlock_init(&gProtocolApiGlobals.TransportStartStopMutex, NULL));
