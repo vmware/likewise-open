@@ -941,14 +941,20 @@ cleanup:
 
 error:
 
-    if (dwError == LW_ERROR_ACCESS_DENIED)
+    switch (dwError)
     {
-        LSA_LOG_ERROR("Error: User [%s] not in restricted login list", pszUserName);
+        case LW_ERROR_NOT_HANDLED:
+            // normal for non-joined machines
+            break;
+
+        case LW_ERROR_ACCESS_DENIED:
+            LSA_LOG_INFO("Error: User [%s] not in restricted login list", pszUserName);
+            break;
+
+        default:
+            LSA_LOG_ERROR("Error: Failed to validate restricted membership. [Error code: %u]", dwError);
     }
-    else
-    {
-        LSA_LOG_ERROR("Error: Failed to validate restricted membership. [Error code: %u]", dwError);
-    }
+
 
     goto cleanup;
 }
