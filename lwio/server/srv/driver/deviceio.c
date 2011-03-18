@@ -56,6 +56,36 @@ SrvDeviceIoCommon(
     PIRP             pIrp
     );
 
+static
+NTSTATUS
+SrvDevIoControlQueryTransport(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    );
+
+static
+NTSTATUS
+SrvDevIoControlStartTransport(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    );
+
+static
+NTSTATUS
+SrvDevIoControlStopTransport(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    );
+
 NTSTATUS
 SrvDeviceControlIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -231,6 +261,36 @@ SrvDeviceIoCommon(
                           &ulBytesTransferred);
           break;
 
+      case SRV_DEVCTL_QUERY_TRANSPORT:
+
+          ntStatus = SrvDevIoControlQueryTransport(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+          break;
+
+      case SRV_DEVCTL_START_TRANSPORT:
+
+          ntStatus = SrvDevIoControlStartTransport(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+          break;
+
+      case SRV_DEVCTL_STOP_TRANSPORT:
+
+          ntStatus = SrvDevIoControlStopTransport(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+          break;
+
       case IO_DEVICE_CTL_STATISTICS:
 
           ntStatus = SrvProcessStatistics(
@@ -255,3 +315,167 @@ SrvDeviceIoCommon(
     return ntStatus;
 }
 
+static
+NTSTATUS
+SrvDevIoControlQueryTransport(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN isStarted = FALSE;
+    ULONG bytesTransferred = 0;
+
+    // The input is NULL.  The output is a BOOLEAN indicating whether the
+    // transport is started.
+
+    //
+    // Validate buffer sizes
+    //
+
+    // Input: NULL
+    if (pInputBuffer || InputBufferSize)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // Output: BOOLEAN
+    if (!pOutputBuffer || (OutputBufferSize != sizeof(BOOLEAN)))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    //
+    // Call underlying functionality
+    //
+
+    isStarted = SrvProtocolIsStarted();
+
+    *(PBOOLEAN)pOutputBuffer = isStarted;
+    bytesTransferred = sizeof(isStarted);
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+    *pBytesTransferred = bytesTransferred;
+
+    return ntStatus;
+
+error:
+    bytesTransferred = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvDevIoControlStartTransport(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    // The input is NULL.  The output is NULL.
+
+    //
+    // Validate buffer sizes
+    //
+
+    // Input: NULL
+    if (pInputBuffer || InputBufferSize)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // Output: NULL
+    if (pOutputBuffer || OutputBufferSize)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    //
+    // Call underlying functionality
+    //
+
+    ntStatus = SrvProtocolStart();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    *pBytesTransferred = 0;
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvDevIoControlStopTransport(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN isForce = FALSE;
+    BOOLEAN isStopped = FALSE;
+
+    // The input is a BOOLEAN.  The output is NULL.
+
+    //
+    // Validate buffer sizes
+    //
+
+    // Input: BOOLEAN
+    if (!pInputBuffer || (InputBufferSize != sizeof(BOOLEAN)))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // Output: NULL
+    if (pOutputBuffer || OutputBufferSize)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    //
+    // Capture parameters
+    //
+
+    isForce = *(PBOOLEAN)pInputBuffer ? TRUE : FALSE;
+
+    //
+    // Call underlying functionality
+    //
+
+    isStopped = SrvProtocolStop(isForce);
+    if (!isStopped)
+    {
+        ntStatus = STATUS_CONNECTION_ACTIVE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+    *pBytesTransferred = 0;
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}

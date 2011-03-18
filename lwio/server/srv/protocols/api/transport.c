@@ -242,6 +242,7 @@ SrvProtocolTransportDriverInit(
     RtlZeroMemory(pTransportContext, sizeof(*pTransportContext));
 
     pTransportContext->pGlobals = pGlobals;
+    pTransportContext->ThreadPool = ThreadPool;
 
     pTransportDispatch->pfnConnectionNew = SrvProtocolTransportDriverConnectionNew;
     pTransportDispatch->pfnConnectionData = SrvProtocolTransportDriverConnectionData;
@@ -264,14 +265,6 @@ SrvProtocolTransportDriverInit(
                     &pGlobals->pConnections);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTransportInit(
-                    &pTransportContext->hTransport,
-                    ThreadPool,
-                    pTransportDispatch,
-                    pTransportContext,
-                    SrvProtocolConfigIsNetbiosEnabled());
-    BAIL_ON_NT_STATUS(ntStatus);
-
 cleanup:
 
     return ntStatus;
@@ -281,6 +274,227 @@ error:
     SrvProtocolTransportDriverShutdown(pGlobals);
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolTransportDriverStart(
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
+    PSRV_TRANSPORT_PROTOCOL_DISPATCH pTransportDispatch = &pTransportContext->dispatch;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, pGlobals->pTransportStartStopMutex);
+
+    if (pTransportContext->hTransport)
+    {
+        // Already started.
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    ntStatus = SrvTransportInit(
+                    &pTransportContext->hTransport,
+                    pTransportContext->ThreadPool,
+                    pTransportDispatch,
+                    pTransportContext,
+                    SrvProtocolConfigIsNetbiosEnabled());
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bInLock, pGlobals->pTransportStartStopMutex);
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolTransportDriverCanStopConnectionCallback(
+    IN PVOID pKey,
+    IN PVOID pData,
+    IN PVOID pUserData,
+    IN PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pData;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN isActive = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    // This is the same criteria used in SrvConnectionSetInvalidEx()
+    // for determining whether a connection is not active.
+
+    if (0 != pConnection->ullSessionCount)
+    {
+        isActive = TRUE;
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    *(PBOOLEAN)pUserData = isActive;
+    *pbContinue = isActive ? FALSE : TRUE;
+
+    return STATUS_SUCCESS;
+}
+
+typedef struct _SRV_STOP_CONNECTION_CONTEXT {
+    BOOLEAN IsForce;
+    BOOLEAN FailedDisconnect;
+} SRV_STOP_CONNECTION_CONTEXT, *PSRV_STOP_CONNECTION_CONTEXT;
+
+static
+NTSTATUS
+SrvProtocolTransportDriverStopConnectionCallback(
+    IN PVOID pKey,
+    IN PVOID pData,
+    IN PVOID pUserData,
+    IN PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pData;
+    PSRV_STOP_CONNECTION_CONTEXT pContext = (PSRV_STOP_CONNECTION_CONTEXT)pUserData;
+    BOOLEAN isDisconnected = FALSE;
+
+    if (pContext->IsForce)
+    {
+        SrvConnectionSetInvalid(pConnection);
+        isDisconnected = TRUE;
+    }
+    else
+    {
+        isDisconnected = SrvConnectionSetInvalidIfNoSessions(pConnection);
+        if (!isDisconnected)
+        {
+            pContext->FailedDisconnect = TRUE;
+        }
+    }
+
+    *pbContinue = isDisconnected;
+
+    return STATUS_SUCCESS;
+}
+
+BOOLEAN
+SrvProtocolTransportDriverStop(
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals,
+    IN BOOLEAN IsForce
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bInTransportLock = FALSE;
+    BOOLEAN isStopped = FALSE;
+    SRV_STOP_CONNECTION_CONTEXT stopContext = { 0 };
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInTransportLock, pGlobals->pTransportStartStopMutex);
+
+    if (!pTransportContext->hTransport)
+    {
+        // Already stopped.
+        isStopped = TRUE;
+        goto cleanup;
+    }
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+
+    if (!IsForce)
+    {
+        BOOLEAN isActive = FALSE;
+
+        ntStatus = LwRtlRBTreeTraverse(
+                        pGlobals->pConnections,
+                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                        SrvProtocolTransportDriverCanStopConnectionCallback,
+                        &isActive);
+        LWIO_ASSERT(!ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (isActive)
+        {
+            isStopped = FALSE;
+            goto cleanup;
+        }
+    }
+
+    //
+    // It is possible for a session setup (and more) to happen since
+    // the check above.  Therefore, the stop operation below will
+    // do a conditional disconnect (based on the presense of sessions)
+    // if IsForce is FALSE.  If a connection cannot be disconnected due
+    // to sessions that got established in the meantime, the traversal
+    // of the connections is aborted and the overall stop operation
+    // will fail.
+    //
+
+    stopContext.IsForce = IsForce;
+    stopContext.FailedDisconnect = FALSE;
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    pGlobals->pConnections,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    SrvProtocolTransportDriverStopConnectionCallback,
+                    &stopContext);
+    LWIO_ASSERT(!ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    isStopped = !stopContext.FailedDisconnect;
+    if (!isStopped)
+    {
+        goto cleanup;
+    }
+
+    // Must set connection rundown before dropping the lock so as to prevent
+    // any new connections from getting added.
+    pGlobals->IsConnectionRundown = TRUE;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    // This will cause done notifications to occur,
+    // which will get rid of any last remaining connection
+    // references.
+    SrvTransportShutdown(pTransportContext->hTransport);
+    pTransportContext->hTransport = NULL;
+
+    // Conenction rundown is complete.
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+    pGlobals->IsConnectionRundown = FALSE;
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_UNLOCK_RWMUTEX(bInTransportLock, pGlobals->pTransportStartStopMutex);
+
+    LWIO_ASSERT(isStopped || !IsForce);
+    return isStopped;
+
+error:
+    LWIO_ASSERT(FALSE);
+    goto cleanup;
+}
+
+BOOLEAN
+SrvProtocolTransportDriverIsStarted(
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals
+    )
+{
+    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN isStarted = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, pGlobals->pTransportStartStopMutex);
+
+    isStarted = pTransportContext->hTransport ? TRUE : FALSE;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, pGlobals->pTransportStartStopMutex);
+
+    return isStarted;
 }
 
 static
@@ -312,14 +526,9 @@ SrvProtocolTransportDriverShutdown(
 {
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
 
-    if (pTransportContext->hTransport)
-    {
-        // This will cause done notifications to occur,
-        // which will get rid of any last remaining connection
-        // references.
-        SrvTransportShutdown(pTransportContext->hTransport);
-        pTransportContext->hTransport = NULL;
-    }
+    SrvProtocolTransportDriverStop(pGlobals, TRUE);
+
+    pTransportContext->ThreadPool = NULL;
 
     // Zero the transport dispatch but leave the socket dispatch for
     // the Producer/Consumer Queue shutdown in case there is an existing socket
@@ -411,6 +620,12 @@ SrvProtocolTransportDriverConnectionNew(
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+
+    if (gProtocolApiGlobals.IsConnectionRundown)
+    {
+        ntStatus = STATUS_CONNECTION_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = LwRtlRBTreeAdd(
                     gProtocolApiGlobals.pConnections,

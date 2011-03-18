@@ -98,6 +98,12 @@ SrvProtocolReadConfig(
 
     LwIoReadConfigBoolean(
             pReg,
+            "EnableTransport",
+            bUsePolicy,
+            &config.bEnableTransport);
+
+    LwIoReadConfigBoolean(
+            pReg,
             "EnableSecuritySignatures",
             bUsePolicy,
             &config.bEnableSigning);
@@ -172,6 +178,7 @@ SrvProtocolInitConfig(
 
     pConfig->bEnableNetbios = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_NETBIOS;
     pConfig->bEnableSmb2 = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2;
+    pConfig->bEnableTransport = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_TRANSPORT;
     pConfig->bEnableSigning = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING;
     pConfig->bRequireSigning = SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
     pConfig->ulZctReadThreshold = SRV_PROTOCOL_CONFIG_DEFAULT_ZCT_READ_THRESHOLD;
@@ -271,6 +278,23 @@ SrvProtocolConfigIsSmb2Enabled(
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
     bEnabled = gProtocolApiGlobals.config.bEnableSmb2;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return bEnabled;
+}
+
+BOOLEAN
+SrvProtocolConfigIsTransportEnabled(
+    VOID
+    )
+{
+    BOOLEAN bEnabled = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
+
+    bEnabled = gProtocolApiGlobals.config.bEnableTransport;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 

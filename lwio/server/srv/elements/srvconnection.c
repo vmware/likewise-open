@@ -537,7 +537,7 @@ SrvConnectionIsInvalid(
 }
 
 static
-VOID
+BOOLEAN
 SrvConnectionSetInvalidEx(
     PLWIO_SRV_CONNECTION pConnection,
     BOOLEAN bOnlyIfNoSessions
@@ -545,6 +545,7 @@ SrvConnectionSetInvalidEx(
 {
     BOOLEAN bInLock = FALSE;
     BOOLEAN bDisconnect = FALSE;
+    BOOLEAN isDisconnected = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
@@ -555,6 +556,11 @@ SrvConnectionSetInvalidEx(
             bDisconnect = TRUE;
             pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
         }
+    }
+
+    if (pConnection->state == LWIO_SRV_CONN_STATE_INVALID)
+    {
+        isDisconnected = TRUE;
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
@@ -569,6 +575,8 @@ SrvConnectionSetInvalidEx(
             pConnection->pSocketDispatch->pfnDisconnect(pConnection->pSocket);
         }
     }
+
+    return isDisconnected;
 }
 
 VOID
@@ -579,13 +587,12 @@ SrvConnectionSetInvalid(
     SrvConnectionSetInvalidEx(pConnection, FALSE);
 }
 
-static
-VOID
+BOOLEAN
 SrvConnectionSetInvalidIfNoSessions(
     PLWIO_SRV_CONNECTION pConnection
     )
 {
-    SrvConnectionSetInvalidEx(pConnection, TRUE);
+    return SrvConnectionSetInvalidEx(pConnection, TRUE);
 }
 
 LWIO_SRV_CONN_STATE
