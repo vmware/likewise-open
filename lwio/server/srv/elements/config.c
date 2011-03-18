@@ -283,7 +283,7 @@ SrvElementsConfigGetClientCreditStart(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, gSrvElements.pConfigLock);
 
-    usCreditStart = SMB_MIN(1, (gSrvElements.config.usClientCreditLimit / 8));
+    usCreditStart = SMB_MAX(1, (gSrvElements.config.usClientCreditLimit / 8));
 
     LWIO_UNLOCK_RWMUTEX(bInLock, gSrvElements.pConfigLock);
 
