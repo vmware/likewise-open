@@ -215,6 +215,8 @@ PvfsCbTableLookup_inlock(
     }
     BAIL_ON_NT_STATUS(ntError);
 
+    LWIO_ASSERT((pCb->pBucket != NULL) && !pCb->Removed);
+
     *ppCb = PvfsReferenceCB(pCb);
 
 cleanup:
