@@ -201,6 +201,11 @@ PvfsClose(
     );
 
 NTSTATUS
+PvfsCloseHandleCleanup(
+    IN PPVFS_SCB pScb
+    );
+
+NTSTATUS
 PvfsQueryInformationFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
