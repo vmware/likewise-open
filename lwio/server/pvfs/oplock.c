@@ -474,6 +474,8 @@ PvfsOplockMarkPendedOpsReady(
 
     LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
+    pScb->bOplockBreakInProgress = FALSE;
+
     if (PvfsListIsEmpty(pScb->pOplockPendingOpsQueue))
     {
         // Nothing to process
@@ -493,8 +495,6 @@ PvfsOplockMarkPendedOpsReady(
     pProcessingQueue = pScb->pOplockPendingOpsQueue;
     pScb->pOplockPendingOpsQueue = pNewPendingQueue;
     pNewPendingQueue = NULL;
-
-    pScb->bOplockBreakInProgress = FALSE;
 
     LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
