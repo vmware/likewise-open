@@ -264,13 +264,6 @@ SrvSvcRpcShutdown(
         gSrvsServerInfo.pRegistryBinding = NULL;
     }
 
-    SRVSVC_UNLOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
-
-    dwError = SrvSvcRpcStopListening();
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    SRVSVC_LOCK_MUTEX(bInLock, &gSrvsServerInfo.mutex);
-
     if (gSrvsServerInfo.pRpcListenerThread)
     {
         dwError = LwMapErrnoToLwError(dcethread_interrupt(gSrvsServerInfo.pRpcListenerThread));
