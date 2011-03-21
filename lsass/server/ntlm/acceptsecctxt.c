@@ -94,6 +94,12 @@ NtlmServerAcceptSecurityContext(
         pNegMsg = pInput->pvBuffer;
         dwMessageSize = pInput->cbBuffer;
 
+        if (dwMessageSize < sizeof(*pNegMsg))
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         dwError = NtlmCreateChallengeContext(
             pNegMsg,
             hCred,
@@ -381,12 +387,14 @@ NtlmCreateValidatedContext(
 
     dwError = NtlmGetUserNameFromResponse(
         pNtlmRespMsg,
+        dwMsgSize,
         NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pUserName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetDomainNameFromResponse(
         pNtlmRespMsg,
+        dwMsgSize,
         NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -407,20 +415,20 @@ NtlmCreateValidatedContext(
         pV2Message = (PNTLM_RESPONSE_MESSAGE_V2)pNtlmRespMsg;
         if (dwMsgSize < sizeof(*pV2Message))
         {
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (pV2Message->SessionKey.dwOffset +
                 pV2Message->SessionKey.usLength > dwMsgSize)
         {
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (pV2Message->SessionKey.usLength != NTLM_SESSION_KEY_SIZE)
         {
-            dwError = LW_ERROR_INVALID_PARAMETER;
+            dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -643,6 +651,12 @@ NtlmValidateResponse(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    if (dwRespMsgSize < sizeof(*pRespMsg))
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LwAllocateMemory(
         pRespMsg->LmResponse.usLength,
         OUT_PPVOID(&pLMRespBuffer));
@@ -660,26 +674,43 @@ NtlmValidateResponse(
 
     dwError = NtlmGetUserNameFromResponse(
         pRespMsg,
+        dwRespMsgSize,
         pChlngCtxt->NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pUserName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetDomainNameFromResponse(
         pRespMsg,
+        dwRespMsgSize,
         pChlngCtxt->NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = NtlmGetWorkstationFromResponse(
         pRespMsg,
+        dwRespMsgSize,
         pChlngCtxt->NegotiatedFlags & NTLM_FLAG_UNICODE,
         &pWorkstation);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (pRespMsg->LmResponse.dwOffset + pRespMsg->LmResponse.usLength >
+            dwRespMsgSize)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     memcpy(
         pLMRespBuffer,
         (PBYTE)pRespMsg + pRespMsg->LmResponse.dwOffset,
         pRespMsg->LmResponse.usLength);
+
+    if (pRespMsg->NtResponse.dwOffset + pRespMsg->NtResponse.usLength >
+            dwRespMsgSize)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     memcpy(
         pNTRespBuffer,
@@ -782,6 +813,7 @@ error:
 DWORD
 NtlmGetDomainNameFromResponse(
     IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
+    IN DWORD dwRespMsgSize,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppDomainName
     )
@@ -794,6 +826,18 @@ NtlmGetDomainNameFromResponse(
     DWORD nIndex = 0;
 
     *ppDomainName = NULL;
+
+    if (dwRespMsgSize < sizeof(*pRespMsg))
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pSecBuffer->dwOffset + pSecBuffer->usLength > dwRespMsgSize)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwNameLength = pSecBuffer->usLength;
     pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
@@ -830,6 +874,7 @@ error:
 DWORD
 NtlmGetWorkstationFromResponse(
     IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
+    IN DWORD dwRespMsgSize,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppWorkstation
     )
@@ -842,6 +887,18 @@ NtlmGetWorkstationFromResponse(
     DWORD nIndex = 0;
 
     *ppWorkstation = NULL;
+
+    if (dwRespMsgSize < sizeof(*pRespMsg))
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pSecBuffer->dwOffset + pSecBuffer->usLength > dwRespMsgSize)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwNameLength = pSecBuffer->usLength;
     pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
