@@ -24,6 +24,7 @@ make()
         security-sddlmapping.c \
         security-privileges.c \
         wc16str.c \
+        lwprintf.c \
         wc16printf.c"
 
     BASE_SOURCES="\
