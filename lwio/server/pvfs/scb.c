@@ -347,6 +347,8 @@ PvfsCreateSCB(
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
+        LWIO_ASSERT(pScb->pOwnerFcb == pOwnerFcb);
+
         if (bCheckShareAccess)
         {
             ntError = PvfsEnforceShareMode(
