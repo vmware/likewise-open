@@ -342,6 +342,9 @@ struct _PVFS_SCB
 
     LW_LIST_LINKS FcbList;
 
+    // Immutable after creation
+    PPVFS_FCB pOwnerFcb;
+
     // Base Mutex
     PVFS_FILE_ID FileId;
     BOOLEAN bDeleteOnClose;
@@ -353,8 +356,6 @@ struct _PVFS_SCB
 
 
     // Base.RwLock
-    PPVFS_FCB pOwnerFcb;
-
     PSTR pszStreamname;
     PVFS_STREAM_TYPE StreamType;
     // End Base.RwLock

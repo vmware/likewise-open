@@ -59,8 +59,12 @@ PvfsFreeSCB(
     {
         LWIO_ASSERT(
             (pScb->BaseControlBlock.pBucket == NULL) &&
-            (pScb->BaseControlBlock.RefCount == 0) &&
-            (pScb->pOwnerFcb == NULL));
+            (pScb->BaseControlBlock.RefCount == 0));
+
+        if (pScb->pOwnerFcb)
+        {
+            PvfsReleaseFCB(&pScb->pOwnerFcb);
+        }
 
         RtlCStringFree(&pScb->pszStreamname);
 
@@ -215,6 +219,8 @@ PvfsReleaseSCB(
     BOOLEAN scbLocked = FALSE;
     BOOLEAN fcbListLocked = FALSE;
     PPVFS_SCB pScb = NULL;
+    PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+    LONG refCount = 0;
 
     LWIO_ASSERT((ppScb != NULL) &&  (*ppScb != NULL));
 
@@ -226,77 +232,62 @@ PvfsReleaseSCB(
     // However, if the SCB has no bucket pointer, it has already been removed
     // from the ScbTable so locking is unnecessary.
 
-    if (pScb->pOwnerFcb)
-    {
-        LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
-    }
-
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
     LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
-    // Either both the Bucket and OwnerFcb are non-NULL or both are NULL
-    if (!PVFS_IS_DEVICE_HANDLE(pScb))
+    pBucket = pScb->BaseControlBlock.pBucket;
+
+    if (pBucket)
     {
-        LWIO_ASSERT(
-            ((pScb->BaseControlBlock.pBucket && pScb->pOwnerFcb) ||
-             (!pScb->BaseControlBlock.pBucket && !pScb->pOwnerFcb)));
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
     }
 
-    if (pScb->BaseControlBlock.pBucket)
-    {
-        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pScb->BaseControlBlock.pBucket->rwLock);
-    }
+    refCount = InterlockedDecrement(&pScb->BaseControlBlock.RefCount);
+    LWIO_ASSERT(refCount >= 0);
 
-    if (InterlockedDecrement(&pScb->BaseControlBlock.RefCount) == 0)
+    if (refCount == 0)
     {
-        PPVFS_FILE_NAME streamName = NULL;
-        PSTR fullStreamName = NULL;
+        PvfsRemoveSCBFromFCB_inlock(pScb->pOwnerFcb, pScb);
+        LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
 
-        if (pScb->pOwnerFcb)
+        if (pBucket)
         {
-            // Get the FILE_NAME before releasing the Scb->pOwnerFcb
+            PPVFS_FILE_NAME streamName = NULL;
+            PSTR fullStreamName = NULL;
+
             status = PvfsAllocateFileNameFromScb(&streamName, pScb);
-            // Error will be caught later
-
-            PvfsRemoveSCBFromFCB_inlock(pScb->pOwnerFcb, pScb);
-            LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
-
-            PvfsReleaseFCB(&pScb->pOwnerFcb);
-        }
-
-        if (pScb->BaseControlBlock.pBucket && streamName)
-        {
-            status = PvfsAllocateCStringFromFileName(&fullStreamName, streamName);
             if (STATUS_SUCCESS == status)
             {
-                PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
+                status = PvfsAllocateCStringFromFileName(&fullStreamName, streamName);
+                if (STATUS_SUCCESS == status)
+                {
+                    status = PvfsCbTableRemove_inlock(
+                                 (PPVFS_CONTROL_BLOCK)pScb,
+                                 fullStreamName);
+                    LWIO_ASSERT(status == STATUS_SUCCESS);
+                    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
+                }
+            }
 
-                status = PvfsCbTableRemove_inlock(
-                             (PPVFS_CONTROL_BLOCK)pScb,
-                             fullStreamName);
-                LWIO_ASSERT(status == STATUS_SUCCESS);
-                LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
+            if (fullStreamName)
+            {
+                LwRtlCStringFree(&fullStreamName);
+            }
+            if (streamName)
+            {
+                PvfsFreeFileName(streamName);
             }
         }
 
         LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
-        if (fullStreamName)
+        if (STATUS_SUCCESS == status)
         {
-            LwRtlCStringFree(&fullStreamName);
+            PvfsFreeSCB(pScb);
         }
-        if (streamName)
-        {
-            PvfsFreeFileName(streamName);
-        }
-
-        // What should we do here if the StreamName allocation failed as we
-        // didn't remove the node?  Leak?  If we go ahead and free the SCB, we'll
-        // cause a crash later.
-
-        PvfsFreeSCB(pScb);
     }
 
-    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pScb->BaseControlBlock.pBucket->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
     LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 

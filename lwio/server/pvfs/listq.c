@@ -221,6 +221,8 @@ PvfsListRemoveItem(
     }
 
     LwListRemove(pItem);
+    PVFS_INIT_LINKS(pItem);
+
     pList->CurrentSize--;
 
     ntError = STATUS_SUCCESS;
