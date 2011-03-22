@@ -81,7 +81,7 @@ PvfsCreateDevice(
                       gPvfsDriverState.DriverDescription);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsAddSCBToFCB(
+        ntError = PvfsAddSCBToFCB_inlock(
                       gPvfsDriverState.DeviceScb->pOwnerFcb,
                       gPvfsDriverState.DeviceScb);
         BAIL_ON_NT_STATUS(ntError);

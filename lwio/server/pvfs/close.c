@@ -198,6 +198,7 @@ PvfsCloseHandleCleanup(
     PPVFS_FILE_NAME streamName = NULL;
     BOOLEAN scbLocked = FALSE;
     BOOLEAN fcbLocked = FALSE;
+    BOOLEAN bucketLocked = FALSE;
     BOOLEAN objectDeleted = FALSE;
     PVFS_STAT statBuf = { 0 };
 
@@ -225,27 +226,22 @@ PvfsCloseHandleCleanup(
                 // block mutex before trying to pick up the ScbTable exclusive
                 // lock
 
-                if (!pScb->BaseControlBlock.Removed)
+                if (pScb->BaseControlBlock.pBucket != NULL)
                 {
                     PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
 
-                    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+                    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
 
-                    status = PvfsCbTableRemove(pBucket, fullStreamName);
+                    status = PvfsCbTableRemove_inlock(
+                                 (PPVFS_CONTROL_BLOCK)pScb,
+                                 fullStreamName);
                     LWIO_ASSERT(status == STATUS_SUCCESS);
 
-                    LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
-
-                    pScb->BaseControlBlock.Removed = TRUE;
-                    pScb->BaseControlBlock.pBucket = NULL;
-
-                    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+                    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
                 }
 
                 status = PvfsExecuteDeleteOnCloseSCB(pScb);
                 // Ignore errors here
-
-                LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
                 PvfsPathCacheRemove(streamName);
 
@@ -274,30 +270,23 @@ PvfsCloseHandleCleanup(
                 // block mutex before trying to pick up the ScbTable exclusive
                 // lock
 
-                if (!pScb->pOwnerFcb->BaseControlBlock.Removed)
+                if (pScb->pOwnerFcb->BaseControlBlock.pBucket != NULL)
                 {
                     PPVFS_CB_TABLE_ENTRY pBucket = pScb->pOwnerFcb->BaseControlBlock.pBucket;
 
-                    LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+                    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
 
-                    status = PvfsCbTableRemove(pBucket, pScb->pOwnerFcb->pszFilename);
+                    status = PvfsCbTableRemove_inlock(
+                                 (PPVFS_CONTROL_BLOCK)pScb->pOwnerFcb,
+                                 pScb->pOwnerFcb->pszFilename);
                     LWIO_ASSERT(status == STATUS_SUCCESS);
 
-                    LWIO_LOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
-
-                    pScb->pOwnerFcb->BaseControlBlock.Removed = TRUE;
-                    pScb->pOwnerFcb->BaseControlBlock.pBucket = NULL;
-
-                    LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
-
+                    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
                 }
 
                 pScb->bDeleteOnClose = FALSE;
                 status = PvfsExecuteDeleteOnCloseFCB(pScb->pOwnerFcb);
                 // Ignore errors here
-
-                LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
-                LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
                 PvfsPathCacheRemove(streamName);
 
@@ -305,13 +294,15 @@ PvfsCloseHandleCleanup(
             }
             else
             {
-                // Since we aren't deleting the file, see if we have a cached timestamp to set
+                // Since we aren't deleting the file, see if we have a cached
+                // timestamp to set
                 LONG64 lastWriteTime = PvfsClearLastWriteTimeFCB(pScb->pOwnerFcb);
 
                 if (lastWriteTime != 0)
                 {
-                    status = PvfsFlushLastWriteTimeFcb(pScb->pOwnerFcb, lastWriteTime);
-
+                    status = PvfsFlushLastWriteTimeFcb(
+                                 pScb->pOwnerFcb,
+                                 lastWriteTime);
                     if (status == STATUS_SUCCESS)
                     {
                         PvfsNotifyScheduleFullReport(
@@ -323,12 +314,10 @@ PvfsCloseHandleCleanup(
                 }
             }
 
-
             LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
             LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
         }
     }
-
 
     if (objectDeleted)
     {
@@ -343,7 +332,6 @@ PvfsCloseHandleCleanup(
             FILE_ACTION_REMOVED,
             fullStreamName);
     }
-
 
 error:
 

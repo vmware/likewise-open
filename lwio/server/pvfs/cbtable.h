@@ -112,21 +112,21 @@ PvfsCbTableLookup_inlock(
 
 NTSTATUS
 PvfsCbTableAdd_inlock(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString,
-    PPVFS_CONTROL_BLOCK pCb
+    IN PPVFS_CB_TABLE_ENTRY pBucket,
+    IN PSTR KeyString,
+    IN PPVFS_CONTROL_BLOCK pCb
     );
 
 NTSTATUS
 PvfsCbTableRemove_inlock(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
+    IN OUT PPVFS_CONTROL_BLOCK pControlBlock,
+    IN PSTR KeyString
     );
 
 NTSTATUS
 PvfsCbTableRemove(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
+    IN OUT PPVFS_CONTROL_BLOCK pControlBlock,
+    IN PSTR KeyString
     );
 
 NTSTATUS

@@ -333,7 +333,6 @@ typedef struct _PVFS_CONTROL_BLOCK
     PPVFS_CB_TABLE_ENTRY pBucket;
     pthread_mutex_t Mutex;
     pthread_rwlock_t RwLock;
-    BOOLEAN Removed;
 
 } PVFS_CONTROL_BLOCK, *PPVFS_CONTROL_BLOCK;
 

@@ -76,7 +76,6 @@ PvfsInitializeCB(
     pthread_rwlock_init(&pCb->RwLock, NULL);
     pCb->RefCount = 1;
     pCb->pBucket = NULL;
-    pCb->Removed = FALSE;
 
     return;
 }

@@ -74,15 +74,15 @@ PvfsCreateFCB(
     );
 
 NTSTATUS
-PvfsAddSCBToFCB(
-    PPVFS_FCB pFcb,
-    PPVFS_SCB pScb
+PvfsAddSCBToFCB_inlock(
+    IN OUT PPVFS_FCB pFcb,
+    IN PPVFS_SCB pScb
     );
 
 NTSTATUS
-PvfsRemoveSCBFromFCB(
-    PPVFS_FCB pFcb,
-    PPVFS_SCB pScb
+PvfsRemoveSCBFromFCB_inlock(
+    IN OUT PPVFS_FCB pFcb,
+    IN PPVFS_SCB pScb
     );
 
 NTSTATUS
