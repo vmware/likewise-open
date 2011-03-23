@@ -1014,63 +1014,6 @@ LsaAdBatchEnumObjects(
                             (PVOID**)&ppObjects);
             BAIL_ON_LSA_ERROR(dwError);
         }
-<<<<<<< .working
-
-        // Remove any sids that have already been enumerated
-        if (pCookieData->pEnumeratedSids != NULL)
-        {
-            for (; dwInput < dwTotalObjectsCount; dwInput++)
-            {
-                dwError = LsaHashGetValue(
-                            pCookieData->pEnumeratedSids,
-                            ppTotalObjects[dwInput]->pszObjectSid,
-                            NULL);
-                if (dwError == LW_ERROR_SUCCESS)
-                {
-                    // The object is already in the hash
-                    ADCacheSafeFreeObject(&ppTotalObjects[dwInput]);
-                }
-                else if (dwError == ERROR_NOT_FOUND)
-                {
-                    // This is a new entry; let's track it in the hash
-
-                    if (pCookieData->pEnumeratedSids->sCount * 2 >
-                        pCookieData->pEnumeratedSids->sTableSize)
-                    {
-                        // Enlarge the hash table to avoid collisions
-                        dwError = LsaHashResize(
-                                    pCookieData->pEnumeratedSids,
-                                    pCookieData->pEnumeratedSids->sCount * 4);
-                        BAIL_ON_LSA_ERROR(dwError);
-                    }
-
-                    dwError = LwAllocateString(
-                                    ppTotalObjects[dwInput]->pszObjectSid,
-                                    &pszCopiedSid);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-                    dwError = LsaHashSetValue(
-                                pCookieData->pEnumeratedSids,
-                                pszCopiedSid,
-                                NULL);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-                    // This is now owned by the hash table
-                    pszCopiedSid = NULL;
-
-                    ppTotalObjects[dwOutput++] = ppTotalObjects[dwInput];
-                }
-                else
-                {
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-            }
-            // The array is now smaller since duplicates have been removed
-            dwTotalObjectsCount = dwOutput;
-            dwInput = dwOutput;
-        }
-=======
->>>>>>> .merge-right.r57519
     }
 
 cleanup:
