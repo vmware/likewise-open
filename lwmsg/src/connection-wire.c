@@ -791,6 +791,10 @@ lwmsg_connection_begin_connect_local(
 
     strcpy(sockaddr.sun_path, priv->endpoint);
 
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.establish));
+
     if (connect(priv->fd, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) < 0)
     {
         switch (errno)
