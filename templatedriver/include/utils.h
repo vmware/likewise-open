@@ -49,15 +49,28 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+
+// Logging
+#define _TEMPLATEDRIVER_LOG_AT(Level, ...)    LW_RTL_LOG_AT_LEVEL(Level, "lwio", __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_ALWAYS(...)        _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_ALWAYS, __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_ERROR(...)         _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_WARNING(...)       _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_INFO(...)          _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_INFO, __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_VERBOSE(...)       _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_VERBOSE, __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_DEBUG(...)         _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define TEMPLATEDRIVER_LOG_TRACE(...)         _TEMPLATEDRIVER_LOG_AT(LW_RTL_LOG_LEVEL_TRACE, __VA_ARGS__)
+
+
 #define BAIL_ON_NT_STATUS(ntStatus)                \
     if ((ntStatus)) {                              \
-       LWIO_LOG_DEBUG("Error at %s:%d [status: %s = 0x%08X (%d)]", \
+       TEMPLATEDRIVER_LOG_DEBUG("Error at %s:%d [status: %s = 0x%08X (%d)]", \
                      __FILE__,                     \
                      __LINE__,                     \
                      LwNtStatusToName(ntStatus), \
                      ntStatus, ntStatus);          \
        goto error;                                 \
     }
+
  
 #endif  // __UTILS_H__
 

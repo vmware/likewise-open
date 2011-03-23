@@ -55,9 +55,10 @@
 
 #include <lwio/lwio.h>
 #include <lwio/iodriver.h>
-#include <lwio/utils.h>
 
 #include <lw/ntstatus.h>
+#include <reg/reg.h>
+#include <reg/lwntreg.h>
 
 #include "structs.h"
 #include "externs.h"

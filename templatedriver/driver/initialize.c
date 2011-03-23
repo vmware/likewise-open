@@ -56,6 +56,17 @@ TemplateDriverReadConfig(
     PLWIO_TEMPLATEDRIVER_CONFIG pConfig
     );
 
+static
+NTSTATUS
+TemplateDriverReadConfigUlong(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PSTR pszValueName,
+    ULONG ulMinValue,
+    ULONG ulMaxValue,
+    PULONG pulResult
+    );
+
 /* implementation */
 
 NTSTATUS
@@ -65,7 +76,7 @@ TemplateDriverInitialize(
 {
     NTSTATUS ntStatus = 0;
 
-    LWIO_LOG_INFO("%s", __func__);
+    TEMPLATEDRIVER_LOG_INFO("%s", __func__);
 
     memset(&gTemplateDriverGlobals, 0, sizeof(gTemplateDriverGlobals));
 
@@ -90,42 +101,45 @@ TemplateDriverReadConfig(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_CONFIG_REG pReg = NULL;
-    BOOLEAN bUsePolicy = TRUE;
+    HANDLE hRegConnection = NULL;
+    HKEY hKey = NULL;
 
+    ntStatus = NtRegOpenServer(&hRegConnection);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwIoOpenConfig(
-                    "Services\\lwio\\Parameters\\Drivers\\templatedriver",
-                    "Policy\\Services\\lwio\\Parameters\\Drivers\\templatedriver",
-                    &pReg);
-    if (ntStatus)
-    {
-        LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
-                       ntStatus);
-
-        ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
-    }
+    ntStatus = LwNtRegOpenKeyExA(
+                    hRegConnection,
+                    NULL,
+                    HKEY_THIS_MACHINE "Services\\lwio\\Parameters\\Drivers\\templatedriver",
+                    0,
+                    KEY_READ,
+                    &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Ignore error as it may not exist; we can still use default.
-    LwIoReadConfigDword(
-            pReg,
-            "SampleKey",
-            bUsePolicy,
-            0,
-            1000000,
-            &pConfig->ulSampleValue);
+    ntStatus = TemplateDriverReadConfigUlong(hRegConnection, hKey, "SampleKey",
+                                  0, 1000000, &pConfig->ulSampleValue);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    if (pReg)
+    if (hRegConnection)
     {
-        LwIoCloseConfig(pReg);
+        if (hKey)
+        {
+            ntStatus = LwNtRegCloseKey(hRegConnection, hKey);
+            ntStatus = STATUS_SUCCESS;
+        }
+
+        NtRegCloseServer(hRegConnection);
     }
 
     return ntStatus;
 
 error:
+
+    TEMPLATEDRIVER_LOG_ERROR("Invalid TEMPLATEDRIVER registry configuration [error code: %u]",
+                             ntStatus);
 
     goto cleanup;
 }
@@ -137,7 +151,7 @@ TemplateDriverShutdown(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_INFO("%s", __func__);
+    TEMPLATEDRIVER_LOG_INFO("%s", __func__);
 
     if (gTemplateDriverGlobals.pMutex)
     {
@@ -163,7 +177,7 @@ cleanup:
 
 error:
 
-    LWIO_LOG_ERROR("[templatedriver] driver failed to stop. [code: %d]", 
+    TEMPLATEDRIVER_LOG_ERROR("[templatedriver] driver failed to stop. [code: %d]",
                    ntStatus);
     
     goto cleanup;
@@ -176,7 +190,7 @@ TemplateDriverRefresh(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_INFO("%s", __func__);
+    TEMPLATEDRIVER_LOG_INFO("%s", __func__);
 
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -185,6 +199,49 @@ cleanup:
     return ntStatus;
 
 error:
+
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+TemplateDriverReadConfigUlong(
+    HANDLE hRegConnection,
+    HKEY hKey,
+    PSTR pszValueName,
+    ULONG ulMinValue,
+    ULONG ulMaxValue,
+    PULONG pulResult
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulResult = 0;
+    ULONG ulResultSize = sizeof(ulResult);
+
+    ntStatus = LwNtRegGetValueA(hRegConnection, hKey, NULL, pszValueName,
+                                RRF_RT_REG_DWORD, NULL, &ulResult,
+                                &ulResultSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ulResult < ulMinValue || ulResult > ulMaxValue)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    *pulResult = ulResult;
+
+    return ntStatus;
+
+error:
+
+    TEMPLATEDRIVER_LOG_ERROR("Invalid TEMPLATEDRIVER registry configuration when reading %s"
+                   ". [error code: %u]", pszValueName, ntStatus);
+
+    ulResult = 0;
 
     goto cleanup;
 }

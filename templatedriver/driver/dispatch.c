@@ -56,7 +56,7 @@ TemplateDriverProcessCreate(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -79,7 +79,7 @@ TemplateDriverProcessClose(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -102,7 +102,7 @@ TemplateDriverProcessRead(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -125,7 +125,7 @@ TemplateDriverProcessWrite(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -148,7 +148,7 @@ TemplateDriverProcessDeviceIoControl(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -171,7 +171,7 @@ TemplateDriverProcessFsControl(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -194,7 +194,7 @@ TemplateDriverProcessFlushBuffers(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -217,7 +217,7 @@ TemplateDriverProcessQueryInformation(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -240,7 +240,7 @@ TemplateDriverProcessSetInformation(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -263,7 +263,7 @@ TemplateDriverProcessCreateNamedPipe(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -286,7 +286,7 @@ TemplateDriverProcessCreateMailslot(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -309,7 +309,7 @@ TemplateDriverProcessQueryDirectory(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -332,7 +332,7 @@ TemplateDriverProcessReadDirectoryChange(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -355,7 +355,7 @@ TemplateDriverProcessQueryVolumeInformation(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -378,7 +378,7 @@ TemplateDriverProcessSetVolumeInformation(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -401,7 +401,7 @@ TemplateDriverProcessLockControl(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -424,7 +424,7 @@ TemplateDriverProcessQuerySecurity(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
@@ -447,7 +447,7 @@ TemplateDriverProcessSetSecurity(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    LWIO_LOG_ALWAYS("%s", __func__);
+    TEMPLATEDRIVER_LOG_ALWAYS("%s", __func__);
 
     // TODO - add your implementation here
     ntStatus = STATUS_NOT_IMPLEMENTED;
