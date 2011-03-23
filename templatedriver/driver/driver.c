@@ -127,7 +127,7 @@ TemplateDriverDispatch(
 {
     NTSTATUS ntStatus = 0;
 
-    LWIO_LOG_TRACE("%s", __func__);
+    TEMPLATEDRIVER_LOG_TRACE("%s", __func__);
 
     switch (pIrp->Type)
     {
