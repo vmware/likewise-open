@@ -308,7 +308,9 @@ LsaAdBatchEnumProcessRealMessages(
                             &ppObjects[dwObjectsCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (ppObjects[dwObjectsCount])
+            // If the user was disabled, no error and null error would have been
+            // returned
+            if (ppObjects[dwObjectsCount] != NULL)
             {
                 dwObjectsCount++;
             }
@@ -418,6 +420,10 @@ LsaAdBatchEnumProcessPseudoMessages(
                     &dwObjectsCount,
                     &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
+
+    // If orphaned objects are encountered, LsaAdBatchFindObjects does not
+    // return a NULL in the middle of the ppObjects, but instead sets
+    // dwObjectsCount less than dwSidsCount.
 
     // Ideally, do extra sanity check on object type.
     // In the future, find should take the object type
@@ -789,6 +795,82 @@ error:
    goto cleanup;
 }
 
+DWORD
+LsaRemoveAlreadyEnumerated(
+    IN OUT PLSA_HASH_TABLE pEnumeratedSids,
+    IN OUT PDWORD pObjectsCount,
+    IN OUT PLSA_SECURITY_OBJECT* ppObjects
+    )
+{
+    DWORD dwError = 0;
+    DWORD input = 0;
+    DWORD objectsCount = *pObjectsCount;
+    PSTR pszCopiedSid = NULL;
+    size_t sObjectsCount = 0;
+
+    // Remove any sids that have already been enumerated
+    if (pEnumeratedSids != NULL)
+    {
+        for (input = 0; input < objectsCount; input++)
+        {
+            dwError = LsaHashGetValue(
+                        pEnumeratedSids,
+                        ppObjects[input]->pszObjectSid,
+                        NULL);
+            if (dwError == LW_ERROR_SUCCESS)
+            {
+                // The object is already in the hash
+                ADCacheSafeFreeObject(&ppObjects[input]);
+            }
+            else if (dwError == ERROR_NOT_FOUND)
+            {
+                // This is a new entry; let's track it in the hash
+
+                if (pEnumeratedSids->sCount * 2 >
+                    pEnumeratedSids->sTableSize)
+                {
+                    // Enlarge the hash table to avoid collisions
+                    dwError = LsaHashResize(
+                                pEnumeratedSids,
+                                pEnumeratedSids->sCount * 4);
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LwAllocateString(
+                                ppObjects[input]->pszObjectSid,
+                                &pszCopiedSid);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaHashSetValue(
+                            pEnumeratedSids,
+                            pszCopiedSid,
+                            NULL);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                // This is now owned by the hash table
+                pszCopiedSid = NULL;
+            }
+            else
+            {
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    sObjectsCount = objectsCount;
+    AD_FilterNullEntries(
+        ppObjects,
+        &sObjectsCount);
+    *pObjectsCount = sObjectsCount;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszCopiedSid);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 // If this function returns with an error, the position stored in pCookie will
 // be advanced, even though no results are returned. pCookie will still need
 // to be freed outside of this function, even if this function returns with an
@@ -809,9 +891,6 @@ LsaAdBatchEnumObjects(
     PAD_CELL_COOKIE_DATA pCookieData = NULL;
     DWORD dwTotalObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
-    DWORD dwInput = 0;
-    DWORD dwOutput = 0;
-    PSTR pszCopiedSid = NULL;
 
     objectType = LsaAdBatchGetObjectTypeFromAccountType(AccountType);
     if (!LsaAdBatchIsUserOrGroupObjectType(objectType))
@@ -886,6 +965,13 @@ LsaAdBatchEnumObjects(
                             &ppObjects);
             BAIL_ON_LSA_ERROR(dwError);
 
+            dwError = LsaRemoveAlreadyEnumerated(
+                         pCookieData->pEnumeratedSids,
+                         &dwObjectsCount,
+                         ppObjects);
+            BAIL_ON_LSA_ERROR(dwError);
+
+
             dwError = LsaAppendAndFreePtrs(
                             &dwTotalObjectsCount,
                             (PVOID**)&ppTotalObjects,
@@ -915,6 +1001,12 @@ LsaAdBatchEnumObjects(
                          &ppObjects);
             BAIL_ON_LSA_ERROR(dwError);
 
+            dwError = LsaRemoveAlreadyEnumerated(
+                         pCookieData->pEnumeratedSids,
+                         &dwObjectsCount,
+                         ppObjects);
+            BAIL_ON_LSA_ERROR(dwError);
+
             dwError = LsaAppendAndFreePtrs(
                             &dwTotalObjectsCount,
                             (PVOID**)&ppTotalObjects,
@@ -922,6 +1014,7 @@ LsaAdBatchEnumObjects(
                             (PVOID**)&ppObjects);
             BAIL_ON_LSA_ERROR(dwError);
         }
+<<<<<<< .working
 
         // Remove any sids that have already been enumerated
         if (pCookieData->pEnumeratedSids != NULL)
@@ -976,12 +1069,13 @@ LsaAdBatchEnumObjects(
             dwTotalObjectsCount = dwOutput;
             dwInput = dwOutput;
         }
+=======
+>>>>>>> .merge-right.r57519
     }
 
 cleanup:
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
-    LW_SAFE_FREE_STRING(pszCopiedSid);
 
     return dwError;
 
