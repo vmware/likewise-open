@@ -26,42 +26,85 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-MK_MSG_DOMAIN="scrub"
+##
+#
+# doc.sh -- generates mkdoc xml from modules
+#
+##
 
-SUBDIR="$1"
-shift
+. "${MK_HOME}/mk.sh" || exit 1
 
-if [ -z "$SUBDIR" ]
-then
-    mk_quote_list "$@"
-    EXTRA_TARGETS="$result"
-fi
+MK_SEARCH_DIRS="${MK_HOME}"
+TITLE="MakeKit Reference"
+INDEX="false"
+HEADER="false"
+MODE="file"
 
-mk_get_stage_targets "@$SUBDIR"
-mk_unquote_list "$result $EXTRA_TARGETS"
+emit_header()
+{
+    mk_quote_c_string "$TITLE"
+    printf '<reference title=%s>\n' "$result"
+}
 
-for _target
-do
-    if [ -e "${_target#@}" -o -h "${_target#@}" ]
+emit_footer()
+{
+    printf '</reference>\n'
+}
+
+process_file()
+{
+    if $INDEX
     then
-        mk_msg "${_target#@$MK_STAGE_DIR}"
-        mk_safe_rm "${_target#@}"
+        awk -f "$MK_HOME/doc.awk" -v title="$TITLE" "$@" |
+        grep "^<function" |
+        sed -e 's/<function name="//' -e 's/".*$//' || mk_fail "awk failed"
+    else
+        awk -f "$MK_HOME/doc.awk" -v title="$TITLE" "$@" || mk_fail "awk failed"
     fi
+}
+
+process_module()
+{
+    _mk_find_resource "module/$1.sh" || mk_fail "could not find module $1"
+    process_file "$result"
+}
+
+process_docbook()
+{
+    if ! $INDEX
+    then
+        mk_quote_c_string "$1"
+        printf '<include format="docbook" file=%s/>\n' "$result"
+    fi
+}
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+        --index) INDEX="true"; shift;;
+        --title) TITLE="$2"; shift 2;;
+        --module) MODE=module; shift;;
+        --file) MODE=file; shift;;
+        --docbook) MODE=docbook; shift;;
+        *)
+            if ! $HEADER && ! $INDEX
+            then
+                emit_header
+                HEADER=true
+            fi
+
+            case "$MODE" in
+                file) process_file "$1";;
+                module) process_module "$1";;
+                docbook) process_docbook "$1";;
+            esac
+            shift
+            ;;
+    esac
 done
 
-if [ -d "$MK_STAGE_DIR" ]
+if ! $INDEX
 then
-    find "${MK_STAGE_DIR}" -type d | sed '1!G;h;$!d' |
-    while read -r _dir
-    do
-        if rmdir -- "$_dir" >/dev/null 2>&1
-        then
-            if [ "$_dir" = "$MK_STAGE_DIR" ]
-            then
-                mk_msg "${_dir}"
-            else
-                mk_msg "${_dir#$MK_STAGE_DIR}"
-            fi
-        fi
-    done
+    emit_footer
 fi
+

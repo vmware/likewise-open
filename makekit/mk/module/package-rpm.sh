@@ -55,23 +55,52 @@ option()
 
 configure()
 {
-    mk_export MK_PACKAGE_RPM_DIR
+    mk_declare -e MK_PACKAGE_RPM_DIR
 
     if mk_check_program PROGRAM=rpmbuild && [ "$MK_PACKAGE_RPM" = "yes" ]
     then
         mk_msg "RPM package building: enabled"
-        mk_export MK_PACKAGE_RPM_ENABLED=yes
+        MK_PACKAGE_RPM_ENABLED=yes
     else
         mk_msg "RPM package building: disabled"
-        mk_export MK_PACKAGE_RPM_ENABLED=no
+        MK_PACKAGE_RPM_ENABLED=no
     fi
 }
 
+#<
+# @brief Test if RPM building is enabled
+# @usage
+#
+# Returns <lit>0</lit> (logical true) if RPM packaging is available
+# and was enabled by the user and <lit>1</lit> (logical false)
+# otherwise.
+#>
 mk_rpm_enabled()
 {
     [ "$MK_PACKAGE_RPM_ENABLED" = "yes" ]
 }
 
+#<
+# @brief Begin RPM package definition
+# @usage PACKAGE=name SPECFILE=specfile
+# @option PACKAGE=name sets the name of the package
+# @option SPECFILE=specfile designates a template
+# RPM spec file to use
+#
+# Begins the definition of an RPM package to be built.
+# You must provide a template spec file which contains
+# basic metadata about the package, such as its name,
+# dependencies, and description.  The template should
+# omit any sections which control build behavior or
+# file lists -- these will be filled in automatically.
+#
+# After invoking this function, you can use functions
+# such as <funcref>mk_package_targets</funcref> or
+# <funcref>mk_package_patterns</funcref> to add files
+# to the package, or <funcref>mk_subpackage_do</funcref>
+# to define subpackages.  End the definition of the
+# package with <funcref>mk_rpm_done</funcref>.
+#>
 mk_rpm_do()
 {
     mk_push_vars PACKAGE SPECFILE VERSION
@@ -93,8 +122,8 @@ mk_rpm_do()
         mk_mkdir "$RPM_RES_PKGDIR/$i"
     done
 
-    RPM_SPECFILE="${RPM_PKGDIR}/SPECS/${SPECFILE##*/}"
-    RPM_RES_SPECFILE="${RPM_RES_PKGDIR}/SPECS/${SPECFILE##*/}"
+    RPM_SPECFILE="${RPM_PKGDIR}/SPECS/package.spec"
+    RPM_RES_SPECFILE="${RPM_RES_PKGDIR}/SPECS/package.spec"
 
     mk_output_file INPUT="$SPECFILE" OUTPUT="$RPM_SPECFILE"
     mk_quote "$result"
@@ -129,11 +158,14 @@ EOF
         unset RPM_SUBPACKAGE RPM_SUBINSTALLFILE RPM_SUBDIRFILE
     }
 
-    mk_package_files()
+    mk_package_targets()
     {
-        for _i in "$@"
+        mk_quote_list "$@"
+        RPM_DEPS="$RPM_DEPS $result"
+
+        for _i
         do
-            echo "$_i"
+            echo "${_i#@$MK_STAGE_DIR}"
         done >> "${RPM_RES_SPECFILE}"
     }
 
@@ -162,22 +194,28 @@ EOF
     mk_pop_vars
 }
 
+#<
+# @brief End RPM package definition
+# @usage
+#
+# Ends an RPM packages definition started
+# with <funcref>mk_rpm_do</funcref>.
+#>
 mk_rpm_done()
 {
     _mk_rpm_files_end
 
     mk_target \
         TARGET="@${MK_PACKAGE_RPM_DIR}/${RPM_PACKAGE}" \
-        DEPS="$RPM_DEPS @all" \
+        DEPS="$RPM_DEPS" \
         _mk_build_rpm "${RPM_PACKAGE}" "&${RPM_PKGDIR}" "&${RPM_SPECFILE}"
     master="$result"
-
-    mk_add_phony_target "$master"
-    mk_add_subdir_target "$master"
 
     unset RPM_PACKAGE RPM_SUBPACKAGE RPM_INSTALLFILE RPM_SUBINSTALLFILE RPM_PKGDIR
     unset RPM_SUBPACKAGES
     unset -f mk_package_files mk_package_dirs mk_subpackage_do mk_subpackage_done
+
+    mk_add_package_target "$master"
 
     result="$master"
 }

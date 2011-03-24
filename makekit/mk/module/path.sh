@@ -198,7 +198,7 @@ configure()
 
     if [ "$MK_HOST_MULTIARCH" = "separate" ]
     then
-        mk_declare_system_var MK_LIBDIR
+        mk_declare -s -e MK_LIBDIR
 
         for _isa in ${MK_HOST_ISAS}
         do
@@ -211,7 +211,7 @@ configure()
         done
     else
         mk_msg "library dir: $MK_BASELIBDIR"
-        mk_export MK_LIBDIR="$MK_BASELIBDIR"
+        mk_declare -e MK_LIBDIR="$MK_BASELIBDIR"
     fi
 
     mk_msg "include dir: $MK_INCLUDEDIR"
@@ -225,20 +225,21 @@ configure()
     mk_msg "HTML documentation dir: $MK_HTMLDIR"
     mk_msg "manpage dir: $MK_MANDIR"
 
-    mk_export \
+    mk_declare -e \
         MK_PREFIX MK_EPREFIX MK_INCLUDEDIR MK_BINDIR \
         MK_SBINDIR MK_LIBEXECDIR MK_SYSCONFDIR MK_LOCALSTATEDIR \
         MK_DATAROOTDIR MK_DATADIR MK_DOCDIR MK_HTMLDIR \
         MK_MANDIR
 
     # Set up paths where programs compiled for the build system should go
-    mk_export MK_RUN_PREFIX="${MK_RUN_DIR}"
-    mk_export MK_RUN_EPREFIX="${MK_RUN_DIR}"
-    mk_export MK_RUN_LIBDIR="${MK_RUN_DIR}/lib"
-    mk_export MK_RUN_BINDIR="${MK_RUN_DIR}/bin"
-    mk_export MK_RUN_SBINDIR="${MK_RUN_DIR}/sbin"
-    mk_export MK_RUN_SYSCONFDIR="${MK_RUN_DIR}/etc"
-    mk_export MK_RUN_LOCALSTATEDIR="${MK_RUN_DIR}/var"
-    mk_export MK_RUN_DATAROOTDIR="${MK_RUN_DIR}/share"
-    mk_export MK_RUN_DATADIR="${MK_RUN_DIR}/share"
+    mk_declare -e \
+        MK_RUN_PREFIX="${MK_RUN_DIR}" \
+        MK_RUN_EPREFIX="${MK_RUN_DIR}" \
+        MK_RUN_LIBDIR="${MK_RUN_DIR}/lib" \
+        MK_RUN_BINDIR="${MK_RUN_DIR}/bin" \
+        MK_RUN_SBINDIR="${MK_RUN_DIR}/sbin" \
+        MK_RUN_SYSCONFDIR="${MK_RUN_DIR}/etc" \
+        MK_RUN_LOCALSTATEDIR="${MK_RUN_DIR}/var" \
+        MK_RUN_DATAROOTDIR="${MK_RUN_DIR}/share" \
+        MK_RUN_DATADIR="${MK_RUN_DIR}/share"
 }

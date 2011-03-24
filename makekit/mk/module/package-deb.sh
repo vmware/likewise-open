@@ -55,16 +55,16 @@ option()
 
 configure()
 {
-    mk_export MK_PACKAGE_DEB_DIR
+    mk_declare -e MK_PACKAGE_DEB_DIR
 
     if mk_check_program PROGRAM=dpkg-buildpackage &&
        [ "$MK_PACKAGE_DEB" = "yes" ]
     then
         mk_msg "debian package building: enabled"
-        mk_export MK_PACKAGE_DEB_ENABLED=yes
+        MK_PACKAGE_DEB_ENABLED=yes
     else
         mk_msg "debian package building: disabled"
-        mk_export MK_PACKAGE_DEB_ENABLED=no
+        MK_PACKAGE_DEB_ENABLED=no
     fi
 }
 
@@ -141,7 +141,7 @@ mk_deb_do()
         unset DEB_SUBPACKAGE DEB_SUBINSTALLFILE DEB_SUBDIRFILE
     }
 
-    mk_package_files()
+    mk_package_targets()
     {
         if [ -n "$DEB_SUBPACKAGE" ]
         then
@@ -150,9 +150,12 @@ mk_deb_do()
             installfile="$DEB_INSTALLFILE"
         fi
 
-        for _i in "$@"
+        mk_quote_list "$@"
+        DEB_DEPS="$DEB_DEPS $result"
+
+        for _i
         do
-            echo "$_i"
+            echo "${_i#@$MK_STAGE_DIR/}"
         done >> "$installfile"
     }
     
@@ -178,16 +181,15 @@ mk_deb_done()
 {
     mk_target \
         TARGET="@${MK_PACKAGE_DEB_DIR}/${DEB_PACKAGE}" \
-        DEPS="$DEB_DEPS @all" \
+        DEPS="$DEB_DEPS" \
         _mk_build_deb "${DEB_PACKAGE}" "&${DEB_PKGDIR}"
     master="$result"
-
-    mk_add_phony_target "$master"
-    mk_add_subdir_target "$master"
 
     unset DEB_PACKAGE DEB_SUBPACKAGE DEB_INSTALLFILE DEB_SUBINSTALLFILE DEB_PKGDIR
     unset DEB_SUBPACKAGES
     unset -f mk_package_files mk_package_dirs mk_subpackage_do mk_subpackage_done
+
+    mk_add_package_target "$master"
 
     result="$master"
 }
