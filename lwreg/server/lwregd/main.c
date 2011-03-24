@@ -144,6 +144,8 @@ cleanup:
 
     RegShutdownLogging_r();
 
+    unlink(PID_FILE);
+
     return dwError;
 
 error:
