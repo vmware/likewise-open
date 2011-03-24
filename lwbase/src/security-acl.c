@@ -1710,12 +1710,13 @@ cleanup:
     return status;
 }
 
-VOID
+NTSTATUS
 RtlpDecodeLittleEndianAcl(
     IN PACL LittleEndianAcl,
     OUT PACL Acl
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     ULONG offset = 0;
     ULONG i = 0;
 
@@ -1757,11 +1758,15 @@ RtlpDecodeLittleEndianAcl(
                 // screwed up big time.  We could return an error
                 // code, I suppose, but if this is busted this
                 // library is busted wrt self-relative SD verification.
-                assert(FALSE);
+                status = STATUS_INVALID_ACL;
+                GOTO_CLEANUP();
         }
 
         offset += aceHeader->AceSize;
     }
+
+cleanup:
+    return status;
 }
 
 /*
