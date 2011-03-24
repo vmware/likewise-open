@@ -284,6 +284,10 @@ cleanup:
 
     SMBShutdownLogging_r();
 
+#ifdef ENABLE_PIDFILE
+    unlink(PID_FILE);
+#endif
+
     return dwError;
 
 error:
