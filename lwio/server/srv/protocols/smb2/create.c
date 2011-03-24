@@ -434,9 +434,10 @@ cleanup:
             }
         }
 
-        SrvConnection2RemoveAsyncState(
-            pConnection,
-            pCreateState->ullAsyncId);
+        if (pCtxSmb2->AsyncId != 0)
+        {
+            SrvConnection2RemoveAsyncState(pConnection, pCtxSmb2->AsyncId);
+        }
     }
 
     if (pTree)
