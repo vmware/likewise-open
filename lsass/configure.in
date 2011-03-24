@@ -133,11 +133,12 @@ case "$host_os:$host_cpu" in
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin - x64 Snow Leopard])
 		AC_DEFINE([__LWI_DARWIN_X64__], [], [Define if OS is Darwin - x64 Snow Leopard])
 		;;
-	freebsd*:*)
+        freebsd*:*)
                 echo "Detected Free BSD OS"
-		nss_libdir="/usr/local/lib"
-		pam_libdir="/usr/local/lib"
-		NSS_SUBDIR="freebsd"
+                nss_libdir="/usr/local/lib"
+                pam_libdir="/usr/local/lib"
+                NSS_SUBDIR="freebsd"
+                default_skeldirs="/usr/share/skel"
                 ENABLE_NSS_ENUM_DEFAULT="no"
                 AC_DEFINE([__LWI_HAS_OPENPAM__], [], [Define if OS uses OpenPAM])
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
