@@ -427,7 +427,14 @@ PvfsRemoveSCBFromFCB_inlock(
     IN PPVFS_SCB pScb
     )
 {
-    return PvfsListRemoveItem(pFcb->pScbList, &pScb->FcbList);
+    NTSTATUS status = STATUS_SUCCESS;
+
+    if ((pScb->FcbList.Next != NULL) && (pScb->FcbList.Prev != NULL))
+    {
+        status = PvfsListRemoveItem(pFcb->pScbList, &pScb->FcbList);
+    }
+
+    return status;
 }
 
 /*****************************************************************************

@@ -222,10 +222,6 @@ PvfsCloseHandleCleanup(
                 status = PvfsSysStatByFileName(streamName, &statBuf);
                 BAIL_ON_NT_STATUS(status);
 
-                // The locking heirarchy requires that we drop the SCB control
-                // block mutex before trying to pick up the ScbTable exclusive
-                // lock
-
                 if (pScb->BaseControlBlock.pBucket != NULL)
                 {
                     PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
@@ -265,10 +261,6 @@ PvfsCloseHandleCleanup(
 
                 status = PvfsSysStatByFileName(streamName, &statBuf);
                 BAIL_ON_NT_STATUS(status);
-
-                // The locking heirarchy requires that we drop the FCB control
-                // block mutex before trying to pick up the ScbTable exclusive
-                // lock
 
                 if (pScb->pOwnerFcb->BaseControlBlock.pBucket != NULL)
                 {
