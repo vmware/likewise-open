@@ -74,6 +74,16 @@ PvfsDispatchDeviceIoControl(
     ULONG i = 0;
     ULONG TableSize = sizeof(PvfsDeviceCtlHandlerTable) /
                       sizeof(struct _PVFS_DEVICECTL_DISPATCH_TABLE);
+    PPVFS_CCB pCcb = NULL;
+
+    ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Loop through the dispatch table.  Levels included in the table
        but having a NULL handler get NOT_IMPLEMENTED while those not in
@@ -107,6 +117,12 @@ PvfsDispatchDeviceIoControl(
     pIrp->IoStatusBlock.BytesTransferred = Args.OutputBufferLength;
 
 cleanup:
+
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:

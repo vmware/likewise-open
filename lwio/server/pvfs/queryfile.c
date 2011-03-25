@@ -135,6 +135,16 @@ PvfsQuerySetInformationFile(
     int i = 0;
     size_t sizeTable = sizeof(InfoLevelDispatchTable) /
                        sizeof(struct _InfoLevelDispatchEntry);
+    PPVFS_CCB pCcb = NULL;
+
+    ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     InfoLevel = pIrp->Args.QuerySetInformation.FileInformationClass;
 
@@ -162,6 +172,12 @@ PvfsQuerySetInformationFile(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
     return ntError;
 
 error:

@@ -85,6 +85,12 @@ PvfsReadDirectoryChange(
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (!IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     if (!PVFS_IS_DIR(pCcb))
     {
         ntError = STATUS_NOT_A_DIRECTORY;
