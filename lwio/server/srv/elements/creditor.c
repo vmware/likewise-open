@@ -237,6 +237,7 @@ SrvCreditorAdjustCredits(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
     USHORT   usCreditsGranted = 0;
 
     if (pCreditor && (ullSequence != UINT64_MAX))
@@ -264,6 +265,13 @@ SrvCreditorAdjustCredits(
     *pusCreditsGranted = usCreditsGranted;
 
 cleanup:
+
+    if (pCreditor)
+    {
+       LWIO_LOCK_MUTEX(bInLock, &pCreditor->mutex);
+       pCreditor->usNumCreditsLastGranted = usCreditsGranted;
+       LWIO_UNLOCK_MUTEX(bInLock, &pCreditor->mutex);
+    }
 
     return ntStatus;
 
@@ -513,6 +521,7 @@ SrvCreditorInitialize_inlock(
     if (!pCreditor->bInitialized)
     {
         pCreditor->usCreditLimit = SrvElementsConfigGetClientCreditLimit();
+        pCreditor->usCreditStart = SrvElementsConfigGetClientCreditStart();
 
         ntStatus = SrvCreditorAcquireGlobalCredits(1, &usCreditsGranted);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -529,6 +538,7 @@ SrvCreditorInitialize_inlock(
                 &pCreditor->pAvbl_tail);
 
         pCreditor->usTotalCredits += usCreditsGranted;
+        pCreditor->usNumCreditsLastGranted = usCreditsGranted;
 
         pCreditor->bInitialized = TRUE;
     }
@@ -640,7 +650,32 @@ SrvCreditorGrantNewCredits_inlock(
 
     if (pCreditor->usCreditLimit > pCreditor->usTotalCredits)
     {
-        USHORT usCreditsToAcquire = usCreditsRequested;
+        USHORT usCreditsStart = pCreditor->usCreditStart;
+        USHORT usCreditsLastGranted = pCreditor->usNumCreditsLastGranted;
+        USHORT usCreditsToAcquire = usCreditsStart;
+
+        /* Try to acquire usCreditsStart credits (initialized above).
+           If the number of credits requested by the client is less than
+           usCreditsStart, try to acquire whatever the client requested.
+           Else, slowly ramp up the credits by granting
+           LWIO_SRV_CREDIT_INCREMENT more credits than the number of credits
+           granted in the last round. If this number exceeds twice the
+           usCreditsStart, then start from 2*usCreditsStart again */
+
+        if (usCreditsRequested < usCreditsStart)
+        {
+            usCreditsToAcquire = usCreditsRequested;
+        }
+        else if (usCreditsLastGranted >= usCreditsStart)
+        {
+             usCreditsToAcquire = usCreditsLastGranted +
+                  LWIO_SRV_CREDIT_INCREMENT;
+             if (usCreditsToAcquire > (2 * usCreditsStart))
+             {
+                 usCreditsToAcquire = 2 * usCreditsStart;
+             }
+        }
+
         if ((usCreditsToAcquire + pCreditor->usTotalCredits) >
             pCreditor->usCreditLimit)
         {
