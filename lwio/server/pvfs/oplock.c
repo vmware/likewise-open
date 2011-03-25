@@ -327,6 +327,19 @@ error:
 
 
 ////////////////////////////////////////////////////////////////////////
+/// Input and Output buffers are both NULL
+
+static
+NTSTATUS
+PvfsProcessPendingOplockBreakNotify(
+    IN PVOID pContext
+    );
+
+static
+VOID
+PvfsFreePendingOplockBreakNotify(
+    IN OUT PVOID *ppContext
+    );
 
 NTSTATUS
 PvfsOplockBreakNotify(
@@ -337,9 +350,107 @@ PvfsOplockBreakNotify(
     IN OUT PULONG pOutputBufferLength
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    PPVFS_PENDING_OPLOCK_BREAK_NOTIFY pOplockBreakNotifyCtx = NULL;
+
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (PVFS_IS_DIR(pCcb))
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pOplockBreakNotifyCtx,
+                  sizeof(*pOplockBreakNotifyCtx),
+                  FALSE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pOplockBreakNotifyCtx->pCcb = PvfsReferenceCCB(pCcb);
+
+    ntError = PvfsAddItemPendingOplockBreakAck(
+                  pCcb->pScb,
+                  pIrpContext,
+                  PvfsProcessPendingOplockBreakNotify,
+                  PvfsFreePendingOplockBreakNotify,
+                  (PVOID)pOplockBreakNotifyCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
+error:
+
+    if (ntError != STATUS_PENDING)
+    {
+        if (pOplockBreakNotifyCtx)
+        {
+            PvfsFreePendingOplockBreakNotify((PVOID*)&pOplockBreakNotifyCtx);
+        }
+    }
+
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
 }
 
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+PvfsProcessPendingOplockBreakNotify(
+    IN PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_PENDING_OPLOCK_BREAK_NOTIFY pOplockBreakNotify = NULL;
+
+    pOplockBreakNotify = (PPVFS_PENDING_OPLOCK_BREAK_NOTIFY)pContext;
+
+    // Recheck the share mode before returning
+
+    ntError = PvfsEnforceShareMode(
+                  pOplockBreakNotify->pCcb->pScb,
+                  pOplockBreakNotify->pCcb->ShareFlags,
+                  pOplockBreakNotify->pCcb->AccessGranted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    SetFlag(pOplockBreakNotify->pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE);
+
+error:
+
+    return ntError;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+PvfsFreePendingOplockBreakNotify(
+    IN OUT PVOID *ppContext
+    )
+{
+    PPVFS_PENDING_OPLOCK_BREAK_NOTIFY pOplockBreakNotify = NULL;
+
+    if (ppContext)
+    {
+        pOplockBreakNotify = (PPVFS_PENDING_OPLOCK_BREAK_NOTIFY)*ppContext;
+
+        if (pOplockBreakNotify->pCcb)
+        {
+            PvfsReleaseCCB(pOplockBreakNotify->pCcb);
+        }
+
+        PVFS_FREE(ppContext);
+    }
+
+    return;
+}
 
 ////////////////////////////////////////////////////////////////////////
 
