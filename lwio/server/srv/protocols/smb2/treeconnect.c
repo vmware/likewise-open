@@ -231,6 +231,8 @@ SrvProcessTreeConnect_SMB_V2(
 
         case SRV_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE:
 
+            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE;
+
             if (pTConState->pTree->pShareInfo->service ==
                                 SHARE_SERVICE_DISK_SHARE)
             {
@@ -241,11 +243,12 @@ SrvProcessTreeConnect_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE;
-
             // intentional fall through
 
         case SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE:
+
+            ntStatus = pTConState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
 
             ntStatus = SrvBuildTreeConnectResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
