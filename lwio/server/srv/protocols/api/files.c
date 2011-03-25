@@ -1028,10 +1028,18 @@ SrvProtocolFindConnection(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
-    ntStatus = LwRtlRBTreeFind(
+    if (gProtocolApiGlobals.pConnections)
+    {
+        ntStatus = LwRtlRBTreeFind(
                     gProtocolApiGlobals.pConnections,
                     &ulResourceId,
                     (PVOID*)&pConnection);
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_FOUND;
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppConnection = SrvConnectionAcquire(pConnection);
