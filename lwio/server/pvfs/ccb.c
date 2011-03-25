@@ -291,28 +291,25 @@ PvfsSaveFileDeviceInfo(
     pCcb->FileSize = Stat.s_size;
 
     LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
-    if ((pScb->FileId.Device == 0) || (pScb->FileId.Inode == 0))
+
+    // Have to set the FileID on the Stream Block
+    pScb->FileId = pCcb->FileId;
+
+    if (PvfsIsDefaultStream(pScb))
     {
-        // Have to set the FileID on the Stream Block
-        pScb->FileId = pCcb->FileId;
-        if (PvfsIsDefaultStream(pScb))
-        {
-            // Push the FIleId through to the File Block if unset
-            LWIO_LOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
-            if ((pFcb->FileId.Device == 0) || (pFcb->FileId.Inode == 0))
-            {
-                pFcb->FileId = pScb->FileId;
-            }
-            LWIO_UNLOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
-        }
+        // Push the FIleId through to the File Block if unset
+        LWIO_LOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
+
+        pFcb->FileId = pScb->FileId;
+
+        LWIO_UNLOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
     }
+
     LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
-cleanup:
-    return ntError;
-
 error:
-    goto cleanup;
+
+    return ntError;
 }
 
 
