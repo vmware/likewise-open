@@ -237,9 +237,13 @@ PvfsCreateFileDoSysOpen(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    if (pCreateContext->Status == STATUS_SHARING_VIOLATION)
+    if ((pCreateContext->Status == STATUS_SHARING_VIOLATION) &&
+        !(IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED) &&
+          pCreateContext->OplockBroken))
     {
-        // Retry share mode checks in case they succeed now
+        // We rety the share mode check we broke an oplock and
+        // have already dealt with the ACK
+
         ntError = PvfsEnforceShareMode(
                        pCreateContext->pScb,
                        Args.ShareAccess,
