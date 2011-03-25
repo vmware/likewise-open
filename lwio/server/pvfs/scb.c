@@ -1017,12 +1017,14 @@ PvfsRenameSCB(
     BOOLEAN targetScbListLocked = FALSE;
     BOOLEAN targetBucketLocked = FALSE;
     BOOLEAN currentBucketLocked = FALSE;
+    BOOLEAN fcbListLocked = FALSE;
     BOOLEAN scbRwLocked = FALSE;
     BOOLEAN renameLock = FALSE;
     PVFS_FILE_NAME currentFileName = { 0 };
     PSTR currentStreamName = NULL;
     PSTR newStreamName = NULL;
     PVFS_STAT Stat = {0};
+    PPVFS_FCB pOwnerFcb = NULL;
 
     ntError = PvfsValidatePathSCB(pCcb->pScb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
@@ -1047,16 +1049,19 @@ PvfsRenameSCB(
     ntError = PvfsBuildFileNameFromScb(&currentFileName, pScb);
     BAIL_ON_NT_STATUS(ntError);
 
+    pOwnerFcb = PvfsReferenceFCB(pScb->pOwnerFcb);
+
     // Obtain all locks for the rename
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(renameLock, &scbTable->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbListLocked, &pOwnerFcb->rwScbLock);
     LWIO_LOCK_MUTEX(currentScbControl, &pScb->BaseControlBlock.Mutex);
 
     pCurrentBucket = pScb->BaseControlBlock.pBucket;
 
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(currentBucketLocked, &pCurrentBucket->rwLock);
+
     ntError = PvfsCbTableGetBucket(&pTargetBucket, scbTable, newStreamName);
     BAIL_ON_NT_STATUS(ntError);
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(currentBucketLocked, &pCurrentBucket->rwLock);
 
     if (pCurrentBucket != pTargetBucket)
     {
@@ -1070,6 +1075,8 @@ PvfsRenameSCB(
                   newStreamName);
     if (ntError == STATUS_SUCCESS)
     {
+        LWIO_ASSERT(pTargetScb->pOwnerFcb == pOwnerFcb);
+
         if (pTargetScb != pScb)
         {
             // Remove an existing SCB for the target file/stream (if one exists)
@@ -1087,11 +1094,12 @@ PvfsRenameSCB(
 
             LWIO_UNLOCK_RWMUTEX(targetScbListLocked, &pTargetScb->rwCcbLock);
 
+            PvfsRemoveSCBFromFCB_inlock(pOwnerFcb, pTargetScb);
             // TODO - How to get the Control Mutex without violating the
             // lock heirarchy?  Does it matter at all ?
             ntError = PvfsCbTableRemove_inlock(
-                          (PPVFS_CONTROL_BLOCK)pTargetScb,
-                          newStreamName);
+                              (PPVFS_CONTROL_BLOCK)pTargetScb,
+                              newStreamName);
             LWIO_ASSERT(ntError == STATUS_SUCCESS);
         }
     }
@@ -1149,8 +1157,14 @@ error:
     LWIO_UNLOCK_RWMUTEX(targetBucketLocked, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(currentBucketLocked, &pCurrentBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(scbRwLocked, &pScb->BaseControlBlock.RwLock);
+    LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pOwnerFcb->rwScbLock);
     LWIO_UNLOCK_MUTEX(currentScbControl, &pScb->BaseControlBlock.Mutex);
     LWIO_UNLOCK_RWMUTEX(renameLock, &scbTable->rwLock);
+
+    if (pOwnerFcb)
+    {
+        PvfsReleaseFCB(&pOwnerFcb);
+    }
 
     if (pTargetScb)
     {
