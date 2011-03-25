@@ -235,6 +235,7 @@ typedef struct _PVFS_PENDING_CREATE
     BOOLEAN bFileExisted;
     PVFS_SET_FILE_PROPERTY_FLAGS SetPropertyFlags;
     NTSTATUS Status;
+    BOOLEAN OplockBroken;
 
 } PVFS_PENDING_CREATE, *PPVFS_PENDING_CREATE;
 

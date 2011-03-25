@@ -1021,6 +1021,7 @@ PvfsAllocateCreateContext(
     pCreateCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
 
     pCreateCtx->Status = STATUS_SUCCESS;
+    pCreateCtx->OplockBroken = FALSE;
 
     *ppCreate = pCreateCtx;
     pCreateCtx = NULL;
