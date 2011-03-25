@@ -465,35 +465,59 @@ PvfsOplockMarkPendedOpsReady(
     PPVFS_SCB pScb
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pData = NULL;
     BOOLEAN bScbLocked = FALSE;
     PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
+    PPVFS_LIST pProcessingQueue = NULL;
+    PPVFS_LIST pNewPendingQueue = NULL;
 
     LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
+    if (PvfsListIsEmpty(pScb->pOplockPendingOpsQueue))
+    {
+        // Nothing to process
+        status = STATUS_SUCCESS;
+        goto error;
+    }
+
+    // Take ownership of the pending op list so we can drop the
+    // SCB Mutex as soon as possible
+
+    status = PvfsListInit(
+                 &pNewPendingQueue,
+                 PVFS_SCB_MAX_PENDING_OPERATIONS,
+                 (PPVFS_LIST_FREE_DATA_FN)PvfsFreePendingOp);
+    BAIL_ON_NT_STATUS(status);
+
+    pProcessingQueue = pScb->pOplockPendingOpsQueue;
+    pScb->pOplockPendingOpsQueue = pNewPendingQueue;
+    pNewPendingQueue = NULL;
+
     pScb->bOplockBreakInProgress = FALSE;
 
-    while (!PvfsListIsEmpty(pScb->pOplockPendingOpsQueue))
+    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
+
+    while (!PvfsListIsEmpty(pProcessingQueue))
     {
-        ntError = PvfsListRemoveHead(
-                      pScb->pOplockPendingOpsQueue,
-                      &pData);
-        BAIL_ON_NT_STATUS(ntError);
+        status = PvfsListRemoveHead(
+                     pProcessingQueue,
+                     &pData);
+        BAIL_ON_NT_STATUS(status);
 
         pPendingOp = LW_STRUCT_FROM_FIELD(
                          pData,
                          PVFS_OPLOCK_PENDING_OPERATION,
                          PendingOpList);
 
-        ntError = LwRtlQueueWorkItem(
+        status = LwRtlQueueWorkItem(
                       gPvfsDriverState.ThreadPool,
                       PvfsProcessOplockDeferredOperation,
                       pPendingOp,
                       LW_SCHEDULE_HIGH_PRIORITY);
-        if (!NT_SUCCESS(ntError))
+        if (!NT_SUCCESS(status))
         {
-            pPendingOp->pIrpContext->pIrp->IoStatusBlock.Status = ntError;
+            pPendingOp->pIrpContext->pIrp->IoStatusBlock.Status = status;
             PvfsAsyncIrpComplete(pPendingOp->pIrpContext);
             PvfsFreePendingOp(&pPendingOp);
         }
@@ -502,9 +526,15 @@ PvfsOplockMarkPendedOpsReady(
     }
 
 error:
+
     LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
 
-    return ntError;
+    if (pNewPendingQueue)
+    {
+        PvfsListDestroy(&pNewPendingQueue);
+    }
+
+    return status;
 }
 
 ////////////////////////////////////////////////////////////////////////
