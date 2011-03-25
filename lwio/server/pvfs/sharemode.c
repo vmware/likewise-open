@@ -244,9 +244,11 @@ _PvfsEnforceShareMode(
                    PVFS_CCB,
                    ScbList);
 
-        /* Ignore handles that are in the midst of being closed */
+        // Ignore handles that are in the midst of being closed
+        // or are incomplete
 
-        if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CLOSE_IN_PROGRESS))
+        if (IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CLOSE_IN_PROGRESS) ||
+            !IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
         {
             continue;
         }
