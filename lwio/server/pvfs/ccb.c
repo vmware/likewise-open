@@ -126,6 +126,8 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
+    LWIO_ASSERT(pCCB->RefCount == 0);
+
     if (pCCB->pScb)
     {
         PvfsRemoveCCBFromSCB(pCCB->pScb, pCCB);
@@ -424,6 +426,7 @@ PvfsRenameFile(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_CB_TABLE scbTable = &gPvfsDriverState.ScbTable;
     PPVFS_CB_TABLE_ENTRY pTargetBucket = NULL;
     PPVFS_CB_TABLE_ENTRY pCurrentBucket = NULL;
     BOOLEAN renameLock = FALSE;
@@ -433,7 +436,7 @@ PvfsRenameFile(
     PLW_LIST_LINKS pScbCursor = NULL;
     PPVFS_SCB pCurrentScb = NULL;
     BOOLEAN scbMutexLock = FALSE;
-    BOOLEAN bFcbReadLocked = FALSE;
+    BOOLEAN fcbListLocked = FALSE;
     BOOLEAN bMatchScb = FALSE;
     PPVFS_FILE_NAME origTargetFileName = NULL;
     PPVFS_FILE_NAME scbCursorFileName = NULL;
@@ -445,17 +448,12 @@ PvfsRenameFile(
     ntError = PvfsAllocateFileNameFromScb(&origTargetFileName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
-    // Locks - gPvfsDriverState.ScbTable(Excl)
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(renameLock, &gPvfsDriverState.ScbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(renameLock, &scbTable->rwLock);
 
     ntError = PvfsRenameFCB(pOwnerFcb, pCcb, pNewFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    // Locks - gPvfsDriverState.ScbTable(Excl)
-    //       - pOwnerFcb->ScbLock(Shared)
-
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pOwnerFcb->rwScbLock);
+    LWIO_LOCK_RWMUTEX_SHARED(fcbListLocked, &pOwnerFcb->rwScbLock);
 
     // The CB Table key is based on the complete file name (stream and base file)
     // Remove and Re-add the stream objects under the new key
@@ -472,7 +470,7 @@ PvfsRenameFile(
             bMatchScb = TRUE;
         }
 
-        BAIL_ON_INVALID_PTR(pCurrentScb, ntError);
+        LWIO_ASSERT(pCurrentScb != NULL);
 
         ntError = PvfsAllocateFileNameFromScb(&scbCursorFileName, pCurrentScb);
         BAIL_ON_NT_STATUS(ntError);
@@ -494,9 +492,10 @@ PvfsRenameFile(
 
         pCurrentBucket = pCurrentScb->BaseControlBlock.pBucket;
 
-        ntError = PvfsCbTableGetBucket(&pTargetBucket, &gPvfsDriverState.ScbTable, newFullStreamName);
+        ntError = PvfsCbTableGetBucket(&pTargetBucket, scbTable, newFullStreamName);
         BAIL_ON_NT_STATUS(ntError);
 
+        LWIO_LOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(currentBucketLock, &pCurrentBucket->rwLock);
         if (pCurrentBucket != pTargetBucket)
         {
@@ -504,23 +503,36 @@ PvfsRenameFile(
             LWIO_LOCK_RWMUTEX_EXCLUSIVE(targetBucketLock, &pTargetBucket->rwLock);
         }
 
-        LWIO_LOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
-
-        ntError = PvfsCbTableRemove_inlock(pCurrentBucket, origFullStreamName);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsCbTableRemove_inlock(
+                      (PPVFS_CONTROL_BLOCK)pCurrentScb,
+                      origFullStreamName);
+        LWIO_ASSERT(STATUS_SUCCESS == ntError);
 
         ntError = PvfsCbTableAdd_inlock(
                       pTargetBucket,
                       newFullStreamName,
-                     (PPVFS_CONTROL_BLOCK)pCcb->pScb);
-        BAIL_ON_NT_STATUS(ntError);
+                     (PPVFS_CONTROL_BLOCK)pCurrentScb);
+        if (STATUS_SUCCESS != ntError)
+        {
+            LWIO_LOG_ERROR(
+                "Failed to rename stream \"%s\" (%s)\n",
+                newFullStreamName,
+                LwNtStatusToName(ntError));
+        }
 
-        pCurrentScb->BaseControlBlock.pBucket = pTargetBucket;
-
-        LWIO_UNLOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
 
         LWIO_UNLOCK_RWMUTEX(targetBucketLock, &pTargetBucket->rwLock);
         LWIO_UNLOCK_RWMUTEX(currentBucketLock, &pCurrentBucket->rwLock);
+        LWIO_UNLOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
+
+        if (origFullStreamName)
+        {
+            LwRtlCStringFree(&origFullStreamName);
+        }
+        if (newFullStreamName)
+        {
+            LwRtlCStringFree(&newFullStreamName);
+        }
     }
 
     // Sanity check
@@ -532,8 +544,8 @@ error:
     LWIO_UNLOCK_RWMUTEX(targetBucketLock, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(currentBucketLock, &pCurrentBucket->rwLock);
 
-    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pOwnerFcb->rwScbLock);
-    LWIO_UNLOCK_RWMUTEX(renameLock, &gPvfsDriverState.ScbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pOwnerFcb->rwScbLock);
+    LWIO_UNLOCK_RWMUTEX(renameLock, &scbTable->rwLock);
 
     if (pOwnerFcb)
     {

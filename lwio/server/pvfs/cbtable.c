@@ -103,69 +103,86 @@ PvfsCbTableDestroy(
 
 NTSTATUS
 PvfsCbTableAdd_inlock(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString,
-    PPVFS_CONTROL_BLOCK pCb
+    IN PPVFS_CB_TABLE_ENTRY pBucket,
+    IN PSTR KeyString,
+    IN PPVFS_CONTROL_BLOCK pCb
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     PSTR newKeyString = NULL;
 
-    ntError = LwRtlCStringDuplicate(&newKeyString, KeyString);
-    BAIL_ON_NT_STATUS(ntError);
+    LWIO_ASSERT(pCb->pBucket == NULL);
 
-    ntError = LwRtlRBTreeAdd(pBucket->pTree, (PVOID)newKeyString, pCb);
-    BAIL_ON_NT_STATUS(ntError);
+    status = LwRtlCStringDuplicate(&newKeyString, KeyString);
+    BAIL_ON_NT_STATUS(status);
 
-cleanup:
-    return ntError;
+    pCb->pBucket = pBucket;
+
+    status = LwRtlRBTreeAdd(pBucket->pTree, (PVOID)newKeyString, pCb);
+    BAIL_ON_NT_STATUS(status);
 
 error:
-    if (newKeyString)
+
+    if (!NT_SUCCESS(status))
     {
-        LwRtlCStringFree(&newKeyString);
+        pCb->pBucket = NULL;
+
+        if (newKeyString)
+        {
+            LwRtlCStringFree(&newKeyString);
+        }
     }
 
-    goto cleanup;
+    return status;
 }
 
 
-/***********************************************************************
- **********************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsCbTableRemove_inlock(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
+    IN OUT PPVFS_CONTROL_BLOCK pControlBlock,
+    IN PSTR KeyString
     )
 {
-    return LwRtlRBTreeRemove(pBucket->pTree, (PVOID)KeyString);
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LwRtlRBTreeRemove(pControlBlock->pBucket->pTree, (PVOID)KeyString);
+    BAIL_ON_NT_STATUS(status);
+
+    pControlBlock->pBucket = NULL;
+
+error:
+
+    return status;
 }
 
-/***********************************************************************
- **********************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsCbTableRemove(
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PSTR KeyString
+    IN OUT PPVFS_CONTROL_BLOCK pControlBlock,
+    IN PSTR KeyString
     )
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bLocked = FALSE;
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN cbLocked = FALSE;
+    BOOLEAN bucketLocked = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pBucket->rwLock);
+    LWIO_LOCK_MUTEX(cbLocked, &pControlBlock->Mutex);
 
-    ntError = PvfsCbTableRemove_inlock(pBucket, KeyString);
-    BAIL_ON_NT_STATUS(ntError);
+    if (pControlBlock->pBucket != NULL)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pControlBlock->pBucket->rwLock);
 
-cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pBucket->rwLock);
+        status = PvfsCbTableRemove_inlock(pControlBlock, KeyString);
 
-    return ntError;
+        LWIO_UNLOCK_RWMUTEX(bucketLocked, &pControlBlock->pBucket->rwLock);
+    }
 
-error:
-    goto cleanup;
+    LWIO_LOCK_MUTEX(cbLocked, &pControlBlock->Mutex);
+
+    return status;
 }
 
 
@@ -174,9 +191,9 @@ error:
 
 NTSTATUS
 PvfsCbTableLookup(
-    PPVFS_CONTROL_BLOCK *ppCb,
-    PPVFS_CB_TABLE_ENTRY pBucket,
-    PCSTR KeyString
+    OUT PPVFS_CONTROL_BLOCK *ppCb,
+    IN PPVFS_CB_TABLE_ENTRY pBucket,
+    IN PCSTR KeyString
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -215,7 +232,7 @@ PvfsCbTableLookup_inlock(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_ASSERT((pCb->pBucket != NULL) && !pCb->Removed);
+    LWIO_ASSERT(pCb->pBucket != NULL);
 
     *ppCb = PvfsReferenceCB(pCb);
 
