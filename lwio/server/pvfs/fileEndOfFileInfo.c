@@ -264,7 +264,7 @@ PvfsCreateSetEndOfFileContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pSetEndOfFileCtx,
-                  sizeof(PVFS_PENDING_READ),
+                  sizeof(PVFS_PENDING_SET_END_OF_FILE),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
