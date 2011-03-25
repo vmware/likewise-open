@@ -321,17 +321,17 @@ SrvProtocolTransportDriverShutdown(
         pTransportContext->hTransport = NULL;
     }
 
-    if (pGlobals->pConnections)
-    {
-        LwRtlRBTreeFree(pGlobals->pConnections);
-        pGlobals->pConnections = NULL;
-    }
-
     // Zero the transport dispatch but leave the socket dispatch for
     // the Producer/Consumer Queue shutdown in case there is an existing socket
     // on a connection
 
     RtlZeroMemory(&pTransportContext->dispatch, sizeof(pTransportContext->dispatch));
+
+    if (pGlobals->pConnections)
+    {
+        LwRtlRBTreeFree(pGlobals->pConnections);
+        pGlobals->pConnections = NULL;
+    }
 }
 
 static
