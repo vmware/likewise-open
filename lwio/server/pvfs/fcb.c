@@ -226,6 +226,8 @@ PvfsReleaseFCB(
 
     if (refCount == 0)
     {
+        LWIO_ASSERT(PvfsListIsEmpty(pFcb->pScbList));
+
         if (pBucket)
         {
             ntError = PvfsCbTableRemove_inlock(
