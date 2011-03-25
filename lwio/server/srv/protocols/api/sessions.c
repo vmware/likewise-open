@@ -201,18 +201,11 @@ SrvProtocolEnumerateSessions(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
-    if (gProtocolApiGlobals.pConnections)
-    {
-        ntStatus = LwRtlRBTreeTraverse(
-                        gProtocolApiGlobals.pConnections,
-                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                        &SrvProtocolCountCandidateSessions,
-                        &sessionEnumQuery);
-    }
-    else
-    {
-        ntStatus = STATUS_PROCESS_IS_TERMINATING;
-    }
+    ntStatus = LwRtlRBTreeTraverse(
+                    gProtocolApiGlobals.pConnections,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvProtocolCountCandidateSessions,
+                    &sessionEnumQuery);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlRBTreeTraverse(
@@ -297,18 +290,11 @@ SrvProtocolDeleteSession(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
 
-    if (gProtocolApiGlobals.pConnections)
-    {
-        ntStatus = LwRtlRBTreeTraverse(
+    ntStatus = LwRtlRBTreeTraverse(
                     gProtocolApiGlobals.pConnections,
                     LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                     &SrvProtocolDeleteCandidateSessions,
                     &sessionEnumQuery);
-    }
-    else
-    {
-        ntStatus = STATUS_PROCESS_IS_TERMINATING;
-    }
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
