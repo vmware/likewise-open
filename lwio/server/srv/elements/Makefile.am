@@ -8,6 +8,7 @@ libsrvelements_la_SOURCES = \
     libmain.c       \
     mt19937ar.c     \
     resources.c     \
+    srvasyncclose.c \
     srvasyncstate.c \
     srvconnection.c \
     srvenum.c       \

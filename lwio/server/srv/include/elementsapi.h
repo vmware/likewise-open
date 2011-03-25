@@ -223,6 +223,20 @@ typedef struct _SRV_MPX_TRACKING_STATE
 
 } SRV_MPX_TRACKING_STATE, *PSRV_MPX_TRACKING_STATE;
 
+typedef struct _SRV_ASYNC_CLOSE_FILE_TRACKER {
+    pthread_mutex_t Mutex;
+    pthread_mutex_t* pMutex;
+    pthread_cond_t Condition;
+    pthread_cond_t* pCondition;
+    LONG PendingCount;
+} SRV_ASYNC_CLOSE_FILE_TRACKER, *PSRV_ASYNC_CLOSE_FILE_TRACKER;
+
+typedef struct _SRV_ASYNC_CLOSE_FILE_STATE {
+    PSRV_ASYNC_CLOSE_FILE_TRACKER pTracker;
+    IO_ASYNC_CONTROL_BLOCK AsyncControlBlock;
+    IO_STATUS_BLOCK IoStatusBlock;
+} SRV_ASYNC_CLOSE_FILE_STATE, *PSRV_ASYNC_CLOSE_FILE_STATE;
+
 typedef struct _LWIO_ASYNC_STATE
 {
     pthread_rwlock_t               mutex;
@@ -284,6 +298,8 @@ typedef struct _LWIO_SRV_FILE
     ULONG64                        ullLastFailedLockOffset;
 
     PFN_SRV_FILE_CANCEL_ASYNC_OPERATIONS pfnCancelAsyncOperationsFile;
+
+    PSRV_ASYNC_CLOSE_FILE_STATE pAsyncCloseFileState;
 
     BOOLEAN bIsBlockingIdleTimeout;
 
@@ -347,6 +363,8 @@ typedef struct _LWIO_SRV_FILE_2
     HANDLE                           hOplockState;
     PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE   pfnFreeOplockState;
+
+    PSRV_ASYNC_CLOSE_FILE_STATE pAsyncCloseFileState;
 
     BOOLEAN bIsBlockingIdleTimeout;
 
