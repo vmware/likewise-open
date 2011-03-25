@@ -280,36 +280,35 @@ PvfsCreateFileSupersede(
 
     switch (ntError)
     {
-    case STATUS_SUCCESS:
-        ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-        break;
+        case STATUS_SUCCESS:
+            ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+            break;
 
-    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
-        ntError = PvfsPendOplockBreakTest(
-                      pCreateCtx->pScb,
-                      pIrpContext,
-                      pCreateCtx->pCcb,
-                      PvfsCreateFileDoSysOpen,
-                      PvfsFreeCreateContext,
-                      (PVOID)pCreateCtx);
-        if (ntError == STATUS_PENDING)
-        {
-            pCreateCtx = NULL;
-        }
-        break;
+        case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        case STATUS_PENDING:
+            if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
+            {
+                ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+            }
+            else
+            {
+                ntError = PvfsAddItemPendingOplockBreakAck(
+                              pCreateCtx->pScb,
+                              pIrpContext,
+                              PvfsCreateFileDoSysOpen,
+                              PvfsFreeCreateContext,
+                              (PVOID)pCreateCtx);
+            }
 
-    case STATUS_PENDING:
-        ntError = PvfsAddItemPendingOplockBreakAck(
-                      pCreateCtx->pScb,
-                      pIrpContext,
-                      PvfsCreateFileDoSysOpen,
-                      PvfsFreeCreateContext,
-                      (PVOID)pCreateCtx);
-        if (ntError == STATUS_PENDING)
-        {
-            pCreateCtx = NULL;
-        }
-        break;
+            if (ntError == STATUS_PENDING)
+            {
+                pCreateCtx = NULL;
+            }
+            break;
+
+        default:
+            // All else will be caught by the BAIL follow the switch()
+            break;
     }
     BAIL_ON_NT_STATUS(ntError);
 
@@ -578,36 +577,35 @@ PvfsCreateFileOpenOrOverwrite(
 
     switch (ntError)
     {
-    case STATUS_SUCCESS:
-        ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-        break;
+        case STATUS_SUCCESS:
+            ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+            break;
 
-    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
-        ntError = PvfsPendOplockBreakTest(
-                      pCreateCtx->pScb,
-                      pIrpContext,
-                      pCreateCtx->pCcb,
-                      PvfsCreateFileDoSysOpen,
-                      PvfsFreeCreateContext,
-                      (PVOID)pCreateCtx);
-        if (ntError == STATUS_PENDING)
-        {
-            pCreateCtx = NULL;
-        }
-        break;
+        case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        case STATUS_PENDING:
+            if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
+            {
+                ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+            }
+            else
+            {
+                ntError = PvfsAddItemPendingOplockBreakAck(
+                              pCreateCtx->pScb,
+                              pIrpContext,
+                              PvfsCreateFileDoSysOpen,
+                              PvfsFreeCreateContext,
+                              (PVOID)pCreateCtx);
+            }
 
-    case STATUS_PENDING:
-        ntError = PvfsAddItemPendingOplockBreakAck(
-                      pCreateCtx->pScb,
-                      pIrpContext,
-                      PvfsCreateFileDoSysOpen,
-                      PvfsFreeCreateContext,
-                      (PVOID)pCreateCtx);
-        if (ntError == STATUS_PENDING)
-        {
-            pCreateCtx = NULL;
-        }
-        break;
+            if (ntError == STATUS_PENDING)
+            {
+                pCreateCtx = NULL;
+            }
+            break;
+
+        default:
+            // All else will be caught by the BAIL follow the switch()
+            break;
     }
     BAIL_ON_NT_STATUS(ntError);
 
@@ -774,36 +772,35 @@ PvfsCreateFileOpenOrOverwriteIf(
 
     switch (ntError)
     {
-    case STATUS_SUCCESS:
-        ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-        break;
+        case STATUS_SUCCESS:
+            ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+            break;
 
-    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
-        ntError = PvfsPendOplockBreakTest(
-                      pCreateCtx->pScb,
-                      pIrpContext,
-                      pCreateCtx->pCcb,
-                      PvfsCreateFileDoSysOpen,
-                      PvfsFreeCreateContext,
-                      (PVOID)pCreateCtx);
-        if (ntError == STATUS_PENDING)
-        {
-            pCreateCtx = NULL;
-        }
-        break;
+        case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        case STATUS_PENDING:
+            if (IsSetFlag(Args.CreateOptions, FILE_COMPLETE_IF_OPLOCKED))
+            {
+                ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+            }
+            else
+            {
+                ntError = PvfsAddItemPendingOplockBreakAck(
+                              pCreateCtx->pScb,
+                              pIrpContext,
+                              PvfsCreateFileDoSysOpen,
+                              PvfsFreeCreateContext,
+                              (PVOID)pCreateCtx);
+            }
 
-    case STATUS_PENDING:
-        ntError = PvfsAddItemPendingOplockBreakAck(
-                      pCreateCtx->pScb,
-                      pIrpContext,
-                      PvfsCreateFileDoSysOpen,
-                      PvfsFreeCreateContext,
-                      (PVOID)pCreateCtx);
-        if (ntError == STATUS_PENDING)
-        {
-            pCreateCtx = NULL;
-        }
-        break;
+            if (ntError == STATUS_PENDING)
+            {
+                pCreateCtx = NULL;
+            }
+            break;
+
+        default:
+            // All else will be caught by the BAIL follow the switch()
+            break;
     }
     BAIL_ON_NT_STATUS(ntError);
 
