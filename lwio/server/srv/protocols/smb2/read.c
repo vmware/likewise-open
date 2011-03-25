@@ -54,9 +54,10 @@
 static
 NTSTATUS
 SrvBuildReadState_SMB_V2(
-    PSMB2_READ_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_FILE_2          pFile,
-    PSRV_READ_STATE_SMB_V2*   ppReadState
+    IN PSMB2_READ_REQUEST_HEADER pRequestHeader,
+    IN PLWIO_SRV_FILE_2 pFile,
+    IN ULONG64 AsyncId,
+    OUT PSRV_READ_STATE_SMB_V2*   ppReadState
     );
 
 static
@@ -137,6 +138,20 @@ SrvBuildReadResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+VOID
+SrvCancelReadStateHandle_SMB_V2(
+    HANDLE hWriteState
+    );
+
+static
+PSRV_READ_STATE_SMB_V2
+SrvAcquireReadState_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState
+    );
+
+////////////////////////////////////////////////////////////////////////
+
 NTSTATUS
 SrvProcessRead_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
@@ -151,6 +166,8 @@ SrvProcessRead_SMB_V2(
     PLWIO_SRV_TREE_2           pTree        = NULL;
     PLWIO_SRV_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
+    PLWIO_ASYNC_STATE pAsyncState  = NULL;
+    BOOLEAN unregisterAsyncState = FALSE;
 
     pReadState = (PSRV_READ_STATE_SMB_V2)pCtxSmb2->hState;
     if (pReadState)
@@ -217,15 +234,28 @@ SrvProcessRead_SMB_V2(
                         &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvConnection2CreateAsyncState(
+                       pConnection,
+                       COM2_READ,
+                       &SrvCancelReadStateHandle_SMB_V2,
+                       &SrvReleaseReadStateHandle_SMB_V2,
+                       &pAsyncState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        unregisterAsyncState = TRUE;
+
         ntStatus = SrvBuildReadState_SMB_V2(
                         pRequestHeader,
                         pFile,
+                        pAsyncState->ullAsyncId,
                         &pReadState);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pCtxSmb2->hState = pReadState;
         InterlockedIncrement(&pReadState->refCount);
         pCtxSmb2->pfnStateRelease = &SrvReleaseReadStateHandle_SMB_V2;
+
+        pAsyncState->hAsyncState = SrvAcquireReadState_SMB_V2(pReadState);
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pReadState->mutex);
@@ -256,6 +286,10 @@ SrvProcessRead_SMB_V2(
         case SRV_READ_STAGE_SMB_V2_ATTEMPT_READ:
 
             ntStatus = SrvAttemptReadIo_SMB_V2(pReadState, pExecContext);
+            if (pCtxSmb2->InterimResponseTimer)
+            {
+                unregisterAsyncState = FALSE;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED;
@@ -320,6 +354,30 @@ SrvProcessRead_SMB_V2(
 
 cleanup:
 
+    if (STATUS_PENDING != ntStatus)
+    {
+        if (pCtxSmb2->InterimResponseTimer)
+        {
+            PSRV_EXEC_CONTEXT pExecContext2 = NULL;
+
+            SrvTimerCancelRequest(
+                pCtxSmb2->InterimResponseTimer,
+                (PVOID*)&pExecContext2);
+
+            SrvTimerRelease(pCtxSmb2->InterimResponseTimer);
+            pCtxSmb2->InterimResponseTimer = NULL;
+
+            if (pExecContext2)
+            {
+                SrvReleaseExecContext(pExecContext2);
+            }
+        }
+
+        SrvConnection2RemoveAsyncState(
+            pConnection,
+            pReadState->AsyncId);
+    }
+
     if (pFile)
     {
         SrvFile2Release(pFile);
@@ -340,6 +398,11 @@ cleanup:
         LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
 
         SrvReleaseReadState_SMB_V2(pReadState);
+    }
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
@@ -378,9 +441,10 @@ error:
 static
 NTSTATUS
 SrvBuildReadState_SMB_V2(
-    PSMB2_READ_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_FILE_2          pFile,
-    PSRV_READ_STATE_SMB_V2*   ppReadState
+    IN PSMB2_READ_REQUEST_HEADER pRequestHeader,
+    IN PLWIO_SRV_FILE_2 pFile,
+    IN ULONG64 AsyncId,
+    OUT PSRV_READ_STATE_SMB_V2*   ppReadState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -401,6 +465,8 @@ SrvBuildReadState_SMB_V2(
     pReadState->pRequestHeader = pRequestHeader;
 
     pReadState->pFile = SrvFile2Acquire(pFile);
+
+    pReadState->AsyncId = AsyncId;
 
     *ppReadState = pReadState;
 
@@ -545,6 +611,14 @@ SrvAttemptReadIo_SMB_V2(
                             pReadState->ulBytesToRead,
                             &pReadState->Offset,
                             &pReadState->ulKey);
+            if (ntStatus == STATUS_PENDING)
+            {
+                SrvTimedInterimResponse_SMB_V2(
+                    pExecContext,
+                    pReadState->AsyncId,
+                    SRV_SMB2_INTERIM_RESPONSE_TIMEOUT);
+                // Ignore error.  Has already been logged
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             // completed synchronously
@@ -899,7 +973,7 @@ SrvBuildReadResponse_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
-                    0LL, /* Async Id */
+                    pExecContext->ullAsyncId,
                     STATUS_SUCCESS,
                     TRUE,
                     LwIsSetFlag(
@@ -961,3 +1035,52 @@ error:
     goto cleanup;
 }
 
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvCancelReadStateHandle_SMB_V2_inlock(
+    PSRV_READ_STATE_SMB_V2 pReadState
+    )
+{
+    if (pReadState->pAcb && pReadState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pReadState->pAcb->AsyncCancelContext);
+        IoDereferenceAsyncCancelContext(&pReadState->pAcb->AsyncCancelContext);
+    }
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvCancelReadStateHandle_SMB_V2(
+    HANDLE hReadState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    PSRV_READ_STATE_SMB_V2 pReadState = (PSRV_READ_STATE_SMB_V2)hReadState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pReadState->mutex);
+
+    SrvCancelReadStateHandle_SMB_V2_inlock(pReadState);
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+PSRV_READ_STATE_SMB_V2
+SrvAcquireReadState_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState
+    )
+{
+    InterlockedIncrement(&pReadState->refCount);
+
+    return pReadState;
+}

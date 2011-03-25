@@ -935,6 +935,8 @@ typedef struct _SRV_READ_STATE_SMB_V2
     PLW_ZCT_VECTOR            pZct;
     PVOID                     pZctCompletion;
 
+    ULONG64 AsyncId;
+
 } SRV_READ_STATE_SMB_V2, *PSRV_READ_STATE_SMB_V2;
 
 typedef struct _SRV_ZCT_WRITE_STATE_SMB_V2 {
