@@ -76,7 +76,7 @@ PvfsFreeIrpContext(
 
         PVFS_FREE(ppIrpContext);
 
-        InterlockedDecrement(&gPvfsIrpContextCount);
+        InterlockedDecrement(&gPvfsDriverState.Counters.IrpContext);
     }
 }
 
@@ -112,7 +112,7 @@ PvfsAllocateIrpContext(
 
     *ppIrpContext = pIrpContext;
 
-    InterlockedIncrement(&gPvfsIrpContextCount);
+    InterlockedIncrement(&gPvfsDriverState.Counters.IrpContext);
 
 cleanup:
     return ntError;
@@ -134,9 +134,9 @@ PvfsIrpContextCheckFlag(
     BOOLEAN bLocked = FALSE;
     BOOLEAN bIsSet = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
     bIsSet = IsSetFlag(pIrpContext->Flags, BitToCheck);
-    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
 
     return bIsSet;
 }
@@ -152,9 +152,9 @@ PvfsIrpContextSetFlag(
 {
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
     SetFlag(pIrpContext->Flags, BitToSet);
-    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
 
     return;
 }
@@ -171,9 +171,9 @@ PvfsIrpContextClearFlag(
 {
     BOOLEAN bLocked = FALSE;
 
-    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
     ClearFlag(pIrpContext->Flags, BitToClear);
-    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
 
     return;
 }
@@ -236,7 +236,7 @@ PvfsIrpContextConditionalSetFlag(
     BOOLEAN bLocked = FALSE;
     USHORT FlagWasSet = 0;
 
-    LWIO_LOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_LOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
     if (IsSetFlag(pIrpContext->Flags, BitToCheck))
     {
         SetFlag(pIrpContext->Flags, BitToSetOnTrue);
@@ -247,7 +247,7 @@ PvfsIrpContextConditionalSetFlag(
         SetFlag(pIrpContext->Flags, BitToSetOnFalse);
         FlagWasSet = BitToSetOnFalse;
     }
-    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsIrpContextMutex);
+    LWIO_UNLOCK_MUTEX(bLocked, &gPvfsDriverState.Mutex);
 
     return FlagWasSet;
 }

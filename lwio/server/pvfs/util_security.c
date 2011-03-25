@@ -206,7 +206,7 @@ PvfsAccessCheckFile(
                    pToken,
                    Desired,
                    GrantedAccess,
-                   &gPvfsFileGenericMapping,
+                   &gPvfsDriverState.GenericSecurityMap,
                    &AccessMask,
                    &ntError);
     if (!bGranted)
@@ -230,7 +230,7 @@ PvfsAccessCheckFile(
                    pToken,
                    DELETE,
                    GrantedAccess,
-                   &gPvfsFileGenericMapping,
+                   &gPvfsDriverState.GenericSecurityMap,
                    &AccessMask,
                    &ntError);
         if (!bGranted)
@@ -259,7 +259,7 @@ PvfsAccessCheckFile(
                            pToken,
                            FILE_DELETE_CHILD,
                            0,
-                           &gPvfsFileGenericMapping,
+                           &gPvfsDriverState.GenericSecurityMap,
                            &AccessMask,
                            &ntError);
 
@@ -381,7 +381,7 @@ PvfsAccessCheckFileEnumerate(
                    pToken,
                    Desired,
                    GrantedAccess,
-                   &gPvfsFileGenericMapping,
+                   &gPvfsDriverState.GenericSecurityMap,
                    &AccessMask,
                    &ntError);
     if (!bGranted)
@@ -424,7 +424,7 @@ PvfsGetGrantedAccessForNewObject(
         GrantedAccess = FILE_ALL_ACCESS;
     }
 
-    RtlMapGenericMask(&GrantedAccess, &gPvfsFileGenericMapping);
+    RtlMapGenericMask(&GrantedAccess, &gPvfsDriverState.GenericSecurityMap);
 
     return GrantedAccess;
 }

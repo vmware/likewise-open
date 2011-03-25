@@ -48,39 +48,10 @@
 extern PVFS_DRIVER_CONFIG gPvfsDriverConfig;
 extern PVFS_DRIVER_STATE  gPvfsDriverState;
 
-extern IO_DEVICE_HANDLE gPvfsDeviceHandle;
-
-extern GENERIC_MAPPING  gPvfsFileGenericMapping;
-
 extern pthread_mutex_t  gPathCacheLock;
 extern pthread_mutex_t* gpPathCacheLock;
 
 extern PLWIO_LRU        gpPathCache;
-
-extern PVFS_CB_TABLE gScbTable;
-
-extern PVFS_CB_TABLE gFcbTable;
-
-extern pthread_mutex_t gDeviceScbMutex;
-extern PPVFS_SCB gpPvfsDeviceScb;
-
-extern pthread_mutex_t gPvfsIrpContextMutex;
-
-extern PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx;
-
-extern pthread_mutex_t gUidMruCacheMutex;
-extern PPVFS_ID_CACHE gUidMruCache[];
-
-extern pthread_mutex_t gGidMruCacheMutex;
-extern PPVFS_ID_CACHE gGidMruCache[];
-
-extern PVFS_DRIVER_CONFIG gPvfsDriverConfig;
-
-extern LONG gPvfsIrpContextCount;
-extern LONG gPvfsScbCount;
-extern LONG gPvfsFcbCount;
-extern LONG gPvfsCcbCount;
-extern LONG gPvfsWorkContextCount;
 
 extern FILE_FS_CONTROL_INFORMATION gPvfsFileFsControlInformation;
 

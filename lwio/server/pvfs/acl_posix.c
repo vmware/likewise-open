@@ -250,23 +250,24 @@ PvfsSecuritySidMapFromUid(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOLEAN  bInLock = FALSE;
     UINT32 Key = Uid % PVFS_MAX_MRU_SIZE;
+    PPVFS_ID_CACHE uidCache = &gPvfsDriverState.UidCache;
 
     BAIL_ON_INVALID_PTR(ppUserSid, ntError);
 
-    LWIO_LOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+    LWIO_LOCK_MUTEX(bInLock, &uidCache->Mutex);
 
-    if (gUidMruCache[Key] != NULL && (gUidMruCache[Key]->UnixId.Uid == Uid))
+    if (uidCache->Cache[Key] != NULL && (uidCache->Cache[Key]->UnixId.Uid == Uid))
     {
-        ntError = RtlDuplicateSid(ppUserSid, gUidMruCache[Key]->pSid);
+        ntError = RtlDuplicateSid(ppUserSid, uidCache->Cache[Key]->pSid);
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
     }
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &uidCache->Mutex);
 
     ntError = LwMapSecurityGetSidFromId(
-                  gpPvfsLwMapSecurityCtx,
+                  gPvfsDriverState.MapSecurityContext,
                   ppUserSid,
                   TRUE,
                   Uid);
@@ -275,15 +276,15 @@ PvfsSecuritySidMapFromUid(
     /* Try to cache the SID/UID pair but don't fail if we can't since
        we have already got the data the caller asked for */
 
-    LWIO_LOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+    LWIO_LOCK_MUTEX(bInLock, &uidCache->Mutex);
 
-    if (gUidMruCache[Key] != NULL)
+    if (uidCache->Cache[Key] != NULL)
     {
-        PVFS_FREE(&gUidMruCache[Key]);
+        PVFS_FREE(&uidCache->Cache[Key]);
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&gUidMruCache[Key],
+                  (PVOID*)&uidCache->Cache[Key],
                   sizeof(PVFS_ID_CACHE),
                   TRUE);
     if (ntError != STATUS_SUCCESS)
@@ -292,11 +293,11 @@ PvfsSecuritySidMapFromUid(
         goto cleanup;
     }
 
-    gUidMruCache[Key]->UnixId.Uid = Uid;
-    ntError = RtlDuplicateSid(&gUidMruCache[Key]->pSid, *ppUserSid);
+    uidCache->Cache[Key]->UnixId.Uid = Uid;
+    ntError = RtlDuplicateSid(&uidCache->Cache[Key]->pSid, *ppUserSid);
     if (ntError != STATUS_SUCCESS)
     {
-        PVFS_FREE(&gUidMruCache[Key]);
+        PVFS_FREE(&uidCache->Cache[Key]);
 
         ntError = STATUS_SUCCESS;
         goto cleanup;
@@ -304,7 +305,7 @@ PvfsSecuritySidMapFromUid(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &uidCache->Mutex);
 
     return ntError;
 
@@ -326,41 +327,41 @@ PvfsSecuritySidMapFromGid(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOLEAN  bInLock = FALSE;
     UINT32 Key = Gid % PVFS_MAX_MRU_SIZE;
+    PPVFS_ID_CACHE gidCache = &gPvfsDriverState.GidCache;
 
     BAIL_ON_INVALID_PTR(ppGroupSid, ntError);
 
+    LWIO_LOCK_MUTEX(bInLock, &gidCache->Mutex);
 
-    LWIO_LOCK_MUTEX(bInLock, &gGidMruCacheMutex);
-
-    if (gGidMruCache[Key] != NULL && (gGidMruCache[Key]->UnixId.Gid == Gid))
+    if (gidCache->Cache[Key] != NULL && (gidCache->Cache[Key]->UnixId.Gid == Gid))
     {
-        ntError = RtlDuplicateSid(ppGroupSid, gGidMruCache[Key]->pSid);
+        ntError = RtlDuplicateSid(ppGroupSid, gidCache->Cache[Key]->pSid);
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
     }
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gGidMruCacheMutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &gidCache->Mutex);
 
     ntError = LwMapSecurityGetSidFromId(
-                  gpPvfsLwMapSecurityCtx,
+                  gPvfsDriverState.MapSecurityContext,
                   ppGroupSid,
                   FALSE,
                   Gid);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_MUTEX(bInLock, &gGidMruCacheMutex);
+    LWIO_LOCK_MUTEX(bInLock, &gidCache->Mutex);
 
     /* Try to cache the SID/GID pair but don't fail if we can't since
        we have already got the data the caller asked for */
 
-    if (gGidMruCache[Key] != NULL)
+    if (gidCache->Cache[Key] != NULL)
     {
-        PVFS_FREE(&gGidMruCache[Key]);
+        PVFS_FREE(&gidCache->Cache[Key]);
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&gGidMruCache[Key],
+                  (PVOID*)&gidCache->Cache[Key],
                   sizeof(PVFS_ID_CACHE),
                   TRUE);
     if (ntError != STATUS_SUCCESS)
@@ -369,11 +370,11 @@ PvfsSecuritySidMapFromGid(
         goto cleanup;
     }
 
-    gGidMruCache[Key]->UnixId.Gid = Gid;
-    ntError = RtlDuplicateSid(&gGidMruCache[Key]->pSid, *ppGroupSid);
+    gidCache->Cache[Key]->UnixId.Gid = Gid;
+    ntError = RtlDuplicateSid(&gidCache->Cache[Key]->pSid, *ppGroupSid);
     if (ntError != STATUS_SUCCESS)
     {
-        PVFS_FREE(&gGidMruCache[Key]);
+        PVFS_FREE(&gidCache->Cache[Key]);
 
         ntError = STATUS_SUCCESS;
         goto cleanup;
@@ -381,7 +382,7 @@ PvfsSecuritySidMapFromGid(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gGidMruCacheMutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &gidCache->Mutex);
 
     return ntError;
 
@@ -407,7 +408,7 @@ PvfsSecuritySidMapToId(
     BAIL_ON_INVALID_PTR(pbIsUser, ntError);
 
     ntError = LwMapSecurityGetIdFromSid(
-                  gpPvfsLwMapSecurityCtx,
+                  gPvfsDriverState.MapSecurityContext,
                   pbIsUser,
                   pId,
                   pSid);

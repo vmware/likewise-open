@@ -149,7 +149,7 @@ PvfsFillOpenFileInfo(
     BOOLEAN bLocked = FALSE;
     DWORD dwIndex = 0;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gScbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gPvfsDriverState.ScbTable.rwLock);
 
     /* Setup the traversal structure.  Pass in the PVOID output buffer
        we were originally given */
@@ -160,15 +160,15 @@ PvfsFillOpenFileInfo(
     OpenFileInfo.pData = pBuffer;
     OpenFileInfo.pPreviousEntry = NULL;
 
-    for (dwIndex=0; dwIndex<gScbTable.pCbHashTable->sTableSize; dwIndex++)
+    for (dwIndex=0; dwIndex<gPvfsDriverState.ScbTable.pCbHashTable->sTableSize; dwIndex++)
     {
-        if (gScbTable.pCbHashTable->ppEntries[dwIndex] == NULL)
+        if (gPvfsDriverState.ScbTable.pCbHashTable->ppEntries[dwIndex] == NULL)
         {
             continue;
         }
 
         ntError = LwRtlRBTreeTraverse(
-                      gScbTable.pCbHashTable->ppEntries[dwIndex]->pTree,
+                      gPvfsDriverState.ScbTable.pCbHashTable->ppEntries[dwIndex]->pTree,
                       LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                       PvfsOpenFileInfo,
                       &OpenFileInfo);
@@ -178,7 +178,7 @@ PvfsFillOpenFileInfo(
     *pBytesConsumed = BufLen - OpenFileInfo.BytesAvailable;
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gScbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gPvfsDriverState.ScbTable.rwLock);
 
     return ntError;
 

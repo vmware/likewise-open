@@ -110,14 +110,6 @@ PvfsConfigRegistryInit(
 
     LwIoReadConfigDword(
         pReg,
-        "WorkerThreadPoolSize",
-        TRUE,
-        1,
-        512,
-        &pConfig->WorkerThreadPoolSize);
-
-    LwIoReadConfigDword(
-        pReg,
         "CreateFileMode",
         TRUE,
         1,
@@ -200,7 +192,6 @@ PvfsConfigDefaultInit(
     pConfig->VirtualUid = (uid_t)-1;
     pConfig->VirtualGid = (gid_t)-1;
 
-    pConfig->WorkerThreadPoolSize = 4;
     pConfig->PathCacheSize = 10240;
     pConfig->WriteChangeNotify = 100;
 

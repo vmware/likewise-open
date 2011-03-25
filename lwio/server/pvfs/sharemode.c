@@ -72,7 +72,7 @@ PvfsCheckShareMode(
     ntError = PvfsAllocateCStringFromFileName(&fullFileName, FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableGetBucket(&pBucket, &gScbTable, fullFileName);
+    ntError = PvfsCbTableGetBucket(&pBucket, &gPvfsDriverState.ScbTable, fullFileName);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableLookup(
@@ -233,7 +233,7 @@ _PvfsEnforceShareMode(
     BOOLEAN bFcbLocked = FALSE;
     PPVFS_SCB pTargetScb = NULL;
 
-    RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
+    RtlMapGenericMask(&DesiredAccess, &gPvfsDriverState.GenericSecurityMap);
 
     LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pScb->rwCcbLock);
 
