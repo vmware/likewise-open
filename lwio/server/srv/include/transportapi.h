@@ -161,7 +161,7 @@ SrvTransportInit(
     IN PLW_THREAD_POOL ThreadPool,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
-    IN BOOL bNbEnabled
+    IN BOOLEAN bNetbiosSessionEnabled
     );
 
 VOID
