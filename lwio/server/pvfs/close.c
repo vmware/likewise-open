@@ -46,11 +46,26 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
+static
+NTSTATUS
+PvfsExecuteDeleteOnCloseSCB(
+    IN PPVFS_SCB pScb
+    );
 
+static
+NTSTATUS
+PvfsExecuteDeleteOnCloseFCB(
+    IN PPVFS_FCB pFcb
+    );
 
-/*****************************************************************************
- ****************************************************************************/
+static
+NTSTATUS
+PvfsFlushLastWriteTimeFcb(
+    IN PPVFS_FCB pFcb,
+    IN LONG64 LastWriteTime
+    );
+
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 PvfsClose(
@@ -171,3 +186,329 @@ error:
     return STATUS_SUCCESS;
 }
 
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsCloseHandleCleanup(
+    IN PPVFS_SCB pScb
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSTR fullStreamName = NULL;
+    PPVFS_FILE_NAME streamName = NULL;
+    BOOLEAN scbLocked = FALSE;
+    BOOLEAN fcbLocked = FALSE;
+    BOOLEAN objectDeleted = FALSE;
+    PVFS_STAT statBuf = { 0 };
+
+    if (PVFS_IS_DEVICE_HANDLE(pScb))
+    {
+        status = STATUS_SUCCESS;
+        goto error;
+    }
+
+    if (!PvfsIsDefaultStream(pScb))
+    {
+        if (pScb->OpenHandleCount == 0)
+        {
+            LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+            if (pScb->bDeleteOnClose)
+            {
+                status = PvfsAllocateFileNameFromScb(&streamName, pScb);
+                BAIL_ON_NT_STATUS(status);
+
+                status = PvfsSysStatByFileName(streamName, &statBuf);
+                BAIL_ON_NT_STATUS(status);
+
+                // The locking heirarchy requires that we drop the SCB control
+                // block mutex before trying to pick up the ScbTable exclusive
+                // lock
+
+                if (!pScb->BaseControlBlock.Removed)
+                {
+                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
+
+                    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+                    status = PvfsCbTableRemove(pBucket, fullStreamName);
+                    LWIO_ASSERT(status == STATUS_SUCCESS);
+
+                    LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+                    pScb->BaseControlBlock.Removed = TRUE;
+                    pScb->BaseControlBlock.pBucket = NULL;
+
+                    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+                }
+
+                status = PvfsExecuteDeleteOnCloseSCB(pScb);
+                // Ignore errors here
+
+                LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+                PvfsPathCacheRemove(streamName);
+
+                objectDeleted = TRUE;
+            }
+
+            LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+        }
+    }
+    else
+    {
+        if (pScb->pOwnerFcb->OpenHandleCount == 0)
+        {
+            LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+            LWIO_LOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+
+            if (pScb->pOwnerFcb->bDeleteOnClose)
+            {
+                status = PvfsAllocateFileNameFromScb(&streamName, pScb);
+                BAIL_ON_NT_STATUS(status);
+
+                status = PvfsSysStatByFileName(streamName, &statBuf);
+                BAIL_ON_NT_STATUS(status);
+
+                // The locking heirarchy requires that we drop the FCB control
+                // block mutex before trying to pick up the ScbTable exclusive
+                // lock
+
+                if (!pScb->pOwnerFcb->BaseControlBlock.Removed)
+                {
+                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->pOwnerFcb->BaseControlBlock.pBucket;
+
+                    LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+
+                    status = PvfsCbTableRemove(pBucket, pScb->pOwnerFcb->pszFilename);
+                    LWIO_ASSERT(status == STATUS_SUCCESS);
+
+                    LWIO_LOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+
+                    pScb->pOwnerFcb->BaseControlBlock.Removed = TRUE;
+                    pScb->pOwnerFcb->BaseControlBlock.pBucket = NULL;
+
+                    LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+
+                }
+
+                pScb->bDeleteOnClose = FALSE;
+                status = PvfsExecuteDeleteOnCloseFCB(pScb->pOwnerFcb);
+                // Ignore errors here
+
+                LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+                LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+                PvfsPathCacheRemove(streamName);
+
+                objectDeleted = TRUE;
+            }
+            else
+            {
+                // Since we aren't deleting the file, see if we have a cached timestamp to set
+                LONG64 lastWriteTime = PvfsClearLastWriteTimeFCB(pScb->pOwnerFcb);
+
+                if (lastWriteTime != 0)
+                {
+                    status = PvfsFlushLastWriteTimeFcb(pScb->pOwnerFcb, lastWriteTime);
+
+                    if (status == STATUS_SUCCESS)
+                    {
+                        PvfsNotifyScheduleFullReport(
+                            pScb->pOwnerFcb,
+                            FILE_NOTIFY_CHANGE_LAST_WRITE,
+                            FILE_ACTION_MODIFIED,
+                            pScb->pOwnerFcb->pszFilename);
+                    }
+                }
+            }
+
+
+            LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+            LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+        }
+    }
+
+
+    if (objectDeleted)
+    {
+        status = PvfsAllocateCStringFromFileName(&fullStreamName, streamName);
+        BAIL_ON_NT_STATUS(status);
+
+        PvfsNotifyScheduleFullReport(
+            pScb->pOwnerFcb,
+            S_ISDIR(statBuf.s_mode) ?
+            FILE_NOTIFY_CHANGE_DIR_NAME :
+            FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_ACTION_REMOVED,
+            fullStreamName);
+    }
+
+
+error:
+
+    LWIO_UNLOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
+    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+    if (streamName)
+    {
+        PvfsFreeFileName(streamName);
+    }
+    if (fullStreamName)
+    {
+        LwRtlCStringFree(&fullStreamName);
+    }
+
+
+    return status;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+NTSTATUS
+PvfsFlushLastWriteTimeFcb(
+    IN PPVFS_FCB pFcb,
+    IN LONG64 LastWriteTime
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+    LONG64 LastAccessTime = 0;
+
+    /* Need the original access time */
+
+    status = PvfsSysStat(pFcb->pszFilename, &Stat);
+    BAIL_ON_NT_STATUS(status);
+
+    status = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
+    BAIL_ON_NT_STATUS(status);
+
+    status = PvfsSysUtimeByFcb(pFcb, LastWriteTime, LastAccessTime);
+    BAIL_ON_NT_STATUS(status);
+
+error:
+    return status;
+}
+
+////////////////////////////////////////////////////////////////////////
+// Requires that SCB->BaseControlBlock.Mutex is locked
+
+static
+NTSTATUS
+PvfsExecuteDeleteOnCloseSCB(
+    IN PPVFS_SCB pScb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_FILE_NAME streamName = {0};
+
+    // Always reset the delete-pending state to be safe
+
+    pScb->bDeleteOnClose = FALSE;
+
+    // Verify we are deleting the file we think we are
+
+    ntError = PvfsValidatePathSCB(pScb, &pScb->FileId);
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = PvfsBuildFileNameFromScb(&streamName, pScb);
+        // Don't BAIL_ON_NT_STATUS() so the FileId is always reset
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysRemoveByFileName(&streamName);
+        }
+
+        /* Reset dev/inode state */
+
+        pScb->FileId.Device = 0;
+        pScb->FileId.Inode  = 0;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsDestroyFileName(&streamName);
+
+    return ntError;
+
+error:
+    switch (ntError)
+    {
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+        break;
+
+    default:
+        LWIO_LOG_ERROR(
+            "%s: (SCB) Failed to execute delete-on-close on \"%s%s%s\" (%d,%d) (%s)\n",
+            PVFS_LOG_HEADER,
+            pScb->pOwnerFcb->pszFilename,
+            pScb->pszStreamname ? ":" : "",
+            pScb->pszStreamname ? pScb->pszStreamname : "",
+            pScb->FileId.Device,
+            pScb->FileId.Inode,
+            LwNtStatusToName(ntError));
+        break;
+    }
+
+    goto cleanup;
+}
+
+////////////////////////////////////////////////////////////////////////
+// Requires that FCB->BaseControlBlock.Mutex is locked
+
+static
+NTSTATUS
+PvfsExecuteDeleteOnCloseFCB(
+    IN PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_FILE_NAME fileName = {0};
+
+    // Always reset the delete-pending state to be safe
+
+    pFcb->bDeleteOnClose = FALSE;
+
+    // Verify we are deleting the file we think we are
+
+    ntError = PvfsValidatePathFCB(pFcb, &pFcb->FileId);
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = PvfsBuildFileNameFromCString(&fileName, pFcb->pszFilename, 0);
+        // Don't BAIL_ON_NT_STATUS() so the FileId is always reset
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysRemoveByFileName(&fileName);
+        }
+
+        /* Reset dev/inode state */
+
+        pFcb->FileId.Device = 0;
+        pFcb->FileId.Inode  = 0;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsDestroyFileName(&fileName);
+
+    return ntError;
+
+error:
+    switch (ntError)
+    {
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+        break;
+
+    default:
+        LWIO_LOG_ERROR(
+            "%s: (FCB) Failed to execute delete-on-close on \"%s\" (%d,%d) (%s)\n",
+            PVFS_LOG_HEADER,
+            pFcb->pszFilename,
+            pFcb->FileId.Device,
+            pFcb->FileId.Inode,
+            LwNtStatusToName(ntError));
+        break;
+    }
+
+    goto cleanup;
+}
