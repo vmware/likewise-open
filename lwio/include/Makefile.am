@@ -19,4 +19,5 @@ lwioinclude_HEADERS =         \
     lwio/lwshareinfo.h        \
     lwio/lwconnectioninfo.h   \
     lwio/lwzct.h              \
-    lwio/ioapi.h
+    lwio/ioapi.h              \
+    lwio/utils.h
