@@ -231,14 +231,18 @@ error:
                 NTSTATUS ntStatus2 = STATUS_SUCCESS;
                 ULONG    ulLength  = 0;
 
+                // TODO: This needs to be replaced with the actual required size
+                // returned from the file system once the IoQueryInformationFile()
+                // API supports it.
+
                 if (!pGetInfoState->ulDataLength)
                 {
-                    ulLength = 0xEC;
+                    ulLength = 4096;
                 }
                 else if (pGetInfoState->ulDataLength ==
                             pGetInfoState->pRequestHeader->ulOutputBufferLen)
                 {
-                    ulLength = pGetInfoState->ulDataLength + 0xEC;
+                    ulLength = pGetInfoState->ulDataLength + 4096;
                 }
                 else
                 {
@@ -251,9 +255,8 @@ error:
                 if (ntStatus2)
                 {
                     LWIO_LOG_ERROR(
-                        "Failed to allocate buffer for error message "
-                        "[error:0x%08x]",
-                        ntStatus2);
+                        "Failed to allocate buffer for error message (%s)\n",
+                        LwNtStatusToName(ntStatus2));
                 }
                 else
                 {
@@ -270,9 +273,8 @@ error:
                     else
                     {
                         LWIO_LOG_ERROR(
-                        "Failed to set error message in exec context "
-                        "[error:0x%08x]",
-                        ntStatus2);
+                            "Failed to set error message in exec context (%s)\n",
+                            LwNtStatusToName(ntStatus2));
                     }
                 }
             }
