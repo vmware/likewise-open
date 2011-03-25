@@ -1276,6 +1276,13 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
     BOOLEAN                              bFileClosed;
     BOOLEAN                              bFileOpened;
 
+    // We can have at most one AsyncId at a time since we process a
+    // packet sequentially.  If we ever parallelize processing on
+    // unrelated compound requests this will need to be changed.
+
+    PSRV_TIMER_REQUEST InterimResponseTimer;
+    ULONG64 AsyncId;
+
 } SRV_EXEC_CONTEXT_SMB_V2;
 
 typedef struct _SRV_CONFIG_SMB_V2

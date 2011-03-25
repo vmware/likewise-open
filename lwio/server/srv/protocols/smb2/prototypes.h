@@ -211,6 +211,13 @@ SrvBuildInterimResponse_SMB_V2(
     );
 
 NTSTATUS
+SrvTimedInterimResponse_SMB_V2(
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    IN LONG64 AsyncId,
+    IN LONG MillisecondTimeout
+    );
+
+NTSTATUS
 SrvBuildExecContext_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,

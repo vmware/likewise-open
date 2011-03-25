@@ -745,6 +745,8 @@ SrvProtocolFreeContext_SMB_V2(
     SrvFreeMemory(pProtocolContext);
 }
 
+////////////////////////////////////////////////////////////////////////
+
 NTSTATUS
 SrvBuildInterimResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext,
@@ -866,6 +868,139 @@ error:
 
     goto cleanup;
 }
+
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvTimedInterimResponseCB_SMB_V2(
+    IN PSRV_TIMER_REQUEST pTimerRequest,
+    IN PVOID pUserData
+    );
+
+NTSTATUS
+SrvTimedInterimResponse_SMB_V2(
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    IN LONG64 AsyncId,
+    IN LONG MillisecondTimeout
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LONG64 expirationTime = 0;
+    PSRV_EXEC_CONTEXT pTimerExecContext = NULL;
+    PSRV_TIMER_REQUEST pTimerRequest = NULL;
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context = pExecContext->pProtocolContext->pSmb2Context;
+
+    pSmb2Context->AsyncId = AsyncId;
+
+    if (MillisecondTimeout == 0)
+    {
+        // Send immediately
+        ntStatus = SrvBuildInterimResponse_SMB_V2(
+                       pExecContext,
+                       AsyncId);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSendInterimResponse_SMB_V2(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        // Timed event
+        pTimerExecContext = SrvAcquireExecContext(pExecContext);
+
+        ntStatus = WireGetCurrentNTTime(&expirationTime);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        expirationTime += MillisecondTimeout *
+                          WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS;
+
+        ntStatus = SrvTimerPostRequest(
+                       expirationTime,
+                       pTimerExecContext,
+                       SrvTimedInterimResponseCB_SMB_V2,
+                       &pTimerRequest);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmb2Context->InterimResponseTimer = pTimerRequest;
+    }
+
+error:
+
+    if (!NT_SUCCESS(ntStatus))
+    {
+        LWIO_LOG_ERROR(
+            "Failed to queue interim response for async id %u (timeout == %d ms).  "
+            "Error was %s\n",
+            AsyncId,
+            MillisecondTimeout,
+            LwNtStatusToName(ntStatus));
+
+        if (pTimerExecContext)
+        {
+            SrvReleaseExecContext(pTimerExecContext);
+        }
+        if (pTimerRequest)
+        {
+            SrvTimerRelease(pTimerRequest);
+        }
+    }
+
+    return ntStatus;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+static
+VOID
+SrvTimedInterimResponseCB_SMB_V2(
+    IN PSRV_TIMER_REQUEST pTimerRequest,
+    IN PVOID pUserData
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pExecContext = (PSRV_EXEC_CONTEXT)pUserData;
+    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Ctx = (PSRV_EXEC_CONTEXT_SMB_V2)pExecContext->pProtocolContext->pSmb2Context;
+    BOOLEAN execContextLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(execContextLocked, &pExecContext->execMutex);
+
+    if (pSmb2Ctx->AsyncId)
+    {
+        ntStatus = SrvBuildInterimResponse_SMB_V2(
+                       pExecContext,
+                       pSmb2Ctx->AsyncId);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvSendInterimResponse_SMB_V2(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+    if (!NT_SUCCESS(ntStatus))
+    {
+        LWIO_LOG_ERROR(
+            "Failed to send interim response for Async ID %u.  Error was %s\n",
+            pExecContext->ullAsyncId,
+            LwNtStatusToName(ntStatus));
+
+        // Attempto to recover by resetting the  AsyncId since we did
+        // not send an Interim Response
+        pExecContext->ullAsyncId = 0;
+    }
+
+    SrvTimerRelease(pSmb2Ctx->InterimResponseTimer);
+    pSmb2Ctx->InterimResponseTimer = NULL;
+
+    LWIO_UNLOCK_MUTEX(execContextLocked, &pExecContext->execMutex);
+
+    SrvReleaseExecContext(pExecContext);
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
 
 NTSTATUS
 SrvBuildExecContext_SMB_V2(
