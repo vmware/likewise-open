@@ -981,6 +981,8 @@ typedef struct _SRV_WRITE_STATE_SMB_V2
     ULONG                      ulKey;
     ULONG                      ulBytesWritten;
 
+    ULONG64 AsyncId;
+
     BOOLEAN bStartedIo;
 
     // ZCT information
