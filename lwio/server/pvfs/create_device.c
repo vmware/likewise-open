@@ -75,6 +75,12 @@ PvfsCreateDevice(
         ntError = PvfsAllocateFCB(&gpPvfsDeviceScb->pOwnerFcb);
         BAIL_ON_NT_STATUS(ntError);
 
+        ntError = LwRtlCStringAllocatePrintf(
+                      &gpPvfsDeviceScb->pOwnerFcb->pszFilename,
+                      "/%s",
+                      gPvfsDriverState.DriverDescription);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAddSCBToFCB(gpPvfsDeviceScb->pOwnerFcb, gpPvfsDeviceScb);
         BAIL_ON_NT_STATUS(ntError);
     }
