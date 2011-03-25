@@ -484,6 +484,11 @@ cleanup:
     SRV_SAFE_FREE_MEMORY(pszDefaultSharePath);
     SRV_SAFE_FREE_MEMORY(pwszFileSystemRoot);
 
+    if (pShareInfo)
+    {
+        SrvShareReleaseInfo(pShareInfo);
+    }
+
     return ntStatus;
 
 error:
