@@ -79,11 +79,13 @@ PvfsDispatchDeviceIoControl(
     ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+#if 0
     if (!IsSetFlag(pCcb->Flags, PVFS_CCB_FLAG_CREATE_COMPLETE))
     {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
+#endif
 
     /* Loop through the dispatch table.  Levels included in the table
        but having a NULL handler get NOT_IMPLEMENTED while those not in
