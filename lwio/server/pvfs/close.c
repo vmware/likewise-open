@@ -226,14 +226,20 @@ PvfsCloseHandleCleanup(
                 {
                     PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
 
-                    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
+                    status = PvfsAllocateCStringFromFileName(
+                                 &fullStreamName,
+                                 streamName);
+                    if (STATUS_SUCCESS == status)
+                    {
+                        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
 
-                    status = PvfsCbTableRemove_inlock(
-                                 (PPVFS_CONTROL_BLOCK)pScb,
-                                 fullStreamName);
-                    LWIO_ASSERT(status == STATUS_SUCCESS);
+                        status = PvfsCbTableRemove_inlock(
+                                     (PPVFS_CONTROL_BLOCK)pScb,
+                                     fullStreamName);
+                        LWIO_ASSERT(status == STATUS_SUCCESS);
 
-                    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
+                        LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
+                    }
                 }
 
                 status = PvfsExecuteDeleteOnCloseSCB(pScb);
