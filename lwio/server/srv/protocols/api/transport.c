@@ -312,12 +312,6 @@ SrvProtocolTransportDriverShutdown(
 {
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
 
-    if (pGlobals->pConnections)
-    {
-        LwRtlRBTreeFree(pGlobals->pConnections);
-        pGlobals->pConnections = NULL;
-    }
-
     if (pTransportContext->hTransport)
     {
         // This will cause done notifications to occur,
@@ -325,6 +319,12 @@ SrvProtocolTransportDriverShutdown(
         // references.
         SrvTransportShutdown(pTransportContext->hTransport);
         pTransportContext->hTransport = NULL;
+    }
+
+    if (pGlobals->pConnections)
+    {
+        LwRtlRBTreeFree(pGlobals->pConnections);
+        pGlobals->pConnections = NULL;
     }
 
     // Zero the transport dispatch but leave the socket dispatch for
