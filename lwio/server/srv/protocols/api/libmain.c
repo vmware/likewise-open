@@ -63,8 +63,9 @@ SrvProtocolFreeExecContext(
 
 NTSTATUS
 SrvProtocolInit(
-    PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    IN PLW_THREAD_POOL ThreadPool,
+    IN PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -91,7 +92,9 @@ SrvProtocolInit(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvProtocolTransportDriverInit(&gProtocolApiGlobals);
+    ntStatus = SrvProtocolTransportDriverInit(
+                   &gProtocolApiGlobals,
+                   ThreadPool);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -447,7 +450,6 @@ SrvProtocolShutdown(
 
     SrvProtocolFreeConfigContents(&gProtocolApiGlobals.config);
 
-    gProtocolApiGlobals.pWorkQueue = NULL;
     gProtocolApiGlobals.hPacketAllocator = NULL;
     gProtocolApiGlobals.pShareList = NULL;
 

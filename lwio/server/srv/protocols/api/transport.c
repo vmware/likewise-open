@@ -230,7 +230,8 @@ SrvProtocolTransportDriverGetZctCallback(
 
 NTSTATUS
 SrvProtocolTransportDriverInit(
-    PSRV_PROTOCOL_API_GLOBALS pGlobals
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals,
+    IN PLW_THREAD_POOL ThreadPool
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -265,6 +266,7 @@ SrvProtocolTransportDriverInit(
 
     ntStatus = SrvTransportInit(
                     &pTransportContext->hTransport,
+                    ThreadPool,
                     pTransportDispatch,
                     pTransportContext,
                     SrvProtocolConfigIsNetbiosEnabled());

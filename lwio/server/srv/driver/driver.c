@@ -313,7 +313,6 @@ SrvInitialize(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLW_THREAD_POOL_ATTRIBUTES threadPoolAttrs = NULL;
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
@@ -361,9 +360,13 @@ SrvInitialize(
     ntStatus = SrvStatisticsInitialize();
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwRtlCreateThreadPool(&gSMBSrvGlobals.ThreadPool, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvProtocolInit(
-                    gSMBSrvGlobals.hPacketAllocator,
-                    &gSMBSrvGlobals.shareList);
+                   gSMBSrvGlobals.ThreadPool,
+                   gSMBSrvGlobals.hPacketAllocator,
+                   &gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (gSMBSrvGlobals.config.ulMonitorIntervalMinutes)
@@ -377,27 +380,9 @@ SrvInitialize(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LwRtlCreateThreadPoolAttributes(&threadPoolAttrs);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlSetThreadPoolAttribute(
-                   threadPoolAttrs,
-                   LW_THREAD_POOL_OPTION_TASK_THREADS,
-                   0);
-    // Ignorning return as this can never fail
-
-    ntStatus = LwRtlCreateThreadPool(
-                   &gSMBSrvGlobals.ThreadPool,
-                   threadPoolAttrs);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     gSMBSrvGlobals.hDevice = hDevice;
 
 error:
-    if (threadPoolAttrs)
-    {
-        LwRtlFreeThreadPoolAttributes(&threadPoolAttrs);
-    }
 
     return ntStatus;
 }
@@ -877,6 +862,8 @@ SrvShutdown(
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
 
         SrvProtocolShutdown();
+
+        LwRtlFreeThreadPool(&gSMBSrvGlobals.ThreadPool);
 
         if (gSMBSrvGlobals.pMonitor)
         {

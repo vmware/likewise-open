@@ -158,6 +158,7 @@ typedef struct _SRV_TRANSPORT_PROTOCOL_DISPATCH {
 NTSTATUS
 SrvTransportInit(
     OUT PSRV_TRANSPORT_HANDLE phTransport,
+    IN PLW_THREAD_POOL ThreadPool,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
     IN BOOL bNbEnabled
