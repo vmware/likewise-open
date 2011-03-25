@@ -200,6 +200,7 @@ PvfsReleaseFCB(
     BOOLEAN fcbLocked = FALSE;
     PPVFS_FCB pFcb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
+    LONG refCount = 0;
 
     LWIO_ASSERT((ppFcb != NULL) && (*ppFcb != NULL));
 
@@ -220,7 +221,10 @@ PvfsReleaseFCB(
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
     }
 
-    if (InterlockedDecrement(&pFcb->BaseControlBlock.RefCount) == 0)
+    refCount = InterlockedDecrement(&pFcb->BaseControlBlock.RefCount);
+    LWIO_ASSERT(refCount >= 0);
+
+    if (refCount == 0)
     {
         if (pBucket)
         {
@@ -237,11 +241,7 @@ PvfsReleaseFCB(
         PvfsFreeFCB(pFcb);
     }
 
-    if (pBucket)
-    {
-        LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
-    }
-
+    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
     LWIO_UNLOCK_MUTEX(fcbLocked, &pFcb->BaseControlBlock.Mutex);
 
     *ppFcb = NULL;
