@@ -311,10 +311,10 @@ SrvProcessSetInfo_SMB_V2(
 
         case SRV_SET_INFO_STAGE_SMB_V2_ATTEMPT_IO:
 
-            pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE;
-
             ntStatus = SrvSetInfo_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 
@@ -407,6 +407,8 @@ SrvBuildSetInfoState_SMB_V2(
     pSetInfoState->pMutex = &pSetInfoState->mutex;
 
     pSetInfoState->stage = SRV_SET_INFO_STAGE_SMB_V2_INITIAL;
+
+    pSetInfoState->SetInfoRequested = FALSE;
 
     pSetInfoState->pRequestHeader = pRequestHeader;
     pSetInfoState->pData          = pData;
@@ -650,23 +652,29 @@ SrvSetFileEOFInfo_SMB_V2(
 
     if (pSetInfoState->pRequestHeader->ulInputBufferLen <
                         sizeof(FILE_END_OF_FILE_INFORMATION))
-        {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
         SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
         ntStatus = IoSetInformationFile(
-                        pSetInfoState->pFile->hFile,
-                        pSetInfoState->pAcb,
-                        &pSetInfoState->ioStatusBlock,
-                        (PFILE_END_OF_FILE_INFORMATION)pSetInfoState->pData,
-                        sizeof(FILE_END_OF_FILE_INFORMATION),
-                        FileEndOfFileInformation);
+                       pSetInfoState->pFile->hFile,
+                       pSetInfoState->pAcb,
+                       &pSetInfoState->ioStatusBlock,
+                       (PFILE_END_OF_FILE_INFORMATION)pSetInfoState->pData,
+                       sizeof(FILE_END_OF_FILE_INFORMATION),
+                       FileEndOfFileInformation);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
+
 
 error:
 
@@ -698,18 +706,24 @@ SrvSetFileDispositionInfo_SMB_V2(
 
     SMB2UnmarshallBoolean(&pFileDispositionInfo->DeleteFile);
 
-    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    pSetInfoState->pFile->hFile,
-                    pSetInfoState->pAcb,
-                    &pSetInfoState->ioStatusBlock,
-                    pFileDispositionInfo,
-                    sizeof(FILE_DISPOSITION_INFORMATION),
-                    FileDispositionInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        ntStatus = IoSetInformationFile(
+                       pSetInfoState->pFile->hFile,
+                       pSetInfoState->pAcb,
+                       &pSetInfoState->ioStatusBlock,
+                       pFileDispositionInfo,
+                       sizeof(FILE_DISPOSITION_INFORMATION),
+                       FileDispositionInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
+
 
 error:
 
@@ -785,18 +799,24 @@ SrvSetFileRenameInfo_SMB_V2(
                                                 pSetInfoState->hDir;
     }
 
-    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    pSetInfoState->pFile->hFile,
-                    pSetInfoState->pAcb,
-                    &pSetInfoState->ioStatusBlock,
-                    (PFILE_RENAME_INFORMATION)pSetInfoState->pData2,
-                    pSetInfoState->ulData2Length,
-                    FileRenameInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        ntStatus = IoSetInformationFile(
+                       pSetInfoState->pFile->hFile,
+                       pSetInfoState->pAcb,
+                       &pSetInfoState->ioStatusBlock,
+                       (PFILE_RENAME_INFORMATION)pSetInfoState->pData2,
+                       pSetInfoState->ulData2Length,
+                       FileRenameInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
+
 
 error:
 
@@ -900,18 +920,23 @@ SrvSetFileBasicInfo_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    pSetInfoState->pFile->hFile,
-                    pSetInfoState->pAcb,
-                    &pSetInfoState->ioStatusBlock,
-                    (PFILE_BASIC_INFORMATION)pSetInfoState->pData,
-                    sizeof(FILE_BASIC_INFORMATION),
-                    FileBasicInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        ntStatus = IoSetInformationFile(
+                       pSetInfoState->pFile->hFile,
+                       pSetInfoState->pAcb,
+                       &pSetInfoState->ioStatusBlock,
+                       (PFILE_BASIC_INFORMATION)pSetInfoState->pData,
+                       sizeof(FILE_BASIC_INFORMATION),
+                       FileBasicInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
 
 error:
 
@@ -938,18 +963,23 @@ SrvSetFileAllocationInfo_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    pSetInfoState->pFile->hFile,
-                    pSetInfoState->pAcb,
-                    &pSetInfoState->ioStatusBlock,
-                    (PFILE_ALLOCATION_INFORMATION)pSetInfoState->pData,
-                    sizeof(FILE_ALLOCATION_INFORMATION),
-                    FileAllocationInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        ntStatus = IoSetInformationFile(
+                       pSetInfoState->pFile->hFile,
+                       pSetInfoState->pAcb,
+                       &pSetInfoState->ioStatusBlock,
+                       (PFILE_ALLOCATION_INFORMATION)pSetInfoState->pData,
+                       sizeof(FILE_ALLOCATION_INFORMATION),
+                       FileAllocationInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
 
 error:
 
@@ -1146,18 +1176,23 @@ SrvSetFileSystemControlInfo_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
-    ntStatus = IoSetVolumeInformationFile(
-                    pSetInfoState->pFile->hFile,
-                    pSetInfoState->pAcb,
-                    &pSetInfoState->ioStatusBlock,
-                    (PFILE_FS_CONTROL_INFORMATION)pSetInfoState->pData,
-                    sizeof(FILE_FS_CONTROL_INFORMATION),
-                    FileFsControlInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        ntStatus = IoSetVolumeInformationFile(
+                       pSetInfoState->pFile->hFile,
+                       pSetInfoState->pAcb,
+                       &pSetInfoState->ioStatusBlock,
+                       (PFILE_FS_CONTROL_INFORMATION)pSetInfoState->pData,
+                       sizeof(FILE_FS_CONTROL_INFORMATION),
+                       FileFsControlInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
 
 error:
 
@@ -1215,18 +1250,23 @@ SrvSetSecurityDescriptor_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+    if (!pSetInfoState->SetInfoRequested)
+    {
+        pSetInfoState->SetInfoRequested = TRUE;
 
-    ntStatus = IoSetSecurityFile(
-                    pSetInfoState->pFile->hFile,
-                    pSetInfoState->pAcb,
-                    &pSetInfoState->ioStatusBlock,
-                    pSetInfoState->pRequestHeader->ulAdditionalInfo,
-                    (PSECURITY_DESCRIPTOR_RELATIVE)pSetInfoState->pData,
-                    pSetInfoState->pRequestHeader->ulInputBufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-    SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+        ntStatus = IoSetSecurityFile(
+                      pSetInfoState->pFile->hFile,
+                      pSetInfoState->pAcb,
+                      &pSetInfoState->ioStatusBlock,
+                      pSetInfoState->pRequestHeader->ulAdditionalInfo,
+                      (PSECURITY_DESCRIPTOR_RELATIVE)pSetInfoState->pData,
+                      pSetInfoState->pRequestHeader->ulInputBufferLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+    }
 
 error:
 
@@ -1287,17 +1327,22 @@ SrvSetQuotaInfo_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
+            if (!pSetInfoState->SetInfoRequested)
+            {
+                pSetInfoState->SetInfoRequested = TRUE;
 
-            ntStatus = IoSetQuotaInformationFile(
-                        pSetInfoState->pFile->hFile,
-                        pSetInfoState->pAcb,
-                        &pSetInfoState->ioStatusBlock,
-                        (PFILE_QUOTA_INFORMATION)pSetInfoState->pData,
-                        pSetInfoState->pRequestHeader->ulInputBufferLen);
-            BAIL_ON_NT_STATUS(ntStatus);
+                SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-            SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
+                ntStatus = IoSetQuotaInformationFile(
+                               pSetInfoState->pFile->hFile,
+                               pSetInfoState->pAcb,
+                               &pSetInfoState->ioStatusBlock,
+                               (PFILE_QUOTA_INFORMATION)pSetInfoState->pData,
+                               pSetInfoState->pRequestHeader->ulInputBufferLen);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState);
+            }
 
             break;
 
