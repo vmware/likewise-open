@@ -88,6 +88,11 @@ SrvProtocolConfigIsSmb2Enabled(
     VOID
     );
 
+BOOLEAN
+SrvProtocolConfigIsTransportEnabled(
+    VOID
+    );
+
 ULONG
 SrvProtocolConfigGetZctReadThreshold(
     VOID
@@ -122,6 +127,23 @@ VOID
 SrvProtocolTransportDriverShutdown(
     PSRV_PROTOCOL_API_GLOBALS pGlobals
     );
+
+NTSTATUS
+SrvProtocolTransportDriverStart(
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals
+    );
+
+BOOLEAN
+SrvProtocolTransportDriverStop(
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals,
+    IN BOOLEAN IsForce
+    );
+
+BOOLEAN
+SrvProtocolTransportDriverIsStarted(
+    IN PSRV_PROTOCOL_API_GLOBALS pGlobals
+    );
+
 
 #endif /* __PROTOTYPES_H__ */
 

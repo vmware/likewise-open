@@ -74,6 +74,10 @@ SrvProtocolInit(
     pthread_rwlock_init(&gProtocolApiGlobals.mutex, NULL);
     gProtocolApiGlobals.pMutex = &gProtocolApiGlobals.mutex;
 
+    ntStatus = LwErrnoToNtStatus(pthread_rwlock_init(&gProtocolApiGlobals.TransportStartStopMutex, NULL));
+    BAIL_ON_NT_STATUS(ntStatus);
+    gProtocolApiGlobals.pTransportStartStopMutex = &gProtocolApiGlobals.TransportStartStopMutex;
+
     gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
     gProtocolApiGlobals.pShareList = pShareList;
 
@@ -96,6 +100,12 @@ SrvProtocolInit(
                    &gProtocolApiGlobals,
                    ThreadPool);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (SrvProtocolConfigIsTransportEnabled())
+    {
+        ntStatus = SrvProtocolStart();
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
@@ -435,6 +445,30 @@ SrvProtocolFreeExecContext(
     SrvFreeMemory(pProtocolContext);
 }
 
+BOOLEAN
+SrvProtocolIsStarted(
+    VOID
+    )
+{
+    return SrvProtocolTransportDriverIsStarted(&gProtocolApiGlobals);
+}
+
+NTSTATUS
+SrvProtocolStart(
+    VOID
+    )
+{
+    return SrvProtocolTransportDriverStart(&gProtocolApiGlobals);
+}
+
+BOOLEAN
+SrvProtocolStop(
+    IN BOOLEAN IsForce
+    )
+{
+    return SrvProtocolTransportDriverStop(&gProtocolApiGlobals, IsForce);
+}
+
 VOID
 SrvProtocolShutdown(
     VOID
@@ -453,6 +487,11 @@ SrvProtocolShutdown(
     gProtocolApiGlobals.hPacketAllocator = NULL;
     gProtocolApiGlobals.pShareList = NULL;
 
+    if (gProtocolApiGlobals.pTransportStartStopMutex)
+    {
+        pthread_rwlock_destroy(&gProtocolApiGlobals.TransportStartStopMutex);
+        gProtocolApiGlobals.pTransportStartStopMutex = NULL;
+    }
     if (gProtocolApiGlobals.pMutex)
     {
         pthread_rwlock_destroy(&gProtocolApiGlobals.mutex);

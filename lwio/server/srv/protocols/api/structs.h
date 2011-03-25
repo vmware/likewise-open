@@ -78,6 +78,7 @@ typedef struct _SRV_PROTOCOL_CONFIG
 {
     BOOLEAN bEnableNetbios;
     BOOLEAN bEnableSmb2;
+    BOOLEAN bEnableTransport;
     BOOLEAN bEnableSigning;
     BOOLEAN bRequireSigning;
     ULONG ulZctReadThreshold;
@@ -88,6 +89,7 @@ typedef struct _SRV_PROTOCOL_CONFIG
 typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT
 {
     struct _SRV_PROTOCOL_API_GLOBALS* pGlobals;    // Initialized on startup
+    PLW_THREAD_POOL ThreadPool;
     SRV_TRANSPORT_HANDLE              hTransport;
     SRV_TRANSPORT_PROTOCOL_DISPATCH   dispatch;
     SRV_CONNECTION_SOCKET_DISPATCH    socketDispatch;
@@ -100,11 +102,16 @@ typedef struct _SRV_PROTOCOL_API_GLOBALS
     pthread_rwlock_t               mutex;
     pthread_rwlock_t*              pMutex;
 
+    // This lock is acquired before the mutex above
+    pthread_rwlock_t               TransportStartStopMutex;
+    pthread_rwlock_t*              pTransportStartStopMutex;
+
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator;
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList;
     SRV_PROTOCOL_CONFIG            config;
     SRV_PROTOCOL_TRANSPORT_CONTEXT transportContext;
     PLWRTL_RB_TREE                 pConnections;
+    BOOLEAN                        IsConnectionRundown;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 

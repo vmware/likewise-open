@@ -177,6 +177,21 @@ SrvProtocolCloseFile(
     ULONG  ulFileId           /* IN              */
     );
 
+BOOLEAN
+SrvProtocolIsStarted(
+    VOID
+    );
+
+NTSTATUS
+SrvProtocolStart(
+    VOID
+    );
+
+BOOLEAN
+SrvProtocolStop(
+    IN BOOLEAN IsForce
+    );
+
 VOID
 SrvProtocolShutdown(
     VOID

@@ -1087,6 +1087,11 @@ SrvConnectionSetInvalid(
     PLWIO_SRV_CONNECTION pConnection
     );
 
+BOOLEAN
+SrvConnectionSetInvalidIfNoSessions(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 VOID
 SrvConnectionSetState(
     PLWIO_SRV_CONNECTION pConnection,
