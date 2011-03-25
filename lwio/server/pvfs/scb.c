@@ -217,7 +217,7 @@ PvfsReleaseSCB(
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bucketLocked = FALSE;
     BOOLEAN scbLocked = FALSE;
-    BOOLEAN fcbListLocked = FALSE;
+    BOOLEAN scbListLocked = FALSE;
     PPVFS_SCB pScb = NULL;
     PPVFS_CB_TABLE_ENTRY pBucket = NULL;
     LONG refCount = 0;
@@ -232,7 +232,7 @@ PvfsReleaseSCB(
     // However, if the SCB has no bucket pointer, it has already been removed
     // from the ScbTable so locking is unnecessary.
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(scbListLocked, &pScb->pOwnerFcb->rwScbLock);
     LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
     pBucket = pScb->BaseControlBlock.pBucket;
@@ -247,8 +247,10 @@ PvfsReleaseSCB(
 
     if (refCount == 0)
     {
+        LWIO_ASSERT(PvfsListIsEmpty(pScb->pCcbList));
+
         PvfsRemoveSCBFromFCB_inlock(pScb->pOwnerFcb, pScb);
-        LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
+        LWIO_UNLOCK_RWMUTEX(scbListLocked, &pScb->pOwnerFcb->rwScbLock);
 
         if (pBucket)
         {
@@ -288,7 +290,7 @@ PvfsReleaseSCB(
     }
 
     LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
-    LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pScb->pOwnerFcb->rwScbLock);
+    LWIO_UNLOCK_RWMUTEX(scbListLocked, &pScb->pOwnerFcb->rwScbLock);
     LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
 
     *ppScb = NULL;
