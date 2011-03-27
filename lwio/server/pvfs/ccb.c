@@ -432,47 +432,66 @@ PvfsRenameFile(
     BOOLEAN renameLock = FALSE;
     BOOLEAN targetBucketLock = FALSE;
     BOOLEAN currentBucketLock = FALSE;
-    PPVFS_FCB pOwnerFcb = NULL;
-    PLW_LIST_LINKS pScbCursor = NULL;
-    PPVFS_SCB pCurrentScb = NULL;
+    PPVFS_FCB pFcb = NULL;
+    PLW_LIST_LINKS scbCursorLink = NULL;
+    PPVFS_SCB scbCursor = NULL;
     BOOLEAN scbMutexLock = FALSE;
     BOOLEAN fcbListLocked = FALSE;
-    BOOLEAN bMatchScb = FALSE;
     PPVFS_FILE_NAME origTargetFileName = NULL;
     PPVFS_FILE_NAME scbCursorFileName = NULL;
     PSTR origFullStreamName = NULL;
     PSTR newFullStreamName = NULL;
+    PPVFS_SCB* scbList = NULL;
+    LONG scbCount = 0;
+    LONG scbIndex = 0;
 
-    pOwnerFcb = PvfsReferenceFCB(pCcb->pScb->pOwnerFcb);
+    // The CCB holds out reference down the chain so no need to take a new one
+    pFcb = pCcb->pScb->pOwnerFcb;
 
     ntError = PvfsAllocateFileNameFromScb(&origTargetFileName, pCcb->pScb);
     BAIL_ON_NT_STATUS(ntError);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(renameLock, &scbTable->rwLock);
 
-    ntError = PvfsRenameFCB(pOwnerFcb, pCcb, pNewFileName);
+    ntError = PvfsRenameFCB(pFcb, pCcb, pNewFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_RWMUTEX_SHARED(fcbListLocked, &pOwnerFcb->rwScbLock);
+    // Grab a reference to all SCBs in the list so we can drop the list lock
+    LWIO_LOCK_RWMUTEX_SHARED(fcbListLocked, &pFcb->rwScbLock);
+
+    scbCount = PvfsListLength(pFcb->pScbList);
+    if (scbCount == 0)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&scbList,
+                  sizeof(*scbList)*scbCount,
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    for (scbIndex = 0, scbCursorLink = PvfsListTraverse(pFcb->pScbList, NULL);
+         scbIndex<scbCount && scbCursorLink;
+         scbIndex++, scbCursorLink = PvfsListTraverse(pFcb->pScbList, scbCursorLink))
+    {
+        scbCursor = LW_STRUCT_FROM_FIELD(
+                          scbCursorLink,
+                          PVFS_SCB,
+                          FcbList);
+        scbList[scbIndex] = PvfsReferenceSCB(scbCursor);
+        LWIO_ASSERT(scbList[scbIndex] != NULL);
+    }
+
+    LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pFcb->rwScbLock);
+
 
     // The CB Table key is based on the complete file name (stream and base file)
     // Remove and Re-add the stream objects under the new key
-
-    while((pScbCursor = PvfsListTraverse(pOwnerFcb->pScbList, pScbCursor)) != NULL)
+    for (scbIndex=0; scbIndex<scbCount; scbIndex++)
     {
-        pCurrentScb = LW_STRUCT_FROM_FIELD(
-                          pScbCursor,
-                          PVFS_SCB,
-                          FcbList);
-
-        if (!bMatchScb && pCurrentScb == pCcb->pScb)
-        {
-            bMatchScb = TRUE;
-        }
-
-        LWIO_ASSERT(pCurrentScb != NULL);
-
-        ntError = PvfsAllocateFileNameFromScb(&scbCursorFileName, pCurrentScb);
+        ntError = PvfsAllocateFileNameFromScb(&scbCursorFileName, scbCursor);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsAllocateCStringFromFileName(
@@ -490,12 +509,12 @@ PvfsRenameFile(
                       scbCursorFileName);
         BAIL_ON_NT_STATUS(ntError);
 
-        pCurrentBucket = pCurrentScb->BaseControlBlock.pBucket;
+        pCurrentBucket = scbCursor->BaseControlBlock.pBucket;
 
         ntError = PvfsCbTableGetBucket(&pTargetBucket, scbTable, newFullStreamName);
         BAIL_ON_NT_STATUS(ntError);
 
-        LWIO_LOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
+        LWIO_LOCK_MUTEX(scbMutexLock, &scbCursor->BaseControlBlock.Mutex);
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(currentBucketLock, &pCurrentBucket->rwLock);
         if (pCurrentBucket != pTargetBucket)
         {
@@ -504,14 +523,14 @@ PvfsRenameFile(
         }
 
         ntError = PvfsCbTableRemove_inlock(
-                      (PPVFS_CONTROL_BLOCK)pCurrentScb,
+                      (PPVFS_CONTROL_BLOCK)scbCursor,
                       origFullStreamName);
         LWIO_ASSERT(STATUS_SUCCESS == ntError);
 
         ntError = PvfsCbTableAdd_inlock(
                       pTargetBucket,
                       newFullStreamName,
-                     (PPVFS_CONTROL_BLOCK)pCurrentScb);
+                     (PPVFS_CONTROL_BLOCK)scbCursor);
         if (STATUS_SUCCESS != ntError)
         {
             LWIO_LOG_ERROR(
@@ -520,10 +539,9 @@ PvfsRenameFile(
                 LwNtStatusToName(ntError));
         }
 
-
         LWIO_UNLOCK_RWMUTEX(targetBucketLock, &pTargetBucket->rwLock);
         LWIO_UNLOCK_RWMUTEX(currentBucketLock, &pCurrentBucket->rwLock);
-        LWIO_UNLOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
+        LWIO_UNLOCK_MUTEX(scbMutexLock, &scbCursor->BaseControlBlock.Mutex);
 
         if (origFullStreamName)
         {
@@ -535,22 +553,21 @@ PvfsRenameFile(
         }
     }
 
-    // Sanity check
-    // Make sure pCcb->pScb is accessed by going through pOwnerFcb's pScbList
-    LWIO_ASSERT(bMatchScb);
-
+cleanup:
 error:
-    LWIO_UNLOCK_MUTEX(scbMutexLock, &pCurrentScb->BaseControlBlock.Mutex);
+    LWIO_UNLOCK_MUTEX(scbMutexLock, &scbCursor->BaseControlBlock.Mutex);
     LWIO_UNLOCK_RWMUTEX(targetBucketLock, &pTargetBucket->rwLock);
     LWIO_UNLOCK_RWMUTEX(currentBucketLock, &pCurrentBucket->rwLock);
 
-    LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pOwnerFcb->rwScbLock);
+    LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pFcb->rwScbLock);
     LWIO_UNLOCK_RWMUTEX(renameLock, &scbTable->rwLock);
 
-    if (pOwnerFcb)
+    for(scbIndex=0; scbIndex<scbCount; scbIndex++)
     {
-        PvfsReleaseFCB(&pOwnerFcb);
+        PvfsReleaseSCB(&scbList[scbIndex]);
     }
+
+    PVFS_FREE(&scbList);
 
     if (origTargetFileName)
     {
