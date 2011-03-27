@@ -284,7 +284,7 @@ PvfsDriverDispatch(
 
     if (pIrpCtx->Callback)
     {
-        ntError = PvfsScheduleIrpContext(pIrpCtx);
+        ntError = PvfsScheduleIrpContext(pIrpCtx, FALSE);
     }
 
 error:

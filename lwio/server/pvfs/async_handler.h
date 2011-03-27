@@ -62,18 +62,5 @@ PvfsQueueCancelIrpIfRequested(
 
 /* Pvfs IRP Wrapper API */
 
-VOID
-PvfsIrpMarkPending(
-    IN PPVFS_IRP_CONTEXT pIrpContext,
-    IN PIO_IRP_CALLBACK CancelCallback,
-    IN OPTIONAL PVOID CancelCallbackContext
-    );
-
-VOID
-PvfsAsyncIrpComplete(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-
 #endif /* _PVFS_ASYNC_HANDLER_H_ */
 

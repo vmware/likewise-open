@@ -504,7 +504,7 @@ PvfsProcessPendingLocks(
 
             pIrp->IoStatusBlock.Status = ntError;
 
-            PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
+            PvfsCompleteIrpContext(pPendingLock->pIrpContext);
         }
 
         /* If the lock was pended again, it ahs a new record, so
@@ -1240,7 +1240,7 @@ PvfsCleanPendingLockQueue(
 
         pLockRecord->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsAsyncIrpComplete(pLockRecord->pIrpContext);
+        PvfsCompleteIrpContext(pLockRecord->pIrpContext);
 
         PvfsFreePendingLock(&pLockRecord);
 
@@ -1253,7 +1253,7 @@ PvfsCleanPendingLockQueue(
     {
         pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsAsyncIrpComplete(pIrpContext);
+        PvfsCompleteIrpContext(pIrpContext);
     }
 
     if (pScb)

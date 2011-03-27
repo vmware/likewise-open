@@ -981,7 +981,7 @@ PvfsOplockCleanPendingOpInternal(
 
         pOperation->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsAsyncIrpComplete(pOperation->pIrpContext);
+        PvfsCompleteIrpContext(pOperation->pIrpContext);
 
         PvfsFreePendingOp(&pOperation);
 
@@ -994,7 +994,7 @@ PvfsOplockCleanPendingOpInternal(
     {
         pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsAsyncIrpComplete(pIrpContext);
+        PvfsCompleteIrpContext(pIrpContext);
     }
 
     return ntError;

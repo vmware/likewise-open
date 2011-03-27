@@ -66,7 +66,7 @@ PvfsFreeIrpContext(
             PvfsIrpContextCheckFlag(pIrpCtx, PVFS_IRP_CTX_FLAG_PENDED))
         {
             pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
-            PvfsAsyncIrpComplete(pIrpCtx);
+            PvfsCompleteIrpContext(pIrpCtx);
         }
 
         if (pIrpCtx->pScb)
@@ -278,11 +278,10 @@ PvfsIrpMarkPending(
     }
 }
 
-/***********************************************************************
- ***********************************************************************/
+////////////////////////////////////////////////////////////////////////
 
 VOID
-PvfsAsyncIrpComplete(
+PvfsCompleteIrpContext(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
@@ -296,6 +295,27 @@ PvfsAsyncIrpComplete(
     {
         IoIrpComplete(pIrpContext->pIrp);
         pIrpContext->pIrp = NULL;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
+VOID
+PvfsAsyncCompleteIrpContext(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    BOOLEAN bComplete = FALSE;
+
+    bComplete = PvfsIrpContextMarkIfSetFlag(
+                    pIrpContext,
+                    PVFS_IRP_CTX_FLAG_PENDED,
+                    PVFS_IRP_CTX_FLAG_COMPLETE);
+    if (bComplete)
+    {
+        PvfsScheduleIrpContext(pIrpContext, TRUE);
+        // Ignore the error.  It has already been dealt with as best
+        // as possible
     }
 }
 
@@ -341,7 +361,8 @@ PvfsProcessIrpContext(
 
 NTSTATUS
 PvfsScheduleIrpContext(
-    IN PPVFS_IRP_CONTEXT  pIrpContext
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN BOOLEAN Priority
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -365,8 +386,13 @@ PvfsScheduleIrpContext(
 error:
     if (ntError != STATUS_PENDING)
     {
-        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
-        PvfsAsyncIrpComplete(pIrpCtx);
+        if (!PvfsIrpContextCheckFlag(pIrpContext, PVFS_IRP_CTX_FLAG_COMPLETE))
+        {
+            // The IRP was not already complete and just awaiting the
+            // IoIrpComplete call.  So set the IoStatusBlock
+            pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        }
+        PvfsCompleteIrpContext(pIrpCtx);
 
         if (pIrpCtx)
         {
@@ -393,6 +419,15 @@ PvfsProcessIrpContext(
 
     pIrpCtx = (PPVFS_IRP_CONTEXT)Context;
 
+    if (PvfsIrpContextCheckFlag(pIrpCtx, PVFS_IRP_CTX_FLAG_COMPLETE))
+    {
+        // The IrpContext was marked for an async completion so that IoIrpComplete
+        // would be called from the context of another thread.  Just complete and
+        // exit
+        PvfsCompleteIrpContext(pIrpCtx);
+        goto cleanup;
+    }
+
     PvfsQueueCancelIrpIfRequested(pIrpCtx);
 
     bActive = PvfsIrpContextMarkIfNotSetFlag(
@@ -413,8 +448,10 @@ PvfsProcessIrpContext(
     {
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
 
-        PvfsAsyncIrpComplete(pIrpCtx);
+        PvfsCompleteIrpContext(pIrpCtx);
     }
+
+cleanup:
 
     PvfsReleaseIrpContext(&pIrpCtx);
 
