@@ -232,7 +232,7 @@ PvfsCbTableLookup_inlock(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_ASSERT(pCb->pBucket != NULL);
+    LWIO_ASSERT(pCb->pBucket == pBucket);
 
     *ppCb = PvfsReferenceCB(pCb);
 
