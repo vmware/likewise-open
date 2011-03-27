@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -115,7 +115,7 @@ namespace Likewise.LMC
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(135, 13);
             this.label2.TabIndex = 2;
-            this.label2.Text = "© Likewise Software, 2009";
+            this.label2.Text = "© Likewise Software";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             //
             // label1

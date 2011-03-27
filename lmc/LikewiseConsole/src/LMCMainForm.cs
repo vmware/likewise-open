@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -764,6 +764,11 @@ namespace Likewise.LMC
 
             if (openForms != null && openForms.Count != 1)
             {
+                foreach (Form f in openForms)
+                {
+                    MessageBox.Show("An open form exists");
+                }
+
                 string sMsg = "You must close all dialog boxes before you can close the Administrative Console.";
                 MessageBox.Show(this, sMsg, CommonResources.GetString("Caption_Console"), MessageBoxButtons.OK, MessageBoxIcon.Error);
 
