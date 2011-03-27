@@ -1204,17 +1204,16 @@ PvfsCleanPendingLockQueue(
     PVOID pContext
     )
 {
-    PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_SCB pScb = PvfsReferenceSCB(pIrpContext->pScb);
+    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
     BOOLEAN bLocked = FALSE;
     PPVFS_PENDING_LOCK pLockRecord = NULL;
     PLW_LIST_LINKS pLockRecordLink = NULL;
     PLW_LIST_LINKS pNextLink = NULL;
     BOOLEAN bFound = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pScb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pIrpCtx->pScb->rwBrlLock);
 
-    pLockRecordLink = PvfsListTraverse(pScb->pPendingLockQueue, NULL);
+    pLockRecordLink = PvfsListTraverse(pIrpCtx->pScb->pPendingLockQueue, NULL);
 
     while (pLockRecordLink)
     {
@@ -1223,9 +1222,9 @@ PvfsCleanPendingLockQueue(
                       PVFS_PENDING_LOCK,
                       LockList);
 
-        pNextLink = PvfsListTraverse(pScb->pPendingLockQueue, pLockRecordLink);
+        pNextLink = PvfsListTraverse(pIrpCtx->pScb->pPendingLockQueue, pLockRecordLink);
 
-        if (pLockRecord->pIrpContext != pIrpContext)
+        if (pLockRecord->pIrpContext != pIrpCtx)
         {
             pLockRecordLink = pNextLink;
             continue;
@@ -1233,10 +1232,10 @@ PvfsCleanPendingLockQueue(
 
         bFound = TRUE;
 
-        PvfsListRemoveItem(pScb->pPendingLockQueue, pLockRecordLink);
+        PvfsListRemoveItem(pIrpCtx->pScb->pPendingLockQueue, pLockRecordLink);
         pLockRecordLink = NULL;
 
-        LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwBrlLock);
+        LWIO_UNLOCK_RWMUTEX(bLocked, &pIrpCtx->pScb->rwBrlLock);
 
         pLockRecord->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
@@ -1247,23 +1246,18 @@ PvfsCleanPendingLockQueue(
         /* Can only be one IrpContext match so we are done */
     }
 
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pScb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pIrpCtx->pScb->rwBrlLock);
 
     if (!bFound)
     {
-        pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+        pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsCompleteIrpContext(pIrpContext);
+        PvfsCompleteIrpContext(pIrpCtx);
     }
 
-    if (pScb)
+    if (pIrpCtx)
     {
-        PvfsReleaseSCB(&pScb);
-    }
-
-    if (pIrpContext)
-    {
-        PvfsReleaseIrpContext(&pIrpContext);
+        PvfsReleaseIrpContext(&pIrpCtx);
     }
 
     return;

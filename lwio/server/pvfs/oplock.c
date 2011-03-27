@@ -1509,7 +1509,6 @@ PvfsOplockCleanOplockQueue(
     )
 {
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pContext;
-    PPVFS_SCB pScb = PvfsReferenceSCB(pIrpCtx->pScb);
     BOOLEAN bScbLocked = FALSE;
     BOOLEAN bCcbLocked= FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
@@ -1517,9 +1516,9 @@ PvfsOplockCleanOplockQueue(
     PLW_LIST_LINKS pNextLink = NULL;
     BOOLEAN bFound = FALSE;
 
-    LWIO_LOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
+    LWIO_LOCK_MUTEX(bScbLocked, &pIrpCtx->pScb->BaseControlBlock.Mutex);
 
-    pOplockLink = PvfsListTraverse(pScb->pOplockList, NULL);
+    pOplockLink = PvfsListTraverse(pIrpCtx->pScb->pOplockList, NULL);
 
     while (pOplockLink)
     {
@@ -1528,7 +1527,7 @@ PvfsOplockCleanOplockQueue(
                       PVFS_OPLOCK_RECORD,
                       OplockList);
 
-        pNextLink = PvfsListTraverse(pScb->pOplockList, pOplockLink);
+        pNextLink = PvfsListTraverse(pIrpCtx->pScb->pOplockList, pOplockLink);
 
         if (pOplock->pIrpContext != pIrpCtx)
         {
@@ -1538,10 +1537,10 @@ PvfsOplockCleanOplockQueue(
 
         bFound = TRUE;
 
-        PvfsListRemoveItem(pScb->pOplockList, pOplockLink);
+        PvfsListRemoveItem(pIrpCtx->pScb->pOplockList, pOplockLink);
         pOplockLink = NULL;
 
-        LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
+        LWIO_UNLOCK_MUTEX(bScbLocked, &pIrpCtx->pScb->BaseControlBlock.Mutex);
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
@@ -1556,20 +1555,13 @@ PvfsOplockCleanOplockQueue(
         /* Can only be one IrpContext match so we are done */
     }
 
-    LWIO_UNLOCK_MUTEX(bScbLocked, &pScb->BaseControlBlock.Mutex);
-
+    LWIO_UNLOCK_MUTEX(bScbLocked, &pIrpCtx->pScb->BaseControlBlock.Mutex);
 
     if (!bFound)
     {
         pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsCompleteIrpContext(pIrpCtx);
-    }
-
-
-    if (pScb)
-    {
-        PvfsReleaseSCB(&pScb);
     }
 
     if (pIrpCtx)

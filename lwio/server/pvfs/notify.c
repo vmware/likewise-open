@@ -970,7 +970,9 @@ PvfsNotifyCleanIrpList(
     BOOLEAN bFound = FALSE;
 
     LWIO_ASSERT(pIrpCtx->pScb->pOwnerFcb);
-    pFcb = PvfsReferenceFCB(pIrpCtx->pScb->pOwnerFcb);
+
+    // We have the IrpCtx->Scb's reference so no need to take another
+    pFcb = pIrpCtx->pScb->pOwnerFcb;
 
     LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->BaseControlBlock.Mutex);
 
@@ -1014,11 +1016,6 @@ PvfsNotifyCleanIrpList(
         pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsCompleteIrpContext(pIrpCtx);
-    }
-
-    if (pFcb)
-    {
-        PvfsReleaseFCB(&pFcb);
     }
 
     if (pIrpCtx)
