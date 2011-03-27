@@ -534,7 +534,7 @@ SrvExecuteCheckdirAsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pCheckdirState->mutex);
 
-    ntStatus = SrvScheduleExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);
