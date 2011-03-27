@@ -352,7 +352,25 @@ PvfsIrpContextMarkIfSetFlag(
 
 NTSTATUS
 PvfsScheduleIrpContext(
-    IN PPVFS_IRP_CONTEXT  pIrpContext
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN BOOLEAN Priority
+    );
+
+VOID
+PvfsIrpMarkPending(
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PIO_IRP_CALLBACK CancelCallback,
+    IN OPTIONAL PVOID CancelCallbackContext
+    );
+
+VOID
+PvfsCompleteIrpContext(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+PvfsAsyncCompleteIrpContext(
+    PPVFS_IRP_CONTEXT pIrpContext
     );
 
 /* From errno.c */

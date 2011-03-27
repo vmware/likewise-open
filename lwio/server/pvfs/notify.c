@@ -154,7 +154,7 @@ error:
     if (PvfsIrpContextCheckFlag(pIrpContext, PVFS_IRP_CTX_FLAG_PENDED))
     {
         pIrpContext->pIrp->IoStatusBlock.Status = ntError;
-        PvfsAsyncIrpComplete(pIrpContext);
+        PvfsCompleteIrpContext(pIrpContext);
     }
 
     goto cleanup;
@@ -808,7 +808,7 @@ PvfsNotifyReportIrp(
 cleanup:
     pIrpContext->pIrp->IoStatusBlock.Status = ntError;
 
-    PvfsAsyncIrpComplete(pIrpContext);
+    PvfsCompleteIrpContext(pIrpContext);
 
     LwRtlWC16StringFree(&pwszFilename);
 
@@ -1000,7 +1000,7 @@ PvfsNotifyCleanIrpList(
 
         pFilter->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsAsyncIrpComplete(pFilter->pIrpContext);
+        PvfsCompleteIrpContext(pFilter->pIrpContext);
 
         PvfsFreeNotifyRecord(&pFilter);
 
@@ -1013,7 +1013,7 @@ PvfsNotifyCleanIrpList(
     {
         pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-        PvfsAsyncIrpComplete(pIrpCtx);
+        PvfsCompleteIrpContext(pIrpCtx);
     }
 
     if (pFcb)
