@@ -491,6 +491,10 @@ PvfsRenameFile(
     // Remove and Re-add the stream objects under the new key
     for (scbIndex=0; scbIndex<scbCount; scbIndex++)
     {
+        scbMutexLock = FALSE;
+        currentBucketLock = FALSE;
+        targetBucketLock = FALSE;
+
         ntError = PvfsAllocateFileNameFromScb(&scbCursorFileName, scbCursor);
         BAIL_ON_NT_STATUS(ntError);
 
