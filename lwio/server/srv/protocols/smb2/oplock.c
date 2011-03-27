@@ -998,7 +998,7 @@ SrvOplockAsyncCB_SMB_V2(
                     &pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSchedulePriorityExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
 cleanup:

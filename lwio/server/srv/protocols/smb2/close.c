@@ -610,7 +610,7 @@ SrvExecuteCloseAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pCloseState->mutex);
 
-    ntStatus = SrvScheduleExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);

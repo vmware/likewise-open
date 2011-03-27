@@ -731,7 +731,7 @@ SrvExecuteWriteXAsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
 
-    ntStatus = SrvScheduleExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);
@@ -765,7 +765,7 @@ SrvExecuteWriteXReceiveZctCB(
 
     LWIO_LOG_DEBUG("queue exec context = %p (conn = %p)", pContext, pExecContext->pConnection);
 
-    ntStatus = SrvScheduleExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);

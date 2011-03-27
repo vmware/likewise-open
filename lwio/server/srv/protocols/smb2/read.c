@@ -804,7 +804,7 @@ SrvExecuteReadAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
 
-    ntStatus = SrvScheduleExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);
@@ -832,7 +832,7 @@ SrvExecuteReadSendZctCB_SMB_V2(
     pReadState->stage = SRV_READ_STAGE_SMB_V2_ZCT_COMPLETE;
     LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
 
-    ntStatus = SrvScheduleExecContext(pExecContext);
+    ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);
