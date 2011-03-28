@@ -178,6 +178,17 @@ LsaDmCleanup(
 /// @note This function must be called in a race-free context.
 ///
 
+VOID
+LsaDmResetTrusts(
+    VOID
+    );
+///<
+/// Remove trusts for domain manager.
+///
+/// This resets trusts when switching from online to offline
+/// initialization.
+///
+
 DWORD
 LsaDmQueryState(
     OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,

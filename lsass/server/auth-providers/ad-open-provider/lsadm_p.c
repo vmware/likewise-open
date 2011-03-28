@@ -512,6 +512,48 @@ LsaDmpForEachDomainDestroy(
     LsaDmpDomainDestroy(pDomain);
 }
 
+static
+VOID
+LsaDmpResetTrustsInLock(
+    IN LSA_DM_STATE_HANDLE Handle
+    )
+{
+    if (Handle->DomainList)
+    {
+        LsaDLinkedListForEach(Handle->DomainList, LsaDmpForEachDomainDestroy, NULL);
+        LsaDLinkedListFree(Handle->DomainList);
+        Handle->DomainList = NULL;
+        Handle->pPrimaryDomain = NULL;
+    }
+    while (!LsaListIsEmpty(&Handle->UnknownDomainSidList))
+    {
+        PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainSidList);
+        PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
+        LsaDmpFreeUnknownDomainEntry(pEntry, TRUE);
+    }
+    while (!LsaListIsEmpty(&Handle->UnknownDomainNameList))
+    {
+        PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainNameList);
+        PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
+        LsaDmpFreeUnknownDomainEntry(pEntry, FALSE);
+    }
+}
+
+VOID
+LsaDmpResetTrusts(
+    IN LSA_DM_STATE_HANDLE Handle
+    )
+{
+    if (Handle)
+    {
+        LsaDmpAcquireMutex(Handle->pMutex);
+
+        LsaDmpResetTrustsInLock(Handle);
+
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+}
+
 VOID
 LsaDmpStateDestroy(
     IN OUT LSA_DM_STATE_HANDLE Handle
@@ -541,23 +583,7 @@ LsaDmpStateDestroy(
         LsaDmpDestroyCond(&Handle->OnlineDetectionThread.pCondition);
         LsaDmpDestroyMutex(&Handle->OnlineDetectionThread.pMutex);
         LsaDmpDestroyMutex(&Handle->pMutex);
-        if (Handle->DomainList)
-        {
-            LsaDLinkedListForEach(Handle->DomainList, LsaDmpForEachDomainDestroy, NULL);
-            LsaDLinkedListFree(Handle->DomainList);
-        }
-        while (!LsaListIsEmpty(&Handle->UnknownDomainSidList))
-        {
-            PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainSidList);
-            PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
-            LsaDmpFreeUnknownDomainEntry(pEntry, TRUE);
-        }
-        while (!LsaListIsEmpty(&Handle->UnknownDomainNameList))
-        {
-            PLSA_LIST_LINKS pLinks = LsaListRemoveHead(&Handle->UnknownDomainNameList);
-            PLSA_DM_UNKNOWN_DOMAIN_ENTRY pEntry = LW_STRUCT_FROM_FIELD(pLinks, LSA_DM_UNKNOWN_DOMAIN_ENTRY, Links);
-            LsaDmpFreeUnknownDomainEntry(pEntry, FALSE);
-        }
+        LsaDmpResetTrustsInLock(Handle);
         LW_SAFE_FREE_MEMORY(Handle);
     }
 }

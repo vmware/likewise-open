@@ -366,6 +366,8 @@ error:
         pProviderData = NULL;
     }
 
+    LsaDmResetTrusts();
+
     goto cleanup;
 }
 

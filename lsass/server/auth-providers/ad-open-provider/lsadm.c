@@ -110,6 +110,16 @@ LsaDmCleanup(
     }
 }
 
+VOID
+LsaDmResetTrusts(
+    )
+{
+    if (gLsaDmState)
+    {
+        LsaDmpResetTrusts(gLsaDmState);
+    }
+}
+
 DWORD
 LsaDmQueryState(
     OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
