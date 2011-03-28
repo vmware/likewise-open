@@ -699,6 +699,16 @@ RtlPrivilegeCheck(
 ///
 
 
+NTSTATUS
+RtlAdjustTokenPrivileges(
+    IN PACCESS_TOKEN AccessToken,
+    IN BOOLEAN DisableAll,
+    IN OPTIONAL PTOKEN_PRIVILEGES NewState,
+    IN ULONG BufferLength,
+    OUT OPTIONAL PTOKEN_PRIVILEGES PreviousState,
+    OUT OPTIONAL PULONG pReturnedLength
+    );
+
 //
 // SID <-> String Conversion Functions
 //
