@@ -367,6 +367,11 @@ LsaDmpQueryIncludeTrusts(
     );
 
 VOID
+LsaDmpResetTrusts(
+    IN LSA_DM_STATE_HANDLE Handle
+    );
+
+VOID
 ADLogMediaSenseOnlineEvent(
     VOID
     );
