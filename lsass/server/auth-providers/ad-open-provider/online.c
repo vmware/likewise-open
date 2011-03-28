@@ -415,6 +415,8 @@ error:
         pProviderData = NULL;
     }
 
+    LsaDmResetTrusts(pState->hDmState);
+
     goto cleanup;
 }
 
