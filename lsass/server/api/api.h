@@ -91,7 +91,10 @@
 
 #include "lsasrvapi.h"
 #include "lsasrvapi2.h"
+#include "lsasrvprivilege.h"
+#include "lsasrvprivilege-ipc.h"
 
+#include "lsaipc-common.h"
 #include "lsaipc.h"
 
 #include "ipc_error_p.h"

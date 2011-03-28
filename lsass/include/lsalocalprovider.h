@@ -51,33 +51,6 @@
 #define LSA_LOCAL_IO_SETDOMAINSID         2
 #define LSA_LOCAL_IO_GETDOMAINNAME        3
 #define LSA_LOCAL_IO_GETDOMAINSID         4
-#define LSA_LOCAL_IO_ENUMPRIVSIDS         5
-
-
-typedef struct _LSA_LOCAL_IPC_ENUM_PRIVILEGES_SIDS_REQ {
-    DWORD NumSids;
-    PCSTR *ppszSids;
-} LSA_LOCAL_IPC_ENUM_PRIVILEGES_SIDS_REQ,
-*PLSA_LOCAL_IPC_ENUM_PRIVILEGES_SIDS_REQ;
-
-
-typedef struct _LSA_LOCAL_IPC_ENUM_PRIVILEGES_SIDS_RESP {
-    PLUID_AND_ATTRIBUTES pPrivileges;
-    DWORD NumPrivileges;
-} LSA_LOCAL_IPC_ENUM_PRIVILEGES_SIDS_RESP,
-*PLSA_LOCAL_IPC_ENUM_PRIVILEGES_SIDS_RESP;
-
-
-LWMsgTypeSpec*
-LsaLocalIpcGetEnumPrivilegesSidsReqSpec(
-    VOID
-    );
-
-
-LWMsgTypeSpec*
-LsaLocalIpcGetEnumPrivilegesSidsRespSpec(
-    VOID
-    );
 
 
 #endif /* __LSALOCALPROVIDER_H__ */

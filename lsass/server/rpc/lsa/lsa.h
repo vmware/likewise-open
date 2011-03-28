@@ -56,12 +56,60 @@ LsaSrvClose(
 
 
 NTSTATUS
+LsaSrvEnumPrivileges(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PDWORD pResume,
+    DWORD PreferredMaxSize,
+    PLSA_PRIVILEGE_ENUM_BUFFER pBuffer
+    );
+
+
+NTSTATUS
+LsaSrvQuerySecurity(
+    handle_t b,
+    PVOID hObject,
+    SECURITY_INFORMATION SecurityInformation,
+    PLSA_SECURITY_DESCRIPTOR_BUFFER *ppSecurityDesc
+    );
+
+
+NTSTATUS
+LsaSrvSetSecurity(
+    handle_t b,
+    PVOID hObject,
+    SECURITY_INFORMATION SecurityInformation,
+    PLSA_SECURITY_DESCRIPTOR_BUFFER pSecurityDesc
+    );
+
+
+NTSTATUS
 LsaSrvOpenPolicy2(
     handle_t b,
     wchar16_t *system_name,
     ObjectAttribute *attrib,
     UINT32 access_mask,
     POLICY_HANDLE *phPolicy
+    );
+
+
+NTSTATUS
+LsaSrvCreateAccount(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PSID pAccountSid,
+    DWORD AccessMask,
+    LSAR_ACCOUNT_HANDLE *phAccount
+    );
+
+
+NTSTATUS
+LsaSrvEnumAccounts(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PDWORD pResume,
+    PLSA_ACCOUNT_ENUM_BUFFER pAccounts,
+    DWORD PrefMaxSize
     );
 
 
@@ -87,6 +135,142 @@ LsaSrvLookupSids(
     TranslatedNameArray *names,
     UINT16 level,
     UINT32 *count
+    );
+
+
+NTSTATUS
+LsaSrvOpenAccount(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PSID pAccountSid,
+    DWORD AccessMask,
+    LSAR_ACCOUNT_HANDLE *phAccount
+    );
+
+
+NTSTATUS
+LsaSrvEnumPrivilegesAccount(
+    handle_t b,
+    LSAR_ACCOUNT_HANDLE hAccount,
+    PPRIVILEGE_SET *ppPrivileges
+    );
+
+
+NTSTATUS
+LsaSrvAddPrivilegesToAccount(
+    handle_t b,
+    LSAR_ACCOUNT_HANDLE hAccount,
+    PPRIVILEGE_SET pPrivileges
+    );
+
+
+NTSTATUS
+LsaSrvGetSystemAccessAccount(
+    handle_t b,
+    LSAR_ACCOUNT_HANDLE hAccount,
+    PDWORD pSystemAccess
+    );
+
+
+NTSTATUS
+LsaSrvSetSystemAccessAccount(
+    handle_t b,
+    LSAR_ACCOUNT_HANDLE hAccount,
+    DWORD SystemAccess
+    );
+
+
+NTSTATUS
+LsaSrvLookupPrivilegeValue(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PUNICODE_STRING pName,
+    PLUID pValue
+    );
+
+
+NTSTATUS
+LsaSrvLookupPrivilegeName(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PLUID pValue,
+    PUNICODE_STRING *ppName
+    );
+
+
+NTSTATUS
+LsaSrvLookupPrivilegeDisplayName(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PUNICODE_STRING pName,
+    INT16 ClientLang,
+    INT16 ClientSystemLanguage,
+    PUNICODE_STRING *ppDisplayName,
+    UINT16 *pLanguage
+    );
+
+
+NTSTATUS
+LsaRpcSrvDeleteObject(
+    handle_t b,
+    PVOID *phObject
+    );
+
+
+NTSTATUS
+LsaSrvEnumAccountsWithUserRight(
+    handle_t b,
+    POLICY_HANDLE hPolicy,
+    PUNICODE_STRING pName,
+    LSA_ACCOUNT_ENUM_BUFFER *pAccounts
+    );
+
+
+NTSTATUS
+LsaSrvEnumAccountRights(
+    handle_t IDL_handle,
+    POLICY_HANDLE hPolicy,
+    PSID pAccountSid,
+    PLSA_ACCOUNT_RIGHTS pAccountRights
+    );
+
+
+NTSTATUS
+LsaSrvAddAccountRights(
+    handle_t IDL_handle,
+    POLICY_HANDLE hPolicy,
+    PSID pAccountSid,
+    PLSA_ACCOUNT_RIGHTS pAccountRights
+    );
+
+
+NTSTATUS
+LsaSrvRemoveAccountRights(
+    handle_t IDL_handle,
+    POLICY_HANDLE hPolicy,
+    PSID pAccountSid,
+    BOOLEAN RemoveAll,
+    PLSA_ACCOUNT_RIGHTS pAccountRights
+    );
+
+
+NTSTATUS
+LsaSrvAddRemoveAccountRights(
+    handle_t IDL_handle,
+    POLICY_HANDLE hPolicy,
+    PSID pAccountSid,
+    BOOLEAN Add,
+    BOOLEAN RemoveAll,
+    PLSA_ACCOUNT_RIGHTS pAccountRights
+    );
+
+
+NTSTATUS
+LsaSrvRemovePrivilegesFromAccount(
+    handle_t b,
+    LSAR_ACCOUNT_HANDLE hAccount,
+    BOOLEAN AllPrivileges,
+    PPRIVILEGE_SET pPrivileges
     );
 
 

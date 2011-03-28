@@ -114,6 +114,9 @@ LsaSrvApiInit(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaSrvInitPrivileges();
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaSrvInitAuthProviders(pStaticProviders);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -141,6 +144,8 @@ LsaSrvApiShutdown(
     LsaSrvFreeAuthProviders();
 
     LsaSrvFreeRpcServers();
+
+    LsaSrvFreePrivileges();
 
     pthread_mutex_lock(&gAPIConfigLock);
 

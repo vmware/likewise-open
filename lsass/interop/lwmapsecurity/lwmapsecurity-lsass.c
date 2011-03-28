@@ -47,6 +47,7 @@
 #include <lw/mapsecurity-plugin.h>
 #include <lw/rtlgoto.h>
 #include <lsa/lsa.h>
+#include <lsaprivilege-internal.h>
 #include <uuid/uuid.h>
 #include <lwio/lwio.h>
 #include <lw/rpc/samr.h>
@@ -63,7 +64,6 @@
 #include "lsautils.h"
 #include <assert.h>
 #include "lsass-calls.h"
-#include "lsalocalprovider.h"
 
 
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
@@ -728,17 +728,19 @@ static
 NTSTATUS
 LsaMapSecurityAllocateAccessTokenCreateInformation(
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN ULONG GroupCount
+    IN ULONG GroupCount,
+    IN ULONG PrivilegeCount
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
     ULONG size = 0;
+    ULONG privilegeSize = 0;
     PVOID location = NULL;
 
     //
     // Compute size for everything except the actual SIDs.  This includes
-    // the flexible array using GroupCount.
+    // the flexible array using GroupCount and PrivilegeCount
     //
 
     status = RtlSafeMultiplyULONG(&size, GroupCount, sizeof(createInformation->Groups->Groups[0]));
@@ -751,6 +753,18 @@ LsaMapSecurityAllocateAccessTokenCreateInformation(
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->Groups));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->Privileges));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlSafeMultiplyULONG(
+                         &privilegeSize,
+                         PrivilegeCount,
+                         sizeof(createInformation->Privileges->Privileges[0]));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlSafeAddULONG(&size, size, privilegeSize);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->Owner));
@@ -777,6 +791,13 @@ LsaMapSecurityAllocateAccessTokenCreateInformation(
     createInformation->Groups = location;
     location = LwRtlOffsetToPointer(location, sizeof(*createInformation->Groups));
     location = LwRtlOffsetToPointer(location, GroupCount * sizeof(createInformation->Groups->Groups[0]));
+
+    createInformation->Privileges = location;
+    location = LwRtlOffsetToPointer(location, sizeof(*createInformation->Privileges));
+    location = LwRtlOffsetToPointer(
+                         location,
+                         PrivilegeCount *
+                         sizeof(createInformation->Privileges->Privileges[0]));
 
     createInformation->Owner = location;
     location = LwRtlOffsetToPointer(location, sizeof(*createInformation->Owner));
@@ -892,6 +913,11 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     ULONG extraGidCount = 0;
     HANDLE hConnection = NULL;
     DWORD dwGroupCount = 0;
+    ULONG privilegesSidListCount = 0;
+    PSTR* ppszPrivilegesSidList = NULL;
+    PLUID_AND_ATTRIBUTES pPrivileges = NULL;
+    DWORD privilegeCount = 0;
+    DWORD systemAccessRights = 0;
     PSTR* ppszGroupSids = NULL;
     PSTR pszSid = NULL;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
@@ -947,8 +973,6 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    LsaMapSecurityCloseConnection(Context, &hConnection);
-
     //
     // Take into account extra GIDs that came as primary GID from
     // object info or from passed in primary GID.
@@ -991,13 +1015,64 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     }
 
     //
+    // Get the privileges list given user SID and all SIDs
+    // in the user's access token
+    //
+
+    privilegesSidListCount = dwGroupCount + extraGidCount + 1;
+    status = RTL_ALLOCATE(
+                   &ppszPrivilegesSidList,
+                   PSTR,
+                   sizeof(ppszPrivilegesSidList[0]) * privilegesSidListCount);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // Group SIDs
+    for (i = 0; i < dwGroupCount; i++)
+    {
+        status = RtlCStringDuplicate(
+                    &ppszPrivilegesSidList[i],
+                    ppszGroupSids[i]);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    // Extra GIDs
+    for (i = 0; i < extraGidCount; i++)
+    {
+        status = RtlAllocateCStringFromSid(
+                    &ppszPrivilegesSidList[dwGroupCount + i],
+                    extraGidSidList[i]);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    // User SID
+    status = RtlCStringDuplicate(
+                &ppszPrivilegesSidList[dwGroupCount + extraGidCount],
+               pszSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    dwError = LsaPrivsEnumAccountRightsSids(
+                hConnection,
+                ppszPrivilegesSidList,
+                privilegesSidListCount,
+                &pPrivileges,
+                &privilegeCount,
+                &systemAccessRights);
+    status = LsaLsaErrorToNtStatus(dwError);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
+    hConnection = NULL;
+
+
+    //
     // Allocate token create information with enough space
     // for any potential extra GIDs.
     //
 
     status = LsaMapSecurityAllocateAccessTokenCreateInformation(
                     &createInformation,
-                    dwGroupCount + extraGidCount);
+                    dwGroupCount + extraGidCount,
+                    privilegeCount);
     GOTO_CLEANUP_ON_STATUS(status);
 
     //
@@ -1068,6 +1143,20 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     }
 
     //
+    // TOKEN_PRIVILEGES
+    //
+
+    for (i = 0; i < privilegeCount; i++)
+    {
+        PLUID_AND_ATTRIBUTES privilege = &createInformation->Privileges->Privileges[i];
+
+        privilege->Luid = pPrivileges[i].Luid;
+        privilege->Attributes = pPrivileges[i].Attributes;
+    }
+
+    createInformation->Privileges->PrivilegeCount = privilegeCount;
+
+    //
     // TOKEN_OWNER
     //
 
@@ -1106,6 +1195,11 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
 
 
 cleanup:
+    if (hConnection)
+    {
+        LsaMapSecurityCloseConnection(Context, &hConnection);
+    }
+
     if (!NT_SUCCESS(status))
     {
         LsaMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
@@ -1113,6 +1207,17 @@ cleanup:
 
     LwFreeStringArray(ppszGroupSids, dwGroupCount);
     LsaUtilFreeSecurityObjectList(dwGroupCount, ppObjects);
+
+    if (ppszPrivilegesSidList)
+    {
+        for (i = 0; i < privilegesSidListCount; i++)
+        {
+            RTL_FREE(&ppszPrivilegesSidList[i]);
+        }
+    }
+    RTL_FREE(&ppszPrivilegesSidList);
+
+    RTL_FREE(&pPrivileges);
 
     for (i = 0; i < extraGidCount; i++)
     {
@@ -1200,6 +1305,9 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     PSTR* ppszGroupSids = NULL;
     DWORD dwGroupCount = 0;
     DWORD dwSuppGroupCount = 0;
+    DWORD privilegeCount = 0;
+    PLUID_AND_ATTRIBUTES pPrivileges = NULL;
+    DWORD systemAccessRights = 0;
     PSID pPrimaryGidSid = NULL;
     PSTR pszPrimaryGidSid = NULL;
 
@@ -1266,8 +1374,6 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    LsaMapSecurityCloseConnection(Context, &hConnection);
-
     status = LsaMapSecurityMergeStringLists(
         dwInputSidCount,
         ppszInputSids,
@@ -1278,13 +1384,32 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     GOTO_CLEANUP_ON_STATUS(status);
 
     //
+    // Get the list of privileges given the list of SIDs
+    //
+
+    dwError = LsaPrivsEnumAccountRightsSids(
+        hConnection,
+        ppszGroupSids,
+        dwGroupCount,
+        &pPrivileges,
+        &privilegeCount,
+        &systemAccessRights);
+    status = LsaLsaErrorToNtStatus(dwError);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
+    hConnection = NULL;
+
+    //
+    //
     // Allocate token create information with enough space
     // for any potential extra GIDs.
     //
 
     status = LsaMapSecurityAllocateAccessTokenCreateInformation(
         &createInformation,
-        dwGroupCount);
+        dwGroupCount,
+        privilegeCount);
     GOTO_CLEANUP_ON_STATUS(status);
 
     //
@@ -1333,6 +1458,20 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     }
 
     //
+    // TOKEN_PRIVILEGES
+    //
+
+    for (i = 0; i < privilegeCount; i++)
+    {
+        PLUID_AND_ATTRIBUTES privilege = &createInformation->Privileges->Privileges[i];
+
+        privilege->Luid       = pPrivileges[i].Luid;
+        privilege->Attributes = pPrivileges[i].Attributes;
+    }
+
+    createInformation->Privileges->PrivilegeCount = privilegeCount;
+
+    //
     // TOKEN_OWNER
     //
 
@@ -1370,6 +1509,10 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:
+    if (hConnection)
+    {
+        LsaMapSecurityCloseConnection(Context, &hConnection);
+    }
 
     if (!NT_SUCCESS(status))
     {

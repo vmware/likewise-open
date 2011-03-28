@@ -203,6 +203,12 @@ QueryMemberOfMain(
     );
 
 int
+account_rights_main(
+    int argc,
+    char* argv[]
+    );
+
+int
 JoinLeaveMain(
     int argc,
     char** argv

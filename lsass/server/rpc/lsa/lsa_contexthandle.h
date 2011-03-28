@@ -51,6 +51,7 @@
 enum LsaContextType
 {
     LsaContextPolicy = 0,
+    LsaContextAccount
 };
 
 
@@ -88,6 +89,18 @@ typedef struct lsa_policy_context
 } POLICY_CONTEXT, *PPOLICY_CONTEXT;
 
 
+typedef struct _LSAR_ACCOUNT_CONTEXT
+{
+    enum LsaContextType  Type;
+    LONG                 refcount;
+
+    PLSA_ACCOUNT_CONTEXT pAccountContext;
+
+    PPOLICY_CONTEXT      pPolicyCtx;
+
+} LSAR_ACCOUNT_CONTEXT, *PLSAR_ACCOUNT_CONTEXT;
+
+
 NTSTATUS
 LsaSrvPolicyContextClose(
     PPOLICY_CONTEXT  pContext
@@ -100,8 +113,20 @@ LsaSrvPolicyContextFree(
     );
 
 
+VOID
+LsaSrvAccountContextFree(
+    PLSAR_ACCOUNT_CONTEXT  pAccountCtx
+    );
+
+
 void
 POLICY_HANDLE_rundown(
+    void *hContext
+    );
+
+
+void
+LSAR_ACCOUNT_HANDLE_rundown(
     void *hContext
     );
 

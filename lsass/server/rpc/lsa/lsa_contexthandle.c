@@ -150,6 +150,22 @@ LsaSrvPolicyContextFree(
 }
 
 
+VOID
+LsaSrvAccountContextFree(
+    PLSAR_ACCOUNT_CONTEXT pAccountCtx
+    )
+{
+    InterlockedDecrement(&pAccountCtx->refcount);
+    if (pAccountCtx->refcount) return;
+
+    LsaSrvPrivsCloseAccount(&pAccountCtx->pAccountContext);
+
+    LsaSrvPolicyContextClose(pAccountCtx->pPolicyCtx);
+
+    LW_SAFE_FREE_MEMORY(pAccountCtx);
+}
+
+
 void
 POLICY_HANDLE_rundown(
     void *hContext
@@ -166,6 +182,17 @@ POLICY_HANDLE_rundown(
     }
 
     LsaSrvPolicyContextFree(pPolCtx);
+}
+
+
+void
+LSAR_ACCOUNT_HANDLE_rundown(
+    void *hContext
+    )
+{
+    PLSAR_ACCOUNT_CONTEXT pAccountCtx = (PLSAR_ACCOUNT_CONTEXT)hContext;
+
+    LsaSrvAccountContextFree(pAccountCtx);
 }
 
 

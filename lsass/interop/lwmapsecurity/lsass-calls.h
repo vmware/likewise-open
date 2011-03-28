@@ -59,12 +59,14 @@
 #include <lwsecurityidentifier.h>
 #include <lsasrvapi.h>
 #include <lsasrvapi2.h>
+#include <lsasrvprivilege-internal.h>
 
 #define LsaOpenServer(phConnection) LsaSrvOpenServer(0, 0, getpid(), (phConnection))
 #define LsaCloseServer(hLsa) (LsaSrvCloseServer((hLsa)), 0)
 #define LsaFindObjects LsaSrvFindObjects
 #define LsaQueryMemberOf LsaSrvQueryMemberOf
 #define LsaAuthenticateUserEx LsaSrvAuthenticateUserEx
+#define LsaPrivsEnumAccountRightsSids LsaSrvPrivsEnumAccountRightsSids
 
 #endif /* LSASS_INTERNAL_PLUGIN */
 

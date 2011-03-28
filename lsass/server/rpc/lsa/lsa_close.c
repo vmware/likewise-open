@@ -67,6 +67,10 @@ LsaSrvClose(
         ntStatus = LsaSrvPolicyContextClose((PPOLICY_CONTEXT)pContext);
         break;
 
+    case LsaContextAccount:
+        LsaSrvAccountContextFree((PLSAR_ACCOUNT_CONTEXT)pContext);
+        break;
+
     default:
         /* Something is seriously wrong if we get a context
            we haven't created */

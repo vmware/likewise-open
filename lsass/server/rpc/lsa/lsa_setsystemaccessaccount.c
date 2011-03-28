@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2011
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,31 +33,65 @@
  *
  * Module Name:
  *
- *        ipc.h
+ *        lsa_setsystemaccessaccount.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Remote Procedure Call (RPC) Server Interface
  *
- *        Interprocess Communication (Private Include)
+ *        LsaSetSystemAccessAccount function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
- *
  */
-#include <config.h>
 
-#include <lsasystem.h>
+#include "includes.h"
 
-#include <lsadef.h>
-#include <lsa/lsa.h>
 
-#include <lwmsg/lwmsg.h>
-#include <lwmem.h>
-#include <lwstr.h>
+NTSTATUS
+LsaSrvSetSystemAccessAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ LSAR_ACCOUNT_HANDLE hAccount,
+    /* [in] */ DWORD SystemAccess
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD err = ERROR_SUCCESS;
+    PLSAR_ACCOUNT_CONTEXT pAccountCtx = (PLSAR_ACCOUNT_CONTEXT)hAccount;
+    PPOLICY_CONTEXT pPolicyCtx = NULL;
 
-#include <lwsecurityidentifier.h>
-#include <lsautils.h>
+    BAIL_ON_INVALID_PTR(hAccount);
 
-#include "lsaipc.h"
-#include "lsalocalprovider.h"
-#include <lsa/lsapstore-types.h>
+    if (pAccountCtx->Type != LsaContextAccount)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pPolicyCtx = pAccountCtx->pPolicyCtx;
+
+    err = LsaSrvPrivsSetSystemAccessRights(
+                        NULL,
+                        pPolicyCtx->pUserToken,
+                        pAccountCtx->pAccountContext,
+                        SystemAccess);
+    BAIL_ON_LSA_ERROR(err);
+
+error:
+    if (ntStatus == STATUS_SUCCESS &&
+        err != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(err);
+    }
+
+    return ntStatus;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

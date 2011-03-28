@@ -3,7 +3,7 @@
  * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
- * Copyright Likewise Software    2004-2011
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,35 +33,25 @@
  *
  * Module Name:
  *
- *        lpprivilege.c
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider
- *
- *        Privilege Management API
- *
- * Authors: Rafal Szczesniak (rafal@likewise.com)
+ * Authors:
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include "includes.h"
-
-
-DWORD
-LocalDirEnumPrivilegesSids(
-    IN HANDLE hProvider,
-    IN PCSTR *ppszSids,
-    IN DWORD NumSids,
-    OUT PLUID_AND_ATTRIBUTES *ppPrivileges,
-    OUT PDWORD pNumPrivileges
-    )
-{
-    DWORD err = ERROR_SUCCESS;
-
-    *ppPrivileges   = NULL;
-    *pNumPrivileges = 0;
-
-    return err;
-}
+#include <config.h>
+#include <lsasystem.h>
+#include <lsadef.h>
+#include <lw/rtlmemory.h>
+#include <lw/security-api.h>
+#include <lsa/lsa.h>
+#include <lsa/privilege.h>
+#include <lwmem.h>
+#include <lwstr.h>
+#include <lwsecurityidentifier.h>
+#include <lsautils.h>
+#include "account_rights_main.h"

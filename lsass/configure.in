@@ -1038,11 +1038,12 @@ AC_CONFIG_FILES([Makefile
                  common/ipc/Makefile
                  common/ipc/api/Makefile
                  common/ipc/ad/Makefile
-                 common/ipc/local/Makefile
+                 common/ipc/privilege/Makefile
                  common/ipc/ntlm/Makefile
                  client/Makefile
                  client/api/Makefile
                  client/ad/Makefile
+                 client/privilege/Makefile
                  client/ntlm/Makefile
                  client/rpc/Makefile
                  client/rpc/common/Makefile
@@ -1090,14 +1091,18 @@ AC_CONFIG_FILES([Makefile
                  server/store/samdb/Makefile
                  server/store/dsapi/Makefile
                  server/store/dsapi/dirdefs.h
+                 server/privilege/Makefile
                  interop/access/Makefile
                  interop/auth/Makefile
                  interop/auth/common/Makefile
                  interop/auth/pam/Makefile
                  tools/Makefile
                  tools/lw-lsa/Makefile
+                 tools/lw-privilege/Makefile
                  etc/Makefile
                  etc/lsassd.reg
+                 etc/privileges.reg
+                 etc/accounts.reg
                  include/lsaregdef.h
                  include/Makefile
                  scripts/Makefile

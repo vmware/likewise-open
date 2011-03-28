@@ -70,29 +70,55 @@ NTSTATUS srv_lsa_Function01(
 }
 
 
-NTSTATUS srv_lsa_Function02(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaEnumPrivileges(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in, out] */ UINT32 *pResume,
+    /* [in] */ UINT32 PreferredMaxSize,
+    /* [out] */ LSA_PRIVILEGE_ENUM_BUFFER *pBuffer
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvEnumPrivileges(IDL_handle,
+                                  hPolicy,
+                                  pResume,
+                                  PreferredMaxSize,
+                                  pBuffer);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function03(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaQuerySecurity(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ idl_void_p_t hObject,
+    /* [in] */ UINT32 SecurityInformation,
+    /* [out] */ PLSA_SECURITY_DESCRIPTOR_BUFFER *ppSecurityDesc
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvQuerySecurity(IDL_handle,
+                                 hObject,
+                                 SecurityInformation,
+                                 ppSecurityDesc);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function04(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaSetSecurity(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ idl_void_p_t hObject,
+    /* [in] */ UINT32 SecurityInformation,
+    /* [in] */ PLSA_SECURITY_DESCRIPTOR_BUFFER pSecurityDesc
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvSetSecurity(IDL_handle,
+                               hObject,
+                               SecurityInformation,
+                               pSecurityDesc);
     return status;
 }
 
@@ -150,20 +176,40 @@ NTSTATUS srv_lsa_Function09(
 }
 
 
-NTSTATUS srv_lsa_Function0a(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaCreateAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ SID *pAccountSid,
+    /* [in] */ UINT32 AccessMask,
+    /* [out] */ LSAR_ACCOUNT_HANDLE *phAccount
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvCreateAccount(IDL_handle,
+                                 hPolicy,
+                                 pAccountSid,
+                                 AccessMask,
+                                 phAccount);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function0b(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaEnumAccounts(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in, out] */ UINT32 *Resume,
+    /* [out] */ LSA_ACCOUNT_ENUM_BUFFER *pAccounts,
+    /* [in] */ UINT32 PrefMaxSize
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvEnumAccounts(IDL_handle,
+                                hPolicy,
+                                Resume,
+                                pAccounts,
+                                PrefMaxSize);
     return status;
 }
 
@@ -243,38 +289,68 @@ NTSTATUS srv_lsa_Function10(
 }
 
 
-NTSTATUS srv_lsa_Function11(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaOpenAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ SID *pAccountSid,
+    /* [in] */ UINT32 AccessMask,
+    /* [out] */ LSAR_ACCOUNT_HANDLE *phAccount
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvOpenAccount(IDL_handle,
+                               hPolicy,
+                               pAccountSid,
+                               AccessMask,
+                               phAccount);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function12(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaEnumPrivilegesAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ LSAR_ACCOUNT_HANDLE hAccount,
+    /* [out] */ PRIVILEGE_SET **Privileges
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvEnumPrivilegesAccount(IDL_handle,
+                                         hAccount,
+                                         Privileges);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function13(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaAddPrivilegesToAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ LSAR_ACCOUNT_HANDLE hAccount,
+    /* [in] */ PRIVILEGE_SET *pPrivileges
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvAddPrivilegesToAccount(IDL_handle,
+                                          hAccount,
+                                          pPrivileges);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function14(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaRemovePrivilegesFromAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ LSAR_ACCOUNT_HANDLE hAccount,
+    /* [in] */ UINT8 AllPrivileges,
+    /* [in] */ PRIVILEGE_SET *pPrivileges
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvRemovePrivilegesFromAccount(IDL_handle,
+                                               hAccount,
+                                               AllPrivileges,
+                                               pPrivileges);
     return status;
 }
 
@@ -297,20 +373,32 @@ NTSTATUS srv_lsa_Function16(
 }
 
 
-NTSTATUS srv_lsa_Function17(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaGetSystemAccessAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ LSAR_ACCOUNT_HANDLE hAccount,
+    /* [out] */ UINT32 *SystemAccess
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvGetSystemAccessAccount(IDL_handle,
+                                          hAccount,
+                                          SystemAccess);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function18(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaSetSystemAccessAccount(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ LSAR_ACCOUNT_HANDLE hAccount,
+    /* [in] */ UINT32 SystemAccess
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvSetSystemAccessAccount(IDL_handle,
+                                          hAccount,
+                                          SystemAccess);
     return status;
 }
 
@@ -369,74 +457,142 @@ NTSTATUS srv_lsa_Function1e(
 }
 
 
-NTSTATUS srv_lsa_Function1f(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaLookupPrivilegeValue(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ UNICODE_STRING *pName,
+    /* [out] */ LUID *pValue
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvLookupPrivilegeValue(IDL_handle,
+                                        hPolicy,
+                                        pName,
+                                        pValue);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function20(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS srv_LsaLookupPrivilegeName(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ LUID *pValue,
+    /* [out] */ UNICODE_STRING **ppName
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvLookupPrivilegeName(IDL_handle,
+                                       hPolicy,
+                                       pValue,
+                                       ppName);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function21(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaLookupPrivilegeDisplayName(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ UNICODE_STRING *pName,
+    /* [in] */ INT16 ClientLanguage,
+    /* [in] */ INT16 ClientSystemLanguage,
+    /* [out] */ UNICODE_STRING **ppDisplayName,
+    /* [out] */ UINT16 *pLanguage
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvLookupPrivilegeDisplayName(IDL_handle,
+                                              hPolicy,
+                                              pName,
+                                              ClientLanguage,
+                                              ClientSystemLanguage,
+                                              ppDisplayName,
+                                              pLanguage);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function22(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaDeleteObject(
+    /* [in] */ handle_t IDL_handle,
+    /* [in, out] */ idl_void_p_t *phObject
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaRpcSrvDeleteObject(IDL_handle,
+                                   phObject);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function23(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaEnumAccountsWithUserRight(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ UNICODE_STRING *pName,
+    /* [out] */ LSA_ACCOUNT_ENUM_BUFFER *pAccounts
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvEnumAccountsWithUserRight(IDL_handle,
+                                             hPolicy,
+                                             pName,
+                                             pAccounts);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function24(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaEnumAccountRights(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ SID *pAccountSid,
+    /* [out] */ LSA_ACCOUNT_RIGHTS *pAccountRights
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvEnumAccountRights(IDL_handle,
+                                     hPolicy,
+                                     pAccountSid,
+                                     pAccountRights);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function25(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaAddAccountRights(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ SID *pAccountSid,
+    /* [in] */ LSA_ACCOUNT_RIGHTS *pAccountRights
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvAddAccountRights(IDL_handle,
+                                    hPolicy,
+                                    pAccountSid,
+                                    pAccountRights);
     return status;
 }
 
 
-NTSTATUS srv_lsa_Function26(
-    /* [in] */ handle_t IDL_handle
-)
+NTSTATUS srv_LsaRemoveAccountRights(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ SID *pAccountSid,
+    /* [in] */ UINT8 RemoveAll,
+    /* [in] */ LSA_ACCOUNT_RIGHTS *pAccountRights
+    )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvRemoveAccountRights(IDL_handle,
+                                       hPolicy,
+                                       pAccountSid,
+                                       RemoveAll,
+                                       pAccountRights);
     return status;
 }
 

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lpprivilege.h
+ *        accountdb.h
  *
  * Abstract:
  *
@@ -41,23 +41,77 @@
  *
  *        Local Authentication Provider
  *
- *        Privilege Management API
+ *        LSA Accounts database
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef __LP_PRIVILEGE_H__
-#define __LP_PRIVILEGE_H__
+#ifndef __LSASRV_PRIVS_ACCOUNTDB_H__
+#define __LSASRV_PRIVS_ACCOUNTDB_H__
 
 
 DWORD
-LocalDirEnumPrivilegesSids(
-    IN HANDLE hProvider,
-    IN PCSTR *ppszSids,
-    IN DWORD NumSids,
-    OUT PLUID_AND_ATTRIBUTES *ppPrivileges,
-    OUT PDWORD pNumPrivileges
+LsaSrvCreateAccountsDb(
+    IN HANDLE hRegistry,
+    IN HKEY hAccountsKey,
+    OUT PLW_HASH_TABLE *ppAccounts
     );
 
 
-#endif /* __LP_PRIVILEGE_H__ */
+DWORD
+LsaSrvGetAccountEntry(
+    IN PSID pAccountSid,
+    OUT PLSA_ACCOUNT *ppAccountEntry
+    );
+
+
+DWORD
+LsaSrvSetAccountEntry(
+    IN PSID pAccountSid,
+    IN PLSA_ACCOUNT pAccountEntry,
+    IN BOOLEAN Overwrite
+    );
+
+
+DWORD
+LsaSrvAddAccount_inlock(
+    IN PSID pAccountSid,
+    IN PLSA_ACCOUNT pAccountEntry
+    );
+
+
+DWORD
+LsaSrvUpdateAccount_inlock(
+    IN PSID pAccountSid,
+    IN PLSA_ACCOUNT pAccountEntry
+    );
+
+
+DWORD
+LsaSrvPrivsGetAccountEntries(
+    IN OUT PDWORD pResume,
+    IN DWORD PreferredMaxSize,
+    OUT PLSA_ACCOUNT **pppAccounts,
+    OUT PDWORD pCount
+    );
+
+
+VOID
+LsaSrvPrivsReleaseAccountEntry(
+    PLSA_ACCOUNT pEntry
+    );
+
+
+VOID
+LsaSrvPrivsAcquireAccountEntry(
+    PLSA_ACCOUNT pEntry
+    );
+
+
+VOID
+LsaSrvPrivsCheckIfDeleteAccount(
+    PLSA_ACCOUNT pAccount
+    );
+
+
+#endif /* __LSASRV_PRIVS_ACCOUNTDB_H__ */

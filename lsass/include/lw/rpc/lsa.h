@@ -68,6 +68,11 @@
 #define LSA_ACCESS_VIEW_SYS_AUDIT_REQS         0x00000002
 #define LSA_ACCESS_VIEW_POLICY_INFO            0x00000001
 
+#define LSA_ACCOUNT_VIEW                       0x00000001
+#define LSA_ACCOUNT_ADJUST_PRIVILEGES          0x00000002
+#define LSA_ACCOUNT_ADJUST_QUOTAS              0x00000004
+#define LSA_ACCOUNT_ADJUST_SYSTEM_ACCESS       0x00000008
+
 
 typedef struct _object_attribute {
     ULONG len;
@@ -337,11 +342,66 @@ typedef struct _SID_ARRAY
 } SID_ARRAY, *PSID_ARRAY;
 
 
+typedef struct _LSA_POLICY_PRIVILEGE_DEF {
+    UNICODE_STRING Name;
+    LUID Value;
+} LSA_POLICY_PRIVILEGE_DEF, *PLSA_POLICY_PRIVILEGE_DEF;
+
+
+typedef struct _LSA_PRIVILEGE_ENUM_BUFFER {
+    DWORD NumPrivileges;
+#ifdef _DCE_IDL_
+    [size_is(NumPrivileges)]
+#endif
+    PLSA_POLICY_PRIVILEGE_DEF pPrivilege;
+} LSA_PRIVILEGE_ENUM_BUFFER, *PLSA_PRIVILEGE_ENUM_BUFFER;
+
+
+typedef struct _LSA_ACCOUNT_RIGHTS {
+    DWORD NumAccountRights;
+#ifdef _DCE_IDL_
+    [size_is(NumAccountRights)]
+#endif
+    PUNICODE_STRING pAccountRight;
+} LSA_ACCOUNT_RIGHTS, *PLSA_ACCOUNT_RIGHTS;
+
+
+typedef struct _LSA_ACCOUNT_INFO {
+    PSID pSid;
+} LSA_ACCOUNT_INFO, *PLSA_ACCOUNT_INFO;
+
+
+typedef struct _LSA_ACCOUNT_ENUM_BUFFER {
+    DWORD NumAccounts;
+#ifdef _DCE_IDL_
+    [size_is(NumAccounts)]
+#endif
+    PLSA_ACCOUNT_INFO pAccount;
+} LSA_ACCOUNT_ENUM_BUFFER, *PLSA_ACCOUNT_ENUM_BUFFER;
+
+
+typedef struct _LSA_SECURITY_DESCRIPTOR_BUFFER
+{
+    DWORD BufferLen;
+#ifdef _DCE_IDL_
+    [size_is(BufferLen)]
+#endif
+    PBYTE pBuffer;
+}
+LSA_SECURITY_DESCRIPTOR_BUFFER, *PLSA_SECURITY_DESCRIPTOR_BUFFER;
+
+
 typedef
 #ifdef _DCE_IDL_
 [context_handle]
 #endif
 void* POLICY_HANDLE;
+
+typedef
+#ifdef _DCE_IDL_
+[context_handle]
+#endif
+void* LSAR_ACCOUNT_HANDLE;
 
 
 #ifndef _DCE_IDL_
@@ -468,6 +528,188 @@ LsaLookupSids(
     OUT TranslatedName **ppTransNames,
     IN  WORD             swLevel,
     IN OUT PDWORD        pdwCount
+    );
+
+
+NTSTATUS
+LsaCreateAccount(
+    IN  LSA_BINDING            hBinding,
+    IN  POLICY_HANDLE          hPolicy,
+    IN  PSID                   pAccountSid,
+    IN  DWORD                  AccessMask,
+    OUT LSAR_ACCOUNT_HANDLE *phAccount
+    );
+
+
+NTSTATUS
+LsaOpenAccount(
+    IN  LSA_BINDING             hBinding,
+    IN  POLICY_HANDLE           hPolicy,
+    IN  PSID                    pAccountSid,
+    IN  DWORD                   AccessMask,
+    OUT LSAR_ACCOUNT_HANDLE  *phAccount
+    );
+
+
+NTSTATUS
+LsaEnumPrivileges(
+    IN LSA_BINDING     hBinding,
+    IN POLICY_HANDLE   hPolicy,
+    IN OUT PDWORD      pResume,
+    IN DWORD           PreferredMaxSize,
+    OUT PWSTR        **ppNames,
+    OUT PLUID         *pValues,
+    OUT PDWORD         pNumPrivileges
+    );
+
+
+NTSTATUS
+LsaEnumAccounts(
+    IN LSA_BINDING     hBinding,
+    IN POLICY_HANDLE   hPolicy,
+    IN OUT PDWORD      pResume,
+    OUT PSID         **pppAccounts,
+    OUT PDWORD         pNumAccounts,
+    IN DWORD           PreferredMaxSize
+    );
+
+
+NTSTATUS
+LsaEnumPrivilegesAccount(
+    IN  LSA_BINDING          hBinding,
+    IN  LSAR_ACCOUNT_HANDLE  hAccount,
+    OUT PPRIVILEGE_SET      *ppPrivileges
+    );
+
+
+NTSTATUS
+LsaAddPrivilegesToAccount(
+    IN  LSA_BINDING          hBinding,
+    IN  LSAR_ACCOUNT_HANDLE  hAccount,
+    IN  PPRIVILEGE_SET       pPrivileges
+    );
+
+
+NTSTATUS
+LsaRemovePrivilegesFromAccount(
+    IN  LSA_BINDING          hBinding,
+    IN  LSAR_ACCOUNT_HANDLE  hAccount,
+    IN  BOOLEAN              AllPrivileges,
+    IN  PPRIVILEGE_SET       pPrivileges
+    );
+
+
+NTSTATUS
+LsaGetSystemAccessAccount(
+    IN  LSA_BINDING          hBinding,
+    IN  LSAR_ACCOUNT_HANDLE  hAccount,
+    OUT PDWORD               pSystemAccess
+    );
+
+
+NTSTATUS
+LsaSetSystemAccessAccount(
+    IN  LSA_BINDING          hBinding,
+    IN  LSAR_ACCOUNT_HANDLE  hAccount,
+    IN  DWORD                SystemAccess
+    );
+
+
+NTSTATUS
+LsaLookupPrivilegeValue(
+    IN  LSA_BINDING      hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  PWSTR            pwszName,
+    OUT PLUID            pLuid
+    );
+
+
+NTSTATUS
+LsaLookupPrivilegeName(
+    IN  LSA_BINDING      hBinding,
+    IN  POLICY_HANDLE    hPolicy,
+    IN  PLUID            pValue,
+    OUT PWSTR           *ppwszName
+    );
+
+
+NTSTATUS
+LsaLookupPrivilegeDisplayName(
+    IN LSA_BINDING      hBinding,
+    IN POLICY_HANDLE    hPolicy,
+    IN PWSTR            pwszName,
+    IN SHORT            ClientLanguage,
+    IN SHORT            ClientSystemLanguage,
+    OUT PWSTR          *ppwszDisplayName,
+    OUT PUSHORT          pLanguage
+    );
+
+
+NTSTATUS
+LsaEnumAccountsWithUserRight(
+    IN LSA_BINDING     hBinding,
+    IN POLICY_HANDLE   hPolicy,
+    IN PCWSTR          UserRight,
+    OUT PSID         **pppAccounts,
+    OUT PDWORD         pNumAccounts
+    );
+
+
+NTSTATUS
+LsaEnumAccountRights(
+    IN LSA_BINDING     hBinding,
+    IN POLICY_HANDLE   hPolicy,
+    IN PSID            pAccountSid,
+    OUT PWSTR        **ppAccountRights,
+    OUT PDWORD         pNumAccountRights
+    );
+
+
+NTSTATUS
+LsaAddAccountRights(
+    IN LSA_BINDING     hBinding,
+    IN POLICY_HANDLE   hPolicy,
+    IN PSID            pAccountSid,
+    IN PWSTR          *pAccountRights,
+    IN DWORD           NumAccountRights
+    );
+
+
+NTSTATUS
+LsaRemoveAccountRights(
+    IN LSA_BINDING     hBinding,
+    IN POLICY_HANDLE   hPolicy,
+    IN PSID            pAccountSid,
+    IN BOOLEAN         RemoveAll,
+    IN PWSTR          *pAccountRights,
+    IN DWORD           NumAccountRights
+    );
+
+
+NTSTATUS
+LsaQuerySecurity(
+    IN  LSA_BINDING                    hBinding,
+    IN  void                          *hObject,
+    IN  DWORD                          SecurityInfo,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppSecDesc,
+    OUT PDWORD                         pSecDescLen
+    );
+
+
+NTSTATUS
+LsaSetSecurity(
+    IN LSA_BINDING                    hBinding,
+    IN void                          *hObject,
+    IN DWORD                          SecurityInfo,
+    IN PSECURITY_DESCRIPTOR_RELATIVE  pSecDesc,
+    IN DWORD                          SecDescLen
+    );
+
+
+NTSTATUS
+LsaRpcDeleteObject(
+    IN  LSA_BINDING  hBinding,
+    IN  PVOID        hObject
     );
 
 

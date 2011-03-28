@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software    2004-2010
@@ -636,11 +636,195 @@ error:
 }
 
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+NTSTATUS
+LsaAllocateSecurityDescriptor(
+    OUT PSECURITY_DESCRIPTOR_RELATIVE   *ppOut,
+    IN  PLSA_SECURITY_DESCRIPTOR_BUFFER  pIn
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
+
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+
+    ntStatus = LsaRpcAllocateMemory(OUT_PPVOID(&pSecDesc),
+                                    pIn->BufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(pSecDesc, pIn->pBuffer, pIn->BufferLen);
+
+    *ppOut = pSecDesc;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pSecDesc)
+    {
+        LsaRpcFreeMemory(pSecDesc);
+    }
+
+    *ppOut = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaAllocateSids(
+    OUT PSID                    *pOut,
+    IN OUT PDWORD                pdwOffset,
+    IN OUT PDWORD                pdwSpaceLeft,
+    IN PLSA_ACCOUNT_ENUM_BUFFER  pIn,
+    IN OUT PDWORD                pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iSid = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iSid = 0; iSid < pIn->NumAccounts; iSid++)
+    {
+        LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_PSID(pBuffer, pIn->pAccount[iSid].pSid);
+    }
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaAllocateAccountRightNames(
+    OUT PWSTR               *pOut,
+    IN OUT PDWORD            pdwOffset,
+    IN OUT PDWORD            pdwSpaceLeft,
+    IN PLSA_ACCOUNT_RIGHTS   pIn,
+    IN OUT PDWORD            pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iName = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iName = 0; iName < pIn->NumAccountRights; iName++)
+    {
+        LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_WC16STR_FROM_UNICODE_STRING(
+                                   pBuffer,
+                                   &pIn->pAccountRight[iName]);
+    }
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+
+NTSTATUS
+LsaAllocatePrivilegeNames(
+    OUT PWSTR                     *pOut,
+    IN OUT PDWORD                  pdwOffset,
+    IN OUT PDWORD                  pdwSpaceLeft,
+    IN PLSA_PRIVILEGE_ENUM_BUFFER  pIn,
+    IN OUT PDWORD                  pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iName = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iName = 0; iName < pIn->NumPrivileges; iName++)
+    {
+        LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_WC16STR_FROM_UNICODE_STRING(
+                                   pBuffer,
+                                   &pIn->pPrivilege[iName].Name);
+    }
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaAllocatePrivilegeValues(
+    OUT PWSTR                     *pOut,
+    IN OUT PDWORD                  pdwOffset,
+    IN OUT PDWORD                  pdwSpaceLeft,
+    IN PLSA_PRIVILEGE_ENUM_BUFFER  pIn,
+    IN OUT PDWORD                  pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iName = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iName = 0; iName < pIn->NumPrivileges; iName++)
+    {
+        LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_WC16STR_FROM_UNICODE_STRING(
+                                   pBuffer,
+                                   &pIn->pPrivilege[iName].Name);
+    }
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}

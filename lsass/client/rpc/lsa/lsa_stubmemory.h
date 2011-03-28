@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -90,14 +90,45 @@ LsaFreeStubPolicyInformation(
     UINT32 Level
     );
 
+VOID
+LsaFreeStubPrivilegeSet(
+    PPRIVILEGE_SET pPrivileges
+    );
+
+VOID
+LsaCleanStubUnicodeString(
+    PUNICODE_STRING pString
+    );
+
+VOID
+LsaFreeStubUnicodeString(
+    PUNICODE_STRING pString
+    );
+
+void
+LsaCleanStubSecurityDescriptorBuffer(
+    PLSA_SECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    );
+
+void
+LsaFreeStubSecurityDescriptorBuffer(
+    PLSA_SECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    );
+
+void
+LsaCleanStubAccountBuffer(
+    PLSA_ACCOUNT_ENUM_BUFFER pBuffer
+    );
+
+void
+LsaCleanStubAccountRights(
+    PLSA_ACCOUNT_RIGHTS pBuffer
+    );
+
+void
+LsaCleanStubPrivilegeBuffer(
+    PLSA_PRIVILEGE_ENUM_BUFFER pBuffer
+    );
+
+
 #endif /* _LSA_STUB_MEMORY_H_ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

@@ -57,6 +57,7 @@
 
 #include "lsaclient.h"
 #include "lsalocalprovider.h"
+#include "lsaipc-common.h"
 #include "lsaipc.h"
 
 #include "auth_p.h"
