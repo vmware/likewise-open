@@ -514,6 +514,17 @@ typedef struct __SMB2_OPLOCK_BREAK_HEADER
 } __attribute__((__packed__)) SMB2_OPLOCK_BREAK_HEADER,
                              *PSMB2_OPLOCK_BREAK_HEADER;
 
+typedef struct __SMB2_LEASE_BREAK_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+    ULONG    ulFlags;
+    BYTE     LeaseKey[16];
+    ULONG    ulLeaseState;
+    ULONG64  ullLeaseDuration;
+} __attribute__((__packed__)) SMB2_LEASE_BREAK_HEADER,
+                             *PSMB2_LEASE_BREAK_HEADER;
+
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;

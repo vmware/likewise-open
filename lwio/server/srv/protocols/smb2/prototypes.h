@@ -743,6 +743,12 @@ SMB2UnmarshalOplockBreakRequest(
     );
 
 NTSTATUS
+SMB2UnmarshalLeaseBreakRequest(
+    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN OUT PSMB2_LEASE_BREAK_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
 SMB2MarshalFindResponse(
     PBYTE                       pBuffer,
     ULONG                       ulOffset,
