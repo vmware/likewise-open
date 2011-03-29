@@ -357,7 +357,7 @@ SrvExecuteTrans2AsyncCB(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTrans2State->mutex);
 
-    ntStatus = SrvProtocolExecute(pExecContext);
+    ntStatus = SrvSchedulePriorityExecContext(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);
