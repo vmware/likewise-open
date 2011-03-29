@@ -519,6 +519,10 @@ PvfsRenameFCB(
 
             // TODO - How to get the Control Mutex without violating the
             // lock heirarchy?  Does it matter at all ?
+
+            ntError = PvfsRemoveStreamObjects(pTargetFcb);
+            LWIO_ASSERT(STATUS_SUCCESS == ntError);
+
             ntError = PvfsCbTableRemove_inlock(
                           (PPVFS_CONTROL_BLOCK)pTargetFcb,
                           pTargetFcb->pszFilename);
@@ -690,3 +694,112 @@ PvfsSetLastWriteTimeFCB(
     LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->BaseControlBlock.RwLock);
 }
 
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsRemoveFileObject(
+    IN PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PPVFS_CB_TABLE_ENTRY fcbBucket = NULL;
+    BOOLEAN fcbBucketLocked = FALSE;
+
+    if (pFcb->BaseControlBlock.pBucket == NULL)
+    {
+        status = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    status = PvfsRemoveStreamObjects(pFcb);
+    LWIO_ASSERT(STATUS_SUCCESS == status);
+
+    fcbBucket = pFcb->BaseControlBlock.pBucket;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(fcbBucketLocked, &fcbBucket->rwLock);
+
+    status = PvfsCbTableRemove_inlock(
+                 (PPVFS_CONTROL_BLOCK)pFcb,
+                 pFcb->pszFilename);
+    LWIO_ASSERT(status == STATUS_SUCCESS);
+
+    LWIO_UNLOCK_RWMUTEX(fcbBucketLocked, &fcbBucket->rwLock);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(fcbBucketLocked, &fcbBucket->rwLock);
+
+    return status;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+NTSTATUS
+PvfsRemoveStreamObjects(
+    IN PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN scbBucketLocked = FALSE;
+    BOOLEAN scbLocked = FALSE;
+    PLW_LIST_LINKS scbCursorLink = NULL;
+    PPVFS_SCB scbCursor = NULL;
+    PPVFS_FILE_NAME streamName = NULL;
+    PSTR fullStreamName = NULL;
+    PPVFS_CB_TABLE_ENTRY scbCursorBucket = NULL;
+
+    for (scbCursorLink = PvfsListTraverse(pFcb->pScbList, NULL);
+         scbCursorLink;
+         scbCursorLink = PvfsListTraverse(pFcb->pScbList, scbCursorLink))
+    {
+        scbCursor = LW_STRUCT_FROM_FIELD(
+                          scbCursorLink,
+                          PVFS_SCB,
+                          FcbList);
+
+        status = PvfsAllocateFileNameFromScb(&streamName, scbCursor);
+        BAIL_ON_NT_STATUS(status);
+
+        status = PvfsAllocateCStringFromFileName(&fullStreamName, streamName);
+        BAIL_ON_NT_STATUS(status);
+
+        LWIO_LOCK_MUTEX(scbLocked, &scbCursor->BaseControlBlock.Mutex);
+
+        scbCursorBucket = scbCursor->BaseControlBlock.pBucket;
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(scbBucketLocked, &scbCursorBucket->rwLock);
+
+        status = PvfsCbTableRemove_inlock(
+                      (PPVFS_CONTROL_BLOCK)scbCursor,
+                      fullStreamName);
+        LWIO_ASSERT(STATUS_SUCCESS == status);
+
+        LWIO_UNLOCK_RWMUTEX(scbBucketLocked, &scbCursorBucket->rwLock);
+        LWIO_UNLOCK_MUTEX(scbLocked, &scbCursor->BaseControlBlock.Mutex);
+
+        if (streamName)
+        {
+            PvfsFreeFileName(streamName);
+            streamName = NULL;
+        }
+        if (fullStreamName)
+        {
+            LwRtlCStringFree(&fullStreamName);
+        }
+    }
+
+error:
+
+    LWIO_UNLOCK_RWMUTEX(scbBucketLocked, &scbCursorBucket->rwLock);
+    LWIO_UNLOCK_MUTEX(scbLocked, &scbCursor->BaseControlBlock.Mutex);
+
+    if (streamName)
+    {
+        PvfsFreeFileName(streamName);
+    }
+    if (fullStreamName)
+    {
+        LwRtlCStringFree(&fullStreamName);
+    }
+
+    return status;
+}

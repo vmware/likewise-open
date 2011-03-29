@@ -257,7 +257,6 @@ PvfsCloseHandleCleanup(
     {
         if (pScb->pOwnerFcb->OpenHandleCount == 0)
         {
-            LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
             LWIO_LOCK_MUTEX(fcbLocked, &pScb->pOwnerFcb->BaseControlBlock.Mutex);
 
             if (pScb->pOwnerFcb->bDeleteOnClose)
@@ -268,21 +267,13 @@ PvfsCloseHandleCleanup(
                 status = PvfsSysStatByFileName(streamName, &statBuf);
                 BAIL_ON_NT_STATUS(status);
 
-                if (pScb->pOwnerFcb->BaseControlBlock.pBucket != NULL)
-                {
-                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->pOwnerFcb->BaseControlBlock.pBucket;
+                status = PvfsRemoveFileObject(pScb->pOwnerFcb);
+                LWIO_ASSERT(STATUS_SUCCESS == status);
 
-                    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
-
-                    status = PvfsCbTableRemove_inlock(
-                                 (PPVFS_CONTROL_BLOCK)pScb->pOwnerFcb,
-                                 pScb->pOwnerFcb->pszFilename);
-                    LWIO_ASSERT(status == STATUS_SUCCESS);
-
-                    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
-                }
-
+                LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
                 pScb->bDeleteOnClose = FALSE;
+                LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
                 status = PvfsExecuteDeleteOnCloseFCB(pScb->pOwnerFcb);
                 // Ignore errors here
 
