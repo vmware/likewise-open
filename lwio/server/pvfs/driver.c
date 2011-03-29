@@ -190,6 +190,7 @@ PvfsDriverDispatch(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    BOOLEAN priority = FALSE;
 
     ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
     BAIL_ON_NT_STATUS(ntError);
@@ -225,11 +226,9 @@ PvfsDriverDispatch(
             pIrpCtx->Callback = PvfsQueryDirInformation;
             break;
 
-
         case IRP_TYPE_READ_DIRECTORY_CHANGE:
             pIrpCtx->Callback = PvfsReadDirectoryChange;
             break;
-
 
         case IRP_TYPE_QUERY_VOLUME_INFORMATION:
             pIrpCtx->Callback = PvfsQueryVolumeInformation;
@@ -265,6 +264,7 @@ PvfsDriverDispatch(
 
         case IRP_TYPE_CLOSE:
             pIrpCtx->Callback = PvfsClose;
+            priority = TRUE;
             break;
         //
         // Special Cases...STATUS_PENDING has special meaning
@@ -284,7 +284,7 @@ PvfsDriverDispatch(
 
     if (pIrpCtx->Callback)
     {
-        ntError = PvfsScheduleIrpContext(pIrpCtx, FALSE);
+        ntError = PvfsScheduleIrpContext(pIrpCtx, priority);
     }
 
 error:
