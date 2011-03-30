@@ -1110,6 +1110,7 @@ AC_CONFIG_FILES([Makefile
                  interop/auth/pam/Makefile
                  tools/Makefile
                  tools/lw-lsa/Makefile
+                 tools/ticketcopy/Makefile
                  etc/Makefile
                  etc/lsassd.reg
                  etc/lsassd-import.reg
