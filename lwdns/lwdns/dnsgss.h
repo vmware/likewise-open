@@ -4,7 +4,6 @@
 DWORD
 DNSNegotiateSecureContext(
 	HANDLE      hDNSServer,
-	PCSTR       pszDomain,
 	PCSTR       pszServerName,
 	PCSTR       pszKeyName,
 	PCtxtHandle pGSSContext
