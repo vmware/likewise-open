@@ -931,8 +931,6 @@ SrvShutdown(
 
         SrvStatisticsShutdown();
 
-        SrvElementsShutdown();
-
         SrvOEMShutdown();
 
         SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
@@ -940,6 +938,8 @@ SrvShutdown(
         SrvShareShutdown();
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+
+        SrvElementsShutdown();
 
         if (gSMBSrvGlobals.hPacketAllocator)
         {
