@@ -230,103 +230,13 @@ PvfsReferenceFCB(
 /*******************************************************
  ******************************************************/
 
-
-static
-NTSTATUS
-PvfsFlushLastWriteTime(
-    PPVFS_FCB pFcb,
-    LONG64 LastWriteTime
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PVFS_STAT Stat = {0};
-    LONG64 LastAccessTime = 0;
-
-    /* Need the original access time */
-
-    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysUtime(pFcb->pszFilename,
-                           LastWriteTime,
-                           LastAccessTime);
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-
-}
-
-/***********************************************************************
- Make sure to alkways enter this unfunction with thee pFcb->ControlMutex
- locked
- **********************************************************************/
-
-static
-NTSTATUS
-PvfsExecuteDeleteOnClose(
-    PPVFS_FCB pFcb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-
-    /* Always reset the delete-on-close state to be safe */
-
-    pFcb->bDeleteOnClose = FALSE;
-
-    /* Verify we are deleting the file we think we are */
-
-    ntError = PvfsValidatePath(pFcb, &pFcb->FileId);
-    if (ntError == STATUS_SUCCESS)
-    {
-        ntError = PvfsSysRemove(pFcb->pszFilename);
-
-        /* Reset dev/inode state */
-
-        pFcb->FileId.Device = 0;
-        pFcb->FileId.Inode  = 0;
-
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    switch (ntError)
-    {
-    case STATUS_OBJECT_NAME_NOT_FOUND:
-        break;
-
-    default:
-        LWIO_LOG_ERROR(
-            "%s: Failed to execute delete-on-close on %s (%d,%d) (%s)\n",
-            PVFS_LOG_HEADER,
-            pFcb->pszFilename, pFcb->FileId.Device, pFcb->FileId.Inode,
-            LwNtStatusToName(ntError));
-        break;
-    }
-
-    goto cleanup;
-}
-
-
 VOID
 PvfsReleaseFCB(
     PPVFS_FCB *ppFcb
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bBucketLocked = FALSE;
-    BOOLEAN bFcbLocked = FALSE;
     BOOLEAN bFcbControlLocked = FALSE;
-    PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = NULL;
     PPVFS_FCB_TABLE_ENTRY pBucket = NULL;
 
@@ -342,88 +252,15 @@ PvfsReleaseFCB(
 
     pFcb = *ppFcb;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
+    /* It is important to lock the FcbTable here so that there is no window
+       between the refcount check and the remove. Otherwise another open request
+       could search and locate the FCB in the tree and return free()'d memory.
+       However, if the FCB has no bucket pointer, it has already been removed
+       from the FcbTable so locking is unnecessary. */
 
-    if (!PVFS_IS_DEVICE_HANDLE(pFcb) && (PvfsListLength(pFcb->pCcbList) == 0))
-    {
-        ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
-        if (ntError == STATUS_SUCCESS)
-        {
-            LONG64 LastWriteTime = PvfsClearLastWriteTimeFCB(pFcb);
-
-            if (LastWriteTime != 0)
-            {
-
-                ntError = PvfsFlushLastWriteTime(pFcb, LastWriteTime);
-
-                if (ntError == STATUS_SUCCESS)
-                {
-                    PvfsNotifyScheduleFullReport(
-                        pFcb,
-                        FILE_NOTIFY_CHANGE_LAST_WRITE,
-                        FILE_ACTION_MODIFIED,
-                        pFcb->pszFilename);
-                }
-            }
-
-            LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-
-            if (pFcb->bDeleteOnClose)
-            {
-                /* Clear the cache entry and remove the file but ignore any errors */
-
-                ntError = PvfsExecuteDeleteOnClose(pFcb);
-
-                /* The locking heirarchy requires that we drop the FCP control
-                   block mutex before trying to pick up the FcbTable exclusive
-                   lock */
-
-                if (!pFcb->bRemoved)
-                {
-                    PPVFS_FCB_TABLE_ENTRY pBucket = pFcb->pBucket;
-
-                    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-
-                    /* Remove the FCB from the Bucket before setting pFcb->pBucket
-                       to NULL */
-
-                    PvfsFcbTableRemove(pBucket, pFcb);
-
-                    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-                    pFcb->bRemoved = TRUE;
-                    pFcb->pBucket = NULL;
-                    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-                }
-                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-
-                PvfsPathCacheRemove(pFcb->pszFilename);
-
-                if (ntError == STATUS_SUCCESS)
-                {
-                    PvfsNotifyScheduleFullReport(
-                        pFcb,
-                        S_ISDIR(Stat.s_mode) ?
-                            FILE_NOTIFY_CHANGE_DIR_NAME :
-                            FILE_NOTIFY_CHANGE_FILE_NAME,
-                        FILE_ACTION_REMOVED,
-                        pFcb->pszFilename);
-                }
-            }
-
-            LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
-        }
-    }
-
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwCcbLock);
-
-
-        /* It is important to lock the FcbTable here so that there is no window
-           between the refcount check and the remove. Otherwise another open request
-           could search and locate the FCB in the tree and return free()'d memory.
-           However, if the FCB has no bucket pointer, it has already been removed
-           from the FcbTable so locking is unnecessary. */
-
+    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
     pBucket = pFcb->pBucket;
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
     if (pBucket)
     {
@@ -441,18 +278,12 @@ PvfsReleaseFCB(
             pFcb->pBucket = NULL;
         }
 
-        if (pBucket)
-        {
-            LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
-        }
+        LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
         PvfsFreeFCB(pFcb);
     }
 
-    if (pBucket)
-    {
-        LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
-    }
+    LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
 
     *ppFcb = NULL;
 
@@ -674,6 +505,11 @@ PvfsRemoveCCBFromFCB(
 
     ntError = PvfsListRemoveItem(pFcb->pCcbList, &pCcb->FcbList);
     BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_ASSERT(PvfsListLength(pFcb->pCcbList) >= 0);
+
+    ntError = PvfsCloseHandleCleanup(pFcb);
+    // Ignore errors
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwCcbLock);
