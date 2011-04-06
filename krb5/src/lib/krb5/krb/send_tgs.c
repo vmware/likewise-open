@@ -163,7 +163,7 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
     krb5_error_code retval;
     krb5_kdc_req tgsreq;
     krb5_data *scratch, scratch2;
-    krb5_ticket *sec_ticket = 0;
+    krb5_ticket *sec_ticket = NULL;
     krb5_ticket *sec_ticket_arr[2];
     krb5_timestamp time_now;
     krb5_pa_data **combined_padata = NULL;
@@ -209,15 +209,14 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
     /* need to encrypt it in the request */
 
     if ((retval = encode_krb5_authdata(authorization_data, &scratch)))
-        goto send_tgs_error_1;
+        goto send_tgs_error;
 
     if ((retval = krb5_encrypt_helper(context, local_subkey,
                       KRB5_KEYUSAGE_TGS_REQ_AD_SUBKEY,
                       scratch,
                       &tgsreq.authorization_data))) {
-        free(tgsreq.authorization_data.ciphertext.data);
         krb5_free_data(context, scratch);
-        goto send_tgs_error_1;
+        goto send_tgs_error;
     }
 
     krb5_free_data(context, scratch);
@@ -227,8 +226,10 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
     if (ktypes) {
         /* Check passed ktypes and make sure they're valid. */
         for (tgsreq.nktypes = 0; ktypes[tgsreq.nktypes]; tgsreq.nktypes++) {
-            if (!krb5_c_valid_enctype(ktypes[tgsreq.nktypes]))
-                return KRB5_PROG_ETYPE_NOSUPP;
+            if (!krb5_c_valid_enctype(ktypes[tgsreq.nktypes])) {
+                retval = KRB5_PROG_ETYPE_NOSUPP;
+                goto send_tgs_error;
+            }
         }
         tgsreq.ktype = (krb5_enctype *)ktypes;
     } else {
@@ -239,7 +240,7 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
 
     if (second_ticket) {
         if ((retval = decode_krb5_ticket(second_ticket, &sec_ticket)))
-            goto send_tgs_error_1;
+            goto send_tgs_error;
         sec_ticket_arr[0] = sec_ticket;
         sec_ticket_arr[1] = 0;
         tgsreq.second_ticket = sec_ticket_arr;
@@ -250,7 +251,7 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
 
     /* encode the body; then checksum it */
     if ((retval = encode_krb5_kdc_req_body(&tgsreq, &scratch)))
-        goto send_tgs_error_2;
+        goto send_tgs_error;
 
     /*
      * Get an ap_req.
@@ -258,19 +259,19 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
     if ((retval = tgs_construct_tgsreq(context, scratch, in_cred,
                                        &scratch2, local_subkey))) {
         krb5_free_data(context, scratch);
-        goto send_tgs_error_2;
+        goto send_tgs_error;
     }
     krb5_free_data(context, scratch);
 
     tgsreq.padata = (krb5_pa_data **)calloc(2, sizeof(krb5_pa_data *));
     if (tgsreq.padata == NULL) {
         free(scratch2.data);
-        goto send_tgs_error_2;
+        goto send_tgs_error;
     }
     tgsreq.padata[0] = (krb5_pa_data *)malloc(sizeof(krb5_pa_data));
     if (tgsreq.padata[0] == NULL) {
         free(scratch2.data);
-        goto send_tgs_error_2;
+        goto send_tgs_error;
     }
     tgsreq.padata[0]->pa_type = KRB5_PADATA_AP_REQ;
     tgsreq.padata[0]->length = scratch2.length;
@@ -293,7 +294,7 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
         tmp = (krb5_pa_data **)realloc(tgsreq.padata,
                                        (i + 2) * sizeof(*combined_padata));
         if (tmp == NULL)
-            goto send_tgs_error_2;
+            goto send_tgs_error;
 
         tgsreq.padata = tmp;
 
@@ -303,7 +304,7 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
             pa = tgsreq.padata[1 + i] = (krb5_pa_data *)malloc(sizeof(krb5_pa_data));
             if (tgsreq.padata == NULL) {
                 retval = ENOMEM;
-                goto send_tgs_error_2;
+                goto send_tgs_error;
             }
 
             pa->pa_type = padata[i]->pa_type;
@@ -311,7 +312,7 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
             pa->contents = (krb5_octet *)malloc(padata[i]->length);
             if (pa->contents == NULL) {
                 retval = ENOMEM;
-                goto send_tgs_error_2;
+                goto send_tgs_error;
             }
             memcpy(pa->contents, padata[i]->contents, padata[i]->length);
         }
@@ -320,11 +321,11 @@ krb5int_send_tgs(krb5_context context, krb5_flags kdcoptions,
 
     if (pacb_fct != NULL) {
         if ((retval = (*pacb_fct)(context, local_subkey, &tgsreq, pacb_data)))
-            goto send_tgs_error_2;
+            goto send_tgs_error;
     }
     /* the TGS_REQ is assembled in tgsreq, so encode it */
     if ((retval = encode_krb5_tgs_req(&tgsreq, &scratch)))
-        goto send_tgs_error_2;
+        goto send_tgs_error;
 
     /* now send request & get response from KDC */
     krb5_free_pa_data(context, tgsreq.padata);
@@ -340,45 +341,43 @@ send_again:
             if (!tcp_only) {
                 krb5_error *err_reply;
                 retval = decode_krb5_error(&rep->response, &err_reply);
-            if (retval)
-                goto send_tgs_error_3;
-            if (err_reply->error == KRB_ERR_RESPONSE_TOO_BIG) {
-                tcp_only = 1;
+            if (!retval)
+            {
+                if (err_reply->error == KRB_ERR_RESPONSE_TOO_BIG) {
+                    tcp_only = 1;
+                    krb5_free_error(context, err_reply);
+                    free(rep->response.data);
+                    rep->response.data = NULL;
+                    goto send_again;
+                }
                 krb5_free_error(context, err_reply);
-                free(rep->response.data);
-                rep->response.data = NULL;
-                goto send_again;
             }
-            krb5_free_error(context, err_reply);
-            send_tgs_error_3:
-                ;
         }
         rep->message_type = KRB5_ERROR;
     } else if (krb5_is_tgs_rep(&rep->response)) {
         rep->message_type = KRB5_TGS_REP;
         *subkey = local_subkey;
+        local_subkey = NULL;
     } else /* XXX: assume it's an error */
         rep->message_type = KRB5_ERROR;
     }
 
     krb5_free_data(context, scratch);
     
-send_tgs_error_2:;
+send_tgs_error:
     if (tgsreq.padata)
         krb5_free_pa_data(context, tgsreq.padata);
     if (sec_ticket) 
         krb5_free_ticket(context, sec_ticket);
-
-send_tgs_error_1:;
     if (ktypes == NULL)
         free(tgsreq.ktype);
     if (tgsreq.authorization_data.ciphertext.data) {
         memset(tgsreq.authorization_data.ciphertext.data, 0,
-               tgsreq.authorization_data.ciphertext.length); 
+               tgsreq.authorization_data.ciphertext.length);
         free(tgsreq.authorization_data.ciphertext.data);
     }
-    if (rep->message_type != KRB5_TGS_REP && local_subkey){
-        krb5_free_keyblock(context, *subkey);
+    if (local_subkey) {
+        krb5_free_keyblock(context, local_subkey);
     }
 
     return retval;
