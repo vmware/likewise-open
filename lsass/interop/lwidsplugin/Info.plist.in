@@ -44,6 +44,17 @@
 	<string>Likewise - Active Directory</string>
 	<key>DSPluginPrefix</key>
 	<string>Likewise - Active Directory</string>
+        <key>DSNodesToRegister</key>
+	<array>
+		<dict>
+			<key>DSNodeToRegisterType</key>
+			<integer>1</integer>
+			<key>DSNodeToRegisterPath</key>
+			<array>
+				<string>/Likewise - Active Directory</string>
+			</array>
+		</dict>
+	</array>
 	<key>DSServerSignature</key>
 	<string>Likewise - Active Directory</string>
 	<key>NSPrincipalClass</key>
