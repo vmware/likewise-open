@@ -17,6 +17,8 @@ configure()
 
     mk_export MK_CFLAGS="$MK_CFLAGS -Wall -Werror -fno-strict-aliasing"
 
+    mk_check_endian
+
     if [ "$LW_USE_SERVICE_CONTAINERS" = "yes" ]
     then
         mk_output_file \
