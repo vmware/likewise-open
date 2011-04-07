@@ -757,6 +757,8 @@ PvfsRemoveStreamObjects(
                           PVFS_SCB,
                           FcbList);
 
+        LWIO_ASSERT(scbCursor->OpenHandleCount == 0);
+
         status = PvfsAllocateFileNameFromScb(&streamName, scbCursor);
         BAIL_ON_NT_STATUS(status);
 
