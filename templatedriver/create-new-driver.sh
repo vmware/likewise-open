@@ -43,16 +43,18 @@ perl -pi -w -e "s/templatedriver/$DRIVER_NAME/g"           $TEMPLATE_FILES
 perl -pi -w -e "s/TemplateDriver/$DRIVER_NAME_CAP_FIRST/g" $TEMPLATE_FILES
 perl -pi -w -e "s/TEMPLATEDRIVER/$DRIVER_NAME_CAP/g"       $TEMPLATE_FILES
 
-# integrate into the built system
-cp "${ROOT_DIR}/build/components/templatedriver.comp" "${DRIVER_COMPONENT_FILE}"
-perl -pi -w -e "s/templatedriver/$DRIVER_NAME/g" "${DRIVER_COMPONENT_FILE}"
-
 # do not update these files in oem branches
 if [ "$BUILD_ROOT" != "" ] ; then
+    # integrate into the built system
+    cp "${ROOT_DIR}/build/components/templatedriver.comp" "${DRIVER_COMPONENT_FILE}"
+    perl -pi -w -e "s/templatedriver/$DRIVER_NAME/g" "${DRIVER_COMPONENT_FILE}"
+
     perl -pi -w -e "s/^REGFILES=\"(.*)\"/REGFILES=\"\1 $DRIVER_NAME.reg\"/" "${ROOT_DIR}/build/products/lwiso/config"
     perl -pi -w -e "s/^PKG_COMPONENTS=\"(.*)\"/PKG_COMPONENTS=\"\1 $DRIVER_NAME\"/" "${ROOT_DIR}/build/packages/lwio/lwio.func"
 fi
 
 perl -pi -w -e "s/^\"Load\"=\"(.*)\"/\"Load\"=\"\1,$DRIVER_NAME\"/" "${ROOT_DIR}/lwio/etc/lwiod.reg.in"
 
-perl -pi -w -e "s/^(.*lwio.*libschannel.*dcerpc.*) \\\\$/\1 $DRIVER_NAME \\\\/" "${ROOT_DIR}/MakeKitBuild"
+MAKE_KIT_BUILD_FILE="${ROOT_DIR}/MakeKitBuild"
+MAKE_KIT_BUILD_FILE=`readlink "$MAKE_KIT_BUILD_FILE" || echo "$MAKE_KIT_BUID_FILE"`
+perl -pi -w -e "s/^(.*lwio.*libschannel.*dcerpc.*) \\\\$/\1 $DRIVER_NAME \\\\/" "$MAKE_KIT_BUILD_FILE"
