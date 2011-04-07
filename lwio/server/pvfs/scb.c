@@ -684,31 +684,6 @@ error:
     goto cleanup;
 }
 
-
-/*****************************************************************************
- ****************************************************************************/
-
-BOOLEAN
-PvfsStreamHasOtherOpens(
-    IN PPVFS_SCB pScb,
-    IN PPVFS_CCB pCcb    // Historical
-    )
-{
-    BOOLEAN hasMultiplOpens = FALSE;
-    BOOLEAN bScbReadLocked = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bScbReadLocked, &pScb->rwCcbLock);
-
-    if (pScb->OpenHandleCount > 1)
-    {
-        hasMultiplOpens = TRUE;
-    }
-
-    LWIO_UNLOCK_RWMUTEX(bScbReadLocked, &pScb->rwCcbLock);
-
-    return hasMultiplOpens;
-}
-
 /*****************************************************************************
  ****************************************************************************/
 

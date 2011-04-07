@@ -1586,6 +1586,7 @@ PvfsOplockGrantBatchOrLevel1(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_SCB pScb = NULL;
     BOOLEAN bScbControlLocked = FALSE;
+    BOOLEAN ccbListLocked = FALSE;
     ULONG OplockType = bIsBatchOplock ?
                            IO_OPLOCK_REQUEST_OPLOCK_BATCH :
                            IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1;
@@ -1594,17 +1595,20 @@ PvfsOplockGrantBatchOrLevel1(
 
     pScb = pCcb->pScb;
 
+    LWIO_LOCK_RWMUTEX_SHARED(ccbListLocked, &pScb->rwCcbLock);
     LWIO_LOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
 
     /* Any other opens - FAIL */
     /* Cannot grant a second exclusive oplock - FAIL*/
 
-    if (PvfsStreamHasOtherOpens(pScb, pCcb) ||
+    if ((pScb->OpenHandleCount > 1) ||
         PvfsStreamIsOplockedExclusive(pScb))
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    LWIO_UNLOCK_RWMUTEX(ccbListLocked, &pScb->rwCcbLock);
 
     /* Break any Level 2 oplocks and proceed - GRANT */
 
@@ -1628,6 +1632,7 @@ PvfsOplockGrantBatchOrLevel1(
 
 cleanup:
     LWIO_UNLOCK_MUTEX(bScbControlLocked, &pScb->BaseControlBlock.Mutex);
+    LWIO_UNLOCK_RWMUTEX(ccbListLocked, &pScb->rwCcbLock);
 
     return ntError;
 

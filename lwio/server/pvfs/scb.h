@@ -95,12 +95,6 @@ PvfsRemoveCCBFromSCB(
     );
 
 BOOLEAN
-PvfsStreamHasOtherOpens(
-    IN PPVFS_SCB pScb,
-    IN PPVFS_CCB pCcb
-    );
-
-BOOLEAN
 PvfsStreamIsOplocked(
     IN PPVFS_SCB pScb
     );
