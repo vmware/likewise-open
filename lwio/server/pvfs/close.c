@@ -201,6 +201,7 @@ PvfsCloseHandleCleanup(
     BOOLEAN bucketLocked = FALSE;
     BOOLEAN objectDeleted = FALSE;
     PVFS_STAT statBuf = { 0 };
+    BOOLEAN bCheckOwnerFcb = FALSE;
 
     if (PVFS_IS_DEVICE_HANDLE(pScb))
     {
@@ -208,52 +209,53 @@ PvfsCloseHandleCleanup(
         goto error;
     }
 
-    if (!PvfsIsDefaultStream(pScb))
+    if (!PvfsIsDefaultStream(pScb) && pScb->OpenHandleCount == 0)
     {
-        if (pScb->OpenHandleCount == 0)
+        LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+        if (pScb->bDeleteOnClose)
         {
-            LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+            status = PvfsAllocateFileNameFromScb(&streamName, pScb);
+            BAIL_ON_NT_STATUS(status);
 
-            if (pScb->bDeleteOnClose)
+            status = PvfsSysStatByFileName(streamName, &statBuf);
+            BAIL_ON_NT_STATUS(status);
+
+            if (pScb->BaseControlBlock.pBucket != NULL)
             {
-                status = PvfsAllocateFileNameFromScb(&streamName, pScb);
-                BAIL_ON_NT_STATUS(status);
+                PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
 
-                status = PvfsSysStatByFileName(streamName, &statBuf);
-                BAIL_ON_NT_STATUS(status);
-
-                if (pScb->BaseControlBlock.pBucket != NULL)
-                {
-                    PPVFS_CB_TABLE_ENTRY pBucket = pScb->BaseControlBlock.pBucket;
-
-                    status = PvfsAllocateCStringFromFileName(
+                status = PvfsAllocateCStringFromFileName(
                                  &fullStreamName,
                                  streamName);
-                    if (STATUS_SUCCESS == status)
-                    {
-                        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
+                if (STATUS_SUCCESS == status)
+                {
+                    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bucketLocked, &pBucket->rwLock);
 
-                        status = PvfsCbTableRemove_inlock(
+                    status = PvfsCbTableRemove_inlock(
                                      (PPVFS_CONTROL_BLOCK)pScb,
                                      fullStreamName);
-                        LWIO_ASSERT(status == STATUS_SUCCESS);
+                    LWIO_ASSERT(status == STATUS_SUCCESS);
 
-                        LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
-                    }
+                    LWIO_UNLOCK_RWMUTEX(bucketLocked, &pBucket->rwLock);
                 }
-
-                status = PvfsExecuteDeleteOnCloseSCB(pScb);
-                // Ignore errors here
-
-                PvfsPathCacheRemove(streamName);
-
-                objectDeleted = TRUE;
             }
 
-            LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+            status = PvfsExecuteDeleteOnCloseSCB(pScb);
+            // Ignore errors here
+
+            PvfsPathCacheRemove(streamName);
+
+            objectDeleted = TRUE;
         }
+        else
+        {
+            bCheckOwnerFcb = TRUE;
+        }
+        LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
     }
-    else
+
+    if (PvfsIsDefaultStream(pScb) || bCheckOwnerFcb)
     {
         if (pScb->pOwnerFcb->OpenHandleCount == 0)
         {
