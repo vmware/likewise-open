@@ -348,6 +348,7 @@ PvfsCreateSCB(
     if (ntError == STATUS_SUCCESS)
     {
         LWIO_UNLOCK_RWMUTEX(bBucketLocked, &pBucket->rwLock);
+        LWIO_UNLOCK_RWMUTEX(fcbListLocked, &pOwnerFcb->rwScbLock);
 
         LWIO_ASSERT(pScb->pOwnerFcb == pOwnerFcb);
 
