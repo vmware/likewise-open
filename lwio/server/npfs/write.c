@@ -148,8 +148,9 @@ NpfsServerWriteFile(
         break;
     case PIPE_CLIENT_INIT_STATE:
     case PIPE_CLIENT_CLOSED:
+        ntStatus = STATUS_PIPE_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
-
     }
 
 error:
@@ -186,6 +187,8 @@ NpfsClientWriteFile(
     case PIPE_SERVER_DISCONNECTED:
     case PIPE_SERVER_CREATED:
     case PIPE_SERVER_WAITING_FOR_CONNECTION:
+        ntStatus = STATUS_PIPE_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
     }
 error:
