@@ -120,6 +120,12 @@ SrvListenerInitSocket(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (setsockopt(pListener->ListenFd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
 #ifdef TCP_NODELAY
     if (setsockopt(pListener->ListenFd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
     {
