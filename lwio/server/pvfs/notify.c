@@ -704,6 +704,8 @@ PvfsNotifyFullReportIrp(
 
         PvfsListRemoveItem(pFcb->pNotifyListIrp, pFilterLink);
 
+        LWIO_UNLOCK_MUTEX(bLocked, &pFcb->BaseControlBlock.Mutex);
+
         pFilterLink = NULL;
 
         PvfsQueueCancelIrpIfRequested(pFilter->pIrpContext);
@@ -720,8 +722,6 @@ PvfsNotifyFullReportIrp(
 
             continue;
         }
-
-        LWIO_UNLOCK_MUTEX(bLocked, &pFcb->BaseControlBlock.Mutex);
 
         ntError = PvfsNotifyReportIrp(
                       pFilter->pIrpContext,
