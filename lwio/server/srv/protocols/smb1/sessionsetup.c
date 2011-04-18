@@ -133,8 +133,6 @@ SrvProcessSessionSetup_WC_12(
     PSRV_MESSAGE_SMB_V1        pSmbRequest   = &pCtxSmb1->pRequests[iMsg];
     PBYTE                      pSecurityBlob        = NULL; // Do Not Free
     ULONG                      ulSecurityBlobLength = 0;
-    PBYTE                      pInitSecurityBlob        = NULL;
-    ULONG                      ulInitSecurityBlobLength = 0;
     LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
     BOOLEAN                    bGssNegotiateLocked = FALSE;
     PSTR                       pszClientPrincipalName = NULL;
@@ -155,14 +153,6 @@ SrvProcessSessionSetup_WC_12(
     if (pConnection->hGssNegotiate == NULL)
     {
         ntStatus = SrvGssBeginNegotiate(&pConnection->hGssNegotiate);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvGssNegotiate(
-                       pConnection->hGssNegotiate,
-                       NULL,
-                       0,
-                       &pInitSecurityBlob,
-                       &ulInitSecurityBlobLength);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -342,7 +332,6 @@ cleanup:
 
     LWIO_UNLOCK_MUTEX(bGssNegotiateLocked, &pConnection->mutexSessionSetup);
 
-    SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
     SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
 
     if (pSession)
