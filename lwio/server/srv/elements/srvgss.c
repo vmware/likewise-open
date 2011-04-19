@@ -301,7 +301,7 @@ SrvGssBeginNegotiate(
                     (PVOID*)&pGssNegotiate);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_INITIAL;
+    pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_NEGOTIATE;
 
     pGssNegotiate->GssContext = GSS_C_NO_CONTEXT;
 
@@ -339,16 +339,6 @@ SrvGssNegotiate(
 
     switch(pGssNegotiate->state)
     {
-        case SRV_GSS_CONTEXT_STATE_INITIAL:
-
-            if (pSecurityInputBlob)
-            {
-                ntStatus = STATUS_INVALID_PARAMETER_3;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
-            // intentional fall through
-
         case SRV_GSS_CONTEXT_STATE_HINTS:
 
             ntStatus = SrvGssContinueNegotiate(
@@ -357,6 +347,16 @@ SrvGssNegotiate(
                             0,
                             &pSecurityBlob,
                             &ulSecurityBlobLen);
+
+            break;
+
+        case SRV_GSS_CONTEXT_STATE_INITIAL:
+
+            if (pSecurityInputBlob)
+            {
+                ntStatus = STATUS_INVALID_PARAMETER_3;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             break;
 

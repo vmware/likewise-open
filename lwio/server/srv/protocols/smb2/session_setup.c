@@ -65,8 +65,6 @@ SrvProcessSessionSetup_SMB_V2(
     ULONG       ulSecurityBlobLen         = 0;
     PBYTE       pReplySecurityBlob        = NULL;
     ULONG       ulReplySecurityBlobLength = 0;
-    PBYTE       pInitSecurityBlob         = NULL;
-    ULONG       ulInitSecurityBlobLength  = 0;
     PSTR        pszClientPrincipalName    = NULL;
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
@@ -93,14 +91,6 @@ SrvProcessSessionSetup_SMB_V2(
     if (pConnection->hGssNegotiate == NULL)
     {
         ntStatus = SrvGssBeginNegotiate(&pConnection->hGssNegotiate);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvGssNegotiate(
-                       pConnection->hGssNegotiate,
-                       NULL,
-                       0,
-                       &pInitSecurityBlob,
-                       &ulInitSecurityBlobLength);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -352,7 +342,6 @@ SrvProcessSessionSetup_SMB_V2(
 
 cleanup:
 
-    SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
     SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
     SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
 
