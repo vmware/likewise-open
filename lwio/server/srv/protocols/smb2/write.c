@@ -555,6 +555,11 @@ SrvExecuteWrite_SMB_V2(
                     SRV_SMB2_INTERIM_RESPONSE_TIMEOUT);
                 // Ignore error.  Has already been logged
             }
+            else
+            {
+                // Remove the async state so we don't leak it later
+                SrvConnection2RemoveAsyncState(pExecContext->pConnection, pWriteState->AsyncId);
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             // completed synchronously
