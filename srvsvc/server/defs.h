@@ -5,6 +5,8 @@
 
 #define SRV_DRIVER_NAME_W { '\\', 's', 'r', 'v', 0 }
 
+#define SERVER_COMMENT_STRING "Likewise CIFS"
+
 #define SECURITY_UNMAPPED_UNIX_AUTHORITY    { 0, 0, 0, 0, 0, 22 }
 #define SECURITY_UNMAPPED_UNIX_UID_RID      1
 #define SECURITY_UNMAPPED_UNIX_RID_COUNT    2

@@ -59,7 +59,6 @@ SrvSvcNetrServerGetInfo(
     DWORD dwError = ERROR_SUCCESS;
     CHAR szHostname[64] = {0};
     PWSTR pwszHostname = NULL;
-    PCSTR pszComment = "Likewise CIFS";
     SERVER_INFO_101 *pInfo101 = NULL;
     SERVER_INFO_102 *pInfo102 = NULL;
 
@@ -107,7 +106,7 @@ SrvSvcNetrServerGetInfo(
 
          dwError = SrvSvcSrvAllocateWC16StringFromCString(
                       &pInfo102->sv102_comment,
-                      pszComment);
+                      SERVER_COMMENT_STRING);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo102->sv102_platform_id    = 500;
