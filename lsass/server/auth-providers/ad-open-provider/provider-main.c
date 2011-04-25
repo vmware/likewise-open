@@ -944,8 +944,8 @@ AD_CheckUserInList(
     )
 {
     DWORD  dwError = 0;
-    size_t  sNumGroupsFound = 0;
-    PLSA_SECURITY_OBJECT* ppGroupList = NULL;
+    DWORD  numGroupsFound = 0;
+    PSTR* ppGroupSids = NULL;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
     size_t  iGroup = 0;
     PLSA_HASH_TABLE pAllowedMemberList = NULL;
@@ -977,17 +977,19 @@ AD_CheckUserInList(
         goto cleanup;
     }
 
-    dwError = AD_GetUserGroupObjectMembership(
+    dwError = AD_QueryMemberOf(
                     hProvider,
-                    pUserInfo,
-                    FALSE,
-                    &sNumGroupsFound,
-                    &ppGroupList);
+                    0,
+                    1,
+                    &pUserInfo->pszObjectSid,
+                    &numGroupsFound,
+                    &ppGroupSids);
     BAIL_ON_LSA_ERROR(dwError);
 
-    for (; iGroup < sNumGroupsFound; iGroup++)
+    for (; iGroup < numGroupsFound; iGroup++)
     {
-        if (AD_IsMemberAllowed(ppGroupList[iGroup]->pszObjectSid,
+        if (AD_IsMemberAllowed(
+                               ppGroupSids[iGroup],
                                pAllowedMemberList))
         {
             goto cleanup;
@@ -1001,7 +1003,10 @@ cleanup:
 
     LsaAdProviderStateRelease(gpLsaAdProviderState);
 
-    ADCacheSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
+    if (ppGroupSids)
+    {
+        LwFreeStringArray(ppGroupSids, numGroupsFound);
+    }
     ADCacheSafeFreeObject(&pUserInfo);
     LsaHashSafeFree(&pAllowedMemberList);
 
@@ -2140,43 +2145,6 @@ cleanup:
 
 error:
     goto cleanup;
-}
-
-DWORD
-AD_GetUserGroupObjectMembership(
-    IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pUserInfo,
-    IN BOOLEAN bIsCacheOnlyMode,
-    OUT size_t* psNumGroupsFound,
-    OUT PLSA_SECURITY_OBJECT** pppResult
-    )
-{
-    DWORD dwError = 0;
-
-    if (AD_IsOffline())
-    {
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-    }
-    else
-    {
-        dwError = AD_OnlineGetUserGroupObjectMembership(
-            hProvider,
-            pUserInfo,
-            bIsCacheOnlyMode,
-            psNumGroupsFound,
-            pppResult);
-    }
-
-    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
-    {
-        dwError = AD_OfflineGetUserGroupObjectMembership(
-            hProvider,
-            pUserInfo,
-            psNumGroupsFound,
-            pppResult);
-    }
-
-    return dwError;
 }
 
 DWORD

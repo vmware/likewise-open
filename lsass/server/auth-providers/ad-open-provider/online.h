@@ -197,15 +197,6 @@ AD_CrackDomainQualifiedName(
     );
 
 DWORD
-AD_OnlineGetUserGroupObjectMembership(
-    IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pUserInfo,
-    IN BOOLEAN bIsCacheOnlyMode,
-    OUT size_t* psCount,
-    OUT PLSA_SECURITY_OBJECT** pppResults
-    );
-
-DWORD
 AD_OnlineChangePassword(
     HANDLE hProvider,
     PCSTR pszUserName,
@@ -392,6 +383,29 @@ AD_OnlineFindObjects(
     IN DWORD dwCount,
     IN LSA_QUERY_LIST QueryList,
     OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+/**
+ * @brief Moves hash table values into an array.
+ *
+ * Moves hash table values into an array, leaving the actual
+ * hash entries otherwise intact.  The only valid operation
+ * to do on the hash table after this is to free it.
+ *
+ * On error, this function may have moved some of the values.
+ *
+ * @param[in,out] pHash the hash table
+ * @param[out] pCount returns count of value moved
+ * @param[out] pppValues returns array of value pointers
+ *
+ * @retval LW_ERROR_SUCCESS on success
+ * @retval !LW_ERROR_SUCCESS on failure
+ */
+DWORD
+AD_MoveHashValuesToArray(
+    IN OUT PLSA_HASH_TABLE pHash,
+    OUT PDWORD pCount,
+    OUT PVOID** pppValues
     );
 
 DWORD
