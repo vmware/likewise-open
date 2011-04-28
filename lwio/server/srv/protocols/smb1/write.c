@@ -222,12 +222,14 @@ SrvProcessWrite(
 
         case SRV_WRITE_STAGE_SMB_V1_ATTEMPT_WRITE:
 
-            pWriteState->stage = SRV_WRITE_STAGE_SMB_V1_ZCT_IO;
 
             if (pWriteState->ulLength)
             {
                 ntStatus = SrvExecuteWrite(pWriteState, pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
+
+                pWriteState->ulBytesWritten =
+                    pWriteState->ioStatusBlock.BytesTransferred;
             }
             else
             {
@@ -239,12 +241,12 @@ SrvProcessWrite(
                 pWriteState->ioStatusBlock.BytesTransferred = 0;
             }
 
+            pWriteState->stage = SRV_WRITE_STAGE_SMB_V1_ZCT_IO;
+
             // intentional fall through
 
         case SRV_WRITE_STAGE_SMB_V1_ZCT_IO:
 
-            pWriteState->ulBytesWritten =
-                pWriteState->ioStatusBlock.BytesTransferred;
 
             if (pWriteState->Zct.pZct)
             {
@@ -457,6 +459,7 @@ SrvExecuteWrite(
         else
         {
             ULONG zctLength = LwZctGetLength(pWriteState->Zct.pZct);
+
             LWIO_ASSERT(zctLength == pWriteState->ulLength);
         }
     }
@@ -467,6 +470,8 @@ SrvExecuteWrite(
         if (!pWriteState->bStartedIo)
         {
             SrvPrepareWriteStateAsync(pWriteState, pExecContext);
+
+            pWriteState->bStartedIo = TRUE;
 
             ntStatus = IoWriteFile(
                             pWriteState->pFile->hFile,
