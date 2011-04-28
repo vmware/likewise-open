@@ -46,9 +46,17 @@ configure()
 
     mk_check_functions \
         HEADERDEPS="signal.h stdlib.h kvm.h unistd.h" \
-        sigtimedwait bzero localtime_r memset \
-        select socket strchr strerror vsyslog \
-        rpl_malloc rpl_realloc mkdtemp _NSGetEnviron \
+        sigtimedwait localtime_r \
+        select socket vsyslog \
+        rpl_malloc rpl_realloc mkdtemp _NSGetEnviron
+
+    mk_check_functions \
+        HEADERDEPS="string.h" \
+        strerror strchr memset
+
+    mk_check_functions \
+        HEADERDEPS="strings.h" \
+        bzero
 
     mk_check_functions \
         HEADERDEPS="kvm.h sys/param.h sys/sysctl.h sys/user.h" \
