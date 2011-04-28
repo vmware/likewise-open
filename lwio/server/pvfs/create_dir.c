@@ -159,7 +159,7 @@ PvfsCreateDirCreate(
                   &pCreateCtx->ResolvedFileName,
                   &statPath,
                   pCreateCtx->OriginalFileName,
-                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
+                  IsSetFlag(Args.FileName.IoNameOptions, IO_NAME_OPTION_CASE_SENSITIVE));
     switch (ntError)
     {
     case STATUS_SUCCESS:
@@ -184,7 +184,7 @@ PvfsCreateDirCreate(
                   &resolvedDirName,
                   &statPath,
                   directoryName,
-                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
+                  IsSetFlag(Args.FileName.IoNameOptions, IO_NAME_OPTION_CASE_SENSITIVE));
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = STATUS_OBJECT_PATH_NOT_FOUND;
@@ -304,7 +304,7 @@ PvfsCreateDirOpen(
                   &pCreateCtx->ResolvedFileName,
                   &Stat,
                   pCreateCtx->OriginalFileName,
-                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
+                  IsSetFlag(Args.FileName.IoNameOptions, IO_NAME_OPTION_CASE_SENSITIVE));
     BAIL_ON_NT_STATUS(ntError);
 
     if (!S_ISDIR(Stat.s_mode))
@@ -413,7 +413,7 @@ PvfsCreateDirOpenIf(
                   &resolvedDirName,
                   &statPath,
                   directoryName,
-                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
+                  IsSetFlag(Args.FileName.IoNameOptions, IO_NAME_OPTION_CASE_SENSITIVE));
     BAIL_ON_NT_STATUS(ntError);
 
     /* Check for file existence */
@@ -423,7 +423,7 @@ PvfsCreateDirOpenIf(
                   &statFile,
                   directoryName,
                   relativeFileName,
-                  Args.FileName.IoNameOptions & IO_NAME_OPTION_CASE_SENSITIVE);
+                  IsSetFlag(Args.FileName.IoNameOptions, IO_NAME_OPTION_CASE_SENSITIVE));
     pCreateCtx->bFileExisted = NT_SUCCESS(ntError) ? TRUE : FALSE;
 
     if (!pCreateCtx->bFileExisted)

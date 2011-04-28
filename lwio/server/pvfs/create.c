@@ -136,8 +136,8 @@ PvfsCreate(
                       &resolvedFileName,
                       &Stat,
                       createFileName,
-                      pIrp->Args.Create.FileName.IoNameOptions &
-                                    IO_NAME_OPTION_CASE_SENSITIVE);
+                      IsSetFlag(pIrp->Args.Create.FileName.IoNameOptions,
+                                IO_NAME_OPTION_CASE_SENSITIVE));
 
         if (NT_SUCCESS(ntError) &&
             S_ISDIR(Stat.s_mode) &&
