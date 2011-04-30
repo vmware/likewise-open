@@ -60,6 +60,7 @@
 #include <lw/rpc/samr.h>
 #include <lw/rpc/netlogon.h>
 #include <lw/macros.h>
+#include <lw/swab.h>
 
 #include "netr_credentials.h"
 #include "netr_memory.h"
