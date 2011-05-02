@@ -80,6 +80,7 @@
 #include <wc16str.h>
 #include <uuid/uuid.h>
 #include <lwrpc/krb5pac.h>
+#include <lw/swab.h>
 
 #include "defines.h"
 #include "structs.h"
