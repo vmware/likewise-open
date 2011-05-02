@@ -352,8 +352,10 @@ rpc__bsd_socket_construct(
     if (!lrpc)
     {
         serr = ENOMEM;
-	goto error;
+        goto error;
     }
+
+    sock->data.pointer = (void*) lrpc;
 
     lrpc->fd            = -1;
     lrpc->info.peer_uid = -1;
@@ -372,16 +374,13 @@ rpc__bsd_socket_construct(
         goto error;
     }
 
-    sock->data.pointer = (void*) lrpc;
-
 done:
+
     return serr;
 
 error:
-    if (lrpc)
-    {
-        rpc__bsd_socket_destruct(sock);
-    }
+
+    rpc__bsd_socket_destruct(sock);
 
     goto done;
 }
@@ -454,20 +453,21 @@ rpc_socket_t        sock;
     rpc_socket_error_t  serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 
-    if (lrpc && lrpc->fd > 0)
-    {
-
-        RPC_LOG_SOCKET_CLOSE_NTR;
-        RPC_SOCKET_DISABLE_CANCEL;
-        serr = (close(lrpc->fd) == -1) ? errno : RPC_C_SOCKET_OK;
-        RPC_SOCKET_RESTORE_CANCEL;
-        RPC_LOG_SOCKET_CLOSE_XIT;
-    }
-
     if (lrpc)
     {
-	free(lrpc);
+        if (lrpc->fd > 0)
+        {
+            RPC_LOG_SOCKET_CLOSE_NTR;
+            RPC_SOCKET_DISABLE_CANCEL;
+            serr = (close(lrpc->fd) == -1) ? errno : RPC_C_SOCKET_OK;
+            RPC_SOCKET_RESTORE_CANCEL;
+            RPC_LOG_SOCKET_CLOSE_XIT;
+        }
+
+        free(lrpc);
     }
+
+    sock->data.pointer = NULL;
 
     return serr;
 }
