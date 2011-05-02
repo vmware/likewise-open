@@ -291,7 +291,7 @@ NtlmCreateResponseContext(
         // TODO: the correct thing is to use LMv2
         dwLmRespType = NTLM_RESPONSE_TYPE_LM;
     }
-    else if(pChlngMsg->NtlmFlags & NTLM_FLAG_NTLM2)
+    else if(LW_LTOH32(pChlngMsg->NtlmFlags) & NTLM_FLAG_NTLM2)
     {
         dwLmRespType = NTLM_RESPONSE_TYPE_NTLM2;
         dwNtRespType = NTLM_RESPONSE_TYPE_NTLM2;
@@ -322,7 +322,7 @@ NtlmCreateResponseContext(
 
     pMasterKey = NtlmUserSessionKey;
 
-    if (pChlngMsg->NtlmFlags & NTLM_FLAG_LM_KEY)
+    if (LW_LTOH32(pChlngMsg->NtlmFlags) & NTLM_FLAG_LM_KEY)
     {
         NtlmGenerateLanManagerSessionKey(
             pMessage,
@@ -332,7 +332,7 @@ NtlmCreateResponseContext(
         pMasterKey = LanManagerSessionKey;
     }
 
-    if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
+    if (LW_LTOH32(pChlngMsg->NtlmFlags) & NTLM_FLAG_KEY_EXCH)
     {
         // This is the key we will use for session security...
         dwError = NtlmGetRandomBuffer(
@@ -357,7 +357,7 @@ NtlmCreateResponseContext(
 
     memcpy(pNtlmContext->SessionKey, pMasterKey, NTLM_SESSION_KEY_SIZE);
 
-    pNtlmContext->NegotiatedFlags = pChlngMsg->NtlmFlags;
+    pNtlmContext->NegotiatedFlags = LW_LTOH32(pChlngMsg->NtlmFlags);
     pOutput->cbBuffer = dwMessageSize;
     pOutput->BufferType = SECBUFFER_TOKEN;
     pOutput->pvBuffer = pMessage;
