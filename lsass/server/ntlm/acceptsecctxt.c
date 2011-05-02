@@ -246,7 +246,7 @@ NtlmCreateChallengeContext(
 
     BAIL_ON_LSA_ERROR(dwError);
 
-    pNtlmContext->NegotiatedFlags = pMessage->NtlmFlags;
+    pNtlmContext->NegotiatedFlags = LW_LTOH32(pMessage->NtlmFlags);
     pOutput->cbBuffer = dwMessageSize;
     pOutput->BufferType = SECBUFFER_TOKEN;
     pOutput->pvBuffer = pMessage;
@@ -419,14 +419,14 @@ NtlmCreateValidatedContext(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (pV2Message->SessionKey.dwOffset +
-                pV2Message->SessionKey.usLength > dwMsgSize)
+        if (LW_LTOH32(pV2Message->SessionKey.dwOffset) +
+                LW_LTOH16(pV2Message->SessionKey.usLength) > dwMsgSize)
         {
             dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (pV2Message->SessionKey.usLength != NTLM_SESSION_KEY_SIZE)
+        if (LW_LTOH16(pV2Message->SessionKey.usLength) != NTLM_SESSION_KEY_SIZE)
         {
             dwError = ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
@@ -438,7 +438,7 @@ NtlmCreateValidatedContext(
                 pNtlmContext->SessionKey);
         RC4(&Rc4Key,
                 NTLM_SESSION_KEY_SIZE,
-                pV2Message->SessionKey.dwOffset + (PBYTE)pV2Message,
+                LW_LTOH32(pV2Message->SessionKey.dwOffset) + (PBYTE)pV2Message,
                 pNtlmContext->SessionKey);
     }
 
@@ -658,12 +658,12 @@ NtlmValidateResponse(
     }
 
     dwError = LwAllocateMemory(
-        pRespMsg->LmResponse.usLength,
+        LW_LTOH16(pRespMsg->LmResponse.usLength),
         OUT_PPVOID(&pLMRespBuffer));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwAllocateMemory(
-        pRespMsg->NtResponse.usLength,
+        LW_LTOH16(pRespMsg->NtResponse.usLength),
         OUT_PPVOID(&pNTRespBuffer));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -693,7 +693,7 @@ NtlmValidateResponse(
         &pWorkstation);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pRespMsg->LmResponse.dwOffset + pRespMsg->LmResponse.usLength >
+    if (LW_LTOH32(pRespMsg->LmResponse.dwOffset) + LW_LTOH16(pRespMsg->LmResponse.usLength) >
             dwRespMsgSize)
     {
         dwError = ERROR_INVALID_PARAMETER;
@@ -702,10 +702,10 @@ NtlmValidateResponse(
 
     memcpy(
         pLMRespBuffer,
-        (PBYTE)pRespMsg + pRespMsg->LmResponse.dwOffset,
-        pRespMsg->LmResponse.usLength);
+        (PBYTE)pRespMsg + LW_LTOH32(pRespMsg->LmResponse.dwOffset),
+        LW_LTOH16(pRespMsg->LmResponse.usLength));
 
-    if (pRespMsg->NtResponse.dwOffset + pRespMsg->NtResponse.usLength >
+    if (LW_LTOH32(pRespMsg->NtResponse.dwOffset) + LW_LTOH16(pRespMsg->NtResponse.usLength) >
             dwRespMsgSize)
     {
         dwError = ERROR_INVALID_PARAMETER;
@@ -714,16 +714,16 @@ NtlmValidateResponse(
 
     memcpy(
         pNTRespBuffer,
-        (PBYTE)pRespMsg + pRespMsg->NtResponse.dwOffset,
-        pRespMsg->NtResponse.usLength);
+        (PBYTE)pRespMsg + LW_LTOH32(pRespMsg->NtResponse.dwOffset),
+        LW_LTOH16(pRespMsg->NtResponse.usLength));
 
-    if (pRespMsg->NtResponse.usLength == 24 &&
+    if (LW_LTOH16(pRespMsg->NtResponse.usLength) == 24 &&
             pChlngCtxt->NegotiatedFlags & NTLM_FLAG_NTLM2)
     {
         // The client sent an NTLM2 session response. That means we need to
         // calculate the challenge the client used.
 
-        if (pRespMsg->LmResponse.usLength < 8)
+        if (LW_LTOH16(pRespMsg->LmResponse.usLength) < 8)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
@@ -744,10 +744,10 @@ NtlmValidateResponse(
         Challenge.pData = pChlngCtxt->Challenge;
     }
 
-    LMResp.dwLen = pRespMsg->LmResponse.usLength;
+    LMResp.dwLen = LW_LTOH16(pRespMsg->LmResponse.usLength);
     LMResp.pData = pLMRespBuffer;
 
-    NTResp.dwLen = pRespMsg->NtResponse.usLength;
+    NTResp.dwLen = LW_LTOH16(pRespMsg->NtResponse.usLength);
     NTResp.pData = pNTRespBuffer;
 
     Params.AuthType = LSA_AUTH_CHAP;
@@ -771,7 +771,7 @@ NtlmValidateResponse(
 
     LW_ASSERT(pUserInfo->pSessionKey->dwLen == NTLM_SESSION_KEY_SIZE);
 
-    if (pRespMsg->NtResponse.usLength == 24 &&
+    if (LW_LTOH16(pRespMsg->NtResponse.usLength) == 24 &&
             pChlngCtxt->NegotiatedFlags & NTLM_FLAG_NTLM2)
     {
         HMAC(
@@ -823,7 +823,6 @@ NtlmGetDomainNameFromResponse(
     DWORD dwNameLength = 0;
     PBYTE pBuffer = NULL;
     PNTLM_SEC_BUFFER pSecBuffer = &pRespMsg->AuthTargetName;
-    DWORD nIndex = 0;
 
     *ppDomainName = NULL;
 
@@ -833,14 +832,14 @@ NtlmGetDomainNameFromResponse(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pSecBuffer->dwOffset + pSecBuffer->usLength > dwRespMsgSize)
+    if (LW_LTOH32(pSecBuffer->dwOffset) + LW_LTOH16(pSecBuffer->usLength) > dwRespMsgSize)
     {
         dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwNameLength = pSecBuffer->usLength;
-    pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
+    dwNameLength = LW_LTOH16(pSecBuffer->usLength);
+    pBuffer = LW_LTOH32(pSecBuffer->dwOffset) + (PBYTE)pRespMsg;
 
     if (!bUnicode)
     {
@@ -851,15 +850,11 @@ NtlmGetDomainNameFromResponse(
     }
     else
     {
-        dwNameLength = dwNameLength / sizeof(WCHAR);
-
-        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = NtlmGetCStringFromUnicodeBuffer(
+                      pBuffer,
+                      dwNameLength,
+                      &pName);
         BAIL_ON_LSA_ERROR(dwError);
-
-        for (nIndex = 0; nIndex < dwNameLength; nIndex++)
-        {
-            pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
-        }
     }
 
 cleanup:
@@ -884,7 +879,6 @@ NtlmGetWorkstationFromResponse(
     DWORD dwNameLength = 0;
     PBYTE pBuffer = NULL;
     PNTLM_SEC_BUFFER pSecBuffer = &pRespMsg->Workstation;
-    DWORD nIndex = 0;
 
     *ppWorkstation = NULL;
 
@@ -894,14 +888,14 @@ NtlmGetWorkstationFromResponse(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pSecBuffer->dwOffset + pSecBuffer->usLength > dwRespMsgSize)
+    if (LW_LTOH32(pSecBuffer->dwOffset) + LW_LTOH16(pSecBuffer->usLength) > dwRespMsgSize)
     {
         dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwNameLength = pSecBuffer->usLength;
-    pBuffer = pSecBuffer->dwOffset + (PBYTE)pRespMsg;
+    dwNameLength = LW_LTOH16(pSecBuffer->usLength);
+    pBuffer = LW_LTOH32(pSecBuffer->dwOffset) + (PBYTE)pRespMsg;
 
     if (!bUnicode)
     {
@@ -912,15 +906,12 @@ NtlmGetWorkstationFromResponse(
     }
     else
     {
-        dwNameLength = dwNameLength / sizeof(WCHAR);
-
-        dwError = LwAllocateMemory(dwNameLength + 1, OUT_PPVOID(&pName));
+        dwError = NtlmGetCStringFromUnicodeBuffer(
+                      pBuffer,
+                      dwNameLength,
+                      &pName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        for (nIndex = 0; nIndex < dwNameLength; nIndex++)
-        {
-            pName[nIndex] = pBuffer[nIndex * sizeof(WCHAR)];
-        }
     }
 
 cleanup:
