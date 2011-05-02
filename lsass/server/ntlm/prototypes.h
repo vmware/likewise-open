@@ -516,6 +516,7 @@ NtlmValidateResponse(
 DWORD
 NtlmGetUserNameFromResponse(
     IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
+    IN DWORD dwRespMsgSize,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppUserName
     );
@@ -523,6 +524,7 @@ NtlmGetUserNameFromResponse(
 DWORD
 NtlmGetDomainNameFromResponse(
     IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
+    IN DWORD dwRespMsgSize,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppDomainName
     );
@@ -530,6 +532,7 @@ NtlmGetDomainNameFromResponse(
 DWORD
 NtlmGetWorkstationFromResponse(
     IN PNTLM_RESPONSE_MESSAGE_V1 pRespMsg,
+    IN DWORD dwRespMsgSize,
     IN BOOLEAN bUnicode,
     OUT PSTR* ppWorkstation
     );
