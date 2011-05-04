@@ -97,8 +97,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileIdBothDirectoryInformation,   NULL },
     { FileIdFullDirectoryInformation,   NULL },
     { FileValidDataLengthInformation,   NULL },
-    { FileShortNameInformation,         NULL },
-    { LwFilePosixInformation,           NULL }
+    { FileShortNameInformation,         NULL }
 };
 
 NTSTATUS
@@ -144,12 +143,6 @@ NpfsCommonQueryInformation(
                        sizeof(struct _InfoLevelDispatchEntry);
 
     InfoLevel = pIrpContext->pIrp->Args.QuerySetInformation.FileInformationClass;
-
-    if (!IS_VALID_FILE_INFORMATION_CLASS(InfoLevel))
-    {
-        ntStatus = STATUS_INVALID_INFO_CLASS;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     /* Loop through the dispatch table.  Levels included in the table
        but having a NULL handler get NOT_SUPPORTED while those not in

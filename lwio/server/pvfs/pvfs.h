@@ -63,6 +63,7 @@
 
 #include "lwiosys.h"
 #include "lwio/io-types.h"
+#include "lwio/io-types-posix.h"
 #include "lwio/lwiofsctl.h"
 #include "lwio/lwiodevctl.h"
 #include "lwio/iodriver.h"
