@@ -8,18 +8,24 @@ configure()
 
     MK_CFLAGS="$MK_CFLAGS -Wall -Werror -fno-strict-aliasing"
 
-    mk_export SBINDIR="$MK_SBINDIR"
+     # Do defines/exports of system-dependent variables
+    mk_multiarch_do
+        mk_define LIBDIR "\"$MK_LIBDIR\""
+        mk_define MOD_EXT "\"$MK_DLO_EXT\""
+    mk_multiarch_done
+
+    mk_declare -o \
+        SBINDIR="$MK_SBINDIR" \
+        LIBDIR="$MK_LIBDIR" \
+        MOD_EXT="$MK_DLO_EXT"
 
     mk_define CACHEDIR "\"$LW_CACHEDIR\""
 
-    if mk_check_function \
-	FUNCTION=isblank \
-	HEADERDEPS="ctype.h"
-    then
-	mk_define HAVE_DECL_ISBLANK 1
-    else
-	mk_define HAVE_DECL_ISBLANK 0
-    fi
+    mk_check_libraries pthread
+
+    mk_check_functions \
+	HEADERDEPS="ctype.h" \
+        isblank
 
     mk_check_functions \
 	HEADERDEPS="stdlib.h" \
