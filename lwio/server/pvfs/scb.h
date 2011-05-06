@@ -180,5 +180,17 @@ PvfsIsDefaultStreamName(
     PPVFS_FILE_NAME pFileName
     );
 
+VOID
+PvfsSetScbAllocationSize(
+    IN PPVFS_SCB pScb,
+    IN LONG64 AllocationSize
+    );
+
+LONG64
+PvfsGetScbAllocationSize(
+    IN PPVFS_SCB pScb
+    );
+
+
 #endif   /* _PVFS_SCB_H */
 
