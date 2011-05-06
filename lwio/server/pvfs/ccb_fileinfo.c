@@ -231,6 +231,7 @@ PvfsCcbQueryFileStandardInformation(
     NTSTATUS ntError = STATUS_SUCCESS;
     PVFS_STAT Stat = {0};
     BOOLEAN bDeletePending = FALSE;
+    LONG64 allocationSize = 0;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
@@ -250,9 +251,12 @@ PvfsCcbQueryFileStandardInformation(
     }
     else
     {
+        allocationSize = PvfsGetScbAllocationSize(pCcb->pScb);
+
         pFileInfo->EndOfFile      = Stat.s_size;
-        pFileInfo->AllocationSize = Stat.s_alloc > Stat.s_size ?
-                                    Stat.s_alloc : Stat.s_size;
+        pFileInfo->AllocationSize = PVFS_MAX((Stat.s_alloc > Stat.s_size ?
+                                              Stat.s_alloc : Stat.s_size),
+                                             allocationSize);
 
         pFileInfo->NumberOfLinks  = bDeletePending ?
                                     Stat.s_nlink - 1 :
@@ -274,64 +278,32 @@ error:
 
 NTSTATUS
 PvfsCcbQueryFileNetworkOpenInformation(
-    PPVFS_CCB                      pCcb,
-    PFILE_NETWORK_OPEN_INFORMATION pFileInfo
+    IN PPVFS_CCB pCcb,
+    IN PFILE_NETWORK_OPEN_INFORMATION pFileInfo
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PVFS_STAT fileStat = { 0 };
-    PVFS_STAT streamStat = { 0 };
-    PVFS_FILE_NAME baseObjectFileName = { 0 };
+    NTSTATUS status = STATUS_SUCCESS;
+    FILE_BASIC_INFORMATION basicInfo = { 0 };
+    FILE_STANDARD_INFORMATION standardInfo = { 0 };
 
-    if (PvfsIsDefaultStream(pCcb->pScb))
-    {
-        ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
-        BAIL_ON_NT_STATUS(ntError);
+    status = PvfsCcbQueryFileBasicInformation(pCcb, &basicInfo);
+    BAIL_ON_NT_STATUS(status);
 
-        ntError = PvfsSysFstat(pCcb->fd, &fileStat);
-        BAIL_ON_NT_STATUS(ntError);
+    status = PvfsCcbQueryFileStandardInformation(pCcb, &standardInfo);
+    BAIL_ON_NT_STATUS(status);
 
-        streamStat = fileStat;
-    }
-    else
-    {
-        // Named Streams share meta-data with the owning FCB
-        ntError = PvfsBuildFileNameFromCString(
-                      &baseObjectFileName,
-                      pCcb->pScb->pOwnerFcb->pszFilename,
-                      0);
-        BAIL_ON_NT_STATUS(ntError);
+    pFileInfo->FileAttributes = basicInfo.FileAttributes;
 
-        ntError = PvfsGetFilenameAttributes(
-                      PvfsGetCStringBaseFileName(&baseObjectFileName),
-                      &pFileInfo->FileAttributes);
-        BAIL_ON_NT_STATUS(ntError);
+    pFileInfo->LastAccessTime = basicInfo.LastAccessTime;
+    pFileInfo->LastWriteTime = basicInfo.LastWriteTime;
+    pFileInfo->ChangeTime = basicInfo.ChangeTime;
+    pFileInfo->CreationTime = basicInfo.CreationTime;
 
-        ntError = PvfsSysStatByFileName(&baseObjectFileName, &fileStat);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsSysFstat(pCcb->fd, &streamStat);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, fileStat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, fileStat.s_mtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, fileStat.s_ctime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, fileStat.s_crtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pFileInfo->EndOfFile      = streamStat.s_size;
-    pFileInfo->AllocationSize = streamStat.s_alloc;
+    pFileInfo->EndOfFile = standardInfo.EndOfFile;
+    pFileInfo->AllocationSize = standardInfo.AllocationSize;
 
 error:
-    PvfsDestroyFileName(&baseObjectFileName);
 
-    return ntError;
+    return status;
 }
 

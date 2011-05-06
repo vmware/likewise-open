@@ -170,6 +170,7 @@ PvfsAllocateSCB(
 
     PVFS_CLEAR_FILEID(pScb->FileId);
 
+    pScb->AllocationSize = 0;
     pScb->OpenHandleCount = 0;
     pScb->bDeleteOnClose = FALSE;
     pScb->bOplockBreakInProgress = FALSE;
@@ -542,6 +543,13 @@ PvfsRemoveCCBFromSCB(
 
     ntError = PvfsCloseHandleCleanup(pScb);
     // Ignore errors
+
+    if (pScb->OpenHandleCount == 0)
+    {
+        // Clear and reset this from disk
+        pScb->AllocationSize = 0;
+    }
+
 
 error:
 
@@ -1189,4 +1197,38 @@ PvfsIsDefaultStreamName(
     }
 
     return isDefaultStream;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+VOID
+PvfsSetScbAllocationSize(
+    IN PPVFS_SCB pScb,
+    IN LONG64 AllocationSize
+    )
+{
+    BOOLEAN scbLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+    pScb->AllocationSize = AllocationSize;
+    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+LONG64
+PvfsGetScbAllocationSize(
+    IN PPVFS_SCB pScb
+    )
+{
+    LONG64 allocationSize = 0;
+    BOOLEAN scbLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+    allocationSize = pScb->AllocationSize;
+    LWIO_UNLOCK_MUTEX(scbLocked, &pScb->BaseControlBlock.Mutex);
+
+    return allocationSize;
 }

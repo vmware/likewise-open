@@ -86,6 +86,7 @@ PvfsAllocateCCB(
     pCCB->pUserToken = NULL;
     pCCB->ChangeEvent = 0;
     pCCB->WriteCount = 0;
+    pCCB->FileSize = 0;
     pCCB->AccessGranted = 0;
     pCCB->Flags = PVFS_CCB_FLAG_NONE;
 

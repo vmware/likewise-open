@@ -346,6 +346,7 @@ struct _PVFS_SCB
     PPVFS_FCB pOwnerFcb;
 
     // Base Mutex
+    LONG64 AllocationSize;
     PVFS_FILE_ID FileId;
     BOOLEAN bDeleteOnClose;
 
