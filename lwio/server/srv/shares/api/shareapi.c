@@ -81,6 +81,67 @@ SrvShareFreeInfo(
     PSRV_SHARE_INFO pShareInfo
     );
 
+static
+NTSTATUS
+SrvShareCollectionDuplicate(
+    IN PLWRTL_RB_TREE pShareCollection,
+    OUT PLWRTL_RB_TREE* ppShareCollectionCopy
+    );
+
+static
+NTSTATUS
+SrvShareCollectionDuplicateVisit(
+    IN PVOID pKey,
+    IN PVOID pData,
+    IN PVOID pUserData,
+    OUT PBOOLEAN pContinue
+    );
+
+static
+NTSTATUS
+SrvShareReloadConfigurationVisitDeleteShare_inlock(
+    IN PVOID pKey,
+    IN PVOID hShareInfo,
+    IN PVOID hShareList,
+    OUT PBOOLEAN pContinue
+    );
+
+static
+NTSTATUS
+SrvShareAddShareInfoInMemory_inlock(
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN PSRV_SHARE_INFO pShareInfo
+    );
+
+static
+NTSTATUS
+SrvShareDeleteShareInfoInMemory_inlock(
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN BOOLEAN DisconnectClients
+    );
+
+static
+NTSTATUS
+SrvShareUpdateShareInfoInMemory_inlock(
+    IN OUT PSRV_SHARE_INFO pShareInfoDst,
+    IN PSRV_SHARE_INFO pShareInfoSrc
+    );
+
+static
+NTSTATUS
+SrvShareDuplicateInfo_inlock(
+    IN PSRV_SHARE_INFO pShareInfo,
+    OUT PSRV_SHARE_INFO* ppShareInfo
+    );
+
+static
+NTSTATUS
+SrvShareDisconnectClients_inlock(
+    IN PSRV_SHARE_INFO pShareInfo
+    );
+
+
 NTSTATUS
 SrvShareInitList(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
@@ -90,7 +151,6 @@ SrvShareInitList(
     HANDLE   hRepository = NULL;
     HANDLE   hResume = NULL;
     PSRV_SHARE_INFO* ppShareInfoList = NULL;
-    PSRV_SHARE_ENTRY pShareEntry = NULL;
     ULONG            ulBatchLimit  = 256;
     ULONG            ulNumSharesFound = 0;
 
@@ -135,26 +195,10 @@ SrvShareInitList(
 
         for (; iShare < ulNumSharesFound; iShare++)
         {
-            PSRV_SHARE_INFO pShareInfo = ppShareInfoList[iShare];
-
-            ntStatus = SrvAllocateMemory(
-                            sizeof(SRV_SHARE_ENTRY),
-                            (PVOID*)&pShareEntry);
+            ntStatus = SrvShareAddShareInfoInMemory_inlock(
+                            pShareList,
+                            ppShareInfoList[iShare]);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
-
-            pShareEntry->pNext = pShareList->pShareEntry;
-            pShareList->pShareEntry = pShareEntry;
-            pShareEntry = NULL;
-
-            ntStatus = LwRtlRBTreeAdd(
-                            pShareList->pShareCollection,
-                            pShareInfo->pwszName,
-                            pShareInfo);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            SrvShareAcquireInfo(pShareInfo);
         }
 
     } while (ulNumSharesFound == ulBatchLimit);
@@ -183,6 +227,146 @@ cleanup:
 error:
 
     SrvShareFreeListContents(pShareList);
+
+    goto cleanup;
+}
+
+/*
+ * The flow is as following:
+ *
+ * 1) Duplicate in-memory share list
+ * 2) Enum shares from DB
+ *   a) If share does not exist in in-memory list, add it to the in-memory list
+ *   b) Else remove it from the copy (created in 1) and update the in-memory
+ *      info
+ * 3) Remove any shares from the in-memory list that are still in the copy
+ */
+NTSTATUS
+SrvShareReloadConfiguration(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN inLock = FALSE;
+    HANDLE hRepository = NULL;
+    HANDLE hResume = NULL;
+    ULONG batchLimit = 256;
+    ULONG numSharesFound = 0;
+    PSRV_SHARE_INFO* ppShareInfoList = NULL;
+    PLWRTL_RB_TREE pShareCollectionCopy = NULL;
+
+    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(inLock, &pShareList->mutex);
+
+    // In the end of the enumeration this copy will hold a list of deleted
+    // shares
+    ntStatus = SrvShareCollectionDuplicate(pShareList->pShareCollection,
+                                           &pShareCollectionCopy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryBeginEnum(
+                                            hRepository,
+                                            batchLimit,
+                                            &hResume);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    do
+    {
+        ULONG shareIndex = 0;
+
+        if (ppShareInfoList)
+        {
+            SrvShareFreeInfoList(ppShareInfoList, numSharesFound);
+            ppShareInfoList = NULL;
+            numSharesFound = 0;
+        }
+
+        ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryEnum(
+                                                hRepository,
+                                                hResume,
+                                                &ppShareInfoList,
+                                                &numSharesFound);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        for (; shareIndex < numSharesFound; shareIndex++)
+        {
+            PSRV_SHARE_INFO pDbShareInfo = ppShareInfoList[shareIndex];
+            PSRV_SHARE_INFO pMemoryShareInfo = NULL;
+            BOOLEAN inMemoryShareInfoLock = FALSE;
+
+            ntStatus = LwRtlRBTreeFind(
+                            pShareList->pShareCollection,
+                            pDbShareInfo->pwszName,
+                            OUT_PPVOID(&pMemoryShareInfo));
+            if (ntStatus == STATUS_NOT_FOUND)
+            {
+                ntStatus = STATUS_SUCCESS;
+
+                // new entry case - add pDbShareInfo to the in-memory list
+                ntStatus = SrvShareAddShareInfoInMemory_inlock(
+                                pShareList,
+                                pDbShareInfo);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                continue;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
+
+            ntStatus = LwRtlRBTreeRemove(pShareCollectionCopy,
+                                         pDbShareInfo->pwszName);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(inMemoryShareInfoLock,
+                                        &pMemoryShareInfo->mutex);
+
+            ntStatus = SrvShareUpdateShareInfoInMemory_inlock(
+                            pMemoryShareInfo,
+                            pDbShareInfo);
+
+            LWIO_UNLOCK_RWMUTEX(inMemoryShareInfoLock,
+                                &pMemoryShareInfo->mutex);
+
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+    } while (numSharesFound == batchLimit);
+
+    // Take care of all the deleted shares
+    ntStatus = LwRtlRBTreeTraverse(
+                    pShareCollectionCopy,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    SrvShareReloadConfigurationVisitDeleteShare_inlock,
+                    pShareList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (hResume)
+    {
+        gSrvShareApi.pFnTable->pfnShareRepositoryEndEnum(hRepository, hResume);
+    }
+
+    if (ppShareInfoList)
+    {
+        SrvShareFreeInfoList(ppShareInfoList, numSharesFound);
+    }
+
+    LwRtlRBTreeFree(pShareCollectionCopy);
+
+    LWIO_UNLOCK_RWMUTEX(inLock, &pShareList->mutex);
+
+    if (hRepository)
+    {
+        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+    }
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -334,8 +518,6 @@ SrvShareAdd(
     }
 
     pShareInfo->ulFlags = ulShareFlags;
-
-    pShareInfo->bMarkedForDeletion = FALSE;
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_SHARE_ENTRY),
@@ -631,58 +813,11 @@ SrvShareDuplicateInfo(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock = FALSE;
-    PSRV_SHARE_INFO pShareInfoCopy = NULL;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_SHARE_INFO),
-                    (PVOID*)&pShareInfoCopy);
+    ntStatus = SrvShareDuplicateInfo_inlock(pShareInfo, ppShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pShareInfoCopy->refcount = 1;
-
-    pthread_rwlock_init(&pShareInfoCopy->mutex, NULL);
-    pShareInfoCopy->pMutex = &pShareInfoCopy->mutex;
-
-    if (pShareInfo->pwszName)
-    {
-        ntStatus = SrvAllocateStringW(
-                        pShareInfo->pwszName,
-                        &pShareInfoCopy->pwszName);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pShareInfo->pwszPath)
-    {
-        ntStatus = SrvAllocateStringW(
-                        pShareInfo->pwszPath,
-                        &pShareInfoCopy->pwszPath);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pShareInfo->pwszComment)
-    {
-        ntStatus = SrvAllocateStringW(
-                        pShareInfo->pwszComment,
-                        &pShareInfoCopy->pwszComment);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pShareInfo->ulSecDescLen)
-    {
-        ntStatus = SrvShareSetSecurity(
-                        pShareInfoCopy,
-                        pShareInfo->pSecDesc,
-                        pShareInfo->ulSecDescLen);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pShareInfoCopy->service = pShareInfo->service;
-
-    pShareInfoCopy->bMarkedForDeletion = pShareInfo->bMarkedForDeletion;
-
-    *ppShareInfo = pShareInfoCopy;
 
 cleanup:
 
@@ -691,13 +826,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    *ppShareInfo = NULL;
-
-    if (pShareInfoCopy)
-    {
-        SrvShareFreeInfo(pShareInfoCopy);
-    }
 
     goto cleanup;
 }
@@ -837,4 +965,343 @@ SrvShareFreeInfo(
     SrvShareFreeSecurity(pShareInfo);
 
     SrvFreeMemory(pShareInfo);
+}
+
+static
+NTSTATUS
+SrvShareCollectionDuplicate(
+    IN PLWRTL_RB_TREE pShareCollection,
+    OUT PLWRTL_RB_TREE* ppShareCollectionCopy
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWRTL_RB_TREE pShareCollectionCopy = NULL;
+
+    ntStatus = LwRtlRBTreeCreate(
+                    &SrvShareCompareInfo,
+                    NULL,
+                    &SrvShareReleaseInfoHandle,
+                    &pShareCollectionCopy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    pShareCollection,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    SrvShareCollectionDuplicateVisit,
+                    pShareCollectionCopy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    *ppShareCollectionCopy = pShareCollectionCopy;
+
+    return ntStatus;
+
+error:
+
+    if (pShareCollectionCopy)
+    {
+        LwRtlRBTreeFree(pShareCollectionCopy);
+        pShareCollectionCopy = NULL;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareCollectionDuplicateVisit(
+    IN PVOID pKey,
+    IN PVOID pData,
+    IN PVOID pUserData,
+    OUT PBOOLEAN pContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWRTL_RB_TREE pShareCollectionCopy = (PLWRTL_RB_TREE)pUserData;
+    PSRV_SHARE_INFO pShareInfo = (PSRV_SHARE_INFO)pData;
+
+    SrvShareAcquireInfo(pShareInfo);
+
+    ntStatus = LwRtlRBTreeAdd(pShareCollectionCopy, pKey, pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    SrvShareReleaseInfo(pShareInfo);
+
+    *pContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareReloadConfigurationVisitDeleteShare_inlock(
+    IN PVOID pKey,
+    IN PVOID hShareInfo,
+    IN PVOID hShareList,
+    OUT PBOOLEAN pContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList =
+                                        (PLWIO_SRV_SHARE_ENTRY_LIST)hShareList;
+    PSRV_SHARE_INFO pShareInfo = (PSRV_SHARE_INFO)hShareInfo;
+
+    ntStatus = SrvShareDeleteShareInfoInMemory_inlock(
+                    pShareList,
+                    pShareInfo,
+                    TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareAddShareInfoInMemory_inlock(
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN PSRV_SHARE_INFO pShareInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_ENTRY pShareEntry = NULL;
+
+    ntStatus = SrvAllocateMemory(sizeof(*pShareEntry),
+                               OUT_PPVOID(&pShareEntry));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
+
+    pShareEntry->pNext = pShareList->pShareEntry;
+    pShareList->pShareEntry = pShareEntry;
+
+    ntStatus = LwRtlRBTreeAdd(
+                pShareList->pShareCollection,
+                pShareInfo->pwszName,
+                pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvShareAcquireInfo(pShareInfo);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pShareEntry)
+    {
+        SrvShareRemoveFromList_inlock(pShareList, pShareInfo->pwszName);
+        pShareEntry = NULL;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareDeleteShareInfoInMemory_inlock(
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN BOOLEAN DisconnectClients
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN inLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(inLock, pShareInfo->pMutex);
+
+    SrvShareAcquireInfo(pShareInfo);
+
+    ntStatus = SrvShareRemoveFromList_inlock(pShareList, pShareInfo->pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeRemove(pShareList->pShareCollection,
+                                 pShareInfo->pwszName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (DisconnectClients)
+    {
+        ntStatus = SrvShareDisconnectClients_inlock(pShareInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    SrvShareReleaseInfo(pShareInfo);
+
+    LWIO_UNLOCK_RWMUTEX(inLock, pShareInfo->pMutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareUpdateShareInfoInMemory_inlock(
+    IN OUT PSRV_SHARE_INFO pShareInfoDst,
+    IN PSRV_SHARE_INFO pShareInfoSrc
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_INFO pShareInfoSrcCopy = NULL;
+
+    LWIO_ASSERT(LwRtlWC16StringIsEqual(pShareInfoSrc->pwszName,
+                                       pShareInfoDst->pwszName, FALSE));
+
+    if (LwRtlWC16StringIsEqual(pShareInfoSrc->pwszPath,
+                               pShareInfoDst->pwszPath, FALSE) == FALSE ||
+        pShareInfoSrc->service != pShareInfoDst->service)
+    {
+        ntStatus = SrvShareDisconnectClients_inlock(pShareInfoDst);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvShareDuplicateInfo_inlock(pShareInfoSrc, &pShareInfoSrcCopy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvFreeMemory(pShareInfoDst->pwszPath);
+    pShareInfoDst->pwszPath = pShareInfoSrcCopy->pwszPath;
+    pShareInfoSrcCopy->pwszPath = NULL;
+
+    SrvFreeMemory(pShareInfoDst->pwszComment);
+    pShareInfoDst->pwszComment = pShareInfoSrcCopy->pwszComment;
+    pShareInfoSrcCopy->pwszComment = NULL;
+
+
+    SrvShareFreeSecurity(pShareInfoDst);
+
+    pShareInfoDst->pSecDesc = pShareInfoSrcCopy->pSecDesc;
+    pShareInfoDst->ulSecDescLen = pShareInfoSrcCopy->ulSecDescLen;
+    pShareInfoSrcCopy->pSecDesc = NULL;
+    pShareInfoSrcCopy->ulSecDescLen = 0;
+
+    pShareInfoDst->pAbsSecDesc = pShareInfoSrcCopy->pAbsSecDesc;
+    pShareInfoSrcCopy->pAbsSecDesc = NULL;
+
+
+    pShareInfoDst->service = pShareInfoSrcCopy->service;
+    pShareInfoDst->ulFlags = pShareInfoSrcCopy->ulFlags;
+
+cleanup:
+
+    if (pShareInfoSrcCopy)
+    {
+        SrvShareReleaseInfo(pShareInfoSrcCopy);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareDuplicateInfo_inlock(
+    IN PSRV_SHARE_INFO pShareInfo,
+    OUT PSRV_SHARE_INFO* ppShareInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_INFO pShareInfoCopy = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SHARE_INFO),
+                    (PVOID*)&pShareInfoCopy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pShareInfoCopy->refcount = 1;
+
+    pthread_rwlock_init(&pShareInfoCopy->mutex, NULL);
+    pShareInfoCopy->pMutex = &pShareInfoCopy->mutex;
+
+    if (pShareInfo->pwszName)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pShareInfo->pwszName,
+                        &pShareInfoCopy->pwszName);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->pwszPath)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pShareInfo->pwszPath,
+                        &pShareInfoCopy->pwszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->pwszComment)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pShareInfo->pwszComment,
+                        &pShareInfoCopy->pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->ulSecDescLen)
+    {
+        ntStatus = SrvShareSetSecurity(
+                        pShareInfoCopy,
+                        pShareInfo->pSecDesc,
+                        pShareInfo->ulSecDescLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pShareInfoCopy->service = pShareInfo->service;
+
+    *ppShareInfo = pShareInfoCopy;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppShareInfo = NULL;
+
+    if (pShareInfoCopy)
+    {
+        SrvShareFreeInfo(pShareInfoCopy);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareDisconnectClients_inlock(
+    IN PSRV_SHARE_INFO pShareInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    // TODO - implement this function.
+    // Disconnect all clients from the share.
+    // The pShareInfo is already locked here (at least SHARED).
+
+    return ntStatus;
 }

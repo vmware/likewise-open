@@ -873,6 +873,45 @@ error:
     return ntStatus;
 }
 
+NTSTATUS
+SrvShareDevCtlReloadConfiguration(
+    IN PBYTE pInputBuffer,
+    IN ULONG InputBufferSize,
+    OUT PBYTE pOutputBuffer,
+    IN ULONG OutputBufferSize,
+    OUT PULONG pBytesTransferred
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    // Input: NULL
+    if (pInputBuffer || InputBufferSize)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // Output: NULL
+    if (pOutputBuffer || OutputBufferSize)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvShareReloadConfiguration(&gSMBSrvGlobals.shareList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    *pBytesTransferred = 0;
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
 static
 NTSTATUS
 SrvShareUpdateInfo0(
