@@ -1683,8 +1683,11 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LwMbsToWc16s(pszServerName, &pwszServerName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pUserParams->pszDomain)
+    {
+        dwError = LwMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     pwszComputer = wc16sdup(pMachAcctInfo->pwszMachineAccount);
     if (!pwszComputer)
