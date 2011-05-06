@@ -291,6 +291,17 @@ SrvDeviceIoCommon(
                           &ulBytesTransferred);
           break;
 
+      case SRV_DEVCTL_RELOAD_SHARES:
+
+          ntStatus = SrvShareDevCtlReloadConfiguration(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred
+                          );
+          break;
+
       case IO_DEVICE_CTL_STATISTICS:
 
           ntStatus = SrvProcessStatistics(

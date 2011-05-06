@@ -102,8 +102,6 @@ typedef struct _SRV_SHARE_INFO
     SHARE_SERVICE service;
     ULONG ulFlags;
 
-    BOOLEAN bMarkedForDeletion;
-
 } SRV_SHARE_INFO, *PSRV_SHARE_INFO;
 
 typedef struct _SRV_SHARE_ENTRY
@@ -212,6 +210,11 @@ SrvShareSetDefaultSecurity(
 
 NTSTATUS
 SrvShareInitList(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    );
+
+NTSTATUS
+SrvShareReloadConfiguration(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );
 
