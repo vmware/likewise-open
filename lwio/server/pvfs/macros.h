@@ -115,7 +115,7 @@
 #define PVFS_FREE(pp)                           \
     do {                                        \
         if ((*pp) != NULL) {                    \
-            PvfsFreeMemory((PVOID*)pp);         \
+            PvfsFreeMemory(OUT_PPVOID(pp));     \
         }                                       \
     } while(0)
 

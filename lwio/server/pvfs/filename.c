@@ -80,7 +80,7 @@ PvfsFreeFileName(
     if (pFileName)
     {
         PvfsDestroyFileName(pFileName);
-        PvfsFreeMemory((PVOID*)&pFileName);
+        PvfsFreeMemory(OUT_PPVOID(&pFileName));
     }
 
     return;
@@ -280,7 +280,7 @@ PvfsAllocateFileNameFromCString(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_FILE_NAME pFileName = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pFileName, sizeof(*pFileName), TRUE);
+    ntError = PvfsAllocateMemory(OUT_PPVOID(&pFileName), sizeof(*pFileName), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsBuildFileNameFromCString(pFileName, SourceFileName, NameOptions);
@@ -352,7 +352,7 @@ PvfsAllocateFileNameFromScb(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_FILE_NAME pFileName = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pFileName, sizeof(*pFileName), TRUE);
+    ntError = PvfsAllocateMemory(OUT_PPVOID(&pFileName), sizeof(*pFileName), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsBuildFileNameFromScb(pFileName, pScb);
@@ -473,7 +473,7 @@ PvfsFileNameDuplicate(
     *ppDstFileName = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&outFileName,
+                  OUT_PPVOID(&outFileName),
                   sizeof(*outFileName),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -623,13 +623,13 @@ PvfsSplitFileNamePath(
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&fileNameDirectory,
+                  OUT_PPVOID(&fileNameDirectory),
                   sizeof(*fileNameDirectory),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&fileNameRelative,
+                  OUT_PPVOID(&fileNameRelative),
                   sizeof(*fileNameRelative),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -727,7 +727,7 @@ PvfsAppendFileName(
     PPVFS_FILE_NAME destFileName = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&destFileName,
+                  OUT_PPVOID(&destFileName),
                   sizeof(*destFileName),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -860,7 +860,7 @@ PvfsAllocateFileNameList(
     PPVFS_FILE_NAME nameList = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&nameList,
+                  OUT_PPVOID(&nameList),
                   sizeof(*nameList) * ListLength,
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -894,5 +894,5 @@ PvfsFreeFileNameList(
         PvfsDestroyFileName(&NameList[i]);
     }
 
-    PvfsFreeMemory((PVOID*)&NameList);
+    PvfsFreeMemory(OUT_PPVOID(&NameList));
 }

@@ -330,7 +330,7 @@ PvfsListDestroy(
 
             if (pList->pfnFreeData)
             {
-                pList->pfnFreeData((PVOID*)&pData);
+                pList->pfnFreeData(OUT_PPVOID(&pData));
             }
             else
             {

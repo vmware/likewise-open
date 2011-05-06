@@ -113,7 +113,7 @@ PvfsAllocateFCB(
     *ppFcb = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pFcb,
+                  OUT_PPVOID(&pFcb),
                   sizeof(*pFcb),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -288,7 +288,7 @@ PvfsCreateFCB(
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
 
     ntError = PvfsCbTableLookup_inlock(
-                  (PPVFS_CONTROL_BLOCK*)&pFcb,
+                  (PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pFcb),
                   pBucket,
                   pszFilename);
     if (ntError == STATUS_SUCCESS)
@@ -376,7 +376,7 @@ PvfsFindParentFCB(
     ntError = PvfsCbTableGetBucket(&pBucket, &gPvfsDriverState.FcbTable, pszDirname);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCbTableLookup((PPVFS_CONTROL_BLOCK*)&pFcb, pBucket, pszDirname);
+    ntError = PvfsCbTableLookup((PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pFcb), pBucket, pszDirname);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
     {
         ntError = PvfsCreateFCB(
@@ -495,7 +495,7 @@ PvfsRenameFCB(
 
     // Do the rename work now
     ntError = PvfsCbTableLookup_inlock(
-                  (PPVFS_CONTROL_BLOCK*)&pTargetFcb,
+                  (PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pTargetFcb),
                   pTargetBucket,
                   pNewFilename->FileName);
     if (ntError == STATUS_SUCCESS)

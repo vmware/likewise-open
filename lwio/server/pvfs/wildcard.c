@@ -571,7 +571,7 @@ PvfsWildcardStackPush(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_WILDCARD_STATE_ENTRY pState = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pState, sizeof(*pState), TRUE);
+    ntError = PvfsAllocateMemory(OUT_PPVOID(&pState), sizeof(*pState), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pState->pszInputString = pszInputString;
@@ -611,7 +611,7 @@ PvfsWildcardStackPop(
     *ppszInputString = pState->pszInputString;
     *ppszPattern     = pState->pszPattern;
 
-    PvfsFreeMemory((PVOID*)&pState);
+    PvfsFreeMemory(OUT_PPVOID(&pState));
 
     return ntError;
 }

@@ -117,7 +117,7 @@ PvfsAllocateSCB(
     *ppScb = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pScb,
+                  OUT_PPVOID(&pScb),
                   sizeof(PVFS_SCB),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -343,7 +343,7 @@ PvfsCreateSCB(
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBucketLocked, &pBucket->rwLock);
 
     ntError = PvfsCbTableLookup_inlock(
-                  (PPVFS_CONTROL_BLOCK*)&pScb,
+                  (PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pScb),
                   pBucket,
                   fullFileName);
     if (ntError == STATUS_SUCCESS)
@@ -446,7 +446,7 @@ PvfsFindOwnerFCB(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableLookup(
-                  (PPVFS_CONTROL_BLOCK*)&pFcb,
+                  (PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pFcb),
                   pBucket,
                   pszFilename);
     if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
@@ -645,7 +645,7 @@ PvfsAddItemPendingOplockBreakAck(
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pPendingOp,
+                  OUT_PPVOID(&pPendingOp),
                   sizeof(PVFS_OPLOCK_PENDING_OPERATION),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -780,7 +780,7 @@ PvfsAddOplockRecord(
     PPVFS_OPLOCK_RECORD pOplock = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pOplock,
+                  OUT_PPVOID(&pOplock),
                   sizeof(PVFS_OPLOCK_RECORD),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -1005,7 +1005,7 @@ PvfsRenameSCB(
 
     // Do the rename work now
     ntError = PvfsCbTableLookup_inlock(
-                  (PPVFS_CONTROL_BLOCK*)&pTargetScb,
+                  (PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pTargetScb),
                   pTargetBucket,
                   newStreamName);
     if (ntError == STATUS_SUCCESS)

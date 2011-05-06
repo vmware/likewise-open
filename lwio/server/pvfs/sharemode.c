@@ -76,7 +76,7 @@ PvfsCheckShareMode(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCbTableLookup(
-                  (PPVFS_CONTROL_BLOCK*)&pScb,
+                  (PPVFS_CONTROL_BLOCK*)OUT_PPVOID(&pScb),
                   pBucket,
                   fullFileName);
     if (ntError == STATUS_SUCCESS)

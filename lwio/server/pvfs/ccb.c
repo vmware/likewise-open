@@ -62,7 +62,7 @@ PvfsAllocateCCB(
     *ppCCB = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pCCB,
+                  OUT_PPVOID(&pCCB),
                   sizeof(PVFS_CCB),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

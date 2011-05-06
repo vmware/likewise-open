@@ -1011,7 +1011,7 @@ PvfsAllocateCreateContext(
     ntError = PvfsCanonicalPathName2(&originalFileName, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateMemory((PVOID*)&pCreateCtx, sizeof(*pCreateCtx), TRUE);
+    ntError = PvfsAllocateMemory(OUT_PPVOID(&pCreateCtx), sizeof(*pCreateCtx), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateCCB(&pCreateCtx->pCcb);
@@ -1036,7 +1036,7 @@ error:
     {
         if (pCreateCtx)
         {
-            PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+            PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
         }
 
         if (originalFileName)

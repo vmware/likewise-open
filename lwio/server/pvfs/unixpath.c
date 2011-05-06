@@ -181,7 +181,7 @@ PvfsWC16CanonicalPathName(
     BOOLEAN parsingStreamName = FALSE;
 
     ntError = PvfsAllocateMemory(
-                    (PVOID*)&pwszPathname,
+                    OUT_PPVOID(&pwszPathname),
                     PathnameLen + sizeof(WCHAR),
                     FALSE);
     BAIL_ON_NT_STATUS(ntError);

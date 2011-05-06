@@ -179,7 +179,7 @@ PvfsLockControl(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeLockContext((PVOID*)&pLockCtx);
+    PvfsFreeLockContext(OUT_PPVOID(&pLockCtx));
 
     if (pCcb)
     {

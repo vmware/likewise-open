@@ -100,8 +100,9 @@ PvfsDirContextAddEntry(
         ((pDirCtx->dwNumEntries+1) == pDirCtx->ulAllocated))
     {
         pDirCtx->ulAllocated += 256;
-        ntError = PvfsReallocateMemory((PVOID*)&pDirCtx->pDirEntries,
-                                       sizeof(PVFS_DIRECTORY_ENTRY)*pDirCtx->ulAllocated);
+        ntError = PvfsReallocateMemory(
+                      OUT_PPVOID(&pDirCtx->pDirEntries),
+                      sizeof(PVFS_DIRECTORY_ENTRY)*pDirCtx->ulAllocated);
         BAIL_ON_NT_STATUS(ntError);
     }
 

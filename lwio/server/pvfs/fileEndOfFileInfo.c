@@ -195,7 +195,7 @@ PvfsSetFileEndOfFileInfo(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeSetEndOfFileContext((PVOID*)&pSetEoFCtx);
+    PvfsFreeSetEndOfFileContext(OUT_PPVOID(&pSetEoFCtx));
 
     if (pCcb)
     {
@@ -263,7 +263,7 @@ PvfsCreateSetEndOfFileContext(
     PPVFS_PENDING_SET_END_OF_FILE pSetEndOfFileCtx = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pSetEndOfFileCtx,
+                  OUT_PPVOID(&pSetEndOfFileCtx),
                   sizeof(PVFS_PENDING_SET_END_OF_FILE),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);

@@ -96,7 +96,7 @@ PvfsAllocateIrpContext(
     *ppIrpContext = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pIrpContext,
+                  OUT_PPVOID(&pIrpContext),
                   sizeof(PVFS_IRP_CONTEXT),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

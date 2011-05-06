@@ -367,9 +367,10 @@ PvfsSetQuota(
                 BAIL_ON_NT_STATUS(ntError);
             }
 
-            ntError = PvfsAllocateMemory((PVOID*)&pNewQuotaEntry,
-                                         sizeof(*pNewQuotaEntry),
-                                         TRUE);
+            ntError = PvfsAllocateMemory(
+                          OUT_PPVOID(&pNewQuotaEntry),
+                          sizeof(*pNewQuotaEntry),
+                          TRUE);
             BAIL_ON_NT_STATUS(ntError);
 
             ntError = PvfsQuotaUpdateQuotaEntry(pNewQuotaEntry, pQuotaInfo);
@@ -414,7 +415,7 @@ cleanup:
 
 error:
 
-    PvfsFreeMemory((PVOID*)&pNewQuotaEntry);
+    PvfsFreeMemory(OUT_PPVOID(&pNewQuotaEntry));
     PvfsQuotaFreeQuotaEntries(pNewEntries);
 
     goto cleanup;
@@ -452,13 +453,13 @@ PvfsQuotaInitQuotas()
     }
 
     ntError = PvfsAllocateMemory(
-                    (PVOID*)&gpQuotas,
+                    OUT_PPVOID(&gpQuotas),
                     sizeof(*gpQuotas),
                     TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
-                    (PVOID*)&gpQuotas->pNext,
+                    OUT_PPVOID(&gpQuotas->pNext),
                     sizeof(*gpQuotas),
                     TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -503,8 +504,8 @@ error:
 
     if (gpQuotas)
     {
-        PvfsFreeMemory((PVOID*)&gpQuotas->pNext);
-        PvfsFreeMemory((PVOID*)&gpQuotas);
+        PvfsFreeMemory(OUT_PPVOID(&gpQuotas->pNext));
+        PvfsFreeMemory(OUT_PPVOID(&gpQuotas));
     }
 
     gulQuotasSize = 0;
@@ -663,7 +664,7 @@ PvfsQuotaFreeQuotaEntries(
     while (pQuotaEntries)
     {
         PPVFS_QUOTA_ENTRY pNext = pQuotaEntries->pNext;
-        PvfsFreeMemory((PVOID*)&pQuotaEntries);
+        PvfsFreeMemory(OUT_PPVOID(&pQuotaEntries));
         pQuotaEntries = pNext;
     }
 }

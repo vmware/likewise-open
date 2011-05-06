@@ -195,7 +195,7 @@ PvfsSetFileAllocationInfo(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeSetAllocationContext((PVOID*)&pSetAllocationCtx);
+    PvfsFreeSetAllocationContext(OUT_PPVOID(&pSetAllocationCtx));
 
     if (pCcb)
     {
@@ -252,7 +252,7 @@ PvfsCreateSetAllocationContext(
     PPVFS_PENDING_SET_ALLOCATION pSetAllocationCtx = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pSetAllocationCtx,
+                  OUT_PPVOID(&pSetAllocationCtx),
                   sizeof(PVFS_PENDING_SET_ALLOCATION),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);

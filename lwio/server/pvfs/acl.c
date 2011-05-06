@@ -91,7 +91,7 @@ PvfsGetSecurityDescriptorFile(
                                 secDescLength*2,
                                 SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE);
             ntError = PvfsReallocateMemory(
-                          (PVOID*)&secDescBuffer,
+                          OUT_PPVOID(&secDescBuffer),
                           secDescLength);
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -153,7 +153,7 @@ PvfsGetSecurityDescriptorFile(
 error:
     if (secDescBuffer != secDescBufferStatic)
     {
-        PvfsFreeMemory((PVOID*)&secDescBuffer);
+        PvfsFreeMemory(OUT_PPVOID(&secDescBuffer));
     }
 
     return ntError;
@@ -207,7 +207,7 @@ PvfsGetSecurityDescriptorFilename(
                                 secDescLength*2,
                                 SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE);
             ntError = PvfsReallocateMemory(
-                          (PVOID*)&secDescBuffer,
+                          OUT_PPVOID(&secDescBuffer),
                           secDescLength);
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -269,7 +269,7 @@ PvfsGetSecurityDescriptorFilename(
 error:
     if (secDescBuffer != secDescBufferStatic)
     {
-        PvfsFreeMemory((PVOID*)&secDescBuffer);
+        PvfsFreeMemory(OUT_PPVOID(&secDescBuffer));
     }
 
     return ntError;
@@ -419,7 +419,7 @@ PvfsSetSecurityDescriptorFile(
                                     secDescLength*2,
                                     SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE);
                 ntError = PvfsReallocateMemory(
-                              (PVOID*)&secDescBuffer,
+                              OUT_PPVOID(&secDescBuffer),
                               secDescLength);
                 BAIL_ON_NT_STATUS(ntError);
             }
@@ -438,7 +438,7 @@ PvfsSetSecurityDescriptorFile(
         {
             newSecDescLength = secDescLength;
             ntError = PvfsAllocateMemory(
-                          (PVOID*)&newSecDescBuffer,
+                          OUT_PPVOID(&newSecDescBuffer),
                           newSecDescLength,
                           TRUE);
             BAIL_ON_NT_STATUS(ntError);
@@ -487,11 +487,11 @@ error:
 
     if (secDescBuffer != secDescBufferStatic)
     {
-        PvfsFreeMemory((PVOID*)&secDescBuffer);
+        PvfsFreeMemory(OUT_PPVOID(&secDescBuffer));
     }
     if (newSecDescBuffer != newSecDescBufferStatic)
     {
-        PvfsFreeMemory((PVOID*)&newSecDescBuffer);
+        PvfsFreeMemory(OUT_PPVOID(&newSecDescBuffer));
     }
 
     return ntError;
@@ -695,7 +695,7 @@ PvfsCreateFileSecurity(
                                       parentSecDescLength*2,
                                       SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE);
             ntError = PvfsReallocateMemory(
-                          (PVOID*)&parentSecDescBuffer,
+                          OUT_PPVOID(&parentSecDescBuffer),
                           parentSecDescLength);
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -733,7 +733,7 @@ cleanup:
     LW_RTL_FREE(&finalSecDescBuffer);
     if (parentSecDescBuffer != parentSecDescBufferStatic)
     {
-        PvfsFreeMemory((PVOID*)&parentSecDescBuffer);
+        PvfsFreeMemory(OUT_PPVOID(&parentSecDescBuffer));
     }
 
     RtlCStringFree(&pszParentPath);

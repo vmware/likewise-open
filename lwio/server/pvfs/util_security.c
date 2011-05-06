@@ -163,13 +163,13 @@ PvfsAccessCheckFile(
     ntError = PvfsGetSecurityDescriptorFilename(
                   PvfsGetCStringBaseFileName(FileName),
                   SecInfo,
-                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)((PVOID)pRelativeSecDescBuffer),
                   &ulRelativeSecDescLength);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
                   &pSecDesc,
-                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
+                  (PSECURITY_DESCRIPTOR_RELATIVE)((PVOID)pRelativeSecDescBuffer));
     BAIL_ON_NT_STATUS(ntError);
 
     // Tests against NTFS/Win2003R2 show that the file/directory object
@@ -244,13 +244,13 @@ PvfsAccessCheckFile(
             ntError = PvfsGetSecurityDescriptorFilename(
                           PvfsGetCStringBaseFileName(parentDirectoryName),
                           SecInfo,
-                          (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer,
+                          (PSECURITY_DESCRIPTOR_RELATIVE)((PVOID)pParentRelSecDescBuffer),
                           &ulParentRelSecDescLength);
             BAIL_ON_NT_STATUS(ntError);
 
             ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
                           &pParentSecDesc,
-                          (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer);
+                          (PSECURITY_DESCRIPTOR_RELATIVE)((PVOID)pParentRelSecDescBuffer));
             BAIL_ON_NT_STATUS(ntError);
 
             AccessMask = 0;
@@ -350,13 +350,13 @@ PvfsAccessCheckFileEnumerate(
     ntError = PvfsGetSecurityDescriptorFilename(
                   pszFilename,
                   SecInfo,
-                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)((PVOID)pRelativeSecDescBuffer),
                   &ulRelativeSecDescLength);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
                   &pSecDesc,
-                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
+                  (PSECURITY_DESCRIPTOR_RELATIVE)((PVOID)pRelativeSecDescBuffer));
     BAIL_ON_NT_STATUS(ntError);
 
     // Tests against NTFS/Win2003R2 show that the file/directory object

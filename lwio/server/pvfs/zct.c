@@ -172,7 +172,7 @@ PvfsCreateZctContext(
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pZctContext,
+                  OUT_PPVOID(&pZctContext),
                   sizeof(*pZctContext),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);

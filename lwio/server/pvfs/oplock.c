@@ -365,7 +365,7 @@ PvfsOplockBreakNotify(
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pOplockBreakNotifyCtx,
+                  OUT_PPVOID(&pOplockBreakNotifyCtx),
                   sizeof(*pOplockBreakNotifyCtx),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -386,7 +386,7 @@ error:
     {
         if (pOplockBreakNotifyCtx)
         {
-            PvfsFreePendingOplockBreakNotify((PVOID*)&pOplockBreakNotifyCtx);
+            PvfsFreePendingOplockBreakNotify(OUT_PPVOID(&pOplockBreakNotifyCtx));
         }
     }
 
@@ -1774,7 +1774,7 @@ PvfsCreateOplockBreakTestContext(
     PPVFS_PENDING_OPLOCK_BREAK_TEST pTestCtx = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pTestCtx,
+                  OUT_PPVOID(&pTestCtx),
                   sizeof(PVFS_PENDING_OPLOCK_BREAK_TEST),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

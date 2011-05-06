@@ -218,7 +218,7 @@ PvfsReadInternal(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeReadContext((PVOID*)&pReadCtx);
+    PvfsFreeReadContext(OUT_PPVOID(&pReadCtx));
 
     if (pCcb)
     {
@@ -404,7 +404,7 @@ PvfsCreateReadContext(
     PPVFS_PENDING_READ pReadCtx = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pReadCtx,
+                  OUT_PPVOID(&pReadCtx),
                   sizeof(PVFS_PENDING_READ),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

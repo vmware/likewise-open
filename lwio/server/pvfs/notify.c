@@ -441,7 +441,7 @@ PvfsNotifyAllocateFilter(
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pFilter,
+                  OUT_PPVOID(&pFilter),
                   sizeof(PVFS_NOTIFY_FILTER_RECORD),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -491,7 +491,7 @@ PvfsNotifyScheduleFullReport(
     BAIL_ON_INVALID_PTR(pFcb, ntError);
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pReport,
+                  OUT_PPVOID(&pReport),
                   sizeof(PVFS_NOTIFY_REPORT_RECORD),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

@@ -226,7 +226,7 @@ PvfsAddPendingLock(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pPendingLock,
+                  OUT_PPVOID(&pPendingLock),
                   sizeof(PVFS_PENDING_LOCK),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -718,8 +718,9 @@ StoreLock(
     if (pList->NumberOfLocks == pList->ListSize)
     {
         NewListSize = pList->ListSize + 64;
-        ntError = PvfsReallocateMemory((PVOID*)&pList->pLocks,
-                                       sizeof(PVFS_LOCK_ENTRY)*NewListSize);
+        ntError = PvfsReallocateMemory(
+                      OUT_PPVOID(&pList->pLocks),
+                      sizeof(PVFS_LOCK_ENTRY)*NewListSize);
         BAIL_ON_NT_STATUS(ntError);
 
         pList->ListSize = NewListSize;
@@ -1007,7 +1008,7 @@ PvfsCreateLockContext(
     PPVFS_PENDING_LOCK pLockCtx;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pLockCtx,
+                  OUT_PPVOID(&pLockCtx),
                   sizeof(PVFS_PENDING_LOCK),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

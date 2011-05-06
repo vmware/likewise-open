@@ -225,7 +225,7 @@ PvfsCbTableLookup_inlock(
     ntError = LwRtlRBTreeFind(
                   pBucket->pTree,
                   (PVOID)KeyString,
-                  (PVOID*)&pCb);
+                  OUT_PPVOID(&pCb));
     if (ntError == STATUS_NOT_FOUND)
     {
         ntError = STATUS_OBJECT_NAME_NOT_FOUND;
@@ -299,7 +299,7 @@ PvfsHashTableCreate(
     PPVFS_CB_TABLE_ENTRY pNewEntry = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pTable,
+                  OUT_PPVOID(&pTable),
                   sizeof(*pTable),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -310,7 +310,7 @@ PvfsHashTableCreate(
     pTable->fnFree = fnFree;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pTable->ppEntries,
+                  OUT_PPVOID(&pTable->ppEntries),
                   sizeof(*pTable->ppEntries) * sTableSize,
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
@@ -322,7 +322,7 @@ PvfsHashTableCreate(
     for (sIndex=0; sIndex < pTable->sTableSize; sIndex++)
     {
         ntError = PvfsAllocateMemory(
-                      (PVOID*)&pNewEntry,
+                      OUT_PPVOID(&pNewEntry),
                       sizeof(*pNewEntry),
                       FALSE);
         BAIL_ON_NT_STATUS(ntError);
@@ -356,7 +356,7 @@ error:
             LwRtlRBTreeFree(pNewEntry->pTree);
             pNewEntry->pTree = NULL;
         }
-        PvfsFreeMemory((PVOID*)&pNewEntry);
+        PvfsFreeMemory(OUT_PPVOID(&pNewEntry));
     }
 
     goto cleanup;

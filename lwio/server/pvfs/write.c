@@ -218,7 +218,7 @@ PvfsWriteInternal(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeWriteContext((PVOID*)&pWriteCtx);
+    PvfsFreeWriteContext(OUT_PPVOID(&pWriteCtx));
     PvfsFreeZctContext(&pZctContext);
 
     if (pCcb)
@@ -498,7 +498,7 @@ PvfsCreateWriteContext(
     PPVFS_PENDING_WRITE pWriteCtx = NULL;
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pWriteCtx,
+                  OUT_PPVOID(&pWriteCtx),
                   sizeof(PVFS_PENDING_WRITE),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);

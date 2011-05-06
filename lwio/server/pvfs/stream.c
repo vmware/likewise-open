@@ -196,7 +196,7 @@ PvfsEnumerateStreams(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&streamDirectoryContext,
+                  OUT_PPVOID(&streamDirectoryContext),
                   sizeof(*streamDirectoryContext),
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);

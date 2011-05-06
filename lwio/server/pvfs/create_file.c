@@ -314,7 +314,7 @@ PvfsCreateFileSupersede(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     if (directoryName)
     {
@@ -454,7 +454,7 @@ PvfsCreateFileCreate(
 
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     if (directoryName)
     {
@@ -612,7 +612,7 @@ PvfsCreateFileOpenOrOverwrite(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     return ntError;
 
@@ -808,7 +808,7 @@ PvfsCreateFileOpenOrOverwriteIf(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     if (directoryName)
     {

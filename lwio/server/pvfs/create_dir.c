@@ -236,7 +236,7 @@ PvfsCreateDirCreate(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     if (directoryName)
     {
@@ -348,7 +348,7 @@ PvfsCreateDirOpen(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     return ntError;
 
@@ -489,7 +489,7 @@ PvfsCreateDirOpenIf(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+    PvfsFreeCreateContext(OUT_PPVOID(&pCreateCtx));
 
     if (directoryName)
     {

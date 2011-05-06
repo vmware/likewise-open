@@ -81,7 +81,7 @@ PvfsPathCacheAdd(
     }
 
     ntError = PvfsAllocateMemory(
-                  (PVOID*)&pCacheRecord,
+                  OUT_PPVOID(&pCacheRecord),
                   sizeof(PVFS_PATH_CACHE_ENTRY),
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
@@ -135,7 +135,7 @@ PvfsPathCacheLookup(
     ntError = LwioLruGetValue(
                   gpPathCache,
                   (PCVOID)pOriginalFileName,
-                  (PVOID*)&pCacheRecord);
+                  OUT_PPVOID(&pCacheRecord));
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsFileNameDuplicate(&resolvedFileName, &pCacheRecord->FileName);
