@@ -87,6 +87,7 @@ PvfsAllocateCCB(
     pCCB->pwszShareName = NULL;
     pCCB->pDirContext = NULL;
     pCCB->pUserToken = NULL;
+    pCCB->FileSize = 0;
     pCCB->EcpFlags = 0;
     pCCB->ChangeEvent = 0;
     pCCB->bQuotaFile = FALSE;

@@ -222,17 +222,13 @@ PvfsSetAllocationWithContext(
     Args = pSetAllocationCtx->pIrpContext->pIrp->Args.QuerySetInformation;
     pFileInfo = (PFILE_ALLOCATION_INFORMATION)Args.FileInformation;
 
-    ntError = PvfsSysFtruncate(pCcb->fd, (off_t)pFileInfo->AllocationSize);
-    BAIL_ON_NT_STATUS(ntError);
+    PvfsSetFcbAllocationSize(pCcb->pFcb, pFileInfo->AllocationSize);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
-cleanup:
-    return ntError;
 
-error:
-    goto cleanup;
+    return ntError;
 }
 
 /*****************************************************************************

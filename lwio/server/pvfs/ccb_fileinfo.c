@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software
@@ -186,6 +186,7 @@ PvfsCcbQueryFileStandardInformation(
     NTSTATUS ntError = STATUS_SUCCESS;
     PVFS_STAT Stat = {0};
     BOOLEAN bDeletePending = FALSE;
+    LONG64 allocationSize = 0;
 
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
@@ -205,9 +206,12 @@ PvfsCcbQueryFileStandardInformation(
     }
     else
     {
+        allocationSize = PvfsGetFcbAllocationSize(pCcb->pFcb);
+
         pFileInfo->EndOfFile      = Stat.s_size;
-        pFileInfo->AllocationSize = Stat.s_alloc > Stat.s_size ?
-                                    Stat.s_alloc : Stat.s_size;
+        pFileInfo->AllocationSize = PVFS_MAX((Stat.s_alloc > Stat.s_size ?
+                                              Stat.s_alloc : Stat.s_size),
+                                             allocationSize);
 
         pFileInfo->NumberOfLinks  = bDeletePending ?
                                     Stat.s_nlink - 1 :
@@ -229,51 +233,32 @@ error:
 
 NTSTATUS
 PvfsCcbQueryFileNetworkOpenInformation(
-    PPVFS_CCB                      pCcb,
-    PFILE_NETWORK_OPEN_INFORMATION pFileInfo
+    IN PPVFS_CCB pCcb,
+    IN PFILE_NETWORK_OPEN_INFORMATION pFileInfo
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
-    PVFS_STAT Stat = {0};
+    NTSTATUS status = STATUS_SUCCESS;
+    FILE_BASIC_INFORMATION basicInfo = { 0 };
+    FILE_STANDARD_INFORMATION standardInfo = { 0 };
 
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
+    status = PvfsCcbQueryFileBasicInformation(pCcb, &basicInfo);
+    BAIL_ON_NT_STATUS(status);
 
-    /* Timestamps */
+    status = PvfsCcbQueryFileStandardInformation(pCcb, &standardInfo);
+    BAIL_ON_NT_STATUS(status);
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
+    pFileInfo->FileAttributes = basicInfo.FileAttributes;
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, Stat.s_mtime);
-    BAIL_ON_NT_STATUS(ntError);
+    pFileInfo->LastAccessTime = basicInfo.LastAccessTime;
+    pFileInfo->LastWriteTime = basicInfo.LastWriteTime;
+    pFileInfo->ChangeTime = basicInfo.ChangeTime;
+    pFileInfo->CreationTime = basicInfo.CreationTime;
 
-    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, Stat.s_ctime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pFileInfo->AllocationSize = Stat.s_alloc;
-    pFileInfo->EndOfFile      = Stat.s_size;
-
-cleanup:
-
-    return ntError;
+    pFileInfo->EndOfFile = standardInfo.EndOfFile;
+    pFileInfo->AllocationSize = standardInfo.AllocationSize;
 
 error:
 
-    goto cleanup;
+    return status;
 }
 
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

@@ -309,6 +309,7 @@ struct _PVFS_FCB
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
+    LONG64 AllocationSize;
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;

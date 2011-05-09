@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software
@@ -238,18 +238,17 @@ PvfsFcbTableGetBucket(
     IN PVOID pKey
     );
 
+VOID
+PvfsSetFcbAllocationSize(
+    IN PPVFS_FCB pFcb,
+    IN LONG64 AllocationSize
+    );
 
-
-
+LONG64
+PvfsGetFcbAllocationSize(
+    IN PPVFS_FCB pFcb
+    );
 
 
 #endif   /* _PVFS_FCB_H */
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

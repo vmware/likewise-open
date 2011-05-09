@@ -1,6 +1,6 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*-
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ * Editor Settings: expandtabs and use 4 spaces for indentation */
 
 /*
  * Copyright Likewise Software
@@ -189,6 +189,7 @@ PvfsAllocateFCB(
     PVFS_CLEAR_FILEID(pFcb->FileId);
 
     pFcb->LastWriteTime = 0;
+    pFcb->AllocationSize = 0;
     pFcb->bDeleteOnClose = FALSE;
     pFcb->bRemoved = FALSE;
     pFcb->bOplockBreakInProgress = FALSE;
@@ -510,6 +511,14 @@ PvfsRemoveCCBFromFCB(
 
     ntError = PvfsCloseHandleCleanup(pFcb);
     // Ignore errors
+
+    if (PvfsListLength(pFcb->pCcbList) == 0)
+    {
+        // Clear and reset this from disk
+        pFcb->AllocationSize = 0;
+    }
+
+
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwCcbLock);
@@ -1301,14 +1310,36 @@ PvfsSetLastWriteTimeFCB(
     LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwLock);
 }
 
+////////////////////////////////////////////////////////////////////////
 
+VOID
+PvfsSetFcbAllocationSize(
+    IN PPVFS_FCB pFcb,
+    IN LONG64 AllocationSize
+    )
+{
+    BOOLEAN scbLocked = FALSE;
 
+    LWIO_LOCK_MUTEX(scbLocked, &pFcb->ControlBlock);
+    pFcb->AllocationSize = AllocationSize;
+    LWIO_UNLOCK_MUTEX(scbLocked, &pFcb->ControlBlock);
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+    return;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+LONG64
+PvfsGetFcbAllocationSize(
+    IN PPVFS_FCB pFcb
+    )
+{
+    LONG64 allocationSize = 0;
+    BOOLEAN scbLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(scbLocked, &pFcb->ControlBlock);
+    allocationSize = pFcb->AllocationSize;
+    LWIO_UNLOCK_MUTEX(scbLocked, &pFcb->ControlBlock);
+
+    return allocationSize;
+}

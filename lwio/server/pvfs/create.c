@@ -257,8 +257,9 @@ PvfsCreateFileDoSysOpen(
 
         if (bAllocate)
         {
-            ntError = PvfsSysFtruncate(fd, (off_t)Args.AllocationSize);
-            BAIL_ON_NT_STATUS(ntError);
+            PvfsSetFcbAllocationSize(
+                pCreateContext->pCcb->pFcb,
+                Args.AllocationSize);
         }
     }
 
