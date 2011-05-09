@@ -163,7 +163,7 @@ NetrSamLogonNetworkEx(
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    /* pwszDomain can be NULL */
     BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
     BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
     BAIL_ON_INVALID_PTR(pChallenge, ntStatus);
