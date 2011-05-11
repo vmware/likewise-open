@@ -86,7 +86,7 @@ option()
 
 configure()
 {
-    mk_export LW_VERSION="6.2.0"
+    mk_export LW_VERSION="6.1.0"
     mk_export LW_BUNDLED
 
     mk_msg "configuring Likewise Open $LW_VERSION"
