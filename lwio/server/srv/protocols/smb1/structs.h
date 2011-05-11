@@ -201,7 +201,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     PVOID                          pSecurityQOS;
     PIO_ECP_LIST                   pEcpList;
 
-    PSRV_SHARE_INFO                pShareInfo;
     PLWIO_SRV_SESSION              pSession;
     PLWIO_SRV_TREE                 pTree;
 

@@ -147,6 +147,7 @@ SrvProcessTreeConnectAndX(
     PLWIO_SRV_SESSION              pSession      = NULL;
     PWSTR                          pwszSharename = NULL;
     BOOLEAN                        bTConStateInLock = FALSE;
+    PSRV_SHARE_INFO pShareInfo = NULL;
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V1)pCtxSmb1->hState;
     if (pTConState)
@@ -255,7 +256,7 @@ SrvProcessTreeConnectAndX(
             ntStatus = SrvShareFindByName(
                             pConnection->pShareList,
                             pwszSharename,
-                            &pTConState->pShareInfo);
+                            &pShareInfo);
             if (ntStatus == STATUS_NOT_FOUND)
             {
                 ntStatus = STATUS_BAD_NETWORK_NAME;
@@ -264,7 +265,7 @@ SrvProcessTreeConnectAndX(
 
             ntStatus = SrvSessionCreateTree(
                             pSession,
-                            pTConState->pShareInfo,
+                            pShareInfo,
                             &pTConState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -347,6 +348,11 @@ cleanup:
         LWIO_UNLOCK_MUTEX(bTConStateInLock, &pTConState->mutex);
 
         SrvReleaseTreeConnectState(pTConState);
+    }
+
+    if (pShareInfo)
+    {
+        SrvShareReleaseInfo(pShareInfo);
     }
 
     return ntStatus;
@@ -576,26 +582,28 @@ SrvCreateTreeRootHandle(
 
     if (!RTL_STRING_NUM_CHARS(&pTConState->fileName.Name))
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTConState->pShareInfo->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(bShareInLock,
+                                 &pTConState->pTree->pShareInfo->mutex);
 
-        if (LwRtlCStringIsNullOrEmpty(pTConState->pShareInfo->pwszPath))
+        if (LwRtlCStringIsNullOrEmpty(pTConState->pTree->pShareInfo->pwszPath))
         {
             ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
         ntStatus = SrvAllocateUnicodeStringW(
-                        pTConState->pShareInfo->pwszPath,
+                        pTConState->pTree->pShareInfo->pwszPath,
                         &pTConState->fileName.Name);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvIoPrepareEcpList(
                         pTConState->pSession,
-                        pTConState->pShareInfo->pwszName,
+                        pTConState->pTree->pShareInfo->pwszName,
                         &pTConState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pShareInfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bShareInLock,
+                            &pTConState->pTree->pShareInfo->mutex);
     }
 
     if (!pTConState->pTree->hFile)
@@ -628,7 +636,7 @@ SrvCreateTreeRootHandle(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pTree->pShareInfo->mutex);
 
     return ntStatus;
 
@@ -1089,11 +1097,6 @@ SrvFreeTreeConnectState(
     // pSecurityQOS;
 
     SRV_FREE_UNICODE_STRING(&pTConState->fileName.Name);
-
-    if (pTConState->pShareInfo)
-    {
-        SrvShareReleaseInfo(pTConState->pShareInfo);
-    }
 
     if (pTConState->pszService2)
     {
