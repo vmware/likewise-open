@@ -88,8 +88,9 @@ SrvCreateTreeRootHandle_SMB_V2(
 static
 NTSTATUS
 SrvIoPrepareEcpList_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState, /* IN     */
-    PIO_ECP_LIST*                  ppEcpList   /* IN OUT */
+    IN PLWIO_SRV_SESSION_2 pSession,
+    IN PWSTR pwszShareName,
+    IN OUT PIO_ECP_LIST* ppEcpList
     );
 
 static
@@ -489,14 +490,15 @@ SrvCreateTreeRootHandle_SMB_V2(
                         &pTConState->fileName.Name);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvIoPrepareEcpList_SMB_V2(
+                        pTConState->pSession,
+                        pTConState->pTree->pShareInfo->pwszName,
+                        &pTConState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         LWIO_UNLOCK_RWMUTEX(
                     bShareInLock,
                     &pTConState->pTree->pShareInfo->mutex);
-
-        ntStatus = SrvIoPrepareEcpList_SMB_V2(
-                        pTConState,
-                        &pTConState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (!pTConState->pTree->hFile)
@@ -540,8 +542,9 @@ error:
 static
 NTSTATUS
 SrvIoPrepareEcpList_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState, /* IN     */
-    PIO_ECP_LIST*                  ppEcpList   /* IN OUT */
+    IN PLWIO_SRV_SESSION_2 pSession,
+    IN PWSTR pwszShareName,
+    IN OUT PIO_ECP_LIST* ppEcpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -560,7 +563,7 @@ SrvIoPrepareEcpList_SMB_V2(
 
         ntStatus = RtlUnicodeStringAllocateFromWC16String(
                         pShareName,
-                        pTConState->pTree->pShareInfo->pwszName);
+                        pwszShareName);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(
@@ -586,14 +589,13 @@ SrvIoPrepareEcpList_SMB_V2(
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
                         SRV_ECP_TYPE_CLIENT_ADDRESS,
-                        (PVOID) pTConState->pSession->pConnection->pClientAddress,
-                        pTConState->pSession->pConnection->clientAddrLen,
+                        (PVOID)pSession->pConnection->pClientAddress,
+                        pSession->pConnection->clientAddrLen,
                         NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (SrvElementsGetOEMSessionEcpEnabled() &&
-        pTConState->pSession->pOEMSession)
+    if (SrvElementsGetOEMSessionEcpEnabled() && pSession->pOEMSession)
     {
         if (!*ppEcpList)
         {
@@ -604,8 +606,8 @@ SrvIoPrepareEcpList_SMB_V2(
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
                         SRV_ECP_TYPE_OEM_SESSION,
-                        &pTConState->pSession->pOEMSession,
-                        pTConState->pSession->ulOEMSessionLength,
+                        &pSession->pOEMSession,
+                        pSession->ulOEMSessionLength,
                         NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
