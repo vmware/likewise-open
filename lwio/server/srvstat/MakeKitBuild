@@ -1,0 +1,19 @@
+make()
+{
+    SOURCES="\
+        config.c \
+        filelog.c \
+        globals.c \
+        libmain.c \
+        logging.c \
+        statistics.c \
+        times.c \
+"
+    mk_dlo \
+        DLO=libsrv.stat \
+        SOURCES="$SOURCES" \
+        INCLUDEDIRS=". ../../include" \
+        HEADERDEPS="lw/base.h reg/lwntreg.h" \
+        LIBDEPS="lwbase regclient pthread" \
+        SYMFILE="srvstat.sym"
+}
