@@ -155,7 +155,7 @@ PvfsQueryQuota(
     PFILE_GET_QUOTA_INFORMATION pStartSid = pIrp->Args.QueryQuota.StartSid;
     BOOLEAN bRestartScan = pIrp->Args.QueryQuota.RestartScan;
 
-    ntError = PvfsQuotaSanityCheck(pIrp, FILE_GENERIC_READ);
+    ntError = PvfsQuotaSanityCheck(pIrp, FILE_GENERIC_READ & (~SYNCHRONIZE));
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(pBuffer, ntError);
@@ -315,7 +315,9 @@ PvfsSetQuota(
     ULONG ulNewEntriesSize = 0;
     BOOLEAN bMutexLocked = FALSE;
 
-    ntError = PvfsQuotaSanityCheck(pIrp, FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    ntError = PvfsQuotaSanityCheck(
+                    pIrp,
+                    (FILE_GENERIC_READ | FILE_GENERIC_WRITE) & (~SYNCHRONIZE));
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(pBuffer, ntError);

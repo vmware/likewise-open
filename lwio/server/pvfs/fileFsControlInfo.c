@@ -116,8 +116,12 @@ PvfsQueryFileFsControlInfo(
     PIRP pIrp = pIrpContext->pIrp;
     PFILE_FS_CONTROL_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_VOLUME_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetVolumeInformation;
+    PPVFS_CCB pCcb = NULL;
 
-    ntError = PvfsControlInfoSanityCheck(pIrp, FILE_GENERIC_READ);
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FsInformation, ntError);
@@ -159,7 +163,7 @@ PvfsSetFileFsControlInfo(
 
     ntError = PvfsControlInfoSanityCheck(
                     pIrp,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+                    (FILE_GENERIC_READ | FILE_GENERIC_WRITE) & (~SYNCHRONIZE));
     BAIL_ON_NT_STATUS(ntError);
 
     BAIL_ON_INVALID_PTR(Args.FsInformation, ntError);
@@ -209,6 +213,7 @@ PvfsControlInfoSanityCheck(
 
     ntError = PvfsAccessCheckFileHandle(pCcb, desiredAccessMask);
     BAIL_ON_NT_STATUS(ntError);
+
 
     ntError = STATUS_SUCCESS;
 
