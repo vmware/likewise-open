@@ -490,15 +490,16 @@ SrvCreateTreeRootHandle_SMB_V2(
                         &pTConState->fileName.Name);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        LWIO_UNLOCK_RWMUTEX(
+                    bShareInLock,
+                    &pTConState->pTree->pShareInfo->mutex);
+
+        // no need to lock share info here - the name is invariant
         ntStatus = SrvIoPrepareEcpList_SMB_V2(
                         pTConState->pSession,
                         pTConState->pTree->pShareInfo->pwszName,
                         &pTConState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(
-                    bShareInLock,
-                    &pTConState->pTree->pShareInfo->mutex);
     }
 
     if (!pTConState->pTree->hFile)
