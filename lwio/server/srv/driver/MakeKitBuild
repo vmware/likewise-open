@@ -28,7 +28,8 @@ make()
             LIBDEPS="lwbase lwiosmbcommon lwioshareinfo iomgr"
     else
         mk_dlo \
-            DLO=libsrv.sys \
+            DLO=srv \
+            INSTALLDIR="$providerdir" \
             SOURCES="$DRIVER_SOURCES" \
             GROUPS="../protocols/api/api ../transport/threadpool/threadpool ../elements/elements ../shares/api/api ../utils/utils ../statistics/statistics ../oem/oem" \
             INCLUDEDIRS=". ../include ../../include ../../../include ../../../../include" \
