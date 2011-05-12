@@ -58,6 +58,9 @@
 /*****************************************************************************
  ****************************************************************************/
 
+/* Todo: when hard link support HCB in file system driver is in place,
+ * oplock break can be plumbed in. */
+
 static
 NTSTATUS
 PvfsSetFileLinkInfo(

@@ -54,12 +54,35 @@ PvfsSetFileDispositionInfo(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
-
 /* File Globals */
 
 
 
 /* Code */
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsSetFileDispositionInfoWithContext(
+    PVOID pContext
+    );
+
+static
+NTSTATUS
+PvfsCreateSetFileDispositionInfoContext(
+    OUT PPVFS_PENDING_SET_FILE_DISPOSITION *ppSetDispositionInfoContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    );
+
+static
+VOID
+PvfsFreeSetFileDispositionInfoContext(
+    IN OUT PVOID *ppContext
+    );
+
 
 
 NTSTATUS
@@ -93,6 +116,8 @@ error:
     goto cleanup;
 }
 
+/****************************************************************
+ ***************************************************************/
 
 static
 NTSTATUS
@@ -103,21 +128,16 @@ PvfsSetFileDispositionInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
     PFILE_DISPOSITION_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    IO_MATCH_FILE_SPEC FileSpec = {0};
-    WCHAR wszPattern[2] = {L'*', 0x0 };
-    FILE_ATTRIBUTES Attributes = 0;
+    PPVFS_PENDING_SET_FILE_DISPOSITION pSetDispositionInfoCtx = NULL;
+
+    Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
 
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
-
-    ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
-    BAIL_ON_NT_STATUS(ntError);
+    pFileInfo = (PFILE_DISPOSITION_INFORMATION)Args.FileInformation;
 
     if (Args.Length < sizeof(*pFileInfo))
     {
@@ -125,7 +145,104 @@ PvfsSetFileDispositionInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCreateSetFileDispositionInfoContext(
+                  &pSetDispositionInfoCtx,
+                  pIrpContext,
+                  pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pFileInfo->DeleteFile)
+    {
+        ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
+    }
+    else
+    {
+        ntError = STATUS_SUCCESS;
+    }
+
+    switch (ntError)
+    {
+    case STATUS_SUCCESS:
+        ntError = PvfsSetFileDispositionInfoWithContext(pSetDispositionInfoCtx);
+        break;
+
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pSetDispositionInfoCtx->pCcb->pScb,
+                      pIrpContext,
+                      pSetDispositionInfoCtx->pCcb,
+                      PvfsSetFileDispositionInfoWithContext,
+                      PvfsFreeSetFileDispositionInfoContext,
+                      (PVOID)pSetDispositionInfoCtx);
+        if (ntError == STATUS_PENDING)
+        {
+            pSetDispositionInfoCtx = NULL;
+        }
+        break;
+
+    case STATUS_PENDING:
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pSetDispositionInfoCtx->pCcb->pScb,
+                      pIrpContext,
+                      PvfsSetFileDispositionInfoWithContext,
+                      PvfsFreeSetFileDispositionInfoContext,
+                      (PVOID)pSetDispositionInfoCtx);
+        if (ntError == STATUS_PENDING)
+        {
+            pSetDispositionInfoCtx = NULL;
+        }
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsFreeSetFileDispositionInfoContext(OUT_PPVOID(&pSetDispositionInfoCtx));
+
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+
+static
+NTSTATUS
+PvfsSetFileDispositionInfoWithContext(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_FILE_DISPOSITION pSetFileDispositionCtx = (PPVFS_PENDING_SET_FILE_DISPOSITION)pContext;
+    PIRP pIrp = pSetFileDispositionCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pSetFileDispositionCtx->pCcb;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
+    PFILE_DISPOSITION_INFORMATION pFileInfo = NULL;
+    IO_MATCH_FILE_SPEC FileSpec = {0};
+    WCHAR wszPattern[2] = {L'*', 0x0 };
+    FILE_ATTRIBUTES Attributes = 0;
+
+    /* Sanity checks */
+
+    Args = pSetFileDispositionCtx->pIrpContext->pIrp->Args.QuerySetInformation;
     pFileInfo = (PFILE_DISPOSITION_INFORMATION)Args.FileInformation;
+
+    if (Args.Length < sizeof(*pFileInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Real work starts here */
 
@@ -173,13 +290,76 @@ PvfsSetFileDispositionInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
     return ntError;
 
 error:
     goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsCreateSetFileDispositionInfoContext(
+    OUT PPVFS_PENDING_SET_FILE_DISPOSITION *ppSetDispositionInfoContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_FILE_DISPOSITION pSetDispositionInfoCtx = NULL;
+
+    ntError = PvfsAllocateMemory(
+		      OUT_PPVOID(&pSetDispositionInfoCtx),
+                  sizeof(PVFS_PENDING_SET_FILE_DISPOSITION),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->SetFileType = PVFS_SET_FILE_DISPOSITION;
+    pSetDispositionInfoCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
+    pSetDispositionInfoCtx->pCcb = PvfsReferenceCCB(pCcb);
+
+    *ppSetDispositionInfoContext = pSetDispositionInfoCtx;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsFreeSetFileDispositionInfoContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    PPVFS_PENDING_SET_FILE_DISPOSITION pDispositionInfoCtx = NULL;
+
+    if (ppContext && *ppContext)
+    {
+        pDispositionInfoCtx = (PPVFS_PENDING_SET_FILE_DISPOSITION)(*ppContext);
+
+        if (pDispositionInfoCtx->pIrpContext)
+        {
+            PvfsReleaseIrpContext(&pDispositionInfoCtx->pIrpContext);
+        }
+
+        if (pDispositionInfoCtx->pCcb)
+        {
+            PvfsReleaseCCB(pDispositionInfoCtx->pCcb);
+        }
+
+        PVFS_FREE(ppContext);
+    }
+
+    return;
 }
 
