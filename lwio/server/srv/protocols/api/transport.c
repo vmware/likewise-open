@@ -768,8 +768,6 @@ cleanup:
         {
             LWIO_LOG_ERROR("Failed to synchronously execute server task (status = 0x%08x)", ntStatus2);
             // TODO: Do we need to disconnect if we fail to execute?
-            //       Need to check w/Sriram.
-            LWIO_ASSERT(FALSE);
         }
 
         SrvReleaseExecContext(pZctExecContext);

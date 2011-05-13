@@ -1091,6 +1091,9 @@ SrvSocketProcessTaskDisconnect(
 
     LWIO_ASSERT(pSocket->DoneStatus);
 
+    LWIO_LOG_WARNING("Disconnecting socket (status = 0x%08x)",
+	pSocket->DoneStatus);
+
     // For debugging only - the state machine should call in here just once
     // because this function will cancel the task.
 
