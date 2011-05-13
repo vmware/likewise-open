@@ -343,7 +343,7 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     pFSVolInfo = (PFILE_FS_VOLUME_INFORMATION)pGetInfoState->pData2;
 
     pGetInfoResponseHeader->ulOutBufferLength = sizeof(SMB_FS_VOLUME_INFO_HEADER);
-    // pGetInfoResponseHeader->ulOutBufferLength += pFSVolInfo->VolumeLabelLength;
+    pGetInfoResponseHeader->ulOutBufferLength += pFSVolInfo->VolumeLabelLength;
 
     if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
     {
@@ -360,17 +360,15 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     pFSVolInfoHeader->bSupportsObjects     = pFSVolInfo->SupportsObjects;
     pFSVolInfoHeader->llVolumeCreationTime = pFSVolInfo->VolumeCreationTime;
     pFSVolInfoHeader->ulVolumeSerialNumber = pFSVolInfo->VolumeSerialNumber;
-    pFSVolInfoHeader->ulVolumeLabelLength = 0;
+    pFSVolInfoHeader->ulVolumeLabelLength  = pFSVolInfo->VolumeLabelLength;
     pFSVolInfoHeader->pad = 0;
 
-    // pFSVolInfoHeader->ulVolumeLabelLength  = pFSVolInfo->VolumeLabelLength;
-    // if (pFSVolInfo->VolumeLabelLength)
-    // {
-    //     memcpy( pOutBuffer,
-    //             (PBYTE)pFSVolInfo->VolumeLabel,
-    //             pFSVolInfo->VolumeLabelLength);
-    // }
-
+    if (pFSVolInfo->VolumeLabelLength)
+    {
+        memcpy(pOutBuffer,
+                (PBYTE)pFSVolInfo->VolumeLabel,
+                pFSVolInfo->VolumeLabelLength);
+    }
     ulTotalBytesUsed += pGetInfoResponseHeader->ulOutBufferLength;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
