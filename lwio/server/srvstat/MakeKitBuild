@@ -13,7 +13,7 @@ make()
         DLO=libsrv.stat \
         SOURCES="$SOURCES" \
         INCLUDEDIRS=". ../../include" \
-        HEADERDEPS="lw/base.h reg/lwntreg.h" \
+        HEADERDEPS="lw/base.h reg/lwreg.h" \
         LIBDEPS="lwbase regclient pthread" \
         SYMFILE="srvstat.sym"
 }
