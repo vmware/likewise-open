@@ -71,7 +71,7 @@ SrvTree2FindFile_SMB_V2(
     {
         if (!pSmb2Context->pFile)
         {
-            ntStatus = STATUS_INVALID_PARAMETER;
+            ntStatus = STATUS_FILE_CLOSED;
         }
         else
         {
@@ -87,7 +87,7 @@ SrvTree2FindFile_SMB_V2(
         }
         else
         {
-            ntStatus = STATUS_INVALID_PARAMETER;
+            ntStatus = STATUS_FILE_CLOSED;
         }
     }
     else
