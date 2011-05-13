@@ -228,6 +228,7 @@ SrvSocketCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->RefCount = 1;
+    pSocket->fd = -1; //Make sure we don't close fd 0, if we error out
     LwListInit(&pSocket->SendHead);
 
     ntStatus = LwRtlInitializeMutex(&pSocket->Mutex, TRUE);
@@ -237,7 +238,6 @@ SrvSocketCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->pListener = pListener;
-    pSocket->fd = fd;
 
     memcpy(&pSocket->ClientAddress.Addr, pClientAddress, ClientAddressLength);
     pSocket->ClientAddressLength = ClientAddressLength;
@@ -260,6 +260,8 @@ SrvSocketCreate(
                     SrvSocketProcessTask,
                     pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSocket->fd = fd;
 
     // Referenced by task
     SrvSocketAcquire(pSocket);
