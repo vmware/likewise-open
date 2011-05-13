@@ -55,6 +55,14 @@ SrvGetCommandDescription_SMB_V1(
     USHORT usCommand
     );
 
+static
+NTSTATUS
+SrvProcessRequestSpecific_SMB_V1(
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    OUT PBOOLEAN pNeedPopStatistics,
+    OUT PULONG pStatisticsCommand
+    );
+
 NTSTATUS
 SrvProtocolInit_SMB_V1(
     VOID
@@ -86,8 +94,8 @@ SrvProtocolExecute_SMB_V1(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context = NULL;
-    UCHAR    ucCurrentCommand = 0;
-    BOOLEAN  bPopStatMessage  = FALSE;
+    BOOLEAN needPopStatistics = FALSE;
+    ULONG statisticsCommand = 0;
 
     if (!pExecContext->pProtocolContext->pSmb1Context)
     {
@@ -195,260 +203,10 @@ SrvProtocolExecute_SMB_V1(
                         SMB_V1_GET_PROCESS_ID(pRequest->pHeader),
                         pRequest->pHeader->tid);
 
-        if (pExecContext->pStatInfo)
-        {
-            ucCurrentCommand = pRequest->ucCommand;
-
-            ntStatus = SrvStatisticsPushMessage(
-                            pExecContext->pStatInfo,
-                            ucCurrentCommand,
-                            pRequest->ulMessageSize);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            bPopStatMessage = TRUE;
-        }
-
-        switch (pRequest->ucCommand)
-        {
-            case COM_NEGOTIATE:
-
-                // Handled at a higher layer
-                ntStatus = STATUS_INTERNAL_ERROR;
-
-                break;
-
-            case COM_SESSION_SETUP_ANDX:
-
-                switch (SrvConnectionGetState(pExecContext->pConnection))
-                {
-                    case LWIO_SRV_CONN_STATE_NEGOTIATE:
-                    case LWIO_SRV_CONN_STATE_READY:
-
-                        break;
-
-                    default:
-
-                        ntStatus = STATUS_INVALID_SERVER_STATE;
-                        break;
-                }
-
-                break;
-
-            default:
-
-                switch (SrvConnectionGetState(pExecContext->pConnection))
-                {
-                    case LWIO_SRV_CONN_STATE_READY:
-
-                        break;
-
-                    default:
-
-                        ntStatus = STATUS_INVALID_SERVER_STATE;
-
-                        break;
-                }
-
-                break;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        switch (pRequest->ucCommand)
-        {
-            case COM_SESSION_SETUP_ANDX:
-
-                ntStatus = SrvProcessSessionSetup(pExecContext);
-
-                break;
-
-            case COM_TREE_CONNECT_ANDX:
-
-                ntStatus = SrvProcessTreeConnectAndX(pExecContext);
-
-                break;
-
-            case COM_OPEN_ANDX:
-
-                ntStatus = SrvProcessOpenAndX(pExecContext);
-
-                break;
-
-            case COM_NT_CREATE_ANDX:
-
-                ntStatus = SrvProcessNTCreateAndX(pExecContext);
-
-                break;
-
-            case COM_NT_CANCEL:
-
-                ntStatus = SrvProcessNTCancel(pExecContext);
-
-                break;
-
-            case COM_LW_OPLOCK:
-
-                if (!pExecContext->bInternal)
-                {
-                    ntStatus = STATUS_INVALID_PARAMETER;
-                }
-                else
-                {
-                    ntStatus = SrvProcessOplock(pExecContext);
-                }
-
-                break;
-
-            case COM_LOCKING_ANDX:
-
-                ntStatus = SrvProcessLockAndX(pExecContext);
-
-                break;
-
-            case COM_READ:
-
-                ntStatus = SrvProcessRead(pExecContext);
-
-                break;
-
-            case COM_READ_ANDX:
-
-                ntStatus = SrvProcessReadAndX(pExecContext);
-
-                break;
-
-            case COM_WRITE:
-
-                ntStatus = SrvProcessWrite(pExecContext);
-
-                break;
-
-            case COM_WRITE_ANDX:
-
-                ntStatus = SrvProcessWriteAndX(pExecContext);
-
-                break;
-
-            case COM_SET_INFORMATION:
-
-                ntStatus = SrvProcessSetInformation(pExecContext);
-
-                break;
-
-            case COM_SET_INFORMATION2:
-
-                ntStatus = SrvProcessSetInformation2(pExecContext);
-
-                break;
-
-            case COM_QUERY_INFORMATION2:
-
-                ntStatus = SrvProcessQueryInformation2(pExecContext);
-
-                break;
-
-            case COM_TRANSACTION:
-
-                ntStatus = SrvProcessTransaction(pExecContext);
-
-                break;
-
-            case COM_TRANSACTION2:
-
-                ntStatus = SrvProcessTransaction2(pExecContext);
-
-                break;
-
-            case COM_FIND_CLOSE2:
-
-                ntStatus = SrvProcessFindClose2(pExecContext);
-
-                break;
-
-            case COM_CLOSE:
-
-                ntStatus = SrvProcessCloseAndX(pExecContext);
-
-                break;
-
-            case COM_CREATE_DIRECTORY:
-
-                ntStatus = SrvProcessCreateDirectory(pExecContext);
-
-                break;
-
-            case COM_DELETE_DIRECTORY:
-
-                ntStatus = SrvProcessDeleteDirectory(pExecContext);
-
-                break;
-
-            case COM_DELETE:
-
-                ntStatus = SrvProcessDelete(pExecContext);
-
-                break;
-
-            case COM_RENAME:
-
-                ntStatus = SrvProcessRename(pExecContext);
-
-                break;
-
-            case COM_NT_RENAME:
-
-                ntStatus = SrvProcessNtRename(pExecContext);
-
-                break;
-
-            case COM_NT_TRANSACT:
-
-                if (pExecContext->bInternal)
-                {
-                    ntStatus = SrvProcessNtTransactInternal(pExecContext);
-                }
-                else
-                {
-                    ntStatus = SrvProcessNtTransact(pExecContext);
-                }
-
-                break;
-
-            case COM_TREE_DISCONNECT:
-
-                ntStatus = SrvProcessTreeDisconnectAndX(pExecContext);
-
-                break;
-
-            case COM_ECHO:
-
-                ntStatus = SrvProcessEchoAndX(pExecContext);
-
-                break;
-
-            case COM_FLUSH:
-
-                ntStatus = SrvProcessFlush(pExecContext);
-
-                break;
-
-            case COM_LOGOFF_ANDX:
-
-                ntStatus = SrvProcessLogoffAndX(pExecContext);
-
-                break;
-
-            case COM_CHECK_DIRECTORY:
-
-                ntStatus = SrvProcessCheckDirectory(pExecContext);
-
-                break;
-
-            default:
-
-                ntStatus = STATUS_NOT_SUPPORTED;
-
-                break;
-        }
+        ntStatus = SrvProcessRequestSpecific_SMB_V1(
+                        pExecContext,
+                        &needPopStatistics,
+                        &statisticsCommand);
 
         SRV_LOG_VERBOSE(
                 pExecContext->pLogContext,
@@ -485,7 +243,9 @@ SrvProtocolExecute_SMB_V1(
             default:
 
                 if (pExecContext->bInternal)
+                {
                     break;
+                }
 
                 if (iMsg == 0)
                 {
@@ -523,20 +283,20 @@ SrvProtocolExecute_SMB_V1(
         /* Don't set ANDX offsets for failure responses */
 
         if (pResponse->pHeader &&
-	        (pResponse->pHeader->error == STATUS_SUCCESS) &&
-	        pResponse->pAndXHeader)
+            (pResponse->pHeader->error == STATUS_SUCCESS) &&
+            pResponse->pAndXHeader)
         {
             pResponse->pAndXHeader->andXOffset = pResponse->ulMessageSize;
         }
 
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
 
-        if (bPopStatMessage)
+        if (needPopStatistics)
         {
             NTSTATUS ntStatus2 =
                     SrvStatisticsPopMessage(
                             pExecContext->pStatInfo,
-                            ucCurrentCommand,
+                            statisticsCommand,
                             (pResponse->ulMessageSize ?
                                     pResponse->ulMessageSize :
                                     pResponse->ulZctMessageSize),
@@ -548,8 +308,8 @@ SrvProtocolExecute_SMB_V1(
                                 "[error: %u]", ntStatus2);
             }
 
-            bPopStatMessage = FALSE;
-            ucCurrentCommand = 0;
+            needPopStatistics = FALSE;
+            statisticsCommand = 0;
         }
     }
 
@@ -591,12 +351,12 @@ error:
 
         default:
 
-            if (bPopStatMessage)
+            if (needPopStatistics)
             {
                 NTSTATUS ntStatus2 =
                         SrvStatisticsPopMessage(
                                 pExecContext->pStatInfo,
-                                ucCurrentCommand,
+                                statisticsCommand,
                                 pExecContext->pSmbResponse->bufferUsed,
                                 ntStatus);
                 if (ntStatus2)
@@ -630,6 +390,210 @@ SrvProtocolCloseFile_SMB_V1(
     SrvFileRundown(pFile);
 
 error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvProcessRequestSpecific_SMB_V1(
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    OUT PBOOLEAN pNeedPopStatistics,
+    OUT PULONG pStatisticsCommand
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context = pExecContext->pProtocolContext->pSmb1Context;
+    ULONG iMsg = pSmb1Context->iMsg;
+    PSRV_MESSAGE_SMB_V1 pRequest  = &pSmb1Context->pRequests[iMsg];
+    BOOLEAN needPopStatistics = FALSE;
+    ULONG statisticsCommand = 0;
+
+    if (pExecContext->pStatInfo)
+    {
+        statisticsCommand = pRequest->ucCommand;
+
+        ntStatus = SrvStatisticsPushMessage(
+                        pExecContext->pStatInfo,
+                        statisticsCommand,
+                        pRequest->ulMessageSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        needPopStatistics = TRUE;
+    }
+
+    switch (pRequest->ucCommand)
+    {
+        case COM_NEGOTIATE:
+            // Handled at a higher layer
+            LWIO_ASSERT_MSG(FALSE, "Handled at a higher layer");
+            ntStatus = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+        case COM_SESSION_SETUP_ANDX:
+            switch (SrvConnectionGetState(pExecContext->pConnection))
+            {
+                case LWIO_SRV_CONN_STATE_NEGOTIATE:
+                case LWIO_SRV_CONN_STATE_READY:
+                    break;
+                default:
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+            }
+            break;
+
+        default:
+            switch (SrvConnectionGetState(pExecContext->pConnection))
+            {
+                case LWIO_SRV_CONN_STATE_READY:
+                    break;
+                default:
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+            }
+            break;
+    }
+
+    switch (pRequest->ucCommand)
+    {
+        case COM_SESSION_SETUP_ANDX:
+            ntStatus = SrvProcessSessionSetup(pExecContext);
+            break;
+
+        case COM_TREE_CONNECT_ANDX:
+            ntStatus = SrvProcessTreeConnectAndX(pExecContext);
+            break;
+
+        case COM_OPEN_ANDX:
+            ntStatus = SrvProcessOpenAndX(pExecContext);
+            break;
+
+        case COM_NT_CREATE_ANDX:
+            ntStatus = SrvProcessNTCreateAndX(pExecContext);
+            break;
+
+        case COM_NT_CANCEL:
+            ntStatus = SrvProcessNTCancel(pExecContext);
+            break;
+
+        case COM_LW_OPLOCK:
+            if (!pExecContext->bInternal)
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+            }
+            else
+            {
+                ntStatus = SrvProcessOplock(pExecContext);
+            }
+            break;
+
+        case COM_LOCKING_ANDX:
+            ntStatus = SrvProcessLockAndX(pExecContext);
+            break;
+
+        case COM_READ:
+            ntStatus = SrvProcessRead(pExecContext);
+            break;
+
+        case COM_READ_ANDX:
+            ntStatus = SrvProcessReadAndX(pExecContext);
+            break;
+
+        case COM_WRITE:
+            ntStatus = SrvProcessWrite(pExecContext);
+            break;
+
+        case COM_WRITE_ANDX:
+            ntStatus = SrvProcessWriteAndX(pExecContext);
+            break;
+
+        case COM_SET_INFORMATION:
+            ntStatus = SrvProcessSetInformation(pExecContext);
+            break;
+
+        case COM_SET_INFORMATION2:
+            ntStatus = SrvProcessSetInformation2(pExecContext);
+            break;
+
+        case COM_QUERY_INFORMATION2:
+            ntStatus = SrvProcessQueryInformation2(pExecContext);
+            break;
+
+        case COM_TRANSACTION:
+            ntStatus = SrvProcessTransaction(pExecContext);
+            break;
+
+        case COM_TRANSACTION2:
+            ntStatus = SrvProcessTransaction2(pExecContext);
+            break;
+
+        case COM_FIND_CLOSE2:
+            ntStatus = SrvProcessFindClose2(pExecContext);
+            break;
+
+        case COM_CLOSE:
+            ntStatus = SrvProcessCloseAndX(pExecContext);
+            break;
+
+        case COM_CREATE_DIRECTORY:
+            ntStatus = SrvProcessCreateDirectory(pExecContext);
+            break;
+
+        case COM_DELETE_DIRECTORY:
+            ntStatus = SrvProcessDeleteDirectory(pExecContext);
+            break;
+
+        case COM_DELETE:
+            ntStatus = SrvProcessDelete(pExecContext);
+            break;
+
+        case COM_RENAME:
+            ntStatus = SrvProcessRename(pExecContext);
+            break;
+
+        case COM_NT_RENAME:
+            ntStatus = SrvProcessNtRename(pExecContext);
+            break;
+
+        case COM_NT_TRANSACT:
+            if (pExecContext->bInternal)
+            {
+                ntStatus = SrvProcessNtTransactInternal(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvProcessNtTransact(pExecContext);
+            }
+            break;
+
+        case COM_TREE_DISCONNECT:
+            ntStatus = SrvProcessTreeDisconnectAndX(pExecContext);
+            break;
+
+        case COM_ECHO:
+            ntStatus = SrvProcessEchoAndX(pExecContext);
+            break;
+
+        case COM_FLUSH:
+            ntStatus = SrvProcessFlush(pExecContext);
+            break;
+
+        case COM_LOGOFF_ANDX:
+            ntStatus = SrvProcessLogoffAndX(pExecContext);
+            break;
+
+        case COM_CHECK_DIRECTORY:
+            ntStatus = SrvProcessCheckDirectory(pExecContext);
+            break;
+
+        default:
+            ntStatus = STATUS_NOT_SUPPORTED;
+            break;
+    }
+
+error:
+    *pNeedPopStatistics = needPopStatistics;
+    *pStatisticsCommand = statisticsCommand;
 
     return ntStatus;
 }

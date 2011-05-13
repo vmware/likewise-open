@@ -372,11 +372,19 @@ SrvProtocolExecute_SMB_V1_Filter(
                                     pContext->pStatInfo,
                                     pSmbRequest->pSMBHeader->command,
                                     pSmbRequest->pNetBIOSHeader->len);
-                    BAIL_ON_NT_STATUS(ntStatus);
+                    if (ntStatus)
+                    {
+                        LWIO_ASSERT(ntStatus != STATUS_PENDING);
+                        ntStatus = SrvProtocolBuildErrorResponse_SMB_V1(
+                                        pConnection,
+                                        pSmbRequest->pSMBHeader,
+                                        ntStatus,
+                                        &pContext->pSmbResponse);
+                        break;
+                    }
                 }
 
                 ntStatus = SrvProcessNegotiate(pContext);
-
                 if ((ntStatus != STATUS_SUCCESS) && (ntStatus != STATUS_PENDING))
                 {
                     ntStatus = SrvProtocolBuildErrorResponse_SMB_V1(

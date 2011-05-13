@@ -52,7 +52,9 @@
 static
 NTSTATUS
 SrvProcessRequestSpecific_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    OUT PBOOLEAN pNeedPopStatistics,
+    OUT PULONG pStatisticsCommand
     );
 
 static
@@ -89,8 +91,8 @@ SrvProtocolExecute_SMB_V2(
     NTSTATUS                 ntStatus     = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION     pConnection  = pExecContext->pConnection;
     PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context = NULL;
-    USHORT   usCurrentCommand = 0;
-    BOOLEAN  bPopStatMessage  = FALSE;
+    BOOLEAN needPopStatistics = FALSE;
+    ULONG statisticsCommand = 0;
 
     if (!pExecContext->pProtocolContext->pSmb2Context)
     {
@@ -131,7 +133,6 @@ SrvProtocolExecute_SMB_V2(
          pSmb2Context->iMsg++)
     {
         ULONG iMsg = pSmb2Context->iMsg;
-        PSRV_MESSAGE_SMB_V2 pRequest = &pSmb2Context->pRequests[iMsg];
         PSRV_MESSAGE_SMB_V2 pResponse = &pSmb2Context->pResponses[iMsg];
         PSRV_MESSAGE_SMB_V2 pPrevResponse = NULL;
 
@@ -169,21 +170,10 @@ SrvProtocolExecute_SMB_V2(
         pResponse->ulBytesAvailable =   pExecContext->pSmbResponse->bufferLen -
                                         pExecContext->pSmbResponse->bufferUsed;
 
-        if (pExecContext->pStatInfo)
-        {
-            usCurrentCommand = pRequest->pHeader->command;
-
-            ntStatus = SrvStatisticsPushMessage(
-                            pExecContext->pStatInfo,
-                            usCurrentCommand,
-                            pRequest->ulMessageSize);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            bPopStatMessage = TRUE;
-        }
-
-        ntStatus = SrvProcessRequestSpecific_SMB_V2(pExecContext);
-
+        ntStatus = SrvProcessRequestSpecific_SMB_V2(
+                        pExecContext,
+                        &needPopStatistics,
+                        &statisticsCommand);
         switch (ntStatus)
         {
             case STATUS_PENDING:
@@ -232,12 +222,12 @@ SrvProtocolExecute_SMB_V2(
 
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
 
-        if (bPopStatMessage)
+        if (needPopStatistics)
         {
             NTSTATUS ntStatus2 =
                     SrvStatisticsPopMessage(
                             pExecContext->pStatInfo,
-                            usCurrentCommand,
+                            statisticsCommand,
                             (pResponse->ulMessageSize ?
                                     pResponse->ulMessageSize :
                                     pResponse->ulZctMessageSize),
@@ -249,8 +239,8 @@ SrvProtocolExecute_SMB_V2(
                                 "[error: %u]", ntStatus2);
             }
 
-            bPopStatMessage = FALSE;
-            usCurrentCommand = 0;
+            needPopStatistics = FALSE;
+            statisticsCommand = 0;
         }
     }
 
@@ -297,12 +287,12 @@ error:
 
         default:
 
-            if (bPopStatMessage)
+            if (needPopStatistics)
             {
                 NTSTATUS ntStatus2 =
                         SrvStatisticsPopMessage(
                                 pExecContext->pStatInfo,
-                                usCurrentCommand,
+                                statisticsCommand,
                                 pExecContext->pSmbResponse->bufferUsed,
                                 ntStatus);
                 if (ntStatus2)
@@ -343,7 +333,9 @@ error:
 static
 NTSTATUS
 SrvProcessRequestSpecific_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+    IN PSRV_EXEC_CONTEXT pExecContext,
+    OUT PBOOLEAN pNeedPopStatistics,
+    OUT PULONG pStatisticsCommand
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
@@ -351,6 +343,21 @@ SrvProcessRequestSpecific_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    BOOLEAN needPopStatistics = FALSE;
+    ULONG statisticsCommand = 0;
+
+    if (pExecContext->pStatInfo)
+    {
+        statisticsCommand = pSmbRequest->pHeader->command;
+
+        ntStatus = SrvStatisticsPushMessage(
+                        pExecContext->pStatInfo,
+                        statisticsCommand,
+                        pSmbRequest->ulMessageSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        needPopStatistics = TRUE;
+    }
 
     SRV_LOG_VERBOSE(pExecContext->pLogContext,
                     SMB_PROTOCOL_VERSION_2,
@@ -422,52 +429,40 @@ SrvProcessRequestSpecific_SMB_V2(
     switch (pSmbRequest->pHeader->command)
     {
         case COM2_NEGOTIATE:
-
             ntStatus = SrvProcessNegotiate_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvConnectionSetState(
                     pExecContext->pConnection,
                     LWIO_SRV_CONN_STATE_NEGOTIATE);
-
             break;
 
         case COM2_ECHO:
         case COM2_SESSION_SETUP:
-
             {
                 switch (SrvConnectionGetState(pExecContext->pConnection))
                 {
                     case LWIO_SRV_CONN_STATE_NEGOTIATE:
                     case LWIO_SRV_CONN_STATE_READY:
-
                         break;
 
                     default:
-
                         ntStatus = STATUS_INVALID_SERVER_STATE;
-
                         break;
                 }
             }
-
             break;
 
         default:
-
             switch (SrvConnectionGetState(pExecContext->pConnection))
             {
                 case LWIO_SRV_CONN_STATE_READY:
-
                     break;
 
                 default:
-
                     ntStatus = STATUS_INVALID_SERVER_STATE;
-
                     break;
             }
-
             break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
@@ -475,65 +470,45 @@ SrvProcessRequestSpecific_SMB_V2(
     switch (pSmbRequest->pHeader->command)
     {
         case COM2_NEGOTIATE:
-
             break;
 
         case COM2_SESSION_SETUP:
-
             ntStatus = SrvProcessSessionSetup_SMB_V2(pExecContext);
-
             break;
 
         case COM2_LOGOFF:
-
             ntStatus = SrvProcessLogoff_SMB_V2(pExecContext);
-
             break;
 
         case COM2_TREE_CONNECT:
-
             ntStatus = SrvProcessTreeConnect_SMB_V2(pExecContext);
-
             break;
 
         case COM2_TREE_DISCONNECT:
-
             ntStatus = SrvProcessTreeDisconnect_SMB_V2(pExecContext);
-
             break;
 
         case COM2_CREATE:
-
             ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
-
             break;
 
         case COM2_CLOSE:
-
             ntStatus = SrvProcessClose_SMB_V2(pExecContext);
-
             break;
 
         case COM2_FLUSH:
-
             ntStatus = SrvProcessFlush_SMB_V2(pExecContext);
-
             break;
 
         case COM2_READ:
-
             ntStatus = SrvProcessRead_SMB_V2(pExecContext);
-
             break;
 
         case COM2_WRITE:
-
             ntStatus = SrvProcessWrite_SMB_V2(pExecContext);
-
             break;
 
         case COM2_LOCK:
-
             ntStatus = SrvProcessLock_SMB_V2(pExecContext);
             if ((ntStatus == STATUS_PENDING) && pExecContext->pInterimResponse)
             {
@@ -546,35 +521,25 @@ SrvProcessRequestSpecific_SMB_V2(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
             }
-
             break;
 
         case COM2_IOCTL:
-
             ntStatus = SrvProcessIOCTL_SMB_V2(pExecContext);
-
             break;
 
         case COM2_CANCEL:
-
             ntStatus = SrvProcessCancel_SMB_V2(pExecContext);
-
             break;
 
         case COM2_ECHO:
-
             ntStatus = SrvProcessEcho_SMB_V2(pExecContext);
-
             break;
 
         case COM2_FIND:
-
             ntStatus = SrvProcessFind_SMB_V2(pExecContext);
-
             break;
 
         case COM2_NOTIFY:
-
             if (pExecContext->bInternal)
             {
                 ntStatus = SrvProcessNotifyCompletion_SMB_V2(pExecContext);
@@ -589,23 +554,17 @@ SrvProcessRequestSpecific_SMB_V2(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
             }
-
             break;
 
         case COM2_GETINFO:
-
             ntStatus = SrvProcessGetInfo_SMB_V2(pExecContext);
-
             break;
 
         case COM2_SETINFO:
-
             ntStatus = SrvProcessSetInfo_SMB_V2(pExecContext);
-
             break;
 
         case COM2_BREAK:
-
             if (pExecContext->bInternal)
             {
                 ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
@@ -614,17 +573,17 @@ SrvProcessRequestSpecific_SMB_V2(
             {
                 ntStatus = SrvProcessOplockBreak_SMB_V2(pExecContext);
             }
-
             break;
 
         default:
-
             ntStatus = STATUS_NOT_SUPPORTED;
-
             break;
     }
 
 cleanup:
+
+    *pNeedPopStatistics = needPopStatistics;
+    *pStatisticsCommand = statisticsCommand;
 
     return ntStatus;
 
