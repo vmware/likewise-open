@@ -265,14 +265,6 @@ SrvProcessRead_SMB_V2(
 
             pReadState->ulBytesToRead = pReadState->pRequestHeader->ulDataLength;
 
-            if (pReadState->ulBytesToRead > 0)
-            {
-                ntStatus = SrvAllocateMemory(
-                            pReadState->pRequestHeader->ulDataLength,
-                            (PVOID*)&pReadState->pData);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
             ntStatus = SrvBuildZctReadState_SMB_V2(pReadState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -596,6 +588,14 @@ SrvAttemptReadIo_SMB_V2(
         {
             SrvPrepareReadStateAsync_SMB_V2(pReadState, pExecContext);
             pReadState->bStartedRead = TRUE;
+
+            if (!pReadState->pData && pReadState->ulBytesToRead > 0)
+            {
+                ntStatus = SrvAllocateMemory(
+                    pReadState->ulBytesToRead,
+                    (PVOID*)&pReadState->pData);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             ntStatus = IoReadFile(
                             pReadState->pFile->hFile,

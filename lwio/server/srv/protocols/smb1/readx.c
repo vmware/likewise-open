@@ -527,14 +527,6 @@ SrvBuildReadAndXResponseStart(
     pReadState->ulBytesToRead = pReadState->ullBytesToRead;
     pReadState->ulKey = pSmbRequest->pHeader->pid;
 
-    if (pReadState->ulBytesToRead > 0)
-    {
-        ntStatus = SrvAllocateMemory(
-            pReadState->ulBytesToRead,
-            (PVOID*)&pReadState->pData);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
 cleanup:
 
     return ntStatus;
@@ -792,6 +784,14 @@ SrvAttemptReadIo(
         {
             SrvPrepareReadStateAsync(pReadState, pExecContext);
             pReadState->bStartedRead = TRUE;
+
+            if (!pReadState->pData && pReadState->ulBytesToRead > 0)
+            {
+                ntStatus = SrvAllocateMemory(
+                    pReadState->ulBytesToRead,
+                    (PVOID*)&pReadState->pData);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             if (pReadState->bPagedIo)
             {
