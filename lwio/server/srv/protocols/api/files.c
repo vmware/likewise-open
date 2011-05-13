@@ -1316,7 +1316,7 @@ SrvProtocolProcessFile2(
                             ulResourceId,
                             pFile->ulPermissions,
                             pFile->ulNumLocks,
-                            pFile->pwszFilename,
+                            pwszFilePath,
                             pSession->pwszClientPrincipalName,
                             pBuffer,
                             ulBufferSize,
