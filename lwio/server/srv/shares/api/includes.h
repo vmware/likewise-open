@@ -51,6 +51,7 @@
 #include <lwiosys.h>
 
 #include <lwio/lwio.h>
+#include <lwio/lmshare.h>
 
 #include <lwiodef.h>
 #include <lwioutils.h>
@@ -61,6 +62,7 @@
 #include <shareapi.h>
 #include <srvutils.h>
 #include <sharerepository.h>
+#include <smbwire.h>
 
 #include "defs.h"
 #include "structs.h"

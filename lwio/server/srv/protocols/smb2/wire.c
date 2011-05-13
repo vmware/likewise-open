@@ -685,6 +685,8 @@ SMB2MarshalTreeConnectResponse(
             break;
     }
 
+    pResponseHeader->ulShareFlags |= pTree->pShareInfo->ulFlags;
+
     *ppResponseHeader = pResponseHeader;
     *pulBytesUsed = ulBytesUsed;
 

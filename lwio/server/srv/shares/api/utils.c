@@ -237,6 +237,44 @@ SrvGetGuestShareAccessMask(
     return ntStatus;
 }
 
+NTSTATUS
+SrvGetCscFlags(
+    IN PSRV_SHARE_INFO pShareInfo,
+    OUT SMB_CSC_FLAGS *pCscFlags
+    )
+{
+    NTSTATUS ntStatus = 0;
+    BOOLEAN  bInLock = FALSE;
+    SMB_CSC_FLAGS usCscFlags = 0;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+
+    switch (pShareInfo->ulFlags & SHARE_INFO_FLAG_CSC_POLICY_MASK)
+    {
+        case SHARE_INFO_FLAG_CSC_CACHE_MANUAL_REINT:
+            usCscFlags = SMB_CSC_FLAG_MASK & SMB_CSC_FLAG_CACHE_MANUAL_REINT;
+            break;
+
+        case SHARE_INFO_FLAG_CSC_CACHE_AUTO_REINT:
+            usCscFlags = SMB_CSC_FLAG_MASK & SMB_CSC_FLAG_CACHE_AUTO_REINT;
+            break;
+
+        case SHARE_INFO_FLAG_CSC_CACHE_VDO:
+            usCscFlags = SMB_CSC_FLAG_MASK & SMB_CSC_FLAG_CACHE_VDO;
+            break;
+
+        default:
+            usCscFlags = SMB_CSC_FLAG_MASK & SMB_CSC_FLAG_CACHE_NONE;
+            break;
+     }
+
+     *pCscFlags = usCscFlags;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
+}
+
 VOID
 SrvShareFreeSecurity(
     IN PSRV_SHARE_INFO pShareInfo

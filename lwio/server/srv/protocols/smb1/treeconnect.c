@@ -475,6 +475,11 @@ SrvQueryTreeConnectInfo(
                     &pTConState->ulGuestMaximalShareAccessMask);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvGetCscFlags(
+                    pTConState->pTree->pShareInfo,
+                    &pTConState->usCSCFlags);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     return ntStatus;
@@ -878,6 +883,8 @@ SrvBuildTreeConnectResponse(
 
     pResponseHeader->guestMaximalShareAccessMask =
                                 pTConState->ulGuestMaximalShareAccessMask;
+
+    pResponseHeader->optionalSupport = pTConState->usCSCFlags;
 
     ntStatus = MarshallTreeConnectResponseData(
                     pOutBuffer,

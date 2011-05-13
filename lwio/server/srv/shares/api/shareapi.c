@@ -1272,6 +1272,7 @@ SrvShareDuplicateInfo_inlock(
     }
 
     pShareInfoCopy->service = pShareInfo->service;
+    pShareInfoCopy->ulFlags = pShareInfo->ulFlags;
 
     *ppShareInfo = pShareInfoCopy;
 

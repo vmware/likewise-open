@@ -339,7 +339,7 @@ SrvShareDbAdd(
                     pSecDesc,
                     ulSecDescLen,
                     pszService,
-		    ulFlags);
+                    ulFlags);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

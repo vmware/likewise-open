@@ -211,6 +211,7 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     PWSTR                          pwszNativeFileSystem;
     ULONG                          ulMaximalShareAccessMask;
     ULONG                          ulGuestMaximalShareAccessMask;
+    SMB_CSC_FLAGS                  usCSCFlags;
 
 } SRV_TREE_CONNECT_STATE_SMB_V1, *PSRV_TREE_CONNECT_STATE_SMB_V1;
 

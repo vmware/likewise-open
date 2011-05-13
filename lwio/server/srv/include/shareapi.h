@@ -48,6 +48,8 @@
 #ifndef __SHAREAPI_H__
 #define __SHAREAPI_H__
 
+#include <smbwire.h>
+
 #define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
 #define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
 
@@ -180,6 +182,12 @@ NTSTATUS
 SrvGetGuestShareAccessMask(
     PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
+    );
+
+NTSTATUS
+SrvGetCscFlags(
+    PSRV_SHARE_INFO pShareInfo,
+    SMB_CSC_FLAGS*  pCscFlags
     );
 
 VOID
