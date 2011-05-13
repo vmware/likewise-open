@@ -655,14 +655,17 @@ error:
 
         case STATUS_LOCK_NOT_GRANTED:
 
-            if (pLockState->pRequestHeader->ulTimeout != 0)
+            if (pLockState)
             {
-                ntStatus = STATUS_FILE_LOCK_CONFLICT;
-            }
+                if (pLockState->pRequestHeader->ulTimeout != 0)
+                {
+                    ntStatus = STATUS_FILE_LOCK_CONFLICT;
+                }
 
-            SrvFileSetLastFailedLockOffset(
+                SrvFileSetLastFailedLockOffset(
                     pLockState->pFile,
                     pLockState->Offset);
+            }
 
             // intentional fall through
 
