@@ -60,6 +60,30 @@ PvfsSetFileRenameInfo(
 
 /* Code */
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsSetFileRenameInfoWithContext(
+    PVOID pContext
+    );
+
+static
+NTSTATUS
+PvfsCreateSetFileRenameInfoContext(
+    OUT PPVFS_PENDING_SET_FILE_RENAME *ppSetRenameInfoContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_FILE_NAME newResolvedFileName
+    );
+
+static
+VOID
+PvfsFreeSetFileRenameInfoContext(
+    IN OUT PVOID *ppContext
+    );
+
 
 /****************************************************************
  ***************************************************************/
@@ -79,7 +103,7 @@ PvfsFileRenameInfo(
         break;
 
     case PVFS_QUERY:
-        ntError =  STATUS_NOT_SUPPORTED;
+        ntError = STATUS_NOT_SUPPORTED;
         break;
 
     default:
@@ -107,9 +131,11 @@ PvfsSetFileRenameInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
-    PPVFS_CCB pRootDirCcb = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
     PFILE_RENAME_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    PPVFS_PENDING_SET_FILE_RENAME pSetRenameInfoCtx = NULL;
+    BOOLEAN bIsDefaultStream = TRUE;
+    PPVFS_CCB pRootDirCcb = NULL;
     ACCESS_MASK DirGranted = 0;
     ACCESS_MASK DirDesired = 0;
     PVFS_STAT stat = { 0 };
@@ -117,7 +143,7 @@ PvfsSetFileRenameInfo(
     PPVFS_FILE_NAME inputNewFilename = NULL;
     PCSTR pszFilename = NULL;
     PSTR pszNewPathname = NULL;
-    PSTR streamName = NULL;
+
     PPVFS_FILE_NAME newFileName = NULL;
     PPVFS_FILE_NAME newDirectoryName = NULL;
     PPVFS_FILE_NAME newResolvedDirName = NULL;
@@ -125,12 +151,12 @@ PvfsSetFileRenameInfo(
     PPVFS_FILE_NAME newResolvedFileName = NULL;
     PPVFS_FILE_NAME existingResolvedFileName = NULL;
     PPVFS_FILE_NAME currentFileName = NULL;
-    BOOLEAN bIsDefaultStream = TRUE;
+
+    Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
-
     pFileInfo = (PFILE_RENAME_INFORMATION)Args.FileInformation;
 
     if (Args.Length < sizeof(*pFileInfo))
@@ -295,23 +321,53 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsRenameCCB(pCcb, newResolvedFileName);
+    ntError = PvfsCreateSetFileRenameInfoContext(
+                  &pSetRenameInfoCtx,
+                  pIrpContext,
+                  pCcb,
+                  newResolvedFileName);
     BAIL_ON_NT_STATUS(ntError);
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pScb);
 
-    ntError = PvfsAllocateCStringFromFileName(&streamName, newResolvedFileName);
-    if (ntError == STATUS_SUCCESS)
+    switch (ntError)
     {
-        PvfsNotifyScheduleFullReport(
-            pCcb->pScb->pOwnerFcb,
-            PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
-            FILE_ACTION_RENAMED_NEW_NAME,
-            streamName);
-    }
+    case STATUS_SUCCESS:
+        ntError = PvfsSetFileRenameInfoWithContext(pSetRenameInfoCtx);
+        break;
 
-error:
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pSetRenameInfoCtx->pCcb->pScb,
+                      pIrpContext,
+                      pSetRenameInfoCtx->pCcb,
+                      PvfsSetFileRenameInfoWithContext,
+                      PvfsFreeSetFileRenameInfoContext,
+                      (PVOID)pSetRenameInfoCtx);
+        if (ntError == STATUS_PENDING)
+        {
+            pSetRenameInfoCtx = NULL;
+        }
+        break;
+
+    case STATUS_PENDING:
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pSetRenameInfoCtx->pCcb->pScb,
+                      pIrpContext,
+                      PvfsSetFileRenameInfoWithContext,
+                      PvfsFreeSetFileRenameInfoContext,
+                      (PVOID)pSetRenameInfoCtx);
+        if (ntError == STATUS_PENDING)
+        {
+            pSetRenameInfoCtx = NULL;
+        }
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsFreeSetFileRenameInfoContext(OUT_PPVOID(&pSetRenameInfoCtx));
+
     // PVFS_FILE_NAME
     if (newFileName)
     {
@@ -355,22 +411,142 @@ error:
     {
         LwRtlCStringFree(&pszNewPathname);
     }
-    if (streamName)
-    {
-        LwRtlCStringFree(&streamName);
-    }
 
     // CCB
-    if (pCcb)
-    {
-        PvfsReleaseCCB(pCcb);
-    }
-
     if (pRootDirCcb)
     {
         PvfsReleaseCCB(pRootDirCcb);
     }
 
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsSetFileRenameInfoWithContext(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_FILE_RENAME pSetFileRenameCtx = (PPVFS_PENDING_SET_FILE_RENAME)pContext;
+    PIRP pIrp = pSetFileRenameCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pSetFileRenameCtx->pCcb;
+    PPVFS_FILE_NAME newResolvedFileName = pSetFileRenameCtx->newResolvedFileName;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
+    PFILE_RENAME_INFORMATION pFileInfo = NULL;
+    PSTR streamName = NULL;
+
+
+    Args = pSetFileRenameCtx->pIrpContext->pIrp->Args.QuerySetInformation;
+    pFileInfo = (PFILE_RENAME_INFORMATION)Args.FileInformation;
+
+    if (Args.Length < sizeof(*pFileInfo))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsRenameCCB(pCcb, newResolvedFileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+    ntError = STATUS_SUCCESS;
+
+    ntError = PvfsAllocateCStringFromFileName(&streamName, newResolvedFileName);
+    if (ntError == STATUS_SUCCESS)
+    {
+        PvfsNotifyScheduleFullReport(
+            pCcb->pScb->pOwnerFcb,
+            PVFS_IS_DIR(pCcb) ? FILE_NOTIFY_CHANGE_DIR_NAME : FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_ACTION_RENAMED_NEW_NAME,
+            streamName);
+    }
+
+error:
+    if (streamName)
+    {
+        LwRtlCStringFree(&streamName);
+    }
+
     return ntError;
 }
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsCreateSetFileRenameInfoContext(
+    OUT PPVFS_PENDING_SET_FILE_RENAME *ppSetRenameInfoContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_FILE_NAME newResolvedFileName
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_FILE_RENAME pSetRenameInfoCtx = NULL;
+
+    ntError = PvfsAllocateMemory(
+		      OUT_PPVOID(&pSetRenameInfoCtx),
+                  sizeof(PVFS_PENDING_SET_FILE_RENAME),
+                  TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->SetFileType = PVFS_SET_FILE_RENAME;
+    pSetRenameInfoCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
+    pSetRenameInfoCtx->pCcb = PvfsReferenceCCB(pCcb);
+    pSetRenameInfoCtx->newResolvedFileName = newResolvedFileName;
+
+    *ppSetRenameInfoContext = pSetRenameInfoCtx;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsFreeSetFileRenameInfoContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    PPVFS_PENDING_SET_FILE_RENAME pRenameInfoCtx = NULL;
+
+    if (ppContext && *ppContext)
+    {
+        pRenameInfoCtx = (PPVFS_PENDING_SET_FILE_RENAME)(*ppContext);
+
+        if (pRenameInfoCtx->pIrpContext)
+        {
+            PvfsReleaseIrpContext(&pRenameInfoCtx->pIrpContext);
+        }
+
+        if (pRenameInfoCtx->pCcb)
+        {
+            PvfsReleaseCCB(pRenameInfoCtx->pCcb);
+        }
+
+        PVFS_FREE(ppContext);
+    }
+
+    return;
+}
