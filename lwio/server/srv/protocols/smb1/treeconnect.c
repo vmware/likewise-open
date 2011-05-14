@@ -202,7 +202,7 @@ SrvProcessTreeConnectAndX(
                 pwszPath,
                 pszService);
 
-        if (pRequestHeader->flags & 0x1)
+        if (pRequestHeader->flags & SMB_TREE_CONNECT_DISCONNECT_TID)
         {
             NTSTATUS ntStatus2 = 0;
             PLWIO_SRV_TREE pTree = NULL;
@@ -816,11 +816,14 @@ SrvBuildTreeConnectResponse(
     PSRV_TREE_CONNECT_STATE_SMB_V1 pTConState   = NULL;
     PSRV_MESSAGE_SMB_V1            pSmbResponse = &pCtxSmb1->pResponses[iMsg];
     PTREE_CONNECT_RESPONSE_HEADER  pResponseHeader = NULL; // Do not free
+    PTREE_CONNECT_EXT_RESPONSE_HEADER  pExtResponseHeader = NULL; // Do not free
     PBYTE  pOutBuffer       = pSmbResponse->pBuffer;
     ULONG  ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG  ulOffset         = 0;
     USHORT usBytesUsed      = 0;
     ULONG  ulTotalBytesUsed = 0;
+    ULONG  ulHeaderOffset = 0;
+    BOOLEAN bTConExt = FALSE;
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -862,27 +865,44 @@ SrvBuildTreeConnectResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 7;
+    if (pTConState->pRequestHeader->flags & SMB_TREE_CONNECT_EXT_RESPONSE)
+    {
+        *pSmbResponse->pWordCount = 7;
+        pExtResponseHeader = (PTREE_CONNECT_EXT_RESPONSE_HEADER)pOutBuffer;
+        ulHeaderOffset = sizeof(TREE_CONNECT_EXT_RESPONSE_HEADER);
+        bTConExt = TRUE;
+    }
+    else
+    {
+        *pSmbResponse->pWordCount = 3;
+        pResponseHeader = (PTREE_CONNECT_RESPONSE_HEADER)pOutBuffer;
+        ulHeaderOffset = sizeof(TREE_CONNECT_RESPONSE_HEADER);
+    }
 
-    if (ulBytesAvailable < sizeof(TREE_CONNECT_RESPONSE_HEADER))
+    if (ulBytesAvailable < ulHeaderOffset)
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pResponseHeader = (PTREE_CONNECT_RESPONSE_HEADER)pOutBuffer;
+    pOutBuffer       += ulHeaderOffset;
+    ulOffset         += ulHeaderOffset;
+    ulBytesAvailable -= ulHeaderOffset;
+    ulTotalBytesUsed += ulHeaderOffset;
 
-    pOutBuffer       += sizeof(TREE_CONNECT_RESPONSE_HEADER);
-    ulOffset         += sizeof(TREE_CONNECT_RESPONSE_HEADER);
-    ulBytesAvailable -= sizeof(TREE_CONNECT_RESPONSE_HEADER);
-    ulTotalBytesUsed += sizeof(TREE_CONNECT_RESPONSE_HEADER);
-
-    pResponseHeader->optionalSupport = 0;
-    pResponseHeader->maximalShareAccessMask =
+    if (bTConExt)
+    {
+        pExtResponseHeader->optionalSupport = 0;
+        pExtResponseHeader->maximalShareAccessMask =
                                 pTConState->ulMaximalShareAccessMask;
 
-    pResponseHeader->guestMaximalShareAccessMask =
+        pExtResponseHeader->guestMaximalShareAccessMask =
                                 pTConState->ulGuestMaximalShareAccessMask;
+    }
+    else
+    {
+        pResponseHeader->optionalSupport = 0;
+    }
 
     pResponseHeader->optionalSupport = pTConState->usCSCFlags;
 
@@ -900,7 +920,14 @@ SrvBuildTreeConnectResponse(
     // ulBytesAvailable -= usBytesUsed;
     ulTotalBytesUsed += usBytesUsed;
 
-    pResponseHeader->byteCount = usBytesUsed;
+    if (bTConExt)
+    {
+        pExtResponseHeader->byteCount = usBytesUsed;
+    }
+    else
+    {
+        pResponseHeader->byteCount = usBytesUsed;
+    }
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
