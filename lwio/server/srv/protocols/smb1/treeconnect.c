@@ -892,7 +892,7 @@ SrvBuildTreeConnectResponse(
 
     if (bTConExt)
     {
-        pExtResponseHeader->optionalSupport = 0;
+        pExtResponseHeader->optionalSupport = pTConState->usCSCFlags;
         pExtResponseHeader->maximalShareAccessMask =
                                 pTConState->ulMaximalShareAccessMask;
 
@@ -901,10 +901,8 @@ SrvBuildTreeConnectResponse(
     }
     else
     {
-        pResponseHeader->optionalSupport = 0;
+        pResponseHeader->optionalSupport = pTConState->usCSCFlags;
     }
-
-    pResponseHeader->optionalSupport = pTConState->usCSCFlags;
 
     ntStatus = MarshallTreeConnectResponseData(
                     pOutBuffer,
