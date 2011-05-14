@@ -648,8 +648,10 @@ SrvBuildNTCreateResponse_inlock(
     ULONG ulBytesAvailable     = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset             = 0;
     ULONG ulTotalBytesUsed     = 0;
-    PCREATE_RESPONSE_HEADER     pResponseHeader = NULL; // Do not free
-    PSRV_CREATE_STATE_SMB_V1    pCreateState = NULL;
+    PCREATE_RESPONSE_HEADER      pResponseHeader = NULL; // Do not free
+    PCREATE_RESPONSE_EXT_HEADER  pExtResponseHeader = NULL; // Do not free
+    PSRV_CREATE_STATE_SMB_V1     pCreateState = NULL;
+    ULONG ulHeaderSize         = 0;
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -691,60 +693,104 @@ SrvBuildNTCreateResponse_inlock(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 34;
+    if (pCreateState->pRequestHeader->flags & SMB_CREATE_REQUEST_EXT_RESPONSE)
+    {
+        *pSmbResponse->pWordCount = 42;
+        pExtResponseHeader = (PCREATE_RESPONSE_EXT_HEADER)pOutBuffer;
+        ulHeaderSize = sizeof(CREATE_RESPONSE_EXT_HEADER);
+    }
+    else
+    {
+        *pSmbResponse->pWordCount = 34;
+        pResponseHeader = (PCREATE_RESPONSE_HEADER)pOutBuffer;
+        ulHeaderSize = sizeof(CREATE_RESPONSE_HEADER);
+    }
 
-    if (ulBytesAvailable < sizeof(CREATE_RESPONSE_HEADER))
+    if (ulBytesAvailable < ulHeaderSize)
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pResponseHeader = (PCREATE_RESPONSE_HEADER)pOutBuffer;
-
     // pOutBuffer       += sizeof(CREATE_RESPONSE_HEADER);
     // ulOffset         += sizeof(CREATE_RESPONSE_HEADER);
     // ulBytesAvailable -= sizeof(CREATE_RESPONSE_HEADER);
-    ulTotalBytesUsed += sizeof(CREATE_RESPONSE_HEADER);
+    ulTotalBytesUsed += ulHeaderSize;
 
-    pResponseHeader->oplockLevel     = pCreateState->ucOplockLevel;
-    pResponseHeader->fid             = pCreateState->pFile->fid;
-    pResponseHeader->createAction    = pCreateState->ulCreateAction;
-    pResponseHeader->creationTime    = pCreateState->networkOpenInfo.CreationTime;
-    pResponseHeader->lastAccessTime  = pCreateState->networkOpenInfo.LastAccessTime;
-    pResponseHeader->lastWriteTime   = pCreateState->networkOpenInfo.LastWriteTime;
-    pResponseHeader->changeTime      = pCreateState->networkOpenInfo.ChangeTime;
-    pResponseHeader->extFileAttributes = pCreateState->networkOpenInfo.FileAttributes;
-    pResponseHeader->allocationSize    = pCreateState->networkOpenInfo.AllocationSize;
-    pResponseHeader->endOfFile         = pCreateState->networkOpenInfo.EndOfFile;
-
-    if (SrvTreeIsNamedPipe(pCtxSmb1->pTree))
+    if(pExtResponseHeader)
     {
-        ntStatus = SrvMarshallPipeInfo(
+        pExtResponseHeader->oplockLevel     = pCreateState->ucOplockLevel;
+        pExtResponseHeader->fid             = pCreateState->pFile->fid;
+        pExtResponseHeader->createAction    = pCreateState->ulCreateAction;
+        pExtResponseHeader->creationTime    = pCreateState->networkOpenInfo.CreationTime;
+        pExtResponseHeader->lastAccessTime  = pCreateState->networkOpenInfo.LastAccessTime;
+        pExtResponseHeader->lastWriteTime   = pCreateState->networkOpenInfo.LastWriteTime;
+        pExtResponseHeader->changeTime      = pCreateState->networkOpenInfo.ChangeTime;
+        pExtResponseHeader->extFileAttributes = pCreateState->networkOpenInfo.FileAttributes;
+        pExtResponseHeader->allocationSize    = pCreateState->networkOpenInfo.AllocationSize;
+        pExtResponseHeader->endOfFile         = pCreateState->networkOpenInfo.EndOfFile;
+        if (SrvTreeIsNamedPipe(pCtxSmb1->pTree))
+        {
+            ntStatus = SrvMarshallPipeInfo(
                         &pCreateState->filePipeInfo,
                         &pCreateState->filePipeLocalInfo,
-                        &pResponseHeader->deviceState);
-        BAIL_ON_NT_STATUS(ntStatus);
+                        &pExtResponseHeader->deviceState);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        pResponseHeader->fileType = (USHORT)pCreateState->filePipeInfo.ReadMode;
-        pResponseHeader->deviceState = 0;
+            pExtResponseHeader->fileType = (USHORT)pCreateState->filePipeInfo.ReadMode;
+        }
+        else
+        {
+            pExtResponseHeader->fileType = 0;
+            pExtResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
+                                       SMB_DEVICE_STATE_NO_SUBSTREAMS |
+                                       SMB_DEVICE_STATE_NO_REPARSE_TAG;
+        }
+
+        pExtResponseHeader->isDirectory =
+           (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+        memset(&pExtResponseHeader->volumeGUID[0], 0, sizeof(BYTE));
+        pExtResponseHeader->fileID = 0;
+        /* TODO: Fill in the proper maximal access bits instead
+           of FULL_CONTROL */
+        pExtResponseHeader->MaximalAccessRights = 0x001F01FF;
+        pExtResponseHeader->GuestMaximalAccessRights = 0;
+        pExtResponseHeader->byteCount = 0;
     }
     else
     {
-        pResponseHeader->fileType = 0;
-        // TODO: Get these values from the driver
-#if 0
-        pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
-                                       SMB_DEVICE_STATE_NO_SUBSTREAMS |
-                                       SMB_DEVICE_STATE_NO_REPARSE_TAG;
-#else
-        pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
-                                       SMB_DEVICE_STATE_NO_REPARSE_TAG;
-#endif
-    }
+        pResponseHeader->oplockLevel     = pCreateState->ucOplockLevel;
+        pResponseHeader->fid             = pCreateState->pFile->fid;
+        pResponseHeader->createAction    = pCreateState->ulCreateAction;
+        pResponseHeader->creationTime    = pCreateState->networkOpenInfo.CreationTime;
+        pResponseHeader->lastAccessTime  = pCreateState->networkOpenInfo.LastAccessTime;
+        pResponseHeader->lastWriteTime   = pCreateState->networkOpenInfo.LastWriteTime;
+        pResponseHeader->changeTime      = pCreateState->networkOpenInfo.ChangeTime;
+        pResponseHeader->extFileAttributes = pCreateState->networkOpenInfo.FileAttributes;
+        pResponseHeader->allocationSize    = pCreateState->networkOpenInfo.AllocationSize;
+        pResponseHeader->endOfFile         = pCreateState->networkOpenInfo.EndOfFile;
 
-    pResponseHeader->isDirectory =
-       (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
-    pResponseHeader->byteCount = 0;
+        if (SrvTreeIsNamedPipe(pCtxSmb1->pTree))
+        {
+            ntStatus = SrvMarshallPipeInfo(
+                        &pCreateState->filePipeInfo,
+                        &pCreateState->filePipeLocalInfo,
+                        &pResponseHeader->deviceState);
+            BAIL_ON_NT_STATUS(ntStatus);
+            pResponseHeader->fileType = (USHORT)pCreateState->filePipeInfo.ReadMode;
+        }
+        else
+        {
+            pResponseHeader->fileType = 0;
+            // TODO: Get these values from the driver
+            pResponseHeader->deviceState = SMB_DEVICE_STATE_NO_EAS |
+                                       SMB_DEVICE_STATE_NO_REPARSE_TAG;
+        }
+
+        pResponseHeader->isDirectory =
+           (pCreateState->pNetworkOpenInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+        pResponseHeader->byteCount = 0;
+    }
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
