@@ -32,6 +32,12 @@
 
 static
 NTSTATUS
+SrvSetSmbStandardInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvSetBasicInfo(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -92,6 +98,12 @@ SrvSetFileInfo(
 
     switch (*pTrans2State->pSmbInfoLevel)
     {
+        case SMB_INFO_STANDARD :
+
+            ntStatus = SrvSetSmbStandardInfo(pExecContext);
+
+            break;
+
         case SMB_SET_FILE_BASIC_INFO :
         case SMB_SET_FILE_BASIC_INFO_ALIAS :
 
@@ -132,7 +144,6 @@ SrvSetFileInfo(
 
             break;
 
-        case SMB_INFO_STANDARD :
         case SMB_SET_FILE_UNIX_BASIC :
         case SMB_SET_FILE_UNIX_LINK :
         case SMB_SET_FILE_UNIX_HLINK :
@@ -168,6 +179,12 @@ SrvSetPathInfo(
 
     switch (*pTrans2State->pSmbInfoLevel)
     {
+        case SMB_INFO_STANDARD :
+
+            ntStatus = SrvSetSmbStandardInfo(pExecContext);
+
+            break;
+
         case SMB_SET_FILE_BASIC_INFO :
         case SMB_SET_FILE_BASIC_INFO_ALIAS :
 
@@ -207,7 +224,6 @@ SrvSetPathInfo(
 
             break;
 
-        case SMB_INFO_STANDARD :
         case SMB_INFO_QUERY_EA_SIZE :
         case SMB_SET_FILE_UNIX_BASIC :
         case SMB_SET_FILE_UNIX_LINK :
@@ -362,6 +378,72 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetSmbStandardInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus       = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1       = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State   = NULL;
+    FILE_BASIC_INFORMATION     FileBasicInfo  = {0};
+    PTRANS2_FILE_SMB_INFO_STANDARD_SET pFileSmbInfoStandard = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (pTrans2State->pRequestHeader->dataCount <
+        sizeof(TRANS2_FILE_SMB_INFO_STANDARD_SET))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        pFileSmbInfoStandard =
+            (PTRANS2_FILE_SMB_INFO_STANDARD_SET)pTrans2State->pData;
+
+        ntStatus = WireSMBDateTimeToNTTime(
+            &pFileSmbInfoStandard->CreationDate,
+            &pFileSmbInfoStandard->CreationTime,
+            &FileBasicInfo.CreationTime);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = WireSMBDateTimeToNTTime(
+            &pFileSmbInfoStandard->LastAccessDate,
+            &pFileSmbInfoStandard->LastAccessTime,
+            &FileBasicInfo.LastAccessTime);
+
+        ntStatus = WireSMBDateTimeToNTTime(
+            &pFileSmbInfoStandard->LastWriteDate,
+            &pFileSmbInfoStandard->LastWriteTime,
+            &FileBasicInfo.LastWriteTime);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pTrans2State->bSetInfoAttempted = TRUE;
+
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+        ntStatus = IoSetInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        &FileBasicInfo,
+                        sizeof(FILE_BASIC_INFORMATION),
+                        FileBasicInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
+
+error:
+
+    return ntStatus;
 }
 
 static

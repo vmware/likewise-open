@@ -207,9 +207,9 @@ SrvProcessSetInformation(
     {
         case SRV_SET_INFO_STAGE_SMB_V1_INITIAL:
 
-            ntStatus = WireSMBDateTimeToNTTime(
-                            &pInfoState->pRequestHeader->lastWriteDate,
-                            &pInfoState->pRequestHeader->lastWriteTime,
+            ntStatus = WireSMBUTimetoNTTime(
+                            pInfoState->pRequestHeader->ulLastWriteTime,
+                            FALSE,
                             &pInfoState->fileBasicInfo.LastWriteTime);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -535,8 +535,7 @@ SrvLogSetInfo_SMB_V1(
         pszFile,
         ulLine,
         "SetInfo Parameters: last-write-date(%u),last-write-time(%u),file-attrs(0x%x),Filename(%s)",
-        pRequestHeader->lastWriteDate,
-        pRequestHeader->lastWriteTime,
+        pRequestHeader->ulLastWriteTime,
         pRequestHeader->usFileAttributes,
         LWIO_SAFE_LOG_STRING(pszFilename));
 
