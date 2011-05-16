@@ -109,6 +109,31 @@ PvfsStreamIsOplockedShared(
     IN PPVFS_SCB pScb
     );
 
+BOOLEAN
+PvfsStreamIsOplockedLeased(
+    IN PPVFS_SCB pScb
+    );
+
+BOOLEAN
+PvfsStreamIsLeaseRead(
+    IN PPVFS_SCB pScb
+    );
+
+BOOLEAN
+PvfsStreamIsLeaseReadHandle(
+    IN PPVFS_SCB pScb
+    );
+
+BOOLEAN
+PvfsStreamIsLeaseReadWrite(
+    IN PPVFS_SCB pScb
+    );
+
+BOOLEAN
+PvfsStreamIsLeaseReadWriteHandle(
+    IN PPVFS_SCB pScb
+    );
+
 NTSTATUS
 PvfsPendOplockBreakTest(
     IN PPVFS_SCB pScb,
@@ -133,7 +158,8 @@ PvfsAddOplockRecord(
     IN OUT PPVFS_SCB pScb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_CCB pCcb,
-    IN     ULONG OplockType
+    IN     IO_OPLOCK_TYPE OplockType,
+    IN     IO_LEASE_STATE LeaseState
     );
 
 VOID

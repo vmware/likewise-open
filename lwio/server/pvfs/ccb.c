@@ -76,6 +76,8 @@ PvfsAllocateCCB(
     PVFS_INIT_LINKS(&pCCB->ScbList);
 
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
+    pCCB->CurrentLeaseState = IO_LEASE_STATE_NONE;
+    pCCB->NewLeaseState = IO_LEASE_STATE_NONE;
 
     pCCB->fd = -1;
     PVFS_CLEAR_FILEID(pCCB->FileId);
@@ -89,6 +91,7 @@ PvfsAllocateCCB(
     pCCB->FileSize = 0;
     pCCB->AccessGranted = 0;
     pCCB->Flags = PVFS_CCB_FLAG_NONE;
+    pCCB->SetFileType = PVFS_SET_FILE_NONE;
 
     LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 

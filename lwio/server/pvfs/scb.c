@@ -708,11 +708,95 @@ PvfsStreamIsOplocked(
  ****************************************************************************/
 
 BOOLEAN
+PvfsStreamHasMatchingOplockType(
+    IN PPVFS_SCB pScb,
+    IN IO_OPLOCK_TYPE OplockType
+    )
+{
+    BOOLEAN bHasMatchingOplockType = FALSE;
+    PPVFS_OPLOCK_RECORD pOplock = NULL;
+    PLW_LIST_LINKS pOplockLink = NULL;
+
+    if (PvfsListIsEmpty(pScb->pOplockList))
+    {
+        return FALSE;
+    }
+
+    /* We only need to check for the first non-cancelled oplock record
+       in the list since the list itself must be consistent and
+       non-conflicting */
+
+    while ((pOplockLink = PvfsListTraverse(pScb->pOplockList, pOplockLink)) != NULL)
+    {
+        pOplock = LW_STRUCT_FROM_FIELD(
+                      pOplockLink,
+                      PVFS_OPLOCK_RECORD,
+                      OplockList);
+
+        if (PvfsIrpContextCheckFlag(
+                pOplock->pIrpContext,
+                PVFS_IRP_CTX_FLAG_CANCELLED))
+        {
+            pOplock = NULL;
+            continue;
+        }
+
+        /* Found first non-cancelled oplock */
+        break;
+    }
+
+    if (pOplock && pOplock->OplockType == OplockType)
+    {
+        bHasMatchingOplockType = TRUE;
+    }
+
+    return bHasMatchingOplockType;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
 PvfsStreamIsOplockedExclusive(
     IN PPVFS_SCB pScb
     )
 {
-    BOOLEAN bExclusiveOplock = FALSE;
+    return PvfsStreamHasMatchingOplockType(pScb, IO_OPLOCK_REQUEST_OPLOCK_BATCH) ||
+           PvfsStreamHasMatchingOplockType(pScb, IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsStreamIsOplockedShared(
+    IN PPVFS_SCB pScb
+    )
+{
+    return PvfsStreamHasMatchingOplockType(pScb, IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsStreamIsOplockedLeased(
+    IN PPVFS_SCB pScb
+    )
+{
+    return PvfsStreamHasMatchingOplockType(pScb, IO_OPLOCK_REQUEST_LEASE);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+static
+BOOLEAN
+PvfsStreamHasMatchingLeaseState(
+    IN PPVFS_SCB pScb,
+    IN IO_LEASE_STATE LeaseState
+    )
+{
+    BOOLEAN bMatchingLease = FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
     PLW_LIST_LINKS pOplockLink = NULL;
 
@@ -745,24 +829,48 @@ PvfsStreamIsOplockedExclusive(
     }
 
     if (pOplock &&
-        ((pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_BATCH) ||
-         (pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1)))
+        pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE &&
+        pOplock->LeaseState == LeaseState)
     {
-        bExclusiveOplock = TRUE;
+        bMatchingLease = TRUE;
     }
 
-    return bExclusiveOplock;
+    return bMatchingLease;
 }
 
-/*****************************************************************************
- ****************************************************************************/
-
 BOOLEAN
-PvfsStreamIsOplockedShared(
+PvfsStreamIsLeaseRead(
     IN PPVFS_SCB pScb
     )
 {
-    return !PvfsStreamIsOplockedExclusive(pScb);
+    return PvfsStreamHasMatchingLeaseState(pScb, IO_LEASE_STATE_READ);
+}
+
+BOOLEAN
+PvfsStreamIsLeaseReadHandle(
+    IN PPVFS_SCB pScb
+    )
+{
+    return PvfsStreamHasMatchingLeaseState(pScb,
+                                          IO_LEASE_STATE_READ | IO_LEASE_STATE_HANDLE);
+}
+
+BOOLEAN
+PvfsStreamIsLeaseReadWrite(
+    IN PPVFS_SCB pScb
+    )
+{
+    return PvfsStreamHasMatchingLeaseState(pScb,
+                                          IO_LEASE_STATE_READ | IO_LEASE_STATE_WRITE);
+}
+
+BOOLEAN
+PvfsStreamIsLeaseReadWriteHandle(
+    IN PPVFS_SCB pScb
+    )
+{
+    return PvfsStreamHasMatchingLeaseState(pScb,
+                                          IO_LEASE_STATE_READ | IO_LEASE_STATE_HANDLE | IO_LEASE_STATE_WRITE);
 }
 
 /*****************************************************************************
@@ -773,11 +881,20 @@ PvfsAddOplockRecord(
     IN OUT PPVFS_SCB pScb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_CCB pCcb,
-    IN     ULONG OplockType
+    IN     IO_OPLOCK_TYPE OplockType,
+    IN     IO_LEASE_STATE LeaseState
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
+    BOOLEAN bCcbLocked = FALSE;
+
+    // Do not add empty no lease state record
+    if (IO_OPLOCK_REQUEST_LEASE == OplockType &&
+        IO_LEASE_STATE_NONE == LeaseState)
+    {
+        goto cleanup;
+    }
 
     ntError = PvfsAllocateMemory(
                   OUT_PPVOID(&pOplock),
@@ -788,6 +905,15 @@ PvfsAddOplockRecord(
     PVFS_INIT_LINKS(&pOplock->OplockList);
 
     pOplock->OplockType = OplockType;
+    pOplock->LeaseState = LeaseState;
+
+    if (IO_OPLOCK_REQUEST_LEASE == pOplock->OplockType)
+    {
+        LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+        pCcb->CurrentLeaseState = LeaseState;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+    }
+
     pOplock->pCcb = PvfsReferenceCCB(pCcb);
     pOplock->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
 

@@ -502,6 +502,9 @@ struct _PVFS_CCB
 
     PVFS_OPLOCK_STATE OplockState;
     ULONG OplockBreakResult;
+    IO_LEASE_STATE CurrentLeaseState;
+    IO_LEASE_STATE NewLeaseState;
+
 
     FILE_NOTIFY_CHANGE ChangeEvent;
     LONG64 FileSize;
@@ -556,7 +559,8 @@ struct _PVFS_OPLOCK_RECORD
 {
     LW_LIST_LINKS OplockList;
 
-    ULONG OplockType;
+    IO_OPLOCK_TYPE OplockType;
+    IO_LEASE_STATE LeaseState;
     PPVFS_CCB pCcb;
     PPVFS_IRP_CONTEXT pIrpContext;
 

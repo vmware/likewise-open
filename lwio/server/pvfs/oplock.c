@@ -146,7 +146,7 @@ PvfsOplockRequest(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Successful grant so pend the resulit now */
+    /* Successful grant so pend the result now */
 
     LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
     pCcb->OplockState = PVFS_OPLOCK_STATE_GRANTED;
@@ -1624,7 +1624,8 @@ PvfsOplockGrantBatchOrLevel1(
                       pScb,
                       pIrpContext,
                       pCcb,
-                      OplockType);
+                      OplockType,
+                      IO_LEASE_STATE_NONE);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -1689,7 +1690,8 @@ PvfsOplockGrantLevel2(
                       pScb,
                       pIrpContext,
                       pCcb,
-                      IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2);
+                      IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2,
+                      IO_LEASE_STATE_NONE);
         BAIL_ON_NT_STATUS(ntError);
     }
 
