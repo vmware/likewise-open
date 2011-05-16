@@ -214,7 +214,6 @@ PvfsControlInfoSanityCheck(
     ntError = PvfsAccessCheckFileHandle(pCcb, desiredAccessMask);
     BAIL_ON_NT_STATUS(ntError);
 
-
     ntError = STATUS_SUCCESS;
 
 cleanup:
