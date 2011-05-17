@@ -140,6 +140,13 @@ PvfsOplockRequest(
         ntError = PvfsOplockGrantLevel2(pIrpContext, pCcb);
         break;
 
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsOplockGrantLease(
+			      pIrpContext,
+                      pCcb,
+                      pOplockRequest->RequestLeaseState);
+        break;
+
     default:
         ntError = STATUS_INVALID_PARAMETER;
         break;
@@ -293,6 +300,17 @@ PvfsOplockBreakAck(
         ntError = STATUS_SUCCESS;
         break;
 
+    case IO_OPLOCK_BREAK_ACK_LEASE:
+
+        ntError = PvfsLeaseBreakAck(
+                      pIrpContext,
+                      pCcb,
+                      pScb,
+                      pOplockBreakResp->AckLeaseState);
+        BAIL_ON_NT_STATUS(ntError);
+
+        break;
+
     case IO_OPLOCK_BREAK_CLOSE_PENDING:
         ntError = STATUS_SUCCESS;
         break;
@@ -411,7 +429,7 @@ PvfsProcessPendingOplockBreakNotify(
 
     pOplockBreakNotify = (PPVFS_PENDING_OPLOCK_BREAK_NOTIFY)pContext;
 
-    // Recheck the share mode before returning
+    // Re-check the share mode before returning
 
     ntError = PvfsEnforceShareMode(
                   pOplockBreakNotify->pCcb->pScb,
@@ -645,7 +663,7 @@ PvfsOplockIsMine(
 /**
  * Return values
  *   STATUS_SUCCESS - No break or no deferred operation necessary
- *   STATUS_PENDING - break is in progresss that requires caller
+ *   STATUS_PENDING - break is in progress that requires caller
  *                    to defer remaining operation
  *   STATUS_OPLOCK_BREAK_IN_PROGRESS - Oplock break is underway.
  *                    Caller must re-queue oplock break test for a
@@ -1003,6 +1021,7 @@ PvfsOplockBreakOnCreate(
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
     ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
 
     /* Don't break our own oplock */
 
@@ -1078,6 +1097,21 @@ PvfsOplockBreakOnCreate(
         ntError = STATUS_SUCCESS;
         break;
 
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsLeaseBreakOnCreate(
+                      pIrpContext,
+                      pScb,
+                      pCcb,
+                      pOplock,
+                      &BreakResult,
+                      &NewLeaseState);
+        if (STATUS_SUCCESS != ntError && STATUS_PENDING != ntError)
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        break;
+
     default:
         break;
     }
@@ -1087,6 +1121,12 @@ PvfsOplockBreakOnCreate(
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
+
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
 
@@ -1119,6 +1159,7 @@ PvfsOplockBreakOnRead(
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
     ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
 
     /* Don't break our own lock */
 
@@ -1158,6 +1199,21 @@ PvfsOplockBreakOnRead(
         ntError = STATUS_SUCCESS;
         break;
 
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsLeaseBreakOnRead(
+                      pIrpContext,
+                      pScb,
+                      pCcb,
+                      pOplock,
+                      &BreakResult,
+                      &NewLeaseState);
+        if (STATUS_SUCCESS != ntError && STATUS_PENDING != ntError)
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        break;
+
     default:
         break;
     }
@@ -1167,6 +1223,11 @@ PvfsOplockBreakOnRead(
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
 
@@ -1200,6 +1261,7 @@ PvfsOplockBreakOnWrite(
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
     ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
 
     switch (pOplock->OplockType)
     {
@@ -1250,6 +1312,21 @@ PvfsOplockBreakOnWrite(
         ntError = STATUS_SUCCESS;
         break;
 
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsLeaseBreakOnWrite(
+                      pIrpContext,
+                      pScb,
+                      pCcb,
+                      pOplock,
+                      &BreakResult,
+                      &NewLeaseState);
+        if (STATUS_SUCCESS != ntError && STATUS_PENDING != ntError)
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        break;
+
     default:
         break;
     }
@@ -1259,6 +1336,11 @@ PvfsOplockBreakOnWrite(
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
 
@@ -1292,6 +1374,7 @@ PvfsOplockBreakOnLockControl(
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
     ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
 
     switch (pOplock->OplockType)
     {
@@ -1342,6 +1425,21 @@ PvfsOplockBreakOnLockControl(
         ntError = STATUS_SUCCESS;
         break;
 
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsLeaseBreakOnLockControl(
+                      pIrpContext,
+                      pScb,
+                      pCcb,
+                      pOplock,
+                      &BreakResult,
+                      &NewLeaseState);
+        if (STATUS_SUCCESS != ntError && STATUS_PENDING != ntError)
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        break;
+
     default:
         break;
     }
@@ -1351,6 +1449,11 @@ PvfsOplockBreakOnLockControl(
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
 
@@ -1372,7 +1475,101 @@ error:
 
 static
 NTSTATUS
+PvfsOplockBreakOnSetFileInformationEoFOrAllocation(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult
+    );
+
+static
+NTSTATUS
+PvfsOplockBreakOnSetFileInformationRenameOrLink(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult
+    );
+
+static
+NTSTATUS
+PvfsOplockBreakOnSetFileInformationDisposition(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult
+    );
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
 PvfsOplockBreakOnSetFileInformation(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    switch (pCcb->SetFileType)
+    {
+        case PVFS_SET_FILE_END_OF_FILE:
+        case PVFS_SET_FILE_ALLOCATION:
+            ntError = PvfsOplockBreakOnSetFileInformationEoFOrAllocation(
+                        pIrpContext,
+                        pScb,
+                        pCcb,
+                        pOplock,
+                        pBreakResult);
+            break;
+
+        case PVFS_SET_FILE_RENAME:
+        case PVFS_SET_FILE_LINK:
+            ntError = PvfsOplockBreakOnSetFileInformationRenameOrLink(
+                          pIrpContext,
+                          pScb,
+                          pCcb,
+                          pOplock,
+                          pBreakResult);
+
+            break;
+
+        case PVFS_SET_FILE_DISPOSITION:
+            ntError = PvfsOplockBreakOnSetFileInformationDisposition(
+                          pIrpContext,
+                          pScb,
+                          pCcb,
+                          pOplock,
+                          pBreakResult);
+            break;
+
+        case PVFS_SET_FILE_NONE:
+            ntError = STATUS_SUCCESS;
+            break;
+
+        default:
+            ntError = STATUS_INVALID_PARAMETER;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+error:
+    return ntError;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsOplockBreakOnSetFileInformationEoFOrAllocation(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PPVFS_SCB pScb,
     IN  PPVFS_CCB pCcb,
@@ -1384,6 +1581,7 @@ PvfsOplockBreakOnSetFileInformation(
     BOOLEAN bCcbLocked = FALSE;
     PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
     ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
 
     switch (pOplock->OplockType)
     {
@@ -1434,6 +1632,21 @@ PvfsOplockBreakOnSetFileInformation(
         ntError = STATUS_SUCCESS;
         break;
 
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsLeaseBreakOnSetFileInformationEoFOrAllocation(
+                      pIrpContext,
+                      pScb,
+                      pCcb,
+                      pOplock,
+                      &BreakResult,
+                      &NewLeaseState);
+        if (STATUS_SUCCESS != ntError && STATUS_PENDING != ntError)
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        break;
+
     default:
         break;
     }
@@ -1443,6 +1656,11 @@ PvfsOplockBreakOnSetFileInformation(
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
                         pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
 
         pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
 
@@ -1458,6 +1676,176 @@ error:
     goto cleanup;
 }
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsOplockBreakOnSetFileInformationRenameOrLink(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN bCcbLocked = FALSE;
+    PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
+
+    switch (pOplock->OplockType)
+    {
+    case IO_OPLOCK_REQUEST_OPLOCK_BATCH:
+        /* Don't break our own lock */
+        if (!PvfsOplockIsMine(pCcb, pOplock))
+        {
+            BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+
+            LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
+            if (pOplock->pCcb->OplockState != PVFS_OPLOCK_STATE_GRANTED)
+            {
+                ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+                LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+            pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS;
+            pOplock->pCcb->OplockBreakResult = BreakResult;
+
+            LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
+            pScb->bOplockBreakInProgress = TRUE;
+
+            ntError = STATUS_PENDING;
+        }
+        break;
+
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
+    case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
+        BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
+        if (pOplock->pCcb->OplockState != PVFS_OPLOCK_STATE_GRANTED)
+        {
+            ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+            LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        pOplock->pCcb->OplockState = PVFS_OPLOCK_STATE_NONE;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
+
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
+
+        ntError = STATUS_SUCCESS;
+        break;
+
+    case IO_OPLOCK_REQUEST_LEASE:
+        ntError = PvfsLeaseBreakOnSetFileInformationRenameOrLink(
+                      pIrpContext,
+                      pScb,
+                      pCcb,
+                      pOplock,
+                      &BreakResult,
+                      &NewLeaseState);
+        if (STATUS_SUCCESS != ntError && STATUS_PENDING != ntError)
+        {
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        break;
+
+    default:
+        break;
+    }
+
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
+    {
+        pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+        pOutputBuffer->OplockBreakResult = BreakResult;
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
+
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+
+        PvfsAsyncCompleteIrpContext(pOplock->pIrpContext);
+    }
+
+    *pBreakResult = BreakResult;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsOplockBreakOnSetFileInformationDisposition(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER pOutputBuffer = NULL;
+    ULONG BreakResult = IO_OPLOCK_NOT_BROKEN;
+    IO_LEASE_STATE NewLeaseState = IO_LEASE_STATE_NONE;
+
+    if (IO_OPLOCK_REQUEST_LEASE != pOplock->OplockType)
+    {
+        goto cleanup;
+    }
+
+    ntError = PvfsLeaseBreakOnSetFileInformationDisposition(
+                  pIrpContext,
+                  pScb,
+                  pCcb,
+                  pOplock,
+                  &BreakResult,
+                  &NewLeaseState);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (BreakResult != IO_OPLOCK_NOT_BROKEN)
+    {
+        pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+        pOutputBuffer->OplockBreakResult = BreakResult;
+        if (BreakResult == IO_OPLOCK_BROKEN_LEASE)
+        {
+            pOutputBuffer->CurrentLeaseState = pOplock->LeaseState;
+            pOutputBuffer->NewLeaseState = NewLeaseState;
+        }
+
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+
+        PvfsAsyncCompleteIrpContext(pOplock->pIrpContext);
+    }
+
+cleanup:
+
+    *pBreakResult = BreakResult;
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 /*****************************************************************************
  ****************************************************************************/
@@ -1602,7 +1990,8 @@ PvfsOplockGrantBatchOrLevel1(
     /* Cannot grant a second exclusive oplock - FAIL*/
 
     if ((pScb->OpenHandleCount > 1) ||
-        PvfsStreamIsOplockedExclusive(pScb))
+        PvfsStreamIsOplockedExclusive(pScb) ||
+        PvfsStreamIsOplockedLeased(pScb))
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntError);
@@ -1664,7 +2053,8 @@ PvfsOplockGrantLevel2(
 
     /* Cannot grant a level2 on an existing exclusive oplock - FAIL*/
 
-    if (PvfsStreamIsOplockedExclusive(pScb))
+    if (PvfsStreamIsOplockedExclusive(pScb) ||
+        (PvfsStreamIsOplockedLeased(pScb) && !PvfsStreamIsLeaseRead(pScb)))
     {
         ntError = STATUS_OPLOCK_NOT_GRANTED;
         BAIL_ON_NT_STATUS(ntError);
@@ -1679,10 +2069,11 @@ PvfsOplockGrantLevel2(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Can have multiple level2 oplocks - GRANT */
+    /* Can have multiple level2 oplocks and/or read leases - GRANT */
 
     if (!PvfsStreamIsOplocked(pScb) ||
-        PvfsStreamIsOplockedShared(pScb))
+        PvfsStreamIsOplockedShared(pScb) ||
+        PvfsStreamIsLeaseRead(pScb))
     {
         PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 

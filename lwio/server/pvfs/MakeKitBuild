@@ -79,6 +79,7 @@ make()
 	lwFilePosixInfo.c \
 	lwFilePosixDirInfo.c \
 	oplock.c \
+        lease.c \
 	notify.c \
 	ioctlOpenFileInfo.c \
 	listq.c \

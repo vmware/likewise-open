@@ -468,6 +468,9 @@ typedef LONG PVFS_CCB_FLAGS, *PPVFS_CCB_FLAGS;
 #define PVFS_CCB_FLAG_QUOTA_FILE         0x00000008
 #define PVFS_CCB_FLAG_CREATE_COMPLETE    0x00000010
 
+//Todo need to define what exactly is the PPVFS_OPLOCK_KEY
+typedef PVOID PPVFS_OPLOCK_KEY;
+
 struct _PVFS_CCB
 {
     LW_LIST_LINKS ScbList;
@@ -499,6 +502,9 @@ struct _PVFS_CCB
     PPVFS_DIRECTORY_CONTEXT pDirContext;
 
     PVFS_LOCK_TABLE LockTable;
+
+    /* oplock key */
+    PPVFS_OPLOCK_KEY pOplockKey;
 
     PVFS_OPLOCK_STATE OplockState;
     ULONG OplockBreakResult;

@@ -821,6 +821,121 @@ PvfsOplockMarkPendedOpsReady(
     );
 
 
+/* From lease.c */
+NTSTATUS
+PvfsOplockGrantLease(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb,
+    IO_LEASE_STATE LeaseState
+    );
+
+BOOLEAN
+PvfsIsReadLease(
+    IN IO_LEASE_STATE LeaseState
+    );
+
+BOOLEAN
+PvfsIsReadHandleLease(
+    IN IO_LEASE_STATE LeaseState
+    );
+
+BOOLEAN
+PvfsIsReadWriteLease(
+    IN IO_LEASE_STATE LeaseState
+    );
+
+BOOLEAN
+PvfsIsReadWriteHandleLease(
+    IN IO_LEASE_STATE LeaseState
+    );
+
+BOOLEAN
+PvfsIsValidLeaseState(
+    IN IO_LEASE_STATE LeaseState
+    );
+
+NTSTATUS
+PvfsLeaseBreakOnCreate(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+NTSTATUS
+PvfsLeaseBreakOnRead(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+NTSTATUS
+PvfsLeaseBreakOnWrite(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+// SetFileInformation EofOrAlloc has same behavior as LockControl
+
+NTSTATUS
+PvfsLeaseBreakOnLockControl(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+NTSTATUS
+PvfsLeaseBreakOnSetFileInformationEoFOrAllocation(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+// SetFileInformation RenameOrLink has same behavior as Disposition
+
+NTSTATUS
+PvfsLeaseBreakOnSetFileInformationRenameOrLink(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+NTSTATUS
+PvfsLeaseBreakOnSetFileInformationDisposition(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_SCB pScb,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_RECORD pOplock,
+    OUT PULONG pBreakResult,
+    OUT PIO_LEASE_STATE pNewLeaseState
+    );
+
+NTSTATUS
+PvfsLeaseBreakAck(
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_SCB pScb,
+    IN IO_LEASE_STATE AckLeaseState
+    );
+
 /* From ioctlOpenFileInfo.c */
 
 NTSTATUS
