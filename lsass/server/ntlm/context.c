@@ -1956,7 +1956,7 @@ NtlmCreateNtlmV1Hash(
                   OUT_PPVOID(&pwszTempPassLE));
     BAIL_ON_LSA_ERROR(dwError);
 
-    wc16stowc16les(pwszTempPassLE, pwszTempPass, dwTempPassSize);
+    wc16stowc16les(pwszTempPassLE, pwszTempPass, dwTempPassSize / sizeof(WCHAR));
 
     dwError = NtlmCreateMD4Digest(
         (PBYTE)pwszTempPassLE,
