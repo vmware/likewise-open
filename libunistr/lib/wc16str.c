@@ -569,7 +569,6 @@ size_t wc16stowcs(wchar_t *dest, const wchar16_t *src, size_t cchcopy)
 
 size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
 {
-    size_t cbin = cchcopy * sizeof(src[0]);
     size_t cbout = wc16snlen(src, cchcopy);
 
     if (cbout < cchcopy)
@@ -578,9 +577,9 @@ size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
     }
 
 #if defined(WORDS_BIGENDIAN)
-    swab(src, dest, cbin);
+    swab(src, dest, cbout * sizeof(src[0]));
 #else
-    memcpy(dest, src, cbin);
+    memcpy(dest, src, cbout * sizeof(src[0]));
 #endif
 
     if (cbout > 0 && src[cbout - 1] == 0)
@@ -593,7 +592,6 @@ size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
 
 size_t wc16lestowc16s(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
 {
-    size_t cbin = cchcopy * sizeof(src[0]);
     size_t cbout = wc16snlen(src, cchcopy);
 
     if (cbout < cchcopy)
@@ -602,9 +600,9 @@ size_t wc16lestowc16s(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
     }
 
 #if defined(WORDS_BIGENDIAN)
-    swab(src, dest, cbin);
+    swab(src, dest, cbout * sizeof(src[0]));
 #else
-    memcpy(dest, src, cbin);
+    memcpy(dest, src, cbout * sizeof(src[0]));
 #endif
 
     if (cbout > 0 && src[cbout - 1] == 0)
