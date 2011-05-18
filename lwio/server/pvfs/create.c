@@ -258,7 +258,7 @@ PvfsCreateFileDoSysOpen(
         if (bAllocate)
         {
             PvfsSetFcbAllocationSize(
-                pCreateContext->pCcb->pFcb,
+                pCreateContext->pFcb,
                 Args.AllocationSize);
         }
     }
