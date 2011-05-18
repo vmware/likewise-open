@@ -31,6 +31,20 @@
 
 #include "includes.h"
 
+
+/* 1.3.6.1.4.1.311.2.2.10 */
+#define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
+#define GSS_MECH_NTLM_LEN   10
+
+
+static
+NTSTATUS
+SrvIoGetMappedToGuestFromGssContext(
+    IN LW_MAP_SECURITY_GSS_CONTEXT hContextHandle,
+    OUT PBOOLEAN pMappedToGuest
+    );
+
+
 NTSTATUS
 SrvIoCreateFile(
     PSRV_SHARE_INFO               pShareInfo,              /* IN              */
@@ -239,23 +253,15 @@ error:
 NTSTATUS
 SrvIoSecCreateSecurityContextFromGssContext(
     OUT PIO_CREATE_SECURITY_CONTEXT* ppSecurityContext,
-    OUT PBOOLEAN pbLoggedInAsGuest,
+    OUT PBOOLEAN pMappedToGuest,
     IN LW_MAP_SECURITY_GSS_CONTEXT hContextHandle,
     IN PCSTR pszUsername
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     UNICODE_STRING uniClientPrincipalName = {0};
-    BOOLEAN bLoggedInAsGuest = FALSE;
-    PACCESS_TOKEN pToken = NULL;
+    BOOLEAN mappedToGuest = FALSE;
     PIO_CREATE_SECURITY_CONTEXT pIoSecCreateCtx = NULL;
-    union {
-        TOKEN_OWNER TokenOwnerInfo;
-        BYTE Buffer[SID_MAX_SIZE];
-    } TokenOwnerBuffer;
-    PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
-    ULONG ulTokenOwnerLength = 0;
-    ULONG ulRid = 0;
 
     // Generate and store the IoSecurityContext.  Fallback to creating
     // one from the username if the GssContext based call fails
@@ -276,36 +282,17 @@ SrvIoSecCreateSecurityContextFromGssContext(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pToken = IoSecurityGetAccessToken(pIoSecCreateCtx);
-
-    if (!pToken)
-    {
-        ntStatus = STATUS_NO_TOKEN;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = RtlQueryAccessTokenInformation(
-                   pToken,
-                   TokenOwner,
-                   (PVOID)pTokenOwnerInformation,
-                   sizeof(TokenOwnerBuffer),
-                   &ulTokenOwnerLength);
+    ntStatus = SrvIoGetMappedToGuestFromGssContext(
+                    hContextHandle,
+                    &mappedToGuest);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = RtlGetRidSid(&ulRid, pTokenOwnerInformation->Owner);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (ulRid == DOMAIN_USER_RID_GUEST)
-    {
-        bLoggedInAsGuest = TRUE;
-    }
-
-    *pbLoggedInAsGuest = bLoggedInAsGuest;
-    *ppSecurityContext = pIoSecCreateCtx;
 
 cleanup:
 
     LwRtlUnicodeStringFree(&uniClientPrincipalName);
+
+    *pMappedToGuest = mappedToGuest;
+    *ppSecurityContext = pIoSecCreateCtx;
 
     return ntStatus;
 
@@ -316,6 +303,8 @@ error:
         IoSecurityDereferenceSecurityContext(&pIoSecCreateCtx);
         pIoSecCreateCtx = NULL;
     }
+
+    mappedToGuest = FALSE;
 
     goto cleanup;
 }
@@ -390,3 +379,102 @@ error:
     goto cleanup;
 }
 
+
+static
+NTSTATUS
+SrvIoGetMappedToGuestFromGssContext(
+    IN LW_MAP_SECURITY_GSS_CONTEXT hContextHandle,
+    OUT PBOOLEAN pMappedToGuest
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    CHAR szMappedToGuestUrn[] = "urn:likewise:mapped-to-guest";
+    OM_uint32 minorStatus = 0;
+    OM_uint32 majorStatus = 0;
+    gss_name_t srcName = GSS_C_NO_NAME;
+    gss_OID mechType = { 0 };
+    gss_buffer_desc mappedToGuestUrn =
+    {
+        .length = sizeof(szMappedToGuestUrn) - 1,
+        .value = (PBYTE) szMappedToGuestUrn
+    };
+    gss_buffer_desc mappedToGuestData = { 0 };
+    gss_buffer_desc displayData = { 0 };
+    int more = -1;
+    BOOLEAN mappedToGuest = FALSE;
+
+    majorStatus = gss_inquire_context(
+                    &minorStatus,
+                    hContextHandle,
+                    &srcName,
+                    NULL,
+                    NULL,
+                    &mechType,
+                    NULL,
+                    NULL,
+                    NULL);
+    if (majorStatus != GSS_S_COMPLETE)
+    {
+        ntStatus = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // The mapped-to-guest attribute is valid only for NTLM
+    if (mechType->length != GSS_MECH_NTLM_LEN ||
+        memcmp(mechType->elements, GSS_MECH_NTLM, GSS_MECH_NTLM_LEN))
+    {
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    majorStatus = gss_get_name_attribute(
+                    &minorStatus,
+                    srcName,
+                    &mappedToGuestUrn,
+                    NULL,
+                    NULL,
+                    &mappedToGuestData,
+                    &displayData,
+                    &more);
+    if (majorStatus != GSS_S_COMPLETE)
+    {
+        ntStatus = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (mappedToGuestData.value == NULL ||
+        mappedToGuestData.length != sizeof(BOOLEAN))
+    {
+        ntStatus = STATUS_INVALID_USER_BUFFER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    mappedToGuest = *((PBOOLEAN)mappedToGuestData.value);
+
+cleanup:
+
+    if (mappedToGuestData.value)
+    {
+        gss_release_buffer(&minorStatus, &mappedToGuestData);
+    }
+
+    if (displayData.value)
+    {
+        gss_release_buffer(&minorStatus, &displayData);
+    }
+
+    if (srcName)
+    {
+        gss_release_name(&minorStatus, &srcName);
+    }
+
+    *pMappedToGuest = mappedToGuest;
+
+    return ntStatus;
+
+error:
+
+    mappedToGuest = FALSE;
+
+    goto cleanup;
+}

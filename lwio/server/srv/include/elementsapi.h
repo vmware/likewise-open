@@ -1408,7 +1408,7 @@ SrvTree2Rundown(
 NTSTATUS
 SrvIoSecCreateSecurityContextFromGssContext(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
-    OUT PBOOLEAN pbLoggedInAsGuest,
+    OUT PBOOLEAN pMappedToGuest,
     IN LW_MAP_SECURITY_GSS_CONTEXT hGssContext,
     IN PCSTR pszUsername
     );
