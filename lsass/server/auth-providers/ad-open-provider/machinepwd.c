@@ -66,6 +66,10 @@ typedef struct _AD_MACHINE_PASSWORD_SYNC_STATE {
     HANDLE hPasswordStore;
     DWORD dwTgtExpiry;
     DWORD dwTgtExpiryGraceSeconds;
+
+    // Datalock protects changing the machine password
+    pthread_rwlock_t DataLock;
+    pthread_rwlock_t* pDataLock;
 } AD_MACHINE_PASSWORD_SYNC_STATE, *PAD_MACHINE_PASSWORD_SYNC_STATE;
 
 //
@@ -151,6 +155,11 @@ ADInitMachinePasswordSync(
                     LWPS_PASSWORD_STORE_DEFAULT,
                     &gAdMachinePasswordSyncState.hPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(pthread_rwlock_init(&gAdMachinePasswordSyncState.DataLock, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    gAdMachinePasswordSyncState.pDataLock = &gAdMachinePasswordSyncState.DataLock;
 
 cleanup:
 
@@ -268,7 +277,14 @@ ADSyncMachinePasswordThreadRoutine(
                 goto lsa_wait_resync;
             }
 
+            PTHREAD_CALL_MUST_SUCCEED(
+                    pthread_rwlock_wrlock(gAdMachinePasswordSyncState.pDataLock));
+
             dwError = LsaMachineChangePassword();
+
+            PTHREAD_CALL_MUST_SUCCEED(
+                    pthread_rwlock_unlock(gAdMachinePasswordSyncState.pDataLock));
+
             if (dwError)
             {
                 LSA_LOG_ERROR("Error: Failed to re-sync machine account [Error code: %ld]", dwError);
@@ -449,6 +465,24 @@ error:
 }
 
 VOID
+ADLockMachinePassword(
+    VOID
+    )
+{
+    PTHREAD_CALL_MUST_SUCCEED(
+            pthread_rwlock_rdlock(gAdMachinePasswordSyncState.pDataLock));
+}
+
+VOID
+ADUnlockMachinePassword(
+    VOID
+    )
+{
+    PTHREAD_CALL_MUST_SUCCEED(
+            pthread_rwlock_unlock(gAdMachinePasswordSyncState.pDataLock));
+}
+
+VOID
 ADShutdownMachinePasswordSync(
     VOID
     )
@@ -468,6 +502,12 @@ ADShutdownMachinePasswordSync(
     {
         LwpsClosePasswordStore(gAdMachinePasswordSyncState.hPasswordStore);
         gAdMachinePasswordSyncState.hPasswordStore = NULL;
+    }
+
+    if (gAdMachinePasswordSyncState.pDataLock)
+    {
+        PTHREAD_CALL_MUST_SUCCEED(
+                pthread_rwlock_destroy(gAdMachinePasswordSyncState.pDataLock));
     }
 }
 

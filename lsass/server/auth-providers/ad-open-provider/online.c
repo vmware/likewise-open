@@ -1553,6 +1553,7 @@ AD_OnlineCheckUserPassword(
     NTSTATUS ntStatus = 0;
     PLSA_SECURITY_OBJECT pUpdatedUserInfo = NULL;
     time_t now = 0;
+    BOOLEAN passwordLocked = FALSE;
 
     dwError = AD_DetermineTrustModeandDomainName(
                         pUserInfo->pszNetbiosDomainName,
@@ -1566,6 +1567,8 @@ AD_OnlineCheckUserPassword(
     BAIL_ON_LSA_ERROR(dwError);
 
     LwStrToLower(pszHostname);
+
+    AD_LOCK_MACHINE_PASSWORD(passwordLocked);
 
     dwError = LwKrb5GetMachineCreds(
                     &pszMachineAccountName,
@@ -1667,6 +1670,8 @@ AD_OnlineCheckUserPassword(
                       0);
     }
 
+    AD_UNLOCK_MACHINE_PASSWORD(passwordLocked);
+
     if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
     {
         LsaDmTransitionOffline(pszUserRealm, FALSE);
@@ -1751,6 +1756,8 @@ cleanup:
     LW_SAFE_FREE_STRING(pszUserDnsDomainName);
     LW_SAFE_FREE_STRING(pszFreeUpn);
     LW_SAFE_FREE_MEMORY(pchNdrEncodedPac);
+
+    AD_UNLOCK_MACHINE_PASSWORD(passwordLocked);
 
     return dwError;
 

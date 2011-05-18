@@ -1639,10 +1639,13 @@ AD_NetlogonAuthenticationUserEx(
     BOOLEAN bChangedToken = FALSE;
     BOOLEAN bResetSchannel = FALSE;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
+    BOOLEAN passwordLocked = FALSE;
 
     pthread_mutex_lock(&gSchannelLock);
 
     /* Grab the machine password and account info */
+
+    AD_LOCK_MACHINE_PASSWORD(passwordLocked);
 
     dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT,
                                     &hPwdDb);
@@ -1746,6 +1749,8 @@ AD_NetlogonAuthenticationUserEx(
 
         gpSchannelCreds = &gSchannelCreds;
     }
+    AD_UNLOCK_MACHINE_PASSWORD(passwordLocked);
+
 
     /* Time to do the authentication */
 
@@ -1868,6 +1873,7 @@ cleanup:
         LwpsClosePasswordStore(hPwdDb);
         hPwdDb = (HANDLE)NULL;
     }
+    AD_UNLOCK_MACHINE_PASSWORD(passwordLocked);
 
     if (netr_b)
     {
