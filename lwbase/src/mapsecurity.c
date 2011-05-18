@@ -1205,8 +1205,8 @@ cleanup:
 
 VOID
 LwMapSecurityFreeNtlmLogonResult(
-    IN PLW_MAP_SECURITY_CONTEXT                 Context,
-    IN OUT PLW_MAP_SECURITY_NTLM_LOGON_RESULT*  ppNtlmResult
+    IN PLW_MAP_SECURITY_CONTEXT Context,
+    IN OUT PLW_MAP_SECURITY_NTLM_LOGON_RESULT* ppNtlmResult
     )
 {
     if (*ppNtlmResult)
@@ -1215,6 +1215,17 @@ LwMapSecurityFreeNtlmLogonResult(
                     Context->PluginContext,
                     ppNtlmResult);
     }
+}
+
+NTSTATUS
+LwMapSecurityGetLocalGuestAccountSid(
+    IN PLW_MAP_SECURITY_CONTEXT pContext,
+    OUT PSID* ppSid
+    )
+{
+    return pContext->PluginInterface->GetLocalGuestAccountSid(
+                    pContext->PluginContext,
+                    ppSid);
 }
 
 /*
