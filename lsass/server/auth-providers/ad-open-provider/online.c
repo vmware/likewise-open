@@ -1684,6 +1684,7 @@ AD_OnlineCheckUserPassword(
     PLSA_MACHINE_PASSWORD_INFO_A pPasswordInfo = NULL;
     PLSA_SECURITY_OBJECT pUpdatedUserInfo = NULL;
     time_t now = 0;
+    BOOLEAN passwordLocked = FALSE;
 
     dwError = AD_DetermineTrustModeandDomainName(
                         pContext->pState,
@@ -1693,6 +1694,10 @@ AD_OnlineCheckUserPassword(
                         NULL,
                         NULL);
     BAIL_ON_LSA_ERROR(dwError);
+
+    AD_LOCK_MACHINE_PASSWORD(
+                    pContext->pState->hMachinePwdState,
+                    passwordLocked);
 
     dwError = LsaPcacheGetMachinePasswordInfoA(
                   pContext->pState->pPcache,
@@ -1791,6 +1796,10 @@ AD_OnlineCheckUserPassword(
                         pdwGoodUntilTime);
     }
 
+    AD_UNLOCK_MACHINE_PASSWORD(
+                    pContext->pState->hMachinePwdState,
+                    passwordLocked);
+
     if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
     {
         LsaDmTransitionOffline(
@@ -1876,6 +1885,9 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pNdrEncodedPac);
 
     LsaPcacheReleaseMachinePasswordInfoA(pPasswordInfo);
+    AD_UNLOCK_MACHINE_PASSWORD(
+                    pContext->pState->hMachinePwdState,
+                    passwordLocked);
 
     return dwError;
 
