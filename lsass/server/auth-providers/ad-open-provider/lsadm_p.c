@@ -775,6 +775,7 @@ LsaDmpModifyStateFlags(
     LSA_DM_STATE_FLAGS stateFlags = 0;
     BOOLEAN bWasOffline = FALSE;
     BOOLEAN bIsOffline = FALSE;
+    BOOLEAN bNeedFlush = FALSE;
 
     LsaDmpAcquireMutex(Handle->pMutex);
 
@@ -794,9 +795,7 @@ LsaDmpModifyStateFlags(
                            bIsOffline ? "offline" : "online");
             if (!bIsOffline)
             {
-                // Have to ignore dwError because this function returns void
-                LsaSrvFlushSystemCache();
-                LsaUmTriggerCheckUsersThread();
+                bNeedFlush = TRUE;
             }
         }
 
@@ -809,9 +808,7 @@ LsaDmpModifyStateFlags(
                            bIsOffline ? "enabled" : "disabled");
             if (!bIsOffline)
             {
-                // Have to ignore dwError because this function returns void
-                LsaSrvFlushSystemCache();
-                LsaUmTriggerCheckUsersThread();
+                bNeedFlush = TRUE;
             }
         }
 
@@ -819,6 +816,16 @@ LsaDmpModifyStateFlags(
     }
 
     LsaDmpReleaseMutex(Handle->pMutex);
+
+    if (bNeedFlush)
+    {
+        // Run this functions outside of the mutex because flush system cache
+        // forks and execs, and the trigger check users thread acquires another
+        // mutex.
+        // Have to ignore dwError because this function returns void
+        LsaSrvFlushSystemCache();
+        LsaUmTriggerCheckUsersThread();
+    }
 }
 
 VOID
@@ -2195,19 +2202,35 @@ LsaDmpDomainSetGcInfoByName(
 }
 
 static
-VOID
-LsaDmpModifyDomainFlagsByRef(
+DWORD
+LsaDmpModifyDomainFlagsByName(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PLSA_DM_DOMAIN_STATE pDomain,
+    IN PCSTR pszDomainName,
     IN BOOLEAN bIsSet,
     IN LSA_DM_DOMAIN_FLAGS Flags
     )
 {
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+    PLSA_DM_DOMAIN_STATE pDomain = NULL;
     BOOLEAN bWasOffline = FALSE;
     BOOLEAN bIsOffline = FALSE;
     BOOLEAN bGcWasOffline = FALSE;
     BOOLEAN bGcIsOffline = FALSE;
     BOOLEAN bNeedFlush = FALSE;
+
+
+    if (!pszDomainName)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pDomain);
+    BAIL_ON_LSA_ERROR(dwError);
 
     bWasOffline = IsLsaDmDomainFlagsOffline(pDomain->Flags);
     bGcWasOffline = IsLsaDmDomainFlagsGcOffline(pDomain->Flags);
@@ -2255,41 +2278,20 @@ LsaDmpModifyDomainFlagsByRef(
         }
     }
 
+    LsaDmpReleaseMutex(Handle->pMutex);
+    bIsAcquired = FALSE;
+
     if (bNeedFlush)
     {
+        // Run this functions outside of the mutex because flush system cache
+        // forks and execs, and the trigger check users thread acquires another
+        // mutex.
+
         // Have to ignore dwError because this function returns void
         LsaSrvFlushSystemCache();
 
         LsaUmTriggerCheckUsersThread();
     }
-}
-
-static
-DWORD
-LsaDmpModifyDomainFlagsByName(
-    IN LSA_DM_STATE_HANDLE Handle,
-    IN PCSTR pszDomainName,
-    IN BOOLEAN bIsSet,
-    IN LSA_DM_DOMAIN_FLAGS Flags
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bIsAcquired = FALSE;
-    PLSA_DM_DOMAIN_STATE pFoundDomain = NULL;
-
-    if (!pszDomainName)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    LsaDmpAcquireMutex(Handle->pMutex);
-    bIsAcquired = TRUE;
-
-    dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pFoundDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LsaDmpModifyDomainFlagsByRef(Handle, pFoundDomain, bIsSet, Flags);
 
 cleanup:
     if (bIsAcquired)
