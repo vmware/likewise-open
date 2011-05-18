@@ -83,7 +83,7 @@ ADLockMachinePassword(
             { \
                 if (locked) \
                 { \
-                    ADLockMachinePassword(); \
+                    ADUnlockMachinePassword(); \
                     (locked) = FALSE; \
                 } \
             } while(0)
