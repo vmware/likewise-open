@@ -1323,7 +1323,7 @@ SrvBuildCreateResponse_SMB_V2(
     ntStatus = SrvCreditorAdjustCredits(
                     pExecContext->pConnection->pCreditor,
                     pSmbRequest->pHeader->ullCommandSequence,
-                    pCreateState->ullAsyncId,
+                    pExecContext->ullAsyncId,
                     pSmbRequest->pHeader->usCredits,
                     &pExecContext->usCreditsGranted);
     BAIL_ON_NT_STATUS(ntStatus);
