@@ -33,6 +33,7 @@ liblsautils_la_SOURCES =       \
        sidinfo.c               \
        sysfuncs.c              \
        syslog.c                \
+       systemcache.c           \
        datablob.c              \
        lsaxnet.c               \
        lsaauthex.c             \
