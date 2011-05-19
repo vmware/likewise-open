@@ -827,6 +827,7 @@ SrvBuildTreeConnectResponse(
                         &pSmbResponse->pWordCount,
                         &pSmbResponse->pAndXHeader,
                         &pSmbResponse->usHeaderSize);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
     else
     {
@@ -838,8 +839,12 @@ SrvBuildTreeConnectResponse(
                         &pSmbResponse->pWordCount,
                         &pSmbResponse->pAndXHeader,
                         &pSmbResponse->usHeaderSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // Must set the new TID in the SMB Header if this is a chained
+        // request.  E.g. a chained session setup & tcon from jCIFS.
+        pSmbResponse->pHeader->tid = pTConState->pTree->tid;
     }
-    BAIL_ON_NT_STATUS(ntStatus);
 
     pOutBuffer       += pSmbResponse->usHeaderSize;
     ulOffset         += pSmbResponse->usHeaderSize;
