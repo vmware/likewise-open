@@ -335,10 +335,11 @@ SrvMarshalNegotiateResponse_SMB_V2(
         pNegotiateHeader->ucFlags |= 0x2;
     }
 
-    pNegotiateHeader->ulMaxReadSize = pServerProperties->MaxBufferSize;
-    pNegotiateHeader->ulMaxWriteSize = pServerProperties->MaxBufferSize;
+    pNegotiateHeader->ulMaxReadSize = pServerProperties->MaxBufferSize_SMB_V2;
+    pNegotiateHeader->ulMaxWriteSize = pServerProperties->MaxBufferSize_SMB_V2;
+    pNegotiateHeader->ulMaxTxSize = pServerProperties->MaxBufferSize_SMB_V2;
+
     pNegotiateHeader->ulCapabilities = 0;
-    pNegotiateHeader->ulMaxTxSize = pServerProperties->MaxBufferSize;
 
     ntStatus = WireGetCurrentNTTime(&llCurTime);
     BAIL_ON_NT_STATUS(ntStatus);
