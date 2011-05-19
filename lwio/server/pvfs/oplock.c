@@ -2013,8 +2013,7 @@ PvfsOplockGrantBatchOrLevel1(
                       pScb,
                       pIrpContext,
                       pCcb,
-                      OplockType,
-                      IO_LEASE_STATE_NONE);
+                      OplockType);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -2081,8 +2080,7 @@ PvfsOplockGrantLevel2(
                       pScb,
                       pIrpContext,
                       pCcb,
-                      IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2,
-                      IO_LEASE_STATE_NONE);
+                      IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2);
         BAIL_ON_NT_STATUS(ntError);
     }
 

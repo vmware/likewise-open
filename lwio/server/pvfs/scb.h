@@ -158,7 +158,14 @@ PvfsAddOplockRecord(
     IN OUT PPVFS_SCB pScb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_CCB pCcb,
-    IN     IO_OPLOCK_TYPE OplockType,
+    IN     IO_OPLOCK_TYPE OplockType
+    );
+
+NTSTATUS
+PvfsAddLeaseRecord(
+    IN OUT PPVFS_SCB pScb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_CCB pCcb,
     IN     IO_LEASE_STATE LeaseState
     );
 

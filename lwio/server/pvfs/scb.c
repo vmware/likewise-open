@@ -46,6 +46,16 @@
 
 #include "pvfs.h"
 
+static
+NTSTATUS
+PvfsAddOplockOrLeaseRecord(
+    IN OUT PPVFS_SCB pScb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_CCB pCcb,
+    IN     IO_OPLOCK_TYPE OplockType,
+    IN     IO_LEASE_STATE LeaseState
+    );
+
 /*****************************************************************************
  ****************************************************************************/
 
@@ -878,6 +888,44 @@ PvfsStreamIsLeaseReadWriteHandle(
 
 NTSTATUS
 PvfsAddOplockRecord(
+    IN OUT PPVFS_SCB pScb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_CCB pCcb,
+    IN     IO_OPLOCK_TYPE OplockType
+    )
+{
+	return PvfsAddOplockOrLeaseRecord(
+		       pScb,
+		       pIrpContext,
+		       pCcb,
+		       OplockType,
+		       IO_LEASE_STATE_NONE);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsAddLeaseRecord(
+    IN OUT PPVFS_SCB pScb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_CCB pCcb,
+    IN     IO_LEASE_STATE LeaseState
+    )
+{
+	return PvfsAddOplockOrLeaseRecord(
+		       pScb,
+		       pIrpContext,
+		       pCcb,
+		       IO_OPLOCK_REQUEST_LEASE,
+		       LeaseState);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+static
+NTSTATUS
+PvfsAddOplockOrLeaseRecord(
     IN OUT PPVFS_SCB pScb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_CCB pCcb,

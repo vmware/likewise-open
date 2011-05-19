@@ -275,11 +275,10 @@ PvfsLeaseGrantRead(
     /* Can have multiple level2 oplocks and/or read leases - GRANT */
     PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
-    ntError = PvfsAddOplockRecord(
+    ntError = PvfsAddLeaseRecord(
                   pScb,
                   pIrpContext,
                   pCcb,
-                  IO_OPLOCK_REQUEST_LEASE,
                   IO_LEASE_STATE_READ);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -384,11 +383,10 @@ PvfsLeaseGrantReadHandle(
     /* Can have multiple read and read handle leases - GRANT */
     PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
-    ntError = PvfsAddOplockRecord(
+    ntError = PvfsAddLeaseRecord(
                   pScb,
                   pIrpContext,
                   pCcb,
-                  IO_OPLOCK_REQUEST_LEASE,
                   IO_LEASE_STATE_READ|IO_LEASE_STATE_HANDLE);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -494,11 +492,10 @@ PvfsLeaseGrantReadWrite(
     /* Grant RW lease */
     PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
-    ntError = PvfsAddOplockRecord(
+    ntError = PvfsAddLeaseRecord(
                   pScb,
                   pIrpContext,
                   pCcb,
-                  IO_OPLOCK_REQUEST_LEASE,
                   IO_LEASE_STATE_READ|IO_LEASE_STATE_WRITE);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -605,11 +602,10 @@ PvfsLeaseGrantReadWriteHandle(
     /* Grant RWH lease */
     PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
 
-    ntError = PvfsAddOplockRecord(
+    ntError = PvfsAddLeaseRecord(
                   pScb,
                   pIrpContext,
                   pCcb,
-                  IO_OPLOCK_REQUEST_LEASE,
                   IO_LEASE_STATE_READ|IO_LEASE_STATE_WRITE|IO_LEASE_STATE_HANDLE);
     BAIL_ON_NT_STATUS(ntError);
 
