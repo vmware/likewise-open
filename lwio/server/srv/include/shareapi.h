@@ -276,11 +276,6 @@ SrvShareFreeListContents(
     );
 
 VOID
-SrvShareFreeEntry(
-    IN PSRV_SHARE_ENTRY pShareEntry
-    );
-
-VOID
 SrvShareFreeInfoList(
     PSRV_SHARE_INFO* ppInfoList,
     ULONG            ulNumInfos

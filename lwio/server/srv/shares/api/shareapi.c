@@ -141,6 +141,12 @@ SrvShareDisconnectClients_inlock(
     IN PSRV_SHARE_INFO pShareInfo
     );
 
+static
+VOID
+SrvShareFreeEntry(
+    IN PSRV_SHARE_ENTRY pShareEntry
+    );
+
 
 NTSTATUS
 SrvShareInitList(
