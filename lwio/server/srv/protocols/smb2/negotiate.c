@@ -385,9 +385,9 @@ SrvMarshalNegotiateResponse_SMB_V2(
         pNegotiateHeader->ucFlags |= SMB2_NEGOTIATE_SECURITY_FLAG_SIGNING_REQUIRED;
     }
 
-    pNegotiateHeader->ulMaxReadSize = pServerProperties->MaxBufferSize;
-    pNegotiateHeader->ulMaxWriteSize = pServerProperties->MaxBufferSize;
-    pNegotiateHeader->ulMaxTxSize = pServerProperties->MaxBufferSize;
+    pNegotiateHeader->ulMaxReadSize = pServerProperties->MaxBufferSize_SMB_V2;
+    pNegotiateHeader->ulMaxWriteSize = pServerProperties->MaxBufferSize_SMB_V2;
+    pNegotiateHeader->ulMaxTxSize = pServerProperties->MaxBufferSize_SMB_V2;
 
     pNegotiateHeader->ulCapabilities = 0;
 

@@ -558,6 +558,7 @@ typedef struct _SRV_PROPERTIES
     USHORT  MaxMpxCount;
     USHORT  MaxNumberVCs;
     ULONG   MaxBufferSize;
+    ULONG   MaxBufferSize_SMB_V2;
     ULONG   MaxRawSize;
     ULONG   Capabilities;
     uuid_t  GUID;

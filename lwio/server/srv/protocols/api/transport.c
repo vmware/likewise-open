@@ -568,6 +568,7 @@ SrvProtocolTransportDriverConnectionNew(
     properties.MaxMpxCount = 50;
     properties.MaxNumberVCs = 1;
     properties.MaxBufferSize = 16644;
+    properties.MaxBufferSize_SMB_V2 = 65536;
     properties.Capabilities = 0;
     properties.Capabilities |= CAP_UNICODE;
     properties.Capabilities |= CAP_LARGE_FILES;
