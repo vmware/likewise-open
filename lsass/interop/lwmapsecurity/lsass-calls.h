@@ -67,6 +67,7 @@
 #define LsaQueryMemberOf LsaSrvQueryMemberOf
 #define LsaAuthenticateUserEx LsaSrvAuthenticateUserEx
 #define LsaPrivsEnumAccountRightsSids LsaSrvPrivsEnumAccountRightsSids
+#define LsaGetStatus2 LsaSrvGetStatus
 
 #endif /* LSASS_INTERNAL_PLUGIN */
 
