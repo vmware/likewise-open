@@ -819,10 +819,11 @@ LsaDmpModifyStateFlags(
 
     if (bNeedFlush)
     {
-        // Run this functions outside of the mutex because the trigger
-        // check users thread acquires another mutex.
+        // Run this functions outside of the mutex because flush system cache
+        // forks and execs, and the trigger check users thread acquires another
+        // mutex.
         // Have to ignore dwError because this function returns void
-        LsaUtilFlushSystemCache();
+        LsaSrvFlushSystemCache();
         LsaUmTriggerCheckUsersThread();
     }
 }
@@ -2287,7 +2288,7 @@ LsaDmpModifyDomainFlagsByName(
         // mutex.
 
         // Have to ignore dwError because this function returns void
-        LsaUtilFlushSystemCache();
+        LsaSrvFlushSystemCache();
 
         LsaUmTriggerCheckUsersThread();
     }

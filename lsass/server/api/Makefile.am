@@ -42,6 +42,7 @@ liblsaserverapi_la_SOURCES = \
        session.c       \
        state.c         \
        status.c        \
+       systemcache.c   \
        traceinfo.c     \
        rpc_server.c    \
        svc_register.c  \

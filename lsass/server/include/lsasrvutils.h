@@ -346,6 +346,11 @@ LsaSrvLogFailureAuditEvent(
     );
 
 DWORD
+LsaSrvFlushSystemCache(
+    VOID
+    );
+
+DWORD
 LsaProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,

@@ -1,6 +1,5 @@
 #include "../includes.h"
 
-#include <lsautils.h>
 
 DWORD
 GetUserAttributes(
@@ -852,7 +851,7 @@ CollectCurrentADAttributesForUser(
         BAIL_ON_MAC_ERROR(dwError);
     }
 
-    dwError = LsaUtilFlushSystemCache();
+    dwError = FlushDirectoryServiceCache();
     if (dwError)
     {
         LOG("Failed to flush the Mac DirectoryService cache. Error: %d", dwError);
@@ -897,3 +896,33 @@ error:
     goto cleanup;
 
 }
+
+DWORD
+FlushDirectoryServiceCache(
+    )
+{
+    DWORD dwError = MAC_AD_ERROR_SUCCESS;
+    BOOLEAN exists = FALSE;
+
+    dwError = LwCheckFileTypeExists("/usr/sbin/lookupd", LWFILE_REGULAR, &exists);
+    BAIL_ON_MAC_ERROR(dwError);
+
+    if (!exists)
+    {
+        system("/usr/sbin/lookupd -flushcache");
+    }
+
+    dwError = LwCheckFileTypeExists("/usr/bin/dscacheutil", LWFILE_REGULAR, &exists);
+    BAIL_ON_MAC_ERROR(dwError);
+
+    if (exists)
+    {
+        system("/usr/bin/dscacheutil -flushcache");
+    }
+
+error:
+
+    return dwError;
+}
+
+

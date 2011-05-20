@@ -449,7 +449,7 @@ LsaAdStartupThread(
         pState->joinState = LSA_AD_NOT_JOINED;
     }
 
-    LsaUtilFlushSystemCache();
+    LsaSrvFlushSystemCache();
 
     LsaAdProviderStateRelease(pState);
 

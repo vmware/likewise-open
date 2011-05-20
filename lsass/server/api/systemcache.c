@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2011
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -45,71 +45,72 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
-#include "includes.h"
-
-#if defined (__LWI_DARWIN__)
-#include <mach/mach_init.h>
-#include <mach/message.h>
-#include <servers/bootstrap.h>
-#include <DirectoryService/DirServicesConst.h>
-
-#include "DSlibinfoMIG.h"
-#endif /* defined (__LWI_DARWIN__) */
+#include "api.h"
 
 DWORD
-LsaUtilFlushSystemCache(
+LsaSrvFlushSystemCache(
     VOID
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = 0;
 
 #if defined (__LWI_DARWIN__)
-    char reply[16384] = { 0, };
-    mach_msg_type_number_t replyCnt = 0;
-    vm_offset_t ooreply = 0;
-    mach_msg_type_number_t ooreplyCnt = 0;
-    int32_t procno = 0;
-    security_token_t userToken;
-    mach_port_t serverPort;
+    int i;
+    const char* cacheUtils[] = {
+        "/usr/sbin/lookupd", /* Before Mac OS X 10.5 */
+        "/usr/bin/dscacheutil" /* On Mac OS X 10.5 */
+    };
+    const char* cacheUtilCmd[] = {
+        "/usr/sbin/lookupd -flushcache", /* Before Mac OS X 10.5 */
+        "/usr/bin/dscacheutil -flushcache" /* On Mac OS X 10.5 */
+    };
+    BOOLEAN bCacheFlushed = FALSE;
 
-    if (bootstrap_look_up(
-                bootstrap_port,
-                kDSStdMachDSLookupPortName,
-                &serverPort) != KERN_SUCCESS)
+    LSA_LOG_VERBOSE("Going to flush the Mac DirectoryService cache ...");
+
+    for (i = 0;
+         !bCacheFlushed && i < (sizeof(cacheUtils) / sizeof(cacheUtils[0]));
+         i++)
     {
-        BAIL_WITH_LSA_ERROR(LW_ERROR_INTERNAL);
+        const char* util = cacheUtils[i];
+        const char* command = cacheUtilCmd[i];
+        BOOLEAN exists;
+
+        /* Sanity check */
+        if (!util)
+        {
+            continue;
+        }
+
+        dwError = LsaCheckFileExists(util, &exists);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!exists)
+        {
+            continue;
+        }
+
+        system(command);
+
+        /* Bail regardless */
+        bCacheFlushed = TRUE;
     }
 
-    if (libinfoDSmig_GetProcedureNumber(
-                    serverPort,
-                    "_flushcache",
-                    &procno,
-                    &userToken) != KERN_SUCCESS)
+    if (!bCacheFlushed)
     {
-        BAIL_WITH_LSA_ERROR(LW_ERROR_INTERNAL);
+        LSA_LOG_ERROR("Could not locate cache flush utility");
+        dwError = LW_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
+        BAIL_ON_LSA_ERROR(dwError);
     }
-
-    if (libinfoDSmig_Query(
-            serverPort,
-            procno,
-            "",
-            0,
-            reply,
-            &replyCnt,
-            &ooreply,
-            &ooreplyCnt,
-            &userToken) != KERN_SUCCESS)
-    {
-        BAIL_WITH_LSA_ERROR(LW_ERROR_INTERNAL);
-    }
-
-#endif /* defined (__LWI_DARWIN__) */
 
 cleanup:
+    LSA_LOG_VERBOSE("Finished flushing the Mac DirectoryService cache");
+#endif
     return dwError;
 
 #if defined (__LWI_DARWIN__)
 error:
-#endif /* defined (__LWI_DARWIN__) */
+
     goto cleanup;
+#endif
 }

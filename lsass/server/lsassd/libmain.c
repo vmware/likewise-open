@@ -459,9 +459,11 @@ LsaSrvStartupPreCheck(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+#if defined (__LWI_DARWIN_)
     // Now that we are running, we need to flush the DirectoryService process of any negative cache entries
-    dwError = LsaUtilFlushSystemCache();
+    dwError = LsaSrvFlushSystemCache();
     BAIL_ON_LSA_ERROR(dwError);
+#endif
 
 cleanup:
 

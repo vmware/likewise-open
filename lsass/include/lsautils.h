@@ -1392,11 +1392,6 @@ LsaUtilFreePamConfig(
     IN PLSA_PAM_CONFIG pConfig
     );
 
-DWORD
-LsaUtilFlushSystemCache(
-    VOID
-    );
-
 #endif /* __LSA_UTILS_H__ */
 
 
