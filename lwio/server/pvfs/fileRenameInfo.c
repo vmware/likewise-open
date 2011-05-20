@@ -504,7 +504,6 @@ PvfsCreateSetFileRenameInfoContext(
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->SetFileType = PVFS_SET_FILE_RENAME;
     pSetRenameInfoCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pSetRenameInfoCtx->pCcb = PvfsReferenceCCB(pCcb);
     pSetRenameInfoCtx->newResolvedFileName = newResolvedFileName;

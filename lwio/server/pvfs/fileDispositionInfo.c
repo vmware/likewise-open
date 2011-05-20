@@ -317,7 +317,6 @@ PvfsCreateSetFileDispositionInfoContext(
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->SetFileType = PVFS_SET_FILE_DISPOSITION;
     pSetDispositionInfoCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pSetDispositionInfoCtx->pCcb = PvfsReferenceCCB(pCcb);
 

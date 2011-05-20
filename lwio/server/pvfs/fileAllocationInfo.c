@@ -257,7 +257,6 @@ PvfsCreateSetAllocationContext(
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->SetFileType = PVFS_SET_FILE_ALLOCATION;
     pSetAllocationCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pSetAllocationCtx->pCcb = PvfsReferenceCCB(pCcb);
 

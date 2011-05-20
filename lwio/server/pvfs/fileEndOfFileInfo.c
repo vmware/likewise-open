@@ -268,7 +268,6 @@ PvfsCreateSetEndOfFileContext(
                   TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->SetFileType = PVFS_SET_FILE_END_OF_FILE;
     pSetEndOfFileCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pSetEndOfFileCtx->pCcb = PvfsReferenceCCB(pCcb);
 

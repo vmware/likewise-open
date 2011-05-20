@@ -91,7 +91,6 @@ PvfsAllocateCCB(
     pCCB->FileSize = 0;
     pCCB->AccessGranted = 0;
     pCCB->Flags = PVFS_CCB_FLAG_NONE;
-    pCCB->SetFileType = PVFS_SET_FILE_NONE;
 
     LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 

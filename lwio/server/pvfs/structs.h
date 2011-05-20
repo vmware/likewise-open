@@ -256,15 +256,6 @@ typedef struct _PVFS_PENDING_WRITE
 
 } PVFS_PENDING_WRITE, *PPVFS_PENDING_WRITE;
 
-typedef ULONG PVFS_SET_FILE_TYPE;
-
-#define PVFS_SET_FILE_NONE        0x00000000
-#define PVFS_SET_FILE_END_OF_FILE 0x00000001
-#define PVFS_SET_FILE_ALLOCATION  0x00000002
-#define PVFS_SET_FILE_RENAME      0x00000003
-#define PVFS_SET_FILE_LINK        0x00000004
-#define PVFS_SET_FILE_DISPOSITION 0x00000005
-
 typedef struct _PVFS_PENDING_SET_END_OF_FILE
 {
     PPVFS_IRP_CONTEXT pIrpContext;
@@ -492,9 +483,6 @@ struct _PVFS_CCB
     FILE_CREATE_OPTIONS CreateOptions;
     FILE_SHARE_FLAGS ShareFlags;
     ACCESS_MASK AccessGranted;
-
-    /* Save SetFileInformation context */
-    PVFS_SET_FILE_TYPE SetFileType;
 
     PACCESS_TOKEN pUserToken;
 

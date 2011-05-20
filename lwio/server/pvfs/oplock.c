@@ -1519,10 +1519,11 @@ PvfsOplockBreakOnSetFileInformation(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
 
-    switch (pCcb->SetFileType)
+    switch (pIrpContext->pIrp->Args.QuerySetInformation.FileInformationClass)
     {
-        case PVFS_SET_FILE_END_OF_FILE:
-        case PVFS_SET_FILE_ALLOCATION:
+
+        case FileEndOfFileInformation:
+        case FileAllocationInformation:
             ntError = PvfsOplockBreakOnSetFileInformationEoFOrAllocation(
                         pIrpContext,
                         pScb,
@@ -1531,8 +1532,8 @@ PvfsOplockBreakOnSetFileInformation(
                         pBreakResult);
             break;
 
-        case PVFS_SET_FILE_RENAME:
-        case PVFS_SET_FILE_LINK:
+        case FileRenameInformation:
+        case FileLinkInformation:
             ntError = PvfsOplockBreakOnSetFileInformationRenameOrLink(
                           pIrpContext,
                           pScb,
@@ -1542,17 +1543,13 @@ PvfsOplockBreakOnSetFileInformation(
 
             break;
 
-        case PVFS_SET_FILE_DISPOSITION:
+        case FileDispositionInformation:
             ntError = PvfsOplockBreakOnSetFileInformationDisposition(
                           pIrpContext,
                           pScb,
                           pCcb,
                           pOplock,
                           pBreakResult);
-            break;
-
-        case PVFS_SET_FILE_NONE:
-            ntError = STATUS_SUCCESS;
             break;
 
         default:
