@@ -307,6 +307,12 @@ SrvTree2CreateFile(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
+    if (SrvTree2IsRundown_inlock(pTree))
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvTree2AcquireFileId_inlock(
                     pTree,
                     &fid);
