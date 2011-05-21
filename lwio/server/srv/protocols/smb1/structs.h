@@ -733,6 +733,7 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
     PIO_ECP_LIST               pEcpList;
+    PFILE_NETWORK_OPEN_INFORMATION pNetworkOpenInfo;
 
     PTRANSACTION_REQUEST_HEADER pRequestHeader; // Do not free
     PUSHORT                     pBytecount;     // Do not free

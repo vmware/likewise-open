@@ -735,19 +735,37 @@ SrvQueryBasicInfo(
 
         pTrans2State->usBytesAllocated = sizeof(FILE_BASIC_INFORMATION);
 
-        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+        if (IoRtlEcpListIsAcknowledged(
+                pTrans2State->pEcpList,
+                SRV_ECP_TYPE_NET_OPEN_INFO))
+        {
+            PFILE_BASIC_INFORMATION pInfo = (PFILE_BASIC_INFORMATION)pTrans2State->pData2;
 
-        ntStatus = IoQueryInformationFile(
-                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                               pTrans2State->hFile),
-                        pTrans2State->pAcb,
-                        &pTrans2State->ioStatusBlock,
-                        pTrans2State->pData2,
-                        pTrans2State->usBytesAllocated,
-                        FileBasicInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
+            pInfo->CreationTime = pTrans2State->pNetworkOpenInfo->CreationTime;
+            pInfo->LastAccessTime = pTrans2State->pNetworkOpenInfo->LastAccessTime;
+            pInfo->LastWriteTime = pTrans2State->pNetworkOpenInfo->LastWriteTime;
+            pInfo->ChangeTime = pTrans2State->pNetworkOpenInfo->ChangeTime;
+            pInfo->FileAttributes = pTrans2State->pNetworkOpenInfo->FileAttributes;
 
-        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+            pTrans2State->ioStatusBlock.Status = STATUS_SUCCESS;
+            pTrans2State->ioStatusBlock.BytesTransferred = sizeof(*pInfo);
+        }
+        else
+        {
+            SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+            ntStatus = IoQueryInformationFile(
+                            (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                                   pTrans2State->hFile),
+                            pTrans2State->pAcb,
+                            &pTrans2State->ioStatusBlock,
+                            pTrans2State->pData2,
+                            pTrans2State->usBytesAllocated,
+                            FileBasicInformation);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        }
     }
 
 error:
@@ -2656,19 +2674,33 @@ SrvQueryNetworkOpenInfo(
 
         pTrans2State->usBytesAllocated = sizeof(FILE_NETWORK_OPEN_INFORMATION);
 
-        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+        if (IoRtlEcpListIsAcknowledged(
+                pTrans2State->pEcpList,
+                SRV_ECP_TYPE_NET_OPEN_INFO))
+        {
+            PFILE_NETWORK_OPEN_INFORMATION pInfo = (PFILE_NETWORK_OPEN_INFORMATION)pTrans2State->pData2;
 
-        ntStatus = IoQueryInformationFile(
-                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                               pTrans2State->hFile),
-                        pTrans2State->pAcb,
-                        &pTrans2State->ioStatusBlock,
-                        pTrans2State->pData2,
-                        pTrans2State->usBytesAllocated,
-                        FileNetworkOpenInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
+            *pInfo = *pTrans2State->pNetworkOpenInfo;
 
-        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+            pTrans2State->ioStatusBlock.Status = STATUS_SUCCESS;
+            pTrans2State->ioStatusBlock.BytesTransferred = sizeof(*pInfo);
+        }
+        else
+        {
+            SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+            ntStatus = IoQueryInformationFile(
+                            (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                                   pTrans2State->hFile),
+                            pTrans2State->pAcb,
+                            &pTrans2State->ioStatusBlock,
+                            pTrans2State->pData2,
+                            pTrans2State->usBytesAllocated,
+                            FileNetworkOpenInformation);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        }
     }
 
 error:
