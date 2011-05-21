@@ -138,7 +138,7 @@ SrvElementsConfigGetDefaults(
     )
 {
     /* Add new config parameters in alphabetic order. */
-    pConfig->bClientAddressEcpEnabled = FALSE;
+    pConfig->bClientAddressEcpEnabled = TRUE;
     pConfig->bOEMSessionEcpEnabled    = FALSE;
     pConfig->bShareNameEcpEnabled     = TRUE;
     pConfig->usClientCreditLimit = LWIO_DEFAULT_CLIENT_CREDIT_LIMIT;
