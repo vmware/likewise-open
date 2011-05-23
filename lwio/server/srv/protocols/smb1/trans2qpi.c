@@ -90,6 +90,32 @@ SrvProcessTrans2QueryPathInformation(
                             &pTrans2State->fileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            // Set up ECP list, if needed
+            switch (*pTrans2State->pSmbInfoLevel)
+            {
+                case SMB_QUERY_FILE_BASIC_INFO :
+                case SMB_QUERY_FILE_BASIC_INFO_ALIAS :
+                case SMB_QUERY_FILE_NETWORK_OPEN_INFO:
+                    ntStatus = IoRtlEcpListAllocate(&pTrans2State->pEcpList);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    ntStatus = SrvAllocateMemory(
+                                        sizeof(*pTrans2State->pNetworkOpenInfo),
+                                        OUT_PPVOID(&pTrans2State->pNetworkOpenInfo));
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    ntStatus = IoRtlEcpListInsert(pTrans2State->pEcpList,
+                                                  SRV_ECP_TYPE_NET_OPEN_INFO,
+                                                  pTrans2State->pNetworkOpenInfo,
+                                                  sizeof(*pTrans2State->pNetworkOpenInfo),
+                                                  NULL);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                    break;
+                default:
+                    // No ECP list needed
+                    break;
+            }
+
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_CREATE_FILE_COMPLETED;
 
             SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);

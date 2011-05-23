@@ -433,6 +433,11 @@ SrvFreeTrans2State(
         IoRtlEcpListFree(&pTrans2State->pEcpList);
     }
 
+    if (pTrans2State->pNetworkOpenInfo)
+    {
+        SrvFreeMemory(pTrans2State->pNetworkOpenInfo);
+    }
+
     if (pTrans2State->pFile)
     {
         SrvFileRelease(pTrans2State->pFile);
