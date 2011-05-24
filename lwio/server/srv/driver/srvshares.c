@@ -333,7 +333,7 @@ SrvShareDevCtlEnum(
                 PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p1[i].shi1_netname             = pShareInfo->pwszName;
-                p1[i].shi1_type                = pShareInfo->service;
+                p1[i].shi1_type                = pShareInfo->Service;
                 p1[i].shi1_remark              = pShareInfo->pwszComment;
             }
 
@@ -353,7 +353,7 @@ SrvShareDevCtlEnum(
                 PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p2[i].shi2_netname             = pShareInfo->pwszName;
-                p2[i].shi2_type                = pShareInfo->service;
+                p2[i].shi2_type                = pShareInfo->Service;
                 p2[i].shi2_remark              = pShareInfo->pwszComment;
                 p2[i].shi2_permissions         = 0;
                 p2[i].shi2_max_uses            = (UINT32)-1;
@@ -383,9 +383,9 @@ SrvShareDevCtlEnum(
                 PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p501[i].shi501_netname         = pShareInfo->pwszName;
-                p501[i].shi501_type            = pShareInfo->service;
+                p501[i].shi501_type            = pShareInfo->Service;
                 p501[i].shi501_remark          = pShareInfo->pwszComment;
-                p501[i].shi501_flags           = pShareInfo->ulFlags;
+                p501[i].shi501_flags           = pShareInfo->Flags;
             }
 
             EnumShareInfoParamsOut.info.p501 = p501;
@@ -404,7 +404,7 @@ SrvShareDevCtlEnum(
                 PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p502[i].shi502_netname             = pShareInfo->pwszName;
-                p502[i].shi502_type                = pShareInfo->service;
+                p502[i].shi502_type                = pShareInfo->Service;
                 p502[i].shi502_remark              = pShareInfo->pwszComment;
                 p502[i].shi502_permissions         = 0;
                 p502[i].shi502_max_uses            = (UINT32)-1;
@@ -416,7 +416,7 @@ SrvShareDevCtlEnum(
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 p502[i].shi502_password            = NULL;
-                p502[i].shi502_reserved            = pShareInfo->ulSecDescLen;
+                p502[i].shi502_reserved            = pShareInfo->SecDescLen;
                 p502[i].shi502_security_descriptor = (PBYTE) pShareInfo->pSecDesc;
             }
 
@@ -435,7 +435,7 @@ SrvShareDevCtlEnum(
             {
                 PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
-                p1005[i].shi1005_flags = pShareInfo->ulFlags;
+                p1005[i].shi1005_flags = pShareInfo->Flags;
             }
 
             EnumShareInfoParamsOut.info.p1005 = p1005;
@@ -590,7 +590,7 @@ SrvShareDevCtlGetInfo(
                         &pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->Mutex);
 
     switch (ulLevel)
     {
@@ -615,7 +615,7 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
             p1->shi1_netname             = pShareInfo->pwszName;
-            p1->shi1_type                = pShareInfo->service;
+            p1->shi1_type                = pShareInfo->Service;
             p1->shi1_remark              = pShareInfo->pwszComment;
 
             GetShareInfoParamsOut.Info.p1 = p1;
@@ -630,7 +630,7 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
             p2->shi2_netname             = pShareInfo->pwszName;
-            p2->shi2_type                = pShareInfo->service;
+            p2->shi2_type                = pShareInfo->Service;
             p2->shi2_remark              = pShareInfo->pwszComment;
             p2->shi2_permissions         = 0;
             p2->shi2_max_uses            = (UINT32)-1;
@@ -655,9 +655,9 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
             p501->shi501_netname         = pShareInfo->pwszName;
-            p501->shi501_type            = pShareInfo->service;
+            p501->shi501_type            = pShareInfo->Service;
             p501->shi501_remark          = pShareInfo->pwszComment;
-            p501->shi501_flags           = pShareInfo->ulFlags;
+            p501->shi501_flags           = pShareInfo->Flags;
 
             GetShareInfoParamsOut.Info.p501 = p501;
 
@@ -671,7 +671,7 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
             p502->shi502_netname             = pShareInfo->pwszName;
-            p502->shi502_type                = pShareInfo->service;
+            p502->shi502_type                = pShareInfo->Service;
             p502->shi502_remark              = pShareInfo->pwszComment;
             p502->shi502_permissions         = 0;
             p502->shi502_max_uses            = (UINT32)-1;
@@ -683,7 +683,7 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
             p502->shi502_password            = NULL;
-            p502->shi502_reserved            = pShareInfo->ulSecDescLen;
+            p502->shi502_reserved            = pShareInfo->SecDescLen;
             p502->shi502_security_descriptor = (PBYTE)pShareInfo->pSecDesc;
 
             GetShareInfoParamsOut.Info.p502 = p502;
@@ -697,7 +697,7 @@ SrvShareDevCtlGetInfo(
             BAIL_ON_NT_STATUS(ntStatus);
 
 
-            p1005->shi1005_flags = pShareInfo->ulFlags;
+            p1005->shi1005_flags = pShareInfo->Flags;
 
             GetShareInfoParamsOut.Info.p1005 = p1005;
             break;
@@ -730,7 +730,7 @@ SrvShareDevCtlGetInfo(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     if (pShareInfo) {
         SrvShareReleaseInfo(pShareInfo);
@@ -937,13 +937,13 @@ SrvShareUpdateInfo1(
 
     /* Sanity Check */
 
-    if (pShareInfo->service != pInfo1->shi1_type)
+    if (pShareInfo->Service != pInfo1->shi1_type)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->Mutex);
 
     if (pInfo1->shi1_remark)
     {
@@ -962,7 +962,7 @@ SrvShareUpdateInfo1(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     SRV_SAFE_FREE_MEMORY(pwszComment);
 
@@ -987,7 +987,7 @@ SrvShareUpdateInfo2(
 
     /* Sanity Check */
 
-    if (pShareInfo->service != pInfo2->shi2_type)
+    if (pShareInfo->Service != pInfo2->shi2_type)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1002,7 +1002,7 @@ SrvShareUpdateInfo2(
     ntStatus = SrvShareMapFromWindowsPath(pInfo2->shi2_path, &pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->Mutex);
 
     if (pInfo2->shi2_remark)
     {
@@ -1030,7 +1030,7 @@ SrvShareUpdateInfo2(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     SRV_SAFE_FREE_MEMORY(pwszComment);
 
@@ -1056,7 +1056,7 @@ SrvShareUpdateInfo501(
 
     /* Sanity Check */
 
-    if (pShareInfo->service != pInfo501->shi501_type)
+    if (pShareInfo->Service != pInfo501->shi501_type)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1068,7 +1068,7 @@ SrvShareUpdateInfo501(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->Mutex);
 
     if (pwszComment && SMBWc16sCmp(pShareInfo->pwszComment, pwszComment))
     {
@@ -1081,7 +1081,7 @@ SrvShareUpdateInfo501(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     SRV_SAFE_FREE_MEMORY(pwszComment);
 
@@ -1108,7 +1108,7 @@ SrvShareUpdateInfo502(
 
     /* Sanity Check */
 
-    if (pShareInfo->service != pInfo502->shi502_type)
+    if (pShareInfo->Service != pInfo502->shi502_type)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1145,7 +1145,7 @@ SrvShareUpdateInfo502(
         bSecDescUpdated = TRUE;
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->Mutex);
 
     if (pwszPath && SMBWc16sCmp(pShareInfo->pwszPath, pwszPath))
     {
@@ -1168,7 +1168,7 @@ SrvShareUpdateInfo502(
         SrvShareFreeSecurity(pShareInfo);
 
         pShareInfo->pSecDesc = pShareInfoCopy->pSecDesc;
-        pShareInfo->ulSecDescLen = pShareInfoCopy->ulSecDescLen;
+        pShareInfo->SecDescLen = pShareInfoCopy->SecDescLen;
         pShareInfoCopy->pSecDesc = NULL;
 
         pShareInfo->pAbsSecDesc = pShareInfoCopy->pAbsSecDesc;
@@ -1177,7 +1177,7 @@ SrvShareUpdateInfo502(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     if (pShareInfoCopy)
     {
@@ -1206,11 +1206,11 @@ SrvShareUpdateInfo1005(
     NTSTATUS ntStatus    = STATUS_SUCCESS;
     BOOLEAN  bInLock     = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->Mutex);
 
-    pShareInfo->ulFlags = pInfo1005->shi1005_flags;
+    pShareInfo->Flags = pInfo1005->shi1005_flags;
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     return ntStatus;
 }

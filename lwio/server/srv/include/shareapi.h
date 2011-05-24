@@ -87,9 +87,9 @@ typedef enum
 
 typedef struct _SRV_SHARE_INFO
 {
-    LONG refcount;
+    LONG RefCount;
 
-    pthread_rwlock_t  mutex;
+    pthread_rwlock_t Mutex;
     pthread_rwlock_t* pMutex;
 
     PWSTR pwszName;
@@ -97,12 +97,12 @@ typedef struct _SRV_SHARE_INFO
     PWSTR pwszComment;
 
     PSECURITY_DESCRIPTOR_RELATIVE pSecDesc;
-    ULONG ulSecDescLen;
+    ULONG SecDescLen;
 
     PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc;
 
-    SHARE_SERVICE service;
-    ULONG ulFlags;
+    SHARE_SERVICE Service;
+    ULONG Flags;
 
 } SRV_SHARE_INFO, *PSRV_SHARE_INFO;
 
@@ -110,18 +110,18 @@ typedef struct _SRV_SHARE_ENTRY
 {
     PSRV_SHARE_INFO pInfo;
 
-    struct _SRV_SHARE_ENTRY  *pNext;
+    struct _SRV_SHARE_ENTRY *pNext;
 
 } SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
 
 typedef struct _LWIO_SRV_SHARE_ENTRY_LIST
 {
-    pthread_rwlock_t  mutex;
+    pthread_rwlock_t Mutex;
     pthread_rwlock_t* pMutex;
 
-    PSRV_SHARE_ENTRY  pShareEntry;
+    PSRV_SHARE_ENTRY pShareEntry;
 
-    PLWRTL_RB_TREE    pShareCollection;
+    PLWRTL_RB_TREE pShareCollection;
 
 } LWIO_SRV_SHARE_ENTRY_LIST, *PLWIO_SRV_SHARE_ENTRY_LIST;
 
@@ -132,62 +132,62 @@ SrvShareInit(
 
 NTSTATUS
 SrvShareMapIdToServiceStringW(
-    IN  SHARE_SERVICE  service,
-    OUT PWSTR*         ppwszService
+    IN SHARE_SERVICE Service,
+    OUT PWSTR* ppwszService
     );
 
 NTSTATUS
 SrvShareMapIdToServiceStringA(
-    IN  SHARE_SERVICE  service,
-    OUT PSTR*          ppszService
+    IN SHARE_SERVICE Service,
+    OUT PSTR* ppszService
     );
 
 NTSTATUS
 SrvShareMapServiceStringToIdA(
-    IN     PCSTR          pszService,
+    IN PCSTR pszService,
     IN OUT SHARE_SERVICE* pService
     );
 
 NTSTATUS
 SrvShareMapServiceStringToIdW(
-    IN     PWSTR          pwszService,
+    IN PWSTR pwszService,
     IN OUT SHARE_SERVICE* pService
     );
 
 NTSTATUS
 SrvShareMapFromWindowsPath(
-    IN  PWSTR  pwszInputPath,
+    IN PWSTR pwszInputPath,
     OUT PWSTR* ppwszPath
     );
 
 NTSTATUS
 SrvShareMapToWindowsPath(
-    IN  PWSTR  pwszInputPath,
+    IN PWSTR pwszInputPath,
     OUT PWSTR* ppwszPath
     );
 
 NTSTATUS
 SrvGetShareName(
-    IN  PWSTR  pwszPath,
+    IN PWSTR pwszPath,
     OUT PWSTR* ppwszSharename
     );
 
 NTSTATUS
 SrvGetMaximalShareAccessMask(
     PSRV_SHARE_INFO pShareInfo,
-    ACCESS_MASK*   pMask
+    ACCESS_MASK* pMask
     );
 
 NTSTATUS
 SrvGetGuestShareAccessMask(
     PSRV_SHARE_INFO pShareInfo,
-    ACCESS_MASK*   pMask
+    ACCESS_MASK* pMask
     );
 
 NTSTATUS
 SrvGetCscFlags(
     PSRV_SHARE_INFO pShareInfo,
-    SMB_CSC_FLAGS*  pCscFlags
+    SMB_CSC_FLAGS* pCscFlags
     );
 
 VOID
@@ -197,18 +197,18 @@ SrvShareFreeSecurity(
 
 NTSTATUS
 SrvShareAccessCheck(
-    PSRV_SHARE_INFO pShareInfo,
-    PACCESS_TOKEN pToken,
-    ACCESS_MASK DesiredAccess,
-    PGENERIC_MAPPING pGenericMap,
-    PACCESS_MASK pGrantedAccess
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN PACCESS_TOKEN pToken,
+    IN ACCESS_MASK DesiredAccess,
+    IN PGENERIC_MAPPING pGenericMap,
+    OUT PACCESS_MASK pGrantedAccess
     );
 
 NTSTATUS
 SrvShareSetSecurity(
-    IN  PSRV_SHARE_INFO pShareInfo,
-    IN  PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
-    IN  ULONG ulIncRelSecDescLen
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
+    IN ULONG IncRelSecDescLen
     );
 
 NTSTATUS
@@ -228,46 +228,46 @@ SrvShareReloadConfiguration(
 
 NTSTATUS
 SrvShareFindByName(
-    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN  PWSTR                      pwszShareName,
-    OUT PSRV_SHARE_INFO*           ppShareInfo
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN PWSTR pwszShareName,
+    OUT PSRV_SHARE_INFO* ppShareInfo
     );
 
 NTSTATUS
 SrvShareAdd(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PWSTR                      pwszShareName,
-    IN     PWSTR                      pwszPath,
-    IN     PWSTR                      pwszComment,
-    IN     PBYTE                      pSecDesc,
-    IN     ULONG                      ulSecDescLen,
-    IN     PWSTR                      pwszShareType,
-    IN     ULONG                      ulFlags
+    IN PWSTR pwszShareName,
+    IN PWSTR pwszPath,
+    IN PWSTR pwszComment,
+    IN PBYTE pSecDesc,
+    IN ULONG SecDescLen,
+    IN PWSTR pwszShareType,
+    IN ULONG Flags
     );
 
 NTSTATUS
 SrvShareUpdate(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PSRV_SHARE_INFO            pShareInfo
+    IN PSRV_SHARE_INFO pShareInfo
     );
 
 NTSTATUS
 SrvShareDelete(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PWSTR                      pwszShareName
+    IN PWSTR pwszShareName
     );
 
 NTSTATUS
 SrvShareEnum(
-    IN     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    OUT    PSRV_SHARE_INFO**          pppShareInfo,
-    IN OUT PULONG                     pulNumEntries
+    IN PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    OUT PSRV_SHARE_INFO** pppShareInfo,
+    IN OUT PULONG pNumEntries
     );
 
 NTSTATUS
 SrvShareDuplicateInfo(
-    PSRV_SHARE_INFO  pShareInfo,
-    PSRV_SHARE_INFO* ppShareInfo
+    IN PSRV_SHARE_INFO pShareInfo,
+    OUT PSRV_SHARE_INFO* ppShareInfo
     );
 
 VOID
@@ -277,8 +277,8 @@ SrvShareFreeListContents(
 
 VOID
 SrvShareFreeInfoList(
-    PSRV_SHARE_INFO* ppInfoList,
-    ULONG            ulNumInfos
+    IN PSRV_SHARE_INFO* ppInfoList,
+    IN ULONG NumInfos
     );
 
 PSRV_SHARE_INFO

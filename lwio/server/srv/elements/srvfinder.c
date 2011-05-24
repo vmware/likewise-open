@@ -331,7 +331,7 @@ SrvFinderCreateSearchSpace(
     ntStatus = LwRtlUnicodeStringInitEx(&fileName.Name, pwszFilesystemPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pShareInfo->ulFlags & SHARE_INFO_FLAG_ABE_ENABLED)
+    if (pShareInfo->Flags & SHARE_INFO_FLAG_ABE_ENABLED)
     {
         ntStatus = IoRtlEcpListAllocate(&pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);

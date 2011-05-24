@@ -3082,7 +3082,7 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(
             bShareInLock,
-            &pNTTransactState->pTree->pShareInfo->mutex);
+            &pNTTransactState->pTree->pShareInfo->Mutex);
 
     SRV_SAFE_FREE_MEMORY(pwszFilename);
 

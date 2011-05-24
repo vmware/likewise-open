@@ -525,7 +525,7 @@ SrvProtocolProcessCandidateTree(
         LWIO_LOCK_RWMUTEX_SHARED(bInTreeLock, &pTree->mutex);
 
         ulConnId    = pTree->resource.ulResourceId;
-        ulShareType = (ULONG)pTree->pShareInfo->service;
+        ulShareType = (ULONG)pTree->pShareInfo->Service;
 
         if (pConnectionEnumQuery->ulInfoLevel == 1)
         {
@@ -697,7 +697,7 @@ SrvProtocolProcessCandidateTree2(
         LWIO_LOCK_RWMUTEX_SHARED(bInTreeLock, &pTree->mutex);
 
         ulConnId    = pTree->resource.ulResourceId;
-        ulShareType = (ULONG)pTree->pShareInfo->service;
+        ulShareType = (ULONG)pTree->pShareInfo->Service;
 
         if (pConnectionEnumQuery->ulInfoLevel == 1)
         {

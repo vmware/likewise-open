@@ -60,15 +60,15 @@ SrvShareMapSpecificToWindowsPath(
 
 NTSTATUS
 SrvShareMapIdToServiceStringW(
-    IN  SHARE_SERVICE  service,
-    OUT PWSTR*         ppwszService
+    IN SHARE_SERVICE Service,
+    OUT PWSTR* ppwszService
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PWSTR pwszShareType = NULL;
     PSTR  pszShareType = NULL;
 
-    ntStatus = SrvShareMapIdToServiceStringA(service, &pszShareType);
+    ntStatus = SrvShareMapIdToServiceStringA(Service, &pszShareType);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvMbsToWc16s(pszShareType, &pwszShareType);
@@ -91,15 +91,15 @@ error:
 
 NTSTATUS
 SrvShareMapIdToServiceStringA(
-    IN  SHARE_SERVICE  service,
-    OUT PSTR*          ppszService
+    IN SHARE_SERVICE Service,
+    OUT PSTR* ppszService
     )
 {
     NTSTATUS ntStatus = 0;
     PCSTR    pszId = NULL;
     PSTR     pszService = NULL;
 
-    switch (service)
+    switch (Service)
     {
         case SHARE_SERVICE_DISK_SHARE:
 
@@ -159,7 +159,7 @@ error:
 
 NTSTATUS
 SrvShareMapServiceStringToIdA(
-    IN     PCSTR          pszService,
+    IN PCSTR pszService,
     IN OUT SHARE_SERVICE* pService
     )
 {
@@ -211,7 +211,7 @@ error:
 
 NTSTATUS
 SrvShareMapServiceStringToIdW(
-    IN     PWSTR          pwszService,
+    IN PWSTR pwszService,
     IN OUT SHARE_SERVICE* pService
     )
 {
@@ -268,7 +268,7 @@ error:
 
 NTSTATUS
 SrvShareMapFromWindowsPath(
-    IN  PWSTR  pwszInputPath,
+    IN PWSTR pwszInputPath,
     OUT PWSTR* ppwszPath
     )
 {
@@ -378,7 +378,7 @@ error:
 
 NTSTATUS
 SrvShareMapToWindowsPath(
-    IN  PWSTR  pwszInputPath,
+    IN PWSTR pwszInputPath,
     OUT PWSTR* ppwszPath
     )
 {

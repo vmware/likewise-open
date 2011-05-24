@@ -694,7 +694,7 @@ SrvBuildCreateState_SMB_V2(
 
     /* Enable ABE (but only we if know this is not a file access) */
 
-    if ((pCreateState->pTree->pShareInfo->ulFlags & SHARE_INFO_FLAG_ABE_ENABLED) &&
+    if ((pCreateState->pTree->pShareInfo->Flags & SHARE_INFO_FLAG_ABE_ENABLED) &&
         !(pRequestHeader->ulCreateOptions & FILE_NON_DIRECTORY_FILE))
     {
         if (!pCreateState->pEcpList)

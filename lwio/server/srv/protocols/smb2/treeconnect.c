@@ -234,7 +234,7 @@ SrvProcessTreeConnect_SMB_V2(
 
             pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE;
 
-            if (pTConState->pTree->pShareInfo->service ==
+            if (pTConState->pTree->pShareInfo->Service ==
                                 SHARE_SERVICE_DISK_SHARE)
             {
                 ntStatus = pTConState->ioStatusBlock.Status;
@@ -477,7 +477,7 @@ SrvCreateTreeRootHandle_SMB_V2(
     {
         LWIO_LOCK_RWMUTEX_SHARED(
                     bShareInLock,
-                    &pTConState->pTree->pShareInfo->mutex);
+                    &pTConState->pTree->pShareInfo->Mutex);
 
         if (LwRtlCStringIsNullOrEmpty(pTConState->pTree->pShareInfo->pwszPath))
         {
@@ -492,7 +492,7 @@ SrvCreateTreeRootHandle_SMB_V2(
 
         LWIO_UNLOCK_RWMUTEX(
                     bShareInLock,
-                    &pTConState->pTree->pShareInfo->mutex);
+                    &pTConState->pTree->pShareInfo->Mutex);
 
         // no need to lock share info here - the name is invariant
         ntStatus = SrvIoPrepareEcpList_SMB_V2(
@@ -531,7 +531,7 @@ SrvCreateTreeRootHandle_SMB_V2(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pTree->pShareInfo->Mutex);
 
     return ntStatus;
 

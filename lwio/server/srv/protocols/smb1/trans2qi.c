@@ -1842,7 +1842,7 @@ SrvMarshallFileAllInfo(
     ULONG    ulTreePathLen;
     BOOLEAN  bShareInLock    = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->Mutex);
 
     ntStatus = SrvGetAndCheckTreePath_inlock(pTree,
                        pFileAllInfo->NameInformation.FileName,
@@ -1886,7 +1886,7 @@ SrvMarshallFileAllInfo(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->Mutex);
 
     return ntStatus;
 
@@ -2160,7 +2160,7 @@ SrvMarshallFileNameInfo(
     ULONG ulPrefixLength;
     BOOLEAN  bShareInLock    = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->Mutex);
 
     ntStatus = SrvGetAndCheckTreePath_inlock(pTree,
                        pFileNameInfo->FileName,
@@ -2190,7 +2190,7 @@ SrvMarshallFileNameInfo(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->Mutex);
 
     return ntStatus;
 

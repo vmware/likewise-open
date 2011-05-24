@@ -276,7 +276,7 @@ SrvProcessTreeConnectAndX(
 
         case SRV_TREE_CONNECT_STAGE_SMB_V1_CREATE_TREE_ROOT_HANDLE:
 
-            if (pTConState->pTree->pShareInfo->service ==
+            if (pTConState->pTree->pShareInfo->Service ==
                     SHARE_SERVICE_DISK_SHARE)
             {
                 ntStatus = pTConState->ioStatusBlock.Status;
@@ -458,7 +458,7 @@ SrvQueryTreeConnectInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if ((pTConState->pTree->pShareInfo->service == SHARE_SERVICE_DISK_SHARE) &&
+    if ((pTConState->pTree->pShareInfo->Service == SHARE_SERVICE_DISK_SHARE) &&
         (!pTConState->pwszNativeFileSystem))
     {
         ntStatus = SrvGetNativeFilesystem(pExecContext);
@@ -588,7 +588,7 @@ SrvCreateTreeRootHandle(
     if (!RTL_STRING_NUM_CHARS(&pTConState->fileName.Name))
     {
         LWIO_LOCK_RWMUTEX_SHARED(bShareInLock,
-                                 &pTConState->pTree->pShareInfo->mutex);
+                                 &pTConState->pTree->pShareInfo->Mutex);
 
         if (LwRtlCStringIsNullOrEmpty(pTConState->pTree->pShareInfo->pwszPath))
         {
@@ -602,7 +602,7 @@ SrvCreateTreeRootHandle(
         BAIL_ON_NT_STATUS(ntStatus);
 
         LWIO_UNLOCK_RWMUTEX(bShareInLock,
-                            &pTConState->pTree->pShareInfo->mutex);
+                            &pTConState->pTree->pShareInfo->Mutex);
 
         // no need to lock share info here - the name is invariant
         ntStatus = SrvIoPrepareEcpList(
@@ -642,7 +642,7 @@ SrvCreateTreeRootHandle(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pTree->pShareInfo->Mutex);
 
     return ntStatus;
 
@@ -963,10 +963,10 @@ SrvGetServiceName(
     BOOLEAN bInLock = FALSE;
     PSTR pszService = NULL;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->Mutex);
 
     ntStatus = SrvShareMapIdToServiceStringA(
-                    pShareInfo->service,
+                    pShareInfo->Service,
                     &pszService);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -974,7 +974,7 @@ SrvGetServiceName(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     return ntStatus;
 

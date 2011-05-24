@@ -837,10 +837,10 @@ SrvShareRegWriteToShareInfo(
     ntStatus = SrvAllocateMemory(sizeof(*pShareInfo), (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareInfo->refcount = 1;
+    pShareInfo->RefCount = 1;
 
-    pthread_rwlock_init(&pShareInfo->mutex, NULL);
-    pShareInfo->pMutex = &pShareInfo->mutex;
+    pthread_rwlock_init(&pShareInfo->Mutex, NULL);
+    pShareInfo->pMutex = &pShareInfo->Mutex;
 
     ntStatus = SrvAllocateStringW(pwszShareName, &pShareInfo->pwszName);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -891,7 +891,7 @@ SrvShareRegWriteToShareInfo(
             {
                 ntStatus = SrvShareMapServiceStringToIdW(
                                 &pwszValue[ulServicePrefixLen],
-                                &pShareInfo->service);
+                                &pShareInfo->Service);
                 BAIL_ON_NT_STATUS(ntStatus);
 
             }
@@ -902,7 +902,7 @@ SrvShareRegWriteToShareInfo(
                                 &pwszValue[ulFlagsPrefixLen]);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                pShareInfo->ulFlags = strtol(pszFlags, NULL, 16);
+                pShareInfo->Flags = strtol(pszFlags, NULL, 16);
             }
             else
             {

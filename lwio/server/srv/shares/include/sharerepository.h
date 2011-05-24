@@ -66,7 +66,7 @@ typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_ADD)(
                         IN  PBYTE         pSecDesc,
                         IN  ULONG         ulSecDescLen,
                         IN  PWSTR         pwszService,
-                        IN  ULONG         ulFlags
+                        IN  ULONG         Flags
                         );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_BEGIN_ENUM)(

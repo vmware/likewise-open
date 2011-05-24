@@ -664,7 +664,7 @@ SMB2MarshalTreeConnectResponse(
                     &pResponseHeader->ulShareAccessMask);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (pTree->pShareInfo->service)
+    switch (pTree->pShareInfo->Service)
     {
         case SHARE_SERVICE_DISK_SHARE:
 
@@ -680,12 +680,12 @@ SMB2MarshalTreeConnectResponse(
 
         default:
 
-            LWIO_LOG_DEBUG("Unrecognized share type %d", pTree->pShareInfo->service);
+            LWIO_LOG_DEBUG("Unrecognized share type %d", pTree->pShareInfo->Service);
 
             break;
     }
 
-    pResponseHeader->ulShareFlags |= pTree->pShareInfo->ulFlags;
+    pResponseHeader->ulShareFlags |= pTree->pShareInfo->Flags;
 
     *ppResponseHeader = pResponseHeader;
     *pulBytesUsed = ulBytesUsed;

@@ -580,11 +580,11 @@ SrvTreeIsNamedPipe(
     BOOLEAN bResult = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->Mutex);
 
-    bResult = (pTree->pShareInfo->service == SHARE_SERVICE_NAMED_PIPE);
+    bResult = (pTree->pShareInfo->Service == SHARE_SERVICE_NAMED_PIPE);
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->Mutex);
 
     return bResult;
 }

@@ -62,7 +62,7 @@ SrvBuildTreeRelativePath_SMB_V2(
 
     if (SrvTree2IsNamedPipe(pTree))
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->Mutex);
 
         ntStatus = SrvBuildFilePath(
                         pTree->pShareInfo->pwszPath,
@@ -84,7 +84,7 @@ SrvBuildTreeRelativePath_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->Mutex);
 
         pFilename->RootFileHandle = pTree->hFile;
     }
@@ -93,7 +93,7 @@ SrvBuildTreeRelativePath_SMB_V2(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->Mutex);
 
     return ntStatus;
 

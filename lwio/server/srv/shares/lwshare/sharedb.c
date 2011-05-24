@@ -661,10 +661,10 @@ SrvShareDbWriteToShareInfo(
                         (PVOID*)&pShareInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pShareInfo->refcount = 1;
+        pShareInfo->RefCount = 1;
 
-        pthread_rwlock_init(&pShareInfo->mutex, NULL);
-        pShareInfo->pMutex = &pShareInfo->mutex;
+        pthread_rwlock_init(&pShareInfo->Mutex, NULL);
+        pShareInfo->pMutex = &pShareInfo->Mutex;
 
         for (; iCol < 5; iCol++)
         {
@@ -734,7 +734,7 @@ SrvShareDbWriteToShareInfo(
                         BAIL_ON_NT_STATUS(ntStatus);
 
                         memcpy(pShareInfo->pSecDesc, pBlob, ulNumBytes);
-                        pShareInfo->ulSecDescLen = ulNumBytes;
+                        pShareInfo->SecDescLen = ulNumBytes;
                     }
 
                     break;
@@ -753,7 +753,7 @@ SrvShareDbWriteToShareInfo(
 
                     ntStatus = SrvShareMapServiceStringToId(
                                     pwszStringVal,
-                                    &pShareInfo->service);
+                                    &pShareInfo->Service);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     break;
@@ -765,7 +765,7 @@ SrvShareDbWriteToShareInfo(
                         ulIntVal = sqlite3_column_int(pSqlStatement, iCol);
 		    }
 
-                    pShareInfo->ulFlags = ulIntVal;
+                    pShareInfo->Flags = ulIntVal;
 
                     break;
             }

@@ -1985,7 +1985,7 @@ SrvMarshallFileNameInfo_SMB_V2(
                                         (PFILE_NAME_INFORMATION)pInfoBuffer;
     PSMB2_FILE_NAME_INFORMATION pFileNameInfoPacked = NULL;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->Mutex);
 
     ntStatus = SrvGetTreeRelativePath(
                     pTree->pShareInfo->pwszPath,
@@ -2025,7 +2025,7 @@ SrvMarshallFileNameInfo_SMB_V2(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->Mutex);
 
     return ntStatus;
 

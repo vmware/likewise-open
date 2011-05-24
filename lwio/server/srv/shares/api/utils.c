@@ -64,7 +64,7 @@ SrvShareCreateAbsoluteSecDescFromRel(
 
 NTSTATUS
 SrvGetShareName(
-    IN  PWSTR  pwszPath,
+    IN PWSTR pwszPath,
     OUT PWSTR* ppwszSharename
     )
 {
@@ -128,16 +128,16 @@ error:
 NTSTATUS
 SrvGetMaximalShareAccessMask(
     PSRV_SHARE_INFO pShareInfo,
-    ACCESS_MASK*   pMask
+    ACCESS_MASK* pMask
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
     ACCESS_MASK mask = 0;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->Mutex);
 
-    switch (pShareInfo->service)
+    switch (pShareInfo->Service)
     {
         case SHARE_SERVICE_NAMED_PIPE:
 
@@ -176,7 +176,7 @@ SrvGetMaximalShareAccessMask(
 
     *pMask = mask;
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     return ntStatus;
 }
@@ -184,16 +184,16 @@ SrvGetMaximalShareAccessMask(
 NTSTATUS
 SrvGetGuestShareAccessMask(
     PSRV_SHARE_INFO pShareInfo,
-    ACCESS_MASK*   pMask
+    ACCESS_MASK* pMask
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
     ACCESS_MASK mask = 0;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->Mutex);
 
-    switch (pShareInfo->service)
+    switch (pShareInfo->Service)
     {
         case SHARE_SERVICE_NAMED_PIPE:
 
@@ -232,7 +232,7 @@ SrvGetGuestShareAccessMask(
 
     *pMask = mask;
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     return ntStatus;
 }
@@ -247,9 +247,9 @@ SrvGetCscFlags(
     BOOLEAN  bInLock = FALSE;
     SMB_CSC_FLAGS usCscFlags = 0;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->Mutex);
 
-    switch (pShareInfo->ulFlags & SHARE_INFO_FLAG_CSC_POLICY_MASK)
+    switch (pShareInfo->Flags & SHARE_INFO_FLAG_CSC_POLICY_MASK)
     {
         case SHARE_INFO_FLAG_CSC_CACHE_MANUAL_REINT:
             usCscFlags = SMB_CSC_FLAG_MASK & SMB_CSC_FLAG_CACHE_MANUAL_REINT;
@@ -270,7 +270,7 @@ SrvGetCscFlags(
 
      *pCscFlags = usCscFlags;
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->Mutex);
 
     return ntStatus;
 }
@@ -284,7 +284,7 @@ SrvShareFreeSecurity(
     {
         SrvFreeMemory(pShareInfo->pSecDesc);
         pShareInfo->pSecDesc = NULL;
-        pShareInfo->ulSecDescLen = 0;
+        pShareInfo->SecDescLen = 0;
     }
 
     if (pShareInfo->pAbsSecDesc)
@@ -297,9 +297,9 @@ SrvShareFreeSecurity(
 
 NTSTATUS
 SrvShareSetSecurity(
-    IN  PSRV_SHARE_INFO pShareInfo,
-    IN  PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
-    IN  ULONG ulIncRelSecDescLen
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
+    IN ULONG IncRelSecDescLen
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -322,13 +322,13 @@ SrvShareSetSecurity(
 
     /* Sanity checks */
 
-    if ((pIncRelSecDesc == NULL) || (ulIncRelSecDescLen == 0))
+    if ((pIncRelSecDesc == NULL) || (IncRelSecDescLen == 0))
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (pShareInfo->ulSecDescLen == 0)
+    if (pShareInfo->SecDescLen == 0)
     {
         ntStatus = SrvShareSetDefaultSecurity(pShareInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -373,7 +373,7 @@ SrvShareSetSecurity(
     /* Assume the new length is not longer than the combined length
        of both the current and incoming relative SecDesc buffers */
 
-    ulFinalRelSecDescLen = ulIncRelSecDescLen + pShareInfo->ulSecDescLen;
+    ulFinalRelSecDescLen = IncRelSecDescLen + pShareInfo->SecDescLen;
 
     ntStatus = SrvAllocateMemory(
                    ulFinalRelSecDescLen,
@@ -399,7 +399,7 @@ SrvShareSetSecurity(
     SrvShareFreeSecurity(pShareInfo);
 
     pShareInfo->pSecDesc = pFinalRelSecDesc;
-    pShareInfo->ulSecDescLen = ulFinalRelSecDescLen;
+    pShareInfo->SecDescLen = ulFinalRelSecDescLen;
     pShareInfo->pAbsSecDesc = pFinalAbsSecDesc;
 
     ntStatus = STATUS_SUCCESS;
@@ -575,11 +575,11 @@ SrvShareFreeAbsoluteSecurityDescriptor(
 
 NTSTATUS
 SrvShareAccessCheck(
-    PSRV_SHARE_INFO pShareInfo,
-    PACCESS_TOKEN pToken,
-    ACCESS_MASK DesiredAccess,
-    PGENERIC_MAPPING pGenericMap,
-    PACCESS_MASK pGrantedAccess
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN PACCESS_TOKEN pToken,
+    IN ACCESS_MASK DesiredAccess,
+    IN PGENERIC_MAPPING pGenericMap,
+    OUT PACCESS_MASK pGrantedAccess
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -592,7 +592,7 @@ SrvShareAccessCheck(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pShareInfo->Mutex);
 
     if (!pShareInfo->pAbsSecDesc)
     {
@@ -617,7 +617,7 @@ SrvShareAccessCheck(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->Mutex);
 
     return ntStatus;
 
@@ -664,7 +664,7 @@ SrvShareSetDefaultSecurity(
     /* Clear out any existing SecDesc's.  This is not a normal
        use case, but be paranoid */
 
-    if (pShareInfo->ulSecDescLen)
+    if (pShareInfo->SecDescLen)
     {
         SrvShareFreeSecurity(pShareInfo);
     }
@@ -754,7 +754,7 @@ SrvShareSetDefaultSecurity(
     BAIL_ON_NT_STATUS(ntStatus);
 
     worldAccessMask = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
-    if (pShareInfo->service == SHARE_SERVICE_NAMED_PIPE)
+    if (pShareInfo->Service == SHARE_SERVICE_NAMED_PIPE)
     {
         worldAccessMask |= FILE_GENERIC_WRITE;
     }
@@ -793,7 +793,7 @@ SrvShareSetDefaultSecurity(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pShareInfo->pSecDesc = pRelSecDesc;
-    pShareInfo->ulSecDescLen = ulRelSecDescLen;
+    pShareInfo->SecDescLen = ulRelSecDescLen;
     pShareInfo->pAbsSecDesc = pAbsSecDesc;
 
     ntStatus = STATUS_SUCCESS;
