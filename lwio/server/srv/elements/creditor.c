@@ -304,6 +304,8 @@ SrvCreditorAdjustAsyncCredits(
     ntStatus = SrvCreditorInitialize_inlock(pCreditor);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_ASSERT(pCreditor->usTotalCredits >= pCreditor->CreditFloor);
+
     ntStatus = SrvCreditorFindDebitor_inlock(
                     pCreditor->pInUse_head,
                     ullSequence,
@@ -324,7 +326,7 @@ SrvCreditorAdjustAsyncCredits(
 
             // Replenish the current credit
 
-            if (usCreditsRequested || pCreditor->usTotalCredits == 1)
+            if (usCreditsRequested || pCreditor->usTotalCredits == pCreditor->CreditFloor)
             {
                 ntStatus = SrvAllocateMemory(
                                 sizeof(SRV_DEBITOR),
@@ -435,13 +437,15 @@ SrvCreditorAdjustNormalCredits(
     ntStatus = SrvCreditorInitialize_inlock(pCreditor);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_ASSERT(pCreditor->usTotalCredits >= pCreditor->CreditFloor);
+
     ntStatus = SrvCreditorFindDebitor_inlock(
                     pCreditor->pInUse_head,
                     ullSequence,
                     &pDebitor);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (usCreditsRequested || pCreditor->usTotalCredits == 1)
+    if (usCreditsRequested || pCreditor->usTotalCredits == pCreditor->CreditFloor)
     {
         pDebitor->ullSequence = pCreditor->ullNextAvblId++;
 
@@ -516,26 +520,49 @@ SrvCreditorInitialize_inlock(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     USHORT   usCreditsGranted = 0;
-    PSRV_DEBITOR pDebitor = NULL;
+    PSRV_DEBITOR* ppDebitor = NULL;
+    ULONG count = 0;
 
     if (!pCreditor->bInitialized)
     {
         pCreditor->usCreditLimit = SrvElementsConfigGetClientCreditLimit();
         pCreditor->usCreditStart = SrvElementsConfigGetClientCreditStart();
+        pCreditor->CreditFloor = SrvElementsConfigGetClientCreditFloor();
 
-        ntStatus = SrvCreditorAcquireGlobalCredits(1, &usCreditsGranted);
+        ntStatus = SrvCreditorAcquireGlobalCredits(
+                       pCreditor->CreditFloor,
+                       &usCreditsGranted);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvAllocateMemory(sizeof(SRV_DEBITOR), (PVOID*)&pDebitor);
+        if (usCreditsGranted < pCreditor->CreditFloor)
+        {
+            ntStatus = LW_STATUS_INSUFFICIENT_RESOURCES;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = SrvAllocateMemory(
+                       sizeof(*ppDebitor) * pCreditor->CreditFloor,
+                       OUT_PPVOID(&ppDebitor));
         BAIL_ON_NT_STATUS(ntStatus);
 
-        // The first available sequence must be 0
-        pDebitor->ullSequence = pCreditor->ullNextAvblId++;
+        for (count=0; count < pCreditor->CreditFloor; count++)
+        {
+            ntStatus = SrvAllocateMemory(
+                           sizeof(SRV_DEBITOR),
+                           OUT_PPVOID(&ppDebitor[count]));
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvCreditorAttachDebitor(
-                pDebitor,
+            ppDebitor[count]->ullSequence = pCreditor->ullNextAvblId++;
+        }
+
+
+        for (count=0; count < pCreditor->CreditFloor; count++)
+        {
+            SrvCreditorAttachDebitor(
+                ppDebitor[count],
                 &pCreditor->pAvbl_head,
                 &pCreditor->pAvbl_tail);
+        }
 
         pCreditor->usTotalCredits += usCreditsGranted;
         pCreditor->usNumCreditsLastGranted = usCreditsGranted;
@@ -545,13 +572,20 @@ SrvCreditorInitialize_inlock(
 
 cleanup:
 
+    if (ppDebitor)
+    {
+        SrvFreeMemory(ppDebitor);
+    }
+
     return ntStatus;
 
 error:
 
-    if (pDebitor)
+    for (count=0;
+         ppDebitor && ppDebitor[count] && count < pCreditor->CreditFloor;
+         count++)
     {
-        SrvCreditorFreeDebitorList(pDebitor);
+        SrvCreditorFreeDebitorList(ppDebitor[count]);
     }
 
     if (usCreditsGranted)
