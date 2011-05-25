@@ -73,12 +73,26 @@ typedef union __srvsvc_NetFileInfo
 
 } FILE_INFO, *PFILE_INFO;
 
+typedef struct _SRVS_CONFIG_REG
+{
+    HANDLE hConnection;
+    HKEY hKey;
+    PSTR pszConfigKey;
+    PSTR pszPolicyKey;
+} SRVS_CONFIG_REG, *PSRVS_CONFIG_REG;
+
 typedef struct _SRVSVC_CONFIG
 {
     pthread_mutex_t mutex;
 
     /* path to lsarpc server socket for local procedure calls */
     CHAR szLsaLpcSocketPath[PATH_MAX + 1];
+
+    /* path to srvsvc server socket to listen for local procedure calls */
+    CHAR szLpcSocketPath[PATH_MAX + 1];
+
+    /* A flag determining whether to try registering ncacn_ip_tcp endpoint */
+    BOOLEAN RegisterTcpIp;
 
 } SRVSVC_CONFIG, *PSRVSVC_CONFIG;
 

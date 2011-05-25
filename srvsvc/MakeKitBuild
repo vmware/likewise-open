@@ -17,7 +17,8 @@ configure()
     mk_declare -o \
         SBINDIR="$MK_SBINDIR" \
         LIBDIR="$MK_LIBDIR" \
-        MOD_EXT="$MK_DLO_EXT"
+        MOD_EXT="$MK_DLO_EXT" \
+        CACHEDIR="$LW_CACHEDIR"
 
     mk_define CACHEDIR "\"$LW_CACHEDIR\""
 

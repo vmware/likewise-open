@@ -3,16 +3,6 @@
 
 
 DWORD
-SrvSvcSetServerDefaults(
-    VOID
-    );
-
-DWORD
-SrvSvcReadConfigSettings(
-    VOID
-    );
-
-DWORD
 SrvSvcInitSecurity(
     void
     );

@@ -79,10 +79,10 @@ SrvsSvcmStart(
 {
     DWORD err = ERROR_SUCCESS;
 
-    err = SrvSvcSetServerDefaults();
+    err = SrvsInitialiseConfig(&gpSrvsServerInfo->config);
     BAIL_ON_SRVSVC_ERROR(err);
 
-    err = SrvSvcReadConfigSettings();
+    err = SrvSvcReadConfigSettings(&gpSrvsServerInfo->config);
     BAIL_ON_SRVSVC_ERROR(err);
 
     err = SrvSvcInitSecurity();
@@ -146,19 +146,6 @@ SVCM_ENTRY_POINT(
     )
 {
     return &gSrvsService;
-}
-
-
-DWORD
-SrvSvcSetServerDefaults(
-    VOID
-    )
-{
-    DWORD dwError = ERROR_SUCCESS;
-
-    dwError = SrvSvcReadConfigSettings();
-
-    return dwError;
 }
 
 

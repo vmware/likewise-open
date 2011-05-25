@@ -60,13 +60,28 @@ SrvSvcSrvFreeAuthInfoContents(
 // config.c
 
 DWORD
+SrvsInitialiseConfig(
+    PSRVSVC_CONFIG pConfig
+    );
+
+DWORD
 SrvSvcReadConfigSettings(
-    VOID
+    PSRVSVC_CONFIG pConfig
     );
 
 DWORD
 SrvSvcConfigGetLsaLpcSocketPath(
     PSTR* ppszPath
+    );
+
+DWORD
+SrvSvcConfigGetLpcSocketPath(
+    PSTR* ppszPath
+    );
+
+DWORD
+SrvSvcConfigGetRegisterTcpIp(
+    PBOOLEAN pRegisterTcpIp
     );
 
 // netfile.c

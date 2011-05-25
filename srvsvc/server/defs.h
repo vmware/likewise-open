@@ -2,6 +2,7 @@
 #define __DEFS_H__
 
 #define DEFAULT_LSALPC_SOCKET_PATH CACHEDIR "/rpc/lsass"
+#define SRVS_DEFAULT_LPC_SOCKET_PATH CACHEDIR "/rpc/srvsvc"
 
 #define SRV_DRIVER_NAME_W { '\\', 's', 'r', 'v', 0 }
 

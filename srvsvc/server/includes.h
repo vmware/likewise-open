@@ -65,7 +65,7 @@
 #include <compat/dcerpc.h>
 #include <lw/rpc/lsa.h>
 #include <lwnet.h>
-#include <lw/rpc/lsa.h>
+#include <reg/lwreg.h>
 #include <stdlib.h>
 
 #include <lw/srvsvc.h>

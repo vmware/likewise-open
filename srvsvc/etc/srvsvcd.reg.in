@@ -25,3 +25,13 @@
     default = dword:00000002
     doc = ""
 }
+
+[HKEY_THIS_MACHINE\Services\srvsvc\Parameters]
+"LpcSocketPath" = {
+    default = "@CACHEDIR@/rpc/srvsvc"
+    doc = ""
+}
+"RegisterTcpIp" = {
+    default = dword:00000000
+    doc = ""
+}

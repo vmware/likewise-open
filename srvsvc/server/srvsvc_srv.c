@@ -42,10 +42,10 @@
  */
 #include "includes.h"
 
-typedef const struct
+typedef struct _ENDPOINT
 {
-    PCSTR protocol;
-    PCSTR endpoint;
+    PSTR protocol;
+    PSTR endpoint;
 } ENDPOINT, *PENDPOINT;
 
 
@@ -226,11 +226,39 @@ SrvSvcRegisterForRPC(
     BOOLEAN bEPRegistered = FALSE;
     static ENDPOINT endpoints[] =
     {
-        {"ncacn_ip_tcp", NULL},
-        {"ncacn_np"    , "\\\\pipe\\\\srvsvc"},
-        {"ncalrpc", "srvsvc"},
-        {NULL, NULL}
+        {"ncacn_np",   "\\\\pipe\\\\srvsvc"},
+        {"ncalrpc",    NULL}, // endpoint is fetched from config parameter
+        {NULL,         NULL}, // placeholder for ncacn_ip_tcp (if enabled)
+        {NULL,         NULL}
     };
+    DWORD i = 0;
+    PSTR lpcSocketPath = NULL;
+    BOOLEAN registerTcpIp = FALSE;
+
+    dwError = SrvSvcConfigGetLpcSocketPath(&lpcSocketPath);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    // Fill in the socket path for local procedure calls (ncalrpc)
+    while (endpoints[i].protocol) {
+        if (lpcSocketPath &&
+            LwRtlCStringIsEqual(endpoints[i].protocol,
+                                "ncalrpc",
+                                TRUE))
+        {
+            endpoints[i].endpoint = lpcSocketPath;
+        }
+
+        i++;
+    }
+
+    dwError = SrvSvcConfigGetRegisterTcpIp(&registerTcpIp);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    // Append ncacn_ip_tcp endpoint if it's enabled in the configuration
+    if (registerTcpIp)
+    {
+        endpoints[i++].protocol = "ncacn_ip_tcp";
+    }
 
     DCETHREAD_TRY
     {
@@ -311,6 +339,9 @@ SrvSvcRegisterForRPC(
     *ppServerBinding = pServerBinding;
 
 cleanup:
+    // DCE/RPC runtime makes a copy of ncalrpc socket path internally
+    // so it is safe to free it here
+    LW_SAFE_FREE_MEMORY(lpcSocketPath);
 
     return dwError;
 

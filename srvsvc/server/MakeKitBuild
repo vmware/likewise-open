@@ -51,8 +51,8 @@ make()
         INCLUDEDIRS=". ../include" \
         CPPFLAGS="-DSRVSVC_BUILD" \
         HEADERDEPS="lw/base.h lwadvapi.h lwio/lwio.h dce/rpc.h compat/dcerpc.h lwnet.h \
-                    lw/rpc/lsa.h" \
+                    lw/rpc/lsa.h reg/lwreg.h" \
         LIBDEPS="srvsvcutils lsarpc lwioshareinfo lwbase \
-                 lwbase_nothr lwioclient lwadvapi lwadvapi_nothr $LIB_PTHREAD" \
+                 lwbase_nothr lwioclient lwadvapi lwadvapi_nothr regclient $LIB_PTHREAD" \
         DEPS="srvsvc_h.h winreg_h.h"
 }

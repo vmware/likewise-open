@@ -59,7 +59,6 @@ SRVSVC_RUNTIME_GLOBALS gSrvsServerInfo =
     .pSessionSecDesc       = NULL,
     .config                =    {
                                 .mutex = PTHREAD_MUTEX_INITIALIZER,
-                                .szLsaLpcSocketPath = DEFAULT_LSALPC_SOCKET_PATH
                                 },
     .genericMapping        =    {
                                 .GenericRead = FILE_GENERIC_READ,
