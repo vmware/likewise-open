@@ -359,24 +359,28 @@ SrvListenerProcessTask(
     // TODO - getpeername should not be necessary after accept.
     if (getpeername(connFd, (struct sockaddr*) &clientAddress, &clientAddressLength) < 0)
     {
+        // Do not terminate on this error.
         ntStatus = LwErrnoToNtStatus(errno);
         LWIO_LOG_ERROR(
             "Failed to find the remote socket address for fd = %d (errno = %d, status = 0x%08x)",
             connFd,
             errno,
             ntStatus);
+        ntStatus = STATUS_SUCCESS;
         waitMask = LW_TASK_EVENT_YIELD;
         goto cleanup;
     }
 
     if (getsockname(connFd, (struct sockaddr*) &serverAddress, &serverAddressLength) < 0)
     {
+        // Do not terminate on this error.
         ntStatus = LwErrnoToNtStatus(errno);
         LWIO_LOG_ERROR(
             "Failed to find the local socket address for fd = %d (errno = %d, status = 0x%08x)",
             connFd,
             errno,
             ntStatus);
+        ntStatus = STATUS_SUCCESS;
         waitMask = LW_TASK_EVENT_YIELD;
         goto cleanup;
     }
@@ -385,13 +389,29 @@ SrvListenerProcessTask(
         (struct sockaddr*) &clientAddress,
         clientAddressStringBuffer,
         sizeof(clientAddressStringBuffer));
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (ntStatus)
+    {
+        // Do not terminate on this error.
+        LWIO_LOG_ERROR("Failed to allocate client address string for fd = %d (status = 0x%08x)",
+                       connFd, ntStatus);
+        ntStatus = STATUS_SUCCESS;
+        waitMask = LW_TASK_EVENT_YIELD;
+        goto cleanup;
+    }
 
     ntStatus = SrvSocketAddressToString(
         (struct sockaddr*) &serverAddress,
         serverAddressStringBuffer,
         sizeof(serverAddressStringBuffer));
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (ntStatus)
+    {
+        // Do not terminate on this error.
+        LWIO_LOG_ERROR("Failed to allocate server address string for fd = %d (status = 0x%08x)",
+                       connFd, ntStatus);
+        ntStatus = STATUS_SUCCESS;
+        waitMask = LW_TASK_EVENT_YIELD;
+        goto cleanup;
+    }
 
     LWIO_LOG_INFO("Handling client from '%s' [server address: %s] on fd = %d",
                   clientAddressStringBuffer,
@@ -432,10 +452,19 @@ cleanup:
         close(connFd);
     }
 
-    // waitMask can only be 0 (aka COMPLETE) for EVENT_CANCEL or error.
-    LWIO_ASSERT(waitMask ||
-                ((LW_TASK_EVENT_COMPLETE == waitMask) &&
-                 (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL) || ntStatus)));
+    //
+    // waitMask can be one of:
+    //
+    // LW_TASK_EVENT_COMPLETE - for LW_TASK_EVENT_CANCEL or error
+    // LW_TASK_EVENT_YIELD or LW_TASK_FD_READABLE - for !LW_TASK_EVENT_CANCEL
+    //   and no error
+    //
+
+    LWIO_ASSERT(((LW_TASK_EVENT_COMPLETE == waitMask) &&
+                 (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL) || ntStatus)) ||
+                (((LW_TASK_EVENT_YIELD == waitMask) ||
+                  (LW_TASK_EVENT_FD_READABLE == waitMask)) &&
+                 (!IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL) && !ntStatus)));
 
     *pWaitMask = waitMask;
 
@@ -444,6 +473,7 @@ cleanup:
 error:
 
     waitMask = LW_TASK_EVENT_COMPLETE;
+    LWIO_ASSERT(ntStatus);
 
     goto cleanup;
 }
