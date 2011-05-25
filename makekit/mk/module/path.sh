@@ -212,60 +212,60 @@ option()
 {
     mk_option \
         OPTION=prefix \
-        VAR=MK_PREFIX \
+        VAR=PREFIX \
         PARAM="path" \
         DEFAULT='/usr/local' \
         HELP="Architecture-independent installation prefix"
 
-    if [ "${MK_PREFIX}" = "/usr" ]
+    if [ "${PREFIX}" = "/usr" ]
     then
         _default_sysconfdir="/etc"
         _default_localstatedir="/var"
     else
-        _default_sysconfdir="$MK_PREFIX/etc"
-        _default_localstatedir="$MK_PREFIX/var"
+        _default_sysconfdir="$PREFIX/etc"
+        _default_localstatedir="$PREFIX/var"
     fi
 
     mk_option \
         OPTION=exec-prefix \
-        VAR=MK_EPREFIX \
+        VAR=EPREFIX \
         PARAM="path" \
-        DEFAULT="$MK_PREFIX" \
+        DEFAULT="$PREFIX" \
         HELP="Architecture-dependent installation prefix"
 
     mk_option \
-        VAR=MK_INCLUDEDIR \
+        VAR=INCLUDEDIR \
         OPTION=includedir \
         PARAM="path" \
-        DEFAULT="${MK_PREFIX}/include" \
+        DEFAULT="${PREFIX}/include" \
         HELP="Header file directory"
 
     mk_option \
-        VAR=MK_BINDIR \
+        VAR=BINDIR \
         OPTION=bindir \
         PARAM="path" \
-        DEFAULT="${MK_EPREFIX}/bin" \
+        DEFAULT="${EPREFIX}/bin" \
         HELP="User executable directory"
 
     mk_option \
-        VAR=MK_SBINDIR \
+        VAR=SBINDIR \
         OPTION=sbindir \
         PARAM="path" \
-        DEFAULT="${MK_EPREFIX}/sbin" \
+        DEFAULT="${EPREFIX}/sbin" \
         HELP="System executable directory"
 
     mk_option \
-        VAR=MK_LIBEXECDIR \
+        VAR=LIBEXECDIR \
         OPTION=libexecdir \
         PARAM="path" \
-        DEFAULT="${MK_EPREFIX}/libexec" \
+        DEFAULT="${EPREFIX}/libexec" \
         HELP="Program executable directory"
 
     mk_option \
-        VAR=MK_BASELIBDIR \
+        VAR=BASELIBDIR \
         OPTION=libdir \
         PARAM="path" \
-        DEFAULT="${MK_EPREFIX}/lib" \
+        DEFAULT="${EPREFIX}/lib" \
         HELP="Library directory (base)"
 
     if [ "$MK_HOST_MULTIARCH" = "separate" ]
@@ -273,32 +273,32 @@ option()
         for _isa in ${MK_HOST_ISAS}
         do
             _mk_define_name "host/$_isa"
-            _var="MK_LIBDIR_$result"
+            _var="LIBDIR_$result"
 
             case "${MK_HOST_OS}-${MK_HOST_DISTRO_ARCHETYPE}-${MK_HOST_ARCH}-${_isa}" in
                 linux-redhat-x86_64-x86_64|linux-suse-x86_64-x86_64|aix-*-powerpc-ppc64)
-                    _default_libdir="${MK_BASELIBDIR}64"
+                    _default_libdir="${BASELIBDIR}64"
                     ;;
                 linux-debian-x86_64-x86_32)
-                    _default_libdir="${MK_BASELIBDIR}32"
+                    _default_libdir="${BASELIBDIR}32"
                     ;;
                 solaris-*-sparc*-sparc_64)
-                    _default_libdir="${MK_BASELIBDIR}/sparcv9"
+                    _default_libdir="${BASELIBDIR}/sparcv9"
                     ;;
                 solaris-*-x86_64-x86_64)
-                    _default_libdir="${MK_BASELIBDIR}/64"
+                    _default_libdir="${BASELIBDIR}/64"
                     ;;
                 hpux-*-hppa2.0-hppa64)
-                    _default_libdir="${MK_BASELIBDIR}/pa20_64"
+                    _default_libdir="${BASELIBDIR}/pa20_64"
                     ;;
                 hpux-*-ia64-ia64_32)
-                    _default_libdir="${MK_BASELIBDIR}/hpux32"
+                    _default_libdir="${BASELIBDIR}/hpux32"
                     ;;
                 hpux-*-ia64-ia64_64)
-                    _default_libdir="${MK_BASELIBDIR}/hpux64"
+                    _default_libdir="${BASELIBDIR}/hpux64"
                     ;;
                 *)
-                    _default_libdir="${MK_BASELIBDIR}"
+                    _default_libdir="${BASELIBDIR}"
                     ;;
             esac
 
@@ -314,76 +314,120 @@ option()
     fi
 
     mk_option \
-        VAR=MK_SYSCONFDIR \
+        VAR=SYSCONFDIR \
         OPTION=sysconfdir \
         PARAM="path" \
         DEFAULT="${_default_sysconfdir}" \
         HELP="System configuration directory"
     
     mk_option \
-        VAR=MK_LOCALSTATEDIR \
+        VAR=LOCALSTATEDIR \
         OPTION=localstatedir \
         PARAM="path" \
         DEFAULT="${_default_localstatedir}" \
         HELP="Local state directory"
 
     mk_option \
-        VAR=MK_DATAROOTDIR \
+        VAR=DATAROOTDIR \
         OPTION=datarootdir \
         PARAM="path" \
-        DEFAULT="${MK_PREFIX}/share" \
+        DEFAULT="${PREFIX}/share" \
         HELP="Root data directory"
     
     mk_option \
-        VAR=MK_DATADIR \
+        VAR=DATADIR \
         OPTION=datadir \
         PARAM="path" \
-        DEFAULT="${MK_DATAROOTDIR}/${PROJECT_NAME}" \
+        DEFAULT="${DATAROOTDIR}/${PROJECT_NAME}" \
         HELP="Data directory"
 
     mk_option \
-        VAR=MK_DOCDIR \
+        VAR=DOCDIR \
         OPTION=docdir \
         PARAM="path" \
-        DEFAULT="${MK_DATAROOTDIR}/doc/${PROJECT_NAME}" \
+        DEFAULT="${DATAROOTDIR}/doc/${PROJECT_NAME}" \
         HELP="Documentation directory"
 
     mk_option \
-        VAR=MK_HTMLDIR \
+        VAR=HTMLDIR \
         OPTION=htmldir \
         PARAM="path" \
-        DEFAULT="${MK_DOCDIR}/html" \
+        DEFAULT="${DOCDIR}/html" \
         HELP="HTML documentation directory"
 
     mk_option \
-        VAR=MK_MANDIR \
+        VAR=MANDIR \
         OPTION=mandir \
         PARAM="path" \
-        DEFAULT="${MK_DATAROOTDIR}/man" \
+        DEFAULT="${DATAROOTDIR}/man" \
         HELP="UNIX man page directory"
 }
 
 configure()
 {
+    # Set up paths where programs compiled for the build system should go
+    mk_declare -e \
+        MK_RUN_PREFIX="${MK_RUN_DIR}" \
+        MK_RUN_EPREFIX="${MK_RUN_DIR}" \
+        MK_RUN_INCLUDEDIR="${MK_RUN_DIR}/include" \
+        MK_RUN_LIBDIR="${MK_RUN_DIR}/lib" \
+        MK_RUN_LIBEXECDIR="${MK_RUN_DIR}/libexec" \
+        MK_RUN_BINDIR="${MK_RUN_DIR}/bin" \
+        MK_RUN_SBINDIR="${MK_RUN_DIR}/sbin" \
+        MK_RUN_SYSCONFDIR="${MK_RUN_DIR}/etc" \
+        MK_RUN_LOCALSTATEDIR="${MK_RUN_DIR}/var" \
+        MK_RUN_DATAROOTDIR="${MK_RUN_DIR}/share" \
+        MK_RUN_DATADIR="${MK_RUN_DIR}/share"
+
+    # Declare basic path variables
+    mk_declare -s -e \
+        MK_PREFIX MK_EPREFIX MK_INCLUDEDIR MK_BINDIR MK_SBINDIR MK_LIBDIR \
+        MK_LIBEXECDIR MK_SYSCONFDIR MK_LOCALSTATEDIR MK_DATAROOTDIR MK_DATADIR
+
+    # Set values of basic path variables
+    mk_set_system_var SYSTEM="build" MK_PREFIX "@$MK_RUN_PREFIX"
+    mk_set_system_var SYSTEM="build" MK_EPREFIX "@$MK_RUN_EPREFIX"
+    mk_set_system_var SYSTEM="build" MK_INCLUDEDIR "@$MK_RUN_INCLUDEDIR"
+    mk_set_system_var SYSTEM="build" MK_LIBDIR "@$MK_RUN_LIBDIR"
+    mk_set_system_var SYSTEM="build" MK_LIBEXECDIR "@$MK_RUN_LIBEXECDIR"
+    mk_set_system_var SYSTEM="build" MK_BINDIR "@$MK_RUN_BINDIR"
+    mk_set_system_var SYSTEM="build" MK_SBINDIR "@$MK_RUN_SBINDIR"
+    mk_set_system_var SYSTEM="build" MK_SYSCONFDIR "@$MK_RUN_SYSCONFDIR"
+    mk_set_system_var SYSTEM="build" MK_LOCALSTATEDIR "@$MK_RUN_LOCALSTATEDIR"
+    mk_set_system_var SYSTEM="build" MK_DATAROOTDIR "@$MK_RUN_DATAROOTDIR"
+    mk_set_system_var SYSTEM="build" MK_DATADIR "@$MK_RUN_DATADIR"
+
+    mk_set_system_var SYSTEM="host" MK_PREFIX "$PREFIX"
+    mk_set_system_var SYSTEM="host" MK_EPREFIX "$EPREFIX"
+    mk_set_system_var SYSTEM="host" MK_INCLUDEDIR "$INCLUDEDIR"
+    mk_set_system_var SYSTEM="host" MK_BINDIR "$BINDIR"
+    mk_set_system_var SYSTEM="host" MK_LIBEXECDIR "$LIBEXECDIR"
+    mk_set_system_var SYSTEM="host" MK_SBINDIR "$SBINDIR"
+    mk_set_system_var SYSTEM="host" MK_SYSCONFDIR "$SYSCONFDIR"
+    mk_set_system_var SYSTEM="host" MK_LOCALSTATEDIR "$LOCALSTATEDIR"
+    mk_set_system_var SYSTEM="host" MK_DATAROOTDIR "$DATAROOTDIR"
+    mk_set_system_var SYSTEM="host" MK_DATADIR "$DATADIR"
+
+    mk_declare -e \
+        MK_DOCDIR="$DOCDIR" MK_MANDIR="$MANDIR" MK_HTMLDIR="$HTMLDIR"
+
     mk_msg "prefix: $MK_PREFIX"
     mk_msg "exec prefix: $MK_EPREFIX"
 
     if [ "$MK_HOST_MULTIARCH" = "separate" ]
     then
-        mk_declare -s -e MK_LIBDIR
-
         for _isa in ${MK_HOST_ISAS}
         do
             _mk_define_name "host/$_isa"
-            _var="MK_LIBDIR_$result"
+            _var="LIBDIR_$result"
             _vars="$_vars $_var"
             mk_get "$_var"
             mk_msg "library dir ($_isa): $result"
             mk_set_system_var SYSTEM="host/$_isa" MK_LIBDIR "$result"
         done
     else
-        mk_msg "library dir: $MK_BASELIBDIR"
-        mk_declare -e MK_LIBDIR="$MK_BASELIBDIR"
+        mk_msg "library dir: $BASELIBDIR"
+        mk_set_system_var SYSTEM="host" MK_LIBDIR "$BASELIBDIR"
     fi
 
     mk_msg "include dir: $MK_INCLUDEDIR"
@@ -396,22 +440,4 @@ configure()
     mk_msg "documenation dir: $MK_DOCDIR"
     mk_msg "HTML documentation dir: $MK_HTMLDIR"
     mk_msg "manpage dir: $MK_MANDIR"
-
-    mk_declare -e \
-        MK_PREFIX MK_EPREFIX MK_INCLUDEDIR MK_BINDIR \
-        MK_SBINDIR MK_LIBEXECDIR MK_SYSCONFDIR MK_LOCALSTATEDIR \
-        MK_DATAROOTDIR MK_DATADIR MK_DOCDIR MK_HTMLDIR \
-        MK_MANDIR
-
-    # Set up paths where programs compiled for the build system should go
-    mk_declare -e \
-        MK_RUN_PREFIX="${MK_RUN_DIR}" \
-        MK_RUN_EPREFIX="${MK_RUN_DIR}" \
-        MK_RUN_LIBDIR="${MK_RUN_DIR}/lib" \
-        MK_RUN_BINDIR="${MK_RUN_DIR}/bin" \
-        MK_RUN_SBINDIR="${MK_RUN_DIR}/sbin" \
-        MK_RUN_SYSCONFDIR="${MK_RUN_DIR}/etc" \
-        MK_RUN_LOCALSTATEDIR="${MK_RUN_DIR}/var" \
-        MK_RUN_DATAROOTDIR="${MK_RUN_DIR}/share" \
-        MK_RUN_DATADIR="${MK_RUN_DIR}/share"
 }

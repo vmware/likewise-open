@@ -90,7 +90,9 @@
 
 BASIC_VARIABLES="\
     MK_HOME MK_SHELL MK_ROOT_DIR MK_SOURCE_DIR MK_OBJECT_DIR MK_STAGE_DIR \
-    MK_RUN_DIR MK_OPTIONS MK_SEARCH_DIRS MK_MODULE_LIST MK_MODULE_FILES"
+    MK_RUN_DIR MK_OPTIONS MK_SEARCH_DIRS MK_MODULE_LIST MK_MODULE_FILES MK_SUBDIRS"
+
+INHERITED_VARIABLES="MK_SUBDIRS"
 
 . "${MK_HOME}/mk.sh" || exit 1
 
@@ -241,6 +243,8 @@ _mk_process_build_recursive()
 
     # Process configure stage
     _mk_process_build_configure "$1"
+
+    MK_SUBDIRS="$SUBDIRS"
 
     # Write exports files
     _mk_write_exports "${MK_OBJECT_DIR}$1/.MakeKitExports"
@@ -780,7 +784,15 @@ exec 6>.Makefile.new
 MK_MAKEFILE_FD=6
 
 # Export basic variables
-mk_export ${BASIC_VARIABLES}
+for _var in ${BASIC_VARIABLES}
+do
+    _mk_declare_exported "$_var"
+done
+
+for _var in ${INHERITED_VARIABLES}
+do
+    _mk_declare_inherited "$_var"
+done
 
 # Emit Makefile header
 _mk_emit_make_header

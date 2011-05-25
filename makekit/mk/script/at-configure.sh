@@ -85,6 +85,9 @@ then
     _sbindir="$MK_ROOT_DIR/$MK_RUN_SBINDIR"
     _sysconfdir="$MK_ROOT_DIR/$MK_RUN_SYSCONFDIR"
     _localstatedir="$MK_ROOT_DIR/$MK_RUN_LOCALSTATEDIR"
+    _stage_dir="`cd ${MK_STAGE_DIR} && pwd`"
+    _include_dir="$_includedir"
+    _lib_dir="$_libdir"
 else
     _prefix="$MK_PREFIX"
     _includedir="$MK_INCLUDEDIR"
@@ -93,13 +96,13 @@ else
     _sbindir="$MK_SBINDIR"
     _sysconfdir="$MK_SYSCONFDIR"
     _localstatedir="$MK_LOCALSTATEDIR"
+    _stage_dir="`cd ${MK_STAGE_DIR} && pwd`"
+    _include_dir="${_stage_dir}${_includedir}"
+    _lib_dir="${_stage_dir}${_libdir}"
 fi
 
 mk_resolve_file "$SOURCEDIR"
 _src_dir="`cd $result && pwd`"
-_stage_dir="`cd ${MK_STAGE_DIR} && pwd`"
-_include_dir="${_stage_dir}${_includedir}"
-_lib_dir="${_stage_dir}${_libdir}"
 _libpath=""
 
 # Make the linker happy, etc.

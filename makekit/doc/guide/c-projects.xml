@@ -501,7 +501,7 @@ configure()
       <itemizedlist>
 	<listitem>Display the test being performed to the user</listitem>
 	<listitem>Perform a test using the C compiler</listitem>
-	<listitem>Set a variable with the result of the test</listitem>
+	<listitem>Set a variable to the result of the test</listitem>
 	<listitem>Add a define to the config header with the result of the test</listitem>
 	<listitem>Cache the results to speed up subsequent runs of <filename>configure</filename></listitem>
 	<listitem>Display the result of the test to the user</listitem>
@@ -552,8 +552,8 @@ configure()
       </para>
       <itemizedlist>
 	<listitem>
-	  Export the variable <varname>HAVE_<replaceable>varname</replaceable></varname>
-	  with the result of the test.
+	  Set the variable <varname>HAVE_<replaceable>varname</replaceable></varname>
+	  to the result of the test.
 	</listitem>
 	<listitem>
 	  If the header was found, define <literal>HAVE_<replaceable>varname</replaceable></literal>
@@ -569,7 +569,7 @@ configure()
     # Check for some basic header files
     mk_check_headers stdio.h stdlib.h string.h does-not-exist.h
 
-    # On a reasonable system, the following variables will be exported:
+    # On a reasonable system, the following variables will be set:
     #
     # HAVE_STDIO_H=external
     # HAVE_STDLIB_H=external
@@ -599,13 +599,13 @@ configure()
       </para>
       <itemizedlist>
 	<listitem>
-	  Export the variable <varname>HAVE_LIB_<replaceable>varname</replaceable></varname>
-	  with the result of the test.
+	  Set the variable <varname>HAVE_LIB_<replaceable>varname</replaceable></varname>
+	  to the result of the test.
 	</listitem>
 	<listitem>
 	  If the test succeeds, export the variable <varname>LIB_<replaceable>varname</replaceable></varname>
 	  with the name of the library exactly as passed to <function>mk_check_libraries</function>.
-	  Otherwise, the variable will be exported as the empty string.  This is useful for conditionally
+	  Otherwise, the variable will be set as the empty string.  This is useful for conditionally
 	  including the library in a <literal>LIBDEPS=</literal> list to <function>mk_program</function>
 	  and friends.
 	</listitem>
@@ -628,7 +628,7 @@ configure()
     # Check for some common UNIX libraries
     mk_check_libraries m pthread does-not-exist
 
-    # On a typical Linux system, the following variables will be exported:
+    # On a typical Linux system, the following variables will be set:
     #
     # HAVE_LIB_M=external
     # HAVE_LIB_PTHREAD=external
@@ -658,8 +658,8 @@ configure()
       </para>
       <itemizedlist>
 	<listitem>
-	  Export the variable <varname>HAVE_<replaceable>varname</replaceable></varname>
-	  with the result of the test.  The possible results are <literal>yes</literal>
+	  Set the variable <varname>HAVE_<replaceable>varname</replaceable></varname>
+	  to the result of the test.  The possible results are <literal>yes</literal>
 	  and <literal>no</literal>.
 	</listitem>
 	<listitem>
@@ -697,7 +697,7 @@ configure()
         LIBDEPS="m" \
         sin cos "double sqrt(double)" does_not_exist
 
-    # On a typical UNIX system, the following variables will be exported:
+    # On a typical UNIX system, the following variables will be set:
     #
     # HAVE_SIN=yes
     # HAVE_COS=yes
@@ -730,8 +730,8 @@ configure()
       </para>
       <itemizedlist>
 	<listitem>
-	  Export the variable <varname>HAVE_<replaceable>varname</replaceable></varname>
-	  with the result of the test.  The possible results are <literal>yes</literal>
+	  Set the variable <varname>HAVE_<replaceable>varname</replaceable></varname>
+	  to the result of the test.  The possible results are <literal>yes</literal>
 	  and <literal>no</literal>.
 	</listitem>
 	<listitem>
@@ -740,7 +740,7 @@ configure()
       </itemizedlist>
       <para>
 	You can use a <literal>HEADERDEPS=</literal> parameter to
-	<function>mk_check_functions</function> to specify header
+	<function>mk_check_types</function> to specify header
 	files necessary to find the type definition.
       </para>
       <example xml:id="c-mk-check-types">
@@ -755,7 +755,7 @@ configure()
         HEADERDEPS="stdlib.h inttypes.h" \
         size_t int64_t uint64_t does_not_exist_t
 
-    # On a typical UNIX system, the following variables will be exported:
+    # On a typical UNIX system, the following variables will be set:
     #
     # HAVE_SIZE_T=yes
     # HAVE_INT64_T=yes
@@ -773,6 +773,61 @@ configure()
       <para>
 	If these side effects are undesirable, you can use the singular form
 	<function>mk_check_type</function>.
+      </para>
+    </section>
+    <section xml:id="c-check-sizes">
+      <title>Checking For Sizes of Types</title>
+      <para>
+	<function>mk_check_sizeofs</function> allows you to test for the
+	sizes of a list of types.  For each type it will then do the following:
+      </para>
+      <itemizedlist>
+	<listitem>
+	  Set the variable <varname>SIZEOF_<replaceable>varname</replaceable></varname>
+	  to the result of the test.
+	</listitem>
+	<listitem>
+	  Define <varname>SIZEOF_<replaceable>varname</replaceable></varname>
+	  to the result of the test.
+	</listitem>
+      </itemizedlist>
+      <para>
+	You can use a <literal>HEADERDEPS=</literal> parameter to
+	<function>mk_check_types</function> to specify header
+	files necessary to find the type definitions.  Note that
+	if this function fails to determine the size of a type
+	it will abort configuration, so you might want to first check
+	that the types exist with <function>mk_check_types</function>.
+      </para>
+      <example xml:id="c-mk-check-sizeofs">
+	<title>Using <function>mk_check_sizeofs</function></title>
+<programlisting><![CDATA[
+configure()
+{
+    mk_config_header "include/config.h"
+
+    # Check for sizes of some types
+    mk_check_types \
+        HEADERDEPS="stdlib.h inttypes.h" \
+        size_t int64_t "void*"
+
+    # On a typical 32-bit UNIX system, the following variables will be set:
+    #
+    # SIZEOF_SIZE_T=4
+    # SIZEOF_INT64_T=8
+    # SIZEOF_VOIDP=4
+    #
+    # The following defines will be written into config.h:
+    #
+    # #define SIZEOF_SIZE_T 4
+    # #define SIZEOF_INT64_T 8
+    # #define SIZEOF_VOIDP 4
+}
+]]></programlisting>
+      </example>
+      <para>
+	If these side effects are undesirable, you can use the singular form
+	<function>mk_check_sizeof</function>.
       </para>
     </section>
   </section>

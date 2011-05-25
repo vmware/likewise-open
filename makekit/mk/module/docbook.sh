@@ -139,7 +139,7 @@ mk_have_docbook()
 # To use this function, you must use <funcref>mk_check_docbook</funcref>
 # in a <lit>configure</lit> section of your project, and it must succeed.
 # You can test if DocBook processing is available with
-# <funcref>mk_have_doxygen</funcref>.  This function will fail
+# <funcref>mk_have_docbook</funcref>.  This function will fail
 # if it is not.
 #>
 mk_docbook_html()

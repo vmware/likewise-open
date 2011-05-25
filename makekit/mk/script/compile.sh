@@ -54,14 +54,18 @@ case "$COMPILER" in
         ;;
 esac
 
+if [ -z "$CONFTEST" ]
+then
+    FLAGS="$FLAGS -I${MK_STAGE_DIR}${MK_INCLUDEDIR}"
+fi
 _mk_define_name "$MK_CANONICAL_SYSTEM"
-FLAGS="$FLAGS -I${MK_STAGE_DIR}${MK_INCLUDEDIR} -DHAVE_CONFIG_H -D_MK_$result"
+FLAGS="$FLAGS -DHAVE_CONFIG_H -D_MK_$result"
 _mk_define_name "${MK_CANONICAL_SYSTEM%/*}"
 FLAGS="$FLAGS -D_MK_$result"
 
 MK_MSG_DOMAIN="compile"
 
-if [ -z "$DISABLE_DEPGEN" ]
+if [ -z "$CONFTEST" ]
 then
     mk_mkdir ".MakeKitDeps"
     _mk_slashless_name "${_object%.o}"

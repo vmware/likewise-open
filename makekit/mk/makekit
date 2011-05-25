@@ -44,6 +44,60 @@ MK_DEFAULT_HOME="@MK_DEFAULT_HOME@"
 MK_SOURCE_DIR="`dirname "$0"`"
 MK_COMMAND="`basename "$0"`"
 
+fail()
+{
+    echo "error: $1"
+    exit 1
+}
+
+find_shell()
+{
+    if test "`uname`" = "FreeBSD"
+    then
+        # Look for dash in the path
+        # /bin/sh is an ancestor of dash on FreeBSD, so
+        # fall back on it and don't bother with bash
+        SHELL_CANDIDATES="dash"
+        SHELL_FALLBACKS="/bin/sh"
+    else
+        # Look for dash or bash in the path
+        # Fall back on xpg4 sh (Solaris) or /bin/sh
+        SHELL_CANDIDATES="dash bash"
+        SHELL_FALLBACKS="/usr/xpg4/bin/sh /bin/sh"
+    fi
+
+    if test "x$MK_SHELL" != "x"
+    then
+        return 0
+    fi
+
+    for _shell in ${SHELL_CANDIDATES}
+    do
+        _IFS="$IFS"
+        IFS=":"
+        for _dir in ${PATH}
+        do
+            if [ -x "$_dir/$_shell" ]
+            then
+	        MK_SHELL="$_dir/$_shell"
+	        return 0
+            fi
+        done
+        IFS="$_IFS"
+    done
+
+    for _shell in ${SHELL_FALLBACKS}
+    do
+        if [ -x "$_shell" ]
+        then
+            MK_SHELL="$_shell"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 if test -d "$MK_HOME"
 then
     :
@@ -61,43 +115,8 @@ else
     exit 1
 fi
 
-if test "`uname`" = "FreeBSD"
-then
-    # FreeBSD /bin/sh is POSIX-compliant and fast,
-    # so only prefer dash over it
-    SHELL_CANDIDATES="\
-        /usr/local/bin/dash \
-        /bin/sh"
-else
-    # Try dash, then bash, then xpg4 sh, then /bin/sh
-    # as a last resort
-    SHELL_CANDIDATES="\
-        /bin/dash \
-        /usr/local/bin/dash \
-        /bin/bash \
-        /usr/bin/bash \
-        /usr/local/bin/bash \
-        /usr/xpg4/bin/sh \
-        /bin/sh"
-fi
-
-if test "x$MK_SHELL" = "x"
-then
-    for _shell in ${SHELL_CANDIDATES}
-    do
-        if [ -x "$_shell" ]
-        then
-	    MK_SHELL="$_shell"
-	    break
-        fi
-    done
-fi
-
-if test -z "$MK_SHELL"
-then
-    echo "ERROR: could not find valid MK_SHELL"
-    exit 1
-fi
+# Find a shell
+find_shell || fail "could not find a usable shell"
 
 # If the system has /usr/xpg4/bin, add it to the path
 # so we get POSIX-compliant utilities

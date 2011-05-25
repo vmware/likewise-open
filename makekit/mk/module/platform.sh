@@ -123,6 +123,18 @@ mk_set_system_var()
     if [ "$MK_CANONICAL_SYSTEM" = "$SYSTEM" ]
     then
         mk_set "$1" "$2"
+    elif [ "$SYSTEM" = "build" ]
+    then
+        for __isa in ${MK_BUILD_ISAS}
+        do
+            mk_set_system_var SYSTEM="$SYSTEM/$__isa" "$@"
+        done
+    elif [ "$SYSTEM" = "host" ]
+    then
+        for __isa in ${MK_HOST_ISAS}
+        do
+            mk_set_system_var SYSTEM="$SYSTEM/$__isa" "$@"
+        done
     else
         _mk_define_name "${1}_$SYSTEM"
         mk_set "$result" "$2"
@@ -659,7 +671,6 @@ _mk_platform_set_ext()
             mk_set_system_var SYSTEM="$2" MK_DLO_EXT ".sl"
             ;;
         *)
-            mk_set_system_var SYSTEM="$2" MK_LIB_EXT ".so"
             mk_set_system_var SYSTEM="$2" MK_LIB_EXT ".so"
             mk_set_system_var SYSTEM="$2" MK_DLO_EXT ".so"
             ;;

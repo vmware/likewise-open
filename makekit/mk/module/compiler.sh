@@ -278,22 +278,33 @@ _mk_do_fat()
     unset _fat_parts _fat_prefix _fat_suffix
 }
 
-
-_mk_compile()
+_mk_process_headerdeps()
 {
-    _object="${SOURCE%.*}${OSUFFIX}.${CANONICAL_SYSTEM%/*}.${CANONICAL_SYSTEM#*/}.o"
-    
-    unset _header_deps
-
-    for _header in ${HEADERDEPS} ${MK_HEADERDEPS}
+    for _header in ${MK_HEADERDEPS} ${HEADERDEPS}
     do
         if _mk_contains "$_header" ${MK_INTERNAL_HEADERS}
         then
             mk_resolve_header "$_header"
             mk_quote "$result"
-            _header_deps="$_header_deps $result"
+            DEPS="$DEPS $result"
+        else
+            _mk_define_name "HAVE_${_header}"
+            mk_get "$result"
+
+            if [ "$result" = "no" ]
+            then
+                mk_fail "$1 depends on missing header $_header"
+            elif [ -z "$result" ]
+            then
+                mk_warn "$1 depends on unchecked header $_header"
+            fi
         fi
     done
+}
+
+_mk_compile()
+{
+    _object="${SOURCE%.*}${OSUFFIX}.${CANONICAL_SYSTEM%/*}.${CANONICAL_SYSTEM#*/}.o"
     
     mk_resolve_target "${SOURCE}"
     _res="$result"
@@ -301,7 +312,7 @@ _mk_compile()
     
     mk_target \
         TARGET="$_object" \
-        DEPS="$DEPS $_header_deps $result" \
+        DEPS="$DEPS $_INT_DEPS $result" \
         SYSTEM="$SYSTEM" \
         mk_run_script compile %INCLUDEDIRS %CPPFLAGS %CFLAGS %CXXFLAGS %COMPILER %PIC '$@' "$_res"
 }
@@ -333,6 +344,7 @@ mk_compile()
     mk_canonical_system "$SYSTEM"
     CANONICAL_SYSTEM="$result"
 
+    _mk_process_headerdeps "$SOURCE"
     _mk_compile_detect
 
     mk_pop_vars
@@ -353,24 +365,6 @@ _mk_verify_libdeps()
         elif [ -z "$result" ]
         then
             mk_warn "$1 depends on unchecked library $__dep ($MK_SYSTEM)"
-        fi
-    done
-}
-
-_mk_verify_headerdeps()
-{
-    for __dep in ${2}
-    do
-        _mk_contains "$__dep" ${MK_INTERNAL_HEADERS} && continue
-        _mk_define_name "HAVE_${__dep}"
-        mk_get "$result"
-
-        if [ "$result" = "no" ]
-        then
-            mk_fail "$1 depends on missing header $__dep"
-        elif [ -z "$result" ]
-        then
-            mk_warn "$1 depends on unchecked header $__dep"
         fi
     done
 }
@@ -605,7 +599,7 @@ mk_library()
     [ "$COMPILER" = "c++" ] && IS_CXX=true
     
     _mk_verify_libdeps "lib$LIB${EXT}" "$LIBDEPS $MK_LIBDEPS"
-    _mk_verify_headerdeps "lib$LIB${EXT}" "$HEADERDEPS $MK_HEADERDEPS"
+    _mk_process_headerdeps "lib$LIB${EXT}"
 
     if [ -n "$SYMFILE" ]
     then
@@ -751,7 +745,7 @@ mk_dlo()
     [ "$COMPILER" = "c++" ] && IS_CXX=true
     
     _mk_verify_libdeps "$DLO${EXT}" "$LIBDEPS $MK_LIBDEPS"
-    _mk_verify_headerdeps "$DLO${EXT}" "$HEADERDEPS $MK_HEADERDEPS"
+    _mk_process_headerdeps "$DLO${EXT}"
 
     if [ -n "$SYMFILE" ]
     then
@@ -862,6 +856,9 @@ mk_group()
         COMPILER=c IS_CXX=false PIC=yes SYSTEM="$MK_SYSTEM" CANONICAL_SYSTEM
     mk_parse_params
 
+    _mk_verify_libdeps "$GROUP" "$LIBDEPS $MK_LIBDEPS"
+    _mk_process_headerdeps "$GROUP"
+
     [ "$COMPILER" = "c++" ] && IS_CXX=true
 
     if _mk_is_fat
@@ -879,9 +876,6 @@ mk_group()
 
         _mk_group "$@"
     fi
-
-    _mk_verify_libdeps "$GROUP" "$LIBDEPS $MK_LIBDEPS"
-    _mk_verify_headerdeps "$GROUP" "$HEADERDEPS $MK_HEADERDEPS"
 
     mk_pop_vars
 }
@@ -973,7 +967,7 @@ mk_program()
     [ "$COMPILER" = "c++" ] && IS_CXX=true
 
     _mk_verify_libdeps "$PROGRAM" "$LIBDEPS $MK_LIBDEPS"
-    _mk_verify_headerdeps "$PROGRAM" "$HEADERDEPS $MK_HEADERDEPS"
+    _mk_process_headerdeps "$PROGRAM"
 
     if _mk_is_fat
     then
@@ -1023,7 +1017,7 @@ mk_headers()
     INSTALLDIR="${MK_INCLUDEDIR}"
     mk_parse_params
     
-    _mk_verify_headerdeps "header" "$HEADERDEPS $MK_HEADERDEPS"
+    _mk_process_headerdeps "header" "$HEADERDEPS $MK_HEADERDEPS"
 
     unset _all_headers
     
@@ -1228,7 +1222,7 @@ _mk_build_test()
                 MK_LOG_FD=""
                 mk_run_script compile \
                     COMPILER="$MK_CHECK_LANG" \
-                    DISABLE_DEPGEN=yes \
+                    CONFTEST=yes \
                     CPPFLAGS="$CPPFLAGS" \
                     CFLAGS="$CFLAGS" \
                     "${__test}.o" "${__test}.c"
@@ -1245,12 +1239,13 @@ _mk_build_test()
                 MK_LOG_FD=""
                 mk_run_script compile \
                     COMPILER="$MK_CHECK_LANG" \
-                    DISABLE_DEPGEN=yes \
+                    CONFTEST=yes \
                     CPPFLAGS="$CPPFLAGS" \
                     CFLAGS="$CFLAGS" \
                     "${__test}.o" "${__test}.c"
                 mk_run_script link \
                     COMPILER="$MK_CHECK_LANG" \
+                    CONFTEST=yes \
                     MODE=program \
                     LIBDEPS="$LIBDEPS" \
                     LDFLAGS="$LDFLAGS" \
@@ -1856,6 +1851,9 @@ _mk_check_sizeof()
 # Runs a test for the size of <param>type</param> and sets
 # <var>result</var> to the result.  If the type cannot be
 # found at all, configuration will be aborted.
+#
+# This test will work in cross-compiling configurations.
+# It will not work on types with sizes over 1024 bytes.
 #>
 mk_check_sizeof()
 {
@@ -1920,6 +1918,8 @@ mk_check_sizeofs()
 # <var>ENDIANNESS</var> to the result ("little" or "big").  If the
 # result was "big", it also defines <def>WORDS_BIGENDIAN</def> in
 # the current config header.
+#
+# This function will work in cross-compiling configurations.
 #>
 mk_check_endian()
 {
@@ -1969,7 +1969,7 @@ EOF
             then
                 result="little"
             else
-                #rm -f .check.o
+                rm -f .check.o
                 mk_fail "could not determine endianness"
             fi
         else

@@ -62,7 +62,7 @@ PROJECT_NAME="project-name" <co xml:id="co.mkb.project_name" linkends="mkb.proje
 
 defaults() <co xml:id="co.mkb.defaults" linkends="mkb.defaults"/>
 {
-    MK_PREFIX=/opt/project-name
+    PREFIX=/opt/project-name
 }
 
 option() <co xml:id="co.mkb.option" linkends="mkb.option"/>

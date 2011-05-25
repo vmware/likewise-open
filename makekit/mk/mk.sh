@@ -625,7 +625,7 @@ _mk_slashless_name()
 # @brief Quote string for the shell
 # @usage str
 #
-# Quotes <param>str</param> so that it can be safely reintepreted by the shell
+# Quotes <param>str</param> so that it can be safely reinterpreted by the shell
 # and sets <var>result</var> to the result.
 #
 # @example
@@ -663,7 +663,7 @@ mk_quote()
 
 #<
 # @brief Quote list of strings for the shell
-# @usage strings..
+# @usage strings...
 #
 # Quotes each string in <param>strings</param> as by
 # <funcref>mk_quote</funcref> and sets <var>result</var>
@@ -879,7 +879,7 @@ _mk_fnmatch_transform()
     unset __tmp __i
 }
 
-#>
+#<
 # @brief Perform glob matching on path
 # @usage path pattern
 #
@@ -917,6 +917,86 @@ mk_fnmatch()
     esac
 
     return 1
+}
+
+_MK_COUNTER=0
+
+#<
+# @brief Compile glob patterns to a function
+# @usage patterns...
+#
+# Generates a new shell function which acts
+# as a matching predicate for <param>patterns</param>.
+# When the generated function is invoked with the
+# string <param>path</param>, it will return 0
+# (logical true) if
+# <lit><funcref>mk_fnmatch</funcref> <param>path</param> <param>pattern</param></lit>
+# would succeed for any <param>pattern</param> in
+# <param>patterns</param>, and 1 (logical false)
+# otherwise.
+#
+# Sets <var>result</var> to the generated function.
+# Be sure to use <lit>unset -f</lit> to undefine it
+# when you are done.
+#>
+mk_fnmatch_compile()
+{
+    # ... = patterns
+    __func="__fnmatch$_MK_COUNTER"
+    _MK_COUNTER=$(($_MK_COUNTER+1))
+    __trans=""
+    __varlist=""
+    __varlist2=""
+    __var="3"
+
+    for _pat
+    do
+        case "$_pat" in
+            */*)
+                _mk_fnmatch_transform "$_pat"
+                mk_quote "$result"
+                __trans="$__trans $result"
+                __varlist="$__varlist|\${$__var}"
+                ;;
+            *)
+                mk_quote "$_pat"
+                __trans="$__trans $result"
+                __varlist2="$__varlist2|\${$__var}"
+                ;;
+        esac
+        __var=$(($__var+1))
+    done
+
+    __eval="
+$__func()
+{
+    _result=\"\$result\"
+    _mk_fnmatch_transform \"\$1\"
+    set -- \"\$1\" \"\$result\" $__trans
+    result=\"\$_result\""
+
+    [ -n "$__varlist" ] && __eval="$__eval
+    case \"\$2\" in
+        ${__varlist#|})
+            return 0
+        ;;
+    esac"
+
+    [ -n "$__varlist2" ] && __eval="$__eval
+    case \"\$1\" in
+        ${__varlist2#|})
+            return 0
+        ;;
+    esac"
+
+    __eval="$__eval
+    return 1
+}"
+
+    eval "$__eval"
+
+    result="$__func"
+    unset __func __trans __varlist __varlist2 __var __eval
 }
 
 mk_fnmatch_filter()
@@ -1171,7 +1251,7 @@ mk_read_line()
 # @brief Get mode of file or directory in octal
 # @usage path
 #
-# Sets <var>result</var> to the mode of <param>file</param>
+# Sets <var>result</var> to the mode of <param>path</param>
 # in octal.  If the mode could not be read, this function
 # aborts via <funcref>mk_fail</funcref>.
 #>
@@ -1228,4 +1308,24 @@ mk_get_file_mode()
     done
 
     result=`printf "0%o" "$_res"`
+}
+
+#<
+# @brief Read target of symlink
+# @usage path
+#
+# Sets <var>result</var> to the target of <param>path</param>,
+# which must be a symlink.
+#>
+mk_readlink()
+{
+    [ -h "$1" ] || mk_fail "mk_readlink: $1 is not a symlink"
+
+    if type readlink >/dev/null 2>&1
+    then
+        result=`readlink "$1"`
+    else
+        result=`ls -ld "$1"`
+        result="${result#*-> }"
+    fi
 }

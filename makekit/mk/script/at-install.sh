@@ -63,45 +63,50 @@ case "$MK_OS:$MK_ISA" in
         ;;
 esac
 
-for _target
-do
-    mk_safe_rm "${_target}"
-done
+INSTALL_DIR="${MK_OBJECT_DIR}${MK_SUBDIR}/$BUILDDIR/.install"
 
-cd "${MK_OBJECT_DIR}${MK_SUBDIR}/$BUILDDIR" || mk_fail "could not change directory"
 if [ "${MK_SYSTEM%/*}" = "build" ]
 then
     if [ -n "$INSTALL_PRE" ]
     then
         ${INSTALL_PRE} "${MK_ROOT_DIR}/${MK_RUN_DIR}"
     fi
+    mk_cd_or_fail "${MK_OBJECT_DIR}${MK_SUBDIR}/$BUILDDIR"
     mk_run_quiet_or_fail ${MAKE} ${MFLAGS} ${MAKE_INSTALL_TARGET}
+    mk_cd_or_fail "${MK_ROOT_DIR}"
     if [ -n "$INSTALL_POST" ]
     then
         ${INSTALL_POST} "${MK_ROOT_DIR}/${MK_RUN_DIR}"
     fi
 else
     # We have to install to a temporary location, then copy targets
-    rm -rf ".install"
+    mk_safe_rm "$INSTALL_DIR"
     if [ -n "$INSTALL_PRE" ]
     then
-        ${INSTALL_PRE} "${PWD}/.install"
+        ${INSTALL_PRE} "$INSTALL_DIR"
     fi
+    mk_cd_or_fail "${MK_OBJECT_DIR}${MK_SUBDIR}/$BUILDDIR"
     mk_at_log_command "$dirname" "stage" ${MAKE} ${MFLAGS} DESTDIR="${PWD}/.install" ${MAKE_INSTALL_TARGET}
+    mk_cd_or_fail "${MK_ROOT_DIR}"
     if [ -n "$INSTALL_POST" ]
     then
-        ${INSTALL_POST} "${PWD}/.install"
+        ${INSTALL_POST} "$INSTALL_DIR"
     fi
 
     for _target
     do
         _file="${_target#$MK_STAGE_DIR}"
-        if [ -e ".install${_file}" -o -h ".install${_file}" ]
+        _src="${INSTALL_DIR}${_file}"
+        _dest="${DESTDIR}${_file}"
+        if [ -e "$_src" -o -h "$_src" ]
         then
-            [ "$DESTDIR" = "$MK_STAGE_DIR" ] && mk_msg "$_file"
-            _dest="${_stage_dir}${_file}"
-            mk_mkdir "${_dest%/*}"
-            mv -f ".install${_file}" "$_dest" || mk_fail "failed to copy file: $_file"
+            if ! diff "$_src" "$_dest" >/dev/null 2>&1
+            then
+                [ "$DESTDIR" = "$MK_STAGE_DIR" ] && mk_msg "$_file"
+                mk_safe_rm "$_dest"
+                mk_mkdirname "$_dest"
+                mk_run_or_fail mv -f "$_src" "$_dest"
+            fi
         else
             case "$_file" in
                 "${MK_LIBDIR}/"*.la)
@@ -114,6 +119,5 @@ else
     rm -rf ".install"
 fi
 
-mk_cd_or_fail "${MK_ROOT_DIR}"
 mk_run_or_fail touch "$_stamp"
 mk_msg "end ${__msg}"
