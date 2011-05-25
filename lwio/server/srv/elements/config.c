@@ -97,7 +97,7 @@ SrvElementsConfigRefresh(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SRV_ELEMENTS_CONFIG config = {};
+    SRV_ELEMENTS_CONFIG config = { 0 };
     PSRV_ELEMENTS_CONFIG pConfig = &config;
     LWIO_CONFIG_TABLE configTable[] = SRV_ELEMENTS_CONFIG_TABLE_INITIALIZER;
     ULONG   ulNumConfig = sizeof(configTable) / sizeof(LWIO_CONFIG_TABLE);
@@ -143,6 +143,7 @@ SrvElementsConfigGetDefaults(
     pConfig->bShareNameEcpEnabled     = TRUE;
     pConfig->usClientCreditLimit = LWIO_DEFAULT_CLIENT_CREDIT_LIMIT;
     pConfig->ulGlobalCreditLimit = LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT;
+    pConfig->ClientCreditFloor = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR;
 }
 
 static
@@ -288,6 +289,23 @@ SrvElementsConfigGetClientCreditStart(
     LWIO_UNLOCK_RWMUTEX(bInLock, gSrvElements.pConfigLock);
 
     return usCreditStart;
+}
+
+USHORT
+SrvElementsConfigGetClientCreditFloor(
+    VOID
+    )
+{
+    USHORT   creditFloor = 0;
+    BOOLEAN bInLock   = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, gSrvElements.pConfigLock);
+
+    creditFloor = gSrvElements.config.ClientCreditFloor;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, gSrvElements.pConfigLock);
+
+    return creditFloor;
 }
 
 
