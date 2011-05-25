@@ -155,6 +155,9 @@ typedef struct _SRV_CREDITOR
     // the maximum starting credits that can be granted
     USHORT  usCreditStart;
 
+    // the minimum credits granted (will not fall below this line)
+    USHORT  CreditFloor;
+
     // the number of credits granted in the last round
     USHORT  usNumCreditsLastGranted;
 
@@ -181,6 +184,7 @@ typedef struct _SRV_ELEMENTS_CONFIG
 
     ULONG  ulGlobalCreditLimit;
     ULONG  usClientCreditLimit;
+    ULONG  ClientCreditFloor;
 
 } SRV_ELEMENTS_CONFIG, *PSRV_ELEMENTS_CONFIG;
 

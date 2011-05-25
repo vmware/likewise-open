@@ -74,6 +74,11 @@ SrvElementsConfigGetClientCreditStart(
     VOID
     );
 
+USHORT
+SrvElementsConfigGetClientCreditFloor(
+    VOID
+    );
+
 VOID
 SrvElementsConfigShutdown(
     VOID

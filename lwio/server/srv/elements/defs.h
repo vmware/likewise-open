@@ -49,6 +49,7 @@
 
 #define LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT (250000)
 #define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT (32)
+#define LWIO_DEFAULT_CLIENT_CREDIT_FLOOR 4
 #define LWIO_SRV_CREDIT_INCREMENT (2)
 
 #define SRV_ELEMENTS_CONFIG_TABLE_INITIALIZER                   \
@@ -57,7 +58,7 @@
         .pszName        = "GlobalCreditLimit",                  \
         .bUsePolicy     = FALSE,                                \
         .Type           = LwIoTypeDword,                        \
-        .dwMin          = 1,                                    \
+        .dwMin          = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR,     \
         .dwMax          = 3200000,                              \
         .pValue         = &pConfig->ulGlobalCreditLimit         \
     },                                                          \
@@ -65,9 +66,17 @@
         .pszName        = "ClientCreditLimit",                  \
         .bUsePolicy     = FALSE,                                \
         .Type           = LwIoTypeDword,                        \
-        .dwMin          = 1,                                    \
+        .dwMin          = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR,     \
         .dwMax          = 256,                                  \
         .pValue         = &pConfig->usClientCreditLimit         \
+    },                                                          \
+    {                                                           \
+        .pszName        = "ClientCreditMinimum",                \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR,     \
+        .dwMax          = 128,                                  \
+        .pValue         = &pConfig->ClientCreditFloor           \
     },                                                          \
 };
 
