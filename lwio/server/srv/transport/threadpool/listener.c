@@ -320,49 +320,59 @@ SrvListenerProcessTask(
                     &clientAddressLength);
     if (connFd < 0)
     {
-        if (errno == EPROTO || errno == ECONNABORTED || errno == EINTR)
+        switch (errno)
         {
-            waitMask = LW_TASK_EVENT_YIELD;
-            goto cleanup;
-        }
-        else if (errno == EMFILE)
-        {
-            LWIO_LOG_ERROR("Failed to accept connection due to too many open files");
-            waitMask = LW_TASK_EVENT_YIELD;
-            goto cleanup;
-        }
-        else if (errno == EAGAIN)
-        {
-            waitMask = LW_TASK_EVENT_FD_READABLE;
-            goto cleanup;
-        }
-        else
-        {
-            // Note that task will terminate.
-            ntStatus = LwErrnoToNtStatus(errno);
-            LWIO_LOG_ERROR("Failed to accept connection (errno = %d, status = 0x%08x)", errno, ntStatus);
-            LWIO_ASSERT(ntStatus);
-            BAIL_ON_NT_STATUS(ntStatus);
+            case EPROTO:
+            case ECONNABORTED:
+            case EINTR:
+                waitMask = LW_TASK_EVENT_YIELD;
+                goto cleanup;
+
+            case EMFILE:
+            case ENFILE:
+                LWIO_LOG_ERROR("Failed to accept connection due to too many open files");
+                waitMask = LW_TASK_EVENT_YIELD;
+                goto cleanup;
+
+            case EAGAIN:
+                waitMask = LW_TASK_EVENT_FD_READABLE;
+                goto cleanup;
+
+            default:
+                // Note that task will terminate.
+                ntStatus = LwErrnoToNtStatus(errno);
+                LWIO_LOG_ERROR(
+                    "Failed to accept connection (errno = %d, status = 0x%08x)",
+                    errno,
+                    ntStatus);
+                LWIO_ASSERT(ntStatus);
+                BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
     // TODO - getpeername should not be necessary after accept.
     if (getpeername(connFd, (struct sockaddr*) &clientAddress, &clientAddressLength) < 0)
     {
-        // Note that task will terminate.
         ntStatus = LwErrnoToNtStatus(errno);
-        LWIO_LOG_ERROR("Failed to find the remote socket address for fd = %d (errno = %d, status = 0x%08x)", connFd, errno, ntStatus);
-        LWIO_ASSERT(ntStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
+        LWIO_LOG_ERROR(
+            "Failed to find the remote socket address for fd = %d (errno = %d, status = 0x%08x)",
+            connFd,
+            errno,
+            ntStatus);
+        waitMask = LW_TASK_EVENT_YIELD;
+        goto cleanup;
     }
 
     if (getsockname(connFd, (struct sockaddr*) &serverAddress, &serverAddressLength) < 0)
     {
-        // Note that task will terminate.
         ntStatus = LwErrnoToNtStatus(errno);
-        LWIO_LOG_ERROR("Failed to find the local socket address for fd = %d (errno = %d, status = 0x%08x)", connFd, errno, ntStatus);
-        LWIO_ASSERT(ntStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
+        LWIO_LOG_ERROR(
+            "Failed to find the local socket address for fd = %d (errno = %d, status = 0x%08x)",
+            connFd,
+            errno,
+            ntStatus);
+        waitMask = LW_TASK_EVENT_YIELD;
+        goto cleanup;
     }
 
     ntStatus = SrvSocketAddressToString(
@@ -393,10 +403,11 @@ SrvListenerProcessTask(
     if (ntStatus)
     {
         // Do not terminate on this error.
-        LWIO_LOG_ERROR("Failed to create transport socket for fd = %d, address = '%s' (status = 0x%08x)",
-                       connFd,
-                       clientAddressStringBuffer,
-                       ntStatus);
+        LWIO_LOG_ERROR(
+            "Failed to create transport socket for fd = %d, address = '%s' (status = 0x%08x)",
+            connFd,
+            clientAddressStringBuffer,
+            ntStatus);
         ntStatus = STATUS_SUCCESS;
         waitMask = LW_TASK_EVENT_YIELD;
         goto cleanup;
