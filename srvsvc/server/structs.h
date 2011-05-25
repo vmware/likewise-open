@@ -85,9 +85,6 @@ typedef struct _SRVSVC_CONFIG
 {
     pthread_mutex_t mutex;
 
-    /* path to lsarpc server socket for local procedure calls */
-    CHAR szLsaLpcSocketPath[PATH_MAX + 1];
-
     /* path to srvsvc server socket to listen for local procedure calls */
     CHAR szLpcSocketPath[PATH_MAX + 1];
 

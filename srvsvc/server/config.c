@@ -104,11 +104,6 @@ SrvsInitialiseConfig(
             (sizeof(pConfig->szLpcSocketPath)/
              sizeof(pConfig->szLpcSocketPath[0])) - 1);
 
-    strncpy(pConfig->szLsaLpcSocketPath,
-            DEFAULT_LSALPC_SOCKET_PATH,
-            (sizeof(pConfig->szLsaLpcSocketPath)/
-             sizeof(pConfig->szLsaLpcSocketPath[0])) - 1);
-
     pConfig->RegisterTcpIp = FALSE;
 
     return err;
@@ -412,34 +407,6 @@ error:
     }
 
     LW_SAFE_FREE_MEMORY(lpcSocketPath);
-
-    return err;
-}
-
-DWORD
-SrvSvcConfigGetLsaLpcSocketPath(
-    PSTR* ppszPath
-    )
-{
-    DWORD   err = ERROR_SUCCESS;
-    BOOLEAN bInLock = FALSE;
-    PSTR path = NULL;
-
-    SRVSVC_LOCK_MUTEX(bInLock, &gSrvsServerInfo.config.mutex);
-
-    err = LwAllocateString(gSrvsServerInfo.config.szLsaLpcSocketPath,
-                           &path);
-    BAIL_ON_SRVSVC_ERROR(err);
-
-error:
-    SRVSVC_UNLOCK_MUTEX(bInLock, &gSrvsServerInfo.config.mutex);
-
-    if (err)
-    {
-        LW_SAFE_FREE_MEMORY(path);
-    }
-
-    *ppszPath = path;
 
     return err;
 }
