@@ -55,6 +55,13 @@ PvfsIsSameOplockKey(
 
 static
 BOOLEAN
+PvfsLeaseIsMine(
+    PPVFS_CCB pCcb,
+    PPVFS_OPLOCK_RECORD pOplock
+    );
+
+static
+BOOLEAN
 PvfsStreamAllOtherOpensHasSameOplockKey(
     IN PPVFS_SCB pScb
     );
@@ -229,41 +236,36 @@ PvfsLeaseGrantRead(
             continue;
         }
 
+        // Current lease is level 2 / R && Requesting R
         if (pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2 ||
-            (pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE &&
-             PvfsIsReadLease(pOplock->LeaseState)) ||
-            (pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE &&
-             PvfsIsReadHandleLease(pOplock->LeaseState))
-           )
+            (pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE && PvfsIsReadLease(pOplock->LeaseState)))
         {
-            if (PvfsIsSameOplockKey(pOplock->pCcb->pOplockKey, pCcb->pOplockKey))
-            {
-                // Current lease is R && Requesting R
-                if (pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE &&
-                    PvfsIsReadLease(pOplock->LeaseState))
-                {
-                    // remove pOplock
-                    PvfsListRemoveItem(pScb->pOplockList, pOplockLink);
-                    pOplockLink = NULL;
+		if (PvfsIsSameOplockKey(pOplock->pCcb->pOplockKey, pCcb->pOplockKey))
+		{
+                // remove pOplock, and set status to STATUS_OPLOCK_SWITCHED_TO_NEW_HANDLE
+                PvfsListRemoveItem(pScb->pOplockList, pOplockLink);
+                pOplockLink = NULL;
 
-                    // should be at most one present
-                    pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_OPLOCK_SWITCHED_TO_NEW_HANDLE;
-                    PvfsAsyncCompleteIrpContext(pOplock->pIrpContext);
+                // should be at most one present
+                pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_OPLOCK_SWITCHED_TO_NEW_HANDLE;
+                PvfsAsyncCompleteIrpContext(pOplock->pIrpContext);
 
-                    PvfsFreeOplockRecord(&pOplock);
+                PvfsFreeOplockRecord(&pOplock);
 
-                    break;
-                 }
-                // Current lease is RH && Requesting R
-                else if (pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE &&
-                        PvfsIsReadHandleLease(pOplock->LeaseState))
-                {
-                    ntError = STATUS_OPLOCK_NOT_GRANTED;
-                    BAIL_ON_NT_STATUS(ntError);
-                }
-            }
+                break;
+		}
         }
-        // this should not happen as it has already been checked upfront
+        // Current lease is RH && Requesting R
+        else if (pOplock->OplockType == IO_OPLOCK_REQUEST_LEASE &&
+                     PvfsIsReadHandleLease(pOplock->LeaseState))
+             {
+		     if (PvfsIsSameOplockKey(pOplock->pCcb->pOplockKey, pCcb->pOplockKey))
+		     {
+			 ntError = STATUS_OPLOCK_NOT_GRANTED;
+			 BAIL_ON_NT_STATUS(ntError);
+		     }
+             }
+        // this should not happen as it has already been checked up front
         // and read lease won't be granted
         else
         {
