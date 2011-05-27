@@ -96,6 +96,7 @@
 
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\srv\smb2]
 "OplockTimeoutMillisecs"=dword:00007530
+"ClientCreditLimit"=dword:00000080
 "GlobalCreditLimit"=dword:0003d090
 "ClientCreditMinimum"=dword:00000004
 
