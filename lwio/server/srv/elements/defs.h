@@ -48,9 +48,13 @@
  */
 
 #define LWIO_DEFAULT_GLOBAL_CREDIT_LIMIT (250000)
-#define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT (32)
+#define LWIO_DEFAULT_CLIENT_CREDIT_LIMIT (128)
 #define LWIO_DEFAULT_CLIENT_CREDIT_FLOOR 4
 #define LWIO_SRV_CREDIT_INCREMENT (2)
+
+#define LWIO_MAX_GLOBAL_CREDIT_LIMIT      4194304
+#define LWIO_MAX_CLIENT_CREDIT_LIMIT      8192
+#define LWIO_MAX_CLIENT_CREDIT_FLOOR      512
 
 #define SRV_ELEMENTS_CONFIG_TABLE_INITIALIZER                   \
 {                                                               \
@@ -59,7 +63,7 @@
         .bUsePolicy     = FALSE,                                \
         .Type           = LwIoTypeDword,                        \
         .dwMin          = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR,     \
-        .dwMax          = 3200000,                              \
+        .dwMax          = LWIO_MAX_GLOBAL_CREDIT_LIMIT,         \
         .pValue         = &pConfig->ulGlobalCreditLimit         \
     },                                                          \
     {                                                           \
@@ -67,7 +71,7 @@
         .bUsePolicy     = FALSE,                                \
         .Type           = LwIoTypeDword,                        \
         .dwMin          = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR,     \
-        .dwMax          = 256,                                  \
+        .dwMax          = LWIO_MAX_CLIENT_CREDIT_LIMIT,         \
         .pValue         = &pConfig->usClientCreditLimit         \
     },                                                          \
     {                                                           \
@@ -75,7 +79,7 @@
         .bUsePolicy     = FALSE,                                \
         .Type           = LwIoTypeDword,                        \
         .dwMin          = LWIO_DEFAULT_CLIENT_CREDIT_FLOOR,     \
-        .dwMax          = 128,                                  \
+        .dwMax          = LWIO_MAX_CLIENT_CREDIT_FLOOR,         \
         .pValue         = &pConfig->ClientCreditFloor           \
     },                                                          \
 };
