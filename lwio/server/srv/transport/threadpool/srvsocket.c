@@ -702,6 +702,31 @@ SrvSocketClose(
 }
 
 static
+VOID
+SrvSocketProcessTaskCloseFd(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    LWIO_ASSERT(pSocket->pTask);
+
+    if (pSocket->fd >= 0)
+    {
+        NTSTATUS ntStatus = LwRtlSetTaskFd(pSocket->pTask, pSocket->fd, 0);
+        if (ntStatus)
+        {
+            LWIO_LOG_ERROR("Unexpected set task FD error for client '%s', "
+                           "fd = %d0x%08x, status = 0x%08x",
+                           pSocket->AddressStringBuffer,
+                           pSocket->fd,
+                           ntStatus);
+        }
+
+        close(pSocket->fd);
+        pSocket->fd = -1;
+    }
+}
+
+static
 NTSTATUS
 SrvSocketProcessTaskInit(
     IN PSRV_SOCKET pSocket
@@ -1124,21 +1149,6 @@ SrvSocketProcessTaskDisconnect(
 
     LWIO_ASSERT(LwListIsEmpty(&pSocket->SendHead));
 
-    if (pSocket->fd >= 0)
-    {
-        NTSTATUS ntStatus = LwRtlSetTaskFd(pSocket->pTask, pSocket->fd, 0);
-        if (ntStatus)
-        {
-            LWIO_LOG_ERROR("Unexpected set task FD error for client '%s', "
-                           "fd = %d0x%08x, status = 0x%08x",
-                           pSocket->AddressStringBuffer,
-                           pSocket->fd,
-                           ntStatus);
-        }
-        close(pSocket->fd);
-        pSocket->fd = -1;
-    }
-
     // Cleanup, if socket disconnected while servicing a ZCT command
     if (pSocket->pZct)
     {
@@ -1187,6 +1197,8 @@ SrvSocketProcessTask(
         }
 
         SRV_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
+
+        SrvSocketProcessTaskCloseFd(pSocket);
 
         SrvSocketRelease(pSocket);
         pSocket = NULL;

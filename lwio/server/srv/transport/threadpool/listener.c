@@ -234,6 +234,31 @@ SrvListenerShutdown(
 }
 
 static
+VOID
+SrvListenerProcessTaskCloseFd(
+    IN PSRV_TRANSPORT_LISTENER pListener
+    )
+{
+    LWIO_ASSERT(pListener->pTask);
+
+    if (pListener->ListenFd >= 0)
+    {
+        NTSTATUS ntStatus = LwRtlSetTaskFd(
+                                    pListener->pTask,
+                                    pListener->ListenFd,
+                                    0);
+        if (ntStatus)
+        {
+            LWIO_LOG_ERROR("Unexpected set task FD error for listener, "
+                           "status = 0x%08x", ntStatus);
+        }
+
+        close(pListener->ListenFd);
+        pListener->ListenFd = -1;
+    }
+}
+
+static
 NTSTATUS
 SrvListenerProcessTaskInit(
     PSRV_TRANSPORT_LISTENER pListener
@@ -253,12 +278,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (pListener->ListenFd >= 0)
-    {
-        close(pListener->ListenFd);
-        pListener->ListenFd = -1;
-    }
 
     goto cleanup;
 }
@@ -311,11 +330,7 @@ SrvListenerProcessTask(
     {
         LWIO_LOG_DEBUG("Srv listener stopping");
 
-        if (pListener->ListenFd >= 0)
-        {
-            close(pListener->ListenFd);
-            pListener->ListenFd = -1;
-        }
+        SrvListenerProcessTaskCloseFd(pListener);
 
         waitMask = LW_TASK_EVENT_COMPLETE;
         goto cleanup;
@@ -472,6 +487,7 @@ cleanup:
 
 error:
 
+    SrvListenerProcessTaskCloseFd(pListener);
     waitMask = LW_TASK_EVENT_COMPLETE;
     LWIO_ASSERT(ntStatus);
 
