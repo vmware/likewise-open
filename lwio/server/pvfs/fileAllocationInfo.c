@@ -283,7 +283,7 @@ PvfsFreeSetAllocationContext(
 {
     PPVFS_PENDING_SET_ALLOCATION pAllocationCtx = NULL;
 
-    if (ppContext && ppContext)
+    if (ppContext && *ppContext)
     {
         pAllocationCtx = (PPVFS_PENDING_SET_ALLOCATION)(*ppContext);
 
