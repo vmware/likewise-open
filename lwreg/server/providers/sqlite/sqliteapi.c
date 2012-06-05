@@ -1627,7 +1627,11 @@ SqliteDeleteTreeInternal_inlock_inDblock(
     NTSTATUS status = STATUS_SUCCESS;
     HKEY hCurrKey = NULL;
     int iCount = 0;
-    DWORD dwSubKeyCount = 0;
+    union
+    {
+        DWORD dwSubKeyCount;
+        size_t stSubKeyCount;
+    } subKeyCount = { .stSubKeyCount = 0 };
     LW_WCHAR psubKeyName[MAX_KEY_LENGTH];
     DWORD dwSubKeyLen = 0;
     PWSTR* ppwszSubKey = NULL;
@@ -1641,16 +1645,16 @@ SqliteDeleteTreeInternal_inlock_inDblock(
     status = RegDbQueryInfoKeyCount_inlock(ghCacheConnection,
                                            pKeyCtx->qwId,
                                            QuerySubKeys,
-                                           (size_t*)&dwSubKeyCount);
+                                           &subKeyCount.stSubKeyCount);
     BAIL_ON_NT_STATUS(status);
 
-    if (dwSubKeyCount)
+    if (subKeyCount.dwSubKeyCount)
     {
-        status = LW_RTL_ALLOCATE((PVOID*)&ppwszSubKey, PWSTR, sizeof(*ppwszSubKey) * dwSubKeyCount);
+        status = LW_RTL_ALLOCATE((PVOID*)&ppwszSubKey, PWSTR, sizeof(*ppwszSubKey) * subKeyCount.dwSubKeyCount);
         BAIL_ON_NT_STATUS(status);
     }
 
-    for (iCount = 0; iCount < dwSubKeyCount; iCount++)
+    for (iCount = 0; iCount < subKeyCount.dwSubKeyCount; iCount++)
     {
         dwSubKeyLen = MAX_KEY_LENGTH;
         memset(psubKeyName, 0, MAX_KEY_LENGTH);
@@ -1670,7 +1674,7 @@ SqliteDeleteTreeInternal_inlock_inDblock(
         BAIL_ON_NT_STATUS(status);
     }
 
-    for (iCount = 0; iCount < dwSubKeyCount; iCount++)
+    for (iCount = 0; iCount < subKeyCount.dwSubKeyCount; iCount++)
     {
         status = SqliteOpenKeyEx_inlock_inDblock(Handle,
                                   hKey,
@@ -1700,7 +1704,11 @@ cleanup:
     {
         SqliteCloseKey_inlock(hCurrKey);
     }
-    RegFreeWC16StringArray(ppwszSubKey, dwSubKeyCount);
+
+    if( ppwszSubKey != NULL )
+    {
+        RegFreeWC16StringArray(ppwszSubKey, subKeyCount.dwSubKeyCount);
+    }
 
     return status;
 

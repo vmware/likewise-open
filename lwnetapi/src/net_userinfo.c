@@ -3469,7 +3469,11 @@ NetAllocateSamrUserInfo26FromPassword(
     PVOID pCursor = NULL;
     DWORD dwSpaceLeft = 0;
     DWORD dwSize = 0;
-    DWORD dwPasswordLen = 0;
+    union
+    {
+        DWORD dwPasswordLen;
+        size_t stPasswordLen;
+    } passwordLen = { .stPasswordLen = 0 };
     BYTE PasswordBuffer[532] = {0};
 
     BAIL_ON_INVALID_PTR(pConn, err);
@@ -3497,13 +3501,13 @@ NetAllocateSamrUserInfo26FromPassword(
     }
 
     err = LwWc16sLen(pwszPassword,
-                     (size_t*)&dwPasswordLen);
+                     &passwordLen.stPasswordLen);
     BAIL_ON_WIN_ERROR(err);
 
     err = NetEncryptPasswordBufferEx(PasswordBuffer,
                                         sizeof(PasswordBuffer),
                                         pwszPassword,
-                                        dwPasswordLen,
+                                        passwordLen.dwPasswordLen,
                                         pConn);
     BAIL_ON_WIN_ERROR(err);
 
@@ -3517,7 +3521,7 @@ NetAllocateSamrUserInfo26FromPassword(
 
     err = NetAllocBufferByte(&pCursor,
                              &dwSpaceLeft,
-                             dwPasswordLen,
+                             passwordLen.dwPasswordLen,
                              &dwSize);
     BAIL_ON_WIN_ERROR(err);
 
