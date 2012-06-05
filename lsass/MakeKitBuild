@@ -147,8 +147,8 @@ configure()
     if [ "$LSA_RPC_SERVERS" = "no" ]
     then
         mk_define DISABLE_RPC_SERVERS
-    else
-        EXTRA_SERVICE_DEPS="$EXTRA_SERVICE_DEPS npfs"
+#    else
+#        EXTRA_SERVICE_DEPS="$EXTRA_SERVICE_DEPS npfs"
     fi
 
     mk_export EXTRA_SERVICE_DEPS

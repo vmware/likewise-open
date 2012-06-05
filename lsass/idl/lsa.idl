@@ -1,7 +1,7 @@
 [
 uuid(12345778-1234-abcd-ef00-0123456789ab),
 version(0.0),
-endpoint("ncacn_np:[\\pipe\\lsarpc], ncacn_np:[\\pipe\\netlogon], ncacn_np:[\\pipe\\lsass]"),
+endpoint("ncacn_np:[\\pipe\\lsarpc], ncacn_np:[\\pipe\\netlogon], ncacn_np:[\\pipe\\lsass], ncacn_ip_tcp:, ncalrpc:"),
 pointer_default(unique)
 ]
 interface lsa
