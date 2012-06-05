@@ -83,6 +83,7 @@ NetConnectSamr(
     PWSTR *ppwszDomainNames = NULL;
     PWSTR pwszDomainName = NULL;
     rpc_transport_info_handle_t hTransportInfo = NULL;
+    unsigned32 ProtSeq = 0;
     unsigned char *pszSessionKey = NULL;
     unsigned16 swSessionKeyLen = 0;
 
@@ -153,9 +154,24 @@ NetConnectSamr(
            the session key */
         if (hTransportInfo)
         {
-            rpc_smb_transport_info_inq_session_key(hTransportInfo,
-                                                   &pszSessionKey,
-                                                   &swSessionKeyLen);
+            rpc_binding_inq_prot_seq(hSamrBinding,
+                                     &ProtSeq,
+                                     &rpcStatus);
+            if (rpcStatus)
+            {
+                ntStatus = STATUS_CONNECTION_INVALID;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            switch (ProtSeq)
+            {
+            case rpc_c_protseq_id_ncacn_np:
+                rpc_smb_transport_info_inq_session_key(hTransportInfo,
+                                                       &pszSessionKey,
+                                                       &swSessionKeyLen);
+                break;
+            }
+
             if (swSessionKeyLen > 0)
             {
                 memcpy(pConn->SessionKey, pszSessionKey, sizeof(pConn->SessionKey));
@@ -360,7 +376,6 @@ NetConnectLsa(
 
     NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERROR err = ERROR_SUCCESS;
-    PSTR pszHost = NULL;
     LSA_BINDING hLsaBinding = NULL;
     PNET_CONN pConn = NULL;
     POLICY_HANDLE hPolicy = NULL;
@@ -402,9 +417,6 @@ NetConnectLsa(
     {
         dwPolicyAccess = dwDefPolicyAccess | dwReqPolicyAccess;
 
-        err = LwWc16sToMbs(pwszHostname, &pszHost);
-        BAIL_ON_WIN_ERROR(err);
-
         ntStatus = LsaInitBindingDefault(&hLsaBinding,
                                          pwszHostname,
                                          pCreds);
@@ -437,7 +449,6 @@ NetConnectLsa(
     }
 
 cleanup:
-    LW_SAFE_FREE_MEMORY(pszHost);
 
     if (err == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
