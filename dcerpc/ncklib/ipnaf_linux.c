@@ -584,7 +584,24 @@ unsigned32 *status;
 #endif
     }
 
-done:
+cleanup:
+	if (rpc_addr_vec != NULL)
+	{
+		for (i = 0; i < rpc_addr_vec->len; i++)
+		{
+			RPC_MEM_FREE (rpc_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+		}
+		RPC_MEM_FREE (rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+	}
+	if (netmask_addr_vec != NULL)
+	{
+		for (i = 0; i < netmask_addr_vec->len; i++)
+		{
+			RPC_MEM_FREE (netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+		}
+		RPC_MEM_FREE (netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+	}
+
     if (sock != RPC_SOCKET_INVALID)
     {
         RPC_SOCKET_CLOSE(sock);
@@ -593,25 +610,7 @@ done:
     return;
 
 error:
-
-    if (rpc_addr_vec != NULL)
-    {
-        for (i = 0; i < rpc_addr_vec->len; i++)
-        {
-            RPC_MEM_FREE (rpc_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
-        }
-        RPC_MEM_FREE (rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-    }
-    if (netmask_addr_vec != NULL)
-    {
-        for (i = 0; i < netmask_addr_vec->len; i++)
-        {
-            RPC_MEM_FREE (netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
-        }
-        RPC_MEM_FREE (netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-    }
-
-    goto done;
+    goto cleanup;
 }
 
 /*
