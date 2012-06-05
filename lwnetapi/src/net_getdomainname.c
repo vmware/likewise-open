@@ -52,8 +52,8 @@ NetGetDomainName(
     ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetConnectSamr(&pConn, pwszHostname, dwConnAccess, 0, pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
+    err = NetConnectSamr(&pConn, pwszHostname, dwConnAccess, 0, pCreds);
+    BAIL_ON_WIN_ERROR(err);
 
     err = LwWc16sLen(pConn->Rpc.Samr.pwszDomainName, &sDomainNameLen);
     BAIL_ON_WIN_ERROR(err);

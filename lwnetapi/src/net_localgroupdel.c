@@ -68,12 +68,12 @@ NetLocalGroupDel(
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(status);
 
-    status = NetConnectSamr(&pConn,
+    err = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_WIN_ERROR(err);
 
     status = NetOpenAlias(pConn,
                           pwszAliasname,

@@ -66,6 +66,7 @@ NetLocalGroupGetMembers(
     NTSTATUS status = STATUS_SUCCESS;
     WINERROR err = ERROR_SUCCESS;
     PNET_CONN pConn = NULL;
+    PNET_CONN pLsaConn = NULL;
     SAMR_BINDING hSamrBinding = NULL;
     LSA_BINDING hLsaBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
@@ -122,12 +123,12 @@ NetLocalGroupGetMembers(
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(status);
 
-    status = NetConnectSamr(&pConn,
+    err = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_WIN_ERROR(err);
 
     hSamrBinding = pConn->Rpc.Samr.hBinding;
     hDomain      = pConn->Rpc.Samr.hDomain;
@@ -193,14 +194,14 @@ NetLocalGroupGetMembers(
     }
     else
     {
-        status = NetConnectLsa(&pConn,
+        err = NetConnectLsa(&pLsaConn,
                                pwszHostname,
                                dwLsaAccessFlags,
                                pCreds);
-        BAIL_ON_NT_STATUS(status);
+        BAIL_ON_WIN_ERROR(err);
 
-        hLsaBinding  = pConn->Rpc.Lsa.hBinding;
-        hLsaPolicy   = pConn->Rpc.Lsa.hPolicy;
+        hLsaBinding  = pLsaConn->Rpc.Lsa.hBinding;
+        hLsaPolicy   = pLsaConn->Rpc.Lsa.hPolicy;
 
         Sids.dwNumSids = dwNumSids;
         status = NetAllocateMemory(OUT_PPVOID(&Sids.pSids),
@@ -310,6 +311,7 @@ NetLocalGroupGetMembers(
 
 cleanup:
     NetDisconnectSamr(&pConn);
+    NetDisconnectLsa(&pLsaConn);
 
     if (Sids.pSids)
     {

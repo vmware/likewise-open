@@ -98,12 +98,12 @@ NetQueryDisplayInformation(
     ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetConnectSamr(&pConn,
+    winError = NetConnectSamr(&pConn,
                               pwszHostname,
                               dwDomainAccessFlags,
                               0,
                               pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_WIN_ERROR(winError);
 
     hSamrBinding = pConn->Rpc.Samr.hBinding;
     hDomain      = pConn->Rpc.Samr.hDomain;

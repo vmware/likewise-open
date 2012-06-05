@@ -72,10 +72,10 @@ NetUnjoinDomain(
     ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetConnectWkssvc(&pConn,
+    err = NetConnectWkssvc(&pConn,
                                 pwszServerName,
                                 pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_WIN_ERROR(err);
 
     hWkssBinding = pConn->Rpc.WksSvc.hBinding;
 

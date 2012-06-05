@@ -156,12 +156,12 @@ NetUserEnum(
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(status);
 
-    status = NetConnectSamr(&pConn,
+    err = NetConnectSamr(&pConn,
                             pwszHostname,
                             dwDomainAccessFlags,
                             0,
                             pCreds);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_WIN_ERROR(err);
 
     hSamrBinding = pConn->Rpc.Samr.hBinding;
     hDomain      = pConn->Rpc.Samr.hDomain;

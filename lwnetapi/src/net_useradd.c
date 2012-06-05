@@ -129,12 +129,12 @@ NetUserAdd(
                                   &dwParmErr);
     BAIL_ON_WIN_ERROR(err);
 
-    status = NetConnectSamr(&pConn,
+    err = NetConnectSamr(&pConn,
                             pwszHostname,
                             dwDomainAccess,
                             0,
                             pCreds);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_WIN_ERROR(err);
 
     hSamrBinding = pConn->Rpc.Samr.hBinding;
     hDomain      = pConn->Rpc.Samr.hDomain;

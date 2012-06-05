@@ -155,12 +155,12 @@ NetLocalGroupChangeMembers(
     status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(status);
 
-    status = NetConnectSamr(&pSamrConn,
+    err = NetConnectSamr(&pSamrConn,
                             pwszHostname,
                             dwAliasAccess,
                             dwBuiltinDomainAccessFlags,
                             pCreds);
-    BAIL_ON_NT_STATUS(status);
+    BAIL_ON_WIN_ERROR(err);
 
     hSamrBinding = pSamrConn->Rpc.Samr.hBinding;
 
@@ -199,11 +199,11 @@ NetLocalGroupChangeMembers(
     }
     else if (dwLevel == 3)
     {
-        status = NetConnectLsa(&pLsaConn,
+        err = NetConnectLsa(&pLsaConn,
                                pwszHostname,
                                dwLsaAccessFlags,
                                pCreds);
-        BAIL_ON_NT_STATUS(status);
+        BAIL_ON_WIN_ERROR(err);
 
         hLsaBinding = pLsaConn->Rpc.Lsa.hBinding;
         hLsaPolicy  = pLsaConn->Rpc.Lsa.hPolicy;
