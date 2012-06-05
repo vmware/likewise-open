@@ -683,9 +683,13 @@ NetAllocBufferUnicodeStringFromWC16String(
     const WCHAR wszNullStr[] = {'\0'};
     DWORD err = ERROR_SUCCESS;
     PVOID pCursor = NULL;
-    DWORD dwStrSize = 0;
     DWORD dwSpaceLeft = 0;
     DWORD dwSize = 0;
+    union
+    {
+        DWORD dwStrSize;
+        size_t    stStrSize;
+    } strSize = { .stStrSize = 0 };
 
     if (ppCursor)
     {
@@ -702,28 +706,28 @@ NetAllocBufferUnicodeStringFromWC16String(
         pwszSource = &wszNullStr[0];
     }
 
-    err = LwWc16sLen(pwszSource, (size_t*)&dwStrSize);
+    err = LwWc16sLen(pwszSource, &strSize.stStrSize);
     BAIL_ON_WIN_ERROR(err);
 
     /* it's a 2-byte unicode string */
-    dwStrSize *= 2;
+    strSize.dwStrSize *= 2;
 
     /* string termination */
-    dwStrSize += sizeof(WCHAR);
+    strSize.dwStrSize += sizeof(WCHAR);
 
     if (pCursor)
     {
         /* string length field */
         err = NetAllocBufferWord(&pCursor,
                                  &dwSpaceLeft,
-                                 (WORD)(dwStrSize - sizeof(WCHAR)),
+                                 (WORD)(strSize.dwStrSize - sizeof(WCHAR)),
                                  &dwSize);
         BAIL_ON_WIN_ERROR(err);
 
         /* string size field */
         err = NetAllocBufferWord(&pCursor,
                                  &dwSpaceLeft,
-                                 (WORD)dwStrSize,
+                                 (WORD)strSize.dwStrSize,
                                  &dwSize);
         BAIL_ON_WIN_ERROR(err);
 
@@ -747,7 +751,7 @@ NetAllocBufferUnicodeStringFromWC16String(
         dwSize += 2 * sizeof(USHORT);
 
         /* size of the string */
-        dwSize += dwStrSize;
+        dwSize += strSize.dwStrSize;
 
         ALIGN_PTR_IN_BUFFER(UNICODE_STRING, MaximumLength,
                             pCursor, dwSize, dwSpaceLeft);
