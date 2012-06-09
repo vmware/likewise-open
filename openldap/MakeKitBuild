@@ -12,5 +12,5 @@ make()
         --without-kerberos \
         --disable-slapd \
         --disable-slurpd \
-        --without-tls
+        --with-tls=yes
 }
