@@ -1,10 +1,18 @@
+configure()
+{
+    # Required headers    
+    mk_check_headers \
+        FAIL=yes \
+        openssl/ssl.h
+}
+
 make()
 {
     mk_autotools \
         HEADERS='ldap.h' \
         LIBS='ldap ldap_r' \
-        HEADERDEPS="gssapi.h sasl/sasl.h" \
-        LIBDEPS="gssapi_krb5 sasl2" \
+        HEADERDEPS="gssapi.h sasl/sasl.h openssl/ssl.h" \
+        LIBDEPS="gssapi_krb5 sasl2 ssl" \
         CPPFLAGS="-D_REENTRANT -DLDAP_CONNECTIONLESS -D_GNU_SOURCE -D_AVL_H" \
         CFLAGS="-fPIC" \
         --disable-static \
@@ -12,5 +20,5 @@ make()
         --without-kerberos \
         --disable-slapd \
         --disable-slurpd \
-        --with-tls=yes
+        --with-tls=openssl
 }
