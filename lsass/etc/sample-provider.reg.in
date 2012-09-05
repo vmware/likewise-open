@@ -1,0 +1,16 @@
+[HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers]
+"LoadOrder" = {
+    default = sza:"Sample" "ActiveDirectory" "Local"
+    doc = ""
+}
+
+[HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Sample]
+"Id" = {
+    default = "lsa-sample-provider"
+    doc = ""
+}
+"Path" = {
+    default = "@providerdir@/liblsass_auth_provider_sample@MOD_EXT@"
+    doc = ""
+}
+

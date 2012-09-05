@@ -1,0 +1,10 @@
+This is a sample minimal LSASS authentication provider developed  by VMware Corporation.
+
+This provider allows you to verify the following functionality.
+
+a) ssh 
+b) logins
+c) id
+d) getent
+e) passwd
+

@@ -1,0 +1,17 @@
+make()
+{
+    SAMPLE_SOURCES="\
+       globals.c       \
+       lock.c \
+       provider-main.c \
+       repository.c"
+
+    mk_dlo \
+       DLO=liblsass_auth_provider_sample \
+       SOURCES="$SAMPLE_SOURCES" \
+       CPPFLAGS="-DLW_ENABLE_THREADS=1" \
+       INCLUDEDIRS=". ../../include ../../../include" \
+       HEADERDEPS="lw/base.h lwadvapi.h uuid/uuid.h reg/regutil.h" \
+       LIBDEPS="lsacommon lsapstore lsaserverapi" \
+       SYMFILE="sample.sym"
+}
