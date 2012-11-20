@@ -152,6 +152,12 @@ sasl_mutex_utils_t _sasl_mutex_utils={
 void sasl_set_mutex(sasl_mutex_alloc_t *n, sasl_mutex_lock_t *l,
 		    sasl_mutex_unlock_t *u, sasl_mutex_free_t *d)
 {
+  /* Disallow mutex function changes once sasl_client_init
+     and/or sasl_server_init is called */
+  if (_sasl_server_cleanup_hook || _sasl_client_cleanup_hook) {
+    return;
+  }
+
   _sasl_mutex_utils.alloc=n;
   _sasl_mutex_utils.lock=l;
   _sasl_mutex_utils.unlock=u;
