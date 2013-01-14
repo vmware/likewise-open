@@ -1,0 +1,111 @@
+/*
+ * Copyright (C) VMware. All rights reserved.
+ */
+
+typedef enum
+{
+	VMDIR_ATTR_TYPE_UNKNOWN = 0,
+	VMDIR_ATTR_TYPE_INT32,
+	VMDIR_ATTR_TYPE_UINT32,
+	VMDIR_ATTR_TYPE_INT64,
+	VMDIR_ATTR_TYPE_UINT64,
+	VMDIR_ATTR_TYPE_STRING,
+	VMDIR_ATTR_TYPE_MULTI_STRING,
+	VMDIR_ATTR_TYPE_DN,
+	VMDIR_ATTR_TYPE_BINARY
+
+} VMDIR_ATTR_TYPE;
+
+typedef struct _VMDIR_ATTR
+{
+	PCSTR           pszName;
+
+	VMDIR_ATTR_TYPE type;
+
+	union
+	{
+		PINT32   pData_int32;
+		PUINT32  pData_uint32;
+		PINT64   pData_int64;
+		PUINT64  pData_uint64;
+		PSTR*    ppszData;
+		PSTR**   pppszStrArray;
+		PBYTE*   ppData;
+	} dataRef;
+
+	size_t  size;
+
+	PDWORD  pdwCount;
+
+	BOOLEAN bOptional;
+
+} VMDIR_ATTR, *PVMDIR_ATTR;
+
+typedef struct _VMDIR_BIND_INFO
+{
+	LONG refCount;
+
+	PSTR pszURI;
+	PSTR pszBindDN;
+	PSTR pszPassword;
+	PSTR pszDomainFqdn;
+	PSTR pszDomainShort;
+	PSTR pszSearchBase;
+
+} VMDIR_BIND_INFO, *PVMDIR_BIND_INFO;
+
+typedef struct _VMDIR_DIR_CONTEXT
+{
+	PVMDIR_BIND_INFO pBindInfo;
+	LDAP*            pLd;
+
+} VMDIR_DIR_CONTEXT, *PVMDIR_DIR_CONTEXT;
+
+typedef struct _VMDIR_AUTH_PROVIDER_CONTEXT
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    uid_t peer_uid;
+    gid_t peer_gid;
+    pid_t peer_pid;
+
+    VMDIR_DIR_CONTEXT  dirContext;
+
+} VMDIR_AUTH_PROVIDER_CONTEXT, *PVMDIR_AUTH_PROVIDER_CONTEXT;
+
+typedef enum
+{
+	VMDIR_ENUM_HANDLE_TYPE_OBJECTS = 0,
+	VMDIR_ENUM_HANDLE_TYPE_MEMBERS
+
+} VMDIR_ENUM_HANDLE_TYPE;
+
+typedef struct _VMDIR_ENUM_HANDLE
+{
+	VMDIR_ENUM_HANDLE_TYPE type;
+
+	PVMDIR_DIR_CONTEXT pDirContext;
+
+	LSA_OBJECT_TYPE    objectType;
+
+	PSTR*              ppszDNArray;
+	DWORD              dwDNCount;
+
+    LDAPMessage*       pSearchResult;
+    LONG64             llLastUSNChanged;
+
+    int                sizeLimit;        // # objects to retrieve per query
+    DWORD              dwRemaining;      // objects to be consumed from result
+    DWORD              dwIndex;          // current index in result set
+
+} VMDIR_ENUM_HANDLE, *PVMDIR_ENUM_HANDLE;
+
+typedef struct _VMDIR_AUTH_PROVIDER_GLOBALS
+{
+    pthread_rwlock_t   mutex_rw;
+    pthread_rwlock_t*  pMutex_rw;
+
+    PVMDIR_BIND_INFO   pBindInfo;
+
+} VMDIR_AUTH_PROVIDER_GLOBALS, *PVMDIR_AUTH_PROVIDER_GLOBALS;

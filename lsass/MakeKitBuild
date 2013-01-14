@@ -10,7 +10,7 @@ option()
             ;;
         *)
             _default_BUILTIN="no"
-            _default_PROVIDERS="ad local"
+            _default_PROVIDERS="ad local vmdir"
             _default_RPC="yes"
             ;;
     esac

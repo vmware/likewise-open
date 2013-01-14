@@ -1,0 +1,20 @@
+make()
+{
+    VMDIR_SOURCES="\
+       config.c \
+       globals.c \
+       ldap.c \
+       lock.c \
+       provider-main.c \
+       repository.c \
+       utils.c"
+
+    mk_dlo \
+       DLO=liblsass_auth_provider_vmdir \
+       SOURCES="$VMDIR_SOURCES" \
+       CPPFLAGS="-DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
+       INCLUDEDIRS=". ../../include ../../../include" \
+       HEADERDEPS="lw/base.h lwadvapi.h uuid/uuid.h reg/regutil.h" \
+       LIBDEPS="lsacommon lsapstore lsaserverapi" \
+       SYMFILE="vmdir.sym"
+}
