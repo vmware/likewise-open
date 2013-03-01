@@ -3,6 +3,10 @@
  */
 
 /*
+ * Portions Copyright 2013 VMware, Inc.
+ */
+
+/*
  * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
@@ -49,6 +53,7 @@
  */
 
 #include "adprovider.h"
+#include "smart-card.h"
 #include <lsa/lsapstore-api.h>
 
 static
@@ -667,6 +672,8 @@ LsaAdProviderStateDestroy(
             LsaAdProviderStateRelease(pState);
         }
 
+        AD_FinishSmartCard(pState);
+
         if (pState->hSchannelState)
         {
             AD_NetDestroySchannelState(pState->hSchannelState);
@@ -851,6 +858,9 @@ LsaAdProviderStateCreate(
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
+
+    dwError = AD_InitializeSmartCard(pState);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_Activate(pState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1513,11 +1523,6 @@ AD_AuthenticateUserPam(
     if (ppPamAuthInfo)
     {
         *ppPamAuthInfo = NULL;
-    }
-
-    if (pParams->dwFlags & LSA_AUTH_USER_PAM_FLAG_SMART_CARD)
-    {
-        BAIL_WITH_LSA_ERROR(LW_ERROR_NOT_HANDLED);
     }
 
     dwError = AD_ResolveProviderState(hProvider, &pContext);
@@ -4978,10 +4983,30 @@ AD_GetSmartCardUserObject(
     OUT PSTR* ppszSmartCardReader
     )
 {
+    DWORD dwError = 0;
+    PAD_PROVIDER_CONTEXT pContext = NULL;
+
     *ppObject = NULL;
     *ppszSmartCardReader = NULL;
 
-    return LW_ERROR_NOT_HANDLED;
+    dwError = AD_ResolveProviderState(hProvider, &pContext);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pContext->pState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = AD_InspectSmartCard(pContext, ppObject, ppszSmartCardReader);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    AD_ClearProviderState(pContext);
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 VOID

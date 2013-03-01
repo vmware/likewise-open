@@ -3,6 +3,10 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
+ * Portions Copyright 2013 VMware, Inc.
+ */
+
+/*
  * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
@@ -188,7 +192,8 @@ DWORD
 AD_OnlineCheckUserPassword(
     PAD_PROVIDER_CONTEXT pContext,
     PLSA_SECURITY_OBJECT pUserInfo,
-    PCSTR  pszPassword,
+    PCSTR pszPassword,
+    BOOL bUsingSmartCard,
     PDWORD pdwGoodUntilTime
     );
 

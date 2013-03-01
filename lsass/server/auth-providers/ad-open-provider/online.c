@@ -3,6 +3,10 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
+ * Portions Copyright 2013 VMware, Inc.
+ */
+
+/*
  * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
@@ -1651,7 +1655,8 @@ DWORD
 AD_OnlineCheckUserPassword(
     PAD_PROVIDER_CONTEXT pContext,
     PLSA_SECURITY_OBJECT pUserInfo,
-    PCSTR  pszPassword,
+    PCSTR pszPassword,
+    BOOL bUsingSmartCard,
     PDWORD pdwGoodUntilTime
     )
 {
@@ -1667,6 +1672,7 @@ AD_OnlineCheckUserPassword(
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
     NTSTATUS ntStatus = 0;
     PLSA_MACHINE_PASSWORD_INFO_A pPasswordInfo = NULL;
+    LW_KRB5_LOGIN_FLAGS flags;
 
     dwError = AD_DetermineTrustModeandDomainName(
                         pContext->pState,
@@ -1734,12 +1740,18 @@ AD_OnlineCheckUserPassword(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    flags = LW_KRB5_LOGIN_FLAG_UPDATE_CACHE;
+    if (bUsingSmartCard)
+    {
+        flags |= LW_KRB5_LOGIN_FLAG_SMART_CARD;
+    }
+
     dwError = LwKrb5InitializeUserLoginCredentials(
                     pszUpn,
                     pszPassword,
                     pUserInfo->userInfo.uid,
                     pUserInfo->userInfo.gid,
-                    LW_KRB5_LOGIN_FLAG_UPDATE_CACHE,
+                    flags,
                     pszServicePrincipal,
                     pPasswordInfo->Account.DnsDomainName,
                     pPasswordInfo->Password,
@@ -1765,7 +1777,7 @@ AD_OnlineCheckUserPassword(
                         pszPassword,
                         pUserInfo->userInfo.uid,
                         pUserInfo->userInfo.gid,
-                        LW_KRB5_LOGIN_FLAG_UPDATE_CACHE,
+                        flags,
                         pszServicePrincipal,
                         pPasswordInfo->Account.DnsDomainName,
                         pPasswordInfo->Password,
@@ -1867,6 +1879,7 @@ AD_OnlineAuthenticateUserPam(
                     pContext,
                     pUserInfo,
                     pParams->pszPassword,
+                    pParams->dwFlags & LSA_AUTH_USER_PAM_FLAG_SMART_CARD,
                     &dwGoodUntilTime);
     if (dwError == LW_ERROR_ACCOUNT_DISABLED ||
         dwError == LW_ERROR_ACCOUNT_EXPIRED ||
@@ -2774,6 +2787,7 @@ AD_OnlineChangePassword(
                     pContext,
                     pCachedUser,
                     pszPassword,
+                    FALSE,
                     &dwGoodUntilTime);
     BAIL_ON_LSA_ERROR(dwError);
 

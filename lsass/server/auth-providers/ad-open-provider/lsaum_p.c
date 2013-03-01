@@ -1561,6 +1561,7 @@ LsaUmpRefreshUserCreds(
                     pProviderContext,
                     pUserInfo,
                     pszPassword,
+                    FALSE,
                     &pUserItem->dwTgtEndTime);
     BAIL_ON_LSA_ERROR(dwError);
 
