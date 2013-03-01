@@ -1079,7 +1079,7 @@ Krb5JoinDomain(Krb5Entry *conf,
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_win2k_require_binding",
                 "false" ));
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_identities",
-                "PKCS11:" LIBDIR "/libpkcs11.so" ));
+                "PKCS11:" LIBDIR "/libpkcs11wrapper.so" ));
 
     GCE(ceError = EnsureStanzaNode(conf, "domain_realm", &domain_realm));
     GCE(ceError = EnsureStanzaNode(conf, "realms", &realms));

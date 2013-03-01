@@ -1,0 +1,36 @@
+option()
+{
+    mk_option \
+        OPTION=pkcs11-module \
+        PARAM="path" \
+        VAR=PKCS11_MODULE_NAME \
+        DEFAULT="libpkcs11" \
+        HELP="Library providing PKCS11 implementation"
+}
+
+make()
+{
+    PKCS11_SOURCES="\
+        pkcs11-wrapper.c"
+
+    mk_check_headers \
+        FAIL=yes \
+        dlfcn.h \
+        pthread.h
+
+    mk_check_libraries \
+        FAIL=yes \
+        dl \
+        pthread
+
+    mk_multiarch_do
+        PKCS11_FULL_MODULE_NAME="${MK_LIBDIR}/${PKCS11_MODULE_NAME}${MK_DLO_EXT}"
+        mk_msg "PKCS11 full name: $PKCS11_FULL_MODULE_NAME"
+        mk_library \
+            LIB="pkcs11wrapper" \
+            SOURCES="$PKCS11_SOURCES" \
+            CFLAGS="-DPKCS11_LIBRARY_NAME=\"$PKCS11_FULL_MODULE_NAME\"" \
+            INCLUDEDIRS="./include" \
+            LIBDEPS="$LIB_PTHREAD $LIB_DL"
+    mk_multiarch_done
+}
