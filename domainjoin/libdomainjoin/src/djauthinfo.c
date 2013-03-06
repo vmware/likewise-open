@@ -972,13 +972,13 @@ cleanup:
 
 void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 {
-    BOOLEAN systemDcedExists = FALSE;
     LWException *innerExc = NULL;
+
+#ifndef MINIMAL_JOIN
+    BOOLEAN systemDcedExists = FALSE;
     int firstStart = 0;
     int firstStop = 0;
     int stopLaterOffset = 0;
-
-#ifndef MINIMAL_JOIN
 
     if (geteuid() == 0)
     {
@@ -1061,9 +1061,10 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
         LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
                     21, 9, &LW_EXC));
 #endif
-#endif
 
 cleanup:
+#endif
+
     LWHandle(&innerExc);
 }
 

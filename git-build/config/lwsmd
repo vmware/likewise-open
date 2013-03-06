@@ -17,6 +17,15 @@
 #LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop Likewise Service Manager
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
+#LWI_STARTUP_TYPE_ESX###
+#LWI_STARTUP_TYPE_ESX# chkconfig: - 35 90
+#LWI_STARTUP_TYPE_ESX# description: Start and Stop Likewise Service Manager
+#LWI_STARTUP_TYPE_ESX###
+
+PLATFORM=""
+if [ "`uname -s`" = "VMkernel" ]; then
+    PLATFORM="ESXI"
+fi
 
 PROG_DESC="Likewise Service Manager"
 PROG_BIN=PREFIX_DIR/sbin/lwsmd
@@ -24,4 +33,21 @@ PROG_ARGS="--start-as-daemon --syslog"
 PIDFILE=/var/run/lwsmd.pid
 SCRIPTNAME="lwsmd"
 
-. EXECDIR/init-base.sh
+if [ "$PLATFORM" = "ESXI" ]; then
+   PROG_BIN=/sbin/lwsmd
+   PROG_SCHED_PARAM="++min=0,max=40,group=plugins/likewise"
+   PROG_ERR=/var/lib/likewise/lwsmd/lwsmd.err
+   STARTHOOK="fix_locale"
+fi
+
+fix_locale()
+{
+    export LC_ALL="en_US.utf8"
+    export LC_CTYPE="en_US.utf8"
+}
+
+if [ "$PLATFORM" = "ESXI" ]; then
+   . /etc/likewise/init-base.sh
+else
+   . EXECDIR/init-base.sh
+fi

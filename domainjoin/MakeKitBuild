@@ -64,4 +64,12 @@ configure()
     mk_check_functions \
 	HEADERDEPS="stdlib.h" \
 	strtol strtoll __strtoll strtoul strtoull __strtoull
+
+    # configure minimal build
+    if [ "$LW_DEVICE_PROFILE" = "embedded" ]; then
+        mk_define ENABLE_MINIMAL 1
+        mk_define MINIMAL_JOIN 1
+        mk_define BUILD_VERSION "\"$LW_VERSION\""
+    fi
+
 }

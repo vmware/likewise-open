@@ -6,7 +6,7 @@
 #
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 20 9
-#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop LWIOD 
+#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop LWIOD
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#
 #LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
@@ -17,8 +17,22 @@
 #LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
 #LWI_STARTUP_TYPE_SUSE# Description: Start and Stop LWIOD
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
+#LWI_STARTUP_TYPE_ESX###
+#LWI_STARTUP_TYPE_ESX# chkconfig: - 38 90
+#LWI_STARTUP_TYPE_ESX# description: Start and Stop LWIOD
+#LWI_STARTUP_TYPE_ESX###
 
-PREFIX="PREFIX_DIR"
 SERVICE_NAME="lwio"
 
-. EXECDIR/init-lwsm.sh
+PLATFORM=""
+if [ "`uname -s`" = "VMkernel" ]; then
+    PLATFORM="ESXI"
+fi
+
+if [ "$PLATFORM" = "ESXI" ]; then
+    PREFIX=""
+    . /etc/likewise/init-lwsm.sh
+else
+    PREFIX="PREFIX_DIR"
+    . EXECDIR/init-lwsm.sh
+fi

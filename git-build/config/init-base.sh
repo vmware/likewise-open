@@ -127,6 +127,8 @@ fi
 
 if [ $PLATFORM = "HP-UX" -o $PLATFORM = "SOLARIS" -o $PLATFORM = "FREEBSD" ]; then
     LOCKFILE="/var/run/${SCRIPTNAME}.lock"
+elif [ $PLATFORM = "ESXI" ]; then
+    LOCKFILE="/var/run/${SCRIPTNAME}.lock"
 else
     LOCKFILE="/var/lock/subsys/${SCRIPTNAME}"
 fi
@@ -312,7 +314,7 @@ generic_pid()
 		pgrep -f "^${PROG_BIN}"
 		;;
 	    ESXI)
-		( ps | grep "^[0-9]* [0-9]* `basename ${PROG_BIN}` *${PROG_BIN}" | awk '{ print $1 };' | head -1 )
+		( ps -C | grep "^[0-9]* [0-9]*.*`basename ${PROG_BIN}`" | awk '{ print $1 };' | head -1 )
 		;;
 	    HP-UX)
 		( UNIX95= ps -e -o pid= -o args= | grep "^ *[0123456789]* *${PROG_BIN}" | awk '{ print $1 };' )
@@ -475,7 +477,7 @@ daemon_stop() {
 daemon_reload()
 {
     case "${PLATFORM}" in 
-        REDHAT | SUSE | FREEBSD | ESXI)
+        REDHAT | SUSE | FREEBSD)
             echo -n $"Reloading ${PROG_DESC} configuration"
 	    killall -HUP "`basename ${PROG_BIN}`"
             status=$?
@@ -489,6 +491,11 @@ daemon_reload()
         AIX | HP-UX | SOLARIS | UNKNOWN)
             echo -n "Stopping $PROG_DESC"
 	    generic_killall -HUP
+	    status=$?
+            ;;
+        ESXI)
+            echo -n $"Reloading ${PROG_DESC} configuration"
+	    pkill -HUP "`basename ${PROG_BIN}`"
 	    status=$?
             ;;
     esac

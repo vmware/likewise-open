@@ -126,6 +126,7 @@ configure()
     mk_export CACHEDIR="$LW_CACHEDIR"
     mk_export MOD_EXT
 
+    mk_define LOCALSTATEDIR "\"$MK_LOCALSTATEDIR\""
     mk_define PREFIXDIR "\"$MK_PREFIX\""
     mk_define CACHEDIR "\"$LW_CACHEDIR\""
     mk_define CONFIGDIR "\"$MK_SYSCONFDIR\""
@@ -289,4 +290,11 @@ configure()
 
     mk_output_file etc/privileges.reg
     mk_output_file etc/accounts.reg
+
+    # configure minimal build
+    if [ "$LW_DEVICE_PROFILE" = "embedded" ]; then
+        mk_define ENABLE_MINIMAL 1
+        mk_define MINIMAL_LSASS 1
+    fi
+
 }

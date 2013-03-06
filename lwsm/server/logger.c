@@ -487,9 +487,19 @@ LwSmLogFileLog (
     time_t currentTime = time(NULL);
     struct tm tmp = {0};
     char timeBuf[128];
+    PCSTR pszEnding = "\n";
 
     localtime_r(&currentTime, &tmp);
     strftime(timeBuf, sizeof(timeBuf), "%Y%m%d%H%M%S", &tmp);
+
+    if (pszMessage)
+    {
+       size_t len = strlen(pszMessage);
+       if (len > 0 && pszMessage[len - 1] == '\n')
+       {
+	  pszEnding = "";
+       }
+    }
 
     switch (gMaxLevel)
     {
@@ -502,20 +512,22 @@ LwSmLogFileLog (
         {
             fprintf(
                 pContext->file,
-                "%s:%s:%s: %s\n",
+                "%s:%s:%s: %s%s",
                 timeBuf,
                 LwSmLogLevelToString(level),
                 pszFacility,
-                pszMessage);
+                pszMessage,
+                pszEnding);
         }
         else
         {
             fprintf(
                 pContext->file,
-                "%s:%s: %s\n",
+                "%s:%s: %s%s",
                 timeBuf,
                 LwSmLogLevelToString(level),
-                pszMessage);
+                pszMessage,
+                pszEnding);
         }
         break;
     case LW_SM_LOG_LEVEL_DEBUG:
@@ -524,26 +536,28 @@ LwSmLogFileLog (
         {
             fprintf(
                 pContext->file,
-                "%s:%s:%s:%s():%s:%i: %s\n",
+                "%s:%s:%s:%s():%s:%i: %s%s",
                 timeBuf,
                 LwSmLogLevelToString(level),
                 pszFacility,
                 pszFunctionName,
                 LwSmBasename(pszSourceFile),
                 (int) dwLineNumber,
-                pszMessage);
+                pszMessage,
+                pszEnding);
         }
         else
         {
             fprintf(
                 pContext->file,
-                "%s:%s:%s():%s:%i: %s\n",
+                "%s:%s:%s():%s:%i: %s%s",
                 timeBuf,
                 LwSmLogLevelToString(level),
                 pszFunctionName,
                 LwSmBasename(pszSourceFile),
                 (int) dwLineNumber,
-                pszMessage);
+                pszMessage,
+                pszEnding);
         }
     }
 

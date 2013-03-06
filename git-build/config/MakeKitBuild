@@ -1,6 +1,13 @@
 configure()
 {
     mk_output_file VERSION
+
+    # remove ESX chkconfig comment header if building for ESX
+    if [ "$LW_DEVICE_PROFILE" = "embedded" ]; then
+        LWI_STARTUP_TYPE_ESX_DEL=""
+    else
+        LWI_STARTUP_TYPE_ESX_DEL="#LWI_STARTUP_TYPE_ESX"
+    fi
 }
 
 make()
@@ -21,7 +28,7 @@ make()
         FILE="VERSION" \
         INSTALLDIR="${MK_PREFIX}/data"
 
-    for i in dcerpcd eventlogd lsassd lwiod lwregd lwsmd lwsmd.esxi netlogond
+    for i in dcerpcd eventlogd lsassd lwiod lwregd lwsmd netlogond
     do
 	lw_init_script "$i"
     done
@@ -36,6 +43,7 @@ lw_init_script()
 	sed \
 	    -e "s:PREFIX_DIR:${MK_PREFIX}:g" \
 	    -e "s:EXECDIR:${MK_BINDIR}:g" \
+	    -e "s:^#LWI_STARTUP_TYPE_ESX:${LWI_STARTUP_TYPE_ESX_DEL}:g" \
 	    '%<' "&$1" '%>' '$@' '%;' \
 	chmod +x '$@'
 

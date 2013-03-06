@@ -1196,7 +1196,9 @@ static QueryResult QuerySetHostname(const JoinProcessOptions *options, LWExcepti
 static void DoSetHostname(JoinProcessOptions *options, LWException **exc)
 {
     LWException *inner = NULL;
+#ifndef ENABLE_MINIMAL
     DWORD ceError;
+#endif
 
     LW_TRY(exc,
         DJSetComputerName(options->computerName,

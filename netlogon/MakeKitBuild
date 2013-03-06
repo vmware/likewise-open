@@ -57,4 +57,10 @@ configure()
         res_init res_query res_ninit res_ndestroy
 
     lw_check_pthread_once_init
+
+    # configure minimal build
+    if [ "$LW_DEVICE_PROFILE" = "embedded" ]; then
+        mk_define ENABLE_MINIMAL 1
+        mk_define MINIMAL_NETLOGON 1
+    fi
 }
