@@ -25,6 +25,10 @@ make()
         INSTALLDIR="${MK_SYSCONFDIR}"
 
     mk_install_file \
+        FILE="registry.db" \
+        INSTALLDIR="${MK_SYSCONFDIR}/db"
+
+    mk_install_file \
         FILE="VERSION" \
         INSTALLDIR="${MK_PREFIX}/data"
 
