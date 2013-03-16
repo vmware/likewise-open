@@ -3,7 +3,7 @@ configure()
     mk_output_file VERSION
 
     # remove ESX chkconfig comment header if building for ESX
-    if [ "$LW_DEVICE_PROFILE" = "embedded" ]; then
+    if [ "$LW_BUILD_ESX" = "1" ]; then
         LWI_STARTUP_TYPE_ESX_DEL=""
     else
         LWI_STARTUP_TYPE_ESX_DEL="#LWI_STARTUP_TYPE_ESX"

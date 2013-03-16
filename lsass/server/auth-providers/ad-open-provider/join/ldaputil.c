@@ -91,6 +91,10 @@ static int LdapModSetStrValue(LDAPMod **mod,
 error:
     LW_SAFE_FREE_MEMORY(sv);
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 }
 
@@ -222,6 +226,10 @@ cleanup:
     LW_SAFE_FREE_MEMORY(ldap_url);
     LW_SAFE_FREE_MEMORY(ldap_srv);
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 
 error:
@@ -246,6 +254,10 @@ int LdapCloseConnection(LDAP *ldconn)
     lderr = ldap_unbind_ext_s(ldconn, NULL, NULL);
 
 error:
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 }
 
@@ -280,6 +292,10 @@ int LdapGetDirectoryInfo(LDAPMessage **info, LDAPMessage **result, LDAP *ld)
     *result = res;
 
 cleanup:
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 
 error:
@@ -511,6 +527,10 @@ error:
         LW_SAFE_FREE_MEMORY(objclass[i]);
     }
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 }
 
@@ -583,6 +603,10 @@ cleanup:
     LW_SAFE_FREE_MEMORY(dnsname);
     LW_SAFE_FREE_MEMORY(basedn);
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 
 error:
@@ -652,6 +676,10 @@ cleanup:
 
     *out = res;
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 
 error:
@@ -703,6 +731,10 @@ error:
     LW_SAFE_FREE_MEMORY(machname);
     LW_SAFE_FREE_MEMORY(dname);
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 }
 
@@ -752,6 +784,10 @@ cleanup:
         LdapModFree(&mod);
     }
 
+    /* Error could be in both dwError & lderr */
+    if (lderr == LDAP_SUCCESS && dwError != ERROR_SUCCESS) {
+        lderr = dwError;
+    }
     return lderr;
 
 error:
