@@ -54,6 +54,17 @@
 #  include <netdb.h>
 #endif
 
+/*
+ * Longest string representation of IPv6 address is 40 characters,
+ * including NULL terminator. However, there may be a zone suffix
+ * (%ID) which is implementation-specific. For this reason, use
+ * an abundance of caution here, and make the maximum network
+ * address character string length the same number of bits as
+ * the maximum binary address length.
+ */
+#define NA_SIZE 128
+#define RPC_C_ENDPOINT_IP_MAX   6   /* 5 ascii digits + nul */
+
 
 
 /***********************************************************************
@@ -91,6 +102,12 @@ INTERNAL void addr_alloc _DCE_PROTOTYPE_ ((
         unsigned32                  * /*status*/
     ));
 
+INTERNAL void addr_copy6 _DCE_PROTOTYPE_ ((
+        rpc_addr_p_t                 /*srpc_addr*/,
+        rpc_addr_p_t                * /*drpc_addr*/,
+        unsigned32                  * /*status*/
+    ));
+
 INTERNAL void addr_copy _DCE_PROTOTYPE_ ((
         rpc_addr_p_t                 /*srpc_addr*/,
         rpc_addr_p_t                * /*drpc_addr*/,
@@ -114,9 +131,21 @@ INTERNAL void addr_inq_endpoint _DCE_PROTOTYPE_ ((
         unsigned32                  * /*status*/
     ));
 
+INTERNAL void addr_inq_endpoint6
+(
+    rpc_addr_p_t                     /* rpc_addr  */,
+    unsigned_char_t               ** /* endpoint  */,
+    unsigned32                    *  /* status    */
+);
 INTERNAL void addr_set_netaddr _DCE_PROTOTYPE_ ((
         unsigned_char_p_t            /*netaddr*/,
         rpc_addr_p_t                * /*rpc_addr*/,
+        unsigned32                  * /*status*/
+    ));
+
+INTERNAL void addr_inq_netaddr6 _DCE_PROTOTYPE_ ((
+        rpc_addr_p_t                 /*rpc_addr*/,
+        unsigned_char_t             ** /*netaddr*/,
         unsigned32                  * /*status*/
     ));
 
@@ -150,6 +179,12 @@ INTERNAL void inq_max_tsdu _DCE_PROTOTYPE_ ((
         rpc_network_if_id_t          /*iftype*/,
         rpc_network_protocol_id_t    /*protocol*/,
         unsigned32                  * /*max_tsdu*/,
+        unsigned32                  * /*status*/
+    ));
+
+INTERNAL boolean addr_compare6 _DCE_PROTOTYPE_ ((
+        rpc_addr_p_t                 /*addr1*/,
+        rpc_addr_p_t                 /*addr2*/,
         unsigned32                  * /*status*/
     ));
 
@@ -226,6 +261,94 @@ INTERNAL void inq_max_frag_size _DCE_PROTOTYPE_ ((
 
 
 
+#include <comp.h>
+
+PRIVATE void rpc__ip_naf_init_func(void)
+{
+    static rpc_naf_id_elt_t naf[] = {
+        {
+            rpc__ip_init,
+            RPC_C_NAF_ID_IP,
+            RPC_C_NETWORK_IF_ID_DGRAM,
+            NULL
+        },
+        {
+            rpc__ip6_init,
+            RPC_C_NAF_ID_IP6,
+            RPC_C_NETWORK_IF_ID_STREAM,
+            NULL
+        },
+    };
+
+    static rpc_tower_prot_ids_t prot_ids[] = {
+        { RPC_C_PROTSEQ_ID_NCADG_IP_UDP,   3,
+          { {0x0A,   { 0, 0, 0, 0, 0, {0} }}, /* DG */
+            {0x08,   { 0, 0, 0, 0, 0, {0} }}, /* port */
+            {0x09,   { 0, 0, 0, 0, 0, {0} }}, /* IP addr */
+            {0x00,   { 0, 0, 0, 0, 0, {0} }}
+          }
+        },
+
+        { RPC_C_PROTSEQ_ID_NCACN_IP_TCP,   3,
+          { {0x0B,   { 0, 0, 0, 0, 0, {0} }}, /* CN */
+            {0x07,   { 0, 0, 0, 0, 0, {0} }}, /* port */
+            {0x09,   { 0, 0, 0, 0, 0, {0} }}, /* IP addr */
+            {0x00,   { 0, 0, 0, 0, 0, {0} }}
+          }
+        }
+    };
+
+    static rpc_protseq_id_elt_t seq_ids[] =
+    {
+        {                                   /* Connection-RPC / IP / TCP */
+            0,
+            1, /* Uses endpoint mapper */
+            RPC_C_PROTSEQ_ID_NCACN_IP_TCP,
+            RPC_C_PROTOCOL_ID_NCACN,
+            RPC_C_NAF_ID_IP,
+            RPC_C_NETWORK_PROTOCOL_ID_TCP,
+            RPC_C_NETWORK_IF_ID_STREAM,
+            RPC_PROTSEQ_NCACN_IP_TCP,
+            (rpc_port_restriction_list_p_t) NULL,
+            &rpc_g_bsd_socket_vtbl
+        },
+        {                                   /* Datagram-RPC / IP / UDP */
+            0,
+            1, /* Uses endpoint mapper */
+            RPC_C_PROTSEQ_ID_NCADG_IP_UDP,
+            RPC_C_PROTOCOL_ID_NCADG,
+            RPC_C_NAF_ID_IP,
+            RPC_C_NETWORK_PROTOCOL_ID_UDP,
+            RPC_C_NETWORK_IF_ID_DGRAM,
+            RPC_PROTSEQ_NCADG_IP_UDP,
+            (rpc_port_restriction_list_p_t) NULL,
+            &rpc_g_bsd_socket_vtbl
+        },
+        {                                   /* Connection-RPC / IP / TCP / IPv6 addressing*/
+            0,
+            1, /* Uses endpoint mapper */
+            RPC_C_PROTSEQ_ID_NCACN_IP6_TCP,
+            RPC_C_PROTOCOL_ID_NCACN,
+            RPC_C_NAF_ID_IP6,
+            RPC_C_NETWORK_PROTOCOL_ID_TCP,
+            RPC_C_NETWORK_IF_ID_STREAM,
+            RPC_PROTSEQ_NCACN_IP_TCP,
+            (rpc_port_restriction_list_p_t) NULL,
+            &rpc_g_bsd_socket_vtbl
+        },
+    };
+
+    rpc__register_protseq(
+        seq_ids,
+        sizeof(seq_ids)/sizeof(rpc_protseq_id_elt_t));
+    rpc__register_tower_prot_id(
+        prot_ids,
+        sizeof(prot_ids)/sizeof(rpc_tower_prot_ids_t));
+    rpc__register_naf_id(
+        naf,
+        sizeof(naf)/sizeof(rpc_naf_id_elt_t));
+}
+
 /*
 **++
 **
@@ -272,70 +395,6 @@ INTERNAL void inq_max_frag_size _DCE_PROTOTYPE_ ((
 **
 **--
 **/
-
-#include <comp.h>
-PRIVATE void rpc__ip_naf_init_func(void)
-{
-    static rpc_naf_id_elt_t naf[1] = {
-        {
-            rpc__ip_init,
-            RPC_C_NAF_ID_IP,
-            RPC_C_NETWORK_IF_ID_DGRAM,
-            NULL
-        }
-    };
-
-    static rpc_tower_prot_ids_t prot_ids[2] = {
-        { RPC_C_PROTSEQ_ID_NCADG_IP_UDP,   3,
-          { {0x0A,   { 0, 0, 0, 0, 0, {0} }}, /* DG */
-            {0x08,   { 0, 0, 0, 0, 0, {0} }}, /* port */
-            {0x09,   { 0, 0, 0, 0, 0, {0} }}, /* IP addr */
-            {0x00,   { 0, 0, 0, 0, 0, {0} }}
-          }
-        },
-
-        { RPC_C_PROTSEQ_ID_NCACN_IP_TCP,   3,
-          { {0x0B,   { 0, 0, 0, 0, 0, {0} }}, /* CN */
-            {0x07,   { 0, 0, 0, 0, 0, {0} }}, /* port */
-            {0x09,   { 0, 0, 0, 0, 0, {0} }}, /* IP addr */
-            {0x00,   { 0, 0, 0, 0, 0, {0} }}
-          }
-        }
-    };
-
-    static rpc_protseq_id_elt_t seq_ids[2] =
-    {
-        {                                   /* Connection-RPC / IP / TCP */
-            0,
-            1, /* Uses endpoint mapper */
-            RPC_C_PROTSEQ_ID_NCACN_IP_TCP,
-            RPC_C_PROTOCOL_ID_NCACN,
-            RPC_C_NAF_ID_IP,
-            RPC_C_NETWORK_PROTOCOL_ID_TCP,
-            RPC_C_NETWORK_IF_ID_STREAM,
-            RPC_PROTSEQ_NCACN_IP_TCP,
-            (rpc_port_restriction_list_p_t) NULL,
-            &rpc_g_bsd_socket_vtbl
-        },
-        {                                   /* Datagram-RPC / IP / UDP */
-            0,
-            1, /* Uses endpoint mapper */
-            RPC_C_PROTSEQ_ID_NCADG_IP_UDP,
-            RPC_C_PROTOCOL_ID_NCADG,
-            RPC_C_NAF_ID_IP,
-            RPC_C_NETWORK_PROTOCOL_ID_UDP,
-            RPC_C_NETWORK_IF_ID_DGRAM,
-            RPC_PROTSEQ_NCADG_IP_UDP,
-            (rpc_port_restriction_list_p_t) NULL,
-            &rpc_g_bsd_socket_vtbl
-        }
-    };
-
-    rpc__register_protseq(seq_ids, 2);
-    rpc__register_tower_prot_id(prot_ids, 2);
-    rpc__register_naf_id(naf, 1);
-}
-
 PRIVATE void  rpc__ip_init
 #ifdef _DCE_PROTO_
 (
@@ -358,7 +417,7 @@ unsigned32              *status;
 
     static rpc_naf_epv_t rpc_ip_epv =
     {
-        addr_alloc,
+        addr_alloc,         /* Initial IPv4/IPv6 decision made here */
         addr_copy,
         addr_free,
         addr_set_endpoint,
@@ -391,6 +450,65 @@ unsigned32              *status;
      * place the address of EPV into Network Address Family Table
      */
     *naf_epv = &rpc_ip_epv;
+
+    *status = rpc_s_ok;
+}
+
+PRIVATE void  rpc__ip6_init
+#ifdef _DCE_PROTO_
+(
+    rpc_naf_epv_p_t         *naf_epv,
+    unsigned32              *status
+)
+#else
+(naf_epv, status)
+rpc_naf_epv_p_t         *naf_epv;
+unsigned32              *status;
+#endif
+{
+    /*
+     * The Internal Entry Point Vectors for the Internet Protocol Family
+     * Extension service routines.  At RPC startup time, the IP init routine,
+     * rpc__ip_init, is responsible for inserting  a pointer to this EPV into
+     * the  Network Address Family Table.  Afterward,  all calls to the IP
+     * Extension  Service are vectored through these  EPVs.
+     */
+
+    static rpc_naf_epv_t rpc_ip6_epv =
+    {
+        addr_alloc,         /* Initial IPv4/IPv6 decision made here */
+        addr_copy6,
+        addr_free,          /* IPv4/IPv6 agnostic */
+        addr_set_endpoint,  /* addr_alloc calls, so is both IPv4/IPv6 capable */
+        addr_inq_endpoint6,
+        addr_set_netaddr,  /* addr_alloc calls, so is both IPv4/IPv6 capable */
+        addr_inq_netaddr6,
+        addr_set_options,  /* IPv4/IPv6 agnostic */
+        addr_inq_options,  /* IPv4/IPv6 agnostic */
+        rpc__ip_desc_inq_addr6,
+        desc_inq_network,
+        inq_max_tsdu,
+        rpc__ip_get_broadcast,
+        addr_compare6,
+        inq_max_pth_unfrag_tpdu,
+        inq_max_loc_unfrag_tpdu,
+        set_pkt_nodelay,
+        is_connect_closed,
+        tower_flrs_from_addr,
+        tower_flrs_to_addr,
+        desc_inq_peer_addr,
+        set_port_restriction,
+        get_next_restricted_port,
+        inq_max_frag_size
+    };
+    unsigned32 lstatus;
+
+    rpc__ip_init_local_addr_vec (&lstatus);
+
+    /*
+     * place the address of EPV into Network Address Family Table
+     */
+    *naf_epv = &rpc_ip6_epv;
 
     *status = rpc_s_ok;
 }
@@ -477,52 +595,182 @@ rpc_addr_p_t            *rpc_addr;
 unsigned32              *status;
 #endif
 {
+    rpc_addr_p_t rpc_addr_alloc = NULL;
+    rpc_ip_addr_p_t ip_addr = NULL;
+    rpc_ip6_addr_p_t ip6_addr = NULL;
+
+    CODING_ERROR (status);
+
+    /*
+     * allocate memory for the new RPC address. Exaggerate about the actual size
+     * if address is IPv4. Of course, needed to store an IPv6 address.
+     */
+    RPC_MEM_ALLOC (
+        rpc_addr_alloc,
+        rpc_addr_p_t,
+        sizeof (rpc_ip6_addr_t),
+        RPC_C_MEM_RPC_ADDR,
+        RPC_C_MEM_WAITOK);
+    if (rpc_addr_alloc == NULL)
+    {
+        *status = rpc_s_no_memory;
+        return;
+    }
+
+    ip_addr  = (rpc_ip_addr_p_t)  rpc_addr_alloc;
+    ip6_addr = (rpc_ip6_addr_p_t) rpc_addr_alloc;
+    memset(ip6_addr, 0, sizeof (rpc_ip6_addr_t));
+
+    /*
+     * set the network address in the RPC addr
+     * There is a case when netaddr is NULL, which means
+     * addr_set_netaddr() just zeros out the rpc_addr. The
+     * Addres
+     */
+    addr_set_netaddr(netaddr, &rpc_addr_alloc, status);
+    if (*status != rpc_s_ok) return;
+
+    /*
+     * rpc_protseq_id: Identifies if address is IPv4/IPv6
+     *     RPC_C_PROTSEQ_ID_NCACN_IP_TCP
+     *     RPC_C_PROTSEQ_ID_NCACN_IP6_TCP
+     */
+    if (rpc_addr_alloc->sa.family == AF_INET6)
+    {
+        ip6_addr->len = sizeof (struct sockaddr_in6);
+        ip6_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
+    }
+    else if (rpc_addr_alloc->sa.family == AF_INET)
+    {
+        ip_addr->len = sizeof (struct sockaddr_in);
+        ip_addr->rpc_protseq_id = rpc_protseq_id;
+    }
+    else
+    {
+        /*
+         * addr_set_netaddr() didn't find an IP address family.
+         * Set the family using the naf_id, and the fields
+         * in rpc_addr_p_t properly.
+         */
+        rpc_addr_alloc->sa.family = naf_id;
+        if (naf_id == RPC_C_NAF_ID_IP)
+        {
+            ip_addr->len = sizeof (struct sockaddr_in);
+            ip_addr->rpc_protseq_id = rpc_protseq_id;
+        }
+        else if (naf_id == RPC_C_NAF_ID_IP6)
+        {
+            ip6_addr->len = sizeof (struct sockaddr_in6);
+            ip6_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
+        }
+    }
+
+    /*
+     * set the endpoint in the RPC addr
+     */
+    addr_set_endpoint(endpoint, &rpc_addr_alloc, status);
+    if (*status != rpc_s_ok) return;
+
+    *rpc_addr = rpc_addr_alloc;
+    *status = rpc_s_ok;
+}
+
+/*
+**++
+**
+**  ROUTINE NAME:       addr_copy6
+**
+**  SCOPE:              INTERNAL - declared locally
+**
+**  DESCRIPTION:
+**
+**  Obtain the length from the source RPC address.  Allocate memory for a
+**  new, destination  RPC address. Do a byte copy from the surce address
+**  to the destination address.
+**
+**  INPUTS:
+**
+**     src_rpc_addr     The address of a pointer to an RPC address to be
+**                      copied.  It must be the correct format for Internet
+**                      Protocol.
+**
+**  INPUTS/OUTPUTS:
+**
+**     dst_rpc_addr     The address of a pointer to an RPC address -returned
+**                      with the address of the memory allocated by
+**                      this routine.
+**
+**  OUTPUTS:
+**
+**      status          A value indicating the status of the routine.
+**
+**      rpc_s_ok            The call was successful.
+**
+**      rpc_s_no_memory     Call to malloc failed to allocate memory
+**
+**      rpc_s_invalid_naf_id  Source RPC address appeared invalid
+**
+**
+**  IMPLICIT INPUTS:
+**
+**        A check is performed on the source RPC address before malloc.  It
+**        must be the IP family.
+**
+**  IMPLICIT OUTPUTS:   none
+**
+**  FUNCTION VALUE:     none
+**
+**  SIDE EFFECTS:
+**
+**           In the event, the addres of a of memory segment contained in
+**           rpc_addr, is not valid or the length isn't as long as is
+**           indicated, a memory fault may result.
+**
+**--
+**/
+
+INTERNAL void addr_copy6
+#ifdef _DCE_PROTO_
+(
+    rpc_addr_p_t            src_rpc_addr,
+    rpc_addr_p_t            *dst_rpc_addr,
+    unsigned32              *status
+)
+#else
+(src_rpc_addr, dst_rpc_addr, status)
+rpc_addr_p_t            src_rpc_addr;
+rpc_addr_p_t            *dst_rpc_addr;
+unsigned32              *status;
+#endif
+{
+    int rpc_addr_len = 0;
+
     CODING_ERROR (status);
 
     /*
      * allocate memory for the new RPC address
      */
-
+    rpc_addr_len = sizeof(rpc_ip6_addr_t);
     RPC_MEM_ALLOC (
-        *rpc_addr,
+        *dst_rpc_addr,
         rpc_addr_p_t,
-        sizeof (rpc_ip_addr_t),
+        rpc_addr_len,
         RPC_C_MEM_RPC_ADDR,
         RPC_C_MEM_WAITOK);
 
-    if (*rpc_addr == NULL)
+    if (*dst_rpc_addr == NULL)
     {
         *status = rpc_s_no_memory;
         return;
     }
 
     /*
-     * zero allocated memory
+     * Copy source rpc address to destination rpc address
      */
-    /* b_z_e_r_o ((unsigned8 *) *rpc_addr, sizeof (rpc_ip_addr_t));*/
-
-    memset( *rpc_addr, 0, sizeof (rpc_ip_addr_t));
-
-    /*
-     * insert id, length, family into rpc address
-     */
-    (*rpc_addr)->rpc_protseq_id = rpc_protseq_id;
-    (*rpc_addr)->len = sizeof (struct sockaddr_in);
-    (*rpc_addr)->sa.family = naf_id;
-
-    /*
-     * set the endpoint in the RPC addr
-     */
-    addr_set_endpoint (endpoint, rpc_addr, status);
-    if (*status != rpc_s_ok) return;
-
-    /*
-     * set the network address in the RPC addr
-     */
-    addr_set_netaddr (netaddr, rpc_addr, status);
-    if (*status != rpc_s_ok) return;
+    memcpy(*dst_rpc_addr, src_rpc_addr, rpc_addr_len);
 
     *status = rpc_s_ok;
+    return;
 }
 
 /*
@@ -763,6 +1011,7 @@ unsigned32              *status;
 #endif
 {
     rpc_ip_addr_p_t     ip_addr = (rpc_ip_addr_p_t) *rpc_addr;
+    rpc_ip6_addr_p_t    ip6_addr = (rpc_ip6_addr_p_t) *rpc_addr;
     int                 ep;
     int                 ret;
 
@@ -798,7 +1047,14 @@ unsigned32              *status;
         return;
     }
 
-    ip_addr->sa.sin_port = htons (ep);
+    if (ip_addr->rpc_protseq_id == RPC_C_PROTSEQ_ID_NCACN_IP6_TCP)
+    {
+        ip6_addr->sa.sin6_port = htons (ep);
+    }
+    else
+    {
+        ip_addr->sa.sin_port = htons (ep);
+    }
 
     *status = rpc_s_ok;
 }
@@ -868,43 +1124,104 @@ unsigned_char_t         **endpoint;
 unsigned32              *status;
 #endif
 {
-#define     RPC_C_ENDPOINT_IP_MAX   6   /* 5 ascii digits + nul */
-    rpc_ip_addr_p_t     ip_addr = (rpc_ip_addr_p_t) rpc_addr;
-    unsigned16          ep;
-
+    rpc_ip_addr_p_t ip_addr = (rpc_ip_addr_p_t) rpc_addr;
 
     CODING_ERROR (status);
-
-    /*
-     * convert endpoint to local platform byte order format
-     */
-    ep = ntohs (ip_addr->sa.sin_port);
-
     /*
      * if no endpoint present, return null string. Otherwise,
-     * return the endpoint in Internet "dot" notation.
+     * return the endpoint value.
      */
-    if (ep  ==  0)
-    {
-        RPC_MEM_ALLOC(
-            *endpoint,
-            unsigned_char_p_t,
-            sizeof(unsigned32),     /* can't stand to get just 1 byte */
-            RPC_C_MEM_STRING,
-            RPC_C_MEM_WAITOK);
-        *endpoint[0] = 0;
-    }
-    else
-    {
-        RPC_MEM_ALLOC(
-            *endpoint,
-            unsigned_char_p_t,
-            RPC_C_ENDPOINT_IP_MAX,
-            RPC_C_MEM_STRING,
-            RPC_C_MEM_WAITOK);
-        RPC__IP_ENDPOINT_SPRINTF((char *) *endpoint, "%u", ep);
-    }
+    RPC_MEM_ALLOC(
+        *endpoint,
+        unsigned_char_p_t,
+        RPC_C_ENDPOINT_IP_MAX,
+        RPC_C_MEM_STRING,
+        RPC_C_MEM_WAITOK);
+    RPC__IP_ENDPOINT_SPRINTF((char *) *endpoint, "%u",
+                             ntohs(ip_addr->sa.sin_port));
+    *status = rpc_s_ok;
+}
+
+/*
+**++
+**
+**  ROUTINE NAME:       addr_inq_endpoint6
+**
+**  SCOPE:              INTERNAL - declared locally
+**
+**  DESCRIPTION:
+**
+**    From the RPC address indicated by arg., rpc_addr, examine the
+**    endpoint.  Convert the endopint value to a NULL terminated asci
+**    character string to be returned in the memory segment pointed to
+**    by arg., endpoint.
+**
+**  INPUTS:
+**
+**      rpc_addr        The address of a pointer to an RPC address that
+**                      to be inspected.
+**
+**  INPUTS/OUTPUTS:     none
+**
+**
+**  OUTPUTS:
+**
+**      endpoint        String pointer indicating where the endpoint
+**                      string is to be placed.
+**
+**      status          A value indicating the status of the routine.
+**
+**          rpc_s_ok           The call was successful.
+**
+**          Any of the RPC Protocol Service status codes.
+**
+**  IMPLICIT INPUTS:    none
+**
+**  IMPLICIT OUTPUTS:
+**
+**      A zero length string will be returned if the RPC address contains
+**      no endpoint.
+**
+**  FUNCTION VALUE:     none
+**
+**  SIDE EFFECTS:
+**
+**    CAUTION -- since this routine has no way of knowing the exact
+**      length of the endpoint string which will be derived.  It
+**      is asumed that the caller has provided, rpc_c_endpoint_max
+**      (or at least "enough") space for the endpoint string.
+**--
+**/
 
+INTERNAL void addr_inq_endpoint6
+#ifdef _DCE_PROTO_
+(
+    rpc_addr_p_t            rpc_addr,
+    unsigned_char_t         **endpoint,
+    unsigned32              *status
+)
+#else
+(rpc_addr, endpoint, status)
+rpc_addr_p_t            rpc_addr;
+unsigned_char_t         **endpoint;
+unsigned32              *status;
+#endif
+{
+    rpc_ip6_addr_p_t ip6_addr = (rpc_ip6_addr_p_t) rpc_addr;
+
+    CODING_ERROR (status);
+    /*
+     * if no endpoint present, return null string. Otherwise,
+     * return the endpoint value.
+     */
+    RPC_MEM_ALLOC(
+        *endpoint,
+        unsigned_char_p_t,
+        RPC_C_ENDPOINT_IP_MAX,
+        RPC_C_MEM_STRING,
+        RPC_C_MEM_WAITOK);
+    RPC__IP_ENDPOINT_SPRINTF((char *) *endpoint, "%u",
+                             ntohs(ip6_addr->sa.sin6_port));
     *status = rpc_s_ok;
 }
 
@@ -924,8 +1241,8 @@ unsigned32              *status;
 **  INPUTS:
 **
 **      netaddr         String containing network address to insert into
-**                      RPC address.  It must contain an ASCII value in the
-**                      Internet dot notation, (a.b.c.d), format.
+**                      RPC address.  It must contain an ASCII value, which is
+**                      a valid IPv4 or IPv6 address string.
 **
 **  INPUTS/OUTPUTS:
 **
@@ -952,31 +1269,29 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL void addr_set_netaddr
-#ifdef _DCE_PROTO_
-(
+INTERNAL void addr_set_netaddr(
     unsigned_char_p_t       netaddr,
     rpc_addr_p_t            *rpc_addr,
     unsigned32              *status
-)
-#else
-(netaddr, rpc_addr, status)
-unsigned_char_p_t       netaddr;
-rpc_addr_p_t            *rpc_addr;
-unsigned32              *status;
-#endif
+    )
 {
     rpc_ip_addr_p_t     ip_addr = (rpc_ip_addr_p_t) *rpc_addr;
-    boolean             numeric;
+    rpc_ip6_addr_p_t    ip6_addr = (rpc_ip6_addr_p_t) *rpc_addr;
+    boolean             numeric = false;
+    struct addrinfo     *ai_addr;
+    int                 ai_error = 0;
+    unsigned short int  save_port = 0;
 #if (GETHOSTBYNAME_R_ARGS - 0) == 3
 #define he (&hbuf)
     ATTRIBUTE_UNUSED struct hostent      hbuf;
     ATTRIBUTE_UNUSED struct hostent_data hdbuf;
 #else
     ATTRIBUTE_UNUSED struct hostent      *he;
-    ATTRIBUTE_UNUSED struct hostent      hbuf;
-    ATTRIBUTE_UNUSED char                buf[1024];
-    ATTRIBUTE_UNUSED int                 herr;
+#if (GETHOSTBYNAME_R_ARGS - 0) == 6
+    struct hostent      hbuf;
+    char                buf[1024];
+    int                 herr;
+#endif
 #endif /* GETHOSTBYNAME_R_ARGS == 3 */
 
     CODING_ERROR (status);
@@ -986,7 +1301,12 @@ unsigned32              *status;
      */
     if (netaddr == NULL || strlen ((char *) netaddr) == 0)
     {
-        ip_addr->sa.sin_addr.s_addr = 0;
+        /*
+         * Always zero out structure as IPv6, as an IPv6 structure is
+         * is always allocated in addr_alloc(). This will work to zero
+         * IPv4 and IPv6 addresses, as sizeof(sin6_addr) is always correct.
+         */
+        memset(&ip6_addr->sa.sin6_addr, 0, sizeof(ip6_addr->sa.sin6_addr));
         *status = rpc_s_ok;
         return;
     }
@@ -1000,16 +1320,29 @@ unsigned32              *status;
         netaddr++;
 
     /*
-     * convert Internet dot notation address to network address
-     * formatted unsigned32 - check for validity
+     * convert Internet address to network address check for validity
+     * If address conversion fails, and numeric is denoted,
+     * this is a hard fail. Otherwise, try resolving as a hostname.
      */
-    ip_addr->sa.sin_addr.s_addr = inet_addr ((char*) netaddr);
-    if (ip_addr->sa.sin_addr.s_addr != (unsigned)-1)
+    memset(&ai_addr, 0, sizeof(ai_addr));
+    ai_error = getaddrinfo((char *) netaddr, NULL, NULL, &ai_addr);
+    if (ai_error == 0)
     {
+        if (ai_addr->ai_family == AF_INET6)
+        {
+            save_port = ip6_addr->sa.sin6_port;
+            ip6_addr->sa = *(struct sockaddr_in6 *) ai_addr->ai_addr;
+            ip6_addr->sa.sin6_port = save_port;
+        }
+        else
+        {
+            save_port = ip_addr->sa.sin_port;
+            ip_addr->sa = *(struct sockaddr_in *) ai_addr->ai_addr;
+            ip_addr->sa.sin_port = save_port;
+        }
         *status = rpc_s_ok;
         return;
     }
-
     if (numeric)
     {
         *status = rpc_s_inval_net_addr;
@@ -1039,7 +1372,101 @@ unsigned32              *status;
         return;
     }
 
-    ip_addr->sa.sin_addr.s_addr = * (unsigned32 *) he->h_addr;
+    if (he->h_addrtype == AF_INET6)
+    {
+        memcpy(&ip6_addr->sa.sin6_addr, he->h_addr, he->h_length);
+    }
+    else
+    {
+        memcpy(&ip_addr->sa.sin_addr, he->h_addr, he->h_length);
+    }
+    *status = rpc_s_ok;
+}
+
+/*
+**++
+**
+**  ROUTINE NAME:       addr_inq_netaddr6
+**
+**  SCOPE:              INTERNAL - declared locally
+**
+**  DESCRIPTION:
+**
+**    From the RPC address indicated by arg., rpc_addr, examine the
+**    IP network address.  Convert the network address from its network
+**    format  to a NULL terminated ascii character string in IP dot
+**    notation format.  The character string to be returned in the
+**    memory segment pointed to by arg., netaddr.
+**
+**  INPUTS:
+**
+**      rpc_addr        The address of a pointer to an RPC address that
+**                      is to be inspected.
+**
+**  INPUTS/OUTPUTS:
+**
+**
+**  OUTPUTS:
+**
+**      netaddr         String pointer indicating where the network
+**                      address string is to be placed.
+**
+**      status          A value indicating the status of the routine.
+**
+**          rpc_s_ok           The call was successful.
+**
+**  IMPLICIT INPUTS:    none
+**
+**  IMPLICIT OUTPUTS:   none
+**
+**  FUNCTION VALUE:     none
+**
+**  SIDE EFFECTS:       none
+**
+**--
+**/
+
+INTERNAL void addr_inq_netaddr6
+#ifdef _DCE_PROTO_
+(
+    rpc_addr_p_t            rpc_addr,
+    unsigned_char_t         **netaddr,
+    unsigned32              *status
+)
+#else
+(rpc_addr, netaddr, status)
+rpc_addr_p_t            rpc_addr;
+unsigned_char_t         **netaddr;
+unsigned32              *status;
+#endif
+{
+    rpc_ip6_addr_p_t    ip6_addr = (rpc_ip6_addr_p_t) rpc_addr;
+    int                 sts = 0;
+    struct sockaddr_in6 tmp_sa;
+
+    CODING_ERROR (status);
+
+    RPC_MEM_ALLOC(
+        *netaddr,
+        unsigned_char_p_t,
+        NA_SIZE,
+        RPC_C_MEM_STRING,
+        RPC_C_MEM_WAITOK);
+    memset(&tmp_sa, 0, sizeof(tmp_sa));
+    memcpy(&tmp_sa, &ip6_addr->sa, ip6_addr->len);
+    sts = getnameinfo(
+              (const struct sockaddr *) &tmp_sa,
+              sizeof(tmp_sa),
+              *netaddr,
+              NA_SIZE,
+              NULL,
+              0,
+              NI_NUMERICHOST);
+    if (sts)
+    {
+        *status = rpc_s_inval_net_addr;
+        return;
+    }
 
     *status = rpc_s_ok;
 }
@@ -1101,11 +1528,8 @@ unsigned_char_t         **netaddr;
 unsigned32              *status;
 #endif
 {
-#define NA_SIZE 16      /* big enough for 255.255.255.255 */
-
     rpc_ip_addr_p_t     ip_addr = (rpc_ip_addr_p_t) rpc_addr;
     unsigned8           *p;
-
 
     CODING_ERROR (status);
 
@@ -1333,6 +1757,78 @@ unsigned32              *status;
 #endif
 
     *status = rpc_s_ok;
+}
+
+/*
+**++
+**
+**  ROUTINE NAME:       addr_compare6
+**
+**  SCOPE:              INTERNAL - declared locally
+**
+**  DESCRIPTION:
+**
+**  Determine if two address are equal.
+**
+**  INPUTS:
+**
+**      addr1
+**
+**      addr2
+**
+**  INPUTS/OUTPUTS:     none
+**
+**  OUTPUTS:
+**
+**      status          A value indicating the status of the routine.
+**
+**  IMPLICIT INPUTS:    none
+**
+**  IMPLICIT OUTPUTS:   none
+**
+**  FUNCTION VALUE:
+**
+**      return          Boolean; true if address are the same.
+**
+**  SIDE EFFECTS:       none
+**
+**--
+**/
+
+INTERNAL boolean addr_compare6
+#ifdef _DCE_PROTO_
+(
+    rpc_addr_p_t            addr1,
+    rpc_addr_p_t            addr2,
+    unsigned32              *status ATTRIBUTE_UNUSED
+)
+#else
+(addr1, addr2, status)
+rpc_addr_p_t            addr1, addr2;
+unsigned32              *status;
+#endif
+{
+    rpc_ip_addr_p_t     ip_addr1 = (rpc_ip_addr_p_t) addr1;
+    rpc_ip_addr_p_t     ip_addr2 = (rpc_ip_addr_p_t) addr2;
+    int len = sizeof(struct in_addr);
+
+    if (ip_addr1->sa.sin_family == ip_addr2->sa.sin_family &&
+        ip_addr1->sa.sin_family == AF_INET6)
+    {
+        len = sizeof(struct in6_addr);
+    }
+    if (ip_addr1->sa.sin_family == ip_addr2->sa.sin_family &&
+        ip_addr1->sa.sin_port == ip_addr2->sa.sin_port &&
+        ip_addr1->len == ip_addr2->len &&
+        memcmp(&ip_addr1->sa.sin_addr.s_addr,
+               &ip_addr2->sa.sin_addr.s_addr, len) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /*

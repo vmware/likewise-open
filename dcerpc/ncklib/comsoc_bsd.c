@@ -40,7 +40,6 @@
 */
 
 #include <config.h>
-#include <dce/lrpc.h>
 #include <commonp.h>
 #include <com.h>
 #include <comprot.h>
@@ -48,13 +47,54 @@
 #include <comp.h>
 #include <comsoc_bsd.h>
 #include <fcntl.h>
-#include <sys/un.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <cnp.h>
+
+#if !defined(_WIN32)
+/* ---------------------------- *inux code here ------------------------ */
+#include <dce/lrpc.h>
+#include <sys/un.h>
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <cnp.h>
+
+/*
+ * TBD: Adam:  Requires Likewise lwbase to compile
+ * rpc__bsd_socket_transport_inq_access_token. Need to use Windows
+ * SD APIs vs Likewise. Ignoring for now.
+ */
+
 #include <lw/base.h>
+#include <ifaddrs.h>
+
+#define SocketErrno errno
+#define SocketErrnoReturn -1
+
+/* ncalrpc supported only on UNIX by Unix Domain Sockets */
+#define HAS_NCAL_RPC 1
+
+#else
+/* ---------------------------- Windows code here ------------------------ */
+#include <io.h>
+#include <Winsock2.h>
+#include <WS2tcpip.h>
+#include <Iphlpapi.h>
+
+#define SHUT_RDWR SD_BOTH
+#define unlink _unlink
+#define inline
+#define SocketErrno rpc__winx64_winerr_to_errno(WSAGetLastError())
+#define SocketErrnoReturn rpc__winx64_set_errno(WSAGetLastError())
+
+INTERNAL
+rpc_socket_error_t
+rpc__winx64_winerr_to_errno(DWORD WSAErrval);
+
+INTERNAL
+int
+rpc__winx64_set_errno(DWORD WSAErrval);
+
+#endif  /* ------------------ system deps ---------------------------- */
 
 #if defined(__hpux)
 #include "xnet-private.h"
@@ -67,13 +107,15 @@
 #if defined(__hpux) && defined(__ia64) && !defined(_DEFINED_MPINFOU)
 union mpinfou {};
 #endif
+#if !defined(_WIN32)
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
+#endif
 /* Hack to ensure we actually get a definition of ioctl on AIX */
 #if defined(_AIX) && defined(_BSD)
 int ioctl(int d, int request, ...);
 #endif
-#include <unistd.h>
 #ifdef HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h> /* Not just Linux */
 #endif
@@ -202,6 +244,10 @@ int ioctl(int d, int request, ...);
 #define CMSG_LEN(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
 #endif
 
+void
+rpc_lrpc_transport_info_free(
+    rpc_transport_info_handle_t info
+    );
 /*
  * BSD socket transport layer info structures
  */
@@ -226,6 +272,121 @@ typedef struct rpc_bsd_socket_s
  * Macros for performance critical operations.
  */
 
+#ifdef _WIN32
+
+/* Only Winsock2 implementation */
+INTERNAL int
+_bsd__socket_sendmsg(
+    int s,
+    struct msghdr *msg, 
+    int flags)
+{
+    WSABUF *iovec = NULL;
+    int i = 0;
+    int sts = 0;
+    size_t iovec_len = 0;
+    DWORD io_bytes = 0;
+
+    iovec_len = msg->msg_iovlen;
+    if (iovec_len == 1)
+    {
+        /* Degenerate case, iovector is 1, so just use send() */
+        sts = send(s, msg->msg_iov[0].iov_base, (int) msg->msg_iov[0].iov_len, 0);
+        return sts;
+    }
+
+    iovec = calloc(iovec_len, sizeof(WSABUF));
+    if (!iovec)
+    {
+        WSASetLastError(WSA_NOT_ENOUGH_MEMORY);
+        return -1;
+    }
+
+    if (iovec)
+    {
+        for (i=0; i<iovec_len; i++)
+        {
+            iovec[i].len = (ULONG) msg->msg_iov[i].iov_len;
+            iovec[i].buf = msg->msg_iov[i].iov_base;
+        }
+    }
+    sts = WSASend(s, iovec, (DWORD) iovec_len, &io_bytes, 0, 0, 0);
+    free(iovec);
+
+    return sts == -1 ? sts : io_bytes;
+}
+
+INTERNAL int
+_bsd__socket_recvmsg(
+    int s,
+    struct msghdr *msg, 
+    int flags)
+{
+    WSABUF *iovec = NULL;
+    int i = 0;
+    int sts = 0;
+    size_t iovec_len = 0;
+    DWORD io_bytes = 0;
+
+    iovec_len = msg->msg_iovlen;
+    if (iovec_len == 1)
+    {
+        /* Degenerate case, iovector is 1, so just use recv() */
+        sts = recv(s, msg->msg_iov[0].iov_base, (int) msg->msg_iov[0].iov_len, 0);
+        return sts;
+    }
+
+    iovec = calloc(iovec_len, sizeof(WSABUF));
+    if (!iovec)
+    {
+        WSASetLastError(WSA_NOT_ENOUGH_MEMORY);
+        return -1;
+    }
+
+    if (iovec)
+    {
+        for (i=0; i<iovec_len; i++)
+        {
+            iovec[i].len = (ULONG) msg->msg_iov[i].iov_len;
+            iovec[i].buf = msg->msg_iov[i].iov_base;
+        }
+    }
+    sts = WSARecv(s, iovec, (DWORD) iovec_len, &io_bytes, 0, 0, 0);
+    free(iovec);
+
+    return sts == -1 ? sts : io_bytes;
+}
+
+#else
+
+/* 
+ * Pure UNIX implementation, avoiding libdcethread abstractions.
+ * UNIX implementation for sendmsg().
+ */
+INTERNAL int
+_bsd__socket_sendmsg(
+    int s,
+    struct msghdr *msg, 
+    int flags)
+{
+    return sendmsg(s, msg, flags);
+}
+
+/* 
+ * Pure UNIX implementation, avoiding libdcethread abstractions.
+ * UNIX implementation for recvmsg().
+ */
+INTERNAL int
+_bsd__socket_recvmsg(
+    int s,
+    struct msghdr *msg, 
+    int flags)
+{
+    return recvmsg(s, msg, flags);
+}
+#endif
+
+
 inline static void RPC_SOCKET_SENDMSG(
 	rpc_socket_t sock,
 	rpc_socket_iovec_p_t iovp,
@@ -241,6 +402,7 @@ sendmsg_again:
 	memset(&msg, 0, sizeof(msg));
 	RPC_LOG_SOCKET_SENDMSG_NTR;
 	RPC_SOCKET_INIT_MSGHDR(&msg);
+#if !defined(_WIN32_TBD)
 	if ((addrp) != NULL)
 	{
 		RPC_SOCKET_FIX_ADDRLEN(addrp);
@@ -251,10 +413,11 @@ sendmsg_again:
 	{
 		msg.msg_name = (caddr_t) NULL;
 	}
+#endif
 	msg.msg_iov = (struct iovec *) iovp;
 	msg.msg_iovlen = iovlen;
-	*(ccp) = dcethread_sendmsg (lrpc->fd, (struct msghdr *) &msg, 0);
-	*(serrp) = (*(ccp) == -1) ? errno : RPC_C_SOCKET_OK;
+	*(ccp) = _bsd__socket_sendmsg (lrpc->fd, (struct msghdr *) &msg, 0);
+	*(serrp) = (*(ccp) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
 	RPC_LOG_SOCKET_SENDMSG_XIT;
 	if (*(serrp) == EINTR)
 	{
@@ -276,9 +439,9 @@ inline static void RPC_SOCKET_RECVFROM
 recvfrom_again:
 	if ((from) != NULL) RPC_SOCKET_FIX_ADDRLEN(from);
 	RPC_LOG_SOCKET_RECVFROM_NTR;
-	*(ccp) = dcethread_recvfrom (lrpc->fd, (char *) buf, (int) buflen, (int) 0,
+	*(ccp) = (int) dcethread_recvfrom (lrpc->fd, (char *) buf, (int) buflen, (int) 0,
 			(struct sockaddr *) (&(from)->sa), (&(from)->len));
-	*(serrp) = (*(ccp) == -1) ? errno : RPC_C_SOCKET_OK;
+	*(serrp) = (*(ccp) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
 	RPC_LOG_SOCKET_RECVFROM_XIT;
 	RPC_SOCKET_FIX_ADDRLEN(from);
 	if (*(serrp) == EINTR)
@@ -304,6 +467,7 @@ recvmsg_again:
 	memset(&msg, 0, sizeof(msg));
 	RPC_LOG_SOCKET_RECVMSG_NTR;
 	RPC_SOCKET_INIT_MSGHDR(&msg);
+#if !defined(_WIN32_TBD)
 	if ((addrp) != NULL)
 	{
 		RPC_SOCKET_FIX_ADDRLEN(addrp);
@@ -314,14 +478,15 @@ recvmsg_again:
 	{
 		msg.msg_name = (caddr_t) NULL;
 	}
+#endif
 	msg.msg_iov = (struct iovec *) iovp;
 	msg.msg_iovlen = iovlen;
-	*(ccp) = dcethread_recvmsg (lrpc->fd, (struct msghdr *) &msg, 0);
+	*(ccp) = _bsd__socket_recvmsg (lrpc->fd, (struct msghdr *) &msg, 0);
 	if ((addrp) != NULL)
 	{
 		(addrp)->len = msg.msg_namelen;
 	}
-	*(serrp) = (*(ccp) == -1) ? errno : RPC_C_SOCKET_OK;
+	*(serrp) = (*(ccp) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
 	RPC_LOG_SOCKET_RECVMSG_XIT;
 	if (*(serrp) == EINTR)
 	{
@@ -373,11 +538,11 @@ rpc__bsd_socket_construct(
     lrpc->info.session_key.length = 0;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    lrpc->fd = socket(
+    lrpc->fd = (int) socket(
         (int) RPC_PROTSEQ_INQ_NAF_ID(pseq_id),
         (int) RPC_PROTSEQ_INQ_NET_IF_ID(pseq_id),
         0 /*(int) RPC_PROTSEQ_INQ_NET_PROT_ID(pseq_id)*/);
-    serr = ((lrpc->fd == -1) ? errno : RPC_C_SOCKET_OK);
+    serr = ((lrpc->fd == -1) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
 
     if (serr)
@@ -419,8 +584,8 @@ rpc__bsd_socket_open_basic(
      * overloading the protocol field for named pipes
      */
     RPC_SOCKET_DISABLE_CANCEL;
-    *sock = socket((int) naf, (int) net_if, 0);
-    serr = ((*sock == -1) ? errno : RPC_C_SOCKET_OK);
+    *sock = (int) socket((int) naf, (int) net_if, 0);
+    serr = ((*sock == -1) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
 
     return serr;
@@ -435,7 +600,7 @@ rpc__bsd_socket_close_basic(
 
     RPC_LOG_SOCKET_CLOSE_NTR;
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (close(sock) == -1) ? errno : RPC_C_SOCKET_OK;
+    serr = (shutdown(sock, SHUT_RDWR) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_LOG_SOCKET_CLOSE_XIT;
 
@@ -470,7 +635,7 @@ rpc_socket_t        sock;
         {
             RPC_LOG_SOCKET_CLOSE_NTR;
             RPC_SOCKET_DISABLE_CANCEL;
-            serr = (close(lrpc->fd) == -1) ? errno : RPC_C_SOCKET_OK;
+            serr = (shutdown(lrpc->fd, SHUT_RDWR) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
             RPC_SOCKET_RESTORE_CANCEL;
             RPC_LOG_SOCKET_CLOSE_XIT;
         }
@@ -516,6 +681,7 @@ rpc_addr_p_t        addr;
     int setsock_val = 1;
     int ncalrpc;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
+    int one = 1;
 
     RPC_LOG_SOCKET_BIND_NTR;
 
@@ -524,7 +690,8 @@ rpc_addr_p_t        addr;
     /*
      * Check if the address has a well-known endpoint.
      */
-    if (addr->rpc_protseq_id == RPC_C_PROTSEQ_ID_NCACN_IP_TCP || ncalrpc)
+    if (addr->rpc_protseq_id == RPC_C_PROTSEQ_ID_NCACN_IP_TCP ||
+        addr->rpc_protseq_id == RPC_C_PROTSEQ_ID_NCACN_IP6_TCP || ncalrpc)
     {
         unsigned_char_t *endpoint;
 
@@ -555,7 +722,7 @@ rpc_addr_p_t        addr;
         {
 #if defined(SOL_SOCKET) && defined(SO_REUSEADDR)
 	    setsockopt(lrpc->fd, SOL_SOCKET, SO_REUSEADDR,
-		       &setsock_val, sizeof(setsock_val));
+		       (const void *) &setsock_val, sizeof(setsock_val));
 #endif
             if (addr->sa.family == AF_UNIX && addr->sa.data[0] != '\0')
             {
@@ -566,12 +733,17 @@ rpc_addr_p_t        addr;
                 // Ignore any errors from this function.
                 unlink((const char*)addr->sa.data);
             }
+            if (((struct sockaddr_in6 *) &addr->sa)->sin6_family == AF_INET6)
+            {
+                setsockopt(lrpc->fd, SOL_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+            }
             serr =
                 (bind(lrpc->fd, (struct sockaddr *)&addr->sa, addr->len) == -1) ?
-                      errno : RPC_C_SOCKET_OK;
+                      SocketErrno : RPC_C_SOCKET_OK;
         }
     }                                   /* no port restriction */
 
+#if !defined(_WIN32) || defined(HAS_NCAL_RPC)
     else                          
     {
         /* 
@@ -586,7 +758,7 @@ rpc_addr_p_t        addr;
 		       &setsock_val, sizeof(setsock_val));
 #endif
             serr = (bind(lrpc->fd, (struct sockaddr *)&addr->sa, addr->len) == -1)?
-                errno : RPC_C_SOCKET_OK;
+                SocketErrno : RPC_C_SOCKET_OK;
         }                               /* well-known endpoint */
         else
 	{
@@ -602,7 +774,7 @@ rpc_addr_p_t        addr;
 	    if (c != '\0')       /* test for null string */
 	    {
 	        serr = (bind(lrpc->fd, (struct sockaddr *)&addr->sa, addr->len) == -1)?
-		    errno : RPC_C_SOCKET_OK;
+		    SocketErrno : RPC_C_SOCKET_OK;
 	    }                               /* well-known endpoint */
 
 	    else
@@ -679,8 +851,9 @@ rpc_addr_p_t        addr;
 	serr = chmod(skun->sun_path,
 		     S_IRUSR | S_IWUSR | S_IXUSR |
                      S_IRGRP | S_IWGRP | S_IXGRP |
-                     S_IROTH | S_IWOTH | S_IXOTH) == -1 ? errno : RPC_C_SOCKET_OK;
+                     S_IROTH | S_IWOTH | S_IXOTH) == -1 ? SocketErrno : RPC_C_SOCKET_OK; 
     }
+#endif /* defined(HAS_NCAL_RPC) */
 
     if (temp_addr != NULL)
         rpc__naf_addr_free (&temp_addr, &status);
@@ -697,7 +870,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeereid
 );
 
 
-#if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID)
+#if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID) && !defined(_WIN32)
 
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendpeereid
@@ -725,6 +898,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_createsessionkey
 );
 
 
+#if !defined(_WIN32) || defined(HAS_NCAL_RPC)
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendsessionkey
 (
     rpc_socket_t        sock,
@@ -739,6 +913,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvsession_key
     unsigned char     **session_key,
     unsigned16 	       *session_key_len
 );
+#endif /* defined(HAS_NCAL_RPC) */
 
 
 
@@ -791,7 +966,7 @@ connect_again:
                 (int) lrpc->fd,
                 (struct sockaddr *) (&addr->sa),
                 (int) (addr->len))
-            == -1) ? errno : RPC_C_SOCKET_OK;
+            == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_LOG_SOCKET_CONNECT_XIT;
     if (serr == EINTR)
     {
@@ -802,7 +977,7 @@ connect_again:
         goto error;
     }
 
-#if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID)
+#if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID) && !defined(_WIN32)
     serr = rpc__bsd_socket_sendpeereid(sock, addr);
     if (serr)
     {
@@ -810,6 +985,8 @@ connect_again:
     }
 #endif
 
+
+#if !defined(_WIN32) || defined(HAS_NCAL_RPC)
     if (sock->pseq_id == rpc_c_protseq_id_ncalrpc)
     {
         serr = rpc__bsd_socket_recvsession_key(sock,
@@ -823,6 +1000,7 @@ connect_again:
         lrpc->info.session_key.data   = session_key;
         lrpc->info.session_key.length = session_key_len;
     }
+#endif /* defined(HAS_NCAL_RPC) */
 
 cleanup:
     rpc_string_free (&netaddr, &dbg_status);
@@ -896,18 +1074,19 @@ accept_again:
     RPC_LOG_SOCKET_ACCEPT_NTR;
     if (addr == NULL)
     {
-        socklen_t addrlen;
-
-        addrlen = 0;
-        newlrpc->fd = accept
-            ((int) lrpc->fd, (struct sockaddr *) NULL, &addrlen);
+        /*
+         * Not legal on Windows to pass NULL sockaddr but a pointer
+         * to addrlen, even if the value of addrlen = 0.
+         */
+        newlrpc->fd = (int) accept
+            ((int) lrpc->fd, (struct sockaddr *) NULL, NULL);
     }
     else
     {
-        newlrpc->fd = accept
+        newlrpc->fd = (int) accept
             ((int) lrpc->fd, (struct sockaddr *) (&addr->sa), (&addr->len));
     }
-    serr = (newlrpc->fd == -1) ? errno : RPC_C_SOCKET_OK;
+    serr = (newlrpc->fd == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_LOG_SOCKET_ACCEPT_XIT;
 
     if (serr == EINTR)
@@ -923,6 +1102,7 @@ accept_again:
             goto cleanup;
         }
 
+#if !defined(_WIN32) || defined(HAS_NCAL_RPC)
         if (sock->pseq_id == rpc_c_protseq_id_ncalrpc)
         {
             serr = rpc__bsd_socket_createsessionkey(&session_key,
@@ -940,6 +1120,7 @@ accept_again:
                 goto cleanup;
             }
 	}
+#endif /* defined(HAS_NCAL_RPC) */
     }
     else
     {
@@ -991,7 +1172,7 @@ int                 backlog;
 
     RPC_LOG_SOCKET_LISTEN_NTR;
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (listen(lrpc->fd, backlog) == -1) ? errno : RPC_C_SOCKET_OK;
+    serr = (listen(lrpc->fd, backlog) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_LOG_SOCKET_LISTEN_XIT;
     return (serr);
@@ -1136,11 +1317,34 @@ rpc_addr_p_t        addr;
 {
     rpc_socket_error_t  serr;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
+    struct sockaddr saddr;
+    struct sockaddr *psaddr = NULL;
+    socklen_t saddr_len = 0;
 
+    memset(&saddr, 0, sizeof(saddr));
     RPC_LOG_SOCKET_INQ_EP_NTR;
     RPC_SOCKET_FIX_ADDRLEN(addr);
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (getsockname(lrpc->fd, (void*)&addr->sa, &addr->len) == -1) ? errno : RPC_C_SOCKET_OK;
+
+    /*
+     * Not legal on Windows to pass an address length that is smaller
+     * than struct sockaddr. Strategy here is to use a local sockaddr
+     * buffer when the request length is shorter than sizeof(struct sockaddr),
+     * get the data from getsockname(), then copy as much data from
+     * the local buffer into the buffer passed by the caller.
+     */
+    psaddr = (struct sockaddr *) &addr->sa;
+    saddr_len = addr->len;
+    if (addr->len < sizeof(struct sockaddr))
+    {
+        psaddr = &saddr;
+        saddr_len = sizeof(struct sockaddr);
+    }
+    serr = (getsockname(lrpc->fd, (void*)psaddr, &saddr_len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+    if (psaddr != (struct sockaddr *) &addr->sa)
+    {
+        memcpy(&addr->sa, psaddr, addr->len);
+    }
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_SOCKET_FIX_ADDRLEN(addr);
     RPC_LOG_SOCKET_INQ_EP_XIT;
@@ -1171,7 +1375,7 @@ rpc_socket_t        sock;
 
     RPC_SOCKET_DISABLE_CANCEL;
     serr = (setsockopt(lrpc->fd, SOL_SOCKET, SO_BROADCAST,
-            &setsock_val, sizeof(setsock_val)) == -1) ? errno : RPC_C_SOCKET_OK;
+            (const void *) &setsock_val, sizeof(setsock_val)) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr)
     {
@@ -1235,24 +1439,24 @@ unsigned32          *nrxsize;
     txsize = MIN(txsize, RPC_C_SOCKET_MAX_SNDBUF);
     if (txsize != 0)
     {
-        e = setsockopt(lrpc->fd, SOL_SOCKET, SO_SNDBUF, &txsize, sizeof(txsize));
+        e = setsockopt(lrpc->fd, SOL_SOCKET, SO_SNDBUF, (void *) &txsize, sizeof(txsize));
         if (e == -1)
         {
             RPC_DBG_GPRINTF
 (("(rpc__bsd_socket_set_bufs) WARNING: set sndbuf (%d) failed - error = %d\n",
-                txsize, errno));
+                txsize, SocketErrno));
         }
     }
 
     rxsize = MIN(rxsize, RPC_C_SOCKET_MAX_RCVBUF);
     if (rxsize != 0)
     {
-        e = setsockopt(lrpc->fd, SOL_SOCKET, SO_RCVBUF, &rxsize, sizeof(rxsize));
+        e = setsockopt(lrpc->fd, SOL_SOCKET, SO_RCVBUF, (const void *) &rxsize, sizeof(rxsize));
         if (e == -1)
         {
             RPC_DBG_GPRINTF
 (("(rpc__bsd_socket_set_bufs) WARNING: set rcvbuf (%d) failed - error = %d\n",
-                rxsize, errno));
+                rxsize, SocketErrno));
         }
     }
 
@@ -1261,21 +1465,21 @@ unsigned32          *nrxsize;
      */
     *ntxsize = 0;
     sizelen = sizeof *ntxsize;
-    e = getsockopt(lrpc->fd, SOL_SOCKET, SO_SNDBUF, ntxsize, &sizelen);
+    e = getsockopt(lrpc->fd, SOL_SOCKET, SO_SNDBUF, (void *) ntxsize, &sizelen);
     if (e == -1)
     {
         RPC_DBG_GPRINTF
-(("(rpc__bsd_socket_set_bufs) WARNING: get sndbuf failed - error = %d\n", errno));
+(("(rpc__bsd_socket_set_bufs) WARNING: get sndbuf failed - error = %d\n", SocketErrno));
         *ntxsize = RPC_C_SOCKET_GUESSED_SNDBUF;
     }
 
     *nrxsize = 0;
     sizelen = sizeof *nrxsize;
-    e = getsockopt(lrpc->fd, SOL_SOCKET, SO_RCVBUF, nrxsize, &sizelen);
+    e = getsockopt(lrpc->fd, SOL_SOCKET, SO_RCVBUF, (void *) nrxsize, &sizelen);
     if (e == -1)
     {
         RPC_DBG_GPRINTF
-(("(rpc__bsd_socket_set_bufs) WARNING: get rcvbuf failed - error = %d\n", errno));
+(("(rpc__bsd_socket_set_bufs) WARNING: get rcvbuf failed - error = %d\n", SocketErrno));
         *nrxsize = RPC_C_SOCKET_GUESSED_RCVBUF;
     }
 
@@ -1326,13 +1530,13 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_set_nbio
 rpc_socket_t        sock;
 #endif
 {
-#ifndef vms
+#if !defined(vms) && !defined(_WIN32)
 
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = ((fcntl(lrpc->fd, F_SETFL, O_NDELAY) == -1) ? errno : RPC_C_SOCKET_OK);
+    serr = ((fcntl(lrpc->fd, F_SETFL, O_NDELAY) == -1) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr)
     {
@@ -1378,12 +1582,12 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_set_close_on_exec
 rpc_socket_t        sock;
 #endif
 {
-#ifndef vms
+#if !defined(vms) && !defined(_WIN32)
     rpc_socket_error_t  serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = ((fcntl(lrpc->fd, F_SETFD, 1) == -1) ? errno : RPC_C_SOCKET_OK);
+    serr = ((fcntl(lrpc->fd, F_SETFD, 1) == -1) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr)
     {
@@ -1421,7 +1625,7 @@ rpc_addr_p_t addr;
 
     RPC_SOCKET_FIX_ADDRLEN(addr);
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (getpeername(lrpc->fd, (void *)&addr->sa, &addr->len) == -1) ? errno : RPC_C_SOCKET_OK;
+    serr = (getpeername(lrpc->fd, (void *)&addr->sa, &addr->len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_SOCKET_FIX_ADDRLEN(addr);
 
@@ -1448,8 +1652,9 @@ rpc_socket_t        sock;
 rpc_network_if_id_t *network_if_id;
 #endif
 {
-    socklen_t optlen = 0;
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
+#if !defined(_WIN32)
+    socklen_t optlen = 0;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 
     optlen = sizeof(rpc_network_if_id_t);
@@ -1459,8 +1664,9 @@ rpc_network_if_id_t *network_if_id;
                         SOL_SOCKET,
                         SO_TYPE,
                         network_if_id,
-                        &optlen) == -1  ? errno : RPC_C_SOCKET_OK);
+                        &optlen) == -1  ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
+#endif
     return serr;
 }
 
@@ -1493,7 +1699,7 @@ rpc_socket_t        sock;
 
     RPC_SOCKET_DISABLE_CANCEL;
     serr = ((setsockopt(lrpc->fd, SOL_SOCKET, SO_KEEPALIVE,
-       &setsock_val, sizeof(setsock_val)) == -1) ? errno : RPC_C_SOCKET_OK);
+       (void *) &setsock_val, sizeof(setsock_val)) == -1) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr)
     {
@@ -1539,7 +1745,7 @@ struct timeval *tmo;
                   
     RPC_SOCKET_DISABLE_CANCEL;
     num_found = dcethread_select(nfds, NULL, (void *)&write_fds, NULL, tmo);
-    serr = ((num_found < 0) ? errno : RPC_C_SOCKET_OK);
+    serr = ((num_found < 0) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
 
     if (serr)
@@ -1583,9 +1789,20 @@ struct timeval      *tmo;
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 
+#ifdef _WIN32
+    DWORD dwTmo = tmo->tv_sec * 1000;
+    void *ptmo = &dwTmo;
+    int tmoSize = sizeof(DWORD);
+#else
+    void *ptmo = tmo;
+    int tmoSize = sizeof(*tmo);
+#endif
+
+
+
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = ((setsockopt(lrpc->fd, SOL_SOCKET, SO_RCVTIMEO,
-       tmo, sizeof(*tmo)) == -1) ? errno : RPC_C_SOCKET_OK);
+    serr = setsockopt(lrpc->fd, SOL_SOCKET, SO_RCVTIMEO, ptmo, tmoSize);
+    serr = (serr == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr)
     {
@@ -1626,7 +1843,7 @@ gid_t		    *egid;
 
     RPC_SOCKET_DISABLE_CANCEL;
     serr = ((getsockopt(lrpc->fd, SOL_SOCKET, SO_PEERCRED,
-	&peercred, &peercredlen) == -1) ? errno : RPC_C_SOCKET_OK);
+	&peercred, &peercredlen) == -1) ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr == RPC_C_SOCKET_OK)
     {
@@ -1643,7 +1860,7 @@ gid_t		    *egid;
     gid_t gid = -1;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (getpeereid(lrpc->fd, &uid, &gid)) ? errno : RPC_C_SOCKET_OK;
+    serr = (getpeereid(lrpc->fd, &uid, &gid)) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr == RPC_C_SOCKET_OK)
     {
@@ -1654,7 +1871,7 @@ gid_t		    *egid;
     {
         RPC_DBG_GPRINTF(("(rpc__bsd_socket_getpeereid) error=%d\n", serr));
     }
-#else
+#elif !defined(_WIN32)
     serr = rpc__bsd_socket_recvpeereid(sock, euid, egid);
 #endif
 
@@ -1662,7 +1879,7 @@ gid_t		    *egid;
 }
 
 
-#if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID)
+#if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID) && !defined(_WIN32)
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendpeereid
 #ifdef _DCE_PROTO_
@@ -1936,6 +2153,7 @@ cleanup:
 }
 
 
+#if !defined(_WIN32) || defined(HAS_NCAL_RPC)
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendsessionkey
 #ifdef _DCE_PROTO_
 (
@@ -1968,7 +2186,7 @@ unsigned16          session_key_len;
     RPC_SOCKET_RESTORE_CANCEL;
     if (bytes_sent == -1)
     {
-        serr = errno;
+        serr = SocketErrno;
         goto error;
     }
 
@@ -2042,6 +2260,7 @@ error:
 
     goto cleanup;
 }
+#endif /* defined(HAS_NCAL_RPC) */
 
 
 INTERNAL
@@ -2054,6 +2273,649 @@ int rpc__bsd_socket_get_select_desc(
     return lrpc->fd;
 }
 
+#ifdef _WIN32
+
+
+INTERNAL int
+rpc__inet_ntoa(struct in_addr *inp, char *buf, int buflen)
+{
+    unsigned32 addr = 0;
+    int i;
+    unsigned char octet = 0;
+    int len = 0;
+
+    addr = inp->s_addr;
+    for (i=0; i<4; i++)
+    {
+        octet = 0xff & addr;
+        addr >>= 8;
+        len += sprintf(&buf[len], "%d", octet);
+        if (i<3)
+        {
+            len += sprintf(&buf[len], ".");
+        }
+    }
+    return 0;
+}
+
+
+INTERNAL int
+rpc__inet_aton(const char *str_addr, struct in_addr *inp)
+{
+    unsigned32 addr = 0;
+    unsigned32 val = 0;
+    char *cp = NULL;
+    const char *prev = NULL;
+    int shift = 0;
+    int stop = 0;
+    int dot_count = 0;
+    int err = 0;
+
+    if (!str_addr || !inp || strlen(str_addr) > 15)
+    {
+        err = EINVAL;
+        goto error;
+    }
+
+    prev = str_addr;
+    do
+    {
+        val = strtol(prev, &cp, 10);
+        if (val < 0 || val > 255)
+        {
+            err = EINVAL;
+            goto error;
+        }
+        if (cp != prev && (!*cp || *cp == '.') && val >= 0 && val <= 255)
+        {
+            /* Insure value is 0-255 and put into network byte order */
+            addr |= (val & 0xff) << (shift++ * 8);
+            if (*cp)
+            {
+                dot_count++;
+                if (dot_count > 3)
+                {
+                    err = EINVAL;
+                    goto error;
+                }
+                ++cp;
+            }
+            prev = cp;
+        }
+        else
+        {
+            stop = 1;
+        }
+    } while (*prev && !stop);
+    
+    inp->s_addr = addr;
+
+error:
+    return err;
+}
+
+
+INTERNAL DWORD
+rpc__win64_alloc_adapter_info(
+    PIP_ADAPTER_INFO *ppAdapter)
+{
+    PIP_ADAPTER_INFO pAdapterInfo = NULL;
+    DWORD dwError = 0;
+    ULONG ulSize = 0;
+
+    dwError = GetAdaptersInfo(NULL, &ulSize);
+    if (ulSize == 0)
+    {
+        return EINVAL;
+    }
+
+    if (ulSize > 0)
+    {
+        pAdapterInfo = (PIP_ADAPTER_INFO) calloc(ulSize, sizeof(BYTE));
+        if (pAdapterInfo)
+        {
+            /* 
+             * Note: pAdapterInfo->CurrentIpAddress is empty 
+             * The values of interest here are:
+             *     pIpAddressNext->IpAddress
+             *     pIpAddressNext->IpMask
+             */
+            dwError = GetAdaptersInfo(pAdapterInfo, &ulSize);
+        }
+        *ppAdapter = pAdapterInfo;
+    }
+
+    return dwError;
+}
+
+
+INTERNAL int
+rpc__winx64_ipstring_to_saddr(
+    rpc_protseq_id_t pseq_id,
+    char *ipaddr,
+    rpc_ip_addr_p_t *rpc_ip_addr)
+{
+    rpc_socket_error_t err = -1;
+    struct sockaddr_in addr_in;
+    rpc_ip_addr_p_t ret_rpc_ip_addr = NULL;
+
+    memset(&addr_in, 0, sizeof(addr_in));
+    addr_in.sin_family = AF_INET;
+    rpc__inet_aton(ipaddr, &addr_in.sin_addr);
+    RPC_MEM_ALLOC (
+        ret_rpc_ip_addr,
+        rpc_ip_addr_p_t,
+        sizeof (rpc_ip_addr_t),
+        RPC_C_MEM_RPC_ADDR,
+        RPC_C_MEM_WAITOK);
+    if (!ret_rpc_ip_addr)
+    {
+        err = ENOMEM;
+        goto error;
+    }
+    memset(ret_rpc_ip_addr, 0, sizeof (rpc_ip_addr_t));
+
+    ret_rpc_ip_addr->rpc_protseq_id = pseq_id;
+    ret_rpc_ip_addr->len = sizeof(struct sockaddr_in);
+    memcpy (&ret_rpc_ip_addr->sa, &addr_in, sizeof(struct sockaddr_in));
+
+    err = 0;
+    *rpc_ip_addr = ret_rpc_ip_addr;
+    
+error:
+    if (err)
+    {
+        RPC_MEM_FREE (ret_rpc_ip_addr, RPC_C_MEM_RPC_ADDR);
+    }
+
+    return err;
+}
+
+
+INTERNAL rpc_socket_error_t
+rpc__winx64_socket_alloc_vectors(
+    int count,
+    rpc_addr_vector_p_t *rpc_addr_vec,
+    rpc_addr_vector_p_t *netmask_addr_vec,
+    rpc_addr_vector_p_t *broadcast_addr_vec)
+{
+    rpc_socket_error_t err = -1;
+    rpc_addr_vector_p_t ret_rpc_addr_vec = NULL;
+    rpc_addr_vector_p_t ret_netmask_addr_vec = NULL;
+    rpc_addr_vector_p_t ret_broadcast_addr_vec = NULL;
+
+/* (sizeof **rpc_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))), */
+    RPC_MEM_ALLOC(ret_rpc_addr_vec, 
+                  rpc_addr_vector_p_t, 
+                  sizeof(*ret_rpc_addr_vec) + (count * sizeof(rpc_addr_p_t)),
+                  RPC_C_MEM_RPC_ADDR_VEC,
+                  RPC_C_MEM_WAITOK);
+    if (ret_rpc_addr_vec == NULL)
+    {
+        err = ENOMEM;
+        goto error;
+    }
+    memset(ret_rpc_addr_vec, 0, count * sizeof(ret_rpc_addr_vec));
+
+    RPC_MEM_ALLOC(ret_netmask_addr_vec, 
+                  rpc_addr_vector_p_t, 
+                  sizeof(*ret_netmask_addr_vec) + (count * sizeof(rpc_addr_p_t)),
+                  RPC_C_MEM_RPC_ADDR_VEC,
+                  RPC_C_MEM_WAITOK);
+    if (ret_netmask_addr_vec == NULL)
+    {
+        err = ENOMEM;
+        goto error;
+    }
+    memset(ret_netmask_addr_vec, 0, count * sizeof(ret_netmask_addr_vec));
+    
+    RPC_MEM_ALLOC(ret_broadcast_addr_vec, 
+                  rpc_addr_vector_p_t, 
+                  sizeof(*ret_broadcast_addr_vec) + (count * sizeof(rpc_addr_p_t)),
+                  RPC_C_MEM_RPC_ADDR_VEC,
+                  RPC_C_MEM_WAITOK);
+    if (ret_broadcast_addr_vec == NULL)
+    {
+        err = ENOMEM;
+        goto error;
+    }
+    memset(ret_broadcast_addr_vec, 0, count * sizeof(ret_broadcast_addr_vec));
+    
+    err = 0;
+    *rpc_addr_vec = ret_rpc_addr_vec;
+    *netmask_addr_vec = ret_netmask_addr_vec;
+    *broadcast_addr_vec = ret_broadcast_addr_vec;
+
+error:
+    if (err)
+    {
+        if (ret_rpc_addr_vec)
+        {
+            RPC_MEM_FREE (ret_rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        }
+        if (ret_netmask_addr_vec)
+        {
+            RPC_MEM_FREE (ret_netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        }
+        if (ret_broadcast_addr_vec)
+        {
+            RPC_MEM_FREE (ret_broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        }
+    }
+
+    return err;
+}
+
+INTERNAL void
+rpc__winx64_socket_make_broadcast_addr(
+    char *ipaddr,
+    char *netmask,
+    char *broadcast)
+{
+    struct in_addr in_ipaddr;
+    struct in_addr in_netmask;
+    struct in_addr in_broadcast;
+
+    memset(&in_ipaddr, 0, sizeof(in_ipaddr));
+    memset(&in_netmask, 0, sizeof(in_netmask));
+    memset(&in_broadcast, 0, sizeof(in_broadcast));
+
+    rpc__inet_aton(ipaddr, &in_ipaddr);
+    rpc__inet_aton(netmask, &in_netmask);
+    in_broadcast.s_addr = in_ipaddr.s_addr | in_netmask.s_addr;
+
+    rpc__inet_ntoa(&in_broadcast, broadcast, 16);
+}
+
+
+INTERNAL rpc_socket_error_t
+rpc__winx64_socket_enum_ifaces(
+    rpc_socket_t sock,
+    rpc_socket_enum_iface_fn_p_t efun,
+    rpc_addr_vector_p_t *rpc_addr_vec,
+    rpc_addr_vector_p_t *netmask_addr_vec,
+    rpc_addr_vector_p_t *broadcast_addr_vec
+)
+{
+    rpc_socket_error_t err = -1;
+    int sts = 0;
+    DWORD dwError = 0;
+    PIP_ADAPTER_INFO pAdapter = NULL;
+    PIP_ADAPTER_INFO pAdapterNext = NULL;
+    PIP_ADDR_STRING  pIpAddrString = NULL;
+    int addrCount = 0;
+    rpc_addr_vector_p_t ret_rpc_addr_vec;
+    rpc_addr_vector_p_t ret_netmask_addr_vec;
+    rpc_addr_vector_p_t ret_broadcast_addr_vec;
+    char broadcast_addr_str[16] = {0}; // xxx.xxx.xxx.xxx\0
+    int i = 0;
+
+    rpc_ip_addr_p_t ip_addr = NULL;
+    rpc_ip_addr_p_t netmask_addr = NULL;
+    rpc_ip_addr_p_t broadcast_addr = NULL;
+
+    /*
+     * Get information about network interfaces for further
+     * processing. Note: pAdapter->IpAddressList contains
+     * all IP addresses for the current adapter, and the subnet
+     * mask. Count all adapters and IP addresses for
+     * each adapter.
+     */
+    dwError = rpc__win64_alloc_adapter_info(&pAdapter);
+    if (dwError)
+    {
+        return dwError; // TBD: Map to RPC error space? 
+    }
+
+    /*
+     * Enumerate the number of interfaces. This count is used to allocate 
+     * memory for the return addr, netmask and broadcast vectors.
+     */
+    for (pAdapterNext = pAdapter, addrCount = 0; 
+         pAdapterNext;
+         pAdapterNext = pAdapterNext->Next)
+    {
+        for (pIpAddrString = &pAdapter->IpAddressList;
+             pIpAddrString;
+             pIpAddrString = pIpAddrString->Next)
+        {
+            addrCount++;
+        }
+    }
+    
+    err = rpc__winx64_socket_alloc_vectors(
+              addrCount,
+              &ret_rpc_addr_vec,
+              &ret_netmask_addr_vec,
+              &ret_broadcast_addr_vec);
+    if (err)
+    {
+        goto error;
+    }
+
+    /*
+     * Walk through the interfaces, populating the address / netmask /
+     * broadcast mask fields in the return vectors.
+     */
+    for (pAdapterNext = pAdapter, addrCount = 0; 
+         pAdapterNext;
+         pAdapterNext = pAdapterNext->Next)
+    {
+        for (pIpAddrString = &pAdapter->IpAddressList;
+             pIpAddrString;
+             pIpAddrString = pIpAddrString->Next)
+        {
+            err = rpc__winx64_ipstring_to_saddr(
+                      sock->pseq_id,
+                      pIpAddrString->IpAddress.String,
+                      &ip_addr);
+            if (err)
+            {
+                goto error;
+            }
+
+            err = rpc__winx64_ipstring_to_saddr(
+                      sock->pseq_id,
+                      pIpAddrString->IpMask.String,
+                      &netmask_addr);
+            if (err)
+            {
+                goto error;
+            }
+
+            /* Synthesize a broadcast mask from IP address and netmask */
+            rpc__winx64_socket_make_broadcast_addr(
+                  pIpAddrString->IpAddress.String,
+                  pIpAddrString->IpMask.String,
+                  broadcast_addr_str);
+
+            err = rpc__winx64_ipstring_to_saddr(
+                      sock->pseq_id,
+                      broadcast_addr_str,
+                      &broadcast_addr);
+            if (err)
+            {
+                goto error;
+            }
+
+            if (efun && 
+                efun(sock, (rpc_addr_p_t) ip_addr, 
+                           (rpc_addr_p_t) netmask_addr, 
+                           (rpc_addr_p_t) broadcast_addr) == false)
+            {
+                if (ip_addr != NULL)
+                {
+                    RPC_MEM_FREE (ip_addr, RPC_C_MEM_RPC_ADDR);
+                    ip_addr = NULL;
+                }
+                if (netmask_addr != NULL)
+                {
+                    RPC_MEM_FREE (netmask_addr, RPC_C_MEM_RPC_ADDR);
+                    netmask_addr = NULL;
+                }
+                if (broadcast_addr != NULL)
+                {
+                    RPC_MEM_FREE (broadcast_addr, RPC_C_MEM_RPC_ADDR);
+                    broadcast_addr = NULL;
+                }
+            }
+            else
+            {
+                if (rpc_addr_vec && ip_addr)
+                {
+                    ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++]
+                        = (rpc_addr_p_t) ip_addr;
+                    ip_addr = NULL;
+                }
+                if (netmask_addr_vec && netmask_addr)
+                {
+                    ret_netmask_addr_vec->addrs[ret_netmask_addr_vec->len++]
+                        = (rpc_addr_p_t) netmask_addr;
+                    netmask_addr = NULL;
+                }
+                if (broadcast_addr_vec && broadcast_addr)
+                {
+                    ret_broadcast_addr_vec->addrs[ret_broadcast_addr_vec->len++]
+                        = (rpc_addr_p_t) broadcast_addr;
+                    broadcast_addr = NULL;
+                }
+            }
+        }
+    }
+    
+    err = 0;
+    if (rpc_addr_vec) *rpc_addr_vec = ret_rpc_addr_vec;
+    if (netmask_addr_vec) *netmask_addr_vec = ret_netmask_addr_vec;
+    if (broadcast_addr_vec) *broadcast_addr_vec = ret_broadcast_addr_vec;
+
+error:
+    if (err)
+    {
+        /* Free a bunch of stuff */
+    }
+    
+    return err;
+}
+
+
+/*
+ * Map Winsock2 errval to errno value
+ */
+INTERNAL
+rpc_socket_error_t 
+rpc__winx64_winerr_to_errno(DWORD WSAErrval)
+{
+    rpc_socket_error_t err = 0;
+
+    switch (WSAErrval)
+    {
+      case WSAEINTR:
+        err = EINTR;
+        break;
+      case WSAEBADF:
+        err = EBADF;
+        break;
+      case WSAEACCES:
+        err = RPC_C_SOCKET_EACCESS;
+        break;
+      case WSAEFAULT:
+        err = EFAULT;
+        break;
+      case WSAEINVAL:
+        err = EINVAL;
+        break;
+      case WSAEMFILE:
+        err = EMFILE;
+        break;
+      case WSAEWOULDBLOCK:
+        err = RPC_C_SOCKET_EWOULDBLOCK;
+        break;
+      case WSAEINPROGRESS:
+        err = RPC_C_SOCKET_EINPROGRESS;
+        break;
+      case WSAEALREADY:
+        err = RPC_C_SOCKET_EALREADY;
+        break;
+      case WSAENOTSOCK:
+        err = RPC_C_SOCKET_ENOTSOCK;
+        break;
+//      case WSAEDESTADDRREQ:
+//        err = RPC_C_SOCKET_EDESTADDRREQ;
+//      break;
+//    case WSAEMSGSIZE:
+//      err = RPC_C_SOCKET_EMSGSIZE;
+//      break;
+//    case WSAEPROTOTYPE:
+//      err = RPC_C_SOCKET_EPROTOTYPE;
+//      break;
+//    case WSAENOPROTOOPT:
+//      err = RPC_C_SOCKET_ENOPROTOOPT;
+//      break;
+//    case WSAEPROTONOSUPPORT:
+//      err = RPC_C_SOCKET_EPROTONOSUPPORT;
+//      break;
+//    case WSAESOCKTNOSUPPORT:
+//      err = RPC_C_SOCKET_ESOCKTNOSUPPORT;
+//      break;
+//    case WSAEOPNOTSUPP:
+//      err = RPC_C_SOCKET_EOPNOTSUPP;
+//      break;
+//    case WSAEPFNOSUPPORT:
+//      err = RPC_C_SOCKET_EPFNOSUPPORT;
+//      break;
+//    case WSAEAFNOSUPPORT:
+//      err = RPC_C_SOCKET_EAFNOSUPPORT;
+//      break;
+      case WSAEADDRINUSE:
+        err = RPC_C_SOCKET_EADDRINUSE;
+        break;
+//    case WSAEADDRNOTAVAIL:
+//      err = RPC_C_SOCKET_EADDRNOTAVAIL;
+//      break;
+      case WSAENETDOWN:
+        err = RPC_C_SOCKET_ENETDOWN;
+        break;
+      case WSAENETUNREACH:
+        err = RPC_C_SOCKET_ENETUNREACH;
+        break;
+      case WSAENETRESET:
+        err = RPC_C_SOCKET_ENETRESET;
+        break;
+      case WSAECONNABORTED:
+        err = RPC_C_SOCKET_ECONNABORTED;
+        break;
+      case WSAECONNRESET:
+        err = RPC_C_SOCKET_ECONNRESET;
+        break;
+//    case WSAENOBUFS:
+//      err = RPC_C_SOCKET_ENOBUFS;
+//      break;
+      case WSAEISCONN:
+        err = RPC_C_SOCKET_EISCONN;
+        break;
+//    case WSAENOTCONN:
+//      err = RPC_C_SOCKET_ENOTCONN;
+//      break;
+//    case WSAESHUTDOWN:
+//      err = RPC_C_SOCKET_ESHUTDOWN;
+//      break;
+      case WSAETOOMANYREFS:
+        err = RPC_C_SOCKET_ETOOMANYREFS;
+        break;
+      case WSAETIMEDOUT:
+        err = ETIMEDOUT;
+        break;
+      case WSAECONNREFUSED:
+        err = RPC_C_SOCKET_ECONNREFUSED;
+        break;
+//    case WSAELOOP:
+//      err = RPC_C_SOCKET_ELOOP;
+//      break;
+      case WSAENAMETOOLONG:
+        err = ENAMETOOLONG;
+        break;
+      case WSAEHOSTDOWN:
+        err = RPC_C_SOCKET_EHOSTDOWN;
+        break;
+      case WSAEHOSTUNREACH:
+        err = RPC_C_SOCKET_EHOSTUNREACH;
+        break;
+      case WSAENOTEMPTY:
+        err = ENOTEMPTY;
+        break;
+//    case WSAEPROCLIM:
+//      err = RPC_C_SOCKET_EPROCLIM;
+//      break;
+//    case WSAEUSERS:
+//      err = RPC_C_SOCKET_EUSERS;
+//      break;
+//    case WSAEDQUOT:
+//      err = RPC_C_SOCKET_EDQUOT;
+//      break;
+//    case WSAESTALE:
+//      err = RPC_C_SOCKET_ESTALE;
+//      break;
+//    case WSAEREMOTE:
+//      err = RPC_C_SOCKET_EREMOTE;
+      default:
+        err = EINVAL;
+        break;
+    }
+    return err;
+}
+
+/*
+ * Convenience routine that maps WSA error value to UNIX error
+ * space, and then returns -1. This implements the semantic of
+ * a function that fails with -1 return status, and sets errno
+ * to indicate the failure.
+ */
+INTERNAL
+int
+rpc__winx64_set_errno(DWORD WSAErrval)
+{
+    errno = rpc__winx64_winerr_to_errno(WSAErrval);
+    return -1;
+}
+
+#endif /* _WIN32 */
+
+INTERNAL void 
+_rpc__bsd_free_if_entry(
+    rpc_ip_addr_p_t  *ip_addr,
+    rpc_ip_addr_p_t  *netmask_addr,
+    rpc_ip_addr_p_t  *broadcast_addr)
+{
+    if (*ip_addr)
+    {
+        RPC_MEM_FREE((*ip_addr), RPC_C_MEM_RPC_ADDR);
+        *ip_addr = NULL;
+    }
+    if (*netmask_addr)
+    {
+        RPC_MEM_FREE((*netmask_addr), RPC_C_MEM_RPC_ADDR);
+        *netmask_addr = NULL;
+    }
+    if (*broadcast_addr)
+    {
+        RPC_MEM_FREE((*broadcast_addr), RPC_C_MEM_RPC_ADDR);
+        *broadcast_addr = NULL;
+    }
+}
+
+
+INTERNAL boolean 
+_rpc__bsd_protoseq_filter_cb(
+    rpc_socket_t sock,
+    rpc_addr_p_t ip_addr,
+    rpc_addr_p_t netmask_addr,
+    rpc_addr_p_t broadcast_addr
+    )
+{
+    int pseq = -1;
+
+    if (!sock)
+    {
+        return false;
+    }
+    pseq = sock->pseq_id;
+
+    if (ip_addr && ip_addr->rpc_protseq_id != pseq)
+    {
+        return false;
+    }
+    if (netmask_addr && netmask_addr->rpc_protseq_id != pseq)
+    {
+        return false;
+    }
+    if (broadcast_addr && broadcast_addr->rpc_protseq_id != pseq)
+    {
+        return false;
+    }
+    return true;
+}
+
+
 INTERNAL
 rpc_socket_error_t
 rpc__bsd_socket_enum_ifaces(
@@ -2064,289 +2926,202 @@ rpc__bsd_socket_enum_ifaces(
     rpc_addr_vector_p_t *broadcast_addr_vec
 )
 {
-    rpc_ip_addr_p_t         ip_addr = NULL;
-    rpc_ip_addr_p_t         netmask_addr = NULL;
-    rpc_ip_addr_p_t         broadcast_addr = NULL;
-    int                     n_ifs;
-    union
-    {
-        unsigned char           buf[1024];
-        struct ifreq req;
-    } reqbuf;
-    struct ifconf           ifc;
-    struct ifreq            *ifr, *last_ifr;
-    struct ifreq            ifreq;
-    short                   if_flags;
-    struct sockaddr         if_addr;
-    unsigned int                     i;
-#ifdef _SOCKADDR_LEN
-    int                     prev_size;
+
+#if defined(_WIN32)
+
+    rpc_socket_error_t err = -1;
+    err = rpc__winx64_socket_enum_ifaces(
+              sock,
+              efun,
+              rpc_addr_vec,
+              netmask_addr_vec,
+              broadcast_addr_vec);
+
+    return err;
+
 #else
-    const int prev_size = sizeof(struct ifreq) ;
-#endif
+    rpc_addr_vector_p_t ret_rpc_addr_vec = NULL;
+    rpc_addr_vector_p_t ret_netmask_addr_vec = NULL;
+    rpc_addr_vector_p_t ret_broadcast_addr_vec = NULL;
+    rpc_ip_addr_p_t    ip_addr = NULL;
+    rpc_ip_addr_p_t    netmask_addr = NULL;
+    rpc_ip_addr_p_t    broadcast_addr = NULL;
     rpc_socket_error_t err = 0;
-    rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
+    int                n_ifs = 0;
+    int                sts = 0;
+    int                rpc_ip_addrlen = 0;
+    int                sin_addrlen = 0;
+    int                i = 0;
+    boolean            is_ipv6 = false;
+    struct ifaddrs     *ifaddrs = NULL;
+    struct ifaddrs     *ifaddrs_save = NULL;
+    struct sockaddr_in *in_addr;
+    rpc_socket_enum_iface_fn_p_t protseq_efun = _rpc__bsd_protoseq_filter_cb;
 
-    /*
-     * Get the list of network interfaces.
-     */
-    ifc.ifc_len = sizeof (reqbuf.buf);
-    ifc.ifc_buf = (caddr_t) reqbuf.buf;
-
-ifconf_again:
-    if (ioctl (lrpc->fd, SIOCGIFCONF, (caddr_t) &ifc) < 0)
+    /* Note: "sock" was used in ioctl() implementation, but not here */
+    sts = getifaddrs(&ifaddrs);
+    if (sts == -1)
     {
-        if (errno == EINTR)
-        {
-            goto ifconf_again;
-        }
-        err = errno;   /* !!! */
+        err = errno;
         goto done;
     }
 
-    /*
-     * Figure out how many interfaces there must be and allocate an
-     * RPC address vector with the appropriate number of elements.
-     * (We may ask for a few too many in case some of the interfaces
-     * are uninteresting.)
-     */
-    n_ifs = ifc.ifc_len / sizeof (struct ifreq);
-    RPC_DBG_PRINTF(rpc_e_dbg_general, 10,
-        ("%d bytes of ifreqs, ifreq is %d bytes\n", ifc.ifc_len, sizeof(struct ifreq)));
-
-#ifdef MAX_DEBUG
-    if (RPC_DBG2(rpc_e_dbg_general, 15))
+    /* Save original value, as need to count number of entries initially */
+    for (ifaddrs_save = ifaddrs; ifaddrs; ifaddrs = ifaddrs->ifa_next)
     {
-        int i;
-	char msgbuf[128];
-
-        for (i=0; i<ifc.ifc_len; i++) {
-            if ((i % 32) == 0) {
-		if (i != 0)
-		    RPC_DBG_PRINTF(rpc_e_dbg_general, 15, ("%s\n",msgbuf));
-                sprintf(msgbuf, "%4x: ", i);
-	    }
-            sprintf(msgbuf, "%s%02x ", msgbuf, reqbuf.buf[i]);
-        }
-	if (i != 0)
-	    RPC_DBG_PRINTF(rpc_e_dbg_general, 15, ("%s\n",msgbuf));
+        n_ifs++;
     }
-#endif
+    ifaddrs = ifaddrs_save;
 
-    if (rpc_addr_vec != NULL)
+    if (rpc_addr_vec)
     {
-        RPC_MEM_ALLOC (
-            *rpc_addr_vec,
+        RPC_MEM_ALLOC(
+            ret_rpc_addr_vec,
             rpc_addr_vector_p_t,
-            (sizeof **rpc_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
+            (sizeof *ret_rpc_addr_vec) + (n_ifs * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
 
-        if (*rpc_addr_vec == NULL)
+        if (ret_rpc_addr_vec == NULL)
         {
             err = ENOMEM;
             goto done;
         }
+        ret_rpc_addr_vec->len = 0;
     }
 
-    if (netmask_addr_vec != NULL)
+    if (netmask_addr_vec)
     {
-        RPC_MEM_ALLOC (
-            *netmask_addr_vec,
+        RPC_MEM_ALLOC(
+            ret_netmask_addr_vec,
             rpc_addr_vector_p_t,
-         (sizeof **netmask_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
+         (sizeof *ret_netmask_addr_vec) + (n_ifs * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
 
-        if (*netmask_addr_vec == NULL)
+        if (ret_netmask_addr_vec == NULL)
         {
             err = ENOMEM;
-            RPC_MEM_FREE (*netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+            RPC_MEM_FREE(ret_netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
             goto done;
         }
 
-        (*netmask_addr_vec)->len = 0;
+        ret_netmask_addr_vec->len = 0;
     }
 
-    if (broadcast_addr_vec != NULL)
+    if (broadcast_addr_vec)
     {
-        RPC_MEM_ALLOC (
-            *broadcast_addr_vec,
+        RPC_MEM_ALLOC(
+            ret_broadcast_addr_vec,
             rpc_addr_vector_p_t,
-         (sizeof **broadcast_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
+         (sizeof *ret_broadcast_addr_vec) + (n_ifs * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
 
-        if (*broadcast_addr_vec == NULL)
+        if (ret_broadcast_addr_vec == NULL)
         {
             err = ENOMEM;
-            RPC_MEM_FREE (*broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+            RPC_MEM_FREE(ret_broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
             goto done;
         }
 
-        (*broadcast_addr_vec)->len = 0;
+        ret_broadcast_addr_vec->len = 0;
     }
 
     /*
      * Go through the interfaces and get the info associated with them.
      */
-    (*rpc_addr_vec)->len = 0;
-    last_ifr = (struct ifreq *) (ifc.ifc_buf + ifc.ifc_len);
-
-    for (i=0, ifr = ifc.ifc_req; ifr < last_ifr ;
-         i++, ifr = (struct ifreq *)(( (char *) ifr ) + prev_size))
+    for (ifaddrs_save = ifaddrs; ifaddrs; ifaddrs = ifaddrs->ifa_next)
     {
-#ifdef _SOCKADDR_LEN
-        prev_size = sizeof (struct ifreq) - sizeof(struct sockaddr) + ifr->ifr_addr.sa_len ;
-#endif
-        RPC_DBG_PRINTF(rpc_e_dbg_general, 10, ("interface %d: %s\n",
-            i, ifr->ifr_name));
-        /*
-         * Get the interface's flags.  If the flags say that the interface
-         * is not up or is the loopback interface, skip it.  Do the
-         * SIOCGIFFLAGS on a copy of the ifr so we don't lose the original
-         * contents of the ifr.  (ifr's are unions that hold only one
-         * of the interesting interface attributes [address, flags, etc.]
-         * at a time.)
-         */
-        memcpy(&ifreq, ifr, sizeof(ifreq));
-ifflags_again:
-        if (ioctl(lrpc->fd, SIOCGIFFLAGS, &ifreq) < 0)
-        {
-            RPC_DBG_PRINTF(rpc_e_dbg_general, 10,
-                ("SIOCGIFFLAGS returned errno %d\n", errno));
-            if (errno == EINTR)
-            {
-                goto ifflags_again;
-            }
-            continue;
-        }
-        if_flags = ifreq.ifr_flags;     /* Copy out the flags */
-        RPC_DBG_PRINTF(rpc_e_dbg_general, 10, ("flags are %x\n", if_flags));
+        is_ipv6 = false;
 
         /*
          * Ignore interfaces which are not 'up'.
-         */
-        if ((if_flags & IFF_UP) == 0)
-
-	  continue;
-
-#ifndef USE_LOOPBACK
-	/*
-	 * Ignore the loopback interface
-	 */
-
-        if (if_flags & IFF_LOOPBACK) continue;
-#endif
-	/*
-	 * Ignore Point-to-Point interfaces (i.e. SLIP/PPP )
+         *
+         * Ignore Point-to-Point interfaces (i.e. SLIP/PPP )
          * *** NOTE:  We need an Environment Variable Evaluation at
-	 * some point so we can selectively allow RPC servers to
-	 * some up with/without SLIP/PPP bindings. For Dynamic PPP/SLIP
-	 * interfaces, this creates problems for now.
-	 */
-
-        if (if_flags & IFF_POINTOPOINT) continue;
-
-        /*
-         * Get the addressing stuff for this interface.
+         * some point so we can selectively allow RPC servers to
+         * some up with/without SLIP/PPP bindings. For Dynamic PPP/SLIP
+         * interfaces, this creates problems for now.
          */
-
-#ifdef NO_SIOCGIFADDR
-
-        /*
-         * Note that some systems do not return the address for the
-         * interface given.  However the ifr array elts contained in
-         * the ifc block returned from the SIOCGIFCONF ioctl above already
-         * contains the correct addresses. So these systems should define
-         * NO_SIOCGIFADDR in their platform specific include file.
-         */
-        if_addr = ifr->ifr_addr;
-
-#else
-
-        /*
-         * Do the SIOCGIFADDR on a copy of the ifr.  See above.
-         */
-        memcpy(&ifreq, ifr, sizeof(ifreq));
-    ifaddr_again:
-        if (ioctl(lrpc->fd, SIOCGIFADDR, &ifreq) < 0)
+        if ((ifaddrs->ifa_flags & IFF_UP) == 0 ||
+           (ifaddrs->ifa_flags & IFF_POINTOPOINT))
         {
-            /*
-             * UP but no ip address, skip it
-             */
-            if (errno == EADDRNOTAVAIL) continue;
-
-            RPC_DBG_PRINTF(rpc_e_dbg_general, 10,
-                           ("SIOCGIFADDR returned errno %d\n", errno));
-            if (errno == EINTR)
-            {
-                goto ifaddr_again;
-            }
-
-            err = errno;
-            goto FREE_IT;
-        }
-
-        memcpy (&if_addr, &ifr->ifr_addr, sizeof(struct sockaddr));
-
-#endif  /* NO_SIOCGIFADDR */
-
-        /*
-         * If this isn't an Internet-family address, ignore it.
-         */
-        if (if_addr.sa_family != AF_INET)
-        {
-            RPC_DBG_PRINTF(rpc_e_dbg_general, 10, ("AF %d not INET\n",
-                                                   if_addr.sa_family));
             continue;
         }
 
-        if (rpc_addr_vec != NULL)
+/* TBD: Adam-Do we care if this is conditionally compiled in? */
+#ifndef USE_LOOPBACK
+        /*
+         * Ignore the loopback interface
+         */
+        if (ifaddrs->ifa_flags & IFF_LOOPBACK)
+        {
+            continue;
+        }
+#endif
+
+        /*
+         * Allow only IPv4/IPv6 addresses past this point
+         */
+        in_addr = (struct sockaddr_in *) ifaddrs->ifa_addr;
+        if (in_addr->sin_family != AF_INET &&
+            in_addr->sin_family != AF_INET6)
+        {
+            continue;
+        }
+    
+        /* 
+         * Interface is definitely either IPv4 or IPv6 here
+         */
+        if (in_addr->sin_family == AF_INET)
+        {
+            rpc_ip_addrlen = sizeof(rpc_ip_addr_t);
+            sin_addrlen = sizeof(struct sockaddr_in);
+        }
+        else
+        {
+            is_ipv6 = true;
+            rpc_ip_addrlen = sizeof(rpc_ip6_addr_t);
+            sin_addrlen = sizeof(struct sockaddr_in6);
+        }
+
+        if (ret_rpc_addr_vec)
         {
             /*
-             * Allocate and fill in an IP RPC address for this interface.
+             * Allocate IPv4 or IPv6 address structure here.
              */
-            RPC_MEM_ALLOC (
+            RPC_MEM_ALLOC(
                 ip_addr,
                 rpc_ip_addr_p_t,
-                sizeof (rpc_ip_addr_t),
+                rpc_ip_addrlen,
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
 
-            if (ip_addr == NULL)
+            if (!ip_addr)
             {
                 err = ENOMEM;
                 goto FREE_IT;
             }
 
-            ip_addr->rpc_protseq_id = sock->pseq_id;
-            ip_addr->len            = sizeof (struct sockaddr_in);
-
-            memcpy (&ip_addr->sa, &if_addr, sizeof(struct sockaddr_in));
-        }
-        else
-        {
-            ip_addr = NULL;
-        }
-
-        if (netmask_addr_vec != NULL && (if_flags & IFF_LOOPBACK) == 0)
-        {
-            memcpy(&ifreq, ifr, sizeof(ifreq));
-
-            while (ioctl(lrpc->fd, SIOCGIFNETMASK, &ifreq) == -1)
+            if (is_ipv6)
             {
-                if (errno != EINTR)
-                {
-                    err = errno;
-                    goto FREE_IT;
-                }
+                ip_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
             }
+            else
+            {
+                ip_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP_TCP;
+            }
+            ip_addr->len = sin_addrlen;
+            memcpy(&ip_addr->sa, in_addr, sin_addrlen);
+        }
 
-            RPC_MEM_ALLOC (
+        if (ret_netmask_addr_vec && (ifaddrs->ifa_flags & IFF_LOOPBACK) == 0)
+        {
+            RPC_MEM_ALLOC(
                 netmask_addr,
                 rpc_ip_addr_p_t,
-                sizeof (rpc_ip_addr_t),
+                rpc_ip_addrlen,
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
 
@@ -2356,32 +3131,25 @@ ifflags_again:
                 goto FREE_IT;
             }
 
-            netmask_addr->rpc_protseq_id = sock->pseq_id;
-            netmask_addr->len            = sizeof (struct sockaddr_in);
-            memcpy(&netmask_addr->sa, &ifreq.ifr_addr, sizeof(struct sockaddr_in));
-        }
-        else
-        {
-            netmask_addr = NULL;
-        }
-
-        if (broadcast_addr_vec != NULL && (if_flags & IFF_BROADCAST))
-        {
-            memcpy(&ifreq, ifr, sizeof(ifreq));
-
-            while (ioctl(lrpc->fd, SIOCGIFBRDADDR, &ifreq) == -1)
+            if (is_ipv6)
             {
-                if (errno != EINTR)
-                {
-                    err = errno;
-                    goto FREE_IT;
-                }
+                netmask_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
             }
+            else
+            {
+                netmask_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP_TCP;
+            }
+            netmask_addr->len = rpc_ip_addrlen;
+            in_addr = (struct sockaddr_in *) ifaddrs->ifa_netmask;
+            memcpy(&netmask_addr->sa, in_addr, sin_addrlen);
+        }
 
-            RPC_MEM_ALLOC (
+        if (ret_broadcast_addr_vec && (ifaddrs->ifa_flags & IFF_BROADCAST))
+        {
+            RPC_MEM_ALLOC(
                 broadcast_addr,
                 rpc_ip_addr_p_t,
-                sizeof (rpc_ip_addr_t),
+                rpc_ip_addrlen,
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
 
@@ -2391,13 +3159,30 @@ ifflags_again:
                 goto FREE_IT;
             }
 
-            broadcast_addr->rpc_protseq_id = sock->pseq_id;
-            broadcast_addr->len            = sizeof (struct sockaddr_in);
-            memcpy(&broadcast_addr->sa, &ifreq.ifr_broadaddr, sizeof(struct sockaddr_in));
+            if (is_ipv6)
+            {
+                broadcast_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
+            }
+            else
+            {
+                broadcast_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP_TCP;
+            }
+            broadcast_addr->len = rpc_ip_addrlen;
+            in_addr = (struct sockaddr_in *) ifaddrs->ifa_broadaddr;
+            memcpy(&broadcast_addr->sa, in_addr, sin_addrlen);
         }
-        else
+
+        /*
+         * Default filtering out of IP address that doesn't match the protocol
+         * sequence that was requested. This is determined by the sock->pseq_id.
+         */
+        if (protseq_efun(sock, 
+                         (rpc_addr_p_t) ip_addr, 
+                         (rpc_addr_p_t) netmask_addr, 
+                         (rpc_addr_p_t) broadcast_addr) == false)
         {
-            broadcast_addr = NULL;
+            _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
+            continue;
         }
 
         /*
@@ -2405,101 +3190,104 @@ ifflags_again:
          * for this interface.  If the callout function returns false, we
          * forget about this interface.
          */
-        if ((*efun) (sock, (rpc_addr_p_t) ip_addr, (rpc_addr_p_t) netmask_addr, (rpc_addr_p_t) broadcast_addr) == false)
+        if (efun(sock, 
+            (rpc_addr_p_t) ip_addr, 
+            (rpc_addr_p_t) netmask_addr, 
+            (rpc_addr_p_t) broadcast_addr) == false)
         {
-            if (ip_addr != NULL)
-            {
-                RPC_MEM_FREE (ip_addr, RPC_C_MEM_RPC_ADDR);
-                ip_addr = NULL;
-            }
-            if (netmask_addr != NULL)
-            {
-                RPC_MEM_FREE (netmask_addr, RPC_C_MEM_RPC_ADDR);
-                netmask_addr = NULL;
-            }
-            if (broadcast_addr != NULL)
-            {
-                RPC_MEM_FREE (broadcast_addr, RPC_C_MEM_RPC_ADDR);
-                broadcast_addr = NULL;
-            }
+            _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
             continue;
         }
 
-        if (rpc_addr_vec != NULL && ip_addr != NULL)
+        if (ret_rpc_addr_vec && ip_addr)
         {
-            (*rpc_addr_vec)->addrs[(*rpc_addr_vec)->len++]
-                = (rpc_addr_p_t) ip_addr;
+            ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++] = 
+                (rpc_addr_p_t) ip_addr;
             ip_addr = NULL;
         }
-        if (netmask_addr_vec != NULL && netmask_addr != NULL)
+
+        if (ret_netmask_addr_vec && netmask_addr)
         {
-            (*netmask_addr_vec)->addrs[(*netmask_addr_vec)->len++]
+            ret_netmask_addr_vec->addrs[ret_netmask_addr_vec->len++]
                 = (rpc_addr_p_t) netmask_addr;
             netmask_addr = NULL;
         }
-        if (broadcast_addr_vec != NULL && broadcast_addr != NULL)
+        if (ret_broadcast_addr_vec && broadcast_addr)
         {
-            (*broadcast_addr_vec)->addrs[(*broadcast_addr_vec)->len++]
+            ret_broadcast_addr_vec->addrs[ret_broadcast_addr_vec->len++]
                 = (rpc_addr_p_t) broadcast_addr;
             broadcast_addr = NULL;
         }
     }
 
-    if ((*rpc_addr_vec)->len == 0)
+    if (ret_rpc_addr_vec->len == 0)
     {
         err = EINVAL;   /* !!! */
         goto FREE_IT;
     }
-
+    
+    if (rpc_addr_vec)
+    {
+        *rpc_addr_vec = ret_rpc_addr_vec;
+    }
+    if (netmask_addr_vec)
+    {
+        *netmask_addr_vec = ret_netmask_addr_vec;
+    }
+    if (broadcast_addr_vec)
+    {
+        *broadcast_addr_vec = ret_broadcast_addr_vec;
+    }
     err = RPC_C_SOCKET_OK;
-done:
 
+done:
     return err;
 
 FREE_IT:
 
-    if (ip_addr != NULL)
+    if (ip_addr)
     {
         RPC_MEM_FREE (ip_addr, RPC_C_MEM_RPC_ADDR);
     }
-    if (netmask_addr != NULL)
+    if (netmask_addr)
     {
         RPC_MEM_FREE (netmask_addr, RPC_C_MEM_RPC_ADDR);
     }
-    if (broadcast_addr != NULL)
+    if (broadcast_addr)
     {
         RPC_MEM_FREE (broadcast_addr, RPC_C_MEM_RPC_ADDR);
     }
 
-    if (rpc_addr_vec != NULL && *rpc_addr_vec != NULL)
+    if (ret_rpc_addr_vec)
     {
-        for (i = 0; i < (*rpc_addr_vec)->len; i++)
+        for (i = 0; i < ret_rpc_addr_vec->len; i++)
         {
-            RPC_MEM_FREE ((*rpc_addr_vec)->addrs[i], RPC_C_MEM_RPC_ADDR);
+            RPC_MEM_FREE(ret_rpc_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
         }
-        RPC_MEM_FREE (*rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-        *rpc_addr_vec = NULL;
+        RPC_MEM_FREE (ret_rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        ret_rpc_addr_vec = NULL;
     }
-    if (netmask_addr_vec != NULL && *netmask_addr_vec != NULL)
+    if (ret_netmask_addr_vec)
     {
-        for (i = 0; i < (*netmask_addr_vec)->len; i++)
+        for (i = 0; i < ret_netmask_addr_vec->len; i++)
         {
-            RPC_MEM_FREE ((*netmask_addr_vec)->addrs[i], RPC_C_MEM_RPC_ADDR);
+            RPC_MEM_FREE(ret_netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
         }
-        RPC_MEM_FREE (*netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-        *netmask_addr_vec = NULL;
+        RPC_MEM_FREE(ret_netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        ret_netmask_addr_vec = NULL;
     }
-    if (broadcast_addr_vec != NULL && *broadcast_addr_vec != NULL)
+    if (ret_broadcast_addr_vec)
     {
-        for (i = 0; i < (*broadcast_addr_vec)->len; i++)
+        for (i = 0; i < ret_broadcast_addr_vec->len; i++)
         {
-            RPC_MEM_FREE ((*broadcast_addr_vec)->addrs[i], RPC_C_MEM_RPC_ADDR);
+            RPC_MEM_FREE(ret_broadcast_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
         }
-        RPC_MEM_FREE (*broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-        *broadcast_addr_vec = NULL;
+        RPC_MEM_FREE(ret_broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        ret_broadcast_addr_vec = NULL;
     }
 
     goto done;
+#endif
 }
 
 INTERNAL
@@ -2635,6 +3423,11 @@ rpc__bsd_socket_transport_inq_access_token(
     rpc_access_token_p_t* token
     )
 {
+    /* TBD: Adam:  Requires Likewise lwbase to compile */
+    /* Skip for now */
+#if defined(_WIN32)
+    return -1;
+#else
     rpc_bsd_transport_info_p_t lrpc_info = (rpc_bsd_transport_info_p_t) info;
     NTSTATUS status = STATUS_SUCCESS;
     PLW_MAP_SECURITY_CONTEXT context = NULL;
@@ -2654,35 +3447,36 @@ error:
     LwMapSecurityFreeContext(&context);
 
     return LwNtStatusToErrno(status);
+#endif
 }
 
 
 PRIVATE rpc_socket_vtbl_t rpc_g_bsd_socket_vtbl =
 {
-    .socket_construct = rpc__bsd_socket_construct,
-    .socket_destruct = rpc__bsd_socket_destruct,
-    .socket_bind = rpc__bsd_socket_bind,
-    .socket_connect = rpc__bsd_socket_connect,
-    .socket_accept = rpc__bsd_socket_accept,
-    .socket_listen = rpc__bsd_socket_listen,
-    .socket_sendmsg = rpc__bsd_socket_sendmsg,
-    .socket_recvfrom = rpc__bsd_socket_recvfrom,
-    .socket_recvmsg = rpc__bsd_socket_recvmsg,
-    .socket_inq_endpoint = rpc__bsd_socket_inq_endpoint,
-    .socket_set_broadcast = rpc__bsd_socket_set_broadcast,
-    .socket_set_bufs = rpc__bsd_socket_set_bufs,
-    .socket_set_nbio = rpc__bsd_socket_set_nbio,
-    .socket_set_close_on_exec = rpc__bsd_socket_set_close_on_exec,
-    .socket_getpeername = rpc__bsd_socket_getpeername,
-    .socket_get_if_id = rpc__bsd_socket_get_if_id,
-    .socket_set_keepalive = rpc__bsd_socket_set_keepalive,
-    .socket_nowriteblock_wait = rpc__bsd_socket_nowriteblock_wait,
-    .socket_set_rcvtimeo = rpc__bsd_socket_set_rcvtimeo,
-    .socket_getpeereid = rpc__bsd_socket_getpeereid,
-    .socket_get_select_desc = rpc__bsd_socket_get_select_desc,
-    .socket_enum_ifaces = rpc__bsd_socket_enum_ifaces,
-    .socket_inq_transport_info = rpc__bsd_socket_inq_transport_info,
-    .transport_info_free = rpc_lrpc_transport_info_free,
-    .transport_info_equal = rpc__bsd_socket_transport_info_equal,
-    .transport_inq_access_token = rpc__bsd_socket_transport_inq_access_token
+    rpc__bsd_socket_construct,
+    rpc__bsd_socket_destruct,
+    rpc__bsd_socket_bind,
+    rpc__bsd_socket_connect,
+    rpc__bsd_socket_accept,
+    rpc__bsd_socket_listen,
+    rpc__bsd_socket_sendmsg,
+    rpc__bsd_socket_recvfrom,
+    rpc__bsd_socket_recvmsg,
+    rpc__bsd_socket_inq_endpoint,
+    rpc__bsd_socket_set_broadcast,
+    rpc__bsd_socket_set_bufs,
+    rpc__bsd_socket_set_nbio,
+    rpc__bsd_socket_set_close_on_exec,
+    rpc__bsd_socket_getpeername,
+    rpc__bsd_socket_get_if_id,
+    rpc__bsd_socket_set_keepalive,
+    rpc__bsd_socket_nowriteblock_wait,
+    rpc__bsd_socket_set_rcvtimeo,
+    rpc__bsd_socket_getpeereid,
+    rpc__bsd_socket_get_select_desc,
+    rpc__bsd_socket_enum_ifaces,
+    rpc__bsd_socket_inq_transport_info,
+    rpc_lrpc_transport_info_free,
+    rpc__bsd_socket_transport_info_equal,
+    rpc__bsd_socket_transport_inq_access_token
 };

@@ -10,30 +10,28 @@
 #include <config.h>
 #endif
 
-#define getopt getopt_system
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <compat/dcerpc.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include "echo.h"
 #include <misc.h>
 
-#undef getopt
-
-#ifdef HAVE_GETOPT_H
 #include <getopt.h>
-#endif
 
 #define MAX_USER_INPUT 128
 #define MAX_LINE 100 * 1024
 
 #ifdef _WIN32
+#define strdup _strdup
 #define EOF_STRING "^Z"
 #else
 #define EOF_STRING "^D"
 #endif
 
+static char *argv0;
 /*
  * Forward declarations
  */
@@ -51,9 +49,14 @@ get_client_rpc_binding(
  * usage()
  */
 
-static void usage()
+static void usage(char *argv0, const char *msg)
 {
-    printf("usage: echo_client [-h hostname] [-a name [-p level]] [-e endpoint] [-n] [-u] [-t]\n");
+    if (msg)
+    {
+        printf("%s\n", msg);
+    }
+
+    printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-n] [-u] [-t]\n", argv0);
     printf("         -h:  specify host of RPC server (default is localhost)\n");
     printf("         -a:  specify authentication identity\n");
     printf("         -p:  specify protection level\n");
@@ -67,6 +70,111 @@ static void usage()
     exit(1);
 }
 
+
+typedef struct _PROG_ARGS
+{
+    char *rpc_host;
+    char *spn;
+    unsigned32 protect_level;
+    char *endpoint;
+    char *protocol;
+    int generate_length;
+} PROG_ARGS;
+
+
+void
+parseArgs(
+    int argc,
+    char *argv[],
+    PROG_ARGS *args,
+    int *params)
+{
+    int i;
+
+    i = 1;
+    args->protocol = PROTOCOL_TCP;
+    while (i<argc && argv[i][0] == '-')
+    {
+        if (strcmp("-h", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "-h hostname/IP address missing");
+            }
+            args->rpc_host = strdup(argv[i]);
+            i++;
+        }
+        else if (strcmp("-a", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "-a Service Principal Name missing");
+            }
+            args->spn = strdup(argv[i]);
+            
+            i++;
+        }
+        else if (strcmp("-p", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "-p Protection level  missing");
+            }
+            args->protect_level = atoi(argv[i]);
+            i++;
+        }
+        else if (strcmp("-e", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "-e Endpoint missing");
+            }
+            args->endpoint = strdup(argv[i]);
+            i++;
+        }
+        else if (strcmp("-n", argv[i]) == 0)
+        {
+            args->protocol = PROTOCOL_NP;
+            i++;
+        }
+        else if (strcmp("-u", argv[i]) == 0)
+        {
+            args->protocol = PROTOCOL_UDP;
+            i++;
+        }
+        else if (strcmp("-t", argv[i]) == 0)
+        {
+            args->protocol = PROTOCOL_TCP;
+            i++;
+        }
+        else if (strcmp("-g", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "-g Generate length missing");
+            }
+            args->generate_length = atoi(argv[i]);
+            i++;
+        }
+        else
+        {
+            usage(argv0, "Unknown option");
+        }
+    }
+
+    if (i<argc)
+    {
+        *params = i;
+    }
+}
+
+
+
 int
 main(
     int argc,
@@ -78,15 +186,7 @@ main(
      * command line processing and options stuff
      */
 
-    extern char *optarg;
-    extern int optind, opterr, optopt;
-    int c;
-
-    char * rpc_host = "localhost";
-    char * protocol = PROTOCOL_TCP;
-    char * endpoint = NULL;
-    char * spn = NULL;
-    unsigned32 protect_level = rpc_c_protect_level_pkt_integ;
+    PROG_ARGS progArgs = {0};
 
     char buf[MAX_LINE+1];
 
@@ -100,55 +200,16 @@ main(
     args * outargs;
     int ok;
     unsigned32 i;
-    int generate_length = -1;
+    int params;
 
     char * nl;
 
+    argv0 = argv[0];
+    progArgs.generate_length = -1;
     /*
      * Process the cmd line args
      */
-
-    while ((c = getopt(argc, argv, "h:a:p:e:nutdg:")) != EOF)
-    {
-        switch (c)
-        {
-        case 'h':
-            rpc_host = optarg;
-            break;
-        case 'a':
-            spn = optarg;
-            break;
-        case 'p':
-            protect_level = atoi(optarg);
-            break;
-        case 'e':
-            endpoint = optarg;
-            break;
-        case 'n':
-            protocol = PROTOCOL_NP;
-            break;
-        case 'u':
-            protocol = PROTOCOL_UDP;
-            break;
-        case 't':
-            protocol = PROTOCOL_TCP;
-            break;
-        case 'd':
-#ifdef _WIN32
-	    printf("This option is only supported on Linux.\n");
-#else
-            rpc__dbg_set_switches("0-19.10", &status);
-            //Skip 20, which is memory allocs and frees
-            rpc__dbg_set_switches("21-43.10", &status);
-#endif
-            break;
-        case 'g':
-            generate_length = strtol(optarg, NULL, 10);
-            break;
-        default:
-            usage();
-        }
-    }
+    parseArgs(argc, argv, &progArgs, &params);
 
     /*
      * Get a binding handle to the server using the following params:
@@ -160,26 +221,26 @@ main(
 
     if (get_client_rpc_binding(&echo_server,
                                echo_v1_0_c_ifspec,
-                               rpc_host,
-                               protocol,
-                               endpoint) == 0)
+                               progArgs.rpc_host,
+                               progArgs.protocol,
+                               progArgs.endpoint) == 0)
     {
         printf ("Couldnt obtain RPC server binding. exiting.\n");
-        exit(1);
+        return(1);
     }
 
-    if (spn)
+    if (progArgs.spn)
     {
         rpc_binding_set_auth_info(echo_server,
-            spn,
-            protect_level,
+            (unsigned char *) progArgs.spn,
+            progArgs.protect_level,
             rpc_c_authn_gss_negotiate,
             NULL,
             rpc_c_authz_name, &status);
         if (status)
         {
             printf ("Couldn't set auth info %u. exiting.\n", status);
-            exit(1);
+            return(1);
         }
     }
 
@@ -191,7 +252,7 @@ main(
     inargs = (args *)malloc(sizeof(args) + MAX_USER_INPUT * sizeof(string_t));
     if (inargs == NULL) printf("FAULT. Didnt allocate inargs.\n");
 
-    if (generate_length < 0)
+    if (progArgs.generate_length < 0)
     {
         /*
          * Get text from the user and pack into args.
@@ -212,17 +273,17 @@ main(
     }
     else
     {
-        inargs->argv[0] = malloc(generate_length + 1);
+        inargs->argv[0] = malloc(progArgs.generate_length + 1);
         inargs->argv[0][0] = 's';
 
-        for(i = 1; i < (unsigned long)generate_length; i++)
+        for(i = 1; i < (unsigned long)progArgs.generate_length; i++)
         {
             inargs->argv[0][i] = i%10 + '0';
         }
 
-        if(generate_length > 0)
-            inargs->argv[0][generate_length - 1] = 'e';
-        inargs->argv[0][generate_length] = '\0';
+        if(progArgs.generate_length > 0)
+            inargs->argv[0][progArgs.generate_length - 1] = 'e';
+        inargs->argv[0][progArgs.generate_length] = '\0';
         inargs->argc = 1;
     }
 
@@ -241,7 +302,7 @@ main(
     {
         printf ("got response from server. results: \n");
         for (i=0; i<outargs->argc; i++)
-            printf("\t[%ld]: %s\n", i, outargs->argv[i]);
+            printf("\t[%u]: %s\n", i, outargs->argv[i]);
         printf("\n===================================\n");
 
     }
@@ -254,7 +315,7 @@ main(
      */
 
     rpc_binding_free(&echo_server, &status);
-    exit(0);
+    return(0);
 
 }
 
@@ -295,11 +356,11 @@ get_client_rpc_binding(
      */
 
     rpc_string_binding_compose(NULL,
-			       protocol,
-			       hostname,
-			       endpoint,
+			       (unsigned char *) protocol,
+			       (unsigned char *) hostname,
+			       (unsigned char *) endpoint,
 			       NULL,
-			       &string_binding,
+			       (unsigned char **) &string_binding,
 			       &status);
     chk_dce_err(status, "rpc_string_binding_compose()", "get_client_rpc_binding", 1);
 
@@ -309,6 +370,8 @@ get_client_rpc_binding(
                                     &status);
     chk_dce_err(status, "rpc_binding_from_string_binding()", "get_client_rpc_binding", 1);
 
+#if !defined(_WIN32)
+/* Don't use endpoint mapper for now, must supply endpoint on command line */
     if (!endpoint)
     {
         /*
@@ -320,8 +383,9 @@ get_client_rpc_binding(
                                &status);
         chk_dce_err(status, "rpc_ep_resolve_binding()", "get_client_rpc_binding", 1);
     }
+#endif
 
-    rpc_string_free(&string_binding, &status);
+    rpc_string_free((unsigned char **) &string_binding, &status);
     chk_dce_err(status, "rpc_string_free()", "get_client_rpc_binding", 1);
 
     /*
@@ -336,7 +400,7 @@ get_client_rpc_binding(
 
     printf("fully resolving binding for server is: %s\n", string_binding);
 
-    rpc_string_free(&string_binding, &status);
+    rpc_string_free((unsigned char **) &string_binding, &status);
     chk_dce_err(status, "rpc_string_free()", "get_client_rpc_binding", 1);
 
     return 1;

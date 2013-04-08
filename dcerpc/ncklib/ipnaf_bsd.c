@@ -1,3 +1,4 @@
+#if 0 /* This module isn't used at all */
 /*
  * 
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
@@ -1222,3 +1223,4 @@ unsigned32   *status;
 
     return false;
 }
+#endif /* This module isn't used at all */

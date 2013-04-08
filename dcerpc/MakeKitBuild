@@ -1,4 +1,8 @@
-SUBDIRS=". libdcethread idl_compiler include uuid idl_lib ncklib dcelib rpcd"
+SUBDIRS=". libdcethread idl_compiler include uuid idl_lib ncklib dcelib rpcd $DEMOS"
+#
+# Uncomment or setenv DEMOS to build demos subdir
+#
+DEMOS="demos"
 
 option()
 {

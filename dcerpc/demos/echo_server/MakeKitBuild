@@ -1,0 +1,48 @@
+make()
+{
+# ======= client ========
+    ECHO_CLIENT_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
+    ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h"
+
+    ECHO_CLIENT_SOURCES="\
+        echo_client.c echo_client_cstub.c misc.c getopt.c"
+
+    ECHO_CLIENT_CPPFLAGS="-DHAVE_GETOPT_H=1"
+
+# ======= server ========
+    ECHO_SERVER_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
+    ECHO_SERVER_HEADERDEPS="dce/rpc.h gssapi.h"
+
+    ECHO_SERVER_SOURCES="\
+        echo_server.c echo_client_sstub.c misc.c getopt.c"
+
+    ECHO_SERVER_CPPFLAGS="-DHAVE_GETOPT_H=1"
+
+    lw_dceidl \
+        IDL="echo.idl" \
+        HEADER="echo.h" \
+        CSTUB="echo_client_cstub.c" \
+        SSTUB="echo_client_sstub.c"
+
+    mk_program \
+        PROGRAM="echo_client" \
+        SOURCES="$ECHO_CLIENT_SOURCES" \
+        INSTALLDIR="${MK_BINDIR}" \
+        CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
+        CFLAGS="-Wall -Werror" \
+        INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
+        HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
+        DEPS="echo.h echo_client_cstub.c" \
+        LIBDEPS="dcerpc $LIB_PTHREAD"
+
+    mk_program \
+        PROGRAM="echo_server" \
+        SOURCES="$ECHO_SERVER_SOURCES" \
+        INSTALLDIR="${MK_BINDIR}" \
+        CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
+        CFLAGS="-Wall -Werror" \
+        INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
+        HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
+        DEPS="echo.h echo_client_sstub.c" \
+        LIBDEPS="dcerpc $LIB_PTHREAD"
+}

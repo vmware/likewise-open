@@ -26,7 +26,7 @@
 **
 **  NAME
 **
-**      ipnaf_bsd
+**      ipnaf_linux
 **
 **  FACILITY:
 **
@@ -56,13 +56,17 @@
 #if defined(__hpux) && defined(__ia64) && !defined(_DEFINED_MPINFOU)
 union mpinfou {};
 #endif
+
+#if !defined(_WIN32)
 #include <net/if.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
+#endif
+
 /* Hack to ensure we actually get a definition of ioctl on AIX */
 #if defined(_AIX) && defined(_BSD)
 int ioctl(int d, int request, ...);
 #endif
-#include <unistd.h>
 #ifdef HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h> /* Not just Linux */
 #endif
@@ -97,8 +101,8 @@ typedef struct
     unsigned32  num_elt;
     struct
     {
-        unsigned32  addr;
-        unsigned32  netmask;
+        struct sockaddr_in6  addr;
+        struct sockaddr_in6  netmask;
     } elt[1];
 } rpc_ip_s_addr_vector_t, *rpc_ip_s_addr_vector_p_t;
 
@@ -273,6 +277,11 @@ PRIVATE void rpc__ip_desc_inq_addr
         }
         for (i = 0; i < (*rpc_addr_vec)->len; i++)
         {
+            /* Ignore addresses with AF_INET version mismatch (e.g. IPv4 != IPV6) */
+            if (protseq_id != (*rpc_addr_vec)->addrs[i]->rpc_protseq_id)
+            {
+                continue;
+            }
             ((rpc_ip_addr_p_t) (*rpc_addr_vec)->addrs[i])->sa.sin_port = loc_ip_addr.sa.sin_port;
         }
 
@@ -314,6 +323,151 @@ PRIVATE void rpc__ip_desc_inq_addr
 
         (*rpc_addr_vec)->len = 1;
         (*rpc_addr_vec)->addrs[0] = (rpc_addr_p_t) ip_addr;
+
+        *status = rpc_s_ok;
+        return;
+    }
+}
+
+/*
+**++
+**
+**  ROUTINE NAME:       rpc__ip_desc_inq_addr6
+**
+**  SCOPE:              PRIVATE - declared in ipnaf.h
+**
+**  DESCRIPTION:
+**
+**  Receive a socket descriptor which is queried to obtain family, endpoint
+**  and network address.  If this information appears valid for an IP
+**  address,  space is allocated for an RPC address which is initialized
+**  with the information obtained from the socket.  The address indicating
+**  the created RPC address is returned in rpc_addr.
+**
+**  INPUTS:
+**
+**      protseq_id      Protocol Sequence ID representing a particular
+**                      Network Address Family, its Transport Protocol,
+**                      and type.
+**
+**      desc            Descriptor, indicating a socket that has been
+**                      created on the local operating platform.
+**
+**  INPUTS/OUTPUTS:     none
+**
+**  OUTPUTS:
+**
+**      rpc_addr_vec
+**
+**      status          A value indicating the status of the routine.
+**
+**          rpc_s_ok               The call was successful.
+**
+**          rpc_s_no_memory         Call to malloc failed to allocate memory.
+**
+**          rpc_s_cant_inq_socket  Attempt to get info about socket failed.
+**
+**          Any of the RPC Protocol Service status codes.
+**
+**  IMPLICIT INPUTS:    none
+**
+**  IMPLICIT OUTPUTS:   none
+**
+**  FUNCTION VALUE:     none
+**
+**  SIDE EFFECTS:       none
+**
+**--
+**/
+
+PRIVATE void rpc__ip_desc_inq_addr6
+(
+    rpc_protseq_id_t        protseq_id,
+    rpc_socket_t            sock,
+    rpc_addr_vector_p_t     *rpc_addr_vec,
+    unsigned32              *status
+)
+{
+    rpc_ip6_addr_p_t        ip6_addr;
+    rpc_ip6_addr_t          loc_ip6_addr;
+    rpc_ip6_addr_t          zero_ip6_addr;
+    unsigned16              i;
+    int err = 0;
+
+    CODING_ERROR (status);
+
+    /*
+     * Do a "getsockname" into a local IP RPC address.  If the network
+     * address part of the result is non-zero, then the socket must be
+     * bound to a particular IP address and we can just return a RPC
+     * address vector with that one address (and endpoint) in it.
+     * Otherwise, we have to enumerate over all the local network
+     * interfaces the local host has and construct an RPC address for
+     * each one of them.
+     */
+    memset(&zero_ip6_addr, 0, sizeof(zero_ip6_addr));
+    loc_ip6_addr.len = sizeof(loc_ip6_addr.sa);
+    err = rpc__socket_inq_endpoint (sock, (rpc_addr_p_t) &loc_ip6_addr);
+    if (err)
+    {
+        *status = -1;   /* !!! */
+        return;
+    }
+
+    if (memcmp(&loc_ip6_addr.sa.sin6_addr.s6_addr, 
+               &zero_ip6_addr.sa.sin6_addr.s6_addr, 
+               sizeof(zero_ip6_addr.sa.sin6_addr.s6_addr)) == 0)
+    {
+        err = rpc__socket_enum_ifaces(sock, get_addr_noloop, rpc_addr_vec, NULL, NULL);
+
+        if (err != RPC_C_SOCKET_OK)
+        {
+            *status = -1;
+            return;
+        }
+        for (i = 0; i < (*rpc_addr_vec)->len; i++)
+        {
+            ((rpc_ip6_addr_p_t) (*rpc_addr_vec)->addrs[i])->sa.sin6_port = loc_ip6_addr.sa.sin6_port;
+        }
+
+        *status = rpc_s_ok;
+        return;
+    }
+    else
+    {
+        RPC_MEM_ALLOC (
+            ip6_addr,
+            rpc_ip6_addr_p_t,
+            sizeof (rpc_ip6_addr_t),
+            RPC_C_MEM_RPC_ADDR,
+            RPC_C_MEM_WAITOK);
+
+        if (ip6_addr == NULL)
+        {
+            *status = rpc_s_no_memory;
+            return;
+        }
+
+        RPC_MEM_ALLOC (
+            *rpc_addr_vec,
+            rpc_addr_vector_p_t,
+            sizeof **rpc_addr_vec,
+            RPC_C_MEM_RPC_ADDR_VEC,
+            RPC_C_MEM_WAITOK);
+
+        if (*rpc_addr_vec == NULL)
+        {
+            RPC_MEM_FREE (ip6_addr, RPC_C_MEM_RPC_ADDR);
+            *status = rpc_s_no_memory;
+            return;
+        }
+
+        ip6_addr->rpc_protseq_id = protseq_id;
+        ip6_addr->len            = sizeof (struct sockaddr_in);
+        ip6_addr->sa             = loc_ip6_addr.sa;
+
+        (*rpc_addr_vec)->len = 1;
+        (*rpc_addr_vec)->addrs[0] = (rpc_addr_p_t) ip6_addr;
 
         *status = rpc_s_ok;
         return;
@@ -374,12 +528,14 @@ INTERNAL boolean get_broadcast_addr
     }
 
 #if !defined(BROADCAST_NEEDS_LOOPBACK) && !defined(USE_LOOPBACK)
+{
     rpc_ip_addr_p_t ip_addr = (rpc_ip_addr_p_t) _ip_addr;
 
     if (((unsigned char*) &ip_addr->sa.sin_addr)[0] == 127)
     {
         return false;
     }
+}
 #endif
 
     return true;
@@ -511,6 +667,8 @@ unsigned32 *status;
     rpc_addr_vector_p_t     rpc_addr_vec = NULL;
     rpc_addr_vector_p_t     netmask_addr_vec = NULL;
     int err;
+    int                     sin_addr_len = 0; /* IPv4/IPv6 address length */
+    
 
     CODING_ERROR (status);
 
@@ -523,7 +681,6 @@ unsigned32 *status;
     }
 
     err = rpc__socket_enum_ifaces(sock, get_addr, &rpc_addr_vec, &netmask_addr_vec, NULL);
-
     if (err)
     {
         *status = -1;
@@ -561,22 +718,32 @@ unsigned32 *status;
 
     for (i = 0; i < rpc_addr_vec->len; i++)
     {
-        local_ip_addr_vec->elt[i].addr =
-            ((rpc_ip_addr_p_t) rpc_addr_vec->addrs[i])->sa.sin_addr.s_addr;
-        local_ip_addr_vec->elt[i].netmask =
-            ((rpc_ip_addr_p_t) netmask_addr_vec->addrs[i])->sa.sin_addr.s_addr;
+        if (((rpc_ip_addr_p_t) rpc_addr_vec->addrs[i])->sa.sin_family == AF_INET6)
+        {
+            sin_addr_len = sizeof(struct sockaddr_in6);
+        }
+        else
+        {
+            sin_addr_len = sizeof(struct sockaddr_in);
+        }
+        memcpy(&local_ip_addr_vec->elt[i].addr,
+               &((rpc_ip_addr_p_t) rpc_addr_vec->addrs[i])->sa,
+               sin_addr_len);
+        memcpy(&local_ip_addr_vec->elt[i].netmask,
+               &((rpc_ip_addr_p_t) netmask_addr_vec->addrs[i])->sa,
+               sin_addr_len);
 #ifdef DEBUG
         if (RPC_DBG2(rpc_e_dbg_general, 10))
         {
-            char         buff[16], mbuff[16];
-            unsigned8    *p, *mp;
+            char         buff[128], mbuff[128];
 
-            p = (unsigned8 *) &(local_ip_addr_vec->elt[i].addr);
-            mp = (unsigned8 *) &(local_ip_addr_vec->elt[i].netmask);
-            RPC__IP_NETWORK_SPRINTF(buff, "%d.%d.%d.%d",
-                                    UC(p[0]), UC(p[1]), UC(p[2]), UC(p[3]));
-            RPC__IP_NETWORK_SPRINTF(mbuff, "%d.%d.%d.%d",
-                                    UC(mp[0]), UC(mp[1]), UC(mp[2]), UC(mp[3]));
+            getnameinfo(&local_ip_addr_vec->elt[i].addr, sin_addr_len,
+                        buff, sizeof(buff),
+                        NULL, 0, NI_NUMERICHOST);
+            getnameinfo(&local_ip_addr_vec->elt[i].netmask, sin_addr_len,
+                        mbuff, sizeof(mbuff),
+                        NULL, 0, NI_NUMERICHOST);
+
             RPC_DBG_PRINTF(rpc_e_dbg_general, 10,
             ("(rpc__ip_init_local_addr_vec) local network [%s] netmask [%s]\n",
                             buff, mbuff));
@@ -662,9 +829,14 @@ unsigned32   *status;
 #endif
 {
     rpc_ip_addr_p_t         ip_addr = (rpc_ip_addr_p_t) rpc_addr;
-    unsigned32              addr1;
-    unsigned32              addr2;
+    unsigned char           *addr1;
+    unsigned char           *addr2;
+    unsigned char           *netmask;
+    unsigned char           and_array1[sizeof(struct in6_addr)];
+    unsigned char           and_array2[sizeof(struct in6_addr)];
     unsigned32              i;
+    unsigned32              ai;
+    unsigned32              sin_addr_len = 0;
 
     CODING_ERROR (status);
 
@@ -687,19 +859,46 @@ unsigned32   *status;
     }
 
     /*
-     * Compare addresses.
+     * Compare addresses. Since they can be either IPv4/IPv6, must byte-by-byte
+     * mask the addresses against the netmask. Afterwardds, compare byte-by-byte
+     * the resultant masked addresses arrays for equality.
      */
     for (i = 0; i < local_ip_addr_vec->num_elt; i++)
     {
-        if (ip_addr->sa.sin_family != AF_INET)
+        if (ip_addr->sa.sin_family != AF_INET &&
+            ip_addr->sa.sin_family != AF_INET6)
         {
             continue;
         }
 
-        addr1 = ip_addr->sa.sin_addr.s_addr & local_ip_addr_vec->elt[i].netmask;
-        addr2 = local_ip_addr_vec->elt[i].addr & local_ip_addr_vec->elt[i].netmask;
+        if (ip_addr->sa.sin_family != 
+            local_ip_addr_vec->elt[i].addr.sin6_family)
+        {
+            continue;
+        }
 
-        if (addr1 == addr2)
+        /* Cast address/netmask to neutral type for byte-wise comparison */
+        if (ip_addr->sa.sin_family == AF_INET6)
+        {
+            sin_addr_len = sizeof(struct in6_addr);
+            addr1 = (unsigned char *) &((struct sockaddr_in6 *) &ip_addr->sa)->sin6_addr;
+            addr2 = (unsigned char *) &local_ip_addr_vec->elt[i].addr;
+            netmask = (unsigned char *) &local_ip_addr_vec->elt[i].netmask;
+        }
+        else
+        {
+            sin_addr_len = sizeof(struct in_addr);
+            addr1 = (unsigned char *) &((struct sockaddr_in *) &ip_addr->sa)->sin_addr;
+            addr2 = (unsigned char *) &local_ip_addr_vec->elt[i].addr;
+            netmask = (unsigned char *) &local_ip_addr_vec->elt[i].netmask;
+        }
+        for (ai=0; ai < sin_addr_len; ai++)
+        {
+           and_array1[ai] = addr1[ai] & netmask[ai];
+           and_array2[ai] = addr2[ai] & netmask[ai];
+        }
+
+        if (memcmp(and_array1, and_array2, sin_addr_len) == 0)
         {
             return true;
         }
@@ -757,8 +956,11 @@ rpc_addr_p_t rpc_addr;
 unsigned32   *status;
 #endif
 {
-    rpc_ip_addr_p_t         ip_addr = (rpc_ip_addr_p_t) rpc_addr;
+    rpc_ip_addr_p_t         ip_addr;
     unsigned32              i;
+    unsigned char *         addr1;
+    unsigned char *         addr2;
+    int                     sin_addr_len;
 
     CODING_ERROR (status);
 
@@ -767,6 +969,7 @@ unsigned32   *status;
         *status = rpc_s_invalid_arg;
         return false;
     }
+    ip_addr = (rpc_ip_addr_p_t) rpc_addr;
 
     *status = rpc_s_ok;
 
@@ -785,12 +988,30 @@ unsigned32   *status;
      */
     for (i = 0; i < local_ip_addr_vec->num_elt; i++)
     {
-        if (ip_addr->sa.sin_family != AF_INET)
+        if (ip_addr->sa.sin_family != AF_INET &&
+            ip_addr->sa.sin_family != AF_INET6)
+        {
+            continue;
+        }
+        if (ip_addr->sa.sin_family != local_ip_addr_vec->elt[i].addr.sin6_family)
         {
             continue;
         }
 
-        if (ip_addr->sa.sin_addr.s_addr == local_ip_addr_vec->elt[i].addr)
+        if (ip_addr->sa.sin_family == AF_INET6)
+        {
+            sin_addr_len = sizeof(struct in6_addr);
+            addr1 = (unsigned char *) &((struct sockaddr_in6 *) &ip_addr->sa)->sin6_addr;
+            addr2 = (unsigned char *) &local_ip_addr_vec->elt[i].addr;
+        }
+        else
+        {
+            sin_addr_len = sizeof(struct in_addr);
+            addr1 = (unsigned char *) &((struct sockaddr_in *) &ip_addr->sa)->sin_addr;
+            addr2 = (unsigned char *) &local_ip_addr_vec->elt[i].addr;
+        }
+
+        if (memcmp(addr1, addr2, sin_addr_len) == 0)
         {
             return true;
         }

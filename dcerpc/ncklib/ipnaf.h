@@ -47,15 +47,20 @@
 
 /***********************************************************************
  *
- *  Include the Internet specific socket address 
+ *  Include the Internet specific socket address
  */
 
 
 #ifndef VMS
+#ifndef _WIN32 /* UNIX */
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
-#else
+#else /* Windows */
+#include <Winsock2.h>
+#include <ws2tcpip.h>
+#endif
+#else /* VMS */
 #include <in.h>
 #include <tcp.h>
 #include <inet.h>
@@ -80,6 +85,13 @@ typedef struct rpc_addr_ip_t
     unsigned32              len;
     struct sockaddr_in      sa;
 } rpc_ip_addr_t, *rpc_ip_addr_p_t;
+
+typedef struct rpc_addr_ip6_t
+{
+    rpc_protseq_id_t        rpc_protseq_id;
+    unsigned32              len;
+    struct sockaddr_in6     sa;
+} rpc_ip6_addr_t, *rpc_ip6_addr_p_t;
 
 /***********************************************************************
  *
@@ -222,12 +234,24 @@ extern "C" {
 #endif
 
 
-PRIVATE void rpc__ip_init _DCE_PROTOTYPE_ ((  
+PRIVATE void rpc__ip_init _DCE_PROTOTYPE_ ((
+        rpc_naf_epv_p_t             * /*naf_epv*/,
+        unsigned32                  * /*status*/
+    ));
+
+PRIVATE void rpc__ip6_init _DCE_PROTOTYPE_ ((
         rpc_naf_epv_p_t             * /*naf_epv*/,
         unsigned32                  * /*status*/
     ));
 
 PRIVATE void rpc__ip_desc_inq_addr _DCE_PROTOTYPE_ ((
+        rpc_protseq_id_t             /*protseq_id*/,
+        rpc_socket_t                 /*desc*/,
+        rpc_addr_vector_p_t         * /*rpc_addr_vec*/,
+        unsigned32                  * /*st*/
+    ));
+
+PRIVATE void rpc__ip_desc_inq_addr6 _DCE_PROTOTYPE_ ((
         rpc_protseq_id_t             /*protseq_id*/,
         rpc_socket_t                 /*desc*/,
         rpc_addr_vector_p_t         * /*rpc_addr_vec*/,
@@ -259,5 +283,5 @@ PRIVATE boolean32 rpc__ip_is_local_addr _DCE_PROTOTYPE_ ((
 }
 #endif
 
-              
+
 #endif /* _IPNAF_H */

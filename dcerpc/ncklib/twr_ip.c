@@ -54,7 +54,11 @@
 #ifdef VMS
 #include <in.h>
 #else
+#if !defined(_WIN32)
 #include <netinet/in.h>
+#else
+#include <Winsock2.h>
+#endif
 #endif
 
 /*
@@ -137,7 +141,8 @@ unsigned32        *status;
     /*
      * all depends on the network family to which this socket belongs
      */
-    if (sa->family == RPC_C_NAF_ID_IP)
+    if (sa->family == RPC_C_NAF_ID_IP ||
+        sa->family == RPC_C_NAF_ID_IP6)
     {
         /*
          * only two network protocols are supported for internet

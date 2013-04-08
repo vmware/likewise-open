@@ -1898,7 +1898,7 @@ unsigned32              *status;
         if (RPC_PROTSEQ_INQ_SUPPORTED (pseq_id))
         {
             psv->protseq[psv->count] = RPC_PROTSEQ_INQ_PROTSEQ (pseq_id);
-            psv_str_size += strlen ((char *) psv->protseq[psv->count]) + 1;
+            psv_str_size += (unsigned32) strlen ((char *) psv->protseq[psv->count]) + 1;
             psv->count++;
         }
     }
@@ -2242,6 +2242,7 @@ unsigned32              *status;
      * The protseq is not a special case string. Check the vector of
      * supported protocol sequences.
      */
+    *status = rpc_s_protseq_not_supported;
     for (pseqid = 0; pseqid < RPC_C_PROTSEQ_ID_MAX; pseqid++)
     {
         if ((strcmp ((char *) rpc_protseq,
@@ -2253,25 +2254,23 @@ unsigned32              *status;
             if (RPC_PROTSEQ_INQ_SUPPORTED (pseqid))
             {
                 *status = rpc_s_ok;
-                return (pseqid);
+                break;
             }
             else
             {
-                *status = rpc_s_protseq_not_supported;
                 return (RPC_C_INVALID_PROTSEQ_ID);
             }
         }
     }
 
-    /*
-     * If we got this far the protocol sequence given is not valid.
-    *status = rpc_s_invalid_rpc_protseq;
-     */
-	 /* not supported or invalid; it's doesn't really matter, does it? */
-	 *status = rpc_s_protseq_not_supported;
+    if (*status == rpc_s_ok)
+    {
+        return (pseqid);
+    }
+
     return (RPC_C_INVALID_PROTSEQ_ID);
 }
-
+
 /*
 **++
 **
@@ -2563,6 +2562,11 @@ unsigned32              *status;
     rpc_addr_p_t            rpc_addr;
     unsigned_char_p_t       endpoint_copy;
     unsigned32              count;
+    unsigned32              pseq_count = 1;
+    boolean                 ncacn_ip_found = false;
+    unsigned32              *pstatus = NULL;
+    unsigned32              status_ip4 = 0;
+    unsigned32              status_ip6 = 0;
 	
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -2592,7 +2596,7 @@ unsigned32              *status;
 
     if (endpoint != NULL)
     {
-        count = strlen ((char*) endpoint);
+        count = (unsigned32) strlen ((char*) endpoint);
         RPC_MEM_ALLOC (
             endpoint_copy,
             unsigned_char_p_t,
@@ -2628,6 +2632,27 @@ unsigned32              *status;
         endpoint_copy[count] = '\0';
     }
 
+  /*
+   * Process both ncacn_ip_tcp and ncacn_ip6_tcp protocol sequences when
+   * ncacn_ip_rcp is found. Externally, ncacn_ip6_tcp isn't known. Treat
+   * both pseq_id's as equivalent when ncacn_ip_tcp is found.
+   *
+   * For IPv4/IPv6, pstatus points to local ip4_status/ip6_status. Otherwise,
+   * it refers to the status passed in by the caller.
+   */
+  if (pseq_id == RPC_C_PROTSEQ_ID_NCACN_IP_TCP)
+  {
+    ncacn_ip_found = true;
+    pseq_count = 2;
+    pstatus = &status_ip4;
+  }
+  else
+  {
+    pstatus = status;
+  }
+
+  while (pseq_count)
+  {
     /*
      * Call the rpc__naf_addr_alloc() through the Network Address Family EPV
      * with the RPC Protocol Sequence ID, the Network Address Family ID, an
@@ -2639,18 +2664,22 @@ unsigned32              *status;
     naf_id = RPC_PROTSEQ_INQ_NAF_ID (pseq_id);
     naf_epv = RPC_NAF_INQ_EPV (naf_id); /* pointer to the epv   */
 
-    (*naf_epv->naf_addr_alloc) (
-        pseq_id,                    /* in  - protocol sequence id       */
-        naf_id,                     /* in  - network address family id  */
-        endpoint_copy,              /* in  - endpoint address (pointer) */
-        (unsigned_char_p_t) NULL,   /* in  - network address  (pointer) */
-        (unsigned_char_p_t) NULL,   /* in  - network options  (pointer) */
-        &rpc_addr,                  /* out - rpc address      (pointer) */
-        status);                    /* out - status           (pointer) */
+    if (naf_epv)
+    {
+        naf_epv->naf_addr_alloc(
+            pseq_id,                    /* in  - protocol sequence id       */
+            naf_id,                     /* in  - network address family id  */
+            endpoint_copy,              /* in  - endpoint address (pointer) */
+            (unsigned_char_p_t) NULL,   /* in  - network address  (pointer) */
+            (unsigned_char_p_t) NULL,   /* in  - network options  (pointer) */
+            &rpc_addr,                  /* out - rpc address      (pointer) */
+            pstatus);                   /* out - status           (pointer) */
+    }
 
-    if (*status != rpc_s_ok)
+    if (*pstatus != rpc_s_ok)
     {
         rpc_string_free (&endpoint_copy, &temp_status);
+        *status = *pstatus;
         return;
     }
 
@@ -2666,19 +2695,62 @@ unsigned32              *status;
      * socket(s), setting them up right, and adding them (via calls
      * to rpc__network_add_desc).
      */
-    (*net_epv->network_use_protseq)
-                        (pseq_id, max_calls, rpc_addr, endpoint_copy, status);
-
+    if (net_epv)
+    {
+        net_epv->network_use_protseq(
+            pseq_id,
+            max_calls,
+            rpc_addr,
+            endpoint_copy,
+            pstatus);
+    }
 
     /*
      * Free the rpc_addr we allocated above.
      */
-    (*naf_epv->naf_addr_free)(&rpc_addr, &temp_status);
-
-    if (endpoint_copy != NULL)
+    if (naf_epv)
     {
-        rpc_string_free (&endpoint_copy, &temp_status);
+        naf_epv->naf_addr_free(
+            &rpc_addr,
+            &temp_status);
     }
+
+    /*
+     * Process the "other" IP protocol
+     */
+    if (ncacn_ip_found)
+    {
+        switch (pseq_id)
+        {
+            case RPC_C_PROTSEQ_ID_NCACN_IP_TCP:
+                pseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
+                pstatus = &status_ip6;
+                break;
+
+            case RPC_C_PROTSEQ_ID_NCACN_IP6_TCP:
+                pseq_id = RPC_C_PROTSEQ_ID_NCACN_IP_TCP;
+                pstatus = &status_ip4;
+                break;
+
+            default:
+                /* Impossible state; cosmic ray? */
+                CODING_ERROR (pstatus);
+                break;
+        }
+    }
+    pseq_count--;
+  } /* ncacn_ipX_tcp loop */
+
+  if (endpoint_copy != NULL)
+  {
+      rpc_string_free (&endpoint_copy, &temp_status);
+  }
+
+  /* When ncacn_ip_tcp and both IPv4 and IPv6 fail, return error */
+  if (ncacn_ip_found && status_ip4 && status_ip6)
+  {
+      *status = status_ip4;
+  }
 }
 
 /*
@@ -2842,3 +2914,4 @@ rpc_fork_stage_id_t stage;
     }
 }
 #endif
+

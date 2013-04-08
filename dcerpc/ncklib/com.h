@@ -41,7 +41,9 @@
 */
 
 #include <cominit.h>
+#if !defined(_WIN32)
 #include <sys/socket.h>
+#endif
 
 /*
  * the value of an invalid interface hint
@@ -152,6 +154,7 @@ EXTERNAL unsigned32    rpc_g_fork_count;
 #define RPC_C_PROTSEQ_ID_NCACN_NP       6
 #define RPC_C_PROTSEQ_ID_NCACN_NB       7
 #define RPC_C_PROTSEQ_ID_NCACN_HTTP     8
+#define RPC_C_PROTSEQ_ID_NCACN_IP6_TCP  9
 
 #ifdef TEST_PROTOCOL
 #define RPC_C_PROTSEQ_ID_NCATP_IP_TCP   15
@@ -236,14 +239,31 @@ typedef unsigned32       rpc_protocol_id_t, *rpc_protocol_id_p_t;
  */
 
 #define RPC_C_NAF_ID_UXD     1
+#ifdef AF_INET
+#define RPC_C_NAF_ID_IP      AF_INET
+#else
 #define RPC_C_NAF_ID_IP      2
+#endif
+#ifdef AF_INET6
+#define RPC_C_NAF_ID_IP6     AF_INET6
+#else
+#define RPC_C_NAF_ID_IP6     6
+#endif
 #define RPC_C_NAF_ID_DNET    12
 #define RPC_C_NAF_ID_DDS     13         /* ###Check this one ###*/
 #define RPC_C_NAF_ID_NP      14
 #define RPC_C_NAF_ID_OSI     19
 #define RPC_C_NAF_ID_HTTP    20
-#define RPC_C_NAF_ID_MAX     21
-#define RPC_C_NAF_ID_VIRTUAL 20
+
+#define RPC_C_NAF_ID_VIRTUAL 21
+#define RPC_C_NAF_ID_MAX     22
+
+#if (defined(AF_INET6) && (AF_INET6 > RPC_C_NAF_ID_VIRTUAL))
+#undef RPC_C_NAF_ID_VIRTUAL
+#undef RPC_C_NAF_ID_MAX
+#define RPC_C_NAF_ID_VIRTUAL (AF_INET6 + 1)
+#define RPC_C_NAF_ID_MAX     (RPC_C_NAF_ID_VIRTUAL + 1)
+#endif
 
 typedef unsigned32       rpc_naf_id_t, *rpc_naf_id_p_t;
 
@@ -461,6 +481,11 @@ typedef unsigned_char_t *rpc_network_options_t;
  * can never be known at compile time.
  */
 
+/*
+ * rpc_protseq_id:
+ *   RPC_C_PROTSEQ_ID_NCACN_IP_TCP - AF_INET (IPv4)
+ *   RPC_C_PROTSEQ_ID_NCACN_IP6_TCP - AF_INET6 (IPv6)
+ */
 typedef struct
 {
     rpc_protseq_id_t        rpc_protseq_id;

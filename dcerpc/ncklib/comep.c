@@ -569,24 +569,27 @@ unsigned32                  *status;
          */
 
         if (curr_obj > 0)
-        { 
+        {
             /*
              * First create the partial object vector.
              */
 
-            ov_size = sizeof(uuid_vector_t) + (sizeof(dce_uuid_t) * (curr_obj - 1));
-            RPC_MEM_ALLOC(ovp, uuid_vector_p_t, ov_size,
-                RPC_C_MEM_UUID_VECTOR, RPC_C_MEM_WAITOK);
-            if (ovp == NULL)
+            if (object_uuid_vec != NULL)
             {
-                *status = rpc_s_no_memory;
-                RPC_MEM_FREE(bvp, RPC_C_MEM_UUID_VECTOR);
-                return;
-            }
+                ov_size = sizeof(uuid_vector_t) + (sizeof(dce_uuid_t) * (curr_obj - 1));
+                RPC_MEM_ALLOC(ovp, uuid_vector_p_t, ov_size,
+                    RPC_C_MEM_UUID_VECTOR, RPC_C_MEM_WAITOK);
+                if (ovp == NULL)
+                {
+                    *status = rpc_s_no_memory;
+                    RPC_MEM_FREE(bvp, RPC_C_MEM_UUID_VECTOR);
+                    return;
+                }
 
-            ovp->count = curr_obj;
-            for (j = 0; j < curr_obj; j++)
-                ovp->uuid[j] = object_uuid_vec->uuid[j];
+                ovp->count = curr_obj;
+                for (j = 0; j < curr_obj; j++)
+                    ovp->uuid[j] = object_uuid_vec->uuid[j];
+            }
 
             /*
              * Next, make a binding vector which contains only this
@@ -1218,7 +1221,7 @@ unsigned32                *status;
 
             if (annotation != NULL)
             {
-                asize = strlen((char *) entp->annotation) + 1;
+                asize = (unsigned32) strlen((char *) entp->annotation) + 1;
 
                 RPC_MEM_ALLOC (
                     *annotation,
@@ -1569,7 +1572,7 @@ unsigned32              *status;
 
         for (i = 0; i < protseq_vector->count; i++)
         {
-            slen = strlen((char *) protseq_vector->protseq[i]);
+            slen = (unsigned32) strlen((char *) protseq_vector->protseq[i]);
             if ((slen + 2) > sizeof(protseq_str))
                 continue;
 

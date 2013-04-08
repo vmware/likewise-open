@@ -13,23 +13,28 @@
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 
-#define getopt getopt_system
-
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#include <compat/dcerpc.h>
+#include <stdlib.h>
+
+#include <dce/dcethread.h>
+#include <dce/dce_error.h>
+#define RPC_FIELD_COUNT(x) ((x)->count)
+#define RPC_FIELD_BINDING_H(x) ((x)->binding_h)
+
 #include "echo.h"
 #include "misc.h"
 
-#undef getopt
-
+#define HAVE_GETOPT_H 1
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
-#endif
-
 #ifndef _WIN32
+#include <unistd.h>
 static void wait_for_signals();
+#else
+#include <process.h>
+#endif
 #endif
 
 /*
@@ -75,13 +80,16 @@ bind_server(
         else
         {
             function = "rpc_server_use_protseq()";
-            rpc_server_use_protseq(protocol, rpc_c_protseq_max_calls_default, &status);
+            rpc_server_use_protseq((unsigned char *) protocol, rpc_c_protseq_max_calls_default, &status);
         }
     }
     else
     {
         function = "rpc_server_use_protseq_ep()";
-        rpc_server_use_protseq_ep(protocol, rpc_c_protseq_max_calls_default, endpoint, &status);
+        rpc_server_use_protseq_ep((unsigned char *) protocol,
+                            rpc_c_protseq_max_calls_default,
+                            (unsigned char *) endpoint,
+                            &status);
     }
 #endif
 
@@ -102,16 +110,16 @@ static void usage()
     exit(1);
 }
 
+
 int main(int argc, char *argv[])
 {
     unsigned32 status;
     rpc_binding_vector_p_t server_binding;
     char * string_binding;
     unsigned32 i;
-    char * protocol = NULL;
-    char * endpoint = NULL;
+    char * protocol = PROTOCOL_TCP;
+    char * endpoint = "31415";
     int c;
-    char * function = NULL;
     char * spn = NULL;
 
     /*
@@ -145,21 +153,13 @@ int main(int argc, char *argv[])
     if (endpoint && !protocol)
     {
         printf("ERROR: protocol is required when endpoint is specified\n");
-        exit(1);
+        return(1);
     }
-
-#ifndef _WIN32
-    /* Temporarily disable using all protocols because something is currently busted on Unix */
-    if (!protocol)
-    {
-        protocol = PROTOCOL_TCP;
-    }
-#endif
 
     if (spn)
     {
         rpc_server_register_auth_info(
-            spn,
+            (unsigned char *) spn,
             rpc_c_authn_gss_negotiate,
             NULL,
             NULL,
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
         if (status)
         {
             printf ("Couldn't set auth info. exiting.\n");
-            exit(1);
+            return(1);
         }
     }
 
@@ -197,9 +197,25 @@ int main(int argc, char *argv[])
                     NULL,
                     (unsigned char *)"QDA application server",
                     &status);
-    chk_dce_err(status, "rpc_ep_register()", "", 1);
-
-    printf("registered.\n");
+    if (status)
+    {
+        if (protocol && endpoint)
+        {
+            printf("rpc_ep_register: soft failure %d.\n", status);
+        }
+        else
+        {
+#ifndef _WIN32
+        chk_dce_err(status, "rpc_ep_register()", "", 1);
+#endif
+            printf("rpc_ep_register: failed!\n");
+            return 1;
+        }
+    }
+    else
+    {
+        printf("registered.\n");
+    }
 
     /*
      * Print out the servers endpoints (TCP and UDP port numbers)
@@ -248,13 +264,6 @@ int main(int argc, char *argv[])
      * endpoint mapper.
      */
 
-#ifndef _WIN32
-    /*
-     * Kill the signal handling thread
-     */
-
-#endif
-
     printf ("Unregistering server from the endpoint mapper....\n");
     rpc_ep_unregister(echo_v1_0_s_ifspec,
                       server_binding,
@@ -271,8 +280,7 @@ int main(int argc, char *argv[])
                              NULL,
                              &status);
     chk_dce_err(status, "rpc_server_unregister_if()", "", 0);
-
-    exit(0);
+    return(0);
 }
 
 
@@ -298,11 +306,10 @@ ReverseIt(
     unsigned32 i,j,l;
 #if 0
     rpc_transport_info_handle_t transport_info = NULL;
-#endif
     unsigned32 rpcstatus = 0;
     unsigned char* sesskey = NULL;
     unsigned32 sesskey_len = 0;
-    unsigned char* principal_name = NULL;
+#endif
 
     /*
      * Get some info about the client binding
@@ -341,7 +348,7 @@ ReverseIt(
     printf("\n\nFunction ReverseIt() -- input argments\n");
 
     for (i=0; i<in_text->argc; i++)
-        printf("\t[arg %ld]: %s\n", i, in_text->argv[i]);
+        printf("\t[arg %d]: %s\n", i, in_text->argv[i]);
 
     printf ("\n=========================================\n");
 
@@ -358,7 +365,7 @@ ReverseIt(
     for (i=0; i < in_text->argc; i++)
     {
         result->argv[i] =
-            (string_t)rpc_ss_allocate(strlen(in_text->argv[i]) + 1);
+            (string_t)rpc_ss_allocate((idl_size_t) strlen((const char *) in_text->argv[i]) + 1);
     }
 
     /*
@@ -367,7 +374,7 @@ ReverseIt(
 
     for (i=0; i < in_text->argc; i++)
     {
-        l = strlen(in_text->argv[i]);
+        l = (unsigned32) strlen((const char *) in_text->argv[i]);
         for (j=0; j<l; j++)
         {
             result->argv[i][j] = in_text->argv[i][l-j-1];
