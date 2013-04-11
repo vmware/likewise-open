@@ -1180,7 +1180,7 @@ cms_signeddata_verify(krb5_context context,
 	revoked = sk_X509_CRL_new_null();
 	for (i = 0; i < size; i++)
 	    sk_X509_CRL_push(revoked, sk_X509_CRL_value(idctx->revoked, i));
-	size = sk_X509_num(p7->d.sign->crl);
+	size = sk_X509_CRL_num(p7->d.sign->crl);
 	for (i = 0; i < size; i++)
 	    sk_X509_CRL_push(revoked, sk_X509_CRL_value(p7->d.sign->crl, i));
     }
@@ -3811,7 +3811,7 @@ decode_data(unsigned char **out_data, unsigned int *out_data_len,
     if (buf == NULL)
 	goto cleanup;
 
-    retval = EVP_PKEY_decrypt(buf, data, (int)data_len, pkey);
+    retval = EVP_PKEY_decrypt_old(buf, data, (int)data_len, pkey);
     if (retval <= 0) {
 	pkiDebug("unable to decrypt received data (len=%d)\n", data_len);
 	goto cleanup;
@@ -4976,7 +4976,7 @@ load_cas_and_crls(krb5_context context,
 		    continue;
 	    }
 	    if (flag != 0) {
-		sk_X509_push(ca_crls, X509_CRL_dup(xi->crl));
+		sk_X509_CRL_push(ca_crls, X509_CRL_dup(xi->crl));
 	    }
 	}
     }

@@ -328,6 +328,7 @@ make()
 
     mk_autotools \
         SOURCEDIR=flex-2.5.4 \
+        LIBDEPS=crypto \
         TARGETS="flex-2.5.4_build_${MK_BUILD_PRIMARY_ISA}/flex" \
         INSTALL=no
 }

@@ -481,6 +481,7 @@ print_buffer_bin(unsigned char *buf, unsigned int len, char *filename)
     fclose(f);
 }
 
+#ifdef PKINIT_DEBUG
 void pkiDebug (const char *fmt, ...)
 {
     static int pkiDebugOutput = -1;
@@ -508,3 +509,4 @@ void pkiDebug (const char *fmt, ...)
         va_end(args);
     }
 }
+#endif
