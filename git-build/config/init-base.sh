@@ -13,6 +13,7 @@
 # PROG_DESC - English description of program/service
 # PROG_BIN - path to the program binary
 # PROG_ARGS - additional arguments to pass to program on startup
+# PROG_SCHED_PARAM - ESX resource pool parameters
 # PROG_ERR - file where error diagnostics are logged
 # PIDFILE - file where pid is stored (or empty/unset if a pid file is not created)
 # SCRIPTNAME - the name of the init script
@@ -20,6 +21,8 @@
 ## Have to set the path for HP-UX boot process
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
 export PATH
+
+LWSMD_TAG=lwsmd
 
 alias_replacement()
 {
@@ -377,7 +380,12 @@ daemon_start() {
             ;;
         HP-UX | SOLARIS | FREEBSD | ESXI)
             echo -n "Starting $PROG_DESC"
-            ${PROG_BIN} ${PROG_ARGS}
+            if [ ${PLATFORM} = "ESXI" ]; then
+                # start likewise in resource pool
+                /sbin/watchdog.sh ++mincritical,memreliable -d -s ${LWSMD_TAG} ${PROG_BIN} ${PROG_SCHED_PARAM} ${PROG_ARGS}
+            else
+                ${PROG_BIN} ${PROG_ARGS}
+            fi
             status=$?
             if [ $status -eq 0 ]; then
                 status=1
@@ -444,6 +452,10 @@ daemon_stop() {
             log_end_msg $status
             ;;
         AIX | HP-UX | SOLARIS | FREEBSD | ESXI)
+            if [ ${PLATFORM} = "ESXI" ]; then
+                # This only stops the watchdog
+                /sbin/watchdog.sh -k ${LWSMD_TAG}
+            fi
             echo -n "Stopping $PROG_DESC"
             status=1
             #only try to stop the daemon if it is running

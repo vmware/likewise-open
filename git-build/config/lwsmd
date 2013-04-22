@@ -35,7 +35,9 @@ SCRIPTNAME="lwsmd"
 
 if [ "$PLATFORM" = "ESXI" ]; then
    PROG_BIN=/sbin/lwsmd
-   PROG_SCHED_PARAM="++min=0,max=40,group=plugins/likewise"
+   PROG_SCHED_PARAM="++group=likewise"
+   # using watchdog, no need for --start-as-daemon
+   PROG_ARGS="--syslog"
    PROG_ERR=/var/lib/likewise/lwsmd/lwsmd.err
    STARTHOOK="fix_locale"
 fi
