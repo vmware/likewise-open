@@ -1,0 +1,38 @@
+This is the imported/live version of the registry database for use on
+ESX. Likewise by default comes with .reg files that needs to be
+applied via "lwregshell import <file>" while lwreg process is running.
+The standard rpm install does this at the end of the install.
+
+For ESX, we simply lay down the imported database.
+
+The registry.db file needs to be updated if there are changes to any
+of the .reg files, such as the prefix /opt/likewise has been changed.
+
+Steps to create a new registry.db file based on updated .reg files
+
+1) boot up ESX, ensure lwsmd service is NOT running:
+
+   ps -C | grep -E "lwsmd|lwregd|lsass|lwio|netlogon|rdr"
+
+3) remove the existing database:
+
+   rm /var/likewise/lib/db/registry.db
+
+4) start likewise service: 
+
+   /etc/init.d/lwsmd start
+
+   - "lwsm list" should show lwreg running.
+   - /var/likewise/lib/db/registry.db is recreated and around 14k
+
+5) import the new registry files:
+
+   for f in /etc/likewise/share/config/*.reg; do lwregshell import $f; done
+
+   - /var/likewise/lib/db/registry.db size should be over 30k
+
+6) stop the likewise service
+
+   /etc/init.d/lwsmd stop
+
+New database is in: /var/likewise/lib/db/registry.db
