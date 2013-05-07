@@ -503,7 +503,7 @@ unsigned32              *status;
     };
     unsigned32 lstatus;
 
-    rpc__ip_init_local_addr_vec (&lstatus);
+    rpc__ip6_init_local_addr_vec (&lstatus);
 
     /*
      * place the address of EPV into Network Address Family Table
@@ -1457,7 +1457,7 @@ unsigned32              *status;
     sts = getnameinfo(
               (const struct sockaddr *) &tmp_sa,
               sizeof(tmp_sa),
-              *netaddr,
+              (char *) *netaddr,
               NA_SIZE,
               NULL,
               0,

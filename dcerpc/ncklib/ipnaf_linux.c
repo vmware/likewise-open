@@ -522,14 +522,20 @@ INTERNAL boolean get_broadcast_addr
     rpc_addr_p_t         broadcast_addr
 )
 {
+    rpc_ip_addr_p_t ip_addr = (rpc_ip_addr_p_t) _ip_addr;
+
     if (broadcast_addr == NULL)
     {
         return false;
     }
 
+    /* IPv6 doesn't have the concept of broadcast mask */
+    if (ip_addr->sa.sin_family == AF_INET6)
+    {
+        return false;
+    }
 #if !defined(BROADCAST_NEEDS_LOOPBACK) && !defined(USE_LOOPBACK)
 {
-    rpc_ip_addr_p_t ip_addr = (rpc_ip_addr_p_t) _ip_addr;
 
     if (((unsigned char*) &ip_addr->sa.sin_addr)[0] == 127)
     {
@@ -619,66 +625,15 @@ done:
     return;
 }
 
-/*
-**++
-**
-**  ROUTINE NAME:       rpc__ip_init_local_addr_vec
-**
-**  SCOPE:              PRIVATE - declared in ipnaf.h
-**
-**  DESCRIPTION:
-**
-**  Initialize the local address vectors.
-**
-**
-**  INPUTS:             none
-**
-**  INPUTS/OUTPUTS:     none
-**
-**  OUTPUTS:
-**
-**      status          A value indicating the status of the routine.
-**
-**  IMPLICIT INPUTS:    none
-**
-**  IMPLICIT OUTPUTS:   none
-**
-**  FUNCTION VALUE:     none
-**
-**  SIDE EFFECTS:
-**
-**      Update local_ip_addr_vec
-**
-**--
-**/
-
-PRIVATE void rpc__ip_init_local_addr_vec
-#ifdef _DCE_PROTO_
-(
-    unsigned32 *status
-)
-#else
-(status)
-unsigned32 *status;
-#endif
+INTERNAL void _rpc__ipx_init_local_addr_vec(
+    rpc_socket_t            sock,
+    unsigned32 *status)
 {
-    rpc_socket_t            sock = RPC_SOCKET_INVALID;
     unsigned32              i;
     rpc_addr_vector_p_t     rpc_addr_vec = NULL;
     rpc_addr_vector_p_t     netmask_addr_vec = NULL;
     int err;
     int                     sin_addr_len = 0; /* IPv4/IPv6 address length */
-    
-
-    CODING_ERROR (status);
-
-    err = rpc__socket_open(RPC_C_PROTSEQ_ID_NCADG_IP_UDP, NULL, &sock);
-
-    if (err)
-    {
-        *status = rpc_s_cant_create_socket;;
-        goto error;
-    }
 
     err = rpc__socket_enum_ifaces(sock, get_addr, &rpc_addr_vec, &netmask_addr_vec, NULL);
     if (err)
@@ -751,33 +706,125 @@ unsigned32 *status;
 #endif
     }
 
-cleanup:
-	if (rpc_addr_vec != NULL)
-	{
-		for (i = 0; i < rpc_addr_vec->len; i++)
-		{
-			RPC_MEM_FREE (rpc_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
-		}
-		RPC_MEM_FREE (rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-	}
-	if (netmask_addr_vec != NULL)
-	{
-		for (i = 0; i < netmask_addr_vec->len; i++)
-		{
-			RPC_MEM_FREE (netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
-		}
-		RPC_MEM_FREE (netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-	}
+error:
+    if (rpc_addr_vec != NULL)
+    {
+        for (i = 0; i < rpc_addr_vec->len; i++)
+        {
+            RPC_MEM_FREE (rpc_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE (rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+    }
+    if (netmask_addr_vec != NULL)
+    {
+        for (i = 0; i < netmask_addr_vec->len; i++)
+        {
+            RPC_MEM_FREE (netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE (netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+    }
+}
+
+/*
+**++
+**
+**  ROUTINE NAME:       rpc__ip_init_local_addr_vec
+**
+**  SCOPE:              PRIVATE - declared in ipnaf.h
+**
+**  DESCRIPTION:
+**
+**  Initialize the local address vectors.
+**
+**
+**  INPUTS:             none
+**
+**  INPUTS/OUTPUTS:     none
+**
+**  OUTPUTS:
+**
+**      status          A value indicating the status of the routine.
+**
+**  IMPLICIT INPUTS:    none
+**
+**  IMPLICIT OUTPUTS:   none
+**
+**  FUNCTION VALUE:     none
+**
+**  SIDE EFFECTS:
+**
+**      Update local_ip_addr_vec
+**
+**--
+**/
 
+
+PRIVATE void rpc__ip_init_local_addr_vec
+#ifdef _DCE_PROTO_
+(
+    unsigned32 *status
+)
+#else
+(status)
+unsigned32 *status;
+#endif
+{
+    rpc_socket_t            sock = RPC_SOCKET_INVALID;
+    int err;
+
+    CODING_ERROR (status);
+
+    err = rpc__socket_open(
+              RPC_C_PROTSEQ_ID_NCACN_IP_TCP,
+              NULL,
+              &sock);
+    if (err)
+    {
+        *status = rpc_s_cant_create_socket;
+        goto error;
+    }
+
+    _rpc__ipx_init_local_addr_vec(sock, status);
+
+error:
     if (sock != RPC_SOCKET_INVALID)
     {
         RPC_SOCKET_CLOSE(sock);
     }
 
     return;
+}
+
+PRIVATE void rpc__ip6_init_local_addr_vec
+(
+    unsigned32 *status
+)
+{
+    rpc_socket_t            sock = RPC_SOCKET_INVALID;
+    int err;
+
+
+    CODING_ERROR (status);
+
+    err = rpc__socket_open(
+              RPC_C_PROTSEQ_ID_NCACN_IP6_TCP,
+              NULL,
+              &sock);
+    if (err)
+    {
+        *status = rpc_s_cant_create_socket;
+        goto error;
+    }
+
+    _rpc__ipx_init_local_addr_vec(sock, status);
 
 error:
-    goto cleanup;
+    if (sock != RPC_SOCKET_INVALID)
+    {
+        RPC_SOCKET_CLOSE(sock);
+    }
+
+    return;
 }
 
 /*
@@ -871,7 +918,7 @@ unsigned32   *status;
             continue;
         }
 
-        if (ip_addr->sa.sin_family != 
+        if (ip_addr->sa.sin_family !=
             local_ip_addr_vec->elt[i].addr.sin6_family)
         {
             continue;

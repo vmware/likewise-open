@@ -269,6 +269,10 @@ PRIVATE void rpc__ip_init_local_addr_vec _DCE_PROTOTYPE_ ((
         unsigned32                  * /*status*/
     ));
 
+PRIVATE void rpc__ip6_init_local_addr_vec _DCE_PROTOTYPE_ ((
+        unsigned32                  * /*status*/
+    ));
+
 PRIVATE boolean32 rpc__ip_is_local_network _DCE_PROTOTYPE_ ((
         rpc_addr_p_t                 /*rpc_addr*/,
         unsigned32                  * /*status*/
