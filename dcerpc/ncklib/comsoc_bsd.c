@@ -72,6 +72,7 @@
 
 /* ncalrpc supported only on UNIX by Unix Domain Sockets */
 #define HAS_NCAL_RPC 1
+#define CLOSESOCKET(s) close(s)
 
 #else
 /* ---------------------------- Windows code here ------------------------ */
@@ -85,6 +86,7 @@
 #define inline
 #define SocketErrno rpc__winx64_winerr_to_errno(WSAGetLastError())
 #define SocketErrnoReturn rpc__winx64_set_errno(WSAGetLastError())
+#define CLOSESOCKET(s) closesocket(s)
 
 INTERNAL
 rpc_socket_error_t
@@ -600,7 +602,7 @@ rpc__bsd_socket_close_basic(
 
     RPC_LOG_SOCKET_CLOSE_NTR;
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (shutdown(sock, SHUT_RDWR) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+    serr = (CLOSESOCKET(sock) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_LOG_SOCKET_CLOSE_XIT;
 
@@ -635,7 +637,7 @@ rpc_socket_t        sock;
         {
             RPC_LOG_SOCKET_CLOSE_NTR;
             RPC_SOCKET_DISABLE_CANCEL;
-            serr = (shutdown(lrpc->fd, SHUT_RDWR) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+            serr = (CLOSESOCKET(lrpc->fd) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
             RPC_SOCKET_RESTORE_CANCEL;
             RPC_LOG_SOCKET_CLOSE_XIT;
         }
