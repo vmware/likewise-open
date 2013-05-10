@@ -34,7 +34,6 @@ PIDFILE=/var/run/lwsmd.pid
 SCRIPTNAME="lwsmd"
 
 if [ "$PLATFORM" = "ESXI" ]; then
-   PROG_BIN=/sbin/lwsmd
    PROG_SCHED_PARAM="++group=likewise"
    # using watchdog, no need for --start-as-daemon
    PROG_ARGS="--syslog"
@@ -48,8 +47,4 @@ fix_locale()
     export LC_CTYPE="en_US.utf8"
 }
 
-if [ "$PLATFORM" = "ESXI" ]; then
-   . /etc/likewise/init-base.sh
-else
-   . EXECDIR/init-base.sh
-fi
+. EXECDIR/init-base.sh

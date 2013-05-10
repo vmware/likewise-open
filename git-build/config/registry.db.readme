@@ -27,7 +27,7 @@ Steps to create a new registry.db file based on updated .reg files
 
 5) import the new registry files:
 
-   for f in /etc/likewise/share/config/*.reg; do lwregshell import $f; done
+   for f in /usr/lib/vmware/likewise/share/config/*.reg; do /usr/lib/vmware/likewise/bin/lwregshell import $f; done
 
    - /var/likewise/lib/db/registry.db size should be over 30k
 
