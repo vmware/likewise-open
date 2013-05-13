@@ -237,7 +237,7 @@ error_status_t *st;         /* (output) status */
         dsh->map->link = NULL;                                      /* it's the last one */
         dsh->map->loc = PAGE_SIZE;                                  /* at starts at the second page */
         dsh->map->size = dsh->pages*PAGE_SIZE;                      /* it's this many bytes long */
-        dsh->map->ptr = (block_t *)malloc(dsh->map->size);          /* allocate space for it */
+        dsh->map->ptr = (block_t *)calloc(1, dsh->map->size);       /* allocate space for it */
         if (dsh->map->ptr == NULL) SIGNAL(dsm_err_no_memory);  /* did we get it? */
     
         /* observe that the file pointer is right after the header, from header read.

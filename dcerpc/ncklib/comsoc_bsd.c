@@ -1,6 +1,6 @@
-/* ex: set shiftwidth=4 expandtab: */
 /*
- * 
+ *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -17,10 +17,36 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
+ * Copyright (c) 2010 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1.  Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ * 2.  Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ * 3.  Neither the name of Apple Inc. ("Apple") nor the names of its
+ *     contributors may be used to endorse or promote products derived from
+ *     this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/* ex: set shiftwidth=4 expandtab: */
 /*
 **
 **  NAME:
@@ -3220,6 +3246,7 @@ rpc__bsd_socket_enum_ifaces(
                 = (rpc_addr_p_t) broadcast_addr;
             broadcast_addr = NULL;
         }
+        _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
     }
 
     if (ret_rpc_addr_vec->len == 0)
@@ -3231,18 +3258,43 @@ rpc__bsd_socket_enum_ifaces(
     if (rpc_addr_vec)
     {
         *rpc_addr_vec = ret_rpc_addr_vec;
+        ret_rpc_addr_vec = NULL;
     }
     if (netmask_addr_vec)
     {
         *netmask_addr_vec = ret_netmask_addr_vec;
+        ret_netmask_addr_vec = NULL;
     }
     if (broadcast_addr_vec)
     {
         *broadcast_addr_vec = ret_broadcast_addr_vec;
+        ret_broadcast_addr_vec = NULL;
     }
     err = RPC_C_SOCKET_OK;
 
 done:
+    if (ifaddrs)
+    {
+        freeifaddrs(ifaddrs);
+    }
+    if (ret_netmask_addr_vec)
+    {
+        for (i = 0; i < ret_netmask_addr_vec->len; i++)
+        {
+            RPC_MEM_FREE(ret_netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE(ret_netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        ret_netmask_addr_vec = NULL;
+    }
+    if (ret_broadcast_addr_vec)
+    {
+        for (i = 0; i < ret_broadcast_addr_vec->len; i++)
+        {
+            RPC_MEM_FREE(ret_broadcast_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE(ret_broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
+        ret_broadcast_addr_vec = NULL;
+    }
     return err;
 
 FREE_IT:
@@ -3268,24 +3320,6 @@ FREE_IT:
         }
         RPC_MEM_FREE (ret_rpc_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
         ret_rpc_addr_vec = NULL;
-    }
-    if (ret_netmask_addr_vec)
-    {
-        for (i = 0; i < ret_netmask_addr_vec->len; i++)
-        {
-            RPC_MEM_FREE(ret_netmask_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
-        }
-        RPC_MEM_FREE(ret_netmask_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-        ret_netmask_addr_vec = NULL;
-    }
-    if (ret_broadcast_addr_vec)
-    {
-        for (i = 0; i < ret_broadcast_addr_vec->len; i++)
-        {
-            RPC_MEM_FREE(ret_broadcast_addr_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
-        }
-        RPC_MEM_FREE(ret_broadcast_addr_vec, RPC_C_MEM_RPC_ADDR_VEC);
-        ret_broadcast_addr_vec = NULL;
     }
 
     goto done;

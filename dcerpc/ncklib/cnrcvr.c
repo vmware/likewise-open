@@ -1,5 +1,6 @@
 /*
  *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -19,6 +20,31 @@
  *
  */
 /*
+ * Copyright (c) 2010 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1.  Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ * 2.  Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ * 3.  Neither the name of Apple Inc. ("Apple") nor the names of its
+ *     contributors may be used to endorse or promote products derived from
+ *     this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
 **
@@ -202,10 +228,10 @@ rpc_cn_assoc_p_t        assoc;
     RPC_CN_DBG_RTN_PRINTF (rpc__cn_network_receiver);
 
     RPC_DBG_PRINTF (rpc_e_dbg_threads, RPC_C_CN_DBG_THREADS,
-        ("####### assoc->%x Entered receiver thread \n", assoc));
+        ("####### assoc->%p Entered receiver thread \n", assoc));
 
     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                    ("CN: assoc->%x call_rep->none Receiver thread starting...\n",
+                    ("CN: assoc->%p call_rep->none Receiver thread starting...\n",
                      assoc));
 
     /*
@@ -214,7 +240,7 @@ rpc_cn_assoc_p_t        assoc;
     while (!done && !assoc->cn_ctlblk.exit_rcvr)
     {
         RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                        ("CN: assoc->%x call_rep->none Entering receive loop...\n",
+                        ("CN: assoc->%p call_rep->none Entering receive loop...\n",
                          assoc));
 
         /*
@@ -254,7 +280,7 @@ rpc_cn_assoc_p_t        assoc;
                 }
                 assoc->cn_ctlblk.cn_rcvr_waiters++;
                 RPC_DBG_PRINTF (rpc_e_dbg_threads, RPC_C_CN_DBG_THREADS,
-                    ("####### assoc->%x Waiting for new connection \n", assoc));
+                    ("####### assoc->%p Waiting for new connection \n", assoc));
                 DCETHREAD_TRY
                 {
                     RPC_COND_WAIT (assoc->cn_ctlblk.cn_rcvr_cond,
@@ -263,7 +289,7 @@ rpc_cn_assoc_p_t        assoc;
                 DCETHREAD_CATCH(dcethread_interrupt_e)
                 {
                     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                    ("CN: assoc->%x rcvr free'ed by acb_free\n",
+                                    ("CN: assoc->%p rcvr free'ed by acb_free\n",
                                      assoc));
                     done = true;
                 }
@@ -287,19 +313,19 @@ rpc_cn_assoc_p_t        assoc;
                 if (done == true)
                     break;
                 RPC_DBG_PRINTF (rpc_e_dbg_threads, RPC_C_CN_DBG_THREADS,
-                    ("####### assoc->%x Got a new connection \n", assoc));
+                    ("####### assoc->%p Got a new connection \n", assoc));
             }
 
             if (done)
             {
                 RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                ("CN: assoc->%x call_rep->none Receiver awake ... free'ed\n",
+                                ("CN: assoc->%p call_rep->none Receiver awake ... free'ed\n",
                                  assoc));
             }
             else
             {
                 RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                ("CN: assoc->%x call_rep->none Receiver awake ... Connection established\n",
+                                ("CN: assoc->%p call_rep->none Receiver awake ... Connection established\n",
                                  assoc));
 
                 /*
@@ -320,7 +346,7 @@ rpc_cn_assoc_p_t        assoc;
                 DCETHREAD_CATCH(dcethread_interrupt_e)
                 {
                     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-("CN: call_rep->%x assoc->%x desc->%x receiver canceled, caught in rpc__cn_network_receiver()\n",
+("CN: call_rep->%p assoc->%p desc->%p receiver canceled, caught in rpc__cn_network_receiver()\n",
                                     assoc->call_rep,
                                     assoc,
                                     assoc->cn_ctlblk.cn_sock));
@@ -358,7 +384,7 @@ rpc_cn_assoc_p_t        assoc;
                      * The socket close failed.
                      */
                     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_ERRORS,
-("(rpc__cn_network_receiver) assoc->%x desc->%x RPC_SOCKET_CLOSE failed, error = %d\n",
+("(rpc__cn_network_receiver) assoc->%p desc->%p RPC_SOCKET_CLOSE failed, error = %d\n",
                                      assoc,
                                      assoc->cn_ctlblk.cn_sock,
                                      RPC_SOCKET_ETOI(serr)));
@@ -378,7 +404,7 @@ rpc_cn_assoc_p_t        assoc;
                 DCETHREAD_CATCH_ALL(THIS_CATCH)
                 {
                     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                        ("CN: assoc->%x rcvr cancel found at acb_dealloc\n",
+                        ("CN: assoc->%p rcvr cancel found at acb_dealloc\n",
                         assoc));
                 }
                 DCETHREAD_ENDTRY
@@ -398,7 +424,7 @@ rpc_cn_assoc_p_t        assoc;
                 DCETHREAD_CATCH(dcethread_interrupt_e)
                 {
                     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                        ("CN: assoc->%x rcvr free'ed by acb_dealloc\n",
+                        ("CN: assoc->%p rcvr free'ed by acb_dealloc\n",
                         assoc));
                     done = true;
                 }
@@ -460,7 +486,7 @@ rpc_cn_assoc_p_t        assoc;
     } /* end while (!done && !assoc->cn_ctlblk.exit_rcvr) */
 
     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                    ("CN: assoc->%x call_rep->none Receiver thread exiting...\n",
+                    ("CN: assoc->%p call_rep->none Receiver thread exiting...\n",
                      assoc));
 }
 
@@ -563,7 +589,7 @@ rpc_cn_assoc_p_t        assoc;
         DCETHREAD_CATCH(dcethread_interrupt_e)
         {
             RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-("CN: call_rep->%x assoc->%x desc->%x receiver canceled, caught in receive_dispatch()\n",
+                            ("CN: call_rep->%p assoc->%p desc->%p receiver canceled, caught in receive_dispatch()\n",
                             assoc->call_rep,
                             assoc,
                             assoc->cn_ctlblk.cn_sock));
@@ -594,6 +620,7 @@ rpc_cn_assoc_p_t        assoc;
         /*
          * Point to the packet header.
          */
+        assert(fragbuf_p != NULL);
         pktp = (rpc_cn_packet_p_t) fragbuf_p->data_p;
 
         /*
@@ -602,11 +629,6 @@ rpc_cn_assoc_p_t        assoc;
         RPC_CN_PKT_TRC (pktp);
         RPC_CN_PKT_DUMP (pktp, fragbuf_p->data_size);
 
-        /*
-         * Keep some stats on the packets received.
-         */
-        RPC_CN_STATS_INCR (pstats[RPC_CN_PKT_PTYPE (pktp)].rcvd);
-        RPC_CN_STATS_INCR (pkts_rcvd);
 
         /*
          * Setup some local variables.
@@ -618,12 +640,18 @@ rpc_cn_assoc_p_t        assoc;
 	 * If not, we return an error, and the caller will close
 	 * the connection.
 	 */
-        if (/* (ptype < 0) ||*/ (ptype > RPC_C_CN_PKT_MAX_TYPE) ||
-            (packet_info_table[ptype].class == DGRAM_CLASS_PKT))
+        if (ptype > RPC_C_CN_PKT_MAX_TYPE ||
+            packet_info_table[ptype].class == DGRAM_CLASS_PKT)
         {
             st = rpc_s_protocol_error;
             break;
         }
+
+        /*
+         * Keep some stats on the packets received.
+         */
+        RPC_CN_STATS_INCR (pstats[RPC_CN_PKT_PTYPE (pktp)].rcvd);
+        RPC_CN_STATS_INCR (pkts_rcvd);
 
         /*
          * Do some first packet only processing...
@@ -681,6 +709,7 @@ rpc_cn_assoc_p_t        assoc;
             unsigned16                      auth_len;
             unsigned32                      key_id;
             unsigned16                      frag_len;
+            unsigned32                      copy_len;
 
             /*
              * If the pdu is a bind or alter-context pdu and we need to
@@ -701,9 +730,15 @@ rpc_cn_assoc_p_t        assoc;
             {
                 assoc->raw_packet_p = rpc__cn_fragbuf_alloc (true);
                 assoc->raw_packet_p->data_size = fragbuf_p->data_size;
+                copy_len = fragbuf_p->data_size;
+                if (copy_len > assoc->raw_packet_p->max_data_size)
+                {
+                    st = rpc_s_protocol_error;
+                    break;
+                }
                 memcpy (assoc->raw_packet_p->data_p,
                         fragbuf_p->data_p,
-                        fragbuf_p->data_size);
+                        copy_len);
             }
 
             /*
@@ -712,12 +747,26 @@ rpc_cn_assoc_p_t        assoc;
             auth_len = RPC_CN_PKT_AUTH_LEN (pktp);
             if (unpack_ints)
             {
+                /* no need to check end_of_pkt since its a copy of pkt data */
                 SWAB_INPLACE_16 (auth_len);
             }
 
-	    auth_tlr = (rpc_cn_auth_tlr_t *) ((unsigned8 *)(pktp) +
+            auth_tlr = (rpc_cn_auth_tlr_t *) ((unsigned8 *)(pktp) +
                 fragbuf_p->data_size -
                 (auth_len + RPC_CN_PKT_SIZEOF_COM_AUTH_TLR));
+            if ( ((unsigned8 *)(auth_tlr) < (unsigned8 *)(pktp)) ||
+                ((unsigned8 *)(auth_tlr) > (unsigned8 *)(pktp) + fragbuf_p->data_size) ||
+                ((unsigned8 *)(auth_tlr) + auth_len < (unsigned8 *)(pktp)) ||
+                ((unsigned8 *)(auth_tlr) + auth_len > (unsigned8 *)(pktp) + fragbuf_p->data_size) )
+            {
+                RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                ("CN: call_rep->%p assoc->%p desc->%p invalid auth_tlr\n",
+                                 assoc->call_rep,
+                                 assoc,
+                                 assoc->cn_ctlblk.cn_sock));
+                st = rpc_s_protocol_error;
+                break;
+            }
 
             /*
              * Find the appropriate security context element using the key ID
@@ -727,6 +776,7 @@ rpc_cn_assoc_p_t        assoc;
             key_id = auth_tlr->key_id;
             if (unpack_ints)
             {
+                /* no need to check end_of_pkt since its a copy of pkt data */
                 SWAB_INPLACE_32 (key_id);
             }
 
@@ -783,7 +833,16 @@ rpc_cn_assoc_p_t        assoc;
                          */
                         if (unpack_ints)
                         {
-                            rpc__cn_unpack_hdr (pktp);
+                            st = rpc__cn_unpack_hdr (pktp, fragbuf_p->data_size);
+                            if (st != rpc_s_ok)
+                            {
+                                RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                                ("CN: call_rep->%p assoc->%p desc->%p auth rpc__cn_unpack_hdr failed\n",
+                                                 assoc->call_rep,
+                                                 assoc,
+                                                 assoc->cn_ctlblk.cn_sock));
+                                break;
+                            }
                             already_unpacked = true;
                         }
                         auth_len = RPC_CN_PKT_AUTH_LEN (pktp);
@@ -792,9 +851,45 @@ rpc_cn_assoc_p_t        assoc;
                                                           (auth_len
                                                            +
                                                            RPC_CN_PKT_SIZEOF_COM_AUTH_TLR));
+                        if ( ((unsigned8 *)(auth_tlr) < (unsigned8 *)(pktp)) ||
+                            ((unsigned8 *)(auth_tlr) > (unsigned8 *)(pktp) + fragbuf_p->data_size) ||
+                            ((unsigned8 *)(auth_tlr) + auth_len < (unsigned8 *)(pktp)) ||
+                            ((unsigned8 *)(auth_tlr) + auth_len > (unsigned8 *)(pktp) + fragbuf_p->data_size) )
+                        {
+                            RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                            ("CN: call_rep->%p assoc->%p desc->%p invalid auth_tlr in sec context\n",
+                                             assoc->call_rep,
+                                             assoc,
+                                             assoc->cn_ctlblk.cn_sock));
+                            st = rpc_s_protocol_error;
+                            break;
+                        }
+
                         frag_len = RPC_CN_PKT_FRAG_LEN (pktp);
+                        if ( (frag_len > fragbuf_p->data_size) || (frag_len < auth_tlr->stub_pad_length) )
+                        {
+                            RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                            ("CN: call_rep->%p assoc->%p desc->%p invalid frag_len\n",
+                                             assoc->call_rep,
+                                             assoc,
+                                             assoc->cn_ctlblk.cn_sock));
+                            st = rpc_s_protocol_error;
+                            break;
+                        }
+
                         frag_len -= auth_tlr->stub_pad_length;
                         RPC_CN_PKT_FRAG_LEN (pktp) = frag_len;
+
+                        if (fragbuf_p->data_size < auth_tlr->stub_pad_length)
+                        {
+                            RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                            ("CN: call_rep->%p assoc->%p desc->%p invalid stub_pad_length\n",
+                                             assoc->call_rep,
+                                             assoc,
+                                             assoc->cn_ctlblk.cn_sock));
+                            st = rpc_s_protocol_error;
+                            break;
+                        }
                         fragbuf_p->data_size -= auth_tlr->stub_pad_length;
                     }
                     else
@@ -820,6 +915,7 @@ rpc_cn_assoc_p_t        assoc;
                         if (assoc->assoc_flags & RPC_C_CN_ASSOC_CLIENT)
                         {
                             (*fragbuf_p->fragbuf_dealloc)(fragbuf_p);
+                            assert(sec_context != NULL);
                             sec_context->sec_status = auth_st;
                             assoc->assoc_status = auth_st;
                             RPC_CN_ASSOC_WAKEUP (assoc);
@@ -855,26 +951,17 @@ rpc_cn_assoc_p_t        assoc;
         else
         {
             if ((assoc->assoc_flags & RPC_C_CN_ASSOC_CLIENT) &&
-                (ptype == RPC_C_CN_PKT_RESPONSE))
+               (ptype == RPC_C_CN_PKT_RESPONSE) &&
+               (RPC_CN_PKT_AUTH_REQUIRED(assoc->call_rep->binding_rep->auth_info)))
             {
-                if (assoc->call_rep == NULL)
-                {
-                    /* The call was abandoned by the sending thread at the same time that
-                       a bind ack came back from the server, so bail out */
-                    st = rpc_s_connection_closed;
-                    break;
-                }
-
-                if ((RPC_CN_PKT_AUTH_REQUIRED(assoc->call_rep->binding_rep->auth_info)))
-                {
-                    RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                    ("CN: auth_info %x\n", assoc->call_rep->binding_rep->auth_info));
-                    RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                    ("CN: should not continue further with this PDU\n"));
-                    st = rpc_s_authn_level_mismatch;
-                    RPC_CN_ASSOC_WAKEUP (assoc);
-                    break;
-                }
+                RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                        ("CN: auth_info %p\n", assoc->call_rep->binding_rep->auth_info));
+                RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                        ("CN: should not continue further with this PDU\n"));
+                (*fragbuf_p->fragbuf_dealloc)(fragbuf_p);
+                st = rpc_s_authn_level_mismatch;
+                RPC_CN_ASSOC_WAKEUP (assoc);
+                break;
             }
         }
 
@@ -884,7 +971,17 @@ rpc_cn_assoc_p_t        assoc;
          */
         if (unpack_ints && !already_unpacked)
         {
-            rpc__cn_unpack_hdr (pktp);
+            st = rpc__cn_unpack_hdr (pktp, fragbuf_p->data_size);
+            if (st != rpc_s_ok)
+            {
+                RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                ("CN: call_rep->%p assoc->%p desc->%p rpc__cn_unpack_hdr failed\n",
+                                 assoc->call_rep,
+                                 assoc,
+                                 assoc->cn_ctlblk.cn_sock));
+                st = rpc_s_connection_closed;
+                break;
+            }
         }
 
         /*
@@ -931,6 +1028,7 @@ rpc_cn_assoc_p_t        assoc;
                 rpc__cn_assoc_push_call (assoc, call_r, (unsigned32*)&st);
                 if (st != rpc_s_ok)
                 {
+                    assoc->call_rep = NULL;
                     rpc__list_element_free (&rpc_g_cn_call_lookaside_list,
                                             (pointer_t) call_r);
                     break;
@@ -1107,7 +1205,7 @@ rpc_cn_assoc_p_t        assoc;
                 if (st == rpc_s_call_queued)
                 {
                     RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                    ("CN: call_rep->%x assoc->%x desc->%x call queued\n",
+                                    ("CN: call_rep->%p assoc->%p desc->%p call queued\n",
                                      call_r,
                                      assoc,
                                      assoc->cn_ctlblk.cn_sock));
@@ -1181,6 +1279,19 @@ rpc_cn_assoc_p_t        assoc;
     {
         (*ovf_fragbuf_p->fragbuf_dealloc)(ovf_fragbuf_p);
     }
+    if (st != rpc_s_ok)
+    {
+        if (assoc->security.auth_buffer_info.auth_buffer)
+        {
+            RPC_MEM_FREE(assoc->security.auth_buffer_info.auth_buffer,
+                         RPC_C_MEM_CN_PAC_BUF);
+        }
+        if (assoc->raw_packet_p)
+        {
+            rpc__cn_fragbuf_free (assoc->raw_packet_p);
+            assoc->raw_packet_p = NULL;
+        }
+    }
 }
 
 
@@ -1244,7 +1355,7 @@ unsigned32              *st;
 {
     rpc_cn_fragbuf_t    * volatile fbp;
     volatile unsigned16 frag_length;
-    volatile int                 bytes_rcvd = 0;
+    unsigned32          bytes_rcvd = 0;
     rpc_socket_iovec_t  iov;
     volatile rpc_socket_error_t  serr = 0;
     signed32            need_bytes;
@@ -1355,6 +1466,12 @@ unsigned32              *st;
         iov.iov_base = (byte_p_t)((unsigned8 *)(fbp->data_p) + fbp->data_size);
         iov.iov_len = need_bytes;
 
+        if (need_bytes > (signed32) (fbp->max_data_size - fbp->data_size))
+        {
+            *st = rpc_s_protocol_error;
+            (*fbp->fragbuf_dealloc)(fbp);
+            return;
+        }
         /*
          * Release the CN global mutex before reading from the
          * socket. This will allow other threads to run if we have to
@@ -1379,7 +1496,7 @@ unsigned32              *st;
                 &iov,
                 1,
                 addr,
-                (int*) &bytes_rcvd);
+                (int *) &bytes_rcvd);
 #ifdef NON_CANCELLABLE_IO
 	    dcethread_enableasync_throw(0);
 #endif /* NON_CANCELLABLE_IO */
@@ -1390,7 +1507,7 @@ unsigned32              *st;
             dcethread_enableasync_throw(0);
 #endif /* NON_CANCELLABLE_IO */
             RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-("CN: call_rep->%x assoc->%x desc->%x receiver canceled, caught in receive_packet()\n",
+("CN: call_rep->%p assoc->%p desc->%p receiver canceled, caught in receive_packet()\n",
                              assoc->call_rep,
                              assoc,
                              assoc->cn_ctlblk.cn_sock));
@@ -1433,20 +1550,18 @@ unsigned32              *st;
         while (assoc->cn_ctlblk.in_sendmsg)
         {
             RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                            ("CN: call_rep->%x assoc->%x desc->%x waiting for sendmsg to complete...\n",
+                            ("CN: call_rep->%p assoc->%p desc->%p waiting for sendmsg to complete...\n",
                              assoc->call_rep,
                              assoc,
-                             assoc->cn_ctlblk.cn_sock,
-                             bytes_rcvd));
+                             assoc->cn_ctlblk.cn_sock));
             assoc->cn_ctlblk.waiting_for_sendmsg_complete = true;
             RPC_COND_WAIT (assoc->cn_ctlblk.cn_rcvr_cond,
                            rpc_g_global_mutex);
             RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                            ("CN: call_rep->%x assoc->%x desc->%x sendmsg complete\n",
+                            ("CN: call_rep->%p assoc->%p desc->%p sendmsg complete\n",
                              assoc->call_rep,
                              assoc,
-                             assoc->cn_ctlblk.cn_sock,
-                             bytes_rcvd));
+                             assoc->cn_ctlblk.cn_sock));
             assoc->cn_ctlblk.waiting_for_sendmsg_complete = false;
         }
 
@@ -1471,7 +1586,7 @@ unsigned32              *st;
             if (rpc__naf_is_connect_closed (assoc->cn_ctlblk.cn_sock, st))
             {
                 RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                                ("CN: call_rep->%x assoc->%x desc->%x connection closed recvmsg failed serr = %x, bytes_rcvd = %d\n",
+                                ("CN: call_rep->%p assoc->%p desc->%p connection closed recvmsg failed serr = %x, bytes_rcvd = %ld\n",
                                  assoc->call_rep,
                                  assoc,
                                  assoc->cn_ctlblk.cn_sock,
@@ -1489,7 +1604,7 @@ unsigned32              *st;
         }
 
         RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                        ("CN: call_rep->%x assoc->%x desc->%x received %d bytes\n",
+                        ("CN: call_rep->%p assoc->%p desc->%p received %ld bytes\n",
                          assoc->call_rep,
                          assoc,
                          assoc->cn_ctlblk.cn_sock,
@@ -1522,7 +1637,7 @@ unsigned32              *st;
                 SWAB_INPLACE_16 (frag_length);
             }
 
-#ifdef DEBUG
+
             /*
              * Sanity check the protocol versions in the header.
              * Except for BIND and BIND_NAK packets.
@@ -1538,20 +1653,20 @@ unsigned32              *st;
                 {
                     /*
                      * We have incompatible protocol versions.
-		     */
-		    /*
-		     * "(receive_packet) assoc->%x %s: Protocol version mismatch -
-		     *            major->%x minor->%x"
                      */
-		    RPC_DCE_SVC_PRINTF ((
-			DCE_SVC(RPC__SVC_HANDLE, "%x%s%x%x"),
-			rpc_svc_cn_pkt,
-			svc_c_sev_warning,
-			rpc_m_prot_mismatch,
-			assoc,
-			rpc__cn_pkt_name(ptype),
-			RPC_CN_PKT_VERS ((rpc_cn_packet_p_t)fbp->data_p),
-			RPC_CN_PKT_VERS_MINOR ((rpc_cn_packet_p_t)fbp->data_p) ));
+                    /*
+                     * "(receive_packet) assoc->%p %s: Protocol version mismatch -
+                     *            major->%x minor->%x"
+                     */
+                    RPC_DCE_SVC_PRINTF ((
+                        DCE_SVC(RPC__SVC_HANDLE, "%x%s%x%x"),
+                        rpc_svc_cn_pkt,
+                        svc_c_sev_warning,
+                        rpc_m_prot_mismatch,
+                        assoc,
+                        rpc__cn_pkt_name(ptype),
+                        RPC_CN_PKT_VERS ((rpc_cn_packet_p_t)fbp->data_p),
+                        RPC_CN_PKT_VERS_MINOR ((rpc_cn_packet_p_t)fbp->data_p) ));
                 }
             }
 
@@ -1565,14 +1680,14 @@ unsigned32              *st;
                 ptype = RPC_CN_PKT_PTYPE((rpc_cn_packet_p_t)fbp->data_p);
 
                 /*
-		 * "(receive_packet) assoc->%x frag_length %d in header >
-		 *                fragbuf data size %d"
-		 */
+                 * "(receive_packet) assoc->%p frag_length %d in header >
+                 *                fragbuf data size %d"
+                 */
                 RPC_DCE_SVC_PRINTF ((
-		    DCE_SVC(RPC__SVC_HANDLE, "%x%d%d"),
-		    rpc_svc_cn_pkt,
-		    svc_c_sev_warning,
-		    rpc_m_frag_toobig,
+                    DCE_SVC(RPC__SVC_HANDLE, "%x%d%d"),
+                    rpc_svc_cn_pkt,
+                    svc_c_sev_warning,
+                    rpc_m_frag_toobig,
                     assoc,
                     frag_length,
                     rpc_g_cn_large_frag_size ));
@@ -1603,7 +1718,6 @@ unsigned32              *st;
                    return;
                 }
             }
-#endif
         }
 
         /*

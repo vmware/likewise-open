@@ -1,5 +1,6 @@
 /*
- * 
+ *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -1128,7 +1129,7 @@ rpc_mgr_epv_t               *mepv;
 unsigned32                  *status;
 #endif
 {
-    return rpc__if_lookup2 (if_uuid, if_vers, mgr_type_uuid,
+           rpc__if_lookup2 (if_uuid, if_vers, mgr_type_uuid,
                             ihint, ifspec, sepv, mepv,
                             NULL, NULL, NULL, NULL, status);
 }
@@ -1861,7 +1862,7 @@ unsigned32                  *status;
             RPC_MEM_ALLOC (
                 scratch_endpoint,
                 unsigned_char_p_t, 
-                (strlen ((char *)
+                ((unsigned32) strlen ((char *)
                     ifspec->endpoint_vector.endpoint_vector_elt[ctr].endpoint)
                     +3),
                 RPC_C_MEM_STRING,
@@ -2127,7 +2128,7 @@ unsigned32              *status;
     RPC_MEM_ALLOC (
         *if_id_vector,
         rpc_if_id_vector_p_t,
-        ((sizeof if_count) + (if_count * sizeof (rpc_if_id_p_t))),
+        (sizeof(**if_id_vector) + (if_count-1)*sizeof (rpc_if_id_p_t)),
         RPC_C_MEM_IF_ID_VECTOR,
         RPC_C_MEM_WAITOK);
 

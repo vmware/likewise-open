@@ -1,5 +1,6 @@
 /*
  *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -19,6 +20,31 @@
  *
  */
 /*
+ * Copyright (c) 2010 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1.  Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ * 2.  Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ * 3.  Neither the name of Apple Inc. ("Apple") nor the names of its
+ *     contributors may be used to endorse or promote products derived from
+ *     this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
 **
@@ -72,22 +98,60 @@ GLOBAL rpc_cn_common_hdr_t rpc_g_cn_common_hdr =
 
 INTERNAL rpc_cn_pres_result_list_p_t unpack_port_any _DCE_PROTOTYPE_ ((
         rpc_cn_port_any_t       * /*port_any_p*/,
-        unsigned8               * /*drepp*/
+        unsigned8               * /*drepp*/,
+        unsigned8               * /*end_of_pkt*/,
+        unsigned32              * /*st*/
         ));
 
 INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_context_list _DCE_PROTOTYPE_ ((
         rpc_cn_pres_cont_list_p_t /*pcontp*/,
-        boolean32               /*swap*/
+        boolean32                 /*swap*/,
+        unsigned8                 * /*end_of_pkt*/,
+        unsigned32                * /*st*/
         ));
 
 INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_result_list _DCE_PROTOTYPE_ ((
         rpc_cn_pres_result_list_p_t /*presp*/,
-        boolean32               /*swap*/
+        boolean32                   /*swap*/,
+        unsigned8                   * /*end_of_pkt*/,
+        unsigned32                  * /*st*/
         ));
 
 INTERNAL rpc_cn_auth_tlr_p_t unpack_versions_supported _DCE_PROTOTYPE_ ((
         rpc_cn_versions_supported_p_t /*versp*/
         ));
+
+void SWAP_INPLACE_UUID
+(
+    dce_uuid_t   *uuid_p,
+    unsigned8    *end_of_pkt,
+    unsigned32   *st
+)
+{
+    SWAP_INPLACE_32(&uuid_p->time_low, end_of_pkt, st);
+    if (*st == rpc_s_ok)
+    {
+        SWAP_INPLACE_16(&uuid_p->time_mid, end_of_pkt, st);
+    }
+    if (*st == rpc_s_ok)
+    {
+        SWAP_INPLACE_16(&uuid_p->time_hi_and_version, end_of_pkt, st);
+    }
+}
+
+void SWAP_INPLACE_SYNTAX
+(
+    rpc_cn_pres_syntax_id_p_t   syntax_p,
+    unsigned8                   *end_of_pkt,
+    unsigned32                  *st
+)
+{
+    SWAP_INPLACE_UUID(&syntax_p->id, end_of_pkt, st);
+    if (*st == rpc_s_ok)
+    {
+        SWAP_INPLACE_32(&syntax_p->version, end_of_pkt, st);
+    }
+}
 
 /*
 **++
@@ -105,11 +169,14 @@ INTERNAL rpc_cn_auth_tlr_p_t unpack_versions_supported _DCE_PROTOTYPE_ ((
 **  INPUTS:
 **
 **      port_any_p	pointer to the 'port_any' field within the packet
-**	drepp		pointer to the data representation
+**      drepp		pointer to the data representation
+**      swap		boolean indicating we need to perform byte swapping
+**      end_of_pkt  ptr to 1 byte past end of packet
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:            none
+**  OUTPUTS:
+**      st          The return status of this routine
 **
 **  IMPLICIT INPUTS:    none
 **
@@ -127,20 +194,27 @@ INTERNAL rpc_cn_auth_tlr_p_t unpack_versions_supported _DCE_PROTOTYPE_ ((
 INTERNAL rpc_cn_pres_result_list_p_t unpack_port_any
 #ifdef _DCE_PROTO_
 (
-  rpc_cn_port_any_t       *port_any_p,
-  unsigned8               *drepp
+    rpc_cn_port_any_t       *port_any_p,
+    unsigned8               *drepp,
+    unsigned8               *end_of_pkt,
+    unsigned32              *st
 )
 #else
-(port_any_p, drepp)
+(port_any_p, drepp, end_of_pkt, st)
 rpc_cn_port_any_t       *port_any_p;
 unsigned8               *drepp;
+unsigned8               *end_of_pkt;
+unsigned32              *st;
 #endif
 {
+    unsigned8 * string_end;
     union
     {                                  /* a "proper" union to shut up lint */
         unsigned8 *string;             /* a string pointer */
         rpc_cn_pres_result_list_p_t rtn;        /* a return value */
     }   ptr;
+
+    *st = rpc_s_ok;
 
     ptr.string = port_any_p->s;        /* init our string pointer */
 
@@ -149,7 +223,11 @@ unsigned8               *drepp;
      */
     if (NDR_LOCAL_INT_REP != NDR_DREP_INT_REP (drepp))
     {
-        SWAB_INPLACE_16 (port_any_p->length);
+        SWAP_INPLACE_16 (&port_any_p->length, end_of_pkt, st);
+        if (*st != rpc_s_ok)
+        {
+            return (NULL);
+        }
     }
 
     /*
@@ -157,7 +235,14 @@ unsigned8               *drepp;
      */
     if (NDR_LOCAL_CHAR_REP != NDR_DREP_CHAR_REP (drepp))
     {
-	rpc_util_strcvt ( NDR_LOCAL_CHAR_REP == ndr_c_char_ascii,
+        string_end = ptr.string + port_any_p->length;
+        if ( (string_end < ptr.string) || (end_of_pkt < string_end) )
+        {
+            *st = rpc_s_bad_pkt;
+            return (NULL);
+        }
+
+        rpc_util_strcvt ( NDR_LOCAL_CHAR_REP == ndr_c_char_ascii,
 			  port_any_p->length,
 			  ptr.string,
 			  ptr.string );
@@ -187,11 +272,13 @@ unsigned8               *drepp;
 **  INPUTS:
 **
 **      pcontp		pointer to the presentation context list
-**	swap		boolean indicating we need to perform byte swapping
+**      swap		boolean indicating we need to perform byte swapping
+**      end_of_pkt  ptr to 1 byte past end of packet
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:            none
+**  OUTPUTS:
+**      st          The return status of this routine
 **
 **  IMPLICIT INPUTS:    none
 **
@@ -210,13 +297,17 @@ unsigned8               *drepp;
 INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_context_list
 #ifdef _DCE_PROTO_
 (
-  rpc_cn_pres_cont_list_p_t       pcontp,
-  boolean32                       swap
+    rpc_cn_pres_cont_list_p_t     pcontp,
+    boolean32                     swap,
+    unsigned8                     *end_of_pkt,
+    unsigned32                    *st
 )
 #else
-(pcontp, swap)
+(pcontp, swap, end_of_pkt, st)
 rpc_cn_pres_cont_list_p_t       pcontp;
 boolean32                       swap;
+unsigned8                     *end_of_pkt;
+unsigned32                    *st;
 #endif
 {
     unsigned8 n;                       /* presentation context list element
@@ -231,6 +322,8 @@ boolean32                       swap;
         rpc_cn_auth_tlr_p_t rtn;       /* return value */
     } ptrs;
 
+    *st = rpc_s_ok;
+
     /*
      * Get a pointer to the first element.
      *
@@ -243,9 +336,9 @@ boolean32                       swap;
      */
     for (n = 0; n < pcontp->n_context_elem; n++)
     {
-	/*
-	 * Get the number of transfer syntaxes in this element.
-	 */
+        /*
+         * Get the number of transfer syntaxes in this element.
+         */
         tsn = (ptrs.ep)->n_transfer_syn;
 
         /*
@@ -256,19 +349,31 @@ boolean32                       swap;
 	    /*
 	     * Convert the presentation context id.
 	     */
-	    SWAB_INPLACE_16 ((ptrs.ep)->pres_context_id);
+            SWAP_INPLACE_16 (&(ptrs.ep)->pres_context_id, end_of_pkt, st);
+            if (*st != rpc_s_ok)
+            {
+                return (NULL);
+            }
 
             /*
              * Convert the abstract syntax.
              */
-            SWAB_INPLACE_SYNTAX ((ptrs.ep)->abstract_syntax);
+            SWAP_INPLACE_SYNTAX (&(ptrs.ep)->abstract_syntax, end_of_pkt, st);
+            if (*st != rpc_s_ok)
+            {
+                return (NULL);
+            }
 
             /*
              * Process each transfer syntax id of this element.
              */
             for (id = 0; id < tsn; id++)
             {
-                SWAB_INPLACE_SYNTAX ((ptrs.ep)->transfer_syntaxes[id]);
+                SWAP_INPLACE_SYNTAX (&(ptrs.ep)->transfer_syntaxes[id], end_of_pkt, st);
+                if (*st != rpc_s_ok)
+                {
+                    return (NULL);
+                }
             }
         }
 
@@ -301,10 +406,13 @@ boolean32                       swap;
 **
 **      presp		pointer to the presentation result list
 **      swap		boolean indicating we need to perform byte swapping
+**      swap		boolean indicating we need to perform byte swapping
+**      end_of_pkt  ptr to 1 byte past end of packet
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:            none
+**  OUTPUTS:
+**      st          The return status of this routine
 **
 **  IMPLICIT INPUTS:    none
 **
@@ -323,18 +431,24 @@ boolean32                       swap;
 INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_result_list
 #ifdef _DCE_PROTO_
 (
-  rpc_cn_pres_result_list_p_t     presp,
-  boolean32                       swap
+    rpc_cn_pres_result_list_p_t presp,
+    boolean32                   swap,
+    unsigned8                   *end_of_pkt,
+    unsigned32                  *st
 )
 #else
-(presp, swap)
+(presp, swap, end_of_pkt, st)
 rpc_cn_pres_result_list_p_t     presp;
 boolean32                       swap;
+unsigned8                   *end_of_pkt;
+unsigned32                  *st;
 #endif
 {
     unsigned8 n;		/* presentation result list element loop
                                         * count */
     unsigned8 prn;		/* number of presentation results */
+
+    *st = rpc_s_ok;
 
     /*
      * Process each element of the presentation result list.
@@ -342,9 +456,23 @@ boolean32                       swap;
     prn = presp->n_results;
     for (n = 0; (n < prn) && swap; n++)
     {
-        SWAB_INPLACE_16 (presp->pres_results[n].result);
-        SWAB_INPLACE_16 (presp->pres_results[n].reason);
-        SWAB_INPLACE_SYNTAX (presp->pres_results[n].transfer_syntax);
+        SWAP_INPLACE_16 (&presp->pres_results[n].result, end_of_pkt, st);
+        if (*st != rpc_s_ok)
+        {
+            return (NULL);
+        }
+
+        SWAP_INPLACE_16 (&presp->pres_results[n].reason, end_of_pkt, st);
+        if (*st != rpc_s_ok)
+        {
+            return (NULL);
+        }
+
+        SWAP_INPLACE_SYNTAX (&presp->pres_results[n].transfer_syntax, end_of_pkt, st);
+        if (*st != rpc_s_ok)
+        {
+            return (NULL);
+        }
     }
 
     /*
@@ -601,10 +729,11 @@ rpc_cn_packet_p_t pkt_p;
 **  INPUTS:
 **
 **      pkt_p		a pointer to the packet to be unpacked
+**      data_size	length of packet to ensure do not go past end of packet
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:            none
+**  OUTPUTS:            unsigned32 error
 **
 **  IMPLICIT INPUTS:    none
 **
@@ -617,14 +746,16 @@ rpc_cn_packet_p_t pkt_p;
 **--
 **/
 
-PRIVATE void rpc__cn_unpack_hdr
+PRIVATE unsigned32 rpc__cn_unpack_hdr
 #ifdef _DCE_PROTO_
 (
-  rpc_cn_packet_p_t pkt_p
+    rpc_cn_packet_p_t pkt_p,
+    unsigned32 data_size
 )
 #else
-(pkt_p)
+(pkt_p, data_size)
 rpc_cn_packet_p_t pkt_p;
+unsigned32 data_size;
 #endif
 {
     rpc_cn_auth_tlr_p_t authp;           /* ptr to pkt authentication data */
@@ -635,8 +766,12 @@ rpc_cn_packet_p_t pkt_p;
     unsigned8 *drepp;                    /* ptr to pkt drep[] data */
     boolean swap;                        /* boolean says we swap bytes/words */
     boolean authenticate;                /* boolean says authentication data is valid */
-    boolean has_uuid;		         /* boolean says an OBJECT uuid is present */
+    boolean has_uuid;		             /* boolean says an OBJECT uuid is present */
     unsigned32 st;                       /* status variable */
+    unsigned8 *end_of_pkt;               /* ptr to 1 byte past end of packet */
+
+    end_of_pkt = (unsigned8 *) pkt_p;
+    end_of_pkt += data_size;
 
     /*
      * Get the DREP and see if we need to do byte/word swapping.
@@ -651,9 +786,23 @@ rpc_cn_packet_p_t pkt_p;
      */
     if (swap)
     {
-        SWAB_INPLACE_16 (RPC_CN_PKT_FRAG_LEN (pkt_p));
-        SWAB_INPLACE_16 (RPC_CN_PKT_AUTH_LEN (pkt_p));
-        SWAB_INPLACE_32 (RPC_CN_PKT_CALL_ID (pkt_p));
+        SWAP_INPLACE_16 (&RPC_CN_PKT_FRAG_LEN (pkt_p), end_of_pkt, &st);
+        if (st != rpc_s_ok)
+        {
+            return (st);
+        }
+
+        SWAP_INPLACE_16 (&RPC_CN_PKT_AUTH_LEN (pkt_p), end_of_pkt, &st);
+        if (st != rpc_s_ok)
+        {
+            return (st);
+        }
+
+        SWAP_INPLACE_32 (&RPC_CN_PKT_CALL_ID (pkt_p), end_of_pkt, &st);
+        if (st != rpc_s_ok)
+        {
+            return (st);
+        }
     }
 
     /*
@@ -673,19 +822,37 @@ rpc_cn_packet_p_t pkt_p;
      */
     switch (RPC_CN_PKT_PTYPE (pkt_p))
     {
-            /*
-             * RPC_CN_BIND_HDR_T
-             */
+        /*
+         * RPC_CN_BIND_HDR_T
+         */
         case RPC_C_CN_PKT_BIND:
         case RPC_C_CN_PKT_ALTER_CONTEXT:
             if (swap)
             {
-                SWAB_INPLACE_16 (RPC_CN_PKT_MAX_XMIT_FRAG (pkt_p));
-                SWAB_INPLACE_16 (RPC_CN_PKT_MAX_RECV_FRAG (pkt_p));
-                SWAB_INPLACE_32 (RPC_CN_PKT_ASSOC_GROUP_ID (pkt_p));
+                SWAP_INPLACE_16 (&RPC_CN_PKT_MAX_XMIT_FRAG (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_16 (&RPC_CN_PKT_MAX_RECV_FRAG (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_32 (&RPC_CN_PKT_ASSOC_GROUP_ID (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
             }
             pconp = (rpc_cn_pres_cont_list_p_t)((unsigned8 *)(&RPC_CN_PKT_ASSOC_GROUP_ID (pkt_p)) + 4);
-            authp = unpack_pres_context_list (pconp, swap);
+            authp = unpack_pres_context_list (pconp, swap, end_of_pkt, &st);
+            if (st != rpc_s_ok)
+            {
+                return (st);
+            }
             break;
 
             /*
@@ -695,15 +862,38 @@ rpc_cn_packet_p_t pkt_p;
         case RPC_C_CN_PKT_ALTER_CONTEXT_RESP:
             if (swap)
             {
-                SWAB_INPLACE_16 (RPC_CN_PKT_MAX_XMIT_FRAG (pkt_p));
-                SWAB_INPLACE_16 (RPC_CN_PKT_MAX_RECV_FRAG (pkt_p));
-                SWAB_INPLACE_32 (RPC_CN_PKT_ASSOC_GROUP_ID (pkt_p));
+                SWAP_INPLACE_16 (&RPC_CN_PKT_MAX_XMIT_FRAG (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_16 (&RPC_CN_PKT_MAX_RECV_FRAG (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_32 (&RPC_CN_PKT_ASSOC_GROUP_ID (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
             }
             secadrp = (rpc_cn_port_any_t *)
                 ((unsigned8 *)(pkt_p) + RPC_CN_PKT_SIZEOF_BIND_ACK_HDR);
-            presp = unpack_port_any (secadrp, drepp);
+            presp = unpack_port_any (secadrp, drepp, end_of_pkt, &st);
+            if (st != rpc_s_ok)
+            {
+                return (st);
+            }
+
             force_alignment (4, (unsigned8 **)&presp);
-            authp = unpack_pres_result_list (presp, swap);
+            authp = unpack_pres_result_list (presp, swap, end_of_pkt, &st);
+            if (st != rpc_s_ok)
+            {
+                return (st);
+            }
             break;
 
             /*
@@ -712,7 +902,11 @@ rpc_cn_packet_p_t pkt_p;
         case RPC_C_CN_PKT_BIND_NAK:
             if (swap)
             {
-                SWAB_INPLACE_16 (RPC_CN_PKT_PROV_REJ_REASON (pkt_p));
+                SWAP_INPLACE_16 (&RPC_CN_PKT_PROV_REJ_REASON (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
             }
 	    versp = &RPC_CN_PKT_VERSIONS (pkt_p);
             authp = unpack_versions_supported (versp);
@@ -724,12 +918,31 @@ rpc_cn_packet_p_t pkt_p;
         case RPC_C_CN_PKT_REQUEST:
             if (swap)
             {
-                SWAB_INPLACE_32 (RPC_CN_PKT_ALLOC_HINT (pkt_p));
-                SWAB_INPLACE_16 (RPC_CN_PKT_PRES_CONT_ID (pkt_p));
-                SWAB_INPLACE_16 (RPC_CN_PKT_OPNUM (pkt_p));
-		if (has_uuid)
-		{
-                    SWAB_INPLACE_UUID (RPC_CN_PKT_OBJECT (pkt_p));
+                SWAP_INPLACE_32 (&RPC_CN_PKT_ALLOC_HINT (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_16 (&RPC_CN_PKT_PRES_CONT_ID (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_16 (&RPC_CN_PKT_OPNUM (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                if (has_uuid)
+                {
+                    SWAP_INPLACE_UUID (&RPC_CN_PKT_OBJECT (pkt_p), end_of_pkt, &st);
+                    if (st != rpc_s_ok)
+                    {
+                        return (st);
+                    }
                 }
             }
             authp = end_of_stub_data (pkt_p);
@@ -741,8 +954,17 @@ rpc_cn_packet_p_t pkt_p;
         case RPC_C_CN_PKT_RESPONSE:
             if (swap)
             {
-                SWAB_INPLACE_32 (RPC_CN_PKT_ALLOC_HINT (pkt_p));
-                SWAB_INPLACE_16 (RPC_CN_PKT_PRES_CONT_ID (pkt_p));
+                SWAP_INPLACE_32 (&RPC_CN_PKT_ALLOC_HINT (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_16 (&RPC_CN_PKT_PRES_CONT_ID (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
             }
             authp = end_of_stub_data (pkt_p);
             break;
@@ -753,9 +975,23 @@ rpc_cn_packet_p_t pkt_p;
         case RPC_C_CN_PKT_FAULT:
             if (swap)
             {
-		SWAB_INPLACE_32 (RPC_CN_PKT_ALLOC_HINT (pkt_p));
-                SWAB_INPLACE_16 (RPC_CN_PKT_PRES_CONT_ID (pkt_p));
-		SWAB_INPLACE_32 (RPC_CN_PKT_STATUS (pkt_p));
+                SWAP_INPLACE_32 (&RPC_CN_PKT_ALLOC_HINT (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_16 (&RPC_CN_PKT_PRES_CONT_ID (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
+
+                SWAP_INPLACE_32 (&RPC_CN_PKT_STATUS (pkt_p), end_of_pkt, &st);
+                if (st != rpc_s_ok)
+                {
+                    return (st);
+                }
             }
             authp = end_of_stub_data (pkt_p);
             break;
@@ -771,14 +1007,14 @@ rpc_cn_packet_p_t pkt_p;
 
         default:
             /* "(%s) Illegal or unknown packet type: %x\n" */
-	    RPC_DCE_SVC_PRINTF ((
-	        DCE_SVC(RPC__SVC_HANDLE, "%s%x"),
-	        rpc_svc_cn_pkt,
-	        svc_c_sev_warning,
-	        rpc_m_bad_pkt_type,
-	        "rpc__cn_unpack_hdr",
-	        RPC_CN_PKT_PTYPE(pkt_p) ));
-            return;
+            RPC_DCE_SVC_PRINTF ((
+                 DCE_SVC(RPC__SVC_HANDLE, "%s%x"),
+                 rpc_svc_cn_pkt,
+                 svc_c_sev_warning,
+                 rpc_m_bad_pkt_type,
+                 "rpc__cn_unpack_hdr",
+                 RPC_CN_PKT_PTYPE(pkt_p) ));
+            return (rpc_s_bad_pkt);
     }
 
     /*
@@ -788,38 +1024,39 @@ rpc_cn_packet_p_t pkt_p;
     {
         switch (RPC_CN_PKT_PTYPE (pkt_p))
         {
-	    case RPC_C_CN_PKT_BIND:
-	    case RPC_C_CN_PKT_ALTER_CONTEXT:
-	    case RPC_C_CN_PKT_BIND_ACK:
-	    case RPC_C_CN_PKT_ALTER_CONTEXT_RESP:
-	    case RPC_C_CN_PKT_BIND_NAK:
-	    case RPC_C_CN_PKT_AUTH3:
+            case RPC_C_CN_PKT_BIND:
+            case RPC_C_CN_PKT_ALTER_CONTEXT:
+            case RPC_C_CN_PKT_BIND_ACK:
+            case RPC_C_CN_PKT_ALTER_CONTEXT_RESP:
+            case RPC_C_CN_PKT_BIND_NAK:
+            case RPC_C_CN_PKT_AUTH3:
             {
 #ifdef DEBUG
-		char *p;
+                char *p;
 #endif
                 rpc_authn_protocol_id_t authn_protocol;
 
-		authp = RPC_CN_PKT_AUTH_TLR (pkt_p, RPC_CN_PKT_FRAG_LEN (pkt_p));
+                authp = RPC_CN_PKT_AUTH_TLR (pkt_p, RPC_CN_PKT_FRAG_LEN (pkt_p));
 #ifdef DEBUG
-		p = (char *)authp;
-		force_alignment(4, (unsigned8 **)&authp);
-		if (p != (char *)authp) {
-		    /*
-		     * rpc_m_unalign_authtrl
-		     * "(%s) Unaligned RPC_CN_PKT_AUTH_TRL"
-		     */
-		    RPC_DCE_SVC_PRINTF ((
-			DCE_SVC(RPC__SVC_HANDLE, "%s"),
-			rpc_svc_cn_pkt,
-			svc_c_sev_fatal | svc_c_action_abort,
-			rpc_m_unalign_authtrl,
-			"rpc__cn_unpack_hdr" ));
+                p = (char *)authp;
+                force_alignment(4, (unsigned8 **)&authp);
+                if (p != (char *)authp)
+                {
+                    /*
+                     * rpc_m_unalign_authtrl
+                     * "(%s) Unaligned RPC_CN_PKT_AUTH_TRL"
+                     */
+                    RPC_DCE_SVC_PRINTF ((
+                         DCE_SVC(RPC__SVC_HANDLE, "%s"),
+                         rpc_svc_cn_pkt,
+                         svc_c_sev_fatal | svc_c_action_abort,
+                         rpc_m_unalign_authtrl,
+                         "rpc__cn_unpack_hdr" );
+                    return (rpc_s_bad_pkt);
                 }
 #endif
 
                 SWAB_INPLACE_32(authp->key_id);
-
                 authn_protocol = RPC_CN_AUTH_CVT_ID_WIRE_TO_API (authp->auth_type, &st);
                 if (st == rpc_s_ok)
                 {
@@ -827,17 +1064,19 @@ rpc_cn_packet_p_t pkt_p;
 				            pkt_p, RPC_CN_PKT_AUTH_LEN (pkt_p), drepp);
                 }
                 break;
-	    }
+            }
 
             default:
-		/*
-	         * We do not need the auth trailer of the other packet
+                /*
+                 * We do not need the auth trailer of the other packet
                  * types since they are thrown away after recv_check.
                  * So don't bother to unpack them in these cases.
-	         */
-            break;
+                 */
+                break;
         }
     }
+
+    return (rpc_s_ok);
 }
 
 
@@ -1037,7 +1276,7 @@ unsigned32      ptype;
 
 #else
 
-    static char *names[RPC_C_CN_PKT_MAX_TYPE + 1] =
+    static const char *names[RPC_C_CN_PKT_MAX_TYPE + 1] =
     {
         "REQUEST      ",
         "PING         ",

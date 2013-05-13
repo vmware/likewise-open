@@ -1,5 +1,6 @@
 /*
- * 
+ *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -1397,8 +1398,8 @@ unsigned32              *status;
      * freed by the stubs when we're done
      */
     *if_id_vector = (rpc_if_id_vector_p_t)
-        rpc_ss_allocate (((sizeof local_if_id_vector->count) +
-            (local_if_id_vector->count * sizeof (rpc_if_id_p_t))));
+        rpc_ss_allocate ((sizeof(*local_if_id_vector) +
+            (local_if_id_vector->count-1)*sizeof (rpc_if_id_p_t)));
 
     if (*if_id_vector == NULL)
     {

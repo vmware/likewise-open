@@ -1,5 +1,6 @@
 /*
  *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -19,6 +20,31 @@
  *
  */
 /*
+ * Copyright (c) 2010 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1.  Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ * 2.  Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ * 3.  Neither the name of Apple Inc. ("Apple") nor the names of its
+ *     contributors may be used to endorse or promote products derived from
+ *     this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
 **
@@ -54,13 +80,16 @@
 #include <cnfbuf.h>     /* NCA Connection fragment buffer service */
 #include <cnassm.h>     /* NCA Connection association state machine */
 
+#ifndef UINT32_MAX
+# define UINT32_MAX             (4294967295U)
+#endif
 
 
 /******************************************************************************/
 /*
  * Global Definitions
  */
-GLOBAL char     *rpc_g_cn_assoc_server_events [] =
+GLOBAL const char     *rpc_g_cn_assoc_server_events [] =
 {
     "INDICATION",
     "ABORT_REQ",
@@ -79,7 +108,7 @@ GLOBAL char     *rpc_g_cn_assoc_server_events [] =
     "ASSOC_COMPLETE"
 };
 
-GLOBAL char     *rpc_g_cn_assoc_server_states [] =
+GLOBAL const char     *rpc_g_cn_assoc_server_states [] =
 {
     "CLOSED",
     "REQUESTED",
@@ -119,7 +148,7 @@ INTERNAL void send_frag_resp_pdu _DCE_PROTOTYPE_ ((
     rpc_cn_fragbuf_p_t      /*fragbuf*/,
     rpc_cn_packet_p_t       /*req_header*/));
 
-INTERNAL void save_sec_fragment _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32 save_sec_fragment _DCE_PROTOTYPE_ ((
     rpc_cn_assoc_p_t        /*assoc*/,
     rpc_cn_packet_p_t	    /*header*/));
 
@@ -141,16 +170,6 @@ INTERNAL void save_sec_fragment _DCE_PROTOTYPE_ ((
  * #define ACTIVE_PRED                     1
  * #define LASTBIND_PRED		   2
  */
-/*
- * The predicate routine prototypes.
- */
-INTERNAL unsigned8 authent3_pred_rtn _DCE_PROTOTYPE_ ((
-    pointer_t /*spc_struct*/,
-    pointer_t /*event_param*/)) ATTRIBUTE_UNUSED;
-
-INTERNAL unsigned8 active_pred_rtn _DCE_PROTOTYPE_ ((
-    pointer_t /*spc_struct*/,
-    pointer_t /*event_param*/)) ATTRIBUTE_UNUSED;
 
 INTERNAL unsigned8 lastbindfrag_pred_rtn _DCE_PROTOTYPE_ ((
     pointer_t /*spc_struct*/,
@@ -574,7 +593,8 @@ INTERNAL rpc_cn_sm_state_tbl_entry_t auth3_state =
 INTERNAL rpc_cn_sm_state_tbl_entry_t open_state =
 {
     /* event 0 - ind */
-    ILLEGAL_TRANSITION,
+    /* call DO_ASSOC so we can send a bind_nack */
+	{DO_ASSOC},
 
     /* event 1 - abort_req */
 	 {REM_MARK_ABORT},
@@ -673,8 +693,6 @@ INTERNAL rpc_cn_sm_state_tbl_entry_t assoc_wait_state =
     /* event 14 - assoc_complete_resp */
 	 {DO_ASSOC_REQ}
 };
-
-
 
 /*
  * The state table containing the action routines.
@@ -689,110 +707,6 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_server_assoc_sm [] =
     assoc_wait_state            /* state 5 - assoc_wait */
 };
 
-
-/***********************************************************************/
-/*
- *
- * S E R V E R   A S S O C   P R E D I C A T E   R O U T I N E S
- *
- */
-/*
-**++
-**
-**  ROUTINE NAME:       authent3_pred_rtn
-**
-**  SCOPE:              INTERNAL - declared locally
-**
-**  DESCRIPTION:
-**
-**  Returns 1 if the association request requires an optional 3-leg
-**  authentication handshake. Returns 0 if if didn't.
-**
-**  INPUTS:
-**
-**      spc_struct      The association. Note that this is passed in as
-**                      the special structure which is passed to the
-**                      state machine event evaluation routine.
-**
-**      event_param     The fragment buffer containing the rpc_bind
-**                      PDU. The special event related
-**                      parameter which is passed to the state
-**                      machine event evaluation routine.
-**
-**  INPUTS/OUTPUTS:     none
-**
-**  OUTPUTS:            none
-**
-**  IMPLICIT INPUTS:    none
-**
-**  IMPLICIT OUTPUTS:   none
-**
-**  FUNCTION VALUE:     0 if no 3-leg authentication handshake is
-**                        being done.
-**                      1 if a 3-leg authentication handshake is
-**                        being done.
-**
-**  SIDE EFFECTS:       none
-**
-**--
-**/
-
-INTERNAL unsigned8 authent3_pred_rtn
-#ifdef _DCE_PROTO_
-(
-  pointer_t       spc_struct ATTRIBUTE_UNUSED,
-  pointer_t       event_param
-)
-#else
-(spc_struct, event_param)
-pointer_t       spc_struct;
-pointer_t       event_param;
-#endif
-{
-    rpc_cn_packet_t     *header;
-    rpc_cn_auth_tlr_t   *tlr;
-    boolean32           three_way;
-    unsigned32          st;
-    unsigned32          authn_protocol;
-
-    RPC_CN_DBG_RTN_PRINTF(SERVER authent3_pred_rtn);
-
-    /*
-     * The event parameter is a pointer to the fragbuf containing
-     * the rpc_bind PDU.
-     */
-    header = (rpc_cn_packet_t *) ((rpc_cn_fragbuf_t *)event_param)->data_p;
-
-    /*
-     * The authentication length in the header indicates whether the
-     * PDU contains an authentication trailer.
-     */
-    if (RPC_CN_PKT_AUTH_LEN (header) == 0)
-    {
-        return (0);
-    }
-    else
-    {
-        tlr = RPC_CN_PKT_AUTH_TLR (header, RPC_CN_PKT_FRAG_LEN (header));
-        authn_protocol = RPC_CN_AUTH_CVT_ID_WIRE_TO_API (tlr->auth_type, &st);
-        if (st == rpc_s_ok)
-        {
-            RPC_CN_AUTH_THREE_WAY (authn_protocol, three_way);
-            if (three_way)
-            {
-                return (1);
-            }
-            else
-            {
-                return (0);
-            }
-        }
-        else
-        {
-            return (0);
-        }
-    }
-}
 
 
 /*
@@ -887,88 +801,6 @@ pointer_t       event_param;
         }\
     }\
 }
-
-
-/*
-**++
-**
-**  ROUTINE NAME:       active_pred_rtn
-**
-**  SCOPE:              INTERNAL - declared locally
-**
-**  DESCRIPTION:
-**
-**  Determines whether the association is currently in use. Unless
-**  the concurrent multiplexing option has been mutually selected, only one
-**  call and its related callbacks, or an alter-context request, may use
-**  an association at one time. This predicate is manupulated via the
-**  incr_active and decr_active action routines which manipulate a
-**  reference counter, and is ready by the association group policy
-**  mechanisms. A zero reference count implies the predicate value is
-**  false, otherwise it is true.
-**
-**  INPUTS:
-**
-**      spc_struct      The association. Note that this is passed in as
-**                      the special structure which is passed to the
-**                      state machine event evaluation routine.
-**
-**      event_param     The special event related parameter which is
-**                      passed to the state machine event evaluation
-**                      routine.
-**                      This input argument is ignored.
-**
-**  INPUTS/OUTPUTS:     none
-**
-**  OUTPUTS:            none
-**
-**  IMPLICIT INPUTS:    none
-**
-**  IMPLICIT OUTPUTS:   none
-**
-**  FUNCTION VALUE:     0 if association reference counter is 0
-**                      1 if association reference counter is non-zero
-**
-**  SIDE EFFECTS:       none
-**
-**--
-**/
-
-INTERNAL unsigned8 active_pred_rtn
-#ifdef _DCE_PROTO_
-(
-  pointer_t       spc_struct,
-  pointer_t       event_param ATTRIBUTE_UNUSED
-)
-#else
-(spc_struct, event_param)
-pointer_t       spc_struct;
-pointer_t       event_param;
-#endif
-{
-    rpc_cn_assoc_t      *assoc;
-
-    RPC_CN_DBG_RTN_PRINTF(SERVER active_pred_rtn);
-
-    /*
-     * The special structure is a pointer to the association.
-     */
-    assoc = (rpc_cn_assoc_t *) spc_struct;
-
-    /*
-     * A reference counter in the association indicates whether the
-     * association is currently active.
-     */
-    if (assoc->assoc_ref_count == 0)
-    {
-        return (0);
-    }
-    else
-    {
-        return (1);
-    }
-}
-
 
 /*
 **++
@@ -1472,7 +1304,10 @@ pointer_t       sm;
     rpc_cn_fragbuf_t            *fragbuf;
     rpc_cn_sm_event_entry_t     event;
     rpc_cn_port_any_t           *sec_addr;
-    boolean 			old_client;
+    boolean                     old_client;
+    unsigned32                  status;
+    unsigned8                   *end_of_pkt;    /* ptr to 1 byte past end of packet */
+    unsigned8                   *end_ptr;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER do_alter_cont_req_action_rtn);
 
@@ -1488,6 +1323,8 @@ pointer_t       sm;
      * the rpc_alter_context PDU.
      */
     req_header = (rpc_cn_packet_t *) ((rpc_cn_fragbuf_t *)event_param)->data_p;
+    end_of_pkt = (unsigned8 *) req_header;
+    end_of_pkt += ((rpc_cn_fragbuf_t *)event_param)->data_size;
 
     if (!(RPC_CN_PKT_FLAGS(req_header) & RPC_C_CN_FLAGS_LAST_FRAG) &&
         !(RPC_CN_PKT_VERS_MINOR (req_header) < RPC_C_CN_PROTO_VERS_MINOR))
@@ -1497,9 +1334,7 @@ pointer_t       sm;
          * an old client who doesn't set the last_frag flag).
          * Save the security fragment, and wait for the next one.
          */
-        save_sec_fragment(assoc, req_header);
-		  /* FIXME: is this value correct ? */
-        return rpc_s_ok;
+        return (save_sec_fragment(assoc, req_header));
     }
     /*
      * Make sure if we have processed previous alter_context PDU's
@@ -1507,7 +1342,9 @@ pointer_t       sm;
      */
     if (assoc->security.auth_buffer_info.auth_buffer != NULL)
     {
-        save_sec_fragment(assoc, req_header);
+        status = save_sec_fragment(assoc, req_header);
+        if (status != rpc_s_ok)
+            return (status);
     }
 
     /*
@@ -1538,18 +1375,34 @@ pointer_t       sm;
     pres_cont_list = (rpc_cn_pres_cont_list_t *)
         ((unsigned8 *) req_header + RPC_CN_PKT_SIZEOF_ALT_CTX_HDR);
 
-    pres_result_list = (rpc_cn_pres_result_list_t *)
-        ((unsigned8 *)(resp_header) + header_size);
+    /* points to end of pkt whether n_context_elem is 0 or not */
+    end_ptr = (unsigned8 *) &pres_cont_list->pres_cont_elem[pres_cont_list->n_context_elem];
 
-    result_list_len = rpc_g_cn_large_frag_size - header_size;
+    if ( ((unsigned8 *) pres_cont_list < (unsigned8 *) req_header) ||
+        ((unsigned8 *) pres_cont_list > (unsigned8 *) end_of_pkt) ||
+        ((unsigned8 *) end_ptr < (unsigned8 *) req_header) ||
+        ((unsigned8 *) end_ptr > (unsigned8 *) end_of_pkt) )
+    {
+        RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                        ("invalid pres_cont_list in alter context\n"));
+        assoc->assoc_status = rpc_s_bad_pkt;
+    }
+    else
+    {
+        pres_result_list = (rpc_cn_pres_result_list_t *)
+            ((unsigned8 *)(resp_header) + header_size);
 
-    rpc__cn_assoc_syntax_negotiate (assoc,
-                                    pres_cont_list,
-                                    &result_list_len,
-                                    pres_result_list,
-                                    &assoc->assoc_status);
+        result_list_len = rpc_g_cn_large_frag_size - header_size;
 
-    header_size += result_list_len;
+        rpc__cn_assoc_syntax_negotiate (assoc,
+                                        pres_cont_list,
+                                        &result_list_len,
+                                        pres_result_list,
+                                        &assoc->assoc_status);
+
+        header_size += result_list_len;
+    }
+
     if (assoc->assoc_status == rpc_s_ok)
     {
         auth_len = rpc_g_cn_large_frag_size - header_size;
@@ -1597,7 +1450,7 @@ pointer_t       sm;
          * at least spit out what happened.
          */
         RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_ERRORS,
-                        ("CN: call_rep->%x assoc->%x desc->%x error %x while processing alter context PDU \n",
+                        ("CN: call_rep->%p assoc->%p desc->%p error %x while processing alter context PDU \n",
                          assoc->call_rep,
                          assoc,
                          assoc->cn_ctlblk.cn_sock,
@@ -1796,11 +1649,11 @@ pointer_t       sm;
     unsigned32 auth_len;
     rpc_cn_fragbuf_t *fragbuf;
     unsigned32 header_size;
-    rpc_cn_port_any_t *sec_addr;
     boolean old_client;
-    unsigned8 tmp[rpc_g_cn_large_frag_size];
+    unsigned8 *tmp = NULL;
     unsigned8 new_state;
     rpc_cn_sec_context_p_t sec;
+    unsigned32 status;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER do_authent3_action_rtn);
 
@@ -1820,13 +1673,13 @@ pointer_t       sm;
     if (!(RPC_CN_PKT_FLAGS (req_header)) &&
         !(RPC_CN_PKT_VERS_MINOR (req_header) < RPC_C_CN_PROTO_VERS_MINOR))
     {
-        save_sec_fragment (assoc, req_header);
-                   /* FIXME: is this value correct? */
-        return rpc_s_ok;
+        return (save_sec_fragment (assoc, req_header));
     }
     if (assoc->security.auth_buffer_info.auth_buffer != NULL)
     {
-        save_sec_fragment (assoc, req_header);
+        status = save_sec_fragment (assoc, req_header);
+        if (status != rpc_s_ok)
+            return (status);
     }
     assoc->security.assoc_current_sec_context = NULL;
 
@@ -1834,13 +1687,12 @@ pointer_t       sm;
      * Allocate a temporary "response" buffer so we can
      * call rpc__cn_assoc_process_auth_tlr()
      */
+    tmp = calloc(rpc_g_cn_large_frag_size, sizeof(char));
+    if (!tmp) {
+        return rpc_s_no_memory;
+    }
     tmp_resp_header = (rpc_cn_packet_t *) (tmp);
     header_size = RPC_CN_PKT_SIZEOF_BIND_ACK_HDR; /* not really, but. */
-
-    sec_addr = (rpc_cn_port_any_t *)((unsigned8 *)(tmp_resp_header) + header_size);
-    /* changed from 1 to 0 - lukeh May 2003 */
-    sec_addr->length = 0;
-    sec_addr->s[0] = '\0';
 
     header_size = (2 + header_size + 3) & ~0x03;
 
@@ -1855,6 +1707,7 @@ pointer_t       sm;
                                     &assoc->security.assoc_current_sec_context,
                                     old_client,
                                     &assoc->assoc_status);
+    free(tmp);
     if (assoc->assoc_status == rpc_s_ok && auth_len != 0)
     {
         /* Make sure the authentication subsystem didn't return a response */
@@ -1866,7 +1719,7 @@ pointer_t       sm;
     {
         new_state = (assoc->assoc_status == rpc_s_ok) ? RPC_C_ASSOC_AUTH3_ACK : RPC_C_ASSOC_AUTH3_NACK;
 
-        assoc->assoc_status = rpc__cn_sm_eval_event (new_state, event_param, assoc, &assoc->assoc_state);
+        assoc->assoc_status = rpc__cn_sm_eval_event (new_state, event_param, (pointer_t) assoc, &assoc->assoc_state);
         assoc->assoc_flags &= ~RPC_C_CN_ASSOC_SCANNED;
     }
     else
@@ -1951,8 +1804,14 @@ pointer_t       sm;
     rpc_cn_fragbuf_t            *fragbuf;
     rpc_cn_sm_event_entry_t     event;
     rpc_cn_port_any_t           *sec_addr;
-    boolean			old_client;
-    rpc_cn_sm_ctlblk_t 		*sm_p;
+    boolean                     old_client;
+    rpc_cn_sm_ctlblk_t          *sm_p;
+    unsigned8                   *end_of_pkt;    /* ptr to 1 byte past end of packet */
+    unsigned8                   *end_ptr;
+    rpc_socket_error_t          serr;
+    unsigned32                  ssize = 0;
+    unsigned32                  rsize = 0;
+    unsigned32                  status;
 
     RPC_CN_DBG_RTN_PRINTF (SERVER do_assoc_req_action_rtn);
 
@@ -1963,25 +1822,12 @@ pointer_t       sm;
     sm_p = (rpc_cn_sm_ctlblk_t *)sm;
 
     /*
-     * Since this is a new association we don't yet have an
-     * association UUID CRC (and will not unless a client on this
-     * association uses security).
-     */
-    assoc->security.assoc_have_uuid_crc = false;
-
-    /*
-     * Mark the current security context as NULL. This will be
-     * filled in when we have successfully established a security
-     * context. It will be used by the action routine which actually
-     * sends the rpc_bind_ack PDU.
-     */
-    assoc->security.assoc_current_sec_context = NULL;
-
-    /*
      * The event parameter is a pointer to the fragbuf containing
      * the rpc_bind PDU.
      */
     req_header = (rpc_cn_packet_t *) ((rpc_cn_fragbuf_t *)event_param)->data_p;
+    end_of_pkt = (unsigned8 *) req_header;
+    end_of_pkt += ((rpc_cn_fragbuf_t *)event_param)->data_size;
 
     /*
      * Allocate a large fragbuf for the response PDU. It will either
@@ -2003,12 +1849,33 @@ pointer_t       sm;
                       RPC_C_CN_DBG_PROT_VERS_MISMATCH))
     {
         RPC_CN_PKT_VERS_MINOR (req_header) =
-            RPC_C_CN_PROTO_VERS_MINOR + 1;
+        RPC_C_CN_PROTO_VERS_MINOR + 1;
     }
 #endif
 
-    if ((RPC_CN_PKT_VERS (req_header) != RPC_C_CN_PROTO_VERS)
-        ||
+    if (sm_p->cur_state == RPC_C_SERVER_ASSOC_OPEN)
+    {
+        /* Server connection is already bound so reject another Bind request */
+        assoc->assoc_status = rpc_s_protocol_error;
+        goto done;
+    }
+
+    /*
+     * Since this is a new association we don't yet have an
+     * association UUID CRC (and will not unless a client on this
+     * association uses security).
+     */
+    assoc->security.assoc_have_uuid_crc = false;
+
+    /*
+     * Mark the current security context as NULL. This will be
+     * filled in when we have successfully established a security
+     * context. It will be used by the action routine which actually
+     * sends the rpc_bind_ack PDU.
+     */
+    assoc->security.assoc_current_sec_context = NULL;
+
+    if ((RPC_CN_PKT_VERS (req_header) != RPC_C_CN_PROTO_VERS) ||
         (RPC_CN_PKT_VERS_MINOR (req_header) > RPC_C_CN_PROTO_VERS_MINOR))
     {
         assoc->assoc_status = rpc_s_rpc_prot_version_mismatch;
@@ -2021,7 +1888,7 @@ pointer_t       sm;
          * of the protocol to the client's minor version.
          */
         assoc->assoc_vers_minor = RPC_CN_PKT_VERS_MINOR (req_header);
-	old_client = (assoc->assoc_vers_minor <= RPC_C_CN_PROTO_VERS_COMPAT);
+        old_client = (assoc->assoc_vers_minor <= RPC_C_CN_PROTO_VERS_COMPAT);
         RPC_CN_PKT_VERS_MINOR (resp_header) = RPC_CN_PKT_VERS_MINOR(req_header);
 
         /*
@@ -2047,10 +1914,47 @@ pointer_t       sm;
              */
             RPC_CN_PKT_MAX_XMIT_FRAG (req_header) = RPC_C_ASSOC_MUST_RECV_FRAG_SIZE;
         }
-        RPC_CN_PKT_MAX_XMIT_FRAG (resp_header) =
-        MIN (rpc_g_cn_large_frag_size, RPC_CN_PKT_MAX_RECV_FRAG (req_header));
-        RPC_CN_PKT_MAX_RECV_FRAG (resp_header) =
-        MIN (rpc_g_cn_large_frag_size, RPC_CN_PKT_MAX_XMIT_FRAG (req_header));
+
+        /* Set socket's max send/receive sizes to same as max fragment size. */
+        serr = rpc__socket_set_bufs (assoc->cn_ctlblk.cn_sock,
+                                     rpc_g_cn_large_frag_size,
+                                     rpc_g_cn_large_frag_size,
+                                     &ssize,
+                                     &rsize);
+        if (!RPC_SOCKET_IS_ERR (serr))
+        {
+            /* update socket buffer sizes with their actual values */
+            rpc__cn_set_sock_buffsize(rsize, ssize, &status);
+        }
+        else
+        {
+            /* 0 means we could not get any of the max sizes */
+            ssize = 0;
+            rsize = 0;
+        }
+
+        if ( (ssize != 0) && (ssize < rpc_g_cn_large_frag_size) )
+        {
+            RPC_CN_PKT_MAX_XMIT_FRAG (resp_header) =
+                MIN (ssize, RPC_CN_PKT_MAX_RECV_FRAG (req_header));
+        }
+        else
+        {
+            RPC_CN_PKT_MAX_XMIT_FRAG (resp_header) =
+            MIN (rpc_g_cn_large_frag_size, RPC_CN_PKT_MAX_RECV_FRAG (req_header));
+        }
+
+        if ( (rsize != 0) && (rsize < rpc_g_cn_large_frag_size) )
+        {
+            RPC_CN_PKT_MAX_RECV_FRAG (resp_header) =
+                MIN (rsize, RPC_CN_PKT_MAX_XMIT_FRAG (req_header));
+        }
+        else
+        {
+            RPC_CN_PKT_MAX_RECV_FRAG (resp_header) =
+                MIN (rpc_g_cn_large_frag_size, RPC_CN_PKT_MAX_XMIT_FRAG (req_header));
+        }
+
         assoc->assoc_max_xmit_frag = RPC_CN_PKT_MAX_XMIT_FRAG (resp_header);
         assoc->assoc_max_recv_frag = RPC_CN_PKT_MAX_RECV_FRAG (resp_header);
 
@@ -2077,6 +1981,7 @@ pointer_t       sm;
                 if (RPC_DBG_EXACT(rpc_es_dbg_cn_errors,
                                   RPC_C_CN_DBG_GRP_MAX_EXCEEDED))
                 {
+                    assert(assoc_grp != NULL);
                     assoc_grp->grp_cur_assoc = assoc_grp->grp_max_assoc;
                 }
 #endif
@@ -2084,6 +1989,7 @@ pointer_t       sm;
                  * The association group was found. Determine whether it can
                  * support another association.
                  */
+                assert(assoc_grp != NULL);
                 if (assoc_grp->grp_cur_assoc == assoc_grp->grp_max_assoc)
                 {
                     /*
@@ -2113,6 +2019,7 @@ pointer_t       sm;
              * Return the appropriate group ID for the client to use on
              * the next association request.
              */
+            assert(assoc_grp != NULL);
             RPC_CN_PKT_ASSOC_GROUP_ID (resp_header) = assoc_grp->grp_id.all;
 
             /*
@@ -2124,7 +2031,7 @@ pointer_t       sm;
             sec_addr = (rpc_cn_port_any_t *)
                 ((unsigned8 *) (resp_header) + header_size);
             sec_addr->length =
-                strlen ((char *)assoc->cn_ctlblk.cn_listening_endpoint) + 1;
+                (unsigned16) strlen ((char *)assoc->cn_ctlblk.cn_listening_endpoint) + 1;
             if (sec_addr->length <
                 (rpc_g_cn_large_frag_size - header_size + 2))
             {
@@ -2135,8 +2042,8 @@ pointer_t       sm;
                  * To format the balance of the rpc_bind_ack PDU fields we're
                  * going to have to do some pointer arithmetic because the
                  * secondary address endpoint is variable length. Also note
-		 * that the because the presentation result list must start
-		 * on a 4-byte boundary  rounding up will be necessary.
+                 * that the because the presentation result list must start
+                 * on a 4-byte boundary  rounding up will be necessary.
                  */
 
                 header_size = (header_size + 2 + sec_addr->length + 3) & ~0x3;
@@ -2157,28 +2064,43 @@ pointer_t       sm;
                 pres_cont_list = (rpc_cn_pres_cont_list_t *)
                     ((unsigned8 *) req_header + RPC_CN_PKT_SIZEOF_BIND_HDR);
 
-                result_list_len = rpc_g_cn_large_frag_size - header_size;
+                /* points to end of pkt whether n_context_elem is 0 or not */
+                end_ptr = (unsigned8 *) &pres_cont_list->pres_cont_elem[pres_cont_list->n_context_elem];
 
-                rpc__cn_assoc_syntax_negotiate (assoc,
-                                                pres_cont_list,
-                                                &result_list_len,
-                                                pres_result_list,
-                                                &assoc->assoc_status);
-
-		header_size += result_list_len;
-                if (assoc->assoc_status == rpc_s_ok)
+                if ( ((unsigned8 *) pres_cont_list < (unsigned8 *) req_header) ||
+                    ((unsigned8 *) pres_cont_list > (unsigned8 *) end_of_pkt) ||
+                    ((unsigned8 *) end_ptr < (unsigned8 *) req_header) ||
+                    ((unsigned8 *) end_ptr > (unsigned8 *) end_of_pkt) )
                 {
-                    auth_len = rpc_g_cn_large_frag_size - header_size;
-                    rpc__cn_assoc_process_auth_tlr (assoc,
-                                                    req_header,
-                                                    ((rpc_cn_fragbuf_t *)event_param)->data_size,
-                                                    resp_header,
-                                                    &header_size,
-                                                    &auth_len,
-                                                    &assoc->security.assoc_current_sec_context,
-						    old_client,
+                    RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
+                                    ("invalid pres_cont_list\n"));
+                    assoc->assoc_status = rpc_s_bad_pkt;
+                }
+                else
+                {
+                    result_list_len = rpc_g_cn_large_frag_size - header_size;
+
+                    rpc__cn_assoc_syntax_negotiate (assoc,
+                                                    pres_cont_list,
+                                                    &result_list_len,
+                                                    pres_result_list,
                                                     &assoc->assoc_status);
-		}
+
+                    header_size += result_list_len;
+                    if (assoc->assoc_status == rpc_s_ok)
+                    {
+                        auth_len = rpc_g_cn_large_frag_size - header_size;
+                        rpc__cn_assoc_process_auth_tlr (assoc,
+                                                        req_header,
+                                                        ((rpc_cn_fragbuf_t *)event_param)->data_size,
+                                                        resp_header,
+                                                        &header_size,
+                                                        &auth_len,
+                                                        &assoc->security.assoc_current_sec_context,
+                                                        old_client,
+                                                        &assoc->assoc_status);
+                    }
+                }
             }
             else
             {
@@ -2194,6 +2116,7 @@ pointer_t       sm;
     }
 #endif
 
+done:
     /*
      * An rpc_bind_nak PDU will be sent if the association status is
      * not OK. Assume it will be the only fragment sent.
@@ -2217,7 +2140,7 @@ pointer_t       sm;
     }
     else
     {
-	int 	i;
+        int 	i;
 
         /*
          * Some failure happened. Reject this
@@ -2852,7 +2775,7 @@ pointer_t       sm;
         if (rpc__cthread_dequeue((rpc_call_rep_t *) assoc->call_rep))
         {
             RPC_DBG_PRINTF(rpc_e_dbg_orphan, RPC_C_CN_DBG_ORPHAN,
-                           ("(cancel_calls_action_rtn) call_rep->%x queued call ... dequeued call id = %x\n",
+                           ("(cancel_calls_action_rtn) call_rep->%p queued call ... dequeued call id = %x\n",
                             assoc->call_rep,
                             RPC_CN_PKT_CALL_ID ((rpc_cn_packet_p_t) RPC_CN_CREP_SEND_HDR(assoc->call_rep))));
             binding_r = (rpc_binding_rep_t *) assoc->call_rep->binding_rep;
@@ -2871,7 +2794,7 @@ pointer_t       sm;
              * and needs to be woken up.
              */
             RPC_DBG_PRINTF(rpc_e_dbg_orphan, RPC_C_CN_DBG_ORPHAN,
-                           ("(cancel_calls_action_rtn) call_rep->%x running call ... cancelling\n",
+                           ("(cancel_calls_action_rtn) call_rep->%p running call ... cancelling\n",
                             assoc->call_rep));
             RPC_CN_ASSOC_CANCEL_AND_WAKEUP (assoc);
         }
@@ -2879,7 +2802,7 @@ pointer_t       sm;
     else
     {
         RPC_DBG_PRINTF(rpc_e_dbg_orphan, RPC_C_CN_DBG_ORPHAN,
-                       ("(cancel_calls_action_rtn) call_rep->%x assoc->%x no call ... do nothing\n",
+                       ("(cancel_calls_action_rtn) call_rep->%p assoc->%p no call ... do nothing\n",
                         assoc->call_rep,
                         assoc));
     }
@@ -3603,7 +3526,7 @@ pointer_t       sm;
     rpc_cn_packet_t                     *req_header;
     rpc_cn_sm_event_entry_t             event;
     rpc_cn_sm_ctlblk_t 			*sm_p;
-
+    unsigned32 status;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER do_assoc_wait_action_rtn);
 
@@ -3622,7 +3545,9 @@ pointer_t       sm;
     /*
      * Save the security frament in the association reconstruction buffer
      */
-    save_sec_fragment(assoc, req_header);
+    status = save_sec_fragment(assoc, req_header);
+    if (status != rpc_s_ok)
+        return (status);
 
     /*
      * Now we check to see if this is the last packet for this rpc_bind PDU
@@ -3703,9 +3628,9 @@ pointer_t       sm;
 #endif
 {
     rpc_cn_assoc_t                      *assoc;
-    rpc_cn_packet_t                     *req_header ATTRIBUTE_UNUSED;
-    rpc_cn_sm_event_entry_t             event ATTRIBUTE_UNUSED;
-    rpc_cn_sm_ctlblk_t 			*sm_p ATTRIBUTE_UNUSED;
+//    rpc_cn_packet_t                     *req_header ATTRIBUTE_UNUSED;
+//    rpc_cn_sm_event_entry_t             event ATTRIBUTE_UNUSED;
+//    rpc_cn_sm_ctlblk_t 			*sm_p ATTRIBUTE_UNUSED;
     unsigned32				status;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER do_assoc_action_rtn);
@@ -3714,8 +3639,8 @@ pointer_t       sm;
     status = lastbindfrag_pred_rtn (spc_struct, event_param);
     if (status == 0)
     {
-	do_assoc_wait_action_rtn (spc_struct, event_param, sm);
-        return (rpc_s_ok);
+        status = do_assoc_wait_action_rtn (spc_struct, event_param, sm);
+        return (status);
     }
 
     do_assoc_req_action_rtn (spc_struct, event_param, sm);
@@ -3873,16 +3798,16 @@ unsigned32              *st;
 
         dce_error_inq_text(*st, (unsigned char*) error_text, &temp_status);
 
-	/*
+        /*
          * "%s failed: %s"
-	 */
-	RPC_DCE_SVC_PRINTF ((
-	    DCE_SVC(RPC__SVC_HANDLE, "%s%x"),
-	    rpc_svc_auth,
-	    svc_c_sev_error,
-	    rpc_m_call_failed,
-	    "RPC_CN_AUTH_CREATE_INFO",
-	    error_text ));
+         */
+    RPC_DCE_SVC_PRINTF ((
+            DCE_SVC(RPC__SVC_HANDLE, "%s%x"),
+            rpc_svc_auth,
+            svc_c_sev_error,
+            rpc_m_call_failed,
+            "RPC_CN_AUTH_CREATE_INFO",
+            error_text ));
         goto DONE;
     }
     if (sec == NULL)
@@ -3933,12 +3858,20 @@ unsigned32              *st;
         local_auth_value_len = RPC_CN_PKT_AUTH_LEN(req_header);
     }
 
+    /*
+     * Verifing the auth tlr may involve making rpc requests which could end up
+     * calling rpc__cn_binding_alloc().  Drop the global lock so we do not
+     * deadlock.
+     */
+    RPC_CN_UNLOCK ();
+
     RPC_CN_AUTH_VFY_CLIENT_REQ (&assoc->security,
                                 sec,
                                 (pointer_t)local_auth_value,
                                 local_auth_value_len,
-				old_client,
+                                old_client,
                                 &sec->sec_status);
+    RPC_CN_LOCK ();
 
     if (sec->sec_status == rpc_s_ok)
     {
@@ -3987,7 +3920,7 @@ unsigned32              *st;
     if (assoc->security.auth_buffer_info.auth_buffer)
     {
         RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
-                 ("(rpc__cn_assoc_process_auth_tlr) Free'd auth_buffer: %x\n",
+                 ("(rpc__cn_assoc_process_auth_tlr) Free'd auth_buffer: %p\n",
                  assoc->security.auth_buffer_info.auth_buffer));
 
         RPC_MEM_FREE(assoc->security.auth_buffer_info.auth_buffer,
@@ -4045,18 +3978,18 @@ unsigned32              *st;
         dce_error_inq_text(sec->sec_status, (unsigned char*) error_text, &temp_status);
 
         /*
-	 * "%s on server failed: %s"
-	 */
-	RPC_DCE_SVC_PRINTF ((
-	    DCE_SVC(RPC__SVC_HANDLE, "%s%x"),
-	    rpc_svc_auth,
-	    svc_c_sev_error,
-	    rpc_m_call_failed_s,
-	    "RPC_CN_AUTH_VFY_CLIENT_REQ",
-	    error_text ));
+         * "%s on server failed: %s"
+         */
+        RPC_DCE_SVC_PRINTF ((
+            DCE_SVC(RPC__SVC_HANDLE, "%s%x"),
+            rpc_svc_auth,
+            svc_c_sev_error,
+            rpc_m_call_failed_s,
+            "RPC_CN_AUTH_VFY_CLIENT_REQ",
+            error_text ));
 
         RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_SECURITY_ERRORS,
-                        ("CN: call_rep->%x assoc->%x desc->%x client verification failed security_context->%x auth_type->%x auth_level->%x auth_len->%x stub_pad_length->%x st->%x\n",
+                        ("CN: call_rep->%p assoc->%p desc->%p client verification failed security_context->%p auth_type->%x auth_level->%x auth_len->%x stub_pad_length->%x st->%x\n",
                          assoc->call_rep,
                          assoc,
                          assoc->cn_ctlblk.cn_sock,
@@ -4264,7 +4197,7 @@ rpc_cn_packet_p_t       header;
 #endif
 
         RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
-             ("(send_frag_resp_pdu) Freeing KRB message: 0x%x\n",
+             ("(send_frag_resp_pdu) Freeing KRB message: 0x%p\n",
               krb_message_ptr));
     }
 }
@@ -4293,7 +4226,7 @@ rpc_cn_packet_p_t       header;
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:            none
+**  OUTPUTS:            rpc_s_ok on success, rpc_s_bad_pkt on failure
 **
 **  IMPLICIT INPUTS:
 **
@@ -4309,12 +4242,8 @@ rpc_cn_packet_p_t       header;
 **--
 **/
 
-
-INTERNAL void save_sec_fragment(assoc,
-                                header)
-
-rpc_cn_assoc_p_t        assoc;
-rpc_cn_packet_p_t	header;
+INTERNAL unsigned32 save_sec_fragment(rpc_cn_assoc_p_t assoc,
+                                rpc_cn_packet_p_t header)
 
 {
     rpc_cn_bind_auth_value_priv_t       *auth_value;
@@ -4323,6 +4252,7 @@ rpc_cn_packet_p_t	header;
     unsigned8                           *auth_buffer;
     unsigned32                          auth_buffer_max;
     unsigned32                          auth_buffer_len;
+    unsigned32                          st = rpc_s_ok;
 
     /*
      * This is a place where we stash the auth information while we
@@ -4331,6 +4261,14 @@ rpc_cn_packet_p_t	header;
     auth_buffer = assoc->security.auth_buffer_info.auth_buffer;
     auth_buffer_len = assoc->security.auth_buffer_info.auth_buffer_len;
     auth_buffer_max = assoc->security.auth_buffer_info.auth_buffer_max;
+
+    if (RPC_CN_PKT_AUTH_LEN (header) > UINT32_MAX - auth_buffer_len) {
+        RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
+                        ("(save_sec_fragment) Error - RPC_CN_PKT_AUTH_LEN %d + auth_buffer_len %d too large\n",
+                         RPC_CN_PKT_AUTH_LEN (header), auth_buffer_len));
+        st = rpc_s_bad_pkt;
+        goto error;
+    }
 
     if (auth_buffer == NULL)
     {
@@ -4346,7 +4284,7 @@ rpc_cn_packet_p_t	header;
                       RPC_C_MEM_WAITOK);
 
         RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
-  ("(save_sec_fragment) Alloc'd auth_buffer: %x, auth_buffer_max = %d\n",
+  ("(save_sec_fragment) Alloc'd auth_buffer: %p, auth_buffer_max = %d\n",
                         auth_buffer,
                         auth_buffer_max));
     }
@@ -4361,7 +4299,7 @@ rpc_cn_packet_p_t	header;
                         RPC_C_MEM_WAITOK);
 
         RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
-("(save_sec_fragment) Realloc'd auth_buffer: %x, auth_buffer_max = %d\n",
+("(save_sec_fragment) Realloc'd auth_buffer: %p, auth_buffer_max = %d\n",
                         auth_buffer,
                         auth_buffer_max));
     }
@@ -4372,10 +4310,18 @@ rpc_cn_packet_p_t	header;
      * We have to watch out for the checksum at the end of the
      * auth trailer, we only want to recover the KRB_AP_{REQ|REP} message.
      */
-    auth_tlr = RPC_CN_PKT_AUTH_TLR(header,RPC_CN_PKT_FRAG_LEN (header));
+    auth_tlr = RPC_CN_PKT_AUTH_TLR(header, RPC_CN_PKT_FRAG_LEN (header));
     auth_value = (rpc_cn_bind_auth_value_priv_t *)auth_tlr->auth_value;
-    auth_value_len = RPC_CN_PKT_AUTH_LEN (header) -
-                         auth_value->checksum_length;
+
+    if (RPC_CN_PKT_AUTH_LEN (header) < auth_value->checksum_length)
+    {
+        RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
+                        ("(save_sec_fragment) Error - header auth len %d < checksum len %d \n",
+        RPC_CN_PKT_AUTH_LEN (header), auth_value->checksum_length));
+        st = rpc_s_bad_pkt;
+        goto error;
+    }
+    auth_value_len = RPC_CN_PKT_AUTH_LEN (header) - auth_value->checksum_length;
 
     /*
      * For the first packet, copy the header info, for the rest
@@ -4385,24 +4331,69 @@ rpc_cn_packet_p_t	header;
 
     if (auth_buffer_len == 0)
     {
+        if (auth_value_len > auth_buffer_max)
+        {
+            RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
+                            ("(save_sec_fragment) Error - auth_value_len %d > auth_buffer_max %d \n",
+                             auth_value_len, auth_buffer_max));
+            st = rpc_s_bad_pkt;
+            goto error;
+        }
         memcpy(auth_buffer, auth_value, auth_value_len);
     }
     else
     {
+        if (auth_value_len < RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL)
+        {
+            RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
+                            ("(save_sec_fragment) Error - auth_value_len too small %d < RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL %d \n",
+                             auth_value_len, RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL));
+            st = rpc_s_bad_pkt;
+            goto error;
+        }
         auth_value_len -= RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL;
-        assert(auth_value_len == auth_value->cred_length);
-        memcpy(auth_buffer+auth_buffer_len,
+
+        if (auth_value->cred_length > RPC_CN_PKT_AUTH_LEN (header))
+        {
+            RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
+                            ("(save_sec_fragment) Error - cred_length too large (%d) > RPC_CN_PKT_AUTH_LEN %d \n",
+                             auth_value->cred_length, RPC_CN_PKT_AUTH_LEN (header)));
+            st = rpc_s_bad_pkt;
+            goto error;
+        }
+
+        if ((auth_buffer_len + auth_value->cred_length) > auth_buffer_max)
+        {
+            RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
+                            ("(save_sec_fragment) Error - auth buffer too small (%d + %d) > auth_buffer_max %d \n",
+                             auth_buffer_len, auth_value->cred_length, auth_buffer_max));
+            st = rpc_s_bad_pkt;
+            goto error;
+        }
+        memcpy(auth_buffer + auth_buffer_len,
                auth_value->credentials,
                auth_value->cred_length);
         ((rpc_cn_bind_auth_value_priv_t *)auth_buffer)->cred_length += auth_value->cred_length;
     }
 
     RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
-    ("(save_sec_fragment) Copied to auth_buffer: %x, auth_buffer_len=%d, auth_value_len=%d, auth_buffer_max=%d\n",
+    ("(save_sec_fragment) Copied to auth_buffer: %p, auth_buffer_len=%d, auth_value_len=%d, auth_buffer_max=%d\n",
     auth_buffer, auth_buffer_len, auth_value_len, auth_buffer_max));
 
     auth_buffer_len += auth_value_len;
 
+error:
+    if (st)
+    {
+        assoc->assoc_status = st;
+        if (auth_buffer)
+        {
+            RPC_MEM_FREE(auth_buffer, RPC_C_MEM_CN_PAC_BUF);
+            auth_buffer = NULL;
+            auth_buffer_len = 0;
+            auth_buffer_max = 0;
+        }
+    }
 
     /*
      * Update our per-association data
@@ -4410,8 +4401,7 @@ rpc_cn_packet_p_t	header;
     assoc->security.auth_buffer_info.auth_buffer = auth_buffer;
     assoc->security.auth_buffer_info.auth_buffer_len = auth_buffer_len;
     assoc->security.auth_buffer_info.auth_buffer_max = auth_buffer_max;
-
-    return;
+    return (st);
 }
 /* vim:sw=4 ts=4
  * */

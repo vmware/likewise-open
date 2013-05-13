@@ -1,5 +1,6 @@
 /*
- * 
+ *
+ * Copyright (C) 2013 VMware, Inc. All rights reserved.
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +17,34 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
+ */
+/*
+ * Copyright (c) 2010 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1.  Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ * 2.  Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ * 3.  Neither the name of Apple Inc. ("Apple") nor the names of its
+ *     contributors may be used to endorse or promote products derived from
+ *     this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
 **
@@ -26,7 +54,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -39,7 +67,7 @@
 
 /*
  * Your OS / machine specific configuration file can override any of the
- * default definitions / includes in this file.  Additional definitions / 
+ * default definitions / includes in this file.  Additional definitions /
  * overrides that exist:
  *
  *  Controls for generic conditional compilation:
@@ -82,7 +110,7 @@
 #endif
 
 /*
- * Include a OS / machine specific configuration file.  
+ * Include a OS / machine specific configuration file.
  */
 
 #ifndef _DCE_PROTOTYPE_
@@ -108,7 +136,7 @@
 /* ========================================================================= */
 
 /*
- * EXTERNAL    
+ * EXTERNAL
  *      Applied to variables that are external to a module.
  * GLOBAL
  *      Applied to defining instance of a variable.
@@ -205,7 +233,7 @@ typedef idl_byte byte_t ;
 #ifndef UUID_SET
 #  define UUID_SET(uuid_ptr_dst, uuid_src) \
         if ((uuid_ptr_dst) != NULL) \
-	  *(uuid_ptr_dst) = (uuid_src); 
+	  *(uuid_ptr_dst) = (uuid_src);
 #endif /* UUID_SET */
 
 #ifndef UUID_IS_NIL
@@ -280,9 +308,37 @@ typedef idl_byte byte_t ;
 }
 #endif /* SWAB_INPLACE_UUID */
 
+#ifndef SWAP_INPLACE_16
+#define SWAP_INPLACE_16(ptr, end_of_pkt, st) { \
+    if (((unsigned8 *) (ptr) + 1) < (const unsigned8 *) (end_of_pkt)) \
+    { \
+        *(ptr) = SWAB_16(*(ptr)); \
+        *(st) = rpc_s_ok; \
+    } \
+    else \
+    { \
+        *(st) = rpc_s_bad_pkt; \
+    } \
+}
+#endif /* SWAP_INPLACE_16 */
+
+#ifndef SWAP_INPLACE_32
+#define SWAP_INPLACE_32(ptr, end_of_pkt, st) { \
+    if (((unsigned8 *) (ptr) + 3) < (const unsigned8 *) (end_of_pkt)) \
+    { \
+        *(ptr) = SWAB_32(*(ptr)); \
+        *(st) = rpc_s_ok; \
+    } \
+    else \
+    { \
+        *(st) = rpc_s_bad_pkt; \
+    } \
+}
+#endif /* SWAP_INPLACE_32 */
+
 /*
  * Macros for converting to little endian, our data representation
- * for writing towers and other integer data into the namespace.  
+ * for writing towers and other integer data into the namespace.
  */
 #ifndef RPC_RESOLVE_ENDIAN_INT16
 #define RPC_RESOLVE_ENDIAN_INT16(field) \
