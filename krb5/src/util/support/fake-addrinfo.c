@@ -1246,6 +1246,7 @@ getaddrinfo (const char *name, const char *serv, const struct addrinfo *hint,
 		name2 = hp->h_name;
 	}
 
+        free(ai->ai_canonname);
 	ai->ai_canonname = strdup(name2);
 	if (name2 != 0 && ai->ai_canonname == 0) {
 	    system_freeaddrinfo(ai);
@@ -1258,8 +1259,10 @@ getaddrinfo (const char *name, const char *serv, const struct addrinfo *hint,
 	/* Zap the remaining ai_canonname fields glibc fills in, in
 	   case the application messes around with the list
 	   structure.  */
-	while ((ai = ai->ai_next) != NULL)
+	while ((ai = ai->ai_next) != NULL) {
+	    free(ai->ai_canonname);
 	    ai->ai_canonname = 0;
+        }
     }
 #endif
 

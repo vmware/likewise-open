@@ -95,6 +95,8 @@ krb5_sname_to_principal(krb5_context context, const char *hostname, const char *
 	    int err;
 	    char hnamebuf[NI_MAXHOST];
 
+            ai = NULL;
+
 	    /* Note that the old code would accept numeric addresses,
 	       and if the gethostbyaddr step could convert them to
 	       real hostnames, you could actually get reasonable
@@ -109,6 +111,10 @@ krb5_sname_to_principal(krb5_context context, const char *hostname, const char *
 	    hints.ai_family = AF_INET;
 	    hints.ai_flags = AI_CANONNAME;
 	try_getaddrinfo_again:
+            if (ai != NULL) {
+                freeaddrinfo(ai);
+                ai = NULL;
+            }
 	    err = getaddrinfo(hostname, 0, &hints, &ai);
 	    if (err) {
 #ifdef DEBUG_REFERRALS
