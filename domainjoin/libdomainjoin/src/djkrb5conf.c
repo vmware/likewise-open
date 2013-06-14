@@ -1071,7 +1071,7 @@ Krb5JoinDomain(Krb5Entry *conf,
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_kdc_hostname",
                 "<DNS>" ));
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_anchors",
-                "DIR:/var/lib/likewise/trusted_certs" ));
+                "DIR:" LOCALSTATEDIR "/trusted_certs" ));
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_cert_match",
                 "&&<EKU>msScLogin<PRINCIPAL>" ));
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_eku_checking",
