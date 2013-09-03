@@ -67,6 +67,9 @@
 
 #define LSA_MAP_SECURITY_MAP_TO_GUEST_RID   DOMAIN_USER_RID_GUEST
 
+/* TBD: BUG 1066874 - This isn't working; turn off for now */
+#define LSA_DISABLE_PRIVILEGE_LOOKUP 1
+
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
     // TODO-Add connection caching using TLS, a connection pool,
     // or somesuch.  It may be useful to change the calls to LSASS to
@@ -1315,7 +1318,9 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     DWORD dwSuppGroupCount = 0;
     DWORD privilegeCount = 0;
     PLUID_AND_ATTRIBUTES pPrivileges = NULL;
+#ifndef LSA_DISABLE_PRIVILEGE_LOOKUP
     DWORD systemAccessRights = 0;
+#endif
     PSID pPrimaryGidSid = NULL;
     PSTR pszPrimaryGidSid = NULL;
 
@@ -1391,6 +1396,7 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
         &ppszGroupSids);
     GOTO_CLEANUP_ON_STATUS(status);
 
+#ifndef LSA_DISABLE_PRIVILEGE_LOOKUP
     //
     // Get the list of privileges given the list of SIDs
     //
@@ -1404,6 +1410,7 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
         &systemAccessRights);
     status = LsaLsaErrorToNtStatus(dwError);
     GOTO_CLEANUP_ON_STATUS(status);
+#endif
 
     LsaMapSecurityCloseConnection(Context, &hConnection);
     hConnection = NULL;
