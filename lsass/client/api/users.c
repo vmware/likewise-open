@@ -593,6 +593,7 @@ LsaGetNamesBySidList(
     }
 
 cleanup:
+    LsaUtilFreeSecurityObjectList(sCount, ppObjects);
 
     return dwError;
 
@@ -606,7 +607,6 @@ error:
     }
 
     goto cleanup;
-
 }
 
 LSASS_API
