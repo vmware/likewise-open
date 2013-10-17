@@ -1605,6 +1605,7 @@ static int CalculateB(context_t *text  __attribute__((unused)),
     BN_mod(B, B, N, ctx);
 #endif
 
+    BN_free( &v3 );
     BN_CTX_free(ctx);
     
     return SASL_OK;

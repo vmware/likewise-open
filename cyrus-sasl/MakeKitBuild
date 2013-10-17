@@ -23,6 +23,7 @@ make()
         --disable-otp \
         --disable-plain \
         --disable-anon \
+        --enable-srp \
         --enable-gss_mutexes \
         --disable-static \
         --enable-shared \
