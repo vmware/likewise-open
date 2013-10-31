@@ -23,6 +23,10 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
 export PATH
 
 LWSMD_TAG=lwsmd
+LWSMD_RES_POOL="host/vim/vmvisor/likewise"
+LWSMD_MEM_MAX_SIZE=91
+
+CONFIGRP="/usr/lib/vmware/rp/bin/configRP"
 
 alias_replacement()
 {
@@ -381,6 +385,13 @@ daemon_start() {
         HP-UX | SOLARIS | FREEBSD | ESXI)
             echo -n "Starting $PROG_DESC"
             if [ ${PLATFORM} = "ESXI" ]; then
+                # dynamically configure resource pool size
+                $CONFIGRP increaseRPMemMaxSize $LWSMD_RES_POOL $LWSMD_MEM_MAX_SIZE
+                if [ $? -ne 0 ]; then
+                    echo -n " [failed to set memory reservation] "
+                    return 1
+                fi
+                echo -n " [memory reservation set] "
                 # start likewise in resource pool
                 /sbin/watchdog.sh ++mincritical,memreliable -d -s ${LWSMD_TAG} ${PROG_BIN} ${PROG_SCHED_PARAM} ${PROG_ARGS}
             else
@@ -472,6 +483,19 @@ daemon_stop() {
                     [ $? -ne 0 -a $? -ne 4 ] && status=0 && break
                     # use the following line instead after bug 3634 is fixed
                     #[ $? -eq 3 -o $? -eq 2 ] && status=0 && break
+                    sleep 1
+                done
+            fi
+            if [ ${PLATFORM} = "ESXI" ]; then
+                # release resource pool memory
+                local TIMEOUT=10
+                while [ $((TIMEOUT--)) -gt 0 ]; do
+                    $CONFIGRP decreaseRPMemMaxSize $LWSMD_RES_POOL $LWSMD_MEM_MAX_SIZE
+                    if [ $? -eq 0 ]; then
+                        echo -n " [memory reservation released] "
+                        break
+                    fi
+                    echo -n " [failed to release memory reservation ] "
                     sleep 1
                 done
             fi
