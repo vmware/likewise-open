@@ -2987,19 +2987,18 @@ rpc__bsd_socket_enum_ifaces(
     rpc_socket_enum_iface_fn_p_t protseq_efun = _rpc__bsd_protoseq_filter_cb;
 
     /* Note: "sock" was used in ioctl() implementation, but not here */
-    sts = getifaddrs(&ifaddrs);
+    sts = getifaddrs(&ifaddrs_save);
     if (sts == -1)
     {
         err = errno;
         goto done;
     }
 
-    /* Save original value, as need to count number of entries initially */
-    for (ifaddrs_save = ifaddrs; ifaddrs; ifaddrs = ifaddrs->ifa_next)
+    /* Don't modify original value. Count number of entries initially */
+    for (ifaddrs = ifaddrs_save; ifaddrs; ifaddrs = ifaddrs->ifa_next)
     {
         n_ifs++;
     }
-    ifaddrs = ifaddrs_save;
 
     if (rpc_addr_vec)
     {
@@ -3059,7 +3058,7 @@ rpc__bsd_socket_enum_ifaces(
     /*
      * Go through the interfaces and get the info associated with them.
      */
-    for (ifaddrs_save = ifaddrs; ifaddrs; ifaddrs = ifaddrs->ifa_next)
+    for (ifaddrs = ifaddrs_save; ifaddrs; ifaddrs = ifaddrs->ifa_next)
     {
         is_ipv6 = false;
 
@@ -3273,9 +3272,9 @@ rpc__bsd_socket_enum_ifaces(
     err = RPC_C_SOCKET_OK;
 
 done:
-    if (ifaddrs)
+    if (ifaddrs_save)
     {
-        freeifaddrs(ifaddrs);
+        freeifaddrs(ifaddrs_save);
     }
     if (ret_netmask_addr_vec)
     {
