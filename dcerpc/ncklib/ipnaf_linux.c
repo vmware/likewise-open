@@ -656,6 +656,12 @@ INTERNAL void _rpc__ipx_init_local_addr_vec(
         goto error;
     }
 
+    if (local_ip_addr_vec != NULL)
+    {
+        RPC_MEM_FREE(local_ip_addr_vec, RPC_C_MEM_UTIL);
+        local_ip_addr_vec = NULL;
+    }
+
     RPC_MEM_ALLOC (
         local_ip_addr_vec,
         rpc_ip_s_addr_vector_p_t,
