@@ -21,11 +21,26 @@
 
 #include <getopt.h>
 
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_ext.h>
+
+/* Defines related to GSS_SRP authentication */
+#ifndef SRP_OID
+#define SRP_OID_LENGTH 9
+#define SRP_OID "\x2a\x86\x48\x86\xf7\x12\x01\x02\x0a"
+#endif
+
+#ifndef GSS_SRP_PASSWORD_OID
+#define GSS_SRP_PASSWORD_OID "\x2b\x06\x01\x04\x01\x81\xd6\x29\x03\x01"
+#define GSS_SRP_PASSWORD_LEN 10
+#endif
+
 #define MAX_USER_INPUT 128
 #define MAX_LINE 100 * 1024
 
 #ifdef _WIN32
 #define strdup _strdup
+#define snprintf _snprintf
 #define EOF_STRING "^Z"
 #else
 #define EOF_STRING "^D"
@@ -66,6 +81,8 @@ static void usage(char *argv0, const char *msg)
     printf("         -t:  use TCP protocol (default)\n");
     printf("         -g:  instead of prompting, generate a data string of the specified length\n");
     printf("         -d:  turn on debugging\n");
+    printf("      --srp:  turn on GSS_SRP authentication\n");
+    printf("  --srp-pwd:  SRP password for authentication identity\n");
     printf("\n");
     exit(1);
 }
@@ -79,6 +96,8 @@ typedef struct _PROG_ARGS
     char *endpoint;
     char *protocol;
     int generate_length;
+    int do_srp;
+    char *srp_passwd;
 } PROG_ARGS;
 
 
@@ -113,11 +132,22 @@ parseArgs(
                 usage(argv0, "-a Service Principal Name missing");
             }
             args->spn = strdup(argv[i]);
-            
+
             i++;
         }
         else if (strcmp("-p", argv[i]) == 0)
         {
+            /*
+             * DCE/RPC protection levels (from dcerpc/include/dce/rpcbase.idl):
+             * rpc_c_protect_level_default         = 0; * default for auth svc        *
+             * rpc_c_protect_level_none            = 1; * no authentication performed *
+             * rpc_c_protect_level_connect         = 2; * only on "connect"           *
+             * rpc_c_protect_level_call            = 3; * on first pkt of each call   *
+             * rpc_c_protect_level_pkt             = 4; * on each packet              *
+             * rpc_c_protect_level_pkt_integ       = 5; * strong integrity check      *
+             * rpc_c_protect_level_pkt_privacy     = 6; * encrypt arguments           *
+             */
+
             i++;
             if (i >= argc)
             {
@@ -136,6 +166,13 @@ parseArgs(
             args->endpoint = strdup(argv[i]);
             i++;
         }
+#ifdef _WIN32
+        else if (strcmp("-l", argv[i]) == 0)
+        {
+            args->protocol = PROTOCOL_NCALRPC;
+            i++;
+        }
+#endif
         else if (strcmp("-n", argv[i]) == 0)
         {
             args->protocol = PROTOCOL_NP;
@@ -161,6 +198,21 @@ parseArgs(
             args->generate_length = atoi(argv[i]);
             i++;
         }
+        else if (strcmp("--srp", argv[i]) == 0)
+        {
+            args->do_srp = 1;
+            i++;
+        }
+        else if (strcmp("--srp-pwd", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--srp-pwd value missing");
+            }
+            args->srp_passwd = strdup(argv[i]);
+            i++;
+        }
         else
         {
             usage(argv0, "Unknown option");
@@ -173,6 +225,160 @@ parseArgs(
     }
 }
 
+void freeArgs(
+    PROG_ARGS *args)
+{
+    if (args->rpc_host)
+    {
+        free(args->rpc_host);
+    }
+    if (args->spn)
+    {
+        free(args->spn);
+    }
+    if (args->endpoint)
+    {
+        free(args->endpoint);
+    }
+    if (args->srp_passwd)
+    {
+        free(args->srp_passwd);
+    }
+}
+
+
+void freeInargs(
+    args *args)
+{
+    size_t i = 0;
+
+    for (i=0; i < args->argc; i++)
+    {
+        free(args->argv[i]);
+    }
+    free(args);
+}
+
+void freeOutargs(
+    args *args)
+{
+    size_t i = 0;
+    unsigned32 sts = 0;
+
+    for (i=0; i < args->argc; i++)
+    {
+        rpc_sm_client_free(args->argv[i], &sts);
+    }
+    rpc_sm_client_free(args, &sts);
+}
+
+unsigned32
+rpc_create_srp_auth_identity(
+    const char *user,
+    const char *domain,
+    const char *password,
+    rpc_auth_identity_handle_t *rpc_identity_h)
+{
+    OM_uint32 min = 0;
+    OM_uint32 maj = 0;
+    const gss_OID_desc gss_srp_password_oid =
+        {GSS_SRP_PASSWORD_LEN, (void *) GSS_SRP_PASSWORD_OID};
+    const gss_OID_desc srp_mech_oid = {SRP_OID_LENGTH, (void *) SRP_OID};
+    gss_buffer_desc name_buf = {0};
+    gss_name_t gss_name_buf = NULL;
+    gss_buffer_desc gss_pwd = {0};
+    size_t upn_len = 0;
+    char *upn = NULL;
+    gss_cred_id_t cred_handle = NULL;
+    gss_OID_set_desc desired_mech = {0};
+
+    if (domain)
+    {
+        /* user@DOMAIN\0 */
+        upn_len = strlen(user) + 1 + strlen(domain) + 1;
+        upn = calloc(upn_len, sizeof(char));
+        if (!upn)
+        {
+            maj = GSS_S_FAILURE;
+            min = rpc_s_no_memory;
+        }
+        snprintf(upn, upn_len, "%s@%s", user, domain);
+    }
+    else
+    {
+        /* Assume a UPN-like name form when no domain is provided */
+        upn = (char *) user;
+    }
+    name_buf.value = upn;
+    name_buf.length = strlen(name_buf.value);
+    maj = gss_import_name(
+              &min,
+              &name_buf,
+              GSS_C_NT_USER_NAME,
+              &gss_name_buf);
+    if (maj)
+    {
+        goto error;
+    }
+
+    /*
+     * Hard code desired mech OID to SRP
+     */
+    desired_mech.elements = (gss_OID) &srp_mech_oid;
+    desired_mech.count = 1;
+    maj = gss_acquire_cred(
+              &min,
+              gss_name_buf,
+              0,
+              &desired_mech,
+              GSS_C_INITIATE,
+              &cred_handle,
+              NULL,
+              NULL);
+    if (maj)
+    {
+        goto error;
+    }
+
+    gss_pwd.value = (char *) password;
+    gss_pwd.length = strlen(gss_pwd.value);
+#ifdef _WIN32 /* Really _MIT_KRB5_1_11 */
+    maj = gss_set_cred_option(
+              &min,
+              &cred_handle,
+              (gss_OID) &gss_srp_password_oid,
+              &gss_pwd);
+#else
+    maj = gssspi_set_cred_option(
+              &min,
+              cred_handle,
+              (gss_OID) &gss_srp_password_oid,
+              &gss_pwd);
+#endif
+    if (maj)
+    {
+        goto error;
+    }
+
+    *rpc_identity_h = (rpc_auth_identity_handle_t) cred_handle;
+
+error:
+    if (maj)
+    {
+        maj = min ? min : maj;
+    }
+
+    if (upn != user)
+    {
+        free(upn);
+    }
+    if (gss_name_buf)
+    {
+        gss_release_name(&min, &gss_name_buf);
+    }
+
+    return maj;
+}
 
 
 int
@@ -181,7 +387,6 @@ main(
     char *argv[]
     )
 {
-
     /*
      * command line processing and options stuff
      */
@@ -196,13 +401,15 @@ main(
 
     unsigned32 status;
     rpc_binding_handle_t echo_server;
+    rpc_auth_identity_handle_t rpc_identity = NULL;
     args * inargs;
     args * outargs;
     int ok;
     unsigned32 i;
     int params;
-
+    int maj = 0;
     char * nl;
+
 
     argv0 = argv[0];
     progArgs.generate_length = -1;
@@ -231,11 +438,24 @@ main(
 
     if (progArgs.spn)
     {
+        if (progArgs.do_srp)
+        {
+            maj = rpc_create_srp_auth_identity(
+                      progArgs.spn,
+                      NULL,
+                      progArgs.srp_passwd,
+                      &rpc_identity);
+            if (maj)
+            {
+                printf("main(rpc_create_srp_auth_identity) failed: %d\n", maj);
+                return 1;
+            }
+        }
         rpc_binding_set_auth_info(echo_server,
             (unsigned char *) progArgs.spn,
             progArgs.protect_level,
             rpc_c_authn_gss_negotiate,
-            NULL,
+            rpc_identity,
             rpc_c_authz_name, &status);
         if (status)
         {
@@ -315,6 +535,9 @@ main(
      */
 
     rpc_binding_free(&echo_server, &status);
+    freeArgs(&progArgs);
+    freeInargs(inargs);
+    freeOutargs(outargs);
     return(0);
 
 }
