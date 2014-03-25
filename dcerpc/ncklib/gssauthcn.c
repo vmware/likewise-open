@@ -38,6 +38,11 @@
 
 #include <gssauth.h>
 #include <gssauthcn.h>
+#if defined(_WIN32)
+#ifndef snprintf
+#define snprintf _snprintf
+#endif
+#endif /* WIN32 */
 
 INTERNAL boolean32 rpc__gssauth_cn_three_way _DCE_PROTOTYPE_((void));
 
@@ -1093,7 +1098,7 @@ INTERNAL void rpc__gssauth_cn_fmt_client_req
 		 * because we need to generate a PDU larger than the
 		 * max fragment size
 		 */
-		assoc_sec->krb_message.length = output_token.length;
+		assoc_sec->krb_message.length = (int) output_token.length;
 		assoc_sec->krb_message.data = output_token.value;
 
 		*auth_value_len = RPC__GSSAUTH_CN_AUTH_MAX_LEN;
@@ -1104,7 +1109,7 @@ INTERNAL void rpc__gssauth_cn_fmt_client_req
 		return;
 	}
 
-	*auth_value_len = output_token.length;
+	*auth_value_len = (unsigned32) output_token.length;
 	*auth_len_remain = 0;
 
 	memcpy((unsigned_char_p_t)auth_value,
@@ -1233,7 +1238,7 @@ INTERNAL void rpc__gssauth_cn_fmt_srvr_resp
 		return;
 	}
 
-	*auth_value_len = output_token.length;
+	*auth_value_len = (unsigned32) output_token.length;
 
 	memcpy((unsigned_char_p_t)auth_value,
 	       output_token.value,
@@ -1590,7 +1595,7 @@ INTERNAL void rpc__gssauth_cn_wrap_packet
 	 */
 	for (i = 0; i < pdu_iov_num; i++)
 	{
-		payload_len += iov[i].iov_len;
+		payload_len += (unsigned32) iov[i].iov_len;
 	}
 
 	payload_len -= header_size;
@@ -1617,7 +1622,7 @@ INTERNAL void rpc__gssauth_cn_wrap_packet
 		memcpy(&wrap_base[wrap_idx],
 		       iov[i].iov_base,
 		       iov[i].iov_len);
-		wrap_idx += iov[i].iov_len;
+		wrap_idx += (unsigned32) iov[i].iov_len;
 	}
 
 	memset(&wrap_base[wrap_idx], 0, pad_len);
@@ -1660,7 +1665,7 @@ INTERNAL void rpc__gssauth_cn_wrap_packet
 
 	pdu_buffer  = output_iov[1].buffer;
 	auth_buffer = output_iov[0].buffer;
-	auth_len    = auth_buffer.length;
+	auth_len    = (unsigned16) auth_buffer.length;
 
 	if (auth_len > RPC__GSSAUTH_CN_AUTH_MAX_LEN) {
 		RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_GENERAL,
@@ -1677,7 +1682,7 @@ INTERNAL void rpc__gssauth_cn_wrap_packet
 
 	/* GSS-SPNEGO trailer (yes, gss_wrap_iov auth header is in fact a trailer) */
 	memcpy(&wrap_base[wrap_idx], auth_buffer.value, auth_buffer.length);
-	wrap_idx += auth_buffer.length;
+	wrap_idx += (unsigned32) auth_buffer.length;
 
 	hdr->frag_len        = wrap_idx;
 	hdr->auth_len        = auth_len;
@@ -1765,7 +1770,7 @@ INTERNAL void rpc__gssauth_cn_create_large_frag
 
 	wrap_len = 0;
 	for (i=0; i < iovlen; i++) {
-		wrap_len += iov[i].iov_len;
+		wrap_len += (unsigned32) iov[i].iov_len;
 	}
 
 	min_len = header_size + RPC_CN_PKT_SIZEOF_COM_AUTH_TLR + RPC__GSSAUTH_CN_AUTH_MAX_LEN;
@@ -1780,7 +1785,7 @@ INTERNAL void rpc__gssauth_cn_create_large_frag
 	}
 
 	wrap_len -= RPC__GSSAUTH_CN_AUTH_MAX_LEN;
-	wrap_len += output_token.length;
+	wrap_len += (unsigned32) output_token.length;
 
 	RPC_MEM_ALLOC(wrap_base,
 		      unsigned_char_p_t,
@@ -1792,16 +1797,16 @@ INTERNAL void rpc__gssauth_cn_create_large_frag
 	hdr = (rpc_cn_common_hdr_p_t)&wrap_base[wrap_idx];
 	for (i=0; i < iovlen; i++) {
 		memcpy(&wrap_base[wrap_idx], iov[i].iov_base, iov[i].iov_len);
-		wrap_idx += iov[i].iov_len;
+		wrap_idx += (unsigned32) iov[i].iov_len;
 	}
 
 	wrap_idx -= RPC__GSSAUTH_CN_AUTH_MAX_LEN;
 
 	memcpy(&wrap_base[wrap_idx], output_token.value, output_token.length);
-	wrap_idx += output_token.length;
+	wrap_idx += (unsigned32) output_token.length;
 
 	hdr->frag_len = wrap_idx;
-	hdr->auth_len = output_token.length;
+	hdr->auth_len = (unsigned16) output_token.length;
 
 	out_iov->iov_base = wrap_base;
 	out_iov->iov_len = wrap_len;
@@ -2438,8 +2443,12 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
 {
 	rpc_gssauth_cn_info_p_t gssauth_cn_info = (rpc_gssauth_cn_info_p_t)sec->sec_cn_info;
 	int gss_rc;
+	int gss_rc_tmp;
 	OM_uint32 minor_status = 0;
+	gss_buffer_desc disp_name_buf = {0};
+	gss_OID disp_name_OID = NULL;
 	gss_buffer_desc input_token, output_token = GSS_C_EMPTY_BUFFER;
+	gss_name_t src_name = NULL;
 
 	CODING_ERROR(st);
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
@@ -2465,15 +2474,15 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
 	input_token.length = auth_value_len;
 	gss_rc = gss_accept_sec_context(&minor_status,
 					&gssauth_cn_info->gss_ctx,
-					NULL,
+					NULL,      /* acceptor_cred_handle */
 					&input_token,
-					NULL,
-					NULL,
-					NULL,
+					NULL,      /* input_chan_bindings */
+					&src_name,
+					NULL,      /* mech_type */
 					&output_token,
-					NULL,
-					NULL,
-					NULL);
+					NULL,      /* ret_flags */
+					NULL,      /* time_rec */
+					NULL);     /* delegated_cred_handle */
         gssauth_cn_info->gss_rc = gss_rc;
         if (gss_rc == GSS_S_CONTINUE_NEEDED) {
                 char msg[256];
@@ -2495,11 +2504,40 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
                 RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_GENERAL,
                         ("(rpc__gssauth_cn_vfy_client_req): %s\n", msg));
 		return;
-        } else {
-                *st = rpc_s_ok;
+	} else {
+		if (src_name) {
+			gss_rc_tmp = gss_display_name(&minor_status,
+					src_name,
+					&disp_name_buf,
+					&disp_name_OID);
+			if (gss_rc_tmp) {
+				*st = rpc_s_no_memory;
+				return;
+			}
+			if (sec->sec_info->server_princ_name) {
+			    free(sec->sec_info->server_princ_name);
+			}
+			sec->sec_info->server_princ_name =
+				calloc(disp_name_buf.length, sizeof(char) + 1);
+			if (!sec->sec_info->server_princ_name) {
+				gss_release_name(&gss_rc_tmp, &src_name);
+				*st = rpc_s_no_memory;
+				return;
+			}
+
+			if (sec->sec_info->server_princ_name) {
+				memcpy(sec->sec_info->server_princ_name,
+					   disp_name_buf.value,
+					   disp_name_buf.length);
+
+			}
+			gss_release_name(&gss_rc_tmp, &src_name);
+		}
+
+		*st = rpc_s_ok;
         }
 
-	assoc_sec->krb_message.length = output_token.length;
+	assoc_sec->krb_message.length = (int) output_token.length;
 	assoc_sec->krb_message.data = output_token.value;
 }
 
@@ -2634,7 +2672,7 @@ INTERNAL void rpc__gssauth_cn_vfy_srvr_resp
 	}
 
 done:
-	assoc_sec->krb_message.length = output_token.length;
+	assoc_sec->krb_message.length = (int) output_token.length;
 	assoc_sec->krb_message.data = output_token.value;
 
 	*st = rpc_s_ok;
