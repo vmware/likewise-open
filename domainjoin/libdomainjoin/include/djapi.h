@@ -49,6 +49,42 @@ typedef struct
 	LWException** exc);
 } DJOptions;
 
+DWORD
+DJInit(
+    VOID
+    );
+
+DWORD
+DJJoinDomain(
+    PCSTR pszDomain,
+    PCSTR pszOU,
+    PCSTR pszUsername,
+    PCSTR pszPassword
+    );
+
+DWORD
+DJQueryJoinInformation(
+    PSTR* ppszComputerName,
+    PSTR* ppszDomainName,
+    PSTR* ppszComputerDN
+    );
+
+DWORD
+DJUnjoinDomain(
+    PCSTR pszUsername,
+    PCSTR pszPassword
+    );
+
+VOID
+DJFreeMemory(
+    PVOID pMemory
+    );
+
+DWORD
+DJShutdown(
+    VOID
+    );
+
 void
 DJQuery(
     char **computer, 
