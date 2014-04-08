@@ -25,15 +25,17 @@
 #include <gssapi/gssapi_ext.h>
 
 /* Defines related to GSS_SRP authentication */
-#ifndef SRP_OID
-#define SRP_OID_LENGTH 9
-#define SRP_OID "\x2a\x86\x48\x86\xf7\x12\x01\x02\x0a"
-#endif
 
 #ifndef GSS_SRP_PASSWORD_OID
 #define GSS_SRP_PASSWORD_OID "\x2b\x06\x01\x04\x01\x81\xd6\x29\x03\x01"
 #define GSS_SRP_PASSWORD_LEN 10
 #endif
+
+#ifndef SPNEGO_OID
+#define SPNEGO_OID_LENGTH 6
+#define SPNEGO_OID "\053\006\001\005\005\002"
+#endif
+
 
 #define MAX_USER_INPUT 128
 #define MAX_LINE 100 * 1024
@@ -283,14 +285,16 @@ rpc_create_srp_auth_identity(
     OM_uint32 maj = 0;
     const gss_OID_desc gss_srp_password_oid =
         {GSS_SRP_PASSWORD_LEN, (void *) GSS_SRP_PASSWORD_OID};
-    const gss_OID_desc srp_mech_oid = {SRP_OID_LENGTH, (void *) SRP_OID};
+    gss_OID_desc spnego_mech_oid =
+        {SPNEGO_OID_LENGTH, (void *) SPNEGO_OID};
     gss_buffer_desc name_buf = {0};
     gss_name_t gss_name_buf = NULL;
     gss_buffer_desc gss_pwd = {0};
     size_t upn_len = 0;
     char *upn = NULL;
     gss_cred_id_t cred_handle = NULL;
-    gss_OID_set_desc desired_mech = {0};
+    gss_OID_desc mech_oid_array[1];
+    gss_OID_set_desc desired_mechs = {0};
 
     if (domain)
     {
@@ -324,13 +328,14 @@ rpc_create_srp_auth_identity(
     /*
      * Hard code desired mech OID to SRP
      */
-    desired_mech.elements = (gss_OID) &srp_mech_oid;
-    desired_mech.count = 1;
+    desired_mechs.count = 1;
+    desired_mechs.elements = mech_oid_array;
+    desired_mechs.elements[0] = spnego_mech_oid; 
     maj = gss_acquire_cred(
               &min,
               gss_name_buf,
               0,
-              &desired_mech,
+              &desired_mechs,
               GSS_C_INITIATE,
               &cred_handle,
               NULL,
