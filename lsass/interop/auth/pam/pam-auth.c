@@ -80,6 +80,58 @@ pam_need_check_smart_card(
     return FALSE;
 }
 
+static DWORD
+pam_check_smart_card_user_matches(
+    PPAMCONTEXT pPamContext,
+    HANDLE hLsaConnection,
+    PLSA_SECURITY_OBJECT pObject
+    )
+{
+    DWORD dwUserInfoLevel = 0;
+    PLSA_USER_INFO_0 pUserInfo = NULL;
+    DWORD dwError;
+
+    if (pPamContext->pszLoginName == NULL ||
+        pPamContext->pszLoginName[0] == '\0')
+    {
+        dwError = LW_ERROR_SUCCESS;
+        goto cleanup;
+    }
+
+    /*
+     * Verify that the passed-in user name is the same as the smart card
+     * user. Go to AD to make sure we get the canonicalized name.
+     */
+    dwError = LsaFindUserByName(
+                    hLsaConnection,
+                    pPamContext->pszLoginName,
+                    dwUserInfoLevel,
+                    (PVOID*)&pUserInfo);
+    if (dwError != LW_ERROR_SUCCESS)
+    {
+        dwError = LW_ERROR_SUCCESS;
+        goto cleanup;
+    }
+
+    if (strcmp(pUserInfo->pszName,
+               pObject->userInfo.pszUnixName) != 0)
+    {
+        LSA_LOG_PAM_DEBUG(
+            "Pam user '%s' does not match smartcard user",
+            pPamContext->pszLoginName);
+        dwError = LW_ERROR_NOT_HANDLED;
+        goto cleanup;
+    }
+
+cleanup:
+    if (pUserInfo != NULL)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
+    }
+
+    return dwError;
+}
+
 static int
 pam_check_smart_card(
     PPAMCONTEXT pPamContext,
@@ -112,22 +164,11 @@ pam_check_smart_card(
         pObject->userInfo.pszUnixName,
         pszSmartCardReader);
 
-    if (pPamContext->pszLoginName && *pPamContext->pszLoginName)
-    {
-        /*
-         * Verify that the passed-in username is the same as
-         * the smartcard user.
-         */
-        if (strcmp(pPamContext->pszLoginName,
-                   pObject->userInfo.pszUnixName) != 0)
-        {
-            LSA_LOG_PAM_DEBUG(
-                "Pam user '%s' does not match smartcard user",
-                pPamContext->pszLoginName);
-            dwError = LW_ERROR_NOT_HANDLED;
-            goto error;
-        }
-    }
+    dwError = pam_check_smart_card_user_matches(
+                  pPamContext,
+                  hLsaConnection,
+                  pObject);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (LsaShouldIgnoreUser(pObject->userInfo.pszUnixName))
     {
