@@ -3644,6 +3644,16 @@ unsigned32              *st;
         while (sec_context != NULL)
         {
             /*
+             * Search for cached auth info which matches the existing
+             * association binding's auth info.
+             */
+            RPC_LIST_FIRST(info->cache_link, info, rpc_auth_info_p_t);
+            while (info && info != sec_context->sec_info)
+            {
+                RPC_LIST_NEXT(&info, info, rpc_auth_info_p_t);
+            }
+
+            /*
              * If the auth info passed in equals the auth info in
              * the security context element this security context can
              * be use for the current RPC.
