@@ -68,7 +68,9 @@
 #ifdef HAVE_STRINGS_H
    #include <strings.h>
 #endif
-
+#ifdef HAVE_SCHED_H
+   #include <sched.h>
+#endif
 #include "server.h"
 
 #endif

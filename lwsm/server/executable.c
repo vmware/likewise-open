@@ -260,6 +260,15 @@ LwSmExecProgram(
     dwError = LwMapErrnoToLwError(pthread_sigmask(SIG_SETMASK, &set, NULL));
     BAIL_ON_ERROR(dwError);
 
+#ifdef HAVE_SCHED_SETAFFINITY
+    /* Reset processor affinity and ignore errors */
+    {
+        cpu_set_t cpumask;
+        memset(&cpumask, 0xFF, sizeof(cpumask));
+        sched_setaffinity(0, sizeof(cpumask), &cpumask);
+    }
+#endif
+
     dwError = LwWc16sToMbs(pExec->pwszPath, &pszPath);
     BAIL_ON_ERROR(dwError);
 

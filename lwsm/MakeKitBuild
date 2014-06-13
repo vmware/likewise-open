@@ -27,7 +27,7 @@ configure()
 
     # Optional headers
     mk_check_headers \
-        pthread.h strings.h
+        pthread.h strings.h sched.h
 
     # Required libraries
     mk_check_libraries \
@@ -37,6 +37,11 @@ configure()
     # Optional libraries
     mk_check_libraries \
         pthread dl
+
+    # Optional functions
+    mk_check_functions \
+        HEADERDEPS="sched.h" \
+        sched_setaffinity
 
     lw_check_pthread_once_init
 }
