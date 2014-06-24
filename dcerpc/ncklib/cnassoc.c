@@ -3650,7 +3650,7 @@ unsigned32              *st;
             RPC_LIST_FIRST(info->cache_link, info, rpc_auth_info_p_t);
             while (info && info != sec_context->sec_info)
             {
-                RPC_LIST_NEXT(&info, info, rpc_auth_info_p_t);
+                RPC_LIST_NEXT(info, info, rpc_auth_info_p_t);
             }
 
             /*
