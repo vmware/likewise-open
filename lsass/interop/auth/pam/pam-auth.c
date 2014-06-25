@@ -109,7 +109,10 @@ pam_check_smart_card_user_matches(
                     (PVOID*)&pUserInfo);
     if (dwError != LW_ERROR_SUCCESS)
     {
-        dwError = LW_ERROR_SUCCESS;
+        LSA_LOG_PAM_DEBUG(
+            "Pam user '%s' does not exist",
+            pPamContext->pszLoginName);
+        dwError = LW_ERROR_NOT_HANDLED;
         goto cleanup;
     }
 
