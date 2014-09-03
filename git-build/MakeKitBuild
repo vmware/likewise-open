@@ -124,6 +124,8 @@ configure()
             mk_skip_subdir lwupgrade
             ;;
     esac
+
+    MK_CPPFLAGS="-D_GNU_SOURCE $MK_CPPFLAGS"
 }
 
 make()

@@ -105,7 +105,7 @@ configure()
 
     mk_check_headers \
         FAIL="yes" \
-        reg/reg.h lw/base.h krb5.h gssapi.h openssl/crypto.h wc16str.h \
+        reg/reg.h lw/base.h krb5.h gssapi.h gssapi/gssapi_ext.h openssl/crypto.h wc16str.h \
         openssl/md5.h openssl/hmac.h openssl/rand.h
 
     mk_check_headers \

@@ -33,6 +33,6 @@ make()
         LIB=lwiosmbcommon \
         SOURCES="$SMBCOMMON_SOURCES" \
         INCLUDEDIRS=". ../include ../../include" \
-        HEADERDEPS="openssl/md5.h openssl/hmac.h reg/lwntreg.h lw/base.h krb5.h gssapi.h" \
-        LIBDEPS="lwbase regclient crypto gssapi_krb5 lwiocommon krb5 $LIB_NSL $LIB_SOCKET"
+        HEADERDEPS="openssl/md5.h openssl/hmac.h reg/lwntreg.h lw/base.h krb5.h gssapi.h gssapi/gssapi_ext.h" \
+        LIBDEPS="lwbase regclient crypto krb5 gssapi_krb5 lwiocommon krb5 $LIB_NSL $LIB_SOCKET"
 }

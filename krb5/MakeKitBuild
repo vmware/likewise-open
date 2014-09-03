@@ -4,7 +4,8 @@ make()
         SOURCEDIR=src \
         HEADERDEPS="openssl/opensslv.h" \
         LIBDEPS="ssl crypto" \
-        HEADERS='krb5.h gssapi.h' \
+        CPPFLAGS="-D_GNU_SOURCE" \
+        HEADERS='krb5.h gssapi.h gssapi/gssapi_ext.h' \
         LIBS='krb5 gssapi_krb5 k5crypto' \
         --enable-shared \
         --enable-pkinit \
