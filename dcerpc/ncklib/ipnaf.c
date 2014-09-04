@@ -1340,6 +1340,7 @@ INTERNAL void addr_set_netaddr(
             ip_addr->sa = *(struct sockaddr_in *) ai_addr->ai_addr;
             ip_addr->sa.sin_port = save_port;
         }
+        freeaddrinfo(ai_addr);
         *status = rpc_s_ok;
         return;
     }
