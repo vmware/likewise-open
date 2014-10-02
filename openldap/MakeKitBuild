@@ -17,8 +17,6 @@ make()
         CFLAGS="-fPIC" \
         --disable-static \
         --enable-shared \
-        --without-kerberos \
         --disable-slapd \
-        --disable-slurpd \
         --with-tls=openssl
 }
