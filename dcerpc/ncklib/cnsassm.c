@@ -1792,7 +1792,7 @@ pointer_t       sm;
 #endif
 {
     rpc_cn_assoc_t              *assoc;
-    rpc_cn_assoc_grp_t          *assoc_grp;
+    rpc_cn_assoc_grp_t          *assoc_grp = NULL;
     rpc_cn_packet_t             *req_header;
     rpc_cn_packet_t             *resp_header;
     rpc_cn_pres_cont_list_t     *pres_cont_list;
