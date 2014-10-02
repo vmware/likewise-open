@@ -1391,53 +1391,106 @@ RtlpMapAccessMaskToSddlRights(
     }
 
     // Directory service object access rights
-    // Currently Not supported
-#if 0
-    if (Access & ADS_RIGHT_DS_READ_PROP)
+
+    if (Access & ADS_RIGHT_DELETE)
     {
-        strcat(pszMask, SDDL_READ_PROPERTY);
+        strcat(pszMask, SDDL_ADS_RIGHT_DELETE);
     }
 
-    if (Access & ADS_RIGHT_DS_WRITE_PROP)
+    if (Access & ADS_RIGHT_READ_CONTROL)
     {
-        strcat(pszMask, SDDL_WRITE_PROPERTY);
+        strcat(pszMask, SDDL_ADS_RIGHT_READ_CONTROL);
+    }
+
+    if (Access & ADS_RIGHT_WRITE_DAC)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_WRITE_DAC);
+    }
+
+    if (Access & ADS_RIGHT_WRITE_OWNER)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_WRITE_OWNER);
+    }
+
+    if (Access & ADS_RIGHT_SYNCHRONIZE)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_SYNCHRONIZE);
+    }
+
+    if (Access & ADS_RIGHT_ACCESS_SYSTEM_SECURITY)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_ACCESS_SYSTEM_SECURITY);
+    }
+
+    if (Access & ADS_RIGHT_GENERIC_READ)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_GENERIC_READ);
+    }
+
+    if (Access & ADS_RIGHT_GENERIC_WRITE)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_GENERIC_WRITE);
+    }
+
+    if (Access & ADS_RIGHT_GENERIC_EXECUTE)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_GENERIC_EXECUTE);
+    }
+
+    if (Access & ADS_RIGHT_GENERIC_ALL)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_GENERIC_ALL);
     }
 
     if (Access & ADS_RIGHT_DS_CREATE_CHILD)
     {
-        strcat(pszMask, SDDL_CREATE_CHILD);
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_CREATE_CHILD);
     }
 
     if (Access & ADS_RIGHT_DS_DELETE_CHILD)
     {
-        strcat(pszMask, SDDL_DELETE_CHILD);
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_DELETE_CHILD);
+    }
+
+    if (Access & ADS_RIGHT_WRITE_OWNER)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_WRITE_OWNER);
     }
 
     if (Access & ADS_RIGHT_ACTRL_DS_LIST)
     {
-        strcat(pszMask, SDDL_LIST_CHILDREN);
+        strcat(pszMask, SDDL_ADS_RIGHT_ACTRL_DS_LIST);
     }
 
     if (Access & ADS_RIGHT_DS_SELF)
     {
-        strcat(pszMask, SDDL_SELF_WRITE);
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_SELF);
     }
 
-    if (Access & ADS_RIGHT_DS_LIST_OBJECT)
+    if (Access & ADS_RIGHT_DS_READ_PROP)
     {
-        strcat(pszMask, SDDL_LIST_OBJECT);
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_READ_PROP);
+    }
+
+    if (Access & ADS_RIGHT_DS_WRITE_PROP)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_WRITE_PROP);
     }
 
     if (Access & ADS_RIGHT_DS_DELETE_TREE)
     {
-        strcat(pszMask, SDDL_DELETE_TREE);
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_DELETE_TREE);
+    }
+
+    if (Access & ADS_RIGHT_DS_LIST_OBJECT)
+    {
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_LIST_OBJECT);
     }
 
     if (Access & ADS_RIGHT_DS_CONTROL_ACCESS)
     {
-        strcat(pszMask, SDDL_CONTROL_ACCESS);
+        strcat(pszMask, SDDL_ADS_RIGHT_DS_CONTROL_ACCESS);
     }
-#endif
 
     status = STATUS_SUCCESS;
 
@@ -1524,56 +1577,127 @@ RtlpMapSddlRightsToAccessMask(
         }
 
         // Directory service object access rights
-        // Currently Not supported
-    #if 0
-        if (Access & ADS_RIGHT_DS_READ_PROP)
-        {
-            strcat(pszMask, SDDL_READ_PROPERTY);
-        }
 
-        if (Access & ADS_RIGHT_DS_WRITE_PROP)
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DELETE, TRUE))
         {
-            strcat(pszMask, SDDL_WRITE_PROPERTY);
-        }
-
-        if (Access & ADS_RIGHT_DS_CREATE_CHILD)
-        {
-            strcat(pszMask, SDDL_CREATE_CHILD);
-        }
-
-        if (Access & ADS_RIGHT_DS_DELETE_CHILD)
-        {
-            strcat(pszMask, SDDL_DELETE_CHILD);
-        }
-
-        if (Access & ADS_RIGHT_ACTRL_DS_LIST)
-        {
-            strcat(pszMask, SDDL_LIST_CHILDREN);
-        }
-
-        if (Access & ADS_RIGHT_DS_SELF)
-        {
-            strcat(pszMask, SDDL_SELF_WRITE);
-        }
-
-        if (Access & ADS_RIGHT_DS_LIST_OBJECT)
-        {
-            SetFlag(Access, WRITE_OWNER);
+            SetFlag(Access, ADS_RIGHT_DELETE);
             continue;
         }
-            strcat(pszMask, SDDL_LIST_OBJECT);
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_READ_CONTROL, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_READ_CONTROL);
+            continue;
         }
 
-        if (Access & ADS_RIGHT_DS_DELETE_TREE)
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_WRITE_DAC, TRUE))
         {
-            strcat(pszMask, SDDL_DELETE_TREE);
+            SetFlag(Access, ADS_RIGHT_WRITE_DAC);
+            continue;
         }
 
-        if (Access & ADS_RIGHT_DS_CONTROL_ACCESS)
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_WRITE_OWNER, TRUE))
         {
-            strcat(pszMask, SDDL_CONTROL_ACCESS);
+            SetFlag(Access, ADS_RIGHT_WRITE_OWNER);
+            continue;
         }
-    #endif
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_SYNCHRONIZE, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_SYNCHRONIZE);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_ACCESS_SYSTEM_SECURITY, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_ACCESS_SYSTEM_SECURITY);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_GENERIC_READ, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_GENERIC_READ);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_GENERIC_WRITE, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_GENERIC_WRITE);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_GENERIC_EXECUTE, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_GENERIC_EXECUTE);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_GENERIC_ALL, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_GENERIC_ALL);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_CREATE_CHILD, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_CREATE_CHILD);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_DELETE_CHILD, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_DELETE_CHILD);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_ACTRL_DS_LIST, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_ACTRL_DS_LIST);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_GENERIC_WRITE, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_GENERIC_WRITE);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_SELF, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_SELF);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_READ_PROP, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_READ_PROP);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_WRITE_PROP, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_WRITE_PROP);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_DELETE_TREE, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_DELETE_TREE);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_LIST_OBJECT, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_LIST_OBJECT);
+            continue;
+        }
+
+        if (LwRtlCStringIsEqual(szRight, SDDL_ADS_RIGHT_DS_CONTROL_ACCESS, TRUE))
+        {
+            SetFlag(Access, ADS_RIGHT_DS_CONTROL_ACCESS);
+            continue;
+        }
+
         // File access rights
         if (LwRtlCStringIsEqual(szRight, SDDL_FILE_ALL, TRUE))
         {

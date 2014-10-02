@@ -115,6 +115,28 @@
 #define SDDL_KEY_WRITE                      "KW"
 #define SDDL_KEY_EXECUTE                    "KX"
 
+#define SDDL_ADS_RIGHT_DELETE                    SDDL_STANDARD_DELETE
+#define SDDL_ADS_RIGHT_READ_CONTROL              SDDL_READ_CONTROL
+#define SDDL_ADS_RIGHT_WRITE_DAC                 SDDL_WRITE_DAC
+#define SDDL_ADS_RIGHT_WRITE_OWNER               SDDL_WRITE_OWNER
+#define SDDL_ADS_RIGHT_SYNCHRONIZE               "SZ"
+#define SDDL_ADS_RIGHT_ACCESS_SYSTEM_SECURITY    "SS"
+
+#define SDDL_ADS_RIGHT_GENERIC_READ              SDDL_GENERIC_READ
+#define SDDL_ADS_RIGHT_GENERIC_WRITE             SDDL_GENERIC_WRITE
+#define SDDL_ADS_RIGHT_GENERIC_EXECUTE           SDDL_GENERIC_EXECUTE
+#define SDDL_ADS_RIGHT_GENERIC_ALL               SDDL_GENERIC_ALL
+
+#define SDDL_ADS_RIGHT_DS_CREATE_CHILD           SDDL_CREATE_CHILD
+#define SDDL_ADS_RIGHT_DS_DELETE_CHILD           SDDL_DELETE_CHILD
+#define SDDL_ADS_RIGHT_ACTRL_DS_LIST             SDDL_LIST_CHILDREN
+#define SDDL_ADS_RIGHT_DS_SELF                   SDDL_SELF_WRITE
+#define SDDL_ADS_RIGHT_DS_READ_PROP              SDDL_READ_PROPERTY
+#define SDDL_ADS_RIGHT_DS_WRITE_PROP             SDDL_WRITE_PROPERTY
+#define SDDL_ADS_RIGHT_DS_DELETE_TREE            SDDL_DELETE_TREE
+#define SDDL_ADS_RIGHT_DS_LIST_OBJECT            SDDL_LIST_OBJECT
+#define SDDL_ADS_RIGHT_DS_CONTROL_ACCESS         SDDL_CONTROL_ACCESS
+
 #define SDDL_RIGHT_SIZE                      2
 
 //
@@ -246,7 +268,7 @@
                                        SECURITY_XSTRING(DOMAIN_ALIAS_RID_USERS)  // "S-1-5-32-545"
 
 
-#define SDDL_ACCESS_LENGTH 57 // 28 (access masks) *2 + 1(\0)
+#define SDDL_ACCESS_LENGTH 95 // 47 (access masks) *2 + 1(\0)
 #define SDDL_ACEFLAG_LENGTH 15 // 7 (ace flags) *2 +1 (\0)
 #define SDDL_CONTROL_LENGTH  5  // "P" "AR" "AI"
 
