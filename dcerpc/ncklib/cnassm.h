@@ -74,6 +74,11 @@
  */
 #define RPC_C_ASSOC_MUST_RECV_FRAG_SIZE         1432
 
+#ifdef _WIN32
+#ifndef inline
+#define inline __inline
+#endif
+#endif
 
 /***********************************************************************/
 /*
@@ -164,20 +169,42 @@
  * associations to reclaim. The fragbuf is freed if provided as an
  * event parameter. 
  */
-#define RPC_CN_ASSOC_EVAL_NETWORK_EVENT(assoc, event_id, fragbuf, st)\
-{\
-    RPC_CN_ASSOC_SM_TRC (assoc, event_id);\
-    st = rpc__cn_sm_eval_event ((event_id),\
-                                (pointer_t) (fragbuf),\
-                                (pointer_t) (assoc),\
-                                &((assoc)->assoc_state));\
-    assoc->assoc_flags &= ~RPC_C_CN_ASSOC_SCANNED;\
-    if ((fragbuf) != NULL)\
-    {\
-        (*(fragbuf)->fragbuf_dealloc)((fragbuf));\
-    }\
-    RPC_CN_ASSOC_SM_TRC_STATE (assoc); \
+
+
+extern unsigned32     rpc__cn_sm_eval_event (
+    unsigned32                  /* event_id */,
+    pointer_t                   /* event_parameter */,
+    pointer_t                   /* spc_struct */,
+    rpc_cn_sm_ctlblk_p_t         /* sm */);
+
+void static inline
+__RPC_CN_ASSOC_EVAL_NETWORK_EVENT(
+    rpc_cn_assoc_p_t assoc,
+    unsigned8 event_id,
+    rpc_cn_fragbuf_p_t fragbuf,
+    unsigned32 *st)
+{
+    RPC_CN_ASSOC_SM_TRC (assoc, event_id);
+    if (fragbuf)
+    {
+        (fragbuf)->freebuf = 0;
+    }
+    *st = rpc__cn_sm_eval_event ((event_id),
+                                (pointer_t) (fragbuf),
+                                (pointer_t) (assoc),
+                                &((assoc)->assoc_state));
+    assoc->assoc_flags &= ~RPC_C_CN_ASSOC_SCANNED;
+    if ((fragbuf) != NULL)
+    {
+        (fragbuf)->freebuf = 1;
+        (*(fragbuf)->fragbuf_dealloc)((fragbuf));
+    }
+    RPC_CN_ASSOC_SM_TRC_STATE (assoc);
 }
+
+#define RPC_CN_ASSOC_EVAL_NETWORK_EVENT(assoc, event_id, fragbuf, st)\
+    __RPC_CN_ASSOC_EVAL_NETWORK_EVENT(assoc, event_id, fragbuf, (unsigned32 *) &(st))
+
 
 
 /***********************************************************************/
@@ -188,20 +215,28 @@
  * the association status is bad then don't evaluate the user event.
  * The "scanned" bit in the association is turned off. 
  */
-#define RPC_CN_ASSOC_EVAL_USER_EVENT(assoc, event_id, event_param, st)\
-{\
-    RPC_CN_ASSOC_SM_TRC (assoc, event_id);\
-    st = assoc->assoc_status;\
-    if (st == rpc_s_ok)\
-    {\
-        st = rpc__cn_sm_eval_event ((event_id),\
-                                    (pointer_t) (event_param),\
-                                    (pointer_t) (assoc),\
-                                    &((assoc)->assoc_state));\
-        assoc->assoc_flags &= ~RPC_C_CN_ASSOC_SCANNED;\
-    }\
-    RPC_CN_ASSOC_SM_TRC_STATE (assoc); \
+void static inline
+__RPC_CN_ASSOC_EVAL_USER_EVENT(
+    rpc_cn_assoc_p_t assoc,
+    unsigned8 event_id,
+    rpc_cn_assoc_sm_work_t *event_param,
+    unsigned32 *st)
+{
+    RPC_CN_ASSOC_SM_TRC (assoc, event_id);
+    *st = assoc->assoc_status;
+    if (*st == rpc_s_ok)
+    {
+        *st = rpc__cn_sm_eval_event ((event_id),
+                                    (pointer_t) (event_param),
+                                    (pointer_t) (assoc),
+                                    &((assoc)->assoc_state));
+        assoc->assoc_flags &= ~RPC_C_CN_ASSOC_SCANNED;
+    }
+    RPC_CN_ASSOC_SM_TRC_STATE (assoc);
 }
+
+#define RPC_CN_ASSOC_EVAL_USER_EVENT(assoc, event_id, event_param, st)\
+    __RPC_CN_ASSOC_EVAL_USER_EVENT(assoc, event_id, event_param, (unsigned32 *) &(st))
 
 
 /***********************************************************************/

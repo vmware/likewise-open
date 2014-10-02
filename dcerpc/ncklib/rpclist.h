@@ -76,6 +76,12 @@
 #include <dce/dce.h>
 #endif
 
+#ifdef _WIN32
+#ifndef inline
+#define inline __inline
+#endif
+#endif
+
 /*int pthd4_get_expiration_np(struct timespec *delta, struct timespec *abstime);*/
 
 
@@ -325,28 +331,35 @@ EXTERNAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb;
  *      RPC_LIST_REMOVE (list, list_element);
  */
 
-#define RPC_LIST_REMOVE(list, list_element) \
-{ \
-    if (list.last == list.next) \
-    { \
-        RPC_LIST_INIT (list); \
-    } \
-    else \
-    { \
-        if (((rpc_list_p_t) (list_element))->next == NULL) \
-        { \
-            list.last = ((rpc_list_p_t) (list_element))->last; \
-        } \
-        else \
-        { \
-            ((rpc_list_p_t) ((rpc_list_p_t) (list_element))->next)->last = \
-                ((rpc_list_p_t) (list_element))->last; \
-        } \
-        ((rpc_list_p_t) ((rpc_list_p_t) (list_element))->last)->next = \
-            ((rpc_list_p_t) (list_element))->next; \
-    } \
+/*
+ * static inline expansion of RPC_LIST_REMOVE macro,
+ * enabling debugging of the macro implementation.
+ */
+static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
+{
+    if (list->last == list->next)
+    {
+        RPC_LIST_INIT ((*list));
+    }
+    else
+    {
+        if (((rpc_list_p_t) (list_element))->next == NULL)
+        {
+            list->last = ((rpc_list_p_t) (list_element))->last;
+        }
+        else
+        {
+            ((rpc_list_p_t) ((rpc_list_p_t) (list_element))->next)->last =
+                ((rpc_list_p_t) (list_element))->last;
+        }
+        ((rpc_list_p_t) ((rpc_list_p_t) (list_element))->last)->next =
+            ((rpc_list_p_t) (list_element))->next;
+    }
 }
 
+/* This macro passes a mutable list reference to the static inline function */
+#define RPC_LIST_REMOVE(list, list_element) \
+    __RPC_LIST_REMOVE((&list), list_element)
 
 /***********************************************************************/
 /* 

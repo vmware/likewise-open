@@ -58,7 +58,7 @@
 /*
  * Global Definitions
  */
-#ifdef DEBUG
+#if defined(DEBUG) || defined(DCE_SM_TABLES_ALL)
 GLOBAL char     *rpc_g_cn_call_server_events [] =
 {
     "RESPONSE         ",
@@ -71,6 +71,9 @@ GLOBAL char     *rpc_g_cn_call_server_events [] =
     "ORPHANED         "
 };
 
+GLOBAL int rpc_g_cn_call_server_events_len =
+    sizeof(rpc_g_cn_call_server_events) / sizeof(rpc_g_cn_call_server_events[0]);
+
 GLOBAL char     *rpc_g_cn_call_server_states [] =
 {
     "INIT             ",
@@ -78,6 +81,10 @@ GLOBAL char     *rpc_g_cn_call_server_states [] =
     "RESPONSE         ",
     "CALL_COMPLETED   "
 };
+
+GLOBAL int rpc_g_cn_call_server_states_len =
+    sizeof(rpc_g_cn_call_server_states) / sizeof(rpc_g_cn_call_server_states[0]);
+
 #endif
 
 
@@ -97,6 +104,7 @@ GLOBAL char     *rpc_g_cn_call_server_states [] =
 /*
  * The predicate routine prototypes.
  */
+#if 0 /* Static function declared but not used anywhere */
 INTERNAL unsigned8 disconnected_maybe_pred_rtn
     _DCE_PROTOTYPE_ ((
 	pointer_t spc_struct,
@@ -127,6 +135,7 @@ INTERNAL unsigned8 disc_last_send_pred_rtn
         pointer_t spc_struct,
         pointer_t event_param
     )) ATTRIBUTE_UNUSED;
+#endif /* if 0 */
 
 
 
@@ -232,6 +241,9 @@ GLOBAL rpc_cn_sm_action_fn_t  rpc_g_cn_server_call_action_tbl [] =
     call_end_action_rtn,
     rpc__cn_call_sm_protocol_error
 };
+
+GLOBAL int rpc_g_cn_server_call_action_tbl_len  =
+    sizeof(rpc_g_cn_server_call_action_tbl) / sizeof(rpc_g_cn_server_call_action_tbl[0]);
 
 /***********************************************************************/
 /*
@@ -345,7 +357,12 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_server_call_sm [] =
     call_completed_state            /* state 3 - call_completed */
 };
 
+GLOBAL int rpc_g_cn_server_call_sm_len  = sizeof(rpc_g_cn_server_call_sm)/sizeof(rpc_g_cn_server_call_sm[0]);
+GLOBAL int rpc_g_cn_server_call_sm_entry_len  =
+    sizeof(init_state) / sizeof(init_state[0]);
+
 
+#if 0 /* Static function declared but not used anywhere */
 /***********************************************************************/
 /*
  *
@@ -424,8 +441,10 @@ pointer_t       event_param;
         return (0);
     }
 }
+#endif /* if 0 */
 
 
+#if 0 /* Static function declared but not used anywhere */
 /*
 **++
 **
@@ -506,6 +525,7 @@ pointer_t       event_param;
      * issued.  Consequently, 1 cannot be returned.
      */
 }
+#endif /* if 0 */
 
 
 /*
@@ -582,6 +602,7 @@ pointer_t       event_param;
 }
 
 
+#if 0 /* Static function declared but not used anywhere */
 /*
 **++
 **
@@ -668,6 +689,7 @@ pointer_t       event_param;
         return (1);
     }
 }
+#endif /* if 0 */
 
 
 /*
@@ -748,6 +770,7 @@ pointer_t       event_param;
 
 
 
+#if 0 /* Static function declared but not used anywhere */
 /*
 **++
 **
@@ -831,6 +854,7 @@ pointer_t       event_param;
         }
     }
 }
+#endif /* if 0 */
 
 
 /*
@@ -914,6 +938,7 @@ pointer_t       event_param;
 
 
 
+#if 0 /* Static function declared but not used anywhere */
 /*
 **++
 **
@@ -980,6 +1005,7 @@ pointer_t       event_param;
         return (0);
     }
 }
+#endif /* if 0 */
 
 
 /*
@@ -1048,6 +1074,7 @@ pointer_t       event_param;
 
 
 
+#if 0 /* Static function declared but not used anywhere */
 /*
 **++
 **
@@ -1114,6 +1141,7 @@ pointer_t       event_param;
     }
 
 }
+#endif /* if 0 */
 
 
 /*
@@ -1710,7 +1738,7 @@ pointer_t       sm;
     rpc_cn_call_rep_p_t     call_rep;
     rpc_iovector_p_t        stub_data_p;
     rpc_iovector_elt_p_t    iov_elt_p;
-    unsigned8               event ATTRIBUTE_UNUSED;
+//    unsigned8               event ATTRIBUTE_UNUSED;
     unsigned32              i;
     unsigned32              status;
     rpc_cn_sm_ctlblk_t 	    *sm_p;
@@ -2047,7 +2075,7 @@ pointer_t       sm;
                     ("(send_call_fault_action_rtn) call_rep->%x setting alert count (%d) in packet header\n",
                      call_rep,
                      call_rep->u.server.cancel.local_count));
-    RPC_CN_PKT_ALERT_COUNT (header_p) = call_rep->u.server.cancel.local_count;
+    RPC_CN_PKT_ALERT_COUNT (header_p) = (unsigned8) call_rep->u.server.cancel.local_count;
     RPC_CALL_LOCK (((rpc_call_rep_t *) call_rep));
     if (call_rep->common.u.server.cancel.had_pending)
     {
@@ -2120,7 +2148,7 @@ pointer_t       sm;
 {
     rpc_cn_call_rep_p_t     call_rep;
     rpc_cn_fragbuf_p_t      fragbuf;
-    unsigned32              status ATTRIBUTE_UNUSED;
+//    unsigned32              status ATTRIBUTE_UNUSED;
     rpc_cn_sm_ctlblk_t 	    *sm_p;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER process_alert_msg_action_rtn);
@@ -2225,7 +2253,7 @@ pointer_t       sm;
 #endif
 {
     rpc_cn_call_rep_p_t     call_rep;
-    rpc_cn_packet_p_t       header_p ATTRIBUTE_UNUSED;
+//    rpc_cn_packet_p_t       header_p ATTRIBUTE_UNUSED;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER abort_resp_action_rtn);
 
@@ -2329,7 +2357,7 @@ pointer_t       sm;
 {
     unsigned32              status;
     rpc_cn_sm_ctlblk_t 	    *sm_p;
-    unsigned8		    n_state ATTRIBUTE_UNUSED;
+//    unsigned8		    n_state ATTRIBUTE_UNUSED;
     rpc_cn_packet_p_t       header_p;
     rpc_cn_call_rep_p_t	    call_rep;
     rpc_iovector_elt_p_t    iov_elt_p;
@@ -2500,7 +2528,7 @@ pointer_t       sm;
                     ("(send_call_fault_action_rtn) call_rep->%x setting alert count (%d) in packet header\n",
                      call_rep,
                      call_rep->u.server.cancel.local_count));
-    RPC_CN_PKT_ALERT_COUNT (header_p) = call_rep->u.server.cancel.local_count;
+    RPC_CN_PKT_ALERT_COUNT (header_p) = (unsigned8) call_rep->u.server.cancel.local_count;
     RPC_CALL_LOCK (((rpc_call_rep_t *) call_rep));
     if (call_rep->common.u.server.cancel.had_pending)
     {
@@ -2800,7 +2828,7 @@ pointer_t       sm;
     rpc_cn_packet_p_t       header_p;
     unsigned32              status;
     rpc_cn_sm_ctlblk_t 	    *sm_p;
-    unsigned8		    n_state ATTRIBUTE_UNUSED;
+//    unsigned8		    n_state ATTRIBUTE_UNUSED;
 
     RPC_CN_DBG_RTN_PRINTF(SERVER call_end_action_rtn);
     sm_p = (rpc_cn_sm_ctlblk_t *)sm;
@@ -2857,7 +2885,7 @@ pointer_t       sm;
                         ("(call_end_action_rtn) call_rep->%x setting alert count (%d) in packet header\n",
                          call_rep,
                          call_rep->u.server.cancel.local_count));
-        RPC_CN_PKT_ALERT_COUNT (header_p) = call_rep->u.server.cancel.local_count;
+        RPC_CN_PKT_ALERT_COUNT (header_p) = (unsigned8) call_rep->u.server.cancel.local_count;
         RPC_CALL_LOCK (((rpc_call_rep_t *) call_rep));
         if (call_rep->common.u.server.cancel.had_pending)
         {
@@ -2948,7 +2976,7 @@ pointer_t       sm;
 #endif
 {
     rpc_cn_call_rep_p_t call_rep;
-    unsigned32          status ATTRIBUTE_UNUSED;
+//    unsigned32          status ATTRIBUTE_UNUSED;
     rpc_cn_sm_ctlblk_t 	    *sm_p;
 
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_call_sm_protocol_error);

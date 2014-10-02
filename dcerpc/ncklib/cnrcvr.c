@@ -413,6 +413,7 @@ rpc_cn_assoc_p_t        assoc;
                  * Deallocate the association control block.
                  */
                 rpc__cn_assoc_acb_dealloc (assoc);
+                assoc = NULL;
 
                 /*
                  * Check if rpc__cn_assoc_acb_free() posted the cancel.
@@ -1426,6 +1427,13 @@ unsigned32              *st;
          * this fragment is.
          */
         frag_length = RPC_CN_PKT_FRAG_LEN ((rpc_cn_packet_p_t)(fbp->data_p));
+
+        if (frag_length == 0)
+        {
+            *st = rpc_s_protocol_error;
+            (*fbp->fragbuf_dealloc)(fbp);
+            return;
+        }
 
         /*
          * Swap bytes if our integer formats are different.

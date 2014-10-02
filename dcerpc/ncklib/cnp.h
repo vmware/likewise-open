@@ -42,6 +42,11 @@
 
 #include <cn.h>
 
+/* Turn on all SM tables, not just when DEBUG is defined */
+#ifndef DCE_SM_TABLES_ALL
+#define DCE_SM_TABLES_ALL 1
+#endif
+
 /*
  * CN internal status codes. These will not be passed out of CN.
  *	RPC_C_CN_STATEBASE:  determines base value for the state 
@@ -312,6 +317,7 @@ typedef void (*rpc_cn_fragbuf_dealloc_fn_t) (rpc_cn_fragbuf_t *);
 struct rpc_cn_fragbuf_s_t
 {
     rpc_list_t                  link;   /* MUST BE 1ST */
+    unsigned32                  freebuf;
     unsigned32                  max_data_size;
     rpc_cn_fragbuf_dealloc_fn_t fragbuf_dealloc;
     pointer_t                   data_p;
@@ -771,7 +777,7 @@ id,st)
 /* ??? */
 
 #define RPC_CN_ALIGN_PTR(ptr, boundary) \
-    ((unsigned long) ((unsigned8 *)(ptr) + ((boundary)-1)) & ~((boundary)-1))
+    ((size_t) ((unsigned8 *)(ptr) + ((boundary)-1)) & ~((boundary)-1))
 
 /*
  * R P C _ C N _ A U T H _ R E Q U I R E D

@@ -38,7 +38,9 @@
 */
 
 #include <gssauth.h>
+#ifndef _WIN32
 #include <lw/base.h>
+#endif
 
 /*
  * Size of buffer used when asking for remote server's principal name
@@ -287,12 +289,12 @@ INTERNAL void rpc__gssauth_bnd_set_auth
 
 			RPC_MEM_ALLOC(str_server_name,
 				      unsigned_char_p_t,
-				      output_name.length + 1,
+				      (unsigned32) output_name.length + 1,
 				      RPC_C_MEM_STRING,
 				      RPC_C_MEM_WAITOK);
 			rpc__strncpy(str_server_name,
 				     output_name.value,
-				     output_name.length);
+				     (unsigned32) output_name.length);
 
 			gss_release_buffer(&minor_status,
 					   &output_name);
@@ -402,14 +404,14 @@ void rpc__gssauth_init_func(void)
 {
 	static rpc_authn_protocol_id_elt_t auth[2] = {
 	{ /* 0 */
-		rpc__gssauth_negotiate_init,
+		(rpc_auth_init_fn_t) rpc__gssauth_negotiate_init,
 		rpc_c_authn_gss_negotiate,
 		dce_c_rpc_authn_protocol_gss_negotiate,
 		NULL,
 		rpc_g_gssauth_negotiate_rpc_prot_epv
 	},
 	{ /* 1 */
-		rpc__gssauth_mskrb_init,
+		(rpc_auth_init_fn_t) rpc__gssauth_mskrb_init,
 		rpc_c_authn_gss_mskrb,
 		dce_c_rpc_authn_protocol_gss_mskrb,
 		NULL,
@@ -535,6 +537,15 @@ INTERNAL void rpc__gssauth_free_info
 		gss_release_name(&minor_status, &gssauth_info->gss_server_name);
 		gssauth_info->gss_server_name = GSS_C_NO_NAME;
 	}
+
+#ifndef _WIN32 /* TBD: Fix-This is problematic: GSSAPI uses HeapFree(); cross heap corruption. */
+	if (gssauth_info->gss_creds)
+	{
+		OM_uint32 minor_status;
+		gss_release_cred(&minor_status, &gssauth_info->gss_creds);
+		gssauth_info->gss_creds = NULL;
+	}
+#endif
 
 	memset(gssauth_info, 0x69, sizeof(*gssauth_info));
 	RPC_MEM_FREE(gssauth_info, RPC_C_MEM_GSSAUTH_INFO);
@@ -738,6 +749,10 @@ INTERNAL void rpc__gssauth_inq_access_token(
     unsigned32 *stp
     )
 {
+#ifdef _WIN32
+    *stp = rpc_s_ok;
+    return;
+#else
     NTSTATUS status = STATUS_SUCCESS;
     PLW_MAP_SECURITY_CONTEXT context = NULL;
     rpc_gssauth_info_p_t gssauth_info = NULL;
@@ -770,4 +785,5 @@ error:
     *stp = -1;
 
     goto cleanup;
+#endif
 }

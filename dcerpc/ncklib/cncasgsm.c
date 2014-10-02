@@ -53,7 +53,7 @@
 /*
  * Global Definitions
  */
-#ifdef DEBUG
+#if defined(DEBUG) || defined(DCE_SM_TABLES_ALL)
 GLOBAL char     *rpc_g_cn_grp_client_events [] =
 {
     "NEW              ",
@@ -61,12 +61,19 @@ GLOBAL char     *rpc_g_cn_grp_client_events [] =
     "REM_ASSOC        "
 };
 
+GLOBAL int rpc_g_cn_grp_client_events_len =
+    sizeof(rpc_g_cn_grp_client_events) / sizeof(rpc_g_cn_grp_client_events[0]);
+
+
 GLOBAL char     *rpc_g_cn_grp_client_states [] =
 {
     "CLOSED           ",
     "OPEN             ",
     "ACTIVE           "
 };
+
+GLOBAL int rpc_g_cn_grp_client_states_len =
+    sizeof(rpc_g_cn_grp_client_states) / sizeof(rpc_g_cn_grp_client_states[0]);
 #endif
 
 
@@ -132,6 +139,8 @@ GLOBAL rpc_cn_sm_action_fn_t  rpc_g_cn_client_grp_action_tbl [] =
     rpc__cn_grp_sm_protocol_error
 };
 
+GLOBAL int  rpc_g_cn_client_grp_action_tbl_len =
+    sizeof(rpc_g_cn_client_grp_action_tbl) / sizeof(rpc_g_cn_client_grp_action_tbl[0]);
 
 /***********************************************************************/
 /*
@@ -201,6 +210,9 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_client_grp_sm [] =
     open_state,		        /* state 1 - open */
     active_state	        /* state 2 - active */
 };
+
+GLOBAL int rpc_g_cn_client_grp_sm_len = sizeof(rpc_g_cn_client_grp_sm)/sizeof(rpc_g_cn_client_grp_sm[0]);
+GLOBAL int rpc_g_cn_client_grp_sm_entry_len = sizeof(closed_state) / sizeof(closed_state[0]);
 
 
 /***********************************************************************/

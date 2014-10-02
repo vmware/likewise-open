@@ -108,6 +108,9 @@ GLOBAL const char     *rpc_g_cn_assoc_server_events [] =
     "ASSOC_COMPLETE"
 };
 
+GLOBAL int rpc_g_cn_assoc_server_events_len =
+    sizeof(rpc_g_cn_assoc_server_events) / sizeof(rpc_g_cn_assoc_server_events[0]);
+
 GLOBAL const char     *rpc_g_cn_assoc_server_states [] =
 {
     "CLOSED",
@@ -117,6 +120,9 @@ GLOBAL const char     *rpc_g_cn_assoc_server_states [] =
     "OPEN",
     "ASSOC_WAIT"
 };
+
+GLOBAL int rpc_g_cn_assoc_server_states_len =
+    sizeof(rpc_g_cn_assoc_server_states) / sizeof(rpc_g_cn_assoc_server_states[0]);
 
 
 /******************************************************************************/
@@ -357,6 +363,9 @@ GLOBAL rpc_cn_sm_action_fn_t  rpc_g_cn_server_assoc_act_tbl [] =
     do_assoc_wait_action_rtn,
     do_assoc_action_rtn
 };
+
+GLOBAL int  rpc_g_cn_server_assoc_act_tbl_len =
+    sizeof(rpc_g_cn_server_assoc_act_tbl) / sizeof(rpc_g_cn_server_assoc_act_tbl[0]);
 
 
 /***********************************************************************/
@@ -707,6 +716,9 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_server_assoc_sm [] =
     assoc_wait_state            /* state 5 - assoc_wait */
 };
 
+GLOBAL int rpc_g_cn_server_assoc_sm_len = sizeof(rpc_g_cn_server_assoc_sm)/sizeof(rpc_g_cn_server_assoc_sm[0]);
+GLOBAL int rpc_g_cn_server_assoc_sm_entry_len =
+    sizeof(closed_state) / sizeof(closed_state[0]);
 
 
 /*
@@ -1958,70 +1970,8 @@ pointer_t       sm;
         assoc->assoc_max_xmit_frag = RPC_CN_PKT_MAX_XMIT_FRAG (resp_header);
         assoc->assoc_max_recv_frag = RPC_CN_PKT_MAX_RECV_FRAG (resp_header);
 
-        /*
-         * Determine whether the rpc_bind PDU contains an association
-         * group id.
-         */
-        if (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) != 0)
-        {
-            /*
-             * The rpc_bind PDU does contain a group id. Use it to look
-             * up an association group.
-             */
-            grp_id.all = RPC_CN_PKT_ASSOC_GROUP_ID (req_header);
-            assoc->assoc_grp_id =
-            rpc__cn_assoc_grp_lkup_by_id (grp_id,
-                                          RPC_C_CN_ASSOC_GRP_SERVER,
-                                          assoc->transport_info,
-                                          &(assoc->assoc_status));
-            assoc_grp = RPC_CN_ASSOC_GRP (assoc->assoc_grp_id);
-            if (assoc->assoc_status == rpc_s_ok)
-            {
-#ifdef DEBUG
-                if (RPC_DBG_EXACT(rpc_es_dbg_cn_errors,
-                                  RPC_C_CN_DBG_GRP_MAX_EXCEEDED))
-                {
-                    assert(assoc_grp != NULL);
-                    assoc_grp->grp_cur_assoc = assoc_grp->grp_max_assoc;
-                }
-#endif
-                /*
-                 * The association group was found. Determine whether it can
-                 * support another association.
-                 */
-                assert(assoc_grp != NULL);
-                if (assoc_grp->grp_cur_assoc == assoc_grp->grp_max_assoc)
-                {
-                    /*
-                     * The group can't support another association. Reject this
-                     * association request by sending an rpc_bind_nack PDU.
-                     */
-                    assoc->assoc_status = rpc_s_assoc_grp_max_exceeded;
-                }
-            }
-        } /* end if (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) != 0) */
-        else /* (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) == 0) */
-        {
-            /*
-             * A new association group needs to be created.
-             */
-            assoc->assoc_grp_id = rpc__cn_assoc_grp_alloc (assoc->cn_ctlblk.rpc_addr,
-                                                           assoc->transport_info,
-                                                           RPC_C_CN_ASSOC_GRP_SERVER,
-                                                           0,
-                                                           &(assoc->assoc_status));
-            assoc_grp = RPC_CN_ASSOC_GRP (assoc->assoc_grp_id);
-        } /* end else (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) == 0) */
-
         if (assoc->assoc_status == rpc_s_ok)
         {
-            /*
-             * Return the appropriate group ID for the client to use on
-             * the next association request.
-             */
-            assert(assoc_grp != NULL);
-            RPC_CN_PKT_ASSOC_GROUP_ID (resp_header) = assoc_grp->grp_id.all;
-
             /*
              * Determine the length of the secondary address endpoint including the '\0'
              * termination and store this in the PDU. Also string copy the
@@ -2106,6 +2056,74 @@ pointer_t       sm;
             {
                 assoc->assoc_status = RPC_S_HEADER_FULL;
             }
+        }
+
+        if (assoc->assoc_status == rpc_s_ok)
+        {
+            /*
+             * Determine whether the rpc_bind PDU contains an association
+             * group id.
+             */
+            if (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) != 0)
+            {
+                /*
+                 * The rpc_bind PDU does contain a group id. Use it to look
+                 * up an association group.
+                 */
+                grp_id.all = RPC_CN_PKT_ASSOC_GROUP_ID (req_header);
+                assoc->assoc_grp_id =
+                rpc__cn_assoc_grp_lkup_by_id (grp_id,
+                                              RPC_C_CN_ASSOC_GRP_SERVER,
+                                              assoc->transport_info,
+                                              &(assoc->assoc_status));
+                assoc_grp = RPC_CN_ASSOC_GRP (assoc->assoc_grp_id);
+                if (assoc->assoc_status == rpc_s_ok)
+                {
+#ifdef DEBUG
+                    if (RPC_DBG_EXACT(rpc_es_dbg_cn_errors,
+                                  RPC_C_CN_DBG_GRP_MAX_EXCEEDED))
+                    {
+                        assert(assoc_grp != NULL);
+                        assoc_grp->grp_cur_assoc = assoc_grp->grp_max_assoc;
+                    }
+#endif
+                    /*
+                     * The association group was found. Determine whether it can
+                     * support another association.
+                     */
+                    assert(assoc_grp != NULL);
+                    if (assoc_grp->grp_cur_assoc == assoc_grp->grp_max_assoc)
+                    {
+                        /*
+                         * The group can't support another association. Reject this
+                         * association request by sending an rpc_bind_nack PDU.
+                         */
+                        assoc->assoc_status = rpc_s_assoc_grp_max_exceeded;
+                    }
+                }
+            } /* end if (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) != 0) */
+            else /* (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) == 0) */
+            {
+                /*
+                 * A new association group needs to be created.
+                 */
+                assoc->assoc_grp_id = rpc__cn_assoc_grp_alloc (assoc->cn_ctlblk.rpc_addr,
+                                                               assoc->transport_info,
+                                                               RPC_C_CN_ASSOC_GRP_SERVER,
+                                                               0,
+                                                               &(assoc->assoc_status));
+                assoc_grp = RPC_CN_ASSOC_GRP (assoc->assoc_grp_id);
+            } /* end else (RPC_CN_PKT_ASSOC_GROUP_ID (req_header) == 0) */
+        }
+
+        if (assoc->assoc_status == rpc_s_ok)
+        {
+            /*
+             * Return the appropriate group ID for the client to use on
+             * the next association request.
+             */
+            assert(assoc_grp != NULL);
+            RPC_CN_PKT_ASSOC_GROUP_ID (resp_header) = assoc_grp->grp_id.all;
         }
     }
 
@@ -2278,7 +2296,7 @@ pointer_t       sm;
 	n_state = RPC_C_SERVER_ASSOC_OPEN;
         break;
     default:
-        fprintf(stderr, "%s no value for n_state\n", __PRETTY_FUNCTION__);
+        fprintf(stderr, "%s no value for n_state\n", "send_shutdown_req_action_rtn()");
         abort();
         break;
     }
@@ -3261,6 +3279,12 @@ pointer_t       sm;
     assoc = (rpc_cn_assoc_t *) spc_struct;
     sm_p = (rpc_cn_sm_ctlblk_t *)sm;
 
+    if (assoc->assoc_ref_count == 0)
+    {
+        assoc->assoc_status = rpc_s_bad_pkt;
+        return assoc->assoc_status;
+    }
+
     /*
      * Send the alter_context_resp PDU to the client and decrement the
      * active reference counter in the association.
@@ -4139,6 +4163,10 @@ rpc_cn_packet_p_t       header;
                                     assoc->security.assoc_current_sec_context,
                                     free_buf,
                                     &(assoc->assoc_status));
+        if (free_buf)
+        {
+            fragbuf = NULL;
+        }
 
         RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_BIG_PAC,
 ("(send_frag_resp_pdu) SENT %s PDU: data_size=%u, first_frag=%s, last_frag=%s, cred_len=%u, cred_remain=%u\n",

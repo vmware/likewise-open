@@ -53,9 +53,15 @@
 #include <cnassoc.h>
 
 #include <dce/rpcexc.h>
-#include <syslog.h>
-
+#if !defined(_WIN32)
 #include <lwio/lwio.h>
+#include <syslog.h>
+#else
+/* #include <stdint.h> */
+#ifndef UINT16_MAX
+#define UINT16_MAX             (65535)
+#endif
+#endif
 
 
 
@@ -1948,7 +1954,7 @@ unsigned32              *st;
         {
             iovp = &out_iov;
             iovcnt = 1;
-	    bytes_to_send = iovp->iov_len;
+	    bytes_to_send = (unsigned32) iovp->iov_len;
             free_iov_buffer = true;
             save_base = iovp->iov_base;
         }
@@ -2117,6 +2123,7 @@ unsigned32              *st;
             switch (serr)
             {
                 case (RPC_C_SOCKET_ECONNRESET):
+                case (RPC_C_SOCKET_EPIPE):
                 assoc->assoc_status = rpc_s_connection_aborted;
                 *st = rpc_s_connection_aborted;
                 break;
@@ -2328,9 +2335,10 @@ unsigned32                      *st;
 {
     unsigned16                  ihint;
     rpc_if_rep_t                *if_r;
-    boolean                     syntax_match;
+    boolean                     syntax_match = false;
     rpc_cn_syntax_t             *pres_context;
     unsigned32                  i, j, k;
+    unsigned32                  saved_st = rpc_s_ok;
 
     CODING_ERROR (st);
     RPC_LOG_CN_ASSOC_SYN_NEG_NTR;
@@ -2385,6 +2393,8 @@ unsigned32                      *st;
 
         if (*st != rpc_s_ok)
         {
+            saved_st = *st;
+
             RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
                             ("CN: call_rep->%x assoc->%x desc->%x presentation negotiation failed - abstract syntax not registered - st = %x\n",
                              assoc->call_rep,
@@ -2499,7 +2509,11 @@ unsigned32                      *st;
         } /* end else (st != rpc_s_unkwown_if) */
     } /* end for (i = 0; i < pres_cont_list->n_context_elem; i++) */
 
-    *st = rpc_s_ok;
+    if (syntax_match)
+        *st = rpc_s_ok;
+    else
+        *st = saved_st;
+
     RPC_LOG_CN_ASSOC_SYN_NEG_XIT;
 }
 
@@ -4597,10 +4611,12 @@ rpc_cn_assoc_p_t   assoc;
             RPC_LIST_NEXT (fragbuf,
                            next_fragbuf,
                            rpc_cn_fragbuf_p_t);
+#if 1 /* oops, fragbuf_dealloc() is corrupt, 0x21, crashes here */
             if (fragbuf->fragbuf_dealloc != NULL)
             {
                 (*fragbuf->fragbuf_dealloc)(fragbuf);
             }
+#endif
             fragbuf = next_fragbuf;
         }
         RPC_LIST_INIT (assoc->msg_list);
@@ -4963,8 +4979,10 @@ unsigned32              index;
      * Initialize all the fields in the association group given.
      */
     memset (assoc_grp, 0, sizeof (rpc_cn_assoc_grp_t));
+    assoc_grp->grp_state.cur_state = RPC_C_ASSOC_GRP_CLOSED;
     rpc__cn_gen_local_id (index, &assoc_grp->grp_id);
-    assoc_grp->grp_max_assoc = (typeof(assoc_grp->grp_max_assoc))(RPC_C_ASSOC_GRP_MAX_ASSOCS_DEFAULT);
+
+    assoc_grp->grp_max_assoc = (unsigned16)(RPC_C_ASSOC_GRP_MAX_ASSOCS_DEFAULT);
     RPC_COND_INIT (assoc_grp->grp_assoc_wt, rpc_g_global_mutex);
     RPC_CN_STATS_INCR (assoc_grps);
 }
@@ -5030,6 +5048,18 @@ unsigned32 *st ;
      * Compute the size of the new table.
      */
     old_count = rpc_g_cn_assoc_grp_tbl.grp_count;
+
+    /*
+     * BUG 1176013: found buffer over run crash in subsequent memcpy()
+     * Return Error on unsigned16 integer overflow.
+     */
+    if (old_count + RPC_C_ASSOC_GRP_ALLOC_SIZE > UINT16_MAX)
+    {
+        *st = rpc_s_no_memory;
+        RPC_CN_LOCAL_ID_CLEAR (grp_id);
+        return (grp_id);
+    }
+
     new_count = old_count + RPC_C_ASSOC_GRP_ALLOC_SIZE;
 
     /*
@@ -5381,7 +5411,7 @@ rpc_cn_local_id_t       grp_id;
     assoc_grp->grp_address = NULL;
     assoc_grp->grp_secaddr = NULL;
     assoc_grp->grp_refcnt = 0;
-    assoc_grp->grp_max_assoc = (typeof(assoc_grp->grp_max_assoc))(RPC_C_ASSOC_GRP_MAX_ASSOCS_DEFAULT);
+    assoc_grp->grp_max_assoc = (unsigned16)(RPC_C_ASSOC_GRP_MAX_ASSOCS_DEFAULT);
     assoc_grp->grp_cur_assoc = 0;
     assoc_grp->grp_assoc_waiters = 0;
     assoc_grp->grp_status = rpc_s_ok;
@@ -5389,6 +5419,7 @@ rpc_cn_local_id_t       grp_id;
     RPC_LIST_INIT (assoc_grp->grp_assoc_list);
     assoc_grp->grp_liveness_mntr = NULL;
     assoc_grp->grp_callcnt = 0;
+    assoc_grp->grp_state.cur_state = RPC_C_ASSOC_GRP_CLOSED;
 
     /*
      * Regenerate the local ID since there may still be bindings
@@ -5453,6 +5484,11 @@ rpc_cn_assoc_p_t        assoc;
 
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_assoc_grp_add_assoc);
 
+    if (assoc->link.last)
+    {
+        assoc->assoc_status = rpc_s_bad_pkt;
+        return;
+    }
     /*
      * Add the new association to the group by sending an add
      * association to group event through the group state machine.

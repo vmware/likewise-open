@@ -189,6 +189,63 @@ rpc_cond_p_t                    cond;
 **--
 **/
 
+#if 1 /* Dismantle the list/heap alloc implementation; always call alloc */
+PRIVATE pointer_t rpc__list_element_alloc
+(
+    rpc_list_desc_p_t       list_desc,
+    boolean32               block
+)
+{
+    pointer_t  element = NULL;
+    /*
+     * The lookaside list is empty. Try and allocate from
+     * heap.
+     */
+    RPC_MEM_ALLOC (element,
+                   pointer_t,
+                   list_desc->element_size,
+                   list_desc->element_type,
+                   RPC_C_MEM_NOWAIT);
+
+    if (!element)
+    {
+        return NULL;
+    }
+
+    /*
+     * The RPC_MEM_ALLOC succeeded. If an alloc routine
+     * was specified when the lookaside list was inited
+     * call it now.
+     */
+    if (list_desc->alloc_rtn)
+    {
+        /*
+         * Catch any exceptions which may occur in the
+         * list-specific alloc routine. Any exceptions
+         * will be caught and the memory will be freed.
+         */
+        DCETHREAD_TRY
+        {
+            list_desc->alloc_rtn(element);
+        }
+        DCETHREAD_CATCH_ALL(THIS_CATCH)
+        {
+            RPC_MEM_FREE (element, list_desc->element_type);
+            element = NULL;
+        }
+        DCETHREAD_ENDTRY
+    }
+    if (element)
+    {
+        ((rpc_list_p_t)element)->next = NULL;
+        ((rpc_list_p_t)element)->last = NULL;
+    }
+
+    return element;
+}
+
+#else
+
 PRIVATE pointer_t rpc__list_element_alloc 
 #ifdef _DCE_PROTO_
 (
@@ -368,6 +425,7 @@ boolean32               block;
     RPC_LOG_LIST_ELT_ALLOC_XIT;
     return (element);
 }
+#endif /* if 1 */
 
 
 /*
@@ -404,6 +462,32 @@ boolean32               block;
 **--
 **/
 
+#if 1 /* Dismantle the list/heap alloc implementation; always call alloc */
+
+PRIVATE void rpc__list_element_free
+(
+    rpc_list_desc_p_t       list_desc,
+    pointer_t               list_element
+)
+{
+    assert(list_desc != NULL);
+    assert(list_element != NULL);
+
+    /*
+     * If a free routine was specified when this lookaside list
+     * was inited call it now.
+     */
+    if (list_desc->free_rtn)
+    {
+        list_desc->free_rtn(list_element);
+    }
+
+    memset (list_element, 0, list_desc->element_size);
+    RPC_MEM_FREE (list_element, list_desc->element_type);
+}
+
+#else
+
 PRIVATE void rpc__list_element_free 
 #ifdef _DCE_PROTO_
 (
@@ -434,7 +518,9 @@ pointer_t               list_element;
     {
         list_desc->cur_size++;
 
+#if 1 /* Seeing a fuzz crash here */
         RPC_LIST_ADD_TAIL (list_desc->list_head, list_element, pointer_t);
+#endif
 
         /*
          * Now check whether any other thread is waiting for a lookaside list
@@ -499,6 +585,7 @@ pointer_t               list_element;
 
     RPC_LOG_LIST_ELT_FREE_XIT;
 }
+#endif /* if 1 */
 
 /*
 **++

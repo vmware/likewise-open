@@ -53,7 +53,7 @@
 /*
  * Global Definitions
  */
-#ifdef DEBUG
+#if defined(DEBUG) || defined(DCE_SM_TABLES_ALL)
 GLOBAL char     *rpc_g_cn_grp_server_events [] =
 {
     "NEW              ",
@@ -62,6 +62,9 @@ GLOBAL char     *rpc_g_cn_grp_server_events [] =
     "NO_CALLS_IND     "
 };
 
+GLOBAL int rpc_g_cn_grp_server_events_len =
+    sizeof(rpc_g_cn_grp_server_events) / sizeof(rpc_g_cn_grp_server_events[0]);
+
 GLOBAL char     *rpc_g_cn_grp_server_states [] =
 {
     "CLOSED           ",
@@ -69,6 +72,9 @@ GLOBAL char     *rpc_g_cn_grp_server_states [] =
     "ACTIVE           ",
     "CALL_WAIT        "
 };
+
+GLOBAL int     rpc_g_cn_grp_server_states_len =
+    sizeof(rpc_g_cn_grp_server_states) / sizeof(rpc_g_cn_grp_server_states[0]);
 #endif
 
 
@@ -104,6 +110,7 @@ GLOBAL char     *rpc_g_cn_grp_server_states [] =
 #define SERVER_ASSOC_COUNT_PRED         1
 */
 
+#if 0 /* Static function declared but not used anywhere */
 /*
  * The predicate routine prototypes.
  */
@@ -114,6 +121,7 @@ INTERNAL unsigned8 server_refs_pred_rtn _DCE_PROTOTYPE_ ((
 INTERNAL unsigned8 server_assoc_count_pred_rtn _DCE_PROTOTYPE_ ((
     pointer_t spc_struct,
     pointer_t event_param)) ATTRIBUTE_UNUSED;
+#endif
 
 
 
@@ -167,6 +175,8 @@ GLOBAL rpc_cn_sm_action_fn_t  rpc_g_cn_server_grp_action_tbl [] =
     rpc__cn_grp_sm_protocol_error
 };
 
+GLOBAL int  rpc_g_cn_server_grp_action_tbl_len =
+    sizeof(rpc_g_cn_server_grp_action_tbl) / sizeof(rpc_g_cn_server_grp_action_tbl[0]);
 
 /***********************************************************************/
 /*
@@ -270,7 +280,12 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_server_grp_sm [] =
     call_wait_state             /* state 3 - call_wait */
 };
 
+GLOBAL int rpc_g_cn_server_grp_sm_len  = sizeof(rpc_g_cn_server_grp_sm)/sizeof(rpc_g_cn_server_grp_sm[0]);
+GLOBAL int rpc_g_cn_server_grp_sm_entry_len  =
+    sizeof(closed_state) / sizeof(closed_state[0]);
+
 
+#if 0 /* Static function declared but not used anywhere */
 /***********************************************************************/
 /*
  *
@@ -344,6 +359,7 @@ pointer_t       event_param;
         return (1);
     }
 }
+#endif /* if 0 */
 
 
 /*
@@ -412,6 +428,9 @@ pointer_t       event_param;
 }
 
 
+
+#if 0 /* Static function declared but not used anywhere */
+
 /*
 **++
 **
@@ -486,6 +505,7 @@ pointer_t       event_param;
         return (0);
     }
 }
+#endif /* if 0 */
 
 
 

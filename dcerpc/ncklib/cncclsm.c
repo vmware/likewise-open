@@ -55,7 +55,7 @@
 /*
  * Global Definitions
  */
-#ifdef DEBUG
+#if defined(DEBUG) || defined(DCE_SM_TABLES_ALL)
 GLOBAL char     *rpc_g_cn_call_client_events [] =
 {
     "TRANSMIT_REQ     ",
@@ -72,6 +72,9 @@ GLOBAL char     *rpc_g_cn_call_client_events [] =
     "ALERT_TIMEOUT    "
 };
 
+GLOBAL int rpc_g_cn_call_client_events_len =
+    sizeof(rpc_g_cn_call_client_events) / sizeof(rpc_g_cn_call_client_events[0]);
+
 GLOBAL char     *rpc_g_cn_call_client_states [] =
 {
     "INIT             ",
@@ -83,6 +86,9 @@ GLOBAL char     *rpc_g_cn_call_client_states [] =
     "CALL_FAILED_DNE  ",
     "CALL_FAILED      "
 };
+
+GLOBAL int rpc_g_cn_call_client_states_len =
+    sizeof(rpc_g_cn_call_client_states) / sizeof(rpc_g_cn_call_client_states[0]);
 #endif /* DEBUG */
 
 
@@ -105,6 +111,7 @@ GLOBAL char     *rpc_g_cn_call_client_states [] =
 /*
  * The predicate routine prototypes.
  */
+#if 0 /* Static function declared but not used anywhere */
 INTERNAL unsigned8 maybe_semantics_pred_rtn _DCE_PROTOTYPE_ ((
         pointer_t /*spc_struct*/,
         pointer_t /*event_param*/
@@ -113,6 +120,7 @@ INTERNAL unsigned8 last_recv_frag_pred_rtn _DCE_PROTOTYPE_ ((
         pointer_t /*spc_struct*/,
         pointer_t /*event_param*/
     )) ATTRIBUTE_UNUSED;
+#endif
 
 
 /***********************************************************************/
@@ -206,6 +214,9 @@ GLOBAL rpc_cn_sm_action_fn_t  rpc_g_cn_client_call_action_tbl [] =
     send_last_frag_action_rtn,
     rpc__cn_call_sm_protocol_error
 };
+
+GLOBAL int  rpc_g_cn_client_call_action_tbl_len =
+    sizeof(rpc_g_cn_client_call_action_tbl) / sizeof(rpc_g_cn_client_call_action_tbl[0]);
 
 /***********************************************************************/
 /*
@@ -361,8 +372,14 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_client_call_sm [] =
     call_completed_state,           /* state 5 - call_completed */
     cfdne_state,                    /* state 6 - call failed, dne */
     call_failed_state               /* state 7 - call_failed */
-
 };
+
+GLOBAL int rpc_g_cn_client_call_sm_len  =
+    sizeof(rpc_g_cn_client_call_sm)/sizeof(rpc_g_cn_client_call_sm[0]);
+
+/* All single rpc_cn_sm_state_entry_p_t entries are the same length */
+GLOBAL int rpc_g_cn_client_call_sm_entry_len  =
+    sizeof(init_state) / sizeof(init_state[0]);
 
 
 /***********************************************************************/
@@ -374,6 +391,7 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_client_call_sm [] =
 
 /***********************************************************************/
 
+#if 0 /* Static function declared but not used anywhere */
 /*
 **++
 **
@@ -444,6 +462,7 @@ pointer_t       event_param;
         return (1);
     }
 }
+#endif /* if 0 */
 
 
 /*
@@ -511,6 +530,8 @@ pointer_t       event_param;
 }
 
 
+
+#if 0 /* Static function declared but not used anywhere */
 
 /*
 **++
@@ -589,6 +610,8 @@ pointer_t       event_param;
     }
 
 }
+#endif /* if 0  */
+
 
 /***********************************************************************/
 /*
@@ -658,7 +681,7 @@ pointer_t       sm;
 
 #endif
 {
-    rpc_cn_assoc_p_t        assoc_p ATTRIBUTE_UNUSED;
+//    rpc_cn_assoc_p_t        assoc_p ATTRIBUTE_UNUSED;
     rpc_cn_call_rep_p_t     call_rep_p;
     rpc_cn_sm_event_entry_t event_entry;
     unsigned32              status;
@@ -774,7 +797,7 @@ pointer_t       sm;
     rpc_cn_call_rep_p_t     call_rep;
     rpc_iovector_p_t        stub_data_p;
     rpc_iovector_elt_p_t    iov_elt_p;
-    unsigned8               event ATTRIBUTE_UNUSED;
+//    unsigned8               event ATTRIBUTE_UNUSED;
     unsigned32              i;
     unsigned32              status;
     boolean                 found_reusable;
@@ -1128,7 +1151,7 @@ pointer_t       sm;
 
 #endif
 {
-    unsigned32              status ATTRIBUTE_UNUSED;
+//    unsigned32              status ATTRIBUTE_UNUSED;
     rpc_cn_fragbuf_p_t      fragbuf;
     rpc_cn_packet_p_t       header_p;
     rpc_cn_call_rep_p_t     call_rep;
@@ -1308,7 +1331,7 @@ pointer_t       sm;
 
 #endif
 {
-    unsigned32              status ATTRIBUTE_UNUSED;
+//    unsigned32              status ATTRIBUTE_UNUSED;
     rpc_cn_fragbuf_p_t      fragbuf;
     rpc_cn_packet_p_t       header_p;
     rpc_cn_call_rep_p_t     call_rep;

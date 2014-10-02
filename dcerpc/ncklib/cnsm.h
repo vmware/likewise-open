@@ -43,6 +43,11 @@
 #include <dce/dce.h>
 #endif
 
+#ifdef _WIN32
+#ifndef inline
+#define inline __inline
+#endif
+#endif
 /*
  * R P C _ _ C N _ S M _ I N I T
  */
@@ -223,24 +228,32 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 
 
 
-#define RPC_CN_SM_GET_NEXT_EVENT(sm, event, more)\
-{\
-    if ((sm)->event_list_state == RPC_C_CN_SM_EVENT_LIST_EMPTY)\
-    {\
-        more = false;\
-    }\
-    else\
-    {\
-        (event)->event_id = (sm)->event_list[(sm)->event_list_hindex].event_id;\
-        (event)->event_param = (sm)->event_list[(sm)->event_list_hindex].event_param;\
-        (sm)->event_list_hindex = ((sm)->event_list_hindex + 1) &\
-        (RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES - 1); \
-        if ((sm)->event_list_hindex == (sm)->event_list_tindex)\
-        {\
-            (sm)->event_list_state = RPC_C_CN_SM_EVENT_LIST_EMPTY;\
-        }\
-        more = true;\
-    }\
+static inline void
+__RPC_CN_SM_GET_NEXT_EVENT(
+    rpc_cn_sm_ctlblk_t *sm,
+    rpc_cn_sm_event_entry_t *event,
+    boolean *more)
+{
+    if ((sm)->event_list_state == RPC_C_CN_SM_EVENT_LIST_EMPTY)
+    {
+        *more = false;
+    }
+    else
+    {
+        (event)->event_id = (sm)->event_list[(sm)->event_list_hindex].event_id;
+        (event)->event_param = (sm)->event_list[(sm)->event_list_hindex].event_param;
+        (sm)->event_list_hindex = ((sm)->event_list_hindex + 1) &
+        (RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES - 1);
+        if ((sm)->event_list_hindex == (sm)->event_list_tindex)
+        {
+            (sm)->event_list_state = RPC_C_CN_SM_EVENT_LIST_EMPTY;
+        }
+        *more = true;
+    }
 }
+
+/* Must call function through macro to pass reference for more */
+#define RPC_CN_SM_GET_NEXT_EVENT(sm, event, more) \
+  __RPC_CN_SM_GET_NEXT_EVENT(sm, event, &more)
 
 #endif

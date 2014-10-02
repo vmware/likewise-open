@@ -79,6 +79,9 @@ GLOBAL char     *rpc_g_cn_assoc_client_events [] =
     "SHUTDOWN_IND"
 };
 
+GLOBAL int rpc_g_cn_assoc_client_events_len =
+    sizeof(rpc_g_cn_assoc_client_events) / sizeof(rpc_g_cn_assoc_client_events[0]);
+
 GLOBAL char     *rpc_g_cn_assoc_client_states [] =
 {
     "CLOSED",
@@ -88,6 +91,8 @@ GLOBAL char     *rpc_g_cn_assoc_client_states [] =
     "ACTIVE",
     "CALL_DONE_WAIT"
 };
+
+GLOBAL int rpc_g_cn_assoc_client_states_len = sizeof(rpc_g_cn_assoc_client_states) / sizeof(rpc_g_cn_assoc_client_states[0]);
 
 
 /******************************************************************************/
@@ -157,6 +162,7 @@ INTERNAL unsigned8 shutdown_allowed_pred_rtn _DCE_PROTOTYPE_ ((
     pointer_t /* spc_struct */,
     pointer_t /* event_param */));
 
+#if 0 /* static functions that are not used anywhere */
 INTERNAL unsigned8 active_pred_rtn _DCE_PROTOTYPE_ ((
     pointer_t /* spc_struct */,
     pointer_t /* event_param */)) ATTRIBUTE_UNUSED;
@@ -164,6 +170,7 @@ INTERNAL unsigned8 active_pred_rtn _DCE_PROTOTYPE_ ((
 INTERNAL unsigned8 shutdown_allowed_req_pred_rtn _DCE_PROTOTYPE_ ((
     pointer_t /* spc_struct */,
     pointer_t /* event_param */)) ATTRIBUTE_UNUSED;
+#endif /* if 0 */
 
 INTERNAL unsigned8 lastfrag_pred_rtn _DCE_PROTOTYPE_ ((
     pointer_t /* spc_struct */,
@@ -412,6 +419,9 @@ GLOBAL rpc_cn_sm_action_fn_t  rpc_g_cn_client_assoc_act_tbl [] =
     shutdown_allowed_action_rtn,
     illegal_event_abort_action_rtn
 };
+
+GLOBAL int  rpc_g_cn_client_assoc_act_tbl_len =
+    sizeof(rpc_g_cn_client_assoc_act_tbl) / sizeof(rpc_g_cn_client_assoc_act_tbl[0]);
 
 
 /***********************************************************************/
@@ -764,6 +774,10 @@ GLOBAL rpc_cn_sm_state_entry_p_t rpc_g_cn_client_assoc_sm [] =
     call_done_wait_state    /* state 5 - call_done_wait */
 };
 
+GLOBAL int rpc_g_cn_client_assoc_sm_len = sizeof(rpc_g_cn_client_assoc_sm)/sizeof(rpc_g_cn_client_assoc_sm[0]);
+GLOBAL int rpc_g_cn_client_assoc_sm_entry_len =
+    sizeof(closed_state) / sizeof(closed_state[0]);
+
 
 /***********************************************************************/
 /*
@@ -1015,6 +1029,7 @@ pointer_t       event_param;
     }\
 }
 
+#if 0 /* static functions that are not used anywhere */
 
 /*
 **++
@@ -1177,6 +1192,7 @@ pointer_t       event_param;
         return (0);
     }
 }
+#endif /* if 0 */
 
 
 
@@ -2219,7 +2235,12 @@ pointer_t       sm;
          */
         sec_addr = (rpc_cn_port_any_t *)
             ((unsigned8 *)(header) + RPC_CN_PKT_SIZEOF_BIND_ACK_HDR);
-        if (sec_addr->length > 1)
+        if (sec_addr->length > 1
+#ifdef _WIN32
+                                  ||
+            assoc_grp->grp_address->sa.family == RPC_C_NETWORK_PROTOCOL_ID_NCALRPC
+#endif
+            )
         {
             /*
              * Copy the primary group address.
@@ -3916,7 +3937,7 @@ pointer_t       sm;
 	    assoc_sm_work.pres_context = NULL;
 	    assoc_sm_work.sec_context = sec_context;
 
-	    authent3_action_rtn(spc_struct, &assoc_sm_work, sm);
+	    authent3_action_rtn(spc_struct, (pointer_t) &assoc_sm_work, sm);
 	}
     }
 
@@ -4299,7 +4320,7 @@ pointer_t       sm;
 #endif
 {
     rpc_cn_assoc_t *assoc;
-    rpc_cn_sm_ctlblk_t *sm_p ATTRIBUTE_UNUSED;
+//    rpc_cn_sm_ctlblk_t *sm_p ATTRIBUTE_UNUSED;
 
     RPC_CN_DBG_RTN_PRINTF(CLIENT decr_rem_mark_abort_action_rtn);
 
@@ -4825,7 +4846,7 @@ INTERNAL void send_pdu
     unsigned32                  auth_len;
     unsigned32                  auth_space;
     unsigned32                  i;
-    rpc_cn_assoc_grp_t          *assoc_grp ATTRIBUTE_UNUSED;
+//    rpc_cn_assoc_grp_t          *assoc_grp ATTRIBUTE_UNUSED;
     boolean			first_frag, done;
     unsigned8			flags = 0;
     unsigned32                  auth_len_remain;
@@ -4884,7 +4905,7 @@ INTERNAL void send_pdu
         }
 
         pres_cont_list->pres_cont_elem[0].pres_context_id = pres_context->syntax_pres_id;
-        pres_cont_list->pres_cont_elem[0].n_transfer_syn = pres_context->syntax_vector->count;
+        pres_cont_list->pres_cont_elem[0].n_transfer_syn = (unsigned8) pres_context->syntax_vector->count;
         pres_cont_list->pres_cont_elem[0].abstract_syntax.id =  pres_context->syntax_abstract_id.id;
         pres_cont_list->pres_cont_elem[0].abstract_syntax.version = pres_context->syntax_abstract_id.version;
 
