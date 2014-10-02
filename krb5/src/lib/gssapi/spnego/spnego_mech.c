@@ -840,7 +840,6 @@ init_ctx_reselect(OM_uint32 *minor_status, spnego_gss_ctx_id_t sc,
 {
 	OM_uint32 ret, tmpmin;
 
-	generic_gss_release_oid(&tmpmin, &sc->internal_mech);
 	gss_delete_sec_context(&tmpmin, &sc->ctx_handle,
 			       GSS_C_NO_BUFFER);
 
@@ -1493,7 +1492,7 @@ acc_ctx_cont(OM_uint32 *minstat,
 
 	ptr = bufstart = buf->value;
 #define REMAIN (buf->length - (ptr - bufstart))
-	if (REMAIN > INT_MAX)
+	if (REMAIN == 0 || REMAIN > INT_MAX)
 		return GSS_S_DEFECTIVE_TOKEN;
 
 	/*
