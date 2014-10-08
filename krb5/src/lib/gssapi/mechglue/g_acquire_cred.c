@@ -460,6 +460,12 @@ gss_add_cred(minor_status, input_cred_handle,
 	free(union_cred->mechs_array);
 	free(union_cred->cred_array);
 	new_union_cred = union_cred;
+
+        if (union_cred->auxinfo.name_type)
+        {
+	    gss_release_oid(minor_status, &union_cred->auxinfo.name_type);
+	    union_cred->auxinfo.name_type = NULL;
+        }
     } else {
 	new_union_cred = malloc(sizeof (gss_union_cred_desc));
 	if (new_union_cred == NULL) {
@@ -501,6 +507,8 @@ errout:
     if (input_cred_handle == GSS_C_NO_CREDENTIAL && union_cred) {
 	if (union_cred->auxinfo.name.value)
 	    free(union_cred->auxinfo.name.value);
+	if (union_cred->auxinfo.name_type)
+	    gss_release_oid(minor_status, &union_cred->auxinfo.name_type);
 	free(union_cred);
     }
 
