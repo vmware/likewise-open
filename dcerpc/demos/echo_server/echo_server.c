@@ -103,6 +103,7 @@ static void usage()
     printf("usage: echo_server [-a name] [-e endpoint] [-n] [-u] [-t]\n");
     printf("         -a:  specify authentication identity\n");
     printf("         -e:  specify endpoint\n");
+    printf("         -l:  use ncalrcp protocol\n");
     printf("         -n:  use named pipe protocol\n");
     printf("         -u:  use UDP protocol\n");
     printf("         -t:  use TCP protocol (default)\n");
@@ -126,7 +127,7 @@ int main(int argc, char *argv[])
      * Process the cmd line args
      */
 
-    while ((c = getopt(argc, argv, "a:e:nut")) != EOF)
+    while ((c = getopt(argc, argv, "a:e:nutl")) != EOF)
     {
         switch (c)
         {
@@ -135,6 +136,9 @@ int main(int argc, char *argv[])
             break;
         case 'e':
             endpoint = optarg;
+            break;
+        case 'l':
+            protocol = PROTOCOL_NCALRPC;
             break;
         case 'n':
             protocol = PROTOCOL_NP;
@@ -299,11 +303,15 @@ ReverseIt(
     )
 {
 
-    char * binding_info;
+    unsigned char * binding_info;
     error_status_t e;
     unsigned result_size;
     args * result;
     unsigned32 i,j,l;
+    rpc_authz_cred_handle_t hPriv = { 0 };
+    unsigned32 dwProtectLevel = 0;
+    unsigned32 rpc_status = rpc_s_ok;
+    unsigned char *authPrinc = NULL;
 #if 0
     rpc_transport_info_handle_t transport_info = NULL;
     unsigned32 rpcstatus = 0;
@@ -314,13 +322,28 @@ ReverseIt(
     /*
      * Get some info about the client binding
      */
-
-    rpc_binding_to_string_binding(h, (unsigned char **)&binding_info, &e);
+    rpc_binding_to_string_binding(h, &binding_info, &e);
     if (e == rpc_s_ok)
     {
-        printf ("ReverseIt() called by client: %s\n", binding_info);
+        printf ("ReverseIt() called by client: %s\n", (char *) binding_info);
+        rpc_string_free(&binding_info, status);
+        binding_info = NULL;
     }
 
+    rpc_binding_inq_auth_caller(
+        h,
+        &hPriv,
+        &authPrinc,
+        &dwProtectLevel,
+        NULL, /* unsigned32 *authn_svc, */
+        NULL, /* unsigned32 *authz_svc, */
+        &rpc_status);
+    if (rpc_status == rpc_s_ok)
+    {
+        printf("rpc_binding_inq_auth_caller: sts=%d authPrinc=%s prot=%d\n",
+               rpc_status, (char*) authPrinc, dwProtectLevel);
+
+    }
 #if 0
     rpc_binding_inq_transport_info(h, &transport_info, &rpcstatus);
 

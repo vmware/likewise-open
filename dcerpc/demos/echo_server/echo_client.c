@@ -10,16 +10,17 @@
 #include <config.h>
 #endif
 
+#include  <dce/dcethread.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 #include "echo.h"
 #include <misc.h>
-
-#include <getopt.h>
 
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_ext.h>
@@ -36,7 +37,6 @@
 #define SPNEGO_OID "\053\006\001\005\005\002"
 #endif
 
-
 #define MAX_USER_INPUT 128
 #define MAX_LINE 100 * 1024
 
@@ -47,6 +47,21 @@
 #else
 #define EOF_STRING "^D"
 #endif
+
+#define DO_RPC(rpc_pfn, sts) \
+  do {                       \
+    dcethread_exc *exc;      \
+    DCETHREAD_TRY            \
+    {                        \
+      exc = NULL;            \
+      (sts) = rpc_pfn;       \
+    }                        \
+    DCETHREAD_CATCH_ALL(exc) \
+    {                        \
+      sts = dcethread_exc_getstatus(exc); \
+    }                        \
+    DCETHREAD_ENDTRY         \
+  } while (0)
 
 static char *argv0;
 /*
@@ -73,18 +88,21 @@ static void usage(char *argv0, const char *msg)
         printf("%s\n", msg);
     }
 
-    printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-n] [-u] [-t]\n", argv0);
+    printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-l] [-n] [-u] [-t][--loop N][-g N][-d][--srp-pwd pwd][--threads num]\n", argv0);
     printf("         -h:  specify host of RPC server (default is localhost)\n");
     printf("         -a:  specify authentication identity\n");
     printf("         -p:  specify protection level\n");
     printf("         -e:  specify endpoint for protocol\n");
+    printf("         -l:  use ncalpc protocol\n");
     printf("         -n:  use named pipe protocol\n");
     printf("         -u:  use UDP protocol\n");
     printf("         -t:  use TCP protocol (default)\n");
     printf("         -g:  instead of prompting, generate a data string of the specified length\n");
     printf("         -d:  turn on debugging\n");
-    printf("      --srp:  turn on GSS_SRP authentication\n");
+    printf("     --loop:  loop Reverseit N times\n");
+    printf("   --rebind:  Create new RPC binding handle N times\n");
     printf("  --srp-pwd:  SRP password for authentication identity\n");
+    printf("  --threads:  Call ReverseIt in 'num'; default 10/1000\n");
     printf("\n");
     exit(1);
 }
@@ -99,9 +117,20 @@ typedef struct _PROG_ARGS
     char *protocol;
     int generate_length;
     int do_srp;
+    int loop;
+    int rebind_count;
     char *srp_passwd;
+    int do_threads;
+    int num_threads;
 } PROG_ARGS;
 
+typedef struct _threadarg
+{
+    rpc_binding_handle_t echo_server;
+    int num_threads;
+    args *inargs;
+    PROG_ARGS *progArgs;
+} threadarg;
 
 void
 parseArgs(
@@ -200,11 +229,26 @@ parseArgs(
             args->generate_length = atoi(argv[i]);
             i++;
         }
-        else if (strcmp("--srp", argv[i]) == 0)
+        else if (strcmp("--loop", argv[i]) == 0)
         {
-            args->do_srp = 1;
             i++;
-        }
+            if (i >= argc)
+            {
+                usage(argv0, "--loop count missing");
+            }
+            args->loop = atoi(argv[i]);
+            i++;
+	}
+        else if (strcmp("--rebind", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--rebind count missing");
+            }
+            args->rebind_count = atoi(argv[i]);
+            i++;
+	}
         else if (strcmp("--srp-pwd", argv[i]) == 0)
         {
             i++;
@@ -213,7 +257,20 @@ parseArgs(
                 usage(argv0, "--srp-pwd value missing");
             }
             args->srp_passwd = strdup(argv[i]);
+            args->do_srp = 1;
             i++;
+        }
+        else if (strcmp("--threads", argv[i]) == 0)
+        {
+            args->do_threads = 1;
+            args->num_threads = 10;
+            i++;
+
+            if (i < argc && isdigit((int) argv[i][0]))
+            {
+                args->num_threads = atoi(argv[i]);
+                i++;
+            }
         }
         else
         {
@@ -221,6 +278,19 @@ parseArgs(
         }
     }
 
+    if ((args->srp_passwd && !args->spn) ||
+        (!args->srp_passwd && args->spn))
+    {
+        usage(argv0, "Both --srp-pwd and -a must be used");
+    }
+    if (args->rebind_count <= 0)
+    {
+        args->rebind_count = 1;
+    }
+    if (args->loop == 0)
+    {
+        args->loop = 1;
+    }
     if (i<argc)
     {
         *params = i;
@@ -254,6 +324,10 @@ void freeInargs(
 {
     size_t i = 0;
 
+    if (!args)
+    {
+        return;
+    }
     for (i=0; i < args->argc; i++)
     {
         free(args->argv[i]);
@@ -267,6 +341,10 @@ void freeOutargs(
     size_t i = 0;
     unsigned32 sts = 0;
 
+    if (!args)
+    {
+        return;
+    }
     for (i=0; i < args->argc; i++)
     {
         rpc_sm_client_free(args->argv[i], &sts);
@@ -330,7 +408,7 @@ rpc_create_srp_auth_identity(
      */
     desired_mechs.count = 1;
     desired_mechs.elements = mech_oid_array;
-    desired_mechs.elements[0] = spnego_mech_oid; 
+    desired_mechs.elements[0] = spnego_mech_oid;
     maj = gss_acquire_cred(
               &min,
               gss_name_buf,
@@ -386,6 +464,166 @@ error:
 }
 
 
+unsigned32
+create_rpc_identity(
+    PROG_ARGS *progArgs,
+    rpc_binding_handle_t rpc_binding_h)
+{
+    rpc_auth_identity_handle_t rpc_identity = NULL;
+    unsigned32 serr = 0;
+
+    if (progArgs->spn)
+    {
+        if (progArgs->do_srp)
+        {
+            serr = rpc_create_srp_auth_identity(
+                      progArgs->spn,
+                      NULL,
+                      progArgs->srp_passwd,
+                      &rpc_identity);
+            if (serr)
+            {
+                goto error;
+            }
+        }
+        rpc_binding_set_auth_info(rpc_binding_h,
+            (unsigned char *) progArgs->spn,
+            progArgs->protect_level,
+            rpc_c_authn_gss_negotiate,
+            rpc_identity,
+            rpc_c_authz_name, &serr);
+        if (serr)
+        {
+            goto error;
+        }
+    }
+error:
+    return serr;
+}
+
+
+void *ReverseItThread(void *in_ctx)
+{
+    int ok = 0;
+    threadarg *ctx = (threadarg *) in_ctx;
+    int i = ctx->progArgs->loop;
+    int count = 0;
+    args *outargs = NULL;
+    unsigned32 status;
+
+    printf("ReverseItThread: called %p binding=%p\n", ctx, ctx->echo_server);
+    while (i)
+    {
+        count++;
+        if ((count % 1000) == 0)
+        {
+            printf("ReverseItThread: %p Iteration=%d\n", ctx, count);
+        }
+        DO_RPC(ReverseIt(ctx->echo_server, ctx->inargs, &outargs, &status), ok);
+        if (!ok  || status != error_status_ok)
+        {
+            printf("ReverseIt Failed ok=%d status=%x\n", ok, status);
+            return (void *) 1;
+        }
+        freeOutargs(outargs);
+        i--;
+    }
+    return NULL;
+}
+
+
+int ReverseItInThreads(
+    rpc_binding_handle_t echo_server,
+    args *inargs,
+    args **outargs,
+    PROG_ARGS *progArgs,
+    unsigned32 *status)
+{
+    dcethread **callers = NULL;
+    threadarg *thread_arg_array = NULL;
+    int bh_count = 0;
+    int arg_cnt = 0;
+    unsigned32 serr = 0;
+    unsigned32 serr2 = 0;
+    void *thread_status = NULL;
+
+    callers = (dcethread **) calloc(progArgs->num_threads, sizeof(dcethread *));
+    if (!callers)
+    {
+        serr = rpc_s_no_memory;
+        goto error;
+    }
+    thread_arg_array = (threadarg *) calloc(progArgs->num_threads, sizeof(threadarg));
+    if (!thread_arg_array)
+    {
+        serr = rpc_s_no_memory;
+        goto error;
+    }
+    for (bh_count=0; bh_count<1; bh_count++)
+    {
+        for (arg_cnt = 0; arg_cnt < progArgs->num_threads; arg_cnt++)
+        {
+            if (!echo_server && get_client_rpc_binding(&echo_server,
+                                       echo_v1_0_c_ifspec,
+                                       progArgs->rpc_host,
+                                       progArgs->protocol,
+                                       progArgs->endpoint) == 0)
+            {
+                printf ("Couldnt obtain RPC server binding. exiting.\n");
+                return(1);
+            }
+            thread_arg_array[arg_cnt].echo_server = echo_server;
+            serr = create_rpc_identity(
+                       progArgs,
+                       echo_server);
+            if (serr)
+            {
+                goto error;
+            }
+
+            /* force creation of new handle for all threads */
+            echo_server = NULL;
+            thread_arg_array[arg_cnt].inargs = inargs;
+            thread_arg_array[arg_cnt].progArgs = progArgs;
+        }
+        for (arg_cnt=0; arg_cnt<progArgs->num_threads; arg_cnt++)
+        {
+            dcethread_create(&callers[arg_cnt], NULL, ReverseItThread, &thread_arg_array[arg_cnt]);
+        }
+        for (arg_cnt=0; arg_cnt<progArgs->num_threads; arg_cnt++)
+        {
+            dcethread_join(callers[arg_cnt], &thread_status);
+            printf("joining threads: %d %p\n", arg_cnt, &thread_arg_array[arg_cnt]);
+            if (thread_status)
+            {
+                printf("FATAL THREAD ERROR: ABORT!!!\n");
+                exit(1);
+            }
+            printf("dcethread_join: %p\n", callers[arg_cnt]);
+        }
+    }
+error:
+
+    if (callers)
+    {
+        free((void *) callers);
+    }
+    if (thread_arg_array)
+    {
+        for (arg_cnt=0; arg_cnt<progArgs->num_threads; arg_cnt++)
+        {
+            rpc_binding_free(&thread_arg_array[arg_cnt].echo_server, &serr2);
+        }
+        free(thread_arg_array);
+    }
+    if (serr)
+    {
+        *status = serr;
+    }
+    return 0;
+}
+
+
 int
 main(
     int argc,
@@ -404,16 +642,18 @@ main(
      * stuff needed to make RPC calls
      */
 
-    unsigned32 status;
-    rpc_binding_handle_t echo_server;
+    unsigned32 status = 0;
+    rpc_binding_handle_t echo_server = NULL;
     rpc_auth_identity_handle_t rpc_identity = NULL;
-    args * inargs;
-    args * outargs;
-    int ok;
-    unsigned32 i;
-    int params;
+    args * inargs = NULL;
+    args * outargs = NULL;
+    int ok = 0;
+    unsigned32 i = 0;
+    int params = 0;
     int maj = 0;
-    char * nl;
+    int loop = 0;
+    int rebind_count = 0;
+    char * nl = NULL;
 
 
     argv0 = argv[0];
@@ -423,6 +663,9 @@ main(
      */
     parseArgs(argc, argv, &progArgs, &params);
 
+/* Should refactor below, as this is becoming too complex */
+for (rebind_count=0; rebind_count < progArgs.rebind_count; rebind_count++)
+{
     /*
      * Get a binding handle to the server using the following params:
      *
@@ -515,36 +758,62 @@ main(
     /*
      * Do the RPC call
      */
-
-    printf ("calling server\n");
-    ok = ReverseIt(echo_server, inargs, &outargs, &status);
-
-    /*
-     * Print the results
-     */
-
-    if (ok && status == error_status_ok)
+    if (progArgs.do_threads)
     {
-        printf ("got response from server. results: \n");
-        for (i=0; i<outargs->argc; i++)
-            printf("\t[%u]: %s\n", i, outargs->argv[i]);
-        printf("\n===================================\n");
-
+        ok = ReverseItInThreads(echo_server, inargs, &outargs, &progArgs, &status);
+        echo_server = NULL; /* passed into ReverseItInThread */
+        goto cleanup;
+    }
+    else
+    {
+        printf ("calling server\n");
+        for (loop=0; loop<progArgs.loop; loop++)
+        {
+            DO_RPC(ReverseIt(echo_server, inargs, &outargs, &status), ok);
+            /*
+             * Print the results
+             */
+        
+            if (ok && status == error_status_ok)
+            {
+                printf ("got response from server. results: \n");
+                for (i=0; i<outargs->argc; i++)
+                    printf("\t[%u]: %s\n", i, outargs->argv[i]);
+                printf("\n===================================\n");
+        
+            }
+            else
+            {
+                printf("ReverseIt Failed ok=%d status=%x\n", ok, status);
+                goto cleanup;
+            }
+        }
     }
 
     if (status != error_status_ok)
         chk_dce_err(status, "ReverseIt()", "main()", 1);
 
+    freeInargs(inargs), inargs = NULL;
+    freeOutargs(outargs);
+    if (echo_server)
+    {
+        rpc_binding_free(&echo_server, &status);
+    }
+}
+cleanup:
     /*
      * Done. Now gracefully teardown the RPC binding to the server
      */
 
-    rpc_binding_free(&echo_server, &status);
+    if (echo_server)
+    {
+        rpc_binding_free(&echo_server, &status);
+    }
+
     freeArgs(&progArgs);
     freeInargs(inargs);
     freeOutargs(outargs);
     return(0);
-
 }
 
 /*==========================================================================
