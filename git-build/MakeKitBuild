@@ -1,7 +1,13 @@
 PROJECT_NAME="likewise-open"
 MODULES="core compiler autotools moonunit pkg-config likewise dceidl fortune"
-LW_ALL_BUNDLED="krb5 openssl cyrus-sasl openldap libiconv \
-                sqlite libuuid curl libxml2"
+if [ "$LW_DEVICE_PROFILE" = "embedded" ]
+then
+    LW_ALL_BUNDLED="krb5 openssl cyrus-sasl openldap libiconv \
+                    sqlite libuuid curl libxml2"
+else
+    LW_ALL_BUNDLED="krb5 openssl cyrus-sasl openldap libiconv \
+                    sqlite libuuid curl libxml2"
+fi
 SUBDIRS="$LW_ALL_BUNDLED \
          lwbase lwmsg lwreg lwadvapi lwpkcs11 netlogon \
          lwio libschannel dcerpc centutils lwsm eventlog lsass lwdns \
@@ -20,17 +26,33 @@ defaults()
 
 option()
 {
-    case "${MK_HOST_OS}-${LW_FEATURE_LEVEL}" in
-        *-auth)
-            default_bundled="libuuid krb5 openssl cyrus-sasl openldap sqlite"
-            ;;
-        linux-*)
-            default_bundled="libuuid krb5 openssl cyrus-sasl openldap sqlite curl"
-            ;;
-        *)
-            default_bundled="libiconv libuuid krb5 openssl cyrus-sasl openldap sqlite curl libxml2"
-            ;;
-    esac
+    if [ "$LW_DEVICE_PROFILE" = "embedded" ]
+    then
+        # XXX For ESX bundle in openssl also
+        case "${MK_HOST_OS}-${LW_FEATURE_LEVEL}" in
+            *-auth)
+                default_bundled="libuuid krb5 openssl cyrus-sasl openldap sqlite"
+                ;;
+            linux-*)
+                default_bundled="libuuid krb5 openssl cyrus-sasl openldap sqlite curl"
+                ;;
+            *)
+                default_bundled="libiconv libuuid krb5 openssl cyrus-sasl openldap sqlite curl libxml2"
+                ;;
+        esac
+    else
+        case "${MK_HOST_OS}-${LW_FEATURE_LEVEL}" in
+            *-auth)
+                default_bundled="libuuid krb5 cyrus-sasl openldap sqlite"
+                ;;
+            linux-*)
+                default_bundled="libuuid krb5 cyrus-sasl openldap sqlite curl"
+                ;;
+            *)
+                default_bundled="libiconv libuuid krb5 cyrus-sasl openldap sqlite curl libxml2"
+                ;;
+        esac
+    fi
 
     mk_option \
         OPTION=samba-interop \
@@ -86,7 +108,7 @@ option()
 
 configure()
 {
-    mk_export LW_VERSION="6.1.0"
+    mk_export LW_VERSION="6.2.0"
     mk_export LW_BUNDLED
 
     mk_msg "configuring Likewise Open $LW_VERSION"
@@ -117,15 +139,15 @@ configure()
 
     case "$LW_DEVICE_PROFILE" in
         embedded)
-#            mk_skip_subdir eventlog
-#            mk_skip_subdir domainjoin
-#            mk_skip_subdir centutils
+#           XXX For ESX run all of likewise in a single UW to save on inodes
+#           mk_skip_subdir eventlog
+#           mk_skip_subdir domainjoin
+#           mk_skip_subdir centutils
+#
             mk_skip_subdir lwconfig
             mk_skip_subdir lwupgrade
             ;;
     esac
-
-    MK_CPPFLAGS="-D_GNU_SOURCE $MK_CPPFLAGS"
 }
 
 make()
