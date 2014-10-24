@@ -237,7 +237,7 @@ rpc_cn_assoc_p_t        assoc;
     /*
      * Loop until a cancel is sent to this thread.
      */
-    while (!done && !assoc->cn_ctlblk.exit_rcvr)
+    while (!done && assoc && !assoc->cn_ctlblk.exit_rcvr)
     {
         RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
                         ("CN: assoc->%p call_rep->none Entering receive loop...\n",
