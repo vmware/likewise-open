@@ -63,6 +63,8 @@
 #endif
 #endif
 
+#define RPC_ERROR_MAP_PREJ_BASE rpc_s_mod
+#define RPC_PREJ_BASE 128
 
 
 /******************************************************************************/
@@ -3134,7 +3136,12 @@ unsigned32      st;
         return (RPC_C_CN_PREJ_PROTOCOL_VERSION_NOT_SUPPORTED);
 
         default:
+#if 1
+        /* Map DCE/RPC error into "PREJ" error space */
+        return (st - RPC_ERROR_MAP_PREJ_BASE) + RPC_PREJ_BASE;
+#else
         return (RPC_C_CN_PREJ_REASON_NOT_SPECIFIED);
+#endif
     }
 }
 
@@ -3206,7 +3213,19 @@ unsigned32      prej;
         return (rpc_s_too_many_rem_connects);
 
         default:
+#if 1
+    /* Map "PREJ" error space back to DCE/RPC error space */
+    if (prej >= RPC_PREJ_BASE && prej <= (sizeof(unsigned16)-1))
+    {
+        return (prej - RPC_PREJ_BASE) + RPC_ERROR_MAP_PREJ_BASE;
+    }
+    else
+    {
+        return (rpc_s_too_many_rem_connects);
+    }
+#else
         return (rpc_s_unknown_reject);
+#endif
     }
 }
 
