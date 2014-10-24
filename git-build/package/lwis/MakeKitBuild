@@ -102,20 +102,37 @@ lw_use_bundled()
 
 common_files()
 {
-    mk_package_files \
-        "${MK_BINDIR}/*" \
-        "${MK_SBINDIR}/*" \
-        "${MK_PREFIX}/data/VERSION" \
-        "${LW_CONFIGDIR}/*" \
-        "${MK_LIBDIR}/*${MK_LIB_EXT}" \
-        "${MK_LIBDIR}/*${MK_LIB_EXT}.*" \
-        "${MK_LIBDIR}/gss/*${MK_DLO_EXT}" \
-        "${MK_LIBDIR}/krb5/plugins/preauth/pkinit${MK_DLO_EXT}" \
-        "${MK_LIBDIR}/lwsm-loader/*${MK_DLO_EXT}" \
-        "/etc/init.d/*" \
-        "${MK_SYSCONFDIR}/*" \
-        "/${MK_LIBDIR##*/}/security/pam_lsass${MK_DLO_EXT}" \
-        "/${MK_LIBDIR##*/}/libnss_lsass${MK_DLO_EXT}.*"
+    if [ "$LW_DEVICE_PROFILE" = "discus" ]
+    then
+        mk_package_files \
+            "${MK_BINDIR}/*" \
+            "${MK_SBINDIR}/*" \
+            "${MK_PREFIX}/data/VERSION" \
+            "${LW_CONFIGDIR}/*" \
+            "${MK_LIBDIR}/*${MK_LIB_EXT}" \
+            "${MK_LIBDIR}/*${MK_LIB_EXT}.*" \
+            "${MK_LIBDIR}/gss/*${MK_DLO_EXT}" \
+            "${MK_LIBDIR}/lwsm-loader/*${MK_DLO_EXT}" \
+            "/etc/init.d/*" \
+            "${MK_SYSCONFDIR}/*" \
+            "/${MK_LIBDIR##*/}/security/pam_lsass${MK_DLO_EXT}" \
+            "/${MK_LIBDIR##*/}/libnss_lsass${MK_DLO_EXT}.*"
+    else
+        mk_package_files \
+            "${MK_BINDIR}/*" \
+            "${MK_SBINDIR}/*" \
+            "${MK_PREFIX}/data/VERSION" \
+            "${LW_CONFIGDIR}/*" \
+            "${MK_LIBDIR}/*${MK_LIB_EXT}" \
+            "${MK_LIBDIR}/*${MK_LIB_EXT}.*" \
+            "${MK_LIBDIR}/gss/*${MK_DLO_EXT}" \
+            "${MK_LIBDIR}/krb5/plugins/preauth/pkinit${MK_DLO_EXT}" \
+            "${MK_LIBDIR}/lwsm-loader/*${MK_DLO_EXT}" \
+            "/etc/init.d/*" \
+            "${MK_SYSCONFDIR}/*" \
+            "/${MK_LIBDIR##*/}/security/pam_lsass${MK_DLO_EXT}" \
+            "/${MK_LIBDIR##*/}/libnss_lsass${MK_DLO_EXT}.*"
+    fi
 
     if [ "$LW_USE_SERVICE_CONTAINERS" = "yes" ]
     then

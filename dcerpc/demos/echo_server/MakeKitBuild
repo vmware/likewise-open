@@ -2,7 +2,12 @@ make()
 {
 # ======= client ========
     ECHO_CLIENT_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
-    ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h"
+    if [ "$LW_DEVICE_PROFILE" = "discus" ]
+    then
+        ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h gssapi_krb5.h"
+    else
+        ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h"
+    fi
 
     ECHO_CLIENT_SOURCES="\
         echo_client.c echo_client_cstub.c misc.c getopt.c"
@@ -24,25 +29,50 @@ make()
         CSTUB="echo_client_cstub.c" \
         SSTUB="echo_client_sstub.c"
 
-    mk_program \
-        PROGRAM="echo_client" \
-        SOURCES="$ECHO_CLIENT_SOURCES" \
-        INSTALLDIR="${MK_BINDIR}" \
-        CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
-        CFLAGS="-Wall -Werror" \
-        INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
-        HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
-        DEPS="echo.h echo_client_cstub.c" \
-        LIBDEPS="dcerpc $LIB_PTHREAD"
+    if [ "$LW_DEVICE_PROFILE" = "discus" ]
+    then
+        mk_program \
+            PROGRAM="echo_client" \
+            SOURCES="$ECHO_CLIENT_SOURCES" \
+            INSTALLDIR="${MK_BINDIR}" \
+            CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
+            CFLAGS="-Wall -Werror" \
+            INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
+            HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
+            DEPS="echo.h echo_client_cstub.c" \
+            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
 
-    mk_program \
-        PROGRAM="echo_server" \
-        SOURCES="$ECHO_SERVER_SOURCES" \
-        INSTALLDIR="${MK_BINDIR}" \
-        CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
-        CFLAGS="-Wall -Werror" \
-        INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
-        HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
-        DEPS="echo.h echo_client_sstub.c" \
-        LIBDEPS="dcerpc $LIB_PTHREAD"
+        mk_program \
+            PROGRAM="echo_server" \
+            SOURCES="$ECHO_SERVER_SOURCES" \
+            INSTALLDIR="${MK_BINDIR}" \
+            CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
+            CFLAGS="-Wall -Werror" \
+            INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
+            HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
+            DEPS="echo.h echo_client_sstub.c" \
+            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+    else
+        mk_program \
+            PROGRAM="echo_client" \
+            SOURCES="$ECHO_CLIENT_SOURCES" \
+            INSTALLDIR="${MK_BINDIR}" \
+            CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
+            CFLAGS="-Wall -Werror" \
+            INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
+            HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
+            DEPS="echo.h echo_client_cstub.c" \
+            LIBDEPS="dcerpc $LIB_PTHREAD"
+
+        mk_program \
+            PROGRAM="echo_server" \
+            SOURCES="$ECHO_SERVER_SOURCES" \
+            INSTALLDIR="${MK_BINDIR}" \
+            CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
+            CFLAGS="-Wall -Werror" \
+            INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
+            HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
+            DEPS="echo.h echo_client_sstub.c" \
+            LIBDEPS="dcerpc $LIB_PTHREAD"
+    fi
 }

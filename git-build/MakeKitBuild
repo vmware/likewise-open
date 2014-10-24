@@ -90,11 +90,11 @@ option()
     done
 
     case "$LW_DEVICE_PROFILE" in
-        default)
-            _default_USE_SERVICE_CONTAINERS="no"
-            ;;
         embedded)
             _default_USE_SERVICE_CONTAINERS="yes"
+            ;;
+        *)
+            _default_USE_SERVICE_CONTAINERS="no"
             ;;
     esac
 
