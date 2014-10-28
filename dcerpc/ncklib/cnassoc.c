@@ -3215,7 +3215,7 @@ unsigned32      prej;
         default:
 #if 1
     /* Map "PREJ" error space back to DCE/RPC error space */
-    if (prej >= RPC_PREJ_BASE && prej <= (sizeof(unsigned16)-1))
+    if (prej >= RPC_PREJ_BASE && prej <= USHRT_MAX)
     {
         return (prej - RPC_PREJ_BASE) + RPC_ERROR_MAP_PREJ_BASE;
     }
