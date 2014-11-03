@@ -3136,7 +3136,7 @@ unsigned32      st;
         return (RPC_C_CN_PREJ_PROTOCOL_VERSION_NOT_SUPPORTED);
 
         default:
-#if 1
+#if 0
         /* Map DCE/RPC error into "PREJ" error space */
         return (st - RPC_ERROR_MAP_PREJ_BASE) + RPC_PREJ_BASE;
 #else
