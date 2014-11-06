@@ -538,14 +538,12 @@ INTERNAL void rpc__gssauth_free_info
 		gssauth_info->gss_server_name = GSS_C_NO_NAME;
 	}
 
-#ifndef _WIN32 /* TBD: Fix-This is problematic: GSSAPI uses HeapFree(); cross heap corruption. */
 	if (gssauth_info->gss_creds)
 	{
 		OM_uint32 minor_status;
 		gss_release_cred(&minor_status, &gssauth_info->gss_creds);
 		gssauth_info->gss_creds = NULL;
 	}
-#endif
 
 	memset(gssauth_info, 0x69, sizeof(*gssauth_info));
 	RPC_MEM_FREE(gssauth_info, RPC_C_MEM_GSSAUTH_INFO);

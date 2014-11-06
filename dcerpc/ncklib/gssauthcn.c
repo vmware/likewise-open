@@ -2523,7 +2523,7 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
 			    free(sec->sec_info->server_princ_name);
 			}
 			sec->sec_info->server_princ_name =
-				calloc(disp_name_buf.length, sizeof(char) + 1);
+				calloc(disp_name_buf.length + 1, sizeof(char));
 			if (!sec->sec_info->server_princ_name) {
 				gss_release_name(&gss_rc_tmp, &src_name);
 				*st = rpc_s_no_memory;
@@ -2537,6 +2537,7 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
 
 			}
 			gss_release_name(&gss_rc_tmp, &src_name);
+			gss_release_buffer(&gss_rc_tmp, &disp_name_buf);
 		}
 
 		*st = rpc_s_ok;
