@@ -39,12 +39,40 @@ if [ "$PLATFORM" = "ESXI" ]; then
    PROG_ARGS="--syslog"
    PROG_ERR=/var/lib/likewise/lwsmd/lwsmd.err
    STARTHOOK="fix_locale"
+   POSTSTARTHOOK="start_lsass"
 fi
 
 fix_locale()
 {
     export LC_ALL="en_US.utf8"
     export LC_CTYPE="en_US.utf8"
+}
+
+start_lsass()
+{
+    sleep 1
+    echo -n " [starting lsass service] "
+    /usr/lib/vmware/likewise/bin/lwsm start lsass
+    sleep 1
+    /usr/lib/vmware/likewise/bin/lw-lsa get-status 2>&1 > /dev/null
+    if [ $? -ne 0 ]; then
+        failure=1
+        if [ `/usr/lib/vmware/likewise/bin/lwsm list | grep lsass | awk '{print $2}'` != "running" ]; then
+            echo -n " [retrying start of lsass service] "
+            /usr/lib/vmware/likewise/bin/lwsm start lsass
+        fi
+        i=1
+        while [ $failure -ne 0 -a $i -le 8 ]; do
+            sleep $i
+            i=$(($i*2))
+            /usr/lib/vmware/likewise/bin/lw-lsa get-status 2>&1 > /dev/null
+            failure=$?
+        done
+        if [ $failure -ne 0 ]; then
+            echo -n " [lsass service startup failure] "
+            return 1
+        fi
+    fi
 }
 
 . EXECDIR/init-base.sh

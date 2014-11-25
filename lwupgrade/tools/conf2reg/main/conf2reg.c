@@ -286,6 +286,14 @@ GetErrorMessage(
                     "Error: %s [error code: %d]", pszErrorBuffer,
                     dwErrCode);
         BAIL_ON_UP_ERROR(dwError);
+    } else if (!dwError) {
+        /*
+         * Avoid returning success (0) since pszErrorMsg is NULL and caller
+         * will try to dereference it on success, causing a seg fault.
+         */
+        dwError = 1;
+        BAIL_ON_UP_ERROR(dwError);
+
     }
 
     *ppszErrorMsg = pszErrorMsg;
