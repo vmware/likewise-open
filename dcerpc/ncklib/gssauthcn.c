@@ -2674,6 +2674,7 @@ INTERNAL void rpc__gssauth_cn_vfy_srvr_resp
 				       msg, sizeof(msg), st);
 		RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_GENERAL,
 			("(rpc__gssauth_cn_vfy_srvr_resp): %s\n", msg));
+		gss_release_buffer(&gss_rc, &output_token);
 		return;
 	}
 

@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 {
     unsigned32 status;
     rpc_binding_vector_p_t server_binding;
-    char * string_binding;
+    unsigned char *string_binding;
     unsigned32 i;
     char * protocol = PROTOCOL_TCP;
     char * endpoint = "31415";
@@ -230,10 +230,13 @@ int main(int argc, char *argv[])
     for (i=0; i<RPC_FIELD_COUNT(server_binding); i++)
     {
         rpc_binding_to_string_binding(RPC_FIELD_BINDING_H(server_binding)[i],
-                                      (unsigned char **)&string_binding,
+                                      &string_binding,
                                       &status);
         if (string_binding)
-            printf("\t%s\n", string_binding);
+        {
+            printf("\t%s\n", (char *) string_binding);
+            rpc_string_free(&string_binding, &status);
+        }
     }
 
 #ifndef _WIN32
@@ -342,6 +345,7 @@ ReverseIt(
     {
         printf("rpc_binding_inq_auth_caller: sts=%d authPrinc=%s prot=%d\n",
                rpc_status, (char*) authPrinc, dwProtectLevel);
+        rpc_string_free(&authPrinc, status);
 
     }
 #if 0

@@ -2946,6 +2946,7 @@ unsigned32              st;
 #endif
 {
     unsigned32          local_st;
+    unsigned32          orig_st = st;
 
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_assoc_post_error);
 
@@ -2990,7 +2991,7 @@ unsigned32              st;
      * Mark the association with the status code passed in as an
      * argument.
      */
-    assoc->assoc_status = st;
+    assoc->assoc_status = orig_st;
 }
 
 

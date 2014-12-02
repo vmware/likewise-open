@@ -43,6 +43,7 @@
 #ifdef _WIN32
 #define strdup _strdup
 #define snprintf _snprintf
+#define sleep(s) Sleep((s) * 1000)
 #define EOF_STRING "^Z"
 #else
 #define EOF_STRING "^D"
@@ -58,7 +59,7 @@
     }                        \
     DCETHREAD_CATCH_ALL(exc) \
     {                        \
-      sts = dcethread_exc_getstatus(exc); \
+      (sts) = dcethread_exc_getstatus(exc); \
     }                        \
     DCETHREAD_ENDTRY         \
   } while (0)
@@ -89,20 +90,22 @@ static void usage(char *argv0, const char *msg)
     }
 
     printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-l] [-n] [-u] [-t][--loop N][-g N][-d][--srp-pwd pwd][--threads num]\n", argv0);
-    printf("         -h:  specify host of RPC server (default is localhost)\n");
-    printf("         -a:  specify authentication identity\n");
-    printf("         -p:  specify protection level\n");
-    printf("         -e:  specify endpoint for protocol\n");
-    printf("         -l:  use ncalpc protocol\n");
-    printf("         -n:  use named pipe protocol\n");
-    printf("         -u:  use UDP protocol\n");
-    printf("         -t:  use TCP protocol (default)\n");
-    printf("         -g:  instead of prompting, generate a data string of the specified length\n");
-    printf("         -d:  turn on debugging\n");
-    printf("     --loop:  loop Reverseit N times\n");
-    printf("   --rebind:  Create new RPC binding handle N times\n");
-    printf("  --srp-pwd:  SRP password for authentication identity\n");
-    printf("  --threads:  Call ReverseIt in 'num'; default 10/1000\n");
+    printf("            -h: specify host of RPC server (default is localhost)\n");
+    printf("            -a: specify authentication identity\n");
+    printf("            -p: specify protection level\n");
+    printf("            -e: specify endpoint for protocol\n");
+    printf("            -l: use ncalpc protocol\n");
+    printf("            -n: use named pipe protocol\n");
+    printf("            -u: use UDP protocol\n");
+    printf("            -t: use TCP protocol (default)\n");
+    printf("            -g: instead of prompting, generate a data string of the specified length\n");
+    printf("            -d: turn on debugging\n");
+    printf("        --loop: loop Reverseit N times\n");
+    printf("      --rebind: Create new RPC binding handle N times\n");
+    printf("--rebind-sleep: Delay N Seconds before acting on --rebind option\n");
+    printf("     --srp-pwd: SRP password for authentication identity\n");
+    printf(" --srp-pwd-bad: SRP bad password to test bad/good authentication\n");
+    printf("     --threads: Call ReverseIt in 'num'; default --threads 10, --loop 1000\n");
     printf("\n");
     exit(1);
 }
@@ -119,7 +122,9 @@ typedef struct _PROG_ARGS
     int do_srp;
     int loop;
     int rebind_count;
+    int rebind_sleep;
     char *srp_passwd;
+    char *srp_passwd_bad;
     int do_threads;
     int num_threads;
 } PROG_ARGS;
@@ -152,6 +157,10 @@ parseArgs(
             {
                 usage(argv0, "-h hostname/IP address missing");
             }
+            if (args->rpc_host)
+            {
+                usage(argv0, "-h option previously specified");
+            }
             args->rpc_host = strdup(argv[i]);
             i++;
         }
@@ -161,6 +170,10 @@ parseArgs(
             if (i >= argc)
             {
                 usage(argv0, "-a Service Principal Name missing");
+            }
+            if (args->spn)
+            {
+                usage(argv0, "-a option previously specified");
             }
             args->spn = strdup(argv[i]);
 
@@ -193,6 +206,10 @@ parseArgs(
             if (i >= argc)
             {
                 usage(argv0, "-e Endpoint missing");
+            }
+            if (args->endpoint)
+            {
+                usage(argv0, "-e option previously specified");
             }
             args->endpoint = strdup(argv[i]);
             i++;
@@ -249,6 +266,16 @@ parseArgs(
             args->rebind_count = atoi(argv[i]);
             i++;
 	}
+        else if (strcmp("--rebind-sleep", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--rebind count missing");
+            }
+            args->rebind_sleep = atoi(argv[i]);
+            i++;
+	}
         else if (strcmp("--srp-pwd", argv[i]) == 0)
         {
             i++;
@@ -256,7 +283,26 @@ parseArgs(
             {
                 usage(argv0, "--srp-pwd value missing");
             }
+            if (args->srp_passwd)
+            {
+                usage(argv0, "--srp-pwd option previously specified");
+            }
             args->srp_passwd = strdup(argv[i]);
+            args->do_srp = 1;
+            i++;
+        }
+        else if (strcmp("--srp-pwd-bad", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--srp-pwd-bad value missing");
+            }
+            if (args->srp_passwd_bad)
+            {
+                usage(argv0, "--srp-pwd-bad option previously specified");
+            }
+            args->srp_passwd_bad = strdup(argv[i]);
             args->do_srp = 1;
             i++;
         }
@@ -278,14 +324,13 @@ parseArgs(
         }
     }
 
-    if ((args->srp_passwd && !args->spn) ||
-        (!args->srp_passwd && args->spn))
-    {
-        usage(argv0, "Both --srp-pwd and -a must be used");
-    }
     if (args->rebind_count <= 0)
     {
         args->rebind_count = 1;
+    }
+    if (args->rebind_count == 1 && args->srp_passwd_bad)
+    {
+        usage(argv0, "--srp-pwd-bad has no effect without specifying --rebind > 1");
     }
     if (args->loop == 0)
     {
@@ -315,6 +360,10 @@ void freeArgs(
     if (args->srp_passwd)
     {
         free(args->srp_passwd);
+    }
+    if (args->srp_passwd_bad)
+    {
+        free(args->srp_passwd_bad);
     }
 }
 
@@ -471,7 +520,16 @@ create_rpc_identity(
 {
     rpc_auth_identity_handle_t rpc_identity = NULL;
     unsigned32 serr = 0;
+    char *passwd = NULL;
 
+    if (progArgs->srp_passwd_bad)
+    {
+        passwd = progArgs->srp_passwd_bad;
+    }
+    else
+    {
+        passwd = progArgs->srp_passwd;
+    }
     if (progArgs->spn)
     {
         if (progArgs->do_srp)
@@ -479,7 +537,7 @@ create_rpc_identity(
             serr = rpc_create_srp_auth_identity(
                       progArgs->spn,
                       NULL,
-                      progArgs->srp_passwd,
+                      passwd,
                       &rpc_identity);
             if (serr)
             {
@@ -496,6 +554,11 @@ create_rpc_identity(
         {
             goto error;
         }
+    }
+    if (progArgs->srp_passwd_bad)
+    {
+        free(progArgs->srp_passwd_bad);
+        progArgs->srp_passwd_bad = NULL;
     }
 error:
     return serr;
@@ -644,13 +707,11 @@ main(
 
     unsigned32 status = 0;
     rpc_binding_handle_t echo_server = NULL;
-    rpc_auth_identity_handle_t rpc_identity = NULL;
     args * inargs = NULL;
     args * outargs = NULL;
     int ok = 0;
     unsigned32 i = 0;
     int params = 0;
-    int maj = 0;
     int loop = 0;
     int rebind_count = 0;
     char * nl = NULL;
@@ -684,32 +745,11 @@ for (rebind_count=0; rebind_count < progArgs.rebind_count; rebind_count++)
         return(1);
     }
 
-    if (progArgs.spn)
+    status = create_rpc_identity(&progArgs, echo_server);
+    if (status)
     {
-        if (progArgs.do_srp)
-        {
-            maj = rpc_create_srp_auth_identity(
-                      progArgs.spn,
-                      NULL,
-                      progArgs.srp_passwd,
-                      &rpc_identity);
-            if (maj)
-            {
-                printf("main(rpc_create_srp_auth_identity) failed: %d\n", maj);
-                return 1;
-            }
-        }
-        rpc_binding_set_auth_info(echo_server,
-            (unsigned char *) progArgs.spn,
-            progArgs.protect_level,
-            rpc_c_authn_gss_negotiate,
-            rpc_identity,
-            rpc_c_authz_name, &status);
-        if (status)
-        {
-            printf ("Couldn't set auth info %u. exiting.\n", status);
-            return(1);
-        }
+        printf ("Couldn't set auth info %u. exiting.\n", status);
+        return(1);
     }
 
     /*
@@ -773,28 +813,30 @@ for (rebind_count=0; rebind_count < progArgs.rebind_count; rebind_count++)
             /*
              * Print the results
              */
-        
+
             if (ok && status == error_status_ok)
             {
                 printf ("got response from server. results: \n");
                 for (i=0; i<outargs->argc; i++)
                     printf("\t[%u]: %s\n", i, outargs->argv[i]);
                 printf("\n===================================\n");
-        
             }
             else
             {
                 printf("ReverseIt Failed ok=%d status=%x\n", ok, status);
-                goto cleanup;
+                if (progArgs.rebind_sleep > 0)
+                {
+                    sleep(progArgs.rebind_sleep);
+                }
             }
         }
     }
 
-    if (status != error_status_ok)
+    if (status != error_status_ok && progArgs.rebind_count == 0)
         chk_dce_err(status, "ReverseIt()", "main()", 1);
 
     freeInargs(inargs), inargs = NULL;
-    freeOutargs(outargs);
+    freeOutargs(outargs), outargs = NULL;
     if (echo_server)
     {
         rpc_binding_free(&echo_server, &status);

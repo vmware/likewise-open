@@ -1002,6 +1002,10 @@ rpc_cn_assoc_p_t        assoc;
                                                  RPC_C_ASSOC_ABORT_REQ,
                                                  fragbuf_p,
                                                  st);
+                if (st != rpc_s_ok)
+                {
+                    break;
+                }
             }
             else if ((ptype == RPC_C_CN_PKT_REQUEST)
                 &&
@@ -1245,6 +1249,10 @@ rpc_cn_assoc_p_t        assoc;
                                              packet_info_table[ptype].event,
                                              fragbuf_p,
                                              st);
+            if (st != rpc_s_ok)
+            {
+                break;
+            }
         }
 
         /*
@@ -1272,7 +1280,7 @@ rpc_cn_assoc_p_t        assoc;
     /*
      * If we still have a fragbufs, then deallocate them.
      */
-    if (fragbuf_p)
+    if (fragbuf_p && st == rpc_s_ok)
     {
         (*fragbuf_p->fragbuf_dealloc)(fragbuf_p);
     }

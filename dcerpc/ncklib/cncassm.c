@@ -3119,7 +3119,7 @@ pointer_t       sm;
     unsigned32                      header_size;
     rpc_cn_pres_result_list_t       *pres_result_list;
     rpc_cn_syntax_t                 *pres_context;
-    rpc_cn_sec_context_t            *sec_context;
+    rpc_cn_sec_context_t            *sec_context = NULL;
     rpc_cn_auth_tlr_t               *auth_tlr;
     unsigned32                      i, local_auth_value_len;
     rpc_cn_port_any_t               *sec_addr;
@@ -3470,7 +3470,16 @@ DONE:
     assoc->assoc_flags &= ~RPC_C_CN_ASSOC_AUTH_EXPECTED;
     RPC_CN_ASSOC_WAKEUP (assoc);
     sm_p->cur_state = RPC_C_CLIENT_ASSOC_ACTIVE;
-    return (assoc->assoc_status);
+
+    if (sec_context && sec_context->sec_status)
+    {
+        status = sec_context->sec_status;
+    }
+    else
+    {
+        status = assoc->assoc_status;
+    }
+    return (status);
 }
 
 
