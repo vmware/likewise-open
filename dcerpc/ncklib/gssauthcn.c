@@ -721,11 +721,6 @@ PRIVATE const char *rpc__gssauth_error_map
 		    *st = rpc_s_auth_tkt_expired;
 		    break;
 		}
-		if (minor_status)
-		{
-		    *st = minor_status;
-		    break;
-		}
 		*st = rpc_s_auth_method;
 		break;
 	}
