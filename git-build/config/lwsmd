@@ -40,6 +40,7 @@ if [ "$PLATFORM" = "ESXI" ]; then
    PROG_ERR=/var/lib/likewise/lwsmd/lwsmd.err
    STARTHOOK="fix_locale"
    POSTSTARTHOOK="start_lsass"
+   POSTSTOPHOOK="refresh_hostd"
 fi
 
 fix_locale()
@@ -71,8 +72,18 @@ start_lsass()
         if [ $failure -ne 0 ]; then
             echo -n " [lsass service startup failure] "
             return 1
+        else
+            /bin/vim-cmd hostsvc/refresh_services
         fi
+    else
+        /bin/vim-cmd hostsvc/refresh_services
     fi
+}
+
+refresh_hostd()
+{
+    sleep 1
+    /bin/vim-cmd hostsvc/refresh_services
 }
 
 . EXECDIR/init-base.sh

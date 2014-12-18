@@ -506,6 +506,10 @@ daemon_stop() {
             ;;
     esac
 
+    if [ -n "${POSTSTOPHOOK}" ]; then
+	${POSTSTOPHOOK}
+    fi
+
     [ $status = 0 ] && /bin/rm -f ${LOCKFILE}
     return $status
 }
