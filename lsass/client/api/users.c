@@ -558,7 +558,7 @@ LsaGetNamesBySidList(
         &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (ppObjects[0] == NULL)
+    if (sCount == 0 || (sCount == 1 && ppObjects[0] == NULL))
     {
         dwError = LW_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
@@ -569,6 +569,12 @@ LsaGetNamesBySidList(
 
     for (dwIndex = 0; dwIndex < sCount; dwIndex++)
     {
+        if (ppObjects[dwIndex] == NULL)
+        {
+            pSidInfo[dwIndex].accountType = AccountType_NotFound;
+            continue;
+        }
+
         pSidInfo[dwIndex].accountType = ppObjects[dwIndex]->type;
 
         if (pSidInfo[dwIndex].accountType != AccountType_NotFound)
