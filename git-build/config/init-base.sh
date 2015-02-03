@@ -393,7 +393,7 @@ daemon_start() {
                 fi
                 echo -n " [memory reservation set] "
                 # start likewise in resource pool
-                /sbin/watchdog.sh ++mincritical,memreliable -d -s ${LWSMD_TAG} ${PROG_BIN} ${PROG_SCHED_PARAM} ${PROG_ARGS}
+                /sbin/watchdog.sh ++memreliable -d -s ${LWSMD_TAG} ${PROG_BIN} ${PROG_SCHED_PARAM} ${PROG_ARGS}
             else
                 ${PROG_BIN} ${PROG_ARGS}
             fi
