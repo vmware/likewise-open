@@ -85,12 +85,17 @@ typedef struct _DNS_RECORD
     PBYTE   pData;
 } DNS_RECORD, *PDNS_RECORD;
 
+typedef struct _DNS_ADDRESS_ARRAY {
+    DWORD dwCount;
+    PSTR* ppszArray;
+} DNS_ADDRESS_ARRAY, *PDNS_ADDRESS_ARRAY;
+
 typedef struct _DNS_SRV_INFO_RECORD {
     WORD    wPriority;
     WORD    wWeight;
     WORD    wPort;
     PSTR    pszTarget;
-    PSTR    pszAddress;
+    PDNS_ADDRESS_ARRAY pAddressArray;
 } DNS_SRV_INFO_RECORD, *PDNS_SRV_INFO_RECORD;
 
 #if defined(WORDS_BIGENDIAN)
@@ -262,10 +267,10 @@ LWNetDnsBuildSRVRecord(
     );
 
 DWORD
-LWNetDnsGetAddressForServer(
+LWNetDnsGetAddressArrayForServer(
     IN PDLINKEDLIST pAdditionalsList,
     IN PCSTR pszHostname,
-    OUT PSTR* ppszAddress
+    OUT PDNS_ADDRESS_ARRAY* ppAddressArray
     );
 
 VOID

@@ -929,9 +929,10 @@ LWNetDnsBuildSRVRecord(
                                 &pSRVInfoRecord->pszTarget);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetDnsGetAddressForServer(pAdditionalsList,
-                                          pSRVInfoRecord->pszTarget,
-                                          &pSRVInfoRecord->pszAddress);
+    dwError = LWNetDnsGetAddressArrayForServer(
+                      pAdditionalsList,
+                      pSRVInfoRecord->pszTarget,
+                      &pSRVInfoRecord->pAddressArray);
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
@@ -949,69 +950,225 @@ error:
     return dwError;
 }
 
+static
 DWORD
-LWNetDnsGetAddressForServer(
+LWNetDnsCreateAddressArray(
+    OUT PDNS_ADDRESS_ARRAY* ppAddressArray)
+{
+    DWORD dwError = 0;
+    PDNS_ADDRESS_ARRAY pAddressArray = NULL;
+
+    if (!ppAddressArray)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    dwError = LWNetAllocateMemory(sizeof(DNS_ADDRESS_ARRAY),
+                                  (PVOID*)&pAddressArray);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    pAddressArray->dwCount = 0;
+    pAddressArray->ppszArray = NULL;
+
+    *ppAddressArray = pAddressArray;
+
+error:
+
+    return dwError;
+}
+
+static
+VOID
+LWNetDnsFreeAddressArray(
+    IN PDNS_ADDRESS_ARRAY pAddressArray)
+{
+    DWORD dwIndex = 0;
+
+    if (pAddressArray)
+    {
+        if (pAddressArray->ppszArray)
+        {
+            for (dwIndex = 0; dwIndex < pAddressArray->dwCount; dwIndex++)
+            {
+                LWNET_SAFE_FREE_STRING(pAddressArray->ppszArray[dwIndex]);
+            }
+            LWNET_SAFE_FREE_MEMORY(pAddressArray->ppszArray);
+        }
+        LWNET_SAFE_FREE_MEMORY(pAddressArray);
+    }
+}
+
+static
+DWORD
+LWNetDnsAppendAddressArray(
+    IN PDNS_ADDRESS_ARRAY pAddressArray,
+    IN PCSTR pszAddress)
+{
+    DWORD dwError = 0;
+
+    if (!pAddressArray)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    dwError = LWNetReallocMemory(pAddressArray->ppszArray,
+                                 (PVOID*)&pAddressArray->ppszArray,
+                                 (pAddressArray->dwCount + 1) * sizeof(PCHAR));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(pszAddress,
+                                  &pAddressArray->ppszArray[pAddressArray->dwCount]);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    pAddressArray->dwCount++;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LWNetDnsGetAddressArrayForServer(
     IN PDLINKEDLIST pAdditionalsList,
     IN PCSTR pszHostname,
-    OUT PSTR* ppszAddress
+    OUT PDNS_ADDRESS_ARRAY* ppAddressArray
     )
 {
     DWORD dwError = 0;
-    PSTR  pszAddress = NULL;
+    PDNS_ADDRESS_ARRAY pAddressArray = NULL;
+    DWORD  dwAddressCount = 0;
     PDLINKEDLIST pListMember = NULL;
-    
+    struct addrinfo hint = { 0 };
+    struct addrinfo *pAddrInfo = NULL;
+    const struct addrinfo *pCurrentAddrInfo = NULL;
+
+    dwError = LWNetDnsCreateAddressArray(&pAddressArray);
+    BAIL_ON_LWNET_ERROR(dwError);
+
     pListMember = pAdditionalsList;
     while (pListMember)
     {
         PDNS_RECORD pRecord = (PDNS_RECORD)pListMember->pItem;
-        
-        if ( (pRecord->wType == ns_t_a ) &&
-             !strcasecmp( pRecord->pszName, pszHostname ) )
+
+        if (!strcasecmp(pRecord->pszName, pszHostname))
         {
-            dwError = LwAllocateStringPrintf(&pszAddress, "%d.%d.%d.%d",
-                                                pRecord->pData[0],
-                                                pRecord->pData[1],
-                                                pRecord->pData[2],
-                                                pRecord->pData[3]);
-            BAIL_ON_LWNET_ERROR(dwError);
-            break;
+            CHAR szAddr[INET6_ADDRSTRLEN] = {0};
+            PCSTR pszAddr = NULL;
+
+            if (pRecord->wType == ns_t_a &&
+                pRecord->wDataLen == sizeof(struct in_addr))
+            {
+                struct in_addr addr;
+
+                memcpy(&addr, pRecord->pData, pRecord->wDataLen);
+
+                pszAddr = inet_ntop(AF_INET,
+                                    &addr,
+                                    szAddr,
+                                    sizeof(szAddr));
+            }
+            else if (pRecord->wType == ns_t_aaaa &&
+                     pRecord->wDataLen == sizeof(struct in6_addr))
+            {
+                struct in6_addr addr;
+
+                memcpy(&addr, pRecord->pData, pRecord->wDataLen);
+
+                pszAddr = inet_ntop(AF_INET6,
+                                    &addr,
+                                    szAddr,
+                                    sizeof(szAddr));
+            }
+
+            if (pszAddr)
+            {
+                dwError = LWNetDnsAppendAddressArray(pAddressArray,
+                                                     pszAddr);
+                BAIL_ON_LWNET_ERROR(dwError);
+
+                dwAddressCount++;
+            }
         }
 
         pListMember = pListMember->pNext;
     }
 
-    if (IsNullOrEmptyString(pszAddress))
+    if (dwAddressCount == 0)
     {
-        struct hostent * host;
-
         LWNET_LOG_VERBOSE("Getting address for '%s'", pszHostname);
 
-        host = gethostbyname(pszHostname);
-        if (host  && host->h_name)
+        hint.ai_flags = AI_CANONNAME;
+        if (getaddrinfo(pszHostname, NULL, &hint, &pAddrInfo) == 0)
         {
-            // ISSUE-2008/07/01-dalmeida -- Need to check that address type is IPv4
-            dwError = LWNetAllocateString(inet_ntoa(*(struct in_addr*)(host->h_addr_list[0])),
-                                          &pszAddress);
-            BAIL_ON_LWNET_ERROR(dwError);
+            pCurrentAddrInfo = pAddrInfo;
+            while (pCurrentAddrInfo != NULL)
+            {
+                if (!IsNullOrEmptyString(pCurrentAddrInfo->ai_canonname))
+                {
+                    CHAR szAddr[INET6_ADDRSTRLEN] = {0};
+
+                    if (pCurrentAddrInfo->ai_addr->sa_family == AF_INET)
+                    {
+                        struct sockaddr_in *sin = (struct sockaddr_in *)pCurrentAddrInfo->ai_addr;
+
+                        if (inet_ntop(AF_INET, &sin->sin_addr, szAddr, sizeof(szAddr)) != NULL)
+                        {
+                            dwError = LWNetDnsAppendAddressArray(pAddressArray,
+                                                                 szAddr);
+                            BAIL_ON_LWNET_ERROR(dwError);
+
+                            dwAddressCount++;
+                        }
+                        break;
+                    }
+                    else if (pCurrentAddrInfo->ai_addr->sa_family == AF_INET6)
+                    {
+                        struct sockaddr_in6 *sin = (struct sockaddr_in6 *)pCurrentAddrInfo->ai_addr;
+
+                        if (inet_ntop(AF_INET6, &sin->sin6_addr, szAddr, sizeof(szAddr)) != NULL)
+                        {
+                            dwError = LWNetDnsAppendAddressArray(pAddressArray,
+                                                                 szAddr);
+                            BAIL_ON_LWNET_ERROR(dwError);
+
+                            dwAddressCount++;
+                        }
+                        break;
+                    }
+                }
+                pCurrentAddrInfo = pCurrentAddrInfo->ai_next;
+            }
         }
     }
 
-    if (IsNullOrEmptyString(pszAddress))
+    if (dwAddressCount == 0)
     {
         LWNET_LOG_ERROR("Unable to get IP address for '%s'", pszHostname);
         dwError = ERROR_NOT_FOUND;
         BAIL_ON_LWNET_ERROR(dwError);
     }
-    
-error:
-    if (dwError)
+
+    *ppAddressArray = pAddressArray;
+
+cleanup:
+
+    if (pAddrInfo)
     {
-        LWNET_SAFE_FREE_STRING(pszAddress);
+        freeaddrinfo(pAddrInfo);
+        pAddrInfo = NULL;
     }
 
-    *ppszAddress = pszAddress;
-
     return dwError;
+
+error:
+
+    LWNetDnsFreeAddressArray(pAddressArray);
+
+    goto cleanup;
 }
 
 DWORD
@@ -1030,15 +1187,27 @@ LWNetDnsBuildServerArray(
     DWORD dwStringSize = 0;
     DWORD dwRequiredSize = 0;
     PSTR pStringLocation = NULL;
+    DWORD i = 0;
+    PDNS_ADDRESS_ARRAY pAddrs = NULL;
+    PSTR pszName = NULL;
 
     for (pListMember = pSrvRecordList; pListMember; pListMember = pListMember->pNext)
     {
         pSrvRecord = (PDNS_SRV_INFO_RECORD)pListMember->pItem;
+        if (pSrvRecord)
+        {
+            dwStringSize += strlen(pSrvRecord->pszTarget) + 1;
 
-        dwStringSize += strlen(pSrvRecord->pszAddress) + 1;
-        dwStringSize += strlen(pSrvRecord->pszTarget) + 1;
-
-        dwServerCount++;
+            pAddrs = pSrvRecord->pAddressArray;
+            if (pAddrs)
+            {
+                for (i=0; i<pAddrs->dwCount; i++)
+                {
+                    dwStringSize += strlen(pAddrs->ppszArray[i]) + 1;
+                    dwServerCount++;
+                }
+            }
+        }
     }
 
     if (dwServerCount < 1)
@@ -1057,30 +1226,41 @@ LWNetDnsBuildServerArray(
     dwServerIndex = 0;
     for (pListMember = pSrvRecordList; pListMember; pListMember = pListMember->pNext)
     {
-        PSTR source;
+        PSTR source = NULL;
 
         pSrvRecord = (PDNS_SRV_INFO_RECORD)pListMember->pItem;
-        
-        // Copy the strings into the buffer
-        pServerArray[dwServerIndex].pszAddress = pStringLocation;
-        for (source = pSrvRecord->pszAddress; source[0]; source++)
+        if (pSrvRecord)
         {
+            // Copy the strings into the buffer
+
+            pszName = pStringLocation;
+            for (source = pSrvRecord->pszTarget; source[0]; source++)
+            {
+                pStringLocation[0] = source[0];
+                pStringLocation++;
+            }
             pStringLocation[0] = source[0];
             pStringLocation++;
-        }
-        pStringLocation[0] = source[0];
-        pStringLocation++;
 
-        pServerArray[dwServerIndex].pszName = pStringLocation;
-        for (source = pSrvRecord->pszTarget; source[0]; source++)
-        {
-            pStringLocation[0] = source[0];
-            pStringLocation++;
-        }
-        pStringLocation[0] = source[0];
-        pStringLocation++;
+            pAddrs = pSrvRecord->pAddressArray;
+            if (pAddrs)
+            {
+                for (i=0; i<pAddrs->dwCount; i++)
+                {
+                    pServerArray[dwServerIndex].pszName = pszName;
+                    pServerArray[dwServerIndex].pszAddress = pStringLocation;
+                    for (source = pAddrs->ppszArray[i]; source[0]; source++)
+                    {
+                        pStringLocation[0] = source[0];
+                        pStringLocation++;
+                    }
+                    pStringLocation[0] = source[0];
+                    pStringLocation++;
 
-        dwServerIndex++;
+                    dwServerIndex++;
+                }
+            }
+        }
     }
 
     // TODO: Turns this into ASSERT
@@ -1120,7 +1300,7 @@ LWNetDnsFreeSRVInfoRecord(
     IN OUT PDNS_SRV_INFO_RECORD pRecord
     )
 {
-    LWNET_SAFE_FREE_STRING(pRecord->pszAddress);
+    LWNetDnsFreeAddressArray(pRecord->pAddressArray);
     LWNET_SAFE_FREE_STRING(pRecord->pszTarget);
     LWNetFreeMemory(pRecord);
 }
@@ -1397,7 +1577,7 @@ error:
         dwServerCount = 0;
     }
 
-    *ppServerArray= pServerArray;
+    *ppServerArray = pServerArray;
     *pdwServerCount = dwServerCount;
 
     return dwError;

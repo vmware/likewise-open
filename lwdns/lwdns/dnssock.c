@@ -100,89 +100,34 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-DNSTCPOpen(
-    PCSTR   pszNameServer,
-    PHANDLE phDNSServer
+DNSTCPConnect(
+    int sock,
+    struct sockaddr *addr,
+    size_t addrlen
     )
 {
     DWORD dwError = 0;
-    unsigned long ulAddress = 0;
-    struct hostent * pHost = NULL;
-    PDNS_CONNECTION_CONTEXT pDNSContext = NULL;
     int err = 0;
     int connErr = 0;
     socklen_t connErrLen = 0;
     fd_set wmask;
     struct timeval timeOut;
 
-    dwError = DNSAllocateMemory(
-                    sizeof(DNS_CONNECTION_CONTEXT),
-                    (PVOID *)&pDNSContext);
-    BAIL_ON_LWDNS_ERROR(dwError);
-    
-    pDNSContext->s = -1;
-
-    pDNSContext->hType = DNS_TCP;
-
-    ulAddress = inet_addr (pszNameServer);
-    
-    if (INADDR_NONE == ulAddress)
-    {
-         pHost = gethostbyname (pszNameServer);
-         if (!pHost)
-         {
-            dwError = h_errno;
-            BAIL_ON_HERRNO_ERROR(dwError);
-         }
-         memcpy((char *)&ulAddress, pHost->h_addr, pHost->h_length);
-    }
-
-    // create the socket
-    //
-    pDNSContext->s = socket (PF_INET, SOCK_STREAM, 0);
-    if (INVALID_SOCKET == pDNSContext->s) {
-        dwError = errno;
-        BAIL_ON_LWDNS_ERROR(dwError);
-    }
-
-    pDNSContext->RecvAddr.sin_family = AF_INET;
-    pDNSContext->RecvAddr.sin_addr.s_addr = ulAddress;
-    pDNSContext->RecvAddr.sin_port = htons (DNS_TCP_PORT);
-
-    /* Enable nonblock on this socket for the duration of the connect */
-    err = fcntl(pDNSContext->s, F_GETFL, 0);
-    if (err == -1)
-    {
-        dwError = errno;
-        BAIL_ON_LWDNS_ERROR(dwError);
-    }
-
-    /* enable nonblock on this socket. Either err is status or current flags */
-    err = fcntl(pDNSContext->s, F_SETFL, err | O_NONBLOCK);
-    if (err == -1)
-    {
-        dwError = errno;
-        BAIL_ON_LWDNS_ERROR(dwError);
-    }
-
-    // connect to remote endpoint
-    //
-    err = connect(pDNSContext->s,
-                  (PSOCKADDR) &pDNSContext->RecvAddr,
-                  sizeof(pDNSContext->RecvAddr));
+    err = connect(sock, addr, addrlen);
     if (err == -1 && errno == EINPROGRESS)
     {
         dwError = 0;
         for (;;)
         {
             FD_ZERO(&wmask);
-            FD_SET(pDNSContext->s, &wmask);
+            FD_SET(sock, &wmask);
 
             memset(&timeOut, 0, sizeof(timeOut));
             timeOut.tv_sec = LW_UPDATE_DNS_TIMEOUT;
             timeOut.tv_usec = 0;
-            err = select(pDNSContext->s + 1, 0, &wmask, 0, &timeOut);
+            err = select(sock + 1, 0, &wmask, 0, &timeOut);
             if (err == -1)
             {
                 if (errno != EINTR)
@@ -201,7 +146,7 @@ DNSTCPOpen(
             {
                 connErrLen = (socklen_t) sizeof(connErr);
                 err = getsockopt(
-                          pDNSContext->s,
+                          sock,
                           SOL_SOCKET,
                           SO_ERROR,
                           &connErr,
@@ -216,6 +161,7 @@ DNSTCPOpen(
                     dwError = connErr;
                     BAIL_ON_LWDNS_ERROR(dwError);
                 }
+
                 /* socket connected successfully */
                 break;
             }
@@ -226,6 +172,93 @@ DNSTCPOpen(
         dwError = errno;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+DWORD
+DNSTCPOpen(
+    PCSTR   pszNameServer,
+    PHANDLE phDNSServer
+    )
+{
+    DWORD dwError = 0;
+    PDNS_CONNECTION_CONTEXT pDNSContext = NULL;
+    int err = 0;
+    struct addrinfo hints = {0};
+    struct addrinfo *pAddrInfo = NULL;
+    struct addrinfo *pAI = NULL;
+    int sock = INVALID_SOCKET;
+
+    dwError = DNSAllocateMemory(
+                    sizeof(DNS_CONNECTION_CONTEXT),
+                    (PVOID *)&pDNSContext);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pDNSContext->s = INVALID_SOCKET;
+    pDNSContext->hType = DNS_TCP;
+
+    hints.ai_family = AF_UNSPEC;
+    err = getaddrinfo(pszNameServer,
+                      TOSTRING(DNS_TCP_PORT),
+                      &hints,
+                      &pAddrInfo);
+    if (err != 0)
+    {
+         dwError = errno;
+         BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+    for (pAI = pAddrInfo; pAI; pAI = pAI->ai_next)
+    {
+        if (INVALID_SOCKET != sock)
+        {
+            close(sock);
+            sock = INVALID_SOCKET;
+        }
+
+        /* create the socket */
+        sock = socket(pAI->ai_family, pAI->ai_socktype, 0);
+        if (INVALID_SOCKET == sock) {
+            dwError = errno;
+            continue;
+        }
+
+        /* enable nonblock on this socket for the duration of the connect */
+        err = fcntl(sock, F_GETFL, 0);
+        if (err == -1)
+        {
+            dwError = errno;
+            continue;
+        }
+
+        /* enable nonblock on this socket. Either err is status or current flags */
+        err = fcntl(sock, F_SETFL, err | O_NONBLOCK);
+        if (err == -1)
+        {
+            dwError = errno;
+            continue;
+        }
+
+        /* connect to remote endpoint */
+        dwError = DNSTCPConnect(sock,
+                                pAI->ai_addr,
+                                pAI->ai_addrlen);
+        if (dwError == 0)
+        {
+            break;
+        }
+    }
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pDNSContext->s = sock;
 
     /* Disable nonblock on this socket. Either err is status or current flags */
     err = fcntl(pDNSContext->s, F_GETFL, 0);
@@ -245,6 +278,11 @@ DNSTCPOpen(
     *phDNSServer = (HANDLE)pDNSContext;
 
 cleanup:
+
+    if (pAddrInfo)
+    {
+        freeaddrinfo(pAddrInfo);
+    }
 
     return dwError;
 
@@ -267,45 +305,60 @@ DNSUDPOpen(
     )
 {
     DWORD dwError = 0;
-    unsigned long ulAddress;
-    struct hostent *pHost = NULL;
     PDNS_CONNECTION_CONTEXT pDNSContext = NULL;
+    struct addrinfo hints = {0};
+    struct addrinfo *pAddrInfo = NULL;
+    struct addrinfo *pAI = NULL;
+    int sock = INVALID_SOCKET;
+    int err = 0;
 
     dwError = DNSAllocateMemory(
                     sizeof(DNS_CONNECTION_CONTEXT),
                     (PVOID *)&pDNSContext);
     BAIL_ON_LWDNS_ERROR(dwError);
-    
-    pDNSContext->hType = DNS_UDP;
 
-    ulAddress = inet_addr (pszNameServer);
-    
-    if (INADDR_NONE == ulAddress)
+    pDNSContext->hType = DNS_UDP;
+    pDNSContext->s = INVALID_SOCKET;
+
+    hints.ai_family = AF_UNSPEC;
+    err = getaddrinfo(pszNameServer,
+                      TOSTRING(DNS_UDP_PORT),
+                      &hints,
+                      &pAddrInfo);
+    if (err != 0)
     {
-        pHost = gethostbyname (pszNameServer);
-        if (NULL == pHost)
-        {
-            dwError = h_errno;
-            BAIL_ON_HERRNO_ERROR(dwError);
-        }
-        memcpy((char*)&ulAddress, pHost->h_addr, pHost->h_length);
+         dwError = errno;
+         BAIL_ON_LWDNS_ERROR(dwError);
     }
 
-    // Create a socket for sending data
-    pDNSContext->s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    for (pAI = pAddrInfo; pAI; pAI = pAI->ai_next)
+    {
+        // Create a socket for sending data
+        sock = socket(pAI->ai_family, pAI->ai_socktype, pAI->ai_protocol);
+        if (INVALID_SOCKET == sock) {
+            dwError = errno;
+            continue;
+        }
 
-    //-------------------------------------------
-    // Set up the RecvAddr structure with the IP address of
-    // the receiver (in this example case "123.456.789.1")
-    // and the specified port number.
-    //
-    pDNSContext->RecvAddr.sin_family = AF_INET;
-    pDNSContext->RecvAddr.sin_port = htons(DNS_UDP_PORT);
-    pDNSContext->RecvAddr.sin_addr.s_addr = ulAddress;
+        //-------------------------------------------
+        // Set up the RecvAddr structure with the IP address of
+        // the receiver and the specified port number.
+        //
+        pDNSContext->RecvAddr.ss_family = pAI->ai_family;
+        memcpy(&pDNSContext->RecvAddr, pAI->ai_addr, pAI->ai_addrlen);
+        dwError = 0;
+        break;
+    }
+    BAIL_ON_LWDNS_ERROR(dwError);
 
     *phDNSServer = (HANDLE)pDNSContext;
-    
+
 cleanup:
+
+    if (pAddrInfo)
+    {
+        freeaddrinfo(pAddrInfo);
+    }
 
     return dwError;
 
@@ -747,7 +800,6 @@ DNSTCPSendBufferContext(
     HANDLE hDNSServer,
     HANDLE hSendBuffer,
     PDWORD pdwBytesSent
-
     )
 {
     DWORD dwError = 0;

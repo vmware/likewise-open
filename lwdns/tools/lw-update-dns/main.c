@@ -36,7 +36,7 @@ typedef struct _ARGS {
     BOOLEAN bUseMachineCredentials;
     PSTR pszHostname;
     PSTR pszHostDnsSuffix;
-    PSOCKADDR_IN pAddressArray;
+    PSOCKADDR_STORAGE pAddressArray;
     DWORD dwAddressCount;
     LWDNSLogLevel LogLevel;
     PFN_LWDNS_LOG_MESSAGE pfnLogger;
@@ -69,7 +69,7 @@ GetDnsSuffixByHostname(
 static
 DWORD
 GetAllInterfaceAddresses(
-    OUT PSOCKADDR_IN* ppAddressArray,
+    OUT PSOCKADDR_STORAGE* ppAddressArray,
     OUT PDWORD pdwAddressCount
     );
 
@@ -201,8 +201,36 @@ main(
         printf("Using FQDN %s with the following addresses:\n", pszHostFQDN);
         for (iAddr = 0; iAddr < args.dwAddressCount; iAddr++)
         {
-            PSOCKADDR_IN pSockAddr = &args.pAddressArray[iAddr];
-            printf("  %s\n", inet_ntoa(pSockAddr->sin_addr));
+            PSOCKADDR_STORAGE pSockAddr = &args.pAddressArray[iAddr];
+            CHAR szAddress[INET6_ADDRSTRLEN] = {0};
+            PCSTR pszAddress = NULL;
+
+            if (pSockAddr->ss_family == AF_INET)
+            {
+                struct sockaddr_in *pInAddr = (struct sockaddr_in *)pSockAddr;
+
+                pszAddress = inet_ntop(pSockAddr->ss_family,
+                                       &pInAddr->sin_addr,
+                                       szAddress,
+                                       sizeof(szAddress));
+            }
+            else if (pSockAddr->ss_family == AF_INET6)
+            {
+                struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pSockAddr;
+
+                pszAddress = inet_ntop(pSockAddr->ss_family,
+                                       &pIn6Addr->sin6_addr,
+                                       szAddress,
+                                       sizeof(szAddress));
+            }
+
+            if (pszAddress == NULL)
+            {
+                dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
+                BAIL_ON_LWDNS_ERROR(dwError);
+            }
+
+            printf("  %s\n", pszAddress);
         }
     }
 
@@ -282,15 +310,43 @@ main(
 
     for (iAddr = 0; iAddr < args.dwAddressCount; iAddr++)
     {
-        PSOCKADDR_IN pSockAddr = &args.pAddressArray[iAddr];
+        PSOCKADDR_STORAGE pSockAddr = &args.pAddressArray[iAddr];
 
         dwError = DNSUpdatePtrSecure(
                         pSockAddr,
                         pszHostFQDN);
         if (dwError)
         {
+            CHAR szAddress[INET6_ADDRSTRLEN] = {0};
+            PCSTR pszAddress = NULL;
+
+            if (pSockAddr->ss_family == AF_INET)
+            {
+                struct sockaddr_in *pInAddr = (struct sockaddr_in *)pSockAddr;
+
+                pszAddress = inet_ntop(pSockAddr->ss_family,
+                                       &pInAddr->sin_addr,
+                                       szAddress,
+                                       sizeof(szAddress));
+            }
+            else if (pSockAddr->ss_family == AF_INET6)
+            {
+                struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pSockAddr;
+
+                pszAddress = inet_ntop(pSockAddr->ss_family,
+                                       &pIn6Addr->sin6_addr,
+                                       szAddress,
+                                       sizeof(szAddress));
+            }
+
+            if (pszAddress == NULL)
+            {
+                dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
+                BAIL_ON_LWDNS_ERROR(dwError);
+            }
+
             printf("Unable to register reverse PTR record address %s with hostname %s\n",
-                    inet_ntoa(pSockAddr->sin_addr), pszHostFQDN);
+                    pszAddress, pszHostFQDN);
             dwError = 0;
         }
         else
@@ -354,7 +410,7 @@ ParseArgs(
     PSTR pszHostDnsSuffix = NULL;
     BOOLEAN bShowArguments = FALSE;
     BOOLEAN bUseMachineCredentials = TRUE;
-    PSOCKADDR_IN pAddressArray = NULL;
+    PSOCKADDR_STORAGE pAddressArray = NULL;
     DWORD dwAddressCount = 0;
     LWDNSLogLevel LogLevel = LWDNS_LOG_LEVEL_ERROR;
     PFN_LWDNS_LOG_MESSAGE pfnLogger = NULL;
@@ -416,7 +472,11 @@ ParseArgs(
         }
         else if (!strcasecmp(pszArg, "--ipaddress"))
         {
-            PSOCKADDR_IN pSockAddr = NULL;
+            PSOCKADDR_STORAGE pSockAddr = NULL;
+            struct addrinfo hints = {0};
+            struct addrinfo *pAddrInfo = {0};
+            int ret = 0;
+            int family = 0;
 
             if (!HAVE_MORE_ARGS(argc, iArg, 1))
             {
@@ -435,12 +495,27 @@ ParseArgs(
             BAIL_ON_LWDNS_ERROR(dwError);
 
             pSockAddr = &pAddressArray[dwAddressCount];
-            pSockAddr->sin_family = AF_INET;
-            if (!inet_aton(pszArg, &pSockAddr->sin_addr))
+
+            hints.ai_family = AF_UNSPEC;
+            hints.ai_flags = AI_NUMERICHOST;
+
+            ret = getaddrinfo(pszArg, NULL, &hints, &pAddrInfo);
+            if (ret)
             {
                 fprintf(stderr, "Invalid IP address: %s\n", pszArg);
                 exit(1);
             }
+
+            family = pAddrInfo->ai_family;
+            freeaddrinfo(pAddrInfo);
+
+            if (family != AF_INET && family != AF_INET6)
+            {
+                fprintf(stderr, "Invalid IP address: %s\n", pszArg);
+                exit(1);
+            }
+
+            memcpy(pSockAddr, pAddrInfo->ai_addr, pAddrInfo->ai_addrlen);
 
             dwAddressCount++;
         }
@@ -670,12 +745,12 @@ error:
 static
 DWORD
 GetAllInterfaceAddresses(
-    OUT PSOCKADDR_IN* ppAddressArray,
+    OUT PSOCKADDR_STORAGE* ppAddressArray,
     OUT PDWORD pdwAddressCount
     )
 {
     DWORD dwError = 0;
-    PSOCKADDR_IN pAddressArray = NULL;
+    PSOCKADDR_STORAGE pAddressArray = NULL;
     DWORD dwAddressCount = 0;
     PLW_INTERFACE_INFO pInterfaceArray = NULL;
     DWORD dwInterfaceCount = 0;
@@ -693,7 +768,7 @@ GetAllInterfaceAddresses(
     }
 
     dwError = DNSAllocateMemory(
-                    sizeof(SOCKADDR_IN) * dwInterfaceCount,
+                    sizeof(SOCKADDR_STORAGE) * dwInterfaceCount,
                     (PVOID*)&pAddressArray);
     BAIL_ON_LWDNS_ERROR(dwError);
 
@@ -701,11 +776,9 @@ GetAllInterfaceAddresses(
 
     for (iAddr = 0; iAddr < dwAddressCount; iAddr++)
     {
-        PSOCKADDR_IN pSockAddr = &pAddressArray[iAddr];
+        PSOCKADDR_STORAGE pSockAddr = &pAddressArray[iAddr];
         PLW_INTERFACE_INFO pInterfaceInfo = &pInterfaceArray[iAddr];
-
-        pSockAddr->sin_family = pInterfaceInfo->ipAddr.sa_family;
-        pSockAddr->sin_addr = ((PSOCKADDR_IN)&pInterfaceInfo->ipAddr)->sin_addr;
+        memcpy(pSockAddr, &pInterfaceInfo->ipAddr, sizeof(pInterfaceInfo->ipAddr));
     }
 
 cleanup:

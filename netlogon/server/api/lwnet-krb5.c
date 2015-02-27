@@ -206,10 +206,21 @@ LWNetKrb5WriteAffinityFile(
         for (dwServerIndex = 0; dwServerIndex < dwServerCount; dwServerIndex++)
         {
             PCSTR pszServerAddress = pServerAddressArray[dwServerIndex];
+            PSTR pszFormatString = NULL;
+            struct sockaddr_in6 addr = {0};
+
+            if (inet_pton(AF_INET6, pszServerAddress, &(addr.sin6_addr)) == 1)
+            {
+                pszFormatString = "        kdc = [%s]\n";
+            }
+            else
+            {
+                pszFormatString = "        kdc = %s\n";
+            }
 
             if (pszServerAddress)
             {
-                dwError = LWNetKrb5PrintfFile(newFile, "        kdc = %s\n", pszServerAddress);
+                dwError = LWNetKrb5PrintfFile(newFile, pszFormatString, pszServerAddress);
                 BAIL_ON_LWNET_ERROR(dwError);
             }
         }

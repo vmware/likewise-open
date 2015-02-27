@@ -69,11 +69,23 @@ LwCLdapOpenDirectory(
     PLW_LDAP_DIRECTORY_CONTEXT pDirectory = NULL;
     int rc = LDAP_VERSION3;
     PSTR pszURL = NULL;
+    PSTR pszFormatString = NULL;
+    struct sockaddr_in6 addr = {0};
 
     LW_BAIL_ON_INVALID_STRING(pszServerName);
 
-    dwError = LwAllocateStringPrintf(&pszURL, "cldap://%s",
-                                        pszServerName);
+    if (inet_pton(AF_INET6, pszServerName, &(addr.sin6_addr)) == 1)
+    {
+        pszFormatString = "cldap://[%s]";
+    }
+    else
+    {
+        pszFormatString = "cldap://%s";
+    }
+
+    dwError = LwAllocateStringPrintf(&pszURL,
+                                     pszFormatString,
+                                     pszServerName);
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = ldap_initialize(&ld, pszURL);
@@ -116,50 +128,67 @@ LwLdapPingTcp(
     DWORD dwError = 0;
     int sysRet = 0;
     int fd = -1;
-    struct in_addr addr;
-    struct sockaddr_in socketAddress;
-    struct timeval timeout;
+    struct timeval timeout = {0};
     fd_set fds;
-    int socketError;
+    int socketError = 0;
 #ifdef GETSOCKNAME_TAKES_SOCKLEN_T
     socklen_t socketErrorLength = 0;
 #else
     int socketErrorLength = 0;
 #endif
+    struct addrinfo hints = {0};
+    struct addrinfo *pAddrInfo = NULL;
+    struct addrinfo *pAI = NULL;
 
-    addr.s_addr = inet_addr(pszHostAddress);
-    if (addr.s_addr == INADDR_NONE)
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = AI_NUMERICHOST;
+    sysRet = getaddrinfo(pszHostAddress, "389", &hints, &pAddrInfo);
+    if (sysRet != 0)
     {
-        LW_RTL_LOG_ERROR("Could not convert address'%s' to in_addr", pszHostAddress);
+        LW_RTL_LOG_ERROR("Could not convert address '%s' to binary",
+                         pszHostAddress);
         dwError = LW_ERROR_DNS_RESOLUTION_FAILED;
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    socketAddress.sin_family = AF_INET;
-    socketAddress.sin_port = htons(389);
-    socketAddress.sin_addr = addr;
-
-    fd = socket(PF_INET, SOCK_STREAM, 0);
-    if (fd < 0)
+    for (pAI = pAddrInfo; pAI; pAI = pAI->ai_next)
     {
-        dwError = LwMapErrnoToLwError(errno);
-        BAIL_ON_LW_ERROR(dwError);
-    }
+        if (fd != -1)
+        {
+            close(fd);
+            fd = -1;
+        }
 
-    sysRet = fcntl(fd, F_SETFL, O_NONBLOCK);
-    if (sysRet < 0)
-    {
-        dwError = LwMapErrnoToLwError(errno);
-        BAIL_ON_LW_ERROR(dwError);
-    }
+        fd = socket(pAI->ai_family, pAI->ai_socktype, pAI->ai_protocol);
+        if (fd < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            continue;
+        }
 
-    sysRet = connect(fd, (struct sockaddr *)&socketAddress, sizeof(socketAddress));
-    {
+        sysRet = fcntl(fd, F_SETFL, O_NONBLOCK);
+        if (sysRet < 0)
+        {
+            dwError = LwMapErrnoToLwError(errno);
+            continue;
+        }
+
+        sysRet = connect(fd, pAI->ai_addr, pAI->ai_addrlen);
+        if (sysRet == 0)
+        {
+            dwError = 0;
+            break;
+        }
+
         dwError = LwMapErrnoToLwError(errno);
         // We typically expect EINPROGRESS
         dwError = (LW_ERROR_ERRNO_EINPROGRESS == dwError) ? 0 : dwError;
-        BAIL_ON_LW_ERROR(dwError);
+        if (dwError == 0)
+        {
+            break;
+        }
     }
+    BAIL_ON_LW_ERROR(dwError);
 
     FD_ZERO(&fds);
     FD_SET(fd, &fds);
@@ -227,6 +256,11 @@ error:
     if (fd != -1)
     {
         close(fd);
+    }
+
+    if (pAddrInfo)
+    {
+        freeaddrinfo(pAddrInfo);
     }
 
     return dwError;

@@ -332,6 +332,8 @@ LWNetSrvGetDCList(
     DWORD dwServerCount = 0;
     PLWNET_DC_ADDRESS pDcList = NULL;
     DWORD i = 0;
+    DWORD dwDcCount = 0;
+    PSTR pszServerName = NULL;
 
     dwError = LWNetDnsSrvQuery(
                     pszDnsDomainName,
@@ -348,15 +350,24 @@ LWNetSrvGetDCList(
 
     for (i = 0; i < dwServerCount; i++)
     {
-        if (pServerArray[i].pszName)
+        if (!pszServerName || strcmp(pServerArray[i].pszName, pszServerName) != 0)
         {
-            dwError = LWNetAllocateString(pServerArray[i].pszName, &pDcList[i].pszDomainControllerName);
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
-        if (pServerArray[i].pszAddress)
-        {
-            dwError = LWNetAllocateString(pServerArray[i].pszAddress, &pDcList[i].pszDomainControllerAddress);
-            BAIL_ON_LWNET_ERROR(dwError);
+            pszServerName = pServerArray[i].pszName;
+
+            if (pServerArray[i].pszName)
+            {
+                dwError = LWNetAllocateString(pServerArray[i].pszName,
+                                              &pDcList[i].pszDomainControllerName);
+                BAIL_ON_LWNET_ERROR(dwError);
+            }
+            if (pServerArray[i].pszAddress)
+            {
+                dwError = LWNetAllocateString(pServerArray[i].pszAddress,
+                                              &pDcList[i].pszDomainControllerAddress);
+                BAIL_ON_LWNET_ERROR(dwError);
+            }
+
+            dwDcCount++;
         }
     }
 
@@ -374,7 +385,7 @@ error:
     LWNET_SAFE_FREE_MEMORY(pServerArray);
 
     *ppDcList = pDcList;
-    *pdwDcCount = dwServerCount;
+    *pdwDcCount = dwDcCount;
 
     return dwError;
 }

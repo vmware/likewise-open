@@ -758,6 +758,16 @@ cleanup:
         }
         RegCloseServer(hReg);
     }
+
+    if (ppSubKeys)
+    {
+        for (i = 0; i < dwSubKeyCount; i++)
+        {
+            LWNET_SAFE_FREE_MEMORY(ppSubKeys[i]);
+        }
+        LWNET_SAFE_FREE_MEMORY(ppSubKeys);
+    }
+
     return dwError;
 
 error:

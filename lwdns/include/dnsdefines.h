@@ -257,6 +257,8 @@ extern PFN_LWDNS_LOG_MESSAGE gpfnLWDNSLogger;
 
 #define QTYPE_PTR              12 // PTR
 
+#define QTYPE_AAAA             28 // IPv6 address
+
 #define QTYPE_ANY              255
 
 #define    QTYPE_TKEY              249

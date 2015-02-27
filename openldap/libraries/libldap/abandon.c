@@ -224,7 +224,7 @@ start_again:;
 			i = ++(ld)->ld_msgid;
 #ifdef LDAP_CONNECTIONLESS
 			if ( LDAP_IS_UDP(ld) ) {
-				struct sockaddr sa = {0};
+				struct sockaddr_storage sa = {0};
 				/* dummy, filled with ldo_peer in request.c */
 				err = ber_write( ber, &sa, sizeof(sa), 0 );
 			}

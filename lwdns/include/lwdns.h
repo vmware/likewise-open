@@ -53,7 +53,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-typedef struct sockaddr_in SOCKADDR_IN, *PSOCKADDR_IN;
+typedef struct sockaddr_storage SOCKADDR_STORAGE, *PSOCKADDR_STORAGE;
 #endif
 
 #define LWDNS_ERROR_SUCCESS             0
@@ -125,9 +125,9 @@ typedef struct __LW_NS_INFO
 
 typedef struct __LW_INTERFACE_INFO
 {
-    PSTR            pszName;
-    struct sockaddr ipAddr;
-    DWORD           dwFlags;
+    PSTR                    pszName;
+    struct sockaddr_storage ipAddr;
+    DWORD                   dwFlags;
 } LW_INTERFACE_INFO, *PLW_INTERFACE_INFO;
 
 DWORD
@@ -243,7 +243,7 @@ DNSOpen(
 
 DWORD
 DNSUpdatePtrSecure(
-    PSOCKADDR_IN pAddr,
+    PSOCKADDR_STORAGE pAddr,
     PCSTR  pszHostNameFQDN
     );
 
@@ -254,7 +254,7 @@ DNSUpdateSecure(
     PCSTR  pszDomainName,
     PCSTR  pszHostname,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray
+    PSOCKADDR_STORAGE pAddrArray
     );
 
 DWORD

@@ -359,29 +359,62 @@ error:
 DWORD
 DNSGetPtrNameForAddr(
     PSTR* ppszRecordName,
-    PSOCKADDR_IN pAddr
+    PSOCKADDR_STORAGE pAddr
     )
 {
     DWORD dwError = 0;
     PSTR pszRecordName = NULL;
 
-    if (pAddr->sin_family != AF_INET)
+    if (pAddr->ss_family == AF_INET)
+    {
+        struct sockaddr_in *pInAddr = (struct sockaddr_in *)pAddr;
+        PBYTE pByte = (PBYTE)&pInAddr->sin_addr.s_addr;
+
+        dwError = LwRtlCStringAllocatePrintf(
+                        &pszRecordName,
+                        "%d.%d.%d.%d.in-addr.arpa",
+                        pByte[3],
+                        pByte[2],
+                        pByte[1],
+                        pByte[0]
+                    );
+        if (dwError)
+        {
+            dwError = ENOMEM;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
+    }
+    else if (pAddr->ss_family == AF_INET6)
+    {
+        struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pAddr;
+        PBYTE pByte = (PBYTE)pIn6Addr->sin6_addr.s6_addr;
+        CHAR szNibbles[65] = {0};
+        CHAR hextab[] = "0123456789abcdef";
+        int i = 0;
+        int j = 0;
+
+        for (i=15; i>=0; i--)
+        {
+            szNibbles[j++] = hextab[pByte[i] & 0x0f];
+            szNibbles[j++] = '.';
+            szNibbles[j++] = hextab[(pByte[i] >> 4) & 0x0f];
+            szNibbles[j++] = '.';
+        }
+        szNibbles[j] = '\0';
+
+        dwError = LwRtlCStringAllocatePrintf(
+                        &pszRecordName,
+                        "%sip6.arpa",
+                        szNibbles);
+        if (dwError)
+        {
+            dwError = ENOMEM;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
+    }
+    else
     {
         dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
-        BAIL_ON_LWDNS_ERROR(dwError);
-    }
-
-    dwError = LwRtlCStringAllocatePrintf(
-                    &pszRecordName,
-                    "%d.%d.%d.%d.in-addr.arpa",
-                    (pAddr->sin_addr.s_addr >>  0) & 255,
-                    (pAddr->sin_addr.s_addr >>  8) & 255,
-                    (pAddr->sin_addr.s_addr >> 16) & 255,
-                    (pAddr->sin_addr.s_addr >> 24) & 255
-                );
-    if (dwError)
-    {
-        dwError = ENOMEM;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
 
@@ -400,28 +433,61 @@ error:
 DWORD
 DNSGetPtrZoneForAddr(
     PSTR* ppszZoneName,
-    PSOCKADDR_IN pAddr
+    PSOCKADDR_STORAGE pAddr
     )
 {
     DWORD dwError = 0;
     PSTR pszZoneName = NULL;
 
-    if (pAddr->sin_family != AF_INET)
+    if (pAddr->ss_family == AF_INET)
+    {
+        struct sockaddr_in *pInAddr = (struct sockaddr_in *)pAddr;
+        PBYTE pByte = (PBYTE)&pInAddr->sin_addr.s_addr;
+
+        dwError = LwRtlCStringAllocatePrintf(
+                        &pszZoneName,
+                        "%d.%d.%d.in-addr.arpa",
+                        pByte[2],
+                        pByte[1],
+                        pByte[0]
+                    );
+        if (dwError)
+        {
+            dwError = ENOMEM;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
+    }
+    else if (pAddr->ss_family == AF_INET6)
+    {
+        struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pAddr;
+        PBYTE pByte = (PBYTE)pIn6Addr->sin6_addr.s6_addr;
+        CHAR szNibbles[33] = {0};
+        CHAR hextab[] = "0123456789abcdef";
+        int i = 0;
+        int j = 0;
+
+        for (i=7; i>=0; i--)
+        {
+            szNibbles[j++] = hextab[pByte[i] & 0x0f];
+            szNibbles[j++] = '.';
+            szNibbles[j++] = hextab[(pByte[i] >> 4) & 0x0f];
+            szNibbles[j++] = '.';
+        }
+        szNibbles[j] = '\0';
+
+        dwError = LwRtlCStringAllocatePrintf(
+                        &pszZoneName,
+                        "%sip6.arpa",
+                        szNibbles);
+        if (dwError)
+        {
+            dwError = ENOMEM;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
+    }
+    else
     {
         dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
-        BAIL_ON_LWDNS_ERROR(dwError);
-    }
-
-    dwError = LwRtlCStringAllocatePrintf(
-                    &pszZoneName,
-                    "%d.%d.%d.in-addr.arpa",
-                    (pAddr->sin_addr.s_addr >>  8) & 255,
-                    (pAddr->sin_addr.s_addr >> 16) & 255,
-                    (pAddr->sin_addr.s_addr >> 24) & 255
-                );
-    if (dwError)
-    {
-        dwError = ENOMEM;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
 
@@ -439,7 +505,7 @@ error:
 
 DWORD
 DNSUpdatePtrSecure(
-    PSOCKADDR_IN pAddr,
+    PSOCKADDR_STORAGE pAddr,
     PCSTR  pszHostnameFQDN
     )
 {
@@ -452,6 +518,7 @@ DNSUpdatePtrSecure(
     PSTR pszPtrZone = NULL;
     DWORD   iNS = 0;
     HANDLE hDNSServer = (HANDLE)NULL;
+    CHAR szAddress[INET6_ADDRSTRLEN] = {0};
     PCSTR pszAddress = NULL;
 
     dwError = DNSGetPtrZoneForAddr(&pszPtrZone, pAddr);
@@ -480,8 +547,33 @@ DNSUpdatePtrSecure(
             DNSClose(hDNSServer);
         }
 
-        pszAddress = inet_ntoa(pAddr->sin_addr);
-        LWDNS_LOG_INFO("Attempting to update PTR record for %s to %s on name server [%s]", pszAddress, pszHostnameFQDN, pszNameServer);
+        if (pAddr->ss_family == AF_INET)
+        {
+            struct sockaddr_in *pInAddr = (struct sockaddr_in *)pAddr;
+
+            pszAddress = inet_ntop(pAddr->ss_family,
+                                   &pInAddr->sin_addr,
+                                   szAddress,
+                                   sizeof(szAddress));
+        }
+        else if (pAddr->ss_family == AF_INET6)
+        {
+            struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pAddr;
+
+            pszAddress = inet_ntop(pAddr->ss_family,
+                                   &pIn6Addr->sin6_addr,
+                                   szAddress,
+                                   sizeof(szAddress));
+        }
+
+        if (pszAddress == NULL)
+        {
+            dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
+
+        LWDNS_LOG_INFO("Attempting to update PTR record for %s to %s on name server [%s]",
+                       pszAddress, pszHostnameFQDN, pszNameServer);
 
         dwError = DNSOpen(
                         pszNameServer,
@@ -552,7 +644,7 @@ DNSUpdateSecure(
     PCSTR  pszDomainName,
     PCSTR  pszHostNameFQDN,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray
+    PSOCKADDR_STORAGE pAddrArray
     )
 {
     DWORD dwError = 0;
@@ -658,14 +750,14 @@ DNSUpdateCreateARUpdateRequest(
     PCSTR pszZoneName,
     PCSTR pszHostnameFQDN,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray
+    PSOCKADDR_STORAGE pAddrArray
     )
 {
     DWORD dwError = 0;
     PDNS_UPDATE_REQUEST pDNSUpdateRequest = NULL;
     PDNS_ZONE_RECORD pDNSZoneRecord = NULL;
     PDNS_RR_RECORD pDNSPRRecord = NULL;
-    PDNS_RR_RECORD pDNSARecord = NULL;
+    PDNS_RR_RECORD pDNSRecord = NULL;
     DWORD iAddr = 0;
 
     // Allocate pDNSUpdateRequest and fill in wIdentification and wParameter
@@ -702,50 +794,86 @@ DNSUpdateCreateARUpdateRequest(
 
     pDNSPRRecord = NULL;
 
-    // Delete all A records associated with the fqdn.
+    // Delete all A and AAAA records associated with the fqdn.
     // This deletes IP addresses that do not belong to the computer.
     dwError = DNSCreateDeleteRecord(
                     pszHostnameFQDN,
                     DNS_CLASS_ANY,
                     QTYPE_A,
-                    &pDNSARecord);
+                    &pDNSRecord);
     BAIL_ON_LWDNS_ERROR(dwError);
 
     dwError = DNSUpdateAddUpdateSection(
                     pDNSUpdateRequest,
-                    pDNSARecord);
+                    pDNSRecord);
     BAIL_ON_LWDNS_ERROR(dwError);
 
-    pDNSARecord = NULL;
+    pDNSRecord = NULL;
 
-    // Add an A record for every IP address that belongs to the computer. If
-    // the delete operation above deleted IP addresses that actually belong to
+    dwError = DNSCreateDeleteRecord(
+                    pszHostnameFQDN,
+                    DNS_CLASS_ANY,
+                    QTYPE_AAAA,
+                    &pDNSRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateAddUpdateSection(
+                    pDNSUpdateRequest,
+                    pDNSRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pDNSRecord = NULL;
+
+    // Add an A or AAAA record for every IP address that belongs to the computer.
+    // If the delete operation above deleted IP addresses that actually belong to
     // the computer, this will recreate them.
     for (; iAddr < dwNumAddrs; iAddr++)
     {
-        PSOCKADDR_IN pSockAddr = NULL;
+        PSOCKADDR_STORAGE pSockAddr = NULL;
+        CHAR szAddress[INET6_ADDRSTRLEN] = {0};
         PCSTR pszAddress = NULL;
-        
+
         pSockAddr = &pAddrArray[iAddr];
 
-        pszAddress = inet_ntoa(pSockAddr->sin_addr);
+        if (pSockAddr->ss_family == AF_INET)
+        {
+            struct sockaddr_in *pInAddr = (struct sockaddr_in *)pSockAddr;
+
+            pszAddress = inet_ntop(pSockAddr->ss_family,
+                                   &pInAddr->sin_addr,
+                                   szAddress,
+                                   sizeof(szAddress));
+        }
+        else if (pSockAddr->ss_family == AF_INET6)
+        {
+            struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pSockAddr;
+
+            pszAddress = inet_ntop(pSockAddr->ss_family,
+                                   &pIn6Addr->sin6_addr,
+                                   szAddress,
+                                   sizeof(szAddress));
+        }
+
+        if (pszAddress == NULL)
+        {
+            dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
+            BAIL_ON_LWDNS_ERROR(dwError);
+        }
 
         LWDNS_LOG_INFO("Adding IP Address [%s] to DNS Update request", pszAddress);
 
-        dwError = DNSCreateARecord(
+        dwError = DNSCreateAddressRecord(
                         pszHostnameFQDN,
-                        DNS_CLASS_IN,
-                        QTYPE_A,
-                        htonl(pSockAddr->sin_addr.s_addr),
-                        &pDNSARecord);
+                        pSockAddr,
+                        &pDNSRecord);
         BAIL_ON_LWDNS_ERROR(dwError);
 
         dwError = DNSUpdateAddUpdateSection(
                         pDNSUpdateRequest,
-                        pDNSARecord);
+                        pDNSRecord);
         BAIL_ON_LWDNS_ERROR(dwError);
 
-        pDNSARecord = NULL;
+        pDNSRecord = NULL;
     }
 
     *ppDNSUpdateRequest = pDNSUpdateRequest;
@@ -756,9 +884,9 @@ cleanup:
         DNSFreeZoneRecord(pDNSZoneRecord);
     }
 
-    if (pDNSARecord)
+    if (pDNSRecord)
     {
-        DNSFreeRecord(pDNSARecord);
+        DNSFreeRecord(pDNSRecord);
     }
 
     if (pDNSPRRecord)
@@ -785,7 +913,7 @@ DNSSendUpdate(
     PCSTR  pszZoneName,
     PCSTR  pszHostnameFQDN,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray,
+    PSOCKADDR_STORAGE pAddrArray,
     PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
     )
 {
@@ -853,7 +981,7 @@ DNSSendSecureUpdate(
     PCSTR pszZoneName,
     PCSTR pszHostnameFQDN,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray,
+    PSOCKADDR_STORAGE pAddrArray,
     PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
     )
 {

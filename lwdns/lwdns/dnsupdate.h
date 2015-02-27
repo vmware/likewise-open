@@ -71,7 +71,7 @@ DNSUpdateCreateARUpdateRequest(
     PCSTR pszZoneName,
     PCSTR pszHostnameFQDN,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray
+    PSOCKADDR_STORAGE pAddrArray
     );
 
 DWORD
@@ -91,7 +91,7 @@ DNSSendUpdate(
     PCSTR  pszZoneName,
     PCSTR  pszHost,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray,
+    PSOCKADDR_STORAGE pAddrArray,
     PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
     );
 
@@ -103,7 +103,7 @@ DNSSendSecureUpdate(
     PCSTR pszZoneName,
     PCSTR pszHost,
     DWORD  dwNumAddrs,
-    PSOCKADDR_IN pAddrArray,
+    PSOCKADDR_STORAGE pAddrArray,
     PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
     );
 
@@ -128,17 +128,17 @@ DNSBuildMessageBuffer(
 DWORD
 DNSGetPtrDomainForAddr(
     PSTR*        ppszDomainName,
-    PSOCKADDR_IN pAddr
+    PSOCKADDR_STORAGE pAddr
     );
 
 DWORD
 DNSGetPtrNameForAddr(
     PSTR* ppszRecordName,
-    PSOCKADDR_IN pAddr
+    PSOCKADDR_STORAGE pAddr
     );
 
 DWORD
 DNSGetPtrZoneForAddr(
     PSTR* ppszZoneName,
-    PSOCKADDR_IN pAddr
+    PSOCKADDR_STORAGE pAddr
     );

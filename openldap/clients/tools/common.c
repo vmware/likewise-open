@@ -1418,11 +1418,13 @@ tool_bind( LDAP *ld )
 			exit( LDAP_LOCAL_ERROR );
 		}
 
-		rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
-			&ctrls, 1 );
-		if ( rc != LDAP_SUCCESS ) {
-			tool_perror( "ldap_bind parse result", rc, NULL, matched, info, refs );
-			exit( LDAP_LOCAL_ERROR );
+		if ( result ) {
+			rc = ldap_parse_result( ld, result, &err, &matched, &info, &refs,
+									&ctrls, 1 );
+			if ( rc != LDAP_SUCCESS ) {
+				tool_perror( "ldap_bind parse result", rc, NULL, matched, info, refs );
+				exit( LDAP_LOCAL_ERROR );
+			}
 		}
 
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST

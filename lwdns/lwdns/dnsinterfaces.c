@@ -165,13 +165,13 @@ DNSGetInfoUsingGetIfAddrs(
     struct ifaddrs* pInterfaces = NULL;
     struct ifaddrs* pIter = NULL;
     PLW_INTERFACE_INFO pInterfaceInfo = NULL;
-    
+
     if (getifaddrs(&pInterfaces) < 0)
     {
         dwError = errno;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
-    
+
     for (pIter = pInterfaces; pIter; pIter = pIter->ifa_next)
     {
         if (IsNullOrEmptyString(pIter->ifa_name))
@@ -182,27 +182,29 @@ DNSGetInfoUsingGetIfAddrs(
 
         LWDNS_LOG_VERBOSE("Considering network interface [%s]",
                           pIter->ifa_name);
-        
-        if (pIter->ifa_addr->sa_family != AF_INET)
-        { 
-            LWDNS_LOG_VERBOSE("Skipping network interface [%s] because it is not AF_INET family", pIter->ifa_name);
+
+        if (pIter->ifa_addr->sa_family != AF_INET &&
+            pIter->ifa_addr->sa_family != AF_INET6)
+        {
+            LWDNS_LOG_VERBOSE("Skipping network interface [%s] because it is not AF_INET or AF_INET6 family",
+                              pIter->ifa_name);
             continue;
         }
-        
+
         if (!(pIter->ifa_flags & IFF_UP))
         {
             LWDNS_LOG_VERBOSE("Skipping in-active network interface [%s]",
                               pIter->ifa_name);
             continue;
         }
-        
+
         if (pIter->ifa_flags & IFF_LOOPBACK)
         {
             LWDNS_LOG_VERBOSE("Skipping loopback network interface [%s]",
                               pIter->ifa_name);
             continue;
         }
-        
+
 #ifdef LW_SKIP_ALIASED_INTERFACES
         if (DNSInterfaceIsInList(pIter->ifa_name, pInterfaceList))
         {
@@ -211,39 +213,61 @@ DNSGetInfoUsingGetIfAddrs(
             continue;
         }
 #endif
-        
+
+        if (pIter->ifa_addr->sa_family == AF_INET6)
+        {
+           struct sockaddr_in6 *pAddr = (struct sockaddr_in6 *)pIter->ifa_addr;
+
+           if (IN6_IS_ADDR_LINKLOCAL(&pAddr->sin6_addr))
+           {
+                LWDNS_LOG_VERBOSE("Skipping IPv6 link-local address [%s]",
+                                  pIter->ifa_name);
+                continue;
+            }
+        }
+
         dwError = DNSAllocateMemory(
                     sizeof(LW_INTERFACE_INFO),
                     (PVOID*)&pInterfaceInfo);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         dwError = DNSAllocateString(
                     pIter->ifa_name,
                     &pInterfaceInfo->pszName);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         if (pIter->ifa_addr)
         {
+            size_t ipAddrLen = 0;
+
+            if (pIter->ifa_addr->sa_family == AF_INET)
+            {
+                ipAddrLen = sizeof(struct sockaddr_in);
+            }
+            else if (pIter->ifa_addr->sa_family == AF_INET6)
+            {
+                ipAddrLen = sizeof(struct sockaddr_in6);
+            }
             memcpy(&pInterfaceInfo->ipAddr,
                    pIter->ifa_addr,
-                   sizeof(*pIter->ifa_addr));
+                   ipAddrLen);
         }
-        
+
         pInterfaceInfo->dwFlags = pIter->ifa_flags;
-        
+
         dwError = DNSDLinkedListAppend(
                     &pInterfaceList,
                     pInterfaceInfo);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         LWDNS_LOG_VERBOSE("Added network interface [Name:%s] to list",
                           pInterfaceInfo->pszName);
-        
+
         pInterfaceInfo = NULL;
     }
-    
+
     *ppInterfaceList = pInterfaceList;
-    
+
 cleanup:
 
     if (pInterfaces)
@@ -252,14 +276,14 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     if (pInterfaceList)
     {
         DNSFreeInterfaceLinkedList(pInterfaceList);
     }
-    
+
     if (pInterfaceInfo)
     {
         DNSFreeNetworkInterface(pInterfaceInfo);
@@ -383,20 +407,19 @@ DNSGetInfoUsingIoctl(
 #else
                      dwLen = sizeof(struct sockaddr_in6);
 #endif
-                
+
                      break;
 #endif
 
-
-                case AF_INET:           
+                case AF_INET:
                 default:
-                
+
                     dwLen = sizeof(struct sockaddr);
-            
+
                     break;
             }
 #endif /* HAVE_SOCKADDR_SA_LEN */
-        
+
 #ifdef AF_LINK
         }
 #endif
@@ -414,9 +437,9 @@ DNSGetInfoUsingIoctl(
 
         memset(szItfName, 0, sizeof(szItfName));
         memcpy(szItfName, pInterfaceRecord->ifr_name, IFNAMSIZ);
-        
+
         LWDNS_LOG_VERBOSE("Considering network interface [%s]", szItfName);
-        
+
         pSA = (struct sockaddr*)&pInterfaceRecord->ifr_addr;
 
         if (pSA->sa_family != AF_INET)
@@ -424,23 +447,23 @@ DNSGetInfoUsingIoctl(
            LWDNS_LOG_VERBOSE("Skipping network interface [%s] [family:%d] because it is not AF_INET family", szItfName, pSA->sa_family);
            continue;
         }
-        
+
         interfaceRecordCopy = *pInterfaceRecord;
-        
+
         if (ioctl(fd, SIOCGIFFLAGS, &interfaceRecordCopy) < 0)
         {
             dwError = errno;
             BAIL_ON_LWDNS_ERROR(dwError);
         }
-        
+
         dwFlags = interfaceRecordCopy.ifr_flags;
-        
+
         if (dwFlags & IFF_LOOPBACK)
         {
             LWDNS_LOG_VERBOSE("Skipping loopback network interface [%s]", szItfName);
             continue;
         }
-        
+
         if (!(dwFlags & IFF_UP))
         {
             LWDNS_LOG_VERBOSE("Skipping in-active network interface [%s]", szItfName);
@@ -460,24 +483,24 @@ DNSGetInfoUsingIoctl(
                         sizeof(LW_INTERFACE_INFO),
                         (PVOID*)&pInterfaceInfo);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         dwError = DNSAllocateMemory(
                         IF_NAMESIZE,
                         (PVOID*)&pInterfaceInfo->pszName);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         strncpy(pInterfaceInfo->pszName,
                 pInterfaceRecord->ifr_name,
                 IF_NAMESIZE-1);
-        
+
         pInterfaceInfo->dwFlags = dwFlags;
-        
+
         if (ioctl(fd, SIOCGIFADDR, &interfaceRecordCopy, sizeof(struct ifreq)) < 0)
         {
             dwError = errno;
             BAIL_ON_LWDNS_ERROR(dwError);
         }
-        
+
         // From the above logic, we consider only
         // AF_INET addresses at this point.
         memcpy(&pInterfaceInfo->ipAddr,
@@ -490,37 +513,37 @@ DNSGetInfoUsingIoctl(
         BAIL_ON_LWDNS_ERROR(dwError);
 
         pszIpAddress = inet_ntoa(((struct sockaddr_in*)&pInterfaceInfo->ipAddr)->sin_addr);
-        
+
         LWDNS_LOG_VERBOSE("Added network interface [Name:%s; Address:%s] to list",
                           (IsNullOrEmptyString(pInterfaceInfo->pszName) ? "" : pInterfaceInfo->pszName),
                           (IsNullOrEmptyString(pszIpAddress) ? "" : pszIpAddress));
-        
+
         pInterfaceInfo = NULL;
     }
-    
+
     *ppInterfaceList = pInterfaceList;
-    
+
 cleanup:
 
     if (fd >= 0)
     {
         close(fd);
     }
-    
+
     if (pBuffer)
     {
         DNSFreeMemory(pBuffer);
     }
 
     return dwError;
-    
+
 error:
 
     if (pInterfaceInfo)
     {
         DNSFreeNetworkInterface(pInterfaceInfo);
     }
-    
+
     if (pInterfaceList)
     {
         DNSFreeInterfaceLinkedList(pInterfaceList);

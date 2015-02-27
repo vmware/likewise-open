@@ -63,13 +63,11 @@ DNSCreatePtrRecord(
     );
 
 DWORD
-DNSCreateARecord(
-	PCSTR pszHost,
-	WORD  wClass,
-	WORD  wType,
-	DWORD dwIP,
-	PDNS_RR_RECORD * ppDNSRecord
-	);
+DNSCreateAddressRecord(
+    PCSTR pszHost,
+    PSOCKADDR_STORAGE pSockAddr,
+    PDNS_RR_RECORD * ppDNSRecord
+    );
 
 DWORD
 DNSCreateTKeyRecord(

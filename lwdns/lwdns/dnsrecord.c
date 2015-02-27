@@ -153,11 +153,9 @@ error:
 }
 
 DWORD
-DNSCreateARecord(
+DNSCreateAddressRecord(
     PCSTR pszHost,
-    WORD  wClass,
-    WORD  wType,
-    DWORD dwIP,
+    PSOCKADDR_STORAGE pSockAddr,
     PDNS_RR_RECORD * ppDNSRecord
     )
 {
@@ -165,7 +163,31 @@ DNSCreateARecord(
     PDNS_RR_RECORD pDNSRRRecord = NULL;
     PDNS_DOMAIN_NAME pDomainName = NULL;
     PBYTE pRData = NULL;
-    DWORD dwnIP = 0;
+    PBYTE pAddress = NULL;
+    DWORD dwAddressLen = 0;
+    WORD  wType = 0;
+
+    if (pSockAddr->ss_family == AF_INET)
+    {
+        struct sockaddr_in *pInAddr = (struct sockaddr_in *)pSockAddr;
+
+        wType = QTYPE_A;
+        pAddress = (PBYTE)&pInAddr->sin_addr.s_addr;
+        dwAddressLen = sizeof(struct in_addr);
+    }
+    else if (pSockAddr->ss_family == AF_INET6)
+    {
+        struct sockaddr_in6 *pIn6Addr = (struct sockaddr_in6 *)pSockAddr;
+
+        wType = QTYPE_AAAA;
+        pAddress = (PBYTE)&pIn6Addr->sin6_addr.s6_addr[0];
+        dwAddressLen = sizeof(struct in6_addr);
+    }
+    else
+    {
+        dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
 
     dwError = DNSDomainNameFromString(
                     pszHost,
@@ -178,24 +200,23 @@ DNSCreateARecord(
     BAIL_ON_LWDNS_ERROR(dwError);
 
     pDNSRRRecord->RRHeader.dwTTL = DNS_ONE_HOUR_IN_SECS;
-    pDNSRRRecord->RRHeader.wClass = wClass;
+    pDNSRRRecord->RRHeader.wClass = DNS_CLASS_IN;
     pDNSRRRecord->RRHeader.wType = wType;
     pDNSRRRecord->RRHeader.pDomainName = pDomainName;
     pDomainName = NULL;
-    pDNSRRRecord->RRHeader.wRDataSize = sizeof(DWORD);
+    pDNSRRRecord->RRHeader.wRDataSize = dwAddressLen;
 
     dwError = DNSAllocateMemory(
-                    sizeof(DWORD),
+                    dwAddressLen,
                     (PVOID *)&pRData);
     BAIL_ON_LWDNS_ERROR(dwError);
-    
-    dwnIP = htonl(dwIP);
-    memcpy(pRData, &dwnIP, sizeof(DWORD));
+
+    memcpy(pRData, pAddress, dwAddressLen);
     pDNSRRRecord->pRData = pRData;
     pRData = NULL;
 
     *ppDNSRecord = pDNSRRRecord;
-    
+
 cleanup:
 
     return dwError;
@@ -205,7 +226,7 @@ error:
     if (pDomainName) {
         DNSFreeDomainName(pDomainName);
     }
-    
+
     if (pDNSRRRecord) {
         DNSFreeRecord(pDNSRRRecord);
     }
@@ -213,9 +234,9 @@ error:
     if (pRData) {
         DNSFreeMemory(pRData);
     }
-    
+
     *ppDNSRecord = NULL;
-    
+
     goto cleanup;
 }
 
