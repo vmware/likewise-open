@@ -1,0 +1,10 @@
+[Unit]
+Description=Likewise Service Control Manager Service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=PREFIX_DIR/sbin/lwsmd
+
+[Install]
+WantedBy=multi-user.target

@@ -64,10 +64,16 @@ package_deb()
 
 package_rpm()
 {
+    SPEC_FILE="rpm/vmware-lwis.spec"
+
+    if [ "$LW_DEVICE_PROFILE" = "discus" ]; then
+        SPEC_FILE="rpm/vmware-lwis-discus.spec"
+    fi
+
     mk_rpm_do \
         PACKAGE="$PKG_RPM_NAME" \
         VERSION="$PKG_RPM_VERSION" \
-        SPECFILE="rpm/vmware-lwis.spec"
+        SPECFILE=$SPEC_FILE
 
         common_files
 
@@ -113,7 +119,7 @@ common_files()
             "${MK_LIBDIR}/*${MK_LIB_EXT}.*" \
             "${MK_LIBDIR}/gss/*${MK_DLO_EXT}" \
             "${MK_LIBDIR}/lwsm-loader/*${MK_DLO_EXT}" \
-            "/etc/init.d/*" \
+            "/lib/systemd/system/*" \
             "${MK_SYSCONFDIR}/*" \
             "/${MK_LIBDIR##*/}/security/pam_lsass${MK_DLO_EXT}" \
             "/${MK_LIBDIR##*/}/libnss_lsass${MK_DLO_EXT}.*"

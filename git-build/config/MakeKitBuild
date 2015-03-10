@@ -12,9 +12,21 @@ configure()
 
 make()
 {
-    mk_install_files \
-	FILES="init-base.sh init-lwsm.sh" \
-	INSTALLDIR="${MK_BINDIR}"
+    if [ "$LW_DEVICE_PROFILE" != "discus" ]; then
+        mk_install_files \
+	    FILES="init-base.sh init-lwsm.sh" \
+	    INSTALLDIR="${MK_BINDIR}"
+
+        for i in dcerpcd eventlogd lsassd lwiod lwregd lwsmd netlogond
+        do
+	    lw_init_script "$i"
+        done
+    else
+        for i in lwsmd.service
+        do
+	    lw_systemd_script "$i"
+        done
+    fi
 
     mk_install_file \
         FILE="krb5.conf.default" \
@@ -31,11 +43,6 @@ make()
     mk_install_file \
         FILE="VERSION" \
         INSTALLDIR="${MK_PREFIX}/data"
-
-    for i in dcerpcd eventlogd lsassd lwiod lwregd lwsmd netlogond
-    do
-	lw_init_script "$i"
-    done
 }
 
 lw_init_script()
@@ -48,6 +55,20 @@ lw_init_script()
 	    -e "s:PREFIX_DIR:${MK_PREFIX}:g" \
 	    -e "s:EXECDIR:${MK_BINDIR}:g" \
 	    -e "s:^#LWI_STARTUP_TYPE_ESX:${LWI_STARTUP_TYPE_ESX_DEL}:g" \
+	    '%<' "&$1" '%>' '$@' '%;' \
+	chmod +x '$@'
+
+    mk_add_all_target "$result"
+}
+
+lw_systemd_script()
+{
+    mk_target \
+	TARGET="/lib/systemd/system/$1" \
+	DEPS="$1" \
+	mk_mkdir "&/lib/systemd/system" '%;' \
+	sed \
+	    -e "s:PREFIX_DIR:${MK_PREFIX}:g" \
 	    '%<' "&$1" '%>' '$@' '%;' \
 	chmod +x '$@'
 
