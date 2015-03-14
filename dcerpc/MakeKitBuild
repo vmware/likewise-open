@@ -27,13 +27,13 @@ option()
     mk_option \
         OPTION=rpc-ncadg \
         VAR=ENABLE_NCADG \
-        DEFAULT="$_default_FULL" \
+        DEFAULT="$_default_AUTH" \
         HELP="Enable ncadg RPC protocol sequences"
 
     mk_option \
         OPTION=rpc-ip \
         VAR=ENABLE_IP \
-        DEFAULT="$_default_FULL" \
+        DEFAULT="$_default_AUTH" \
         HELP="Enable TCP/IP RPC support"
 
     mk_option \
@@ -51,19 +51,19 @@ option()
     mk_option \
         OPTION=rpc-gss \
         VAR=ENABLE_GSS \
-        DEFAULT="$_default_FULL" \
+        DEFAULT="$_default_AUTH" \
         HELP="Enable GSS RPC authentication support"
 
     mk_option \
         OPTION=rpc-schannel \
         VAR=ENABLE_SCHANNEL \
-        DEFAULT="$_default_FULL" \
+        DEFAULT="$_default_AUTH" \
         HELP="Enable schannel RPC authentication support"
 
     mk_option \
         OPTION=rpc-ntlmssp \
         VAR=ENABLE_NTLMSSP \
-        DEFAULT="$_default_FULL" \
+        DEFAULT="$_default_AUTH" \
         HELP="Enable NTLMSSP RPC authentication support"
 }
 

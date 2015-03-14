@@ -125,7 +125,7 @@ RegSrvIpcCloseHandle(
     PVOID pHandle
     )
 {
-    return RegSrvCloseKey((HKEY)pHandle);
+    RegSrvCloseKey((HKEY)pHandle);
 }
 
 static

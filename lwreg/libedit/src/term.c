@@ -908,6 +908,8 @@ term_set(EditLine *el, const char *term)
 	sigset_t oset, nset;
 	int lins, cols;
 
+        memset(&buf[0], 0, sizeof(buf));
+
 	(void) sigemptyset(&nset);
 	(void) sigaddset(&nset, SIGWINCH);
 	(void) sigprocmask(SIG_BLOCK, &nset, &oset);
@@ -958,7 +960,7 @@ term_set(EditLine *el, const char *term)
 		for (t = tstr; t->name != NULL; t++) {
 			/* XXX: some systems' tgetstr needs non const */
 			term_alloc(el, t, tgetstr(strchr(t->name, *t->name),
-			    &area));
+			    area));
 		}
 	}
 

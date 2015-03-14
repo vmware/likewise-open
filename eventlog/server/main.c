@@ -1751,6 +1751,8 @@ main(
     BOOLEAN bExitNow = FALSE;
     BOOLEAN bRegisterTcpIp = TRUE;
 
+    setlocale(LC_ALL, "");
+
     dwError = EVTSetServerDefaults();
     BAIL_ON_EVT_ERROR(dwError);
 

@@ -1,5 +1,27 @@
 #include "includes.h"
 
+static
+NET_API_STATUS
+NetAllocateShareInfo(
+    PBYTE  pShareInfo,
+    DWORD  dwInfoLevel,
+    PBYTE* ppBuffer
+    );
+
+static
+NET_API_STATUS
+NetAllocateShareInfo_0(
+    PSHARE_INFO_0 pShareInfo,
+    PBYTE*        ppBuffer
+    );
+
+static
+NET_API_STATUS
+NetAllocateShareInfo_1(
+    PSHARE_INFO_1 pShareInfo,
+    PBYTE*        ppBuffer
+    );
+
 NET_API_STATUS
 NetApiBufferAllocate(
     DWORD  dwCount,
@@ -490,6 +512,7 @@ NetShareGetInfoW(
 {
     NET_API_STATUS  status = 0;
     PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pSrvSvcBuffer = NULL;
     PBYTE pBuffer = NULL;
 
     if (!ppBuffer || !pwszNetname)
@@ -506,7 +529,10 @@ NetShareGetInfoW(
                     pwszServername,
                     pwszNetname,
                     dwInfoLevel,
-                    &pBuffer);
+                    &pSrvSvcBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetAllocateShareInfo(pSrvSvcBuffer, dwInfoLevel, &pBuffer);
     BAIL_ON_NETAPI_ERROR(status);
 
     *ppBuffer = pBuffer;
@@ -518,6 +544,11 @@ cleanup:
         SrvSvcCloseContext(pContext);
     }
 
+    if (pSrvSvcBuffer)
+    {
+        SrvSvcFreeMemory(pSrvSvcBuffer);
+    }
+
     return status;
 
 error:
@@ -526,6 +557,186 @@ error:
     {
         *ppBuffer = NULL;
     }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+static
+NET_API_STATUS
+NetAllocateShareInfo(
+    PBYTE  pShareInfo,
+    DWORD  dwInfoLevel,
+    PBYTE* ppBuffer
+    )
+{
+    switch (dwInfoLevel)
+    {
+        case 0:
+
+            return NetAllocateShareInfo_0(
+                            (PSHARE_INFO_0)pShareInfo,
+                            ppBuffer);
+
+        case 1:
+
+            return NetAllocateShareInfo_1(
+                            (PSHARE_INFO_1)pShareInfo,
+                            ppBuffer);
+
+        default:
+
+            return ERROR_NOT_SUPPORTED;
+    }
+}
+
+static
+NET_API_STATUS
+NetAllocateShareInfo_0(
+    PSHARE_INFO_0 pShareInfo,
+    PBYTE*        ppBuffer
+    )
+{
+    NET_API_STATUS status = 0;
+    PBYTE pBuffer = NULL;
+    PBYTE pCursor = NULL;
+    DWORD dwBytesRequired = sizeof(SHARE_INFO_0);
+    DWORD dwOffset = 0;
+
+    if (pShareInfo->shi0_netname)
+    {
+        size_t length = 0;
+
+        dwBytesRequired += dwBytesRequired % 2;
+
+        status = LwWc16sLen(pShareInfo->shi0_netname, &length);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        dwBytesRequired += (length + 1) * sizeof(wchar16_t);
+    }
+
+    status = NetApiBufferAllocate(dwBytesRequired, (PVOID*)&pBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    pCursor = pBuffer;
+
+    if (pShareInfo->shi0_netname)
+    {
+        dwOffset = sizeof(SHARE_INFO_0);
+
+        pCursor += dwOffset;
+        pCursor += dwOffset % 2;
+
+        status = LwWc16sCpy((PWSTR)pCursor, pShareInfo->shi0_netname);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        ((PSHARE_INFO_0)pBuffer)->shi0_netname = (PWSTR)pCursor;
+    }
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+
+    return status;
+
+error:
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+static
+NET_API_STATUS
+NetAllocateShareInfo_1(
+    PSHARE_INFO_1 pShareInfo,
+    PBYTE*        ppBuffer
+    )
+{
+    NET_API_STATUS status = 0;
+    PBYTE pBuffer = NULL;
+    PBYTE pCursor = NULL;
+    DWORD dwBytesRequired = sizeof(SHARE_INFO_1);
+    DWORD dwOffset = 0;
+
+    if (pShareInfo->shi1_netname)
+    {
+        size_t length = 0;
+
+        dwBytesRequired += dwBytesRequired % 2;
+
+        status = LwWc16sLen(pShareInfo->shi1_netname, &length);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        dwBytesRequired += (length + 1) * sizeof(wchar16_t);
+    }
+
+    if (pShareInfo->shi1_remark)
+    {
+        size_t length = 0;
+
+        dwBytesRequired += dwBytesRequired % 2;
+
+        status = LwWc16sLen(pShareInfo->shi1_remark, &length);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        dwBytesRequired += (length + 1) * sizeof(wchar16_t);
+    }
+
+    status = NetApiBufferAllocate(dwBytesRequired, (PVOID*)&pBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    pCursor = pBuffer;
+
+    if (pShareInfo->shi1_netname)
+    {
+        size_t length = 0;
+
+        dwOffset = sizeof(SHARE_INFO_1);
+
+        pCursor += dwOffset;
+        pCursor += dwOffset % 2;
+
+        status = LwWc16sLen(pShareInfo->shi1_netname, &length);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        status = LwWc16sCpy((PWSTR)pCursor, pShareInfo->shi1_netname);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        ((PSHARE_INFO_1)pBuffer)->shi1_netname = (PWSTR)pCursor;
+
+        pCursor += (length + 1) * sizeof(wchar16_t);
+        dwOffset += (length + 1) * sizeof(wchar16_t);
+    }
+
+    ((PSHARE_INFO_1)pBuffer)->shi1_type = pShareInfo->shi1_type;
+
+    if (pShareInfo->shi1_remark)
+    {
+        pCursor += dwOffset % 2;
+
+        status = LwWc16sCpy((PWSTR)pCursor, pShareInfo->shi1_remark);
+        BAIL_ON_NETAPI_ERROR(status);
+
+        ((PSHARE_INFO_1)pBuffer)->shi1_remark = (PWSTR)pCursor;
+    }
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *ppBuffer = NULL;
 
     if (pBuffer)
     {

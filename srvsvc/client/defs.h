@@ -54,6 +54,15 @@
 #define ENDTRY                   DCETHREAD_ENDTRY
 
 
+#define SRVSVC_STUB_SAFE_FREE(ptr) \
+            do { \
+                if (ptr) { \
+                    unsigned32 rpcStatus = RPC_S_OK; \
+                    rpc_sm_client_free(ptr, &rpcStatus); \
+                    (ptr) = NULL; \
+                } \
+            } while (0)
+
 /*
 local variables:
 mode: c

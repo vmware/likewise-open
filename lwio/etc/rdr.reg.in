@@ -31,7 +31,7 @@
 }
 
 "Smb2Enabled" = {
-	default = dword:00000001
+	default = dword:00000000
 	doc = "Enable SMB2 support"
 }
 

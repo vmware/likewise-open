@@ -130,9 +130,9 @@ configure()
 
     case "$LW_FEATURE_LEVEL" in
         auth)
-            mk_skip_subdir libschannel
-            mk_skip_subdir srvsvc
-            mk_skip_subdir lwnetapi
+#            mk_skip_subdir libschannel
+#            mk_skip_subdir srvsvc
+#            mk_skip_subdir lwnetapi
             mk_skip_subdir lwtools
             ;;
     esac

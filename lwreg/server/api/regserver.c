@@ -164,7 +164,7 @@ RegSrvCloseKey(
     HKEY hKey
     )
 {
-    return gpRegProvider->pfnRegSrvCloseKey(hKey);
+    gpRegProvider->pfnRegSrvCloseKey(hKey);
 }
 
 NTSTATUS

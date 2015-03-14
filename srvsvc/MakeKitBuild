@@ -1,4 +1,5 @@
-SUBDIRS="include utils logging_r client server etc test"
+#SUBDIRS="include utils logging_r client server etc test"
+SUBDIRS="include utils logging_r client"
 
 configure()
 {
@@ -31,6 +32,6 @@ configure()
 	HEADERDEPS="syslog.h" \
 	FUNCTION="vsyslog"
 
-    mk_output_file etc/srvsvcd.reg
+#    mk_output_file etc/srvsvcd.reg
 }
 

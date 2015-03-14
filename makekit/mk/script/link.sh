@@ -187,6 +187,11 @@ case "${MK_OS}:${LD_STYLE}" in
         LIB_LINK="-shared"
         COMBINED_LDFLAGS="$COMBINED_LDFLAGS -Wl,-rpath,${RPATH_LIBDIR} -Wl,-rpath-link,${LINK_LIBDIR}"
         ;;
+    linux:native)
+        DLO_LINK="-shared"
+        LIB_LINK="-shared"
+        COMBINED_LDFLAGS="$COMBINED_LDFLAGS -Wl,-rpath,${RPATH_LIBDIR} -Wl,-rpath-link,${LINK_LIBDIR}"
+        ;;
     solaris:native)
         DLO_LINK="-shared"
         LIB_LINK="-shared"

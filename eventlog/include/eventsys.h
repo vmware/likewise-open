@@ -61,4 +61,6 @@
   #include <wc16str.h>
 #endif
 
+  #include <locale.h>
+
 #endif

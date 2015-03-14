@@ -247,6 +247,7 @@ NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep)
     node->ptr  = NULL;
     node->dep  = dep;
     node->size = size;
+    node->next = NULL;
 
     if (node->size)
     {
@@ -336,6 +337,7 @@ NTSTATUS MemPtrAddDependant(PtrList *list, void *ptr, void *dep)
     node->ptr  = ptr;
     node->dep  = dep;
     node->size = 0;    /* size is unknown when adding dependency */
+    node->next = NULL;
 
     status = MemPtrNodeAppend(list, node);
     BAIL_ON_NT_STATUS(status);

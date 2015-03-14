@@ -201,7 +201,7 @@ RdrQueryDirectory(
                 512, /* Search count */
                 infoLevel,
                 0, /* ulResumeKey */
-                0x2, /* Search flags */
+                0xA, /* Search flags */
                 NULL, /* Filename */
                 pFile->find.ulBufferCapacity);
             BAIL_ON_NT_STATUS(status);
