@@ -70,7 +70,7 @@ lw_systemd_script()
 	sed \
 	    -e "s:PREFIX_DIR:${MK_PREFIX}:g" \
 	    '%<' "&$1" '%>' '$@' '%;' \
-	chmod +x '$@'
+        chmod 644 '$@'
 
     mk_add_all_target "$result"
 }
