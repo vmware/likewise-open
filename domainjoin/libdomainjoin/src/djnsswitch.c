@@ -1269,7 +1269,7 @@ static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **e
 
     memset(&distro, 0, sizeof(distro));
 
-    DJGetDaemonStatus("dtlogin", &doRestart, &inner);
+    DJGetDaemonStatus2("dtlogin", &doRestart, &inner);
     if(!LW_IS_OK(inner) && inner->code == ERROR_SERVICE_NOT_FOUND)
     {
         LW_HANDLE(&inner);
@@ -1334,8 +1334,8 @@ static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **e
     }
     if(doRestart)
     {
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", FALSE, &LW_EXC));
-        LW_TRY(exc, DJStartStopDaemon("dtlogin", TRUE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon2("dtlogin", FALSE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon2("dtlogin", TRUE, &LW_EXC));
     }
 cleanup:
     LW_HANDLE(&inner);

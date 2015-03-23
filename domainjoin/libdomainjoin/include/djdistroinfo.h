@@ -63,6 +63,7 @@ typedef enum
     DISTRO_DEBIAN,
     DISTRO_FREEBSD,
     DISTRO_ESX,
+    DISTRO_VMWARE_DISCUS,
 } DistroType;
 
 typedef enum

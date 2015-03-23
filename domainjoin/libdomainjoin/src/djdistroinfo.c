@@ -129,6 +129,19 @@ DWORD DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 1
             },
             {
+                DISTRO_VMWARE_DISCUS,
+                "/etc/discus-release",
+                /*
+                # The format of the line is something like:
+                #   VMware Discus Linux 1.0 (x86_64)
+                */
+                "^[[:space:]]*VMware Discus Linux ([[:digit:]]+(\\.[[:digit:]]+)?)"
+                "( \\(\\S+\\))?",
+                1,
+                -1,
+                1
+            },
+            {
                 DISTRO_RHEL,
                 "/etc/redhat-release",
                 /*

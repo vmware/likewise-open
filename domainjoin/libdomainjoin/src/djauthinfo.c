@@ -841,7 +841,7 @@ static void DoLeave(JoinProcessOptions *options, LWException **exc)
     }
 
 #ifndef ENABLE_MINIMAL
-    DJGetDaemonStatus("nscd", &nscdRunning, &inner);
+    DJGetDaemonStatus2("nscd", &nscdRunning, &inner);
     if(!LW_IS_OK(inner) && (inner->code == ERROR_SERVICE_NOT_FOUND ||
             inner->code == ERROR_FILE_NOT_FOUND))
     {
@@ -976,12 +976,15 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 
 #ifndef MINIMAL_JOIN
     BOOLEAN systemDcedExists = FALSE;
+    BOOLEAN bSystemdSupported = FALSE;
     int firstStart = 0;
     int firstStop = 0;
     int stopLaterOffset = 0;
 
     if (geteuid() == 0)
     {
+        LW_CLEANUP_CTERR(exc, DJCheckIfSystemdSupported(&bSystemdSupported));
+
         LW_CLEANUP_CTERR(exc, DJGetBaseDaemonPriorities(
                     &firstStart,
                     &firstStop,
@@ -991,18 +994,20 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                     firstStart - 2,
                     firstStop + stopLaterOffset * 1,
                     &LW_EXC));
-        LW_TRY(exc, DJManageDaemon("lwregd", TRUE,
-                    firstStart - 1,
-                    firstStop + stopLaterOffset * 2,
-                    &LW_EXC));
-        LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
-                    firstStart + 0,
-                    firstStop + stopLaterOffset * 0,
-                    &LW_EXC));
-        LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
-                    firstStart + 1,
-                    firstStop + stopLaterOffset * 0,
-                    &LW_EXC));
+        if (!bSystemdSupported)
+        {
+            LW_TRY(exc, DJManageDaemon("lwregd", TRUE,
+                        firstStart - 1,
+                        firstStop + stopLaterOffset * 2,
+                        &LW_EXC));
+            LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
+                        firstStart + 0,
+                        firstStop + stopLaterOffset * 0,
+                        &LW_EXC));
+            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
+                        firstStart + 1,
+                        firstStop + stopLaterOffset * 0,
+                        &LW_EXC));
 
         if (bEnableDcerpcd)
         {
@@ -1047,9 +1052,9 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 
             LW_TRY(exc, LwSmRefresh());
 
-	    DJ_LOG_VERBOSE("Stop running instance of dcerpc service");
-            LW_TRY(exc, DJStartStopDaemon("dcerpc", FALSE, &LW_EXC));
-        }
+            DJ_LOG_VERBOSE("Stop running instance of dcerpc service");
+                LW_TRY(exc, DJStartStopDaemon2("dcerpc", FALSE, &LW_EXC));
+            }
 
         LW_TRY(exc, DJManageDaemon("lsassd", TRUE,
                     firstStart + 2,
@@ -1061,7 +1066,7 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
         LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
                     21, 9, &LW_EXC));
 #endif
-
+    }
 cleanup:
 #endif
 

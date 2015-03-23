@@ -52,7 +52,7 @@ static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWExcepti
 
     /* Check for lwiauthd and likewise-open */
 
-    DJGetDaemonStatus("gpagentd", &running, &inner);
+    DJGetDaemonStatus2("gpagentd", &running, &inner);
     if (!LW_IS_OK(inner) && inner->code == ERROR_SERVICE_NOT_FOUND)
     {
         /* The gpagentd may not be installed so ignore */
@@ -109,7 +109,7 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
         goto cleanup;
     }
 
-    DJGetDaemonStatus("gpagentd", &running, &inner);
+    DJGetDaemonStatus2("gpagentd", &running, &inner);
     if (!LW_IS_OK(inner) && inner->code == ERROR_SERVICE_NOT_FOUND)
     {
         /* The gpagentd may not be installed so ignore */
@@ -154,7 +154,7 @@ void DJRestartIfRunning(PCSTR daemon, LWException **exc)
     BOOLEAN running;
     LWException *inner = NULL;
 
-    DJGetDaemonStatus(daemon, &running, &inner);
+    DJGetDaemonStatus2(daemon, &running, &inner);
     if(!LW_IS_OK(inner) && inner->code == ERROR_SERVICE_NOT_FOUND)
     {
         //The daemon isn't installed
@@ -166,9 +166,9 @@ void DJRestartIfRunning(PCSTR daemon, LWException **exc)
         goto cleanup;
 
     DJ_LOG_INFO("Restarting '%s'", daemon);
-    LW_TRY(exc, DJStartStopDaemon(daemon, FALSE, &LW_EXC));
+    LW_TRY(exc, DJStartStopDaemon2(daemon, FALSE, &LW_EXC));
     DJ_LOG_INFO("Starting '%s'", daemon);
-    LW_TRY(exc, DJStartStopDaemon(daemon, TRUE, &LW_EXC));
+    LW_TRY(exc, DJStartStopDaemon2(daemon, TRUE, &LW_EXC));
 
 cleanup:
     LW_HANDLE(&inner);
@@ -343,7 +343,7 @@ DJManageDaemons(
     {
         //Shutdown pwgr (a nscd-like daemon) on HP-UX because it only handles
         //usernames up to 8 characters in length.
-        LW_TRY(exc, DJStartStopDaemon("pwgr", FALSE, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon2("pwgr", FALSE, &LW_EXC));
         LW_CLEANUP_CTERR(exc, CTRunSedOnFile(PWGRD, PWGRD, FALSE, "s/=1/=0/"));
     }
 

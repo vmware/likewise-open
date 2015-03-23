@@ -27,7 +27,8 @@ make()
        src/djsshconf.c    \
        src/djddns.c \
        src/djdaemonmgr.c \
-       src/djdaemonmgr_nonmac.c"
+       src/djdaemonmgr_nonmac.c \
+       src/djdaemonmgr_systemd.c"
 
     mk_library \
 	LIB=domainjoin \

@@ -597,7 +597,7 @@ LwLdapBindDirectorySasl(
     dwError = ldap_sasl_interactive_bind_s(
                   ld,
                   NULL,
-                  "GSS-SPNEGO",
+                  "GSSAPI", // "GSS-SPNEGO"
                   NULL,
                   NULL,
                   LDAP_SASL_QUIET,

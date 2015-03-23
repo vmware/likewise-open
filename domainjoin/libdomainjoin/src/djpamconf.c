@@ -2450,6 +2450,11 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
                 LW_CLEANUP_CTERR(exc, AddOption(conf, line, "try_first_pass"));
             }
 
+            if (distro->distro == DISTRO_VMWARE_DISCUS)
+            {
+                LW_CLEANUP_CTERR(exc, AddOption(conf, line, "unknown_ok"));
+            }
+
             line = newLine;
             lineObj = &conf->lines[newLine];
             GetModuleControl(lineObj, &module, &control);
@@ -3303,13 +3308,32 @@ void DJUpdatePamConf(const char *testPrefix,
         }
         if(!strcmp(services[i], "system-auth"))
         {
-            /* Centos uses system-auth only as an include file. We should
-             * not directly try to enable lsass for this entry point because
-             * we want to insert "session sufficient pam_lsass" in
-             * gdm instead.
-             */
-            DJ_LOG_INFO("Not directly enabling pam entry point 'system-auth'");
-            continue;
+            if (distro.distro != DISTRO_VMWARE_DISCUS)
+            {
+                /* Centos uses system-auth only as an include file. We should
+                 * not directly try to enable lsass for this entry point because
+                 * we want to insert "session sufficient pam_lsass" in
+                 * gdm instead.
+                 */
+                DJ_LOG_INFO("Not directly enabling pam entry point 'system-auth'");
+                continue;
+            }
+        }
+        if(!strcmp(services[i], "systemd-user"))
+        {
+            if (distro.distro == DISTRO_VMWARE_DISCUS)
+            {
+                DJ_LOG_INFO("Not directly enabling pam entry point 'systemd-user'");
+                continue;
+            }
+        }
+        if(!strcmp(services[i], "other"))
+        {
+            if (distro.distro == DISTRO_VMWARE_DISCUS)
+            {
+                DJ_LOG_INFO("Not directly enabling pam entry point 'other'");
+                continue;
+            }
         }
         if(!strcmp(services[i], "common-session"))
         {

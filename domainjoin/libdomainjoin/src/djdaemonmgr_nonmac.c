@@ -40,6 +40,32 @@ static PSTR pszUpdateRcDFilePath = "/usr/sbin/update-rc.d";
 
 #define DAEMON_BINARY_SEARCH_PATH "/usr/local/sbin:/usr/local/bin:/usr/dt/bin:/opt/dce/sbin:/usr/sbin:/usr/bin:/sbin:/bin:" BINDIR ":" SBINDIR
 
+static
+void
+DJGetDaemonStatus(
+    PCSTR pszDaemonPath,
+    PBOOLEAN pbStarted,
+    LWException **exc
+    );
+
+static
+void
+DJStartStopDaemon(
+    PCSTR pszDaemonName,
+    BOOLEAN bStatus,
+    LWException **exc
+    );
+
+static
+void
+DJConfigureForDaemonRestart(
+    PCSTR pszDaemonName,
+    BOOLEAN bStatus,
+    int startPriority,
+    int stopPriority,
+    LWException **exc
+    );
+
 DWORD
 GetInitScriptDir(PSTR *store)
 {
@@ -56,6 +82,33 @@ GetInitScriptDir(PSTR *store)
 
 static void FindDaemonScript(PCSTR name, PSTR *path, LWException **exc);
 
+void
+DJGetDaemonStatus2(
+    PCSTR         pszDaemonName,
+    PBOOLEAN      pbStarted,
+    LWException** exc
+    )
+{
+    BOOLEAN bSystemdSupported = FALSE;
+    BOOLEAN bStarted = FALSE;
+
+    LW_CLEANUP_CTERR(exc, DJCheckIfSystemdSupported(&bSystemdSupported));
+
+    if (bSystemdSupported)
+    {
+        LW_CLEANUP_CTERR(exc, DJGetDaemonStatusSystemd(pszDaemonName, &bStarted));
+    }
+    else
+    {
+        LW_TRY(exc, DJGetDaemonStatus(pszDaemonName, &bStarted, &LW_EXC));
+    }
+
+cleanup:
+
+    *pbStarted = bStarted;
+}
+
+static
 void
 DJGetDaemonStatus(
     PCSTR pszDaemonName,
@@ -266,6 +319,38 @@ cleanup:
 }
 
 void
+DJStartStopDaemon2(
+    PCSTR pszDaemonName,
+    BOOLEAN bStatus,
+    LWException **exc
+    )
+{
+    BOOLEAN bSystemdSupported = FALSE;
+
+    LW_CLEANUP_CTERR(exc, DJCheckIfSystemdSupported(&bSystemdSupported));
+
+    if (bSystemdSupported)
+    {
+        LW_TRY(exc, DJStartStopDaemonSystemd(
+                                    pszDaemonName,
+                                    bStatus,
+                                    &LW_EXC));
+    }
+    else
+    {
+        LW_TRY(exc, DJStartStopDaemon(
+                                    pszDaemonName,
+                                    bStatus,
+                                    &LW_EXC));
+    }
+
+cleanup:
+
+    return;
+}
+
+static
+void
 DJStartStopDaemon(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
@@ -311,7 +396,7 @@ DJStartStopDaemon(
 
     for(retry = 0; retry < 20; retry++)
     {
-        LW_TRY(exc, DJGetDaemonStatus(pszDaemonName, &bStarted, &LW_EXC));
+        LW_TRY(exc, DJGetDaemonStatus2(pszDaemonName, &bStarted, &LW_EXC));
         if (bStarted == bStatus)
             break;
         sleep(1);
@@ -575,6 +660,42 @@ cleanup:
     CT_SAFE_FREE_STRING(searchExpression);
 }
 
+void
+DJConfigureForDaemonRestart2(
+    PCSTR pszDaemonName,
+    BOOLEAN bStatus,
+    int startPriority,
+    int stopPriority,
+    LWException **exc
+    )
+{
+    BOOLEAN bSystemdSupported = FALSE;
+
+    LW_CLEANUP_CTERR(exc, DJCheckIfSystemdSupported(&bSystemdSupported));
+
+    if (bSystemdSupported)
+    {
+        LW_TRY(exc, DJConfigureForDaemonRestartSystemd(
+                                    pszDaemonName,
+                                    bStatus,
+                                    &LW_EXC));
+    }
+    else
+    {
+        LW_TRY(exc, DJConfigureForDaemonRestart(
+                                    pszDaemonName,
+                                    bStatus,
+                                    startPriority,
+                                    stopPriority,
+                                    &LW_EXC));
+    }
+
+cleanup:
+
+    return;
+}
+
+static
 void
 DJConfigureForDaemonRestart(
     PCSTR pszDaemonName,
@@ -941,7 +1062,7 @@ DJManageDaemon(
     // Check for the existence of the daemon prior to doing anything.
     // notice that we are using the private version so that if we fail,
     // our inner exception will be the one that was tossed due to the failure.
-    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
+    LW_TRY(exc, DJGetDaemonStatus2(pszName, &bStarted, &LW_EXC));
 
     // Verify that daemon is configured as needed for running after restart,
     // this also sets up any service control manager settings. On newer
@@ -949,14 +1070,14 @@ DJManageDaemon(
     // daemon as a result of the service configuration. It is okay to have
     // this function called more than once for a given daemon, if it is already
     // running or stopped it will remain the same with the same service pid.
-    LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, startPriority, stopPriority, &LW_EXC));
+    LW_TRY(exc, DJConfigureForDaemonRestart2(pszName, bStatus, startPriority, stopPriority, &LW_EXC));
 
     // Reverify the daemon status now, it may be started or stopped as needed by the step above.
-    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
+    LW_TRY(exc, DJGetDaemonStatus2(pszName, &bStarted, &LW_EXC));
 
     // If we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
-        LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
+        LW_TRY(exc, DJStartStopDaemon2(pszName, bStatus, &LW_EXC));
     }
 
 cleanup:

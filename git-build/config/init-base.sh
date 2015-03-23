@@ -342,6 +342,36 @@ daemon_start() {
     if [ -n "${STARTHOOK}" ]; then
 	${STARTHOOK}
     fi
+	
+    if [ -f /etc/sysconfig/language ]; then
+
+        . /etc/sysconfig/language
+		
+		# /etc/sysconfig/language defines RC_LC_ variables.
+		# RC_LANG is set for all user environments.
+		# root uses RC_LANG if ROOT_USES_LANG is set to "yes"
+		#
+		# If ROOT_USES_LANG is set to "ctype", root uses LC_CTYPE
+		#
+		# If LC_ALL is set, it will over-ride all LC_ variables
+		#
+		# If LC_ALL is not set and LANG is set, it will be the default
+		# value for all LC_ variables
+
+        unset LC_ALL
+        lcvars="LANG LC_CTYPE LC_ALL" 
+        for lcvar in $lcvars
+        do
+            eval lcval="\$RC_$lcvar"
+
+            if test -n "$lcval"; then
+               eval $lcvar="\$RC_$lcvar"
+               export $lcvar
+            fi
+        done
+	   
+	unset lcvars lcvar lcval
+    fi
 
     case "${PLATFORM}" in 
         REDHAT)
@@ -393,7 +423,7 @@ daemon_start() {
                 fi
                 echo -n " [memory reservation set] "
                 # start likewise in resource pool
-                /sbin/watchdog.sh ++memreliable -d -s ${LWSMD_TAG} ${PROG_BIN} ${PROG_SCHED_PARAM} ${PROG_ARGS}
+                /sbin/watchdog.sh ++mincritical,memreliable -d -s ${LWSMD_TAG} ${PROG_BIN} ${PROG_SCHED_PARAM} ${PROG_ARGS}
             else
                 ${PROG_BIN} ${PROG_ARGS}
             fi

@@ -34,7 +34,7 @@
 #include "djmodule.h"
 
 void
-DJGetDaemonStatus(
+DJGetDaemonStatus2(
     PCSTR pszDaemonPath,
     PBOOLEAN pbStarted,
     LWException **exc
@@ -73,13 +73,40 @@ DJManageDaemons(
     );
 
 void
-DJStartStopDaemon(
+DJStartStopDaemon2(
     PCSTR pszDaemonName,
     BOOLEAN bStatus,
     LWException **exc
     );
 
 void DJRestartIfRunning(PCSTR daemon, LWException **exc);
+
+// djdaemonmgr_systemd.c
+
+DWORD
+DJCheckIfSystemdSupported(
+    BOOLEAN* pbSupported
+    );
+
+DWORD
+DJGetDaemonStatusSystemd(
+    PCSTR         pszDaemonName,
+    PBOOLEAN      pbStarted
+    );
+
+void
+DJStartStopDaemonSystemd(
+    PCSTR         pszDaemonName,
+    BOOLEAN       bStatus,
+    LWException** exc
+    );
+
+void
+DJConfigureForDaemonRestartSystemd(
+    PCSTR pszDaemonName,
+    BOOLEAN bStatus,
+    LWException **exc
+    );
 
 extern const JoinModule DJDaemonStopModule;
 
