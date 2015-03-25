@@ -3,8 +3,9 @@ Description=Likewise Service Control Manager Service
 After=syslog.target network.target
 
 [Service]
-Type=simple
-ExecStart=PREFIX_DIR/sbin/lwsmd
+Type=forking
+ExecStart=PREFIX_DIR/sbin/lwsmd --start-as-daemon --syslog
+ExecStartPost=PREFIX_DIR/bin/lwsm autostart
 
 [Install]
 WantedBy=multi-user.target
