@@ -111,7 +111,8 @@ common_files()
             "${LW_CONFIGDIR}/*" \
             "${MK_LIBDIR}/*${MK_LIB_EXT}" \
             "${MK_LIBDIR}/*${MK_LIB_EXT}.*" \
-            "${MK_LIBDIR}/gss/*${MK_DLO_EXT}" \
+            "${MK_GSS_CONFDIR}/*" \
+            "${MK_GSS_LIBDIR}/*${MK_DLO_EXT}" \
             "${MK_LIBDIR}/lwsm-loader/*${MK_DLO_EXT}" \
             "/lib/systemd/system/*" \
             "${MK_SYSCONFDIR}/*" \

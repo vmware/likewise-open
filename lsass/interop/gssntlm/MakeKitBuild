@@ -2,7 +2,7 @@ make()
 {
     mk_dlo \
 	DLO="libgssapi_ntlm" \
-	INSTALLDIR="${MK_LIBDIR}/gss" \
+	INSTALLDIR="${MK_GSS_LIBDIR}" \
 	SOURCES="gssntlm.c" \
 	INCLUDEDIRS=". ../../include" \
 	HEADERDEPS="gssapi.h lwadvapi.h" \
@@ -10,5 +10,5 @@ make()
 
     mk_install_file \
         FILE=mech \
-        INSTALLDIR="${MK_SYSCONFDIR}/gss"
+        INSTALLDIR="${MK_GSS_CONFDIR}"
 }

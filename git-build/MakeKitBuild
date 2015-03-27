@@ -18,6 +18,8 @@ defaults()
 {
     MK_PREFIX="/opt/likewise"
     MK_SYSCONFDIR="/etc/likewise"
+    MK_GSS_CONFDIR="/opt/likewise/etc/gss"
+    MK_GSS_LIBDIR="/opt/likewise/lib64/gss"
     MK_LOCALSTATEDIR="/var"
     MK_DATADIR="/opt/likewise/share"
     MK_DOCDIR="/usr/share/doc/likewise"
@@ -104,6 +106,13 @@ option()
         VAR="LW_USE_SERVICE_CONTAINERS" \
         DEFAULT="$_default_USE_SERVICE_CONTAINERS" \
         HELP="Use service containers"
+
+    case "$LW_DEVICE_PROFILE" in
+        discus)
+            MK_GSS_CONFDIR="/etc/gss"
+            MK_GSS_LIBDIR="/usr/lib64/gss"
+            ;;
+    esac
 }
 
 configure()
