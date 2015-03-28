@@ -18,7 +18,7 @@ defaults()
 {
     MK_PREFIX="/opt/likewise"
     MK_SYSCONFDIR="/etc/likewise"
-    MK_GSS_CONFDIR="/opt/likewise/etc/gss"
+    MK_GSS_CONFDIR="/etc/likewise/gss"
     MK_GSS_LIBDIR="/opt/likewise/lib64/gss"
     MK_LOCALSTATEDIR="/var"
     MK_DATADIR="/opt/likewise/share"
