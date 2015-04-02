@@ -73,14 +73,14 @@ VmDirFindObjects(
     DWORD i = 0;
 
     LOG_FUNC_ENTER;
+
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
     
-    if (!hProvider || !pppObjects || !dwCount)
+    if (!pContext || !pppObjects || !dwCount)
     {
         dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     dwError = LwAllocateMemory(
                     sizeof(PLSA_SECURITY_OBJECT) * dwCount,
@@ -1067,13 +1067,14 @@ VmDirCheckUserInList(
 
     LOG_FUNC_ENTER;
 
-    if (!hProvider || !pszLoginId || !pszListName)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
+
+    if (!pContext || !pszLoginId || !pszListName)
     {
         dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
 
     LSA_LOG_INFO(
                 "VmDirCheckUserInList: Checking user (%s) in list (%s)",
@@ -1304,7 +1305,11 @@ cleanup:
 
 error:
 
-    // TODO : Remove home directory if we created it
+    if (bHomedirCreated)
+    {
+        // TODO : Remove home directory if we created it
+       ;
+    }
 
     goto cleanup;
 }

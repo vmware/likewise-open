@@ -6,231 +6,376 @@
 
 static
 DWORD
+VmAfdGetDCInfo(
+    HANDLE hConnection,
+    HKEY   hKeyRoot,
+    PSTR*  ppszDomainName,
+    PSTR*  ppszDCName
+    );
+
+static
+DWORD
 VmDirRegReadString(
-	HANDLE hConnection,
-	HKEY   hKey,
-	PCSTR  pszKey,
-	PSTR*  ppszValue
-	);
+    HANDLE hConnection,
+    HKEY   hKey,
+    PCSTR  pszKey,
+    PSTR*  ppszValue
+    );
+
+static
+DWORD
+VmDirRegReadInt32(
+    HANDLE hConnection,
+    HKEY   hKey,
+    PCSTR  pszName,
+    PDWORD pdwValue
+    );
 
 static
 VOID
 VmDirFreeBindInfo(
-	PVMDIR_BIND_INFO pBindInfo
-	);
+    PVMDIR_BIND_INFO pBindInfo
+    );
 
 DWORD
 VmDirCreateBindInfo(
-	PVMDIR_BIND_INFO* ppBindInfo
-	)
+    PVMDIR_BIND_INFO* ppBindInfo
+    )
 {
-	DWORD dwError = 0;
-	PVMDIR_BIND_INFO pBindInfo = NULL;
-	HANDLE hConnection = NULL;
-	HKEY   hKeyRoot = NULL;
-	HKEY   hKeyVmDir = NULL;
-	HKEY   hKeyCreds = NULL;
-	PCSTR  pszKey_uri      = VMDIR_REG_KEY_BIND_INFO_URI;
-	PCSTR  pszKey_binddn   = VMDIR_REG_KEY_BIND_INFO_BIND_DN;
-	PCSTR  pszKey_password = VMDIR_REG_KEY_BIND_INFO_PASSWORD;
+    DWORD dwError = 0;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
+    HANDLE hConnection = NULL;
+    HKEY   hKeyRoot = NULL;
+    HKEY   hKeyVmDir = NULL;
+    PCSTR  pszKey_binddn   = VMDIR_REG_KEY_BIND_INFO_BIND_DN;
+    PCSTR  pszKey_password = VMDIR_REG_KEY_BIND_INFO_PASSWORD;
+    PSTR   pszDCName = NULL;
+    PSTR   pszDomainName = NULL;
 
-	dwError = RegOpenServer(&hConnection);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = RegOpenServer(&hConnection);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = RegOpenKeyExA(
-					hConnection,
-					NULL,
-					HKEY_THIS_MACHINE,
-					0,
-					KEY_READ,
-					&hKeyRoot);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    NULL,
+                    HKEY_THIS_MACHINE,
+                    0,
+                    KEY_READ,
+                    &hKeyRoot);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = RegOpenKeyExA(
-					hConnection,
-					hKeyRoot,
-					VMDIR_REG_KEY,
-					0,
-					KEY_READ,
-					&hKeyVmDir);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VmAfdGetDCInfo(
+                    hConnection,
+                    hKeyRoot,
+                    &pszDomainName,
+                    &pszDCName);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = RegOpenKeyExA(
-					hConnection,
-					hKeyRoot,
-					VMDIR_REG_KEY_CREDS,
-					0,
-					KEY_READ,
-					&hKeyCreds);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    hKeyRoot,
+                    VMDIR_REG_KEY,
+                    0,
+                    KEY_READ,
+                    &hKeyVmDir);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = LwAllocateMemory(sizeof(VMDIR_BIND_INFO), (PVOID*)&pBindInfo);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateMemory(sizeof(VMDIR_BIND_INFO), (PVOID*)&pBindInfo);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	pBindInfo->refCount = 1;
+    pBindInfo->refCount = 1;
 
-	dwError = VmDirRegReadString(
-					hConnection,
-					hKeyCreds,
-					pszKey_uri,
-					&pBindInfo->pszURI);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    pBindInfo->pszDomainFqdn = pszDomainName;
+    pszDomainName = NULL;
 
-	dwError = VmDirRegReadString(
-					hConnection,
-					hKeyCreds,
-					pszKey_binddn,
-					&pBindInfo->pszBindDN);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateStringPrintf(
+                    &pBindInfo->pszURI,
+                    "ldap://%s",
+                    pszDCName);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = VmDirRegReadString(
-					hConnection,
-					hKeyCreds,
-					pszKey_password,
-					&pBindInfo->pszPassword);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VmDirRegReadString(
+                    hConnection,
+                    hKeyVmDir,
+                    pszKey_binddn,
+                    &pBindInfo->pszBindDN);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = VmDirGetDomainFromDN(
-					pBindInfo->pszBindDN,
-					&pBindInfo->pszDomainFqdn);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VmDirRegReadString(
+                    hConnection,
+                    hKeyVmDir,
+                    pszKey_password,
+                    &pBindInfo->pszPassword);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = LwAllocateString(
-					pBindInfo->pszDomainFqdn,
-					&pBindInfo->pszDomainShort);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString(
+                    pBindInfo->pszDomainFqdn,
+                    &pBindInfo->pszDomainShort);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = VmDirGetDefaultSearchBase(
-					pBindInfo->pszBindDN,
-					&pBindInfo->pszSearchBase);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VmDirGetDefaultSearchBase(
+                    pBindInfo->pszBindDN,
+                    &pBindInfo->pszSearchBase);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppBindInfo = pBindInfo;
+    *ppBindInfo = pBindInfo;
 
 cleanup:
 
-	if (hKeyCreds)
-	{
-		RegCloseKey(hConnection, hKeyCreds);
-	}
+    if (hKeyVmDir)
+    {
+        RegCloseKey(hConnection, hKeyVmDir);
+    }
 
-	if (hKeyVmDir)
-	{
-		RegCloseKey(hConnection, hKeyVmDir);
-	}
+    if (hKeyRoot)
+    {
+        RegCloseKey(hConnection, hKeyRoot);
+    }
 
-	if (hKeyRoot)
-	{
-		RegCloseKey(hConnection, hKeyRoot);
-	}
+    if (hConnection)
+    {
+        RegCloseServer(hConnection);
+    }
 
-	if (hConnection)
-	{
-		RegCloseServer(hConnection);
-	}
+    LW_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszDCName);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppBindInfo = NULL;
+    *ppBindInfo = NULL;
 
-	if (pBindInfo)
-	{
-		VmDirFreeBindInfo(pBindInfo);
-	}
+    if (pBindInfo)
+    {
+        VmDirFreeBindInfo(pBindInfo);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 PVMDIR_BIND_INFO
 VmDirAcquireBindInfo(
-	PVMDIR_BIND_INFO pBindInfo
-	)
+    PVMDIR_BIND_INFO pBindInfo
+    )
 {
-	if (pBindInfo)
-	{
-		LwInterlockedIncrement(&pBindInfo->refCount);
-	}
+    if (pBindInfo)
+    {
+        LwInterlockedIncrement(&pBindInfo->refCount);
+    }
 
-	return pBindInfo;
+    return pBindInfo;
 }
 
 VOID
 VmDirReleaseBindInfo(
-	PVMDIR_BIND_INFO pBindInfo
-	)
+    PVMDIR_BIND_INFO pBindInfo
+    )
 {
-	if (pBindInfo && (0 == LwInterlockedDecrement(&pBindInfo->refCount)))
-	{
-		VmDirFreeBindInfo(pBindInfo);
-	}
+    if (pBindInfo && (0 == LwInterlockedDecrement(&pBindInfo->refCount)))
+    {
+        VmDirFreeBindInfo(pBindInfo);
+    }
+}
+
+static
+DWORD
+VmAfdGetDCInfo(
+    HANDLE hConnection,
+    HKEY   hKeyRoot,
+    PSTR*  ppszDomainName,
+    PSTR*  ppszDCName
+    )
+{
+    DWORD dwError = 0;
+    HKEY  hKeyVmAfd = NULL;
+    PCSTR pszKey_DomainName  = VMAFD_REG_KEY_DOMAIN_NAME;
+    PCSTR pszKey_DomainState = VMAFD_REG_KEY_DOMAIN_STATE;
+    PCSTR pszKey_DCName = VMAFD_REG_KEY_DC_NAME;
+    DWORD dwDomainState = 0;
+    PSTR  pszDomainName = NULL;
+    PSTR  pszDCName = NULL;
+
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    hKeyRoot,
+                    VMAFD_REG_KEY,
+                    0,
+                    KEY_READ,
+                    &hKeyVmAfd);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirRegReadInt32(
+                    hConnection,
+                    hKeyVmAfd,
+                    pszKey_DomainState,
+                    &dwDomainState);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    switch (dwDomainState)
+    {
+        case 1: // domain controller
+        case 2: // joined client
+            break;
+        default:
+            dwError = ERROR_NOT_JOINED;
+            break;
+    }
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirRegReadString(
+                    hConnection,
+                    hKeyVmAfd,
+                    pszKey_DomainName,
+                    &pszDomainName);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirRegReadString(
+                    hConnection,
+                    hKeyVmAfd,
+                    pszKey_DCName,
+                    &pszDCName);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    *ppszDomainName = pszDomainName;
+    *ppszDCName = pszDCName;
+
+cleanup:
+
+    if (hKeyVmAfd)
+    {
+         RegCloseKey(hConnection, hKeyVmAfd);
+    }
+
+    return dwError;
+
+error:
+
+    if (dwError == LWREG_ERROR_NO_SUCH_KEY_OR_VALUE)
+    {
+        dwError = ERROR_NOT_JOINED;
+    }
+
+    if (ppszDCName)
+    {
+        *ppszDCName = NULL;
+    }
+    if (ppszDomainName)
+    {
+        *ppszDomainName = NULL;
+    }
+
+    LW_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszDCName);
+
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirRegReadString(
-	HANDLE hConnection,
-	HKEY   hKey,
-	PCSTR  pszName,
-	PSTR*  ppszValue
-	)
+    HANDLE hConnection,
+    HKEY   hKey,
+    PCSTR  pszName,
+    PSTR*  ppszValue
+    )
 {
-	DWORD dwError = LW_ERROR_SUCCESS;
-	DWORD dwType = 0;
-	CHAR  szValue[MAX_VALUE_LENGTH];
-	DWORD dwSize = sizeof(szValue);
-	PSTR  pszValue = NULL;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwType = 0;
+    CHAR  szValue[MAX_VALUE_LENGTH];
+    DWORD dwSize = sizeof(szValue);
+    PSTR  pszValue = NULL;
 
-	memset(&szValue[0], 0, dwSize);
+    memset(&szValue[0], 0, dwSize);
 
-	dwError = RegGetValueA(
-				hConnection,
-				hKey,
-				NULL,
-				pszName,
-				RRF_RT_REG_SZ,
-				&dwType,
-				szValue,
-				&dwSize);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = RegGetValueA(
+                hConnection,
+                hKey,
+                NULL,
+                pszName,
+                RRF_RT_REG_SZ,
+                &dwType,
+                szValue,
+                &dwSize);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwError = LwAllocateString((dwSize > 0 ? szValue : ""), &pszValue);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString((dwSize > 0 ? szValue : ""), &pszValue);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppszValue = pszValue;
+    *ppszValue = pszValue;
 
 cleanup:
 
-	return dwError;
+    return dwError;
 
 error:
 
-	if (ppszValue)
-	{
-		*ppszValue = NULL;
-	}
+    if (ppszValue)
+    {
+        *ppszValue = NULL;
+    }
 
-	LW_SAFE_FREE_STRING(pszValue);
+    LW_SAFE_FREE_STRING(pszValue);
 
-	goto cleanup;
+    goto cleanup;
+}
+
+static
+DWORD
+VmDirRegReadInt32(
+    HANDLE hConnection,
+    HKEY   hKey,
+    PCSTR  pszName,
+    PDWORD pdwValue
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwType = 0;
+    DWORD dwValue = 0;
+    DWORD dwSize = sizeof(dwValue);
+
+    dwError = RegGetValueA(
+                hConnection,
+                hKey,
+                NULL,
+                pszName,
+                RRF_RT_REG_DWORD,
+                &dwType,
+                (PVOID)&dwValue,
+                &dwSize);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    *pdwValue = dwValue;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pdwValue)
+    {
+        *pdwValue = 0;
+    }
+
+    goto cleanup;
 }
 
 static
 VOID
 VmDirFreeBindInfo(
-	PVMDIR_BIND_INFO pBindInfo
-	)
+    PVMDIR_BIND_INFO pBindInfo
+    )
 {
-	if (pBindInfo)
-	{
-		LW_SECURE_FREE_STRING(pBindInfo->pszURI);
-		LW_SECURE_FREE_STRING(pBindInfo->pszBindDN);
-		LW_SECURE_FREE_STRING(pBindInfo->pszPassword);
-		LW_SAFE_FREE_STRING(pBindInfo->pszDomainFqdn);
-		LW_SAFE_FREE_STRING(pBindInfo->pszDomainShort);
-		LW_SAFE_FREE_STRING(pBindInfo->pszSearchBase);
+    if (pBindInfo)
+    {
+        LW_SECURE_FREE_STRING(pBindInfo->pszURI);
+        LW_SECURE_FREE_STRING(pBindInfo->pszBindDN);
+        LW_SECURE_FREE_STRING(pBindInfo->pszPassword);
+        LW_SAFE_FREE_STRING(pBindInfo->pszDomainFqdn);
+        LW_SAFE_FREE_STRING(pBindInfo->pszDomainShort);
+        LW_SAFE_FREE_STRING(pBindInfo->pszSearchBase);
 
-		LwFreeMemory(pBindInfo);
-	}
+        LwFreeMemory(pBindInfo);
+    }
 }

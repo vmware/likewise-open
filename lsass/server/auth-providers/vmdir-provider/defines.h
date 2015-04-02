@@ -7,12 +7,16 @@
 //
 // Registry keys
 //
-#define VMDIR_REG_KEY "Services\\lsass\\Parameters\\Providers\\VmDir"
+#define VMDIR_REG_KEY "Services\\vmdir"
 
-#define VMDIR_REG_KEY_CREDS VMDIR_REG_KEY "\\" "Credentials"
-#define VMDIR_REG_KEY_BIND_INFO_URI       "URI"
-#define VMDIR_REG_KEY_BIND_INFO_BIND_DN   "BindDN"
-#define VMDIR_REG_KEY_BIND_INFO_PASSWORD  "Password"
+#define VMDIR_REG_KEY_BIND_INFO_BIND_DN   "dcAccountDN"
+#define VMDIR_REG_KEY_BIND_INFO_PASSWORD  "dcAccountPassword"
+
+#define VMAFD_REG_KEY "Services\\vmafd\\Parameters"
+
+#define VMAFD_REG_KEY_DOMAIN_STATE "DomainState"
+#define VMAFD_REG_KEY_DOMAIN_NAME  "DomainName"
+#define VMAFD_REG_KEY_DC_NAME      "DCName"
 
 #define BAIL_ON_VMDIR_ERROR(dwError) \
         if (dwError != LW_ERROR_SUCCESS) \
@@ -40,16 +44,12 @@
 
 #define DEFAULT_LDAP_QUERY_TIMEOUT_SECS  15
 
-// #define VMDIR_OBJ_CLASS_USER             "user"
-// #define VMDIR_OBJ_CLASS_GROUP            "group"
-#define VMDIR_OBJ_CLASS_USER           "vmIdentity-User"
-#define VMDIR_OBJ_CLASS_GROUP          "vmIdentity-Group"
+#define VMDIR_OBJ_CLASS_USER             "user"
+#define VMDIR_OBJ_CLASS_GROUP            "group"
 
-// #define VMDIR_ATTR_NAME_ACCOUNT          "sAMAccountName"
-#define VMDIR_ATTR_NAME_ACCOUNT          "vmIdentity-Account"
+#define VMDIR_ATTR_NAME_ACCOUNT          "sAMAccountName"
 #define VMDIR_ATTR_NAME_DN               "distinguishedName"
-// #define VMDIR_ATTR_NAME_OBJECTSID        "objectSid"
-#define VMDIR_ATTR_NAME_OBJECTSID        "vmwObjectSid"
+#define VMDIR_ATTR_NAME_OBJECTSID        "objectSid"
 // #define VMDIR_ATTR_NAME_UID              "uidNumber"
 // #define VMDIR_ATTR_NAME_GID              "gidNumber"
 // #define VMDIR_ATTR_NAME_PRIMARY_GID      "primaryGroupID"
