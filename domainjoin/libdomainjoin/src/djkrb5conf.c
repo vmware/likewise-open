@@ -1027,9 +1027,9 @@ Krb5JoinDomain(Krb5Entry *conf,
     char *mappingString = NULL;
     size_t i;
     const char *wantEncTypes[] = {
+        "AES256-CTS",
+        "AES128-CTS",
         "RC4-HMAC",
-        "DES-CBC-MD5",
-	"DES-CBC-CRC",
     };
     memset(&trusts, 0, sizeof(trusts));
 
@@ -1065,7 +1065,7 @@ Krb5JoinDomain(Krb5Entry *conf,
                 wantEncTypes,
                 sizeof(wantEncTypes)/sizeof(wantEncTypes[0])));
     GCE(ceError = SetNodeValue( libdefaults, "preferred_enctypes",
-                "RC4-HMAC DES-CBC-MD5 DES-CBC-CRC" ));
+                "AES256-CTS AES128-CTS RC4-HMAC" ));
     GCE(ceError = SetNodeValue( libdefaults, "dns_lookup_kdc", "true" ));
 
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_kdc_hostname",

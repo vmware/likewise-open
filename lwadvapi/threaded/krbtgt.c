@@ -100,7 +100,7 @@ LwKrb5GetTgt(
                 pszCcPath,
                 pdwGoodUntilTime,
                 pPreauthTypes,
-                sizeof(pPreauthTypes) / sizeof(pPreauthTypes[0]),
+                0, //sizeof(pPreauthTypes) / sizeof(pPreauthTypes[0]),
                 NULL,
                 NULL);
 }

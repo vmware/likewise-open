@@ -1796,9 +1796,12 @@ LsaEncryptPasswordBufferEx(
     dwError = LsaRandBytes((unsigned char*)InitValue, sizeof(InitValue));
     BAIL_ON_LSA_ERROR(dwError);
 
+    /* Session key should be 16 bytes according to Microsoft's MS-SAMR.pdf
+     * in section 3.2.2.2 MD5 Usage. RC4 happens to have a 16 byte session key.
+     */
     MD5_Init(&ctx);
     MD5_Update(&ctx, InitValue, 16);
-    MD5_Update(&ctx, pSessionKey, dwSessionKeyLen);
+    MD5_Update(&ctx, pSessionKey, dwSessionKeyLen > 16 ? 16 : dwSessionKeyLen);
     MD5_Final(DigestedSessKey, &ctx);
 
     RC4_set_key(&rc4_key, 16, (unsigned char*)DigestedSessKey);

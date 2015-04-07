@@ -322,8 +322,8 @@ KtKrb5AddKeyA(
     DWORD  dwKeyVer
     )
 {
-    const krb5_enctype enc[] = { ENCTYPE_DES_CBC_CRC,
-                                 ENCTYPE_DES_CBC_MD5,
+    const krb5_enctype enc[] = { ENCTYPE_AES256_CTS_HMAC_SHA1_96,
+                                 ENCTYPE_AES128_CTS_HMAC_SHA1_96,
                                  ENCTYPE_ARCFOUR_HMAC };
     DWORD dwError = ERROR_SUCCESS;
     PSTR pszBaseDn = NULL;
