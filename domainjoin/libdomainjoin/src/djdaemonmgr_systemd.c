@@ -52,7 +52,7 @@ DJCheckIfSystemdSupported(
 
     LW_CLEANUP_CTERR(&exc, DJGetDistroInfo("", &distro));
 
-    if (distro.distro == DISTRO_VMWARE_DISCUS)
+    if (distro.distro == DISTRO_VMWARE_PHOTON)
     {
         bSupported = TRUE;
     }

@@ -2450,7 +2450,7 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
                 LW_CLEANUP_CTERR(exc, AddOption(conf, line, "try_first_pass"));
             }
 
-            if (distro->distro == DISTRO_VMWARE_DISCUS)
+            if (distro->distro == DISTRO_VMWARE_PHOTON)
             {
                 LW_CLEANUP_CTERR(exc, AddOption(conf, line, "unknown_ok"));
             }
@@ -3308,7 +3308,7 @@ void DJUpdatePamConf(const char *testPrefix,
         }
         if(!strcmp(services[i], "system-auth"))
         {
-            if (distro.distro != DISTRO_VMWARE_DISCUS)
+            if (distro.distro != DISTRO_VMWARE_PHOTON)
             {
                 /* Centos uses system-auth only as an include file. We should
                  * not directly try to enable lsass for this entry point because
@@ -3321,7 +3321,7 @@ void DJUpdatePamConf(const char *testPrefix,
         }
         if(!strcmp(services[i], "systemd-user"))
         {
-            if (distro.distro == DISTRO_VMWARE_DISCUS)
+            if (distro.distro == DISTRO_VMWARE_PHOTON)
             {
                 DJ_LOG_INFO("Not directly enabling pam entry point 'systemd-user'");
                 continue;
@@ -3329,7 +3329,7 @@ void DJUpdatePamConf(const char *testPrefix,
         }
         if(!strcmp(services[i], "other"))
         {
-            if (distro.distro == DISTRO_VMWARE_DISCUS)
+            if (distro.distro == DISTRO_VMWARE_PHOTON)
             {
                 DJ_LOG_INFO("Not directly enabling pam entry point 'other'");
                 continue;
