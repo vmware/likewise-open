@@ -5,6 +5,15 @@
 #include "includes.h"
 
 static
+int
+VmDirSASLInteraction(
+    LDAP*    pLd,
+    unsigned flags,
+    PVOID    pDefaults,
+    PVOID    pIn
+    );
+
+static
 DWORD
 VmDirLdapGetDN(
 	LDAP*        pLd,
@@ -86,14 +95,15 @@ VmDirLdapGetStringArray(
 DWORD
 VmDirLdapInitialize(
 	PCSTR            pszURI,
-	PCSTR            pszBindDN,
+	PCSTR            pszUPN,
 	PCSTR            pszPassword,
 	LDAP**           ppLd
 	)
 {
 	DWORD dwError = 0;
-    const int ldapVer = LDAP_VERSION3;
-    BerValue  ldapBindInfo = {0};
+        const int ldapVer = LDAP_VERSION3;
+        VMDIR_SASL_INFO srpDefault = {0};
+        PSTR  pszUPN_local = NULL;
 	LDAP* pLd = NULL;
 
 	dwError = LwMapLdapErrorToLwError(
@@ -104,23 +114,39 @@ VmDirLdapInitialize(
 					ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
 	BAIL_ON_VMDIR_ERROR(dwError);
 
-	ldapBindInfo.bv_val = (PSTR)pszPassword;
-	ldapBindInfo.bv_len = strlen(pszPassword);
+	dwError = LwMapLdapErrorToLwError(
+					ldap_set_option(
+                                            pLd,
+                                            LDAP_OPT_X_SASL_NOCANON,
+                                            LDAP_OPT_ON));
+	BAIL_ON_VMDIR_ERROR(dwError);
+
+        dwError = LwAllocateString(pszUPN, &pszUPN_local);
+        BAIL_ON_VMDIR_ERROR(dwError);
+
+        LwStrToLower(pszUPN_local);
+
+	srpDefault.pszAuthName = pszUPN_local;
+
+	srpDefault.pszPassword = pszPassword;
 
 	dwError = LwMapLdapErrorToLwError(
-				ldap_sasl_bind_s(
+				ldap_sasl_interactive_bind_s(
 					pLd,
-					pszBindDN,
-					LDAP_SASL_SIMPLE,
-					&ldapBindInfo,
+					NULL,
+					"SRP",
 					NULL,
 					NULL,
-					NULL));
+					LDAP_SASL_QUIET,
+					&VmDirSASLInteraction,
+                                        &srpDefault));
 	BAIL_ON_VMDIR_ERROR(dwError);
 
 	*ppLd = pLd;
 
 cleanup:
+
+        LW_SAFE_FREE_STRING(pszUPN_local);
 
 	return dwError;
 
@@ -383,6 +409,47 @@ VmDirLdapClose(
 	)
 {
 	ldap_unbind_ext(pLd, NULL, NULL);
+}
+
+static
+int
+VmDirSASLInteraction(
+    LDAP*    pLd,
+    unsigned flags,
+    PVOID    pDefaults,
+    PVOID    pIn
+    )
+{
+    sasl_interact_t*                pInteract = pIn;
+    PVMDIR_SASL_INFO pDef = pDefaults;
+
+    while( (pDef != NULL) && (pInteract->id != SASL_CB_LIST_END) )
+    {
+        switch( pInteract->id )
+        {
+            case SASL_CB_GETREALM:
+                    pInteract->defresult = pDef->pszRealm;
+                    break;
+            case SASL_CB_AUTHNAME:
+                    pInteract->defresult = pDef->pszAuthName;
+                    break;
+            case SASL_CB_PASS:
+                    pInteract->defresult = pDef->pszPassword;
+                    break;
+            case SASL_CB_USER:
+                    pInteract->defresult = pDef->pszUser;
+                    break;
+            default:
+                    break;
+        }
+
+        pInteract->result = (pInteract->defresult) ? pInteract->defresult : "";
+        pInteract->len    = strlen( pInteract->result );
+
+        pInteract++;
+    }
+
+    return LDAP_SUCCESS;
 }
 
 static

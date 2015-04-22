@@ -9,6 +9,7 @@
 //
 #define VMDIR_REG_KEY "Services\\vmdir"
 
+#define VMDIR_REG_KEY_BIND_INFO_ACCOUNT   "dcAccount"
 #define VMDIR_REG_KEY_BIND_INFO_BIND_DN   "dcAccountDN"
 #define VMDIR_REG_KEY_BIND_INFO_PASSWORD  "dcAccountPassword"
 

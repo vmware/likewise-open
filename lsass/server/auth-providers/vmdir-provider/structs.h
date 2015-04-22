@@ -46,13 +46,21 @@ typedef struct _VMDIR_BIND_INFO
 	LONG refCount;
 
 	PSTR pszURI;
-	PSTR pszBindDN;
+	PSTR pszUPN;
 	PSTR pszPassword;
 	PSTR pszDomainFqdn;
 	PSTR pszDomainShort;
 	PSTR pszSearchBase;
 
 } VMDIR_BIND_INFO, *PVMDIR_BIND_INFO;
+
+typedef struct _VMDIR_SASL_INFO
+{
+    PCSTR pszRealm;
+    PCSTR pszAuthName;
+    PCSTR pszUser;
+    PCSTR pszPassword;
+} VMDIR_SASL_INFO, *PVMDIR_SASL_INFO;
 
 typedef struct _VMDIR_DIR_CONTEXT
 {

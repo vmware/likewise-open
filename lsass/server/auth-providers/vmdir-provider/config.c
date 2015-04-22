@@ -47,10 +47,13 @@ VmDirCreateBindInfo(
     HANDLE hConnection = NULL;
     HKEY   hKeyRoot = NULL;
     HKEY   hKeyVmDir = NULL;
+    PCSTR  pszKey_account  = VMDIR_REG_KEY_BIND_INFO_ACCOUNT;
     PCSTR  pszKey_binddn   = VMDIR_REG_KEY_BIND_INFO_BIND_DN;
     PCSTR  pszKey_password = VMDIR_REG_KEY_BIND_INFO_PASSWORD;
     PSTR   pszDCName = NULL;
     PSTR   pszDomainName = NULL;
+    PSTR   pszBindDN = NULL;
+    PSTR   pszAccount = NULL;
 
     dwError = RegOpenServer(&hConnection);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -97,8 +100,22 @@ VmDirCreateBindInfo(
     dwError = VmDirRegReadString(
                     hConnection,
                     hKeyVmDir,
+                    pszKey_account,
+                    &pszAccount);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirRegReadString(
+                    hConnection,
+                    hKeyVmDir,
                     pszKey_binddn,
-                    &pBindInfo->pszBindDN);
+                    &pszBindDN);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwAllocateStringPrintf(
+                    &pBindInfo->pszUPN,
+                    "%s@%s",
+                    pszAccount,
+                    pBindInfo->pszDomainFqdn);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = VmDirRegReadString(
@@ -114,7 +131,7 @@ VmDirCreateBindInfo(
     BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = VmDirGetDefaultSearchBase(
-                    pBindInfo->pszBindDN,
+                    pszBindDN,
                     &pBindInfo->pszSearchBase);
     BAIL_ON_VMDIR_ERROR(dwError);
 
@@ -139,6 +156,8 @@ cleanup:
 
     LW_SAFE_FREE_STRING(pszDomainName);
     LW_SAFE_FREE_STRING(pszDCName);
+    LW_SAFE_FREE_STRING(pszAccount);
+    LW_SAFE_FREE_STRING(pszBindDN);
 
     return dwError;
 
@@ -370,7 +389,7 @@ VmDirFreeBindInfo(
     if (pBindInfo)
     {
         LW_SECURE_FREE_STRING(pBindInfo->pszURI);
-        LW_SECURE_FREE_STRING(pBindInfo->pszBindDN);
+        LW_SECURE_FREE_STRING(pBindInfo->pszUPN);
         LW_SECURE_FREE_STRING(pBindInfo->pszPassword);
         LW_SAFE_FREE_STRING(pBindInfo->pszDomainFqdn);
         LW_SAFE_FREE_STRING(pBindInfo->pszDomainShort);

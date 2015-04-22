@@ -24,7 +24,7 @@ VmDirReleaseBindInfo(
 DWORD
 VmDirLdapInitialize(
 	PCSTR            pszURI,
-	PCSTR            pszBindDN,
+	PCSTR            pszUPN,
 	PCSTR            pszPassword,
 	LDAP**           ppLd
 	);
@@ -459,14 +459,14 @@ VmDirFindSidForDN(
 DWORD
 VmDirRepositoryVerifyPassword(
 	PVMDIR_DIR_CONTEXT pDirContext,
-	PCSTR              pszBindDN,
+	PCSTR              pszUPN,
 	PCSTR              pszPassword
 	);
 
 DWORD
 VmDirRepositoryChangePassword(
 	PVMDIR_DIR_CONTEXT pDirContext,
-    PCSTR              pszBindDN,
+    PCSTR              pszUPN,
     PCSTR              pszNewPassword,
     PCSTR              pszOldPassword
     );

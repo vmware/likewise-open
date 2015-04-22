@@ -1457,7 +1457,7 @@ error:
 DWORD
 VmDirRepositoryVerifyPassword(
 	PVMDIR_DIR_CONTEXT pDirContext,
-	PCSTR              pszBindDN,
+	PCSTR              pszUPN,
 	PCSTR              pszPassword
 	)
 {
@@ -1466,7 +1466,7 @@ VmDirRepositoryVerifyPassword(
 
 	dwError = VmDirLdapInitialize(
 					pDirContext->pBindInfo->pszURI,
-					pszBindDN,
+					pszUPN,
 					pszPassword,
 					&pLd);
 	BAIL_ON_VMDIR_ERROR(dwError);
@@ -1492,7 +1492,7 @@ error:
 DWORD
 VmDirRepositoryChangePassword(
 	PVMDIR_DIR_CONTEXT pDirContext,
-    PCSTR              pszUserDN,
+    PCSTR              pszUPN,
     PCSTR              pszNewPassword,
     PCSTR              pszOldPassword
     )
@@ -1503,12 +1503,19 @@ VmDirRepositoryChangePassword(
 	PSTR     vals_old[2] = {(PSTR)pszOldPassword, NULL};
 	LDAPMod  mod[2]  = {{0}};
 	LDAPMod* mods[3] = {&mod[0], &mod[1], NULL};
+        PLSA_SECURITY_OBJECT pObject = NULL;
+
+        dwError = VmDirFindUserByName(
+	                  pDirContext,
+                          pszUPN,
+                          &pObject);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
 	dwError = VmDirLdapInitialize(
-					pDirContext->pBindInfo->pszURI,
-					pszUserDN,
-					pszOldPassword,
-					&pLd);
+			  pDirContext->pBindInfo->pszURI,
+			  pszUPN,
+			  pszOldPassword,
+			  &pLd);
 	BAIL_ON_VMDIR_ERROR(dwError);
 
 	mod[0].mod_op = LDAP_MOD_ADD;
@@ -1521,7 +1528,7 @@ VmDirRepositoryChangePassword(
 
 	dwError = ldap_modify_ext_s(
 							pLd,
-							pszUserDN,
+							pObject->pszDN,
 							mods,
 							NULL,
 							NULL);
@@ -1529,6 +1536,10 @@ VmDirRepositoryChangePassword(
 
 cleanup:
 
+        if (pObject)
+        {
+            LsaUtilFreeSecurityObject(pObject);
+        }
 	if (pLd)
 	{
 		VmDirLdapClose(pLd);

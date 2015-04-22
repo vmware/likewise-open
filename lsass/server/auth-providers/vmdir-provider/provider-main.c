@@ -777,7 +777,7 @@ VmDirOpenHandle(
 
     dwError = VmDirLdapInitialize(
     				pContext->dirContext.pBindInfo->pszURI,
-    				pContext->dirContext.pBindInfo->pszBindDN,
+    				pContext->dirContext.pBindInfo->pszUPN,
     				pContext->dirContext.pBindInfo->pszPassword,
     				&pContext->dirContext.pLd);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -926,7 +926,7 @@ VmDirAuthenticateUserPam(
 
     dwError = VmDirRepositoryVerifyPassword(
     				&pContext->dirContext,
-                    pObject->pszDN,
+                    pObject->userInfo.pszUPN,
                     pParams->pszPassword);
     BAIL_ON_VMDIR_ERROR(dwError);
 
@@ -1127,7 +1127,7 @@ VmDirChangePassword(
 
     dwError = VmDirRepositoryChangePassword(
     				&pContext->dirContext,
-                    pUser->pszDN,
+                    pUser->userInfo.pszUPN,
                     pszNewPassword_local,
                     pszOldPassword_local);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -1533,7 +1533,7 @@ VmDirProviderIoControl (
 
     if (pdwOutputBufferSize)
     {
-        pdwOutputBufferSize = 0;
+        *pdwOutputBufferSize = 0;
     }
     if (ppOutputBuffer)
     {

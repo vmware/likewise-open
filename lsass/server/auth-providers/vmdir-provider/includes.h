@@ -9,6 +9,8 @@
 #include <ldap.h>
 #include <lber.h>
 
+#include <sasl/sasl.h>
+
 #include <lwio/lwio.h>
 #include <reg/lwreg.h>
 #include <reg/regutil.h>
