@@ -108,7 +108,7 @@ option()
         HELP="Use service containers"
 
     case "$LW_DEVICE_PROFILE" in
-        discus)
+        photon)
             MK_GSS_CONFDIR="/etc/gss"
             MK_GSS_LIBDIR="/usr/lib64/gss"
             ;;
