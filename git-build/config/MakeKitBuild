@@ -12,7 +12,7 @@ configure()
 
 make()
 {
-    if [ "$LW_DEVICE_PROFILE" != "discus" ]; then
+    if [ "$LW_DEVICE_PROFILE" != "photon" ]; then
         mk_install_files \
 	    FILES="init-base.sh init-lwsm.sh" \
 	    INSTALLDIR="${MK_BINDIR}"
