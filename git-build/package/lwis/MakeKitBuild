@@ -66,8 +66,8 @@ package_rpm()
 {
     SPEC_FILE="rpm/vmware-lwis.spec"
 
-    if [ "$LW_DEVICE_PROFILE" = "discus" ]; then
-        SPEC_FILE="rpm/vmware-lwis-discus.spec"
+    if [ "$LW_DEVICE_PROFILE" = "photon" ]; then
+        SPEC_FILE="rpm/vmware-lwis-photon.spec"
     fi
 
     mk_rpm_do \
@@ -108,7 +108,7 @@ lw_use_bundled()
 
 common_files()
 {
-    if [ "$LW_DEVICE_PROFILE" = "discus" ]
+    if [ "$LW_DEVICE_PROFILE" = "photon" ]
     then
         mk_package_files \
             "${MK_BINDIR}/*" \

@@ -1,5 +1,5 @@
-if [ "$LW_DEVICE_PROFILE" = "discus" ]; then
-SUBDIRS="discus"
+if [ "$LW_DEVICE_PROFILE" = "photon" ]; then
+SUBDIRS="photon"
 else
 SUBDIRS="lwis"
 fi
