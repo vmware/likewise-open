@@ -8,7 +8,7 @@ License: 	GPL 2.0,LGPL 2.1
 URL: 		http://www.vmware.com/
 Group: 		Development/Libraries
 
-Prereq: grep, coreutils >= 8.22, openldap >= 2.4, openssl >= 1.0.1, krb5 >= 1.12
+Prereq: grep, coreutils >= 8.22, openldap >= 2.4, openssl >= 1.0.1, krb5 >= 1.12, haveged >= 1.9, sed >= 4.2
 ##For ESX use this line:
 ##Prereq: grep, sh-utils
 Obsoletes:   likewise-open-libs, likewise-open-lsass, likewise-open-netlogon, likewise-open-lwio, likewise-open-eventlog, likewise-open-rpc, likewise-open-lwsm, likewise-open-lwreg, likewise-open-srvsvc
