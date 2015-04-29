@@ -2,7 +2,7 @@ make()
 {
 # ======= client ========
     ECHO_CLIENT_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
-    if [ "$LW_DEVICE_PROFILE" = "discus" ]
+    if [ "$LW_DEVICE_PROFILE" = "photon" ]
     then
         ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h gssapi_krb5.h"
     else
@@ -29,7 +29,7 @@ make()
         CSTUB="echo_client_cstub.c" \
         SSTUB="echo_client_sstub.c"
 
-    if [ "$LW_DEVICE_PROFILE" = "discus" ]
+    if [ "$LW_DEVICE_PROFILE" = "photon" ]
     then
         mk_program \
             PROGRAM="echo_client" \
