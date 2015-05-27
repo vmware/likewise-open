@@ -1,0 +1,80 @@
+make()
+{
+    mk_program \
+        PROGRAM=test_regio \
+        SOURCES="test_regio.c" \
+        GROUPS="../parse/regparse" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_reglex \
+        SOURCES="test_reglex.c" \
+        GROUPS="../parse/regparse" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_regparse \
+        SOURCES="test_regparse.c" \
+        GROUPS="../parse/regparse" \
+        LIBDEPS="rsutils" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_regdump \
+        SOURCES="test_regdump.c" \
+        GROUPS="../parse/regparse" \
+        LIBDEPS="rsutils" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_regiconv \
+        SOURCES="test_regiconv.c" \
+        GROUPS="../parse/regparse" \
+        LIBDEPS="rsutils" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_ptlwregd \
+        SOURCES="test_ptlwregd.c" \
+        GROUPS="../parse/regparse" \
+        LIBDEPS="rsutils" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_regvalueattrs \
+        SOURCES="test_regvalueattrs.c" \
+        GROUPS="../parse/regparse" \
+        LIBDEPS="rsutils" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+
+    mk_program \
+        PROGRAM=test_tomulti \
+        SOURCES="test_tomulti.c" \
+        GROUPS="../parse/regparse" \
+        LIBDEPS="rsutils" \
+        INSTALL=no \
+        INSTALLDIR="${MK_BINDIR}/tests" \
+        HEADERDEPS="lwmsg/lwmsg.h lw/base.h iconv.h" \
+        INCLUDEDIRS=". .. ../include ../shellutil"
+}
