@@ -911,6 +911,7 @@ KtKrb5GetSaltingPrincipalA(
     PSTR *pszSalt)
 {
     DWORD dwError = ERROR_SUCCESS;
+    PSTR pszDollarSign = NULL;
     krb5_error_code ret = 0;
     PSTR pszSaltOut = NULL;
     PSTR pszRealm = NULL;
@@ -950,8 +951,19 @@ KtKrb5GetSaltingPrincipalA(
     LwStrToUpper(pszRealm);
 
     /* Ensure host name lowercased */
-    dwError = LwAllocateString(pszMachineName, &pszMachine);
+    dwError = LwAllocateString(pszMachAcctName, &pszMachine);
     BAIL_ON_LSA_ERROR(dwError);
+
+    /* MS-KILE says salt should use the computer name minus the '$'.
+       I think they mean the computer account name minus the '$'.
+       If you have a short host name, LWIS uses the host name as the
+       computer account name. But a long host name means we compute
+       a shorter name to use as the computer account name. */
+    pszDollarSign = strchr(pszMachine, '$');
+    if (pszDollarSign && *pszDollarSign)
+    {
+        *pszDollarSign = '\0';
+    }
 
     LwStrToLower(pszMachine);
 
