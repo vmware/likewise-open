@@ -1,0 +1,3 @@
+BUILDTOP=..
+NO_OUTPRE=1
+SUBDIRS= lib leashdll leash cns gina ms2mit kfwlogon

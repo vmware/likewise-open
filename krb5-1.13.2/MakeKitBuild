@@ -1,0 +1,19 @@
+make()
+{
+    KRB5_CPPFLAGS="-D_GNU_SOURCE"
+    if [ "$MK_HOST_OS" = "darwin" ]
+    then
+        KRB5_CPPFLAGS="$KRB5_CPPFLAGS -DASN1BUF_OMIT_INLINE_FUNCS"
+    fi
+
+    mk_autotools \
+        SOURCEDIR=src \
+        HEADERDEPS="openssl/opensslv.h" \
+        LIBDEPS="ssl crypto" \
+        CPPFLAGS="$KRB5_CPPFLAGS" \
+        HEADERS='krb5.h gssapi.h gssapi/gssapi_ext.h' \
+        LIBS='krb5 gssapi_krb5 k5crypto' \
+        --enable-shared \
+        --enable-pkinit \
+        --without-tcl
+}
