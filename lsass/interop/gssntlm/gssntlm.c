@@ -82,7 +82,7 @@ gss_OID gGssCredOptionDomainOid = &gGssCredOptionDomainOidDesc;
 
 //
 // Since there is no GSSAPI mech plugin header, this must be kept in sync with
-// gss_mechanism in krb5/src/lib/gssapi/mglueP.h.
+// gss_mechanism in krb5/src/lib/gssapi/mech/mglueP.h.
 //
 
 typedef struct _GSS_MECH_CONFIG
