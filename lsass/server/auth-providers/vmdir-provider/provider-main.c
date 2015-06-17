@@ -1417,6 +1417,11 @@ VmDirGetStatus(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus = NULL;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    PSTR pszDomainSid = NULL;
+
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     LOG_FUNC_ENTER;
     
@@ -1434,13 +1439,25 @@ VmDirGetStatus(
     dwError = LwAllocateString(gpszVmDirProviderName, &pProviderStatus->pszId);
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    dwError = VmDirGetBindInfo(&pBindInfo);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirFindDomainSID(&pContext->dirContext, &pszDomainSid);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwAllocateString(
+                  pBindInfo->pszDomainFqdn,
+                  &pProviderStatus->pszDomain);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
     pProviderStatus->mode = LSA_PROVIDER_MODE_UNPROVISIONED;
     pProviderStatus->status = LSA_AUTH_PROVIDER_STATUS_ONLINE;
+    pProviderStatus->pszDomainSid = pszDomainSid;
+    pszDomainSid = NULL;
 
     *ppAuthProviderStatus = pProviderStatus;
 
 cleanup:
-
     LOG_FUNC_EXIT;
 
     return dwError;
@@ -1456,6 +1473,7 @@ error:
     {
         VmDirFreeStatus(pProviderStatus);
     }
+    LW_SAFE_FREE_STRING(pszDomainSid);
 
     goto cleanup;
 }

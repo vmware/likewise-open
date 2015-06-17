@@ -502,3 +502,10 @@ VmDirGetRID(
 	PCSTR  pszObjectSid,
 	PDWORD pdwRID
 	);
+
+DWORD
+VmDirGetRIDFromUID(
+    DWORD uid,
+    PSTR *pszRid
+    );
+

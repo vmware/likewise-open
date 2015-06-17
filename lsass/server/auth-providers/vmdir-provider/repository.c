@@ -170,6 +170,7 @@ VmDirFindUserById(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PSTR  pszRid = NULL;
     PSTR  pszDomainSID = NULL;
     PSTR  pszUserSID = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
@@ -177,11 +178,15 @@ VmDirFindUserById(
     dwError = VmDirFindDomainSID(pDirContext, &pszDomainSID);
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    /* Map UID to new RID format */
+    dwError = VmDirGetRIDFromUID(uid, &pszRid);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
     dwError = LwAllocateStringPrintf(
-    				&pszUserSID,
-    				"%s-%u",
-    				pszDomainSID,
-    				uid);
+                  &pszUserSID,
+                  "%s-%s",
+                  pszDomainSID,
+                  pszRid);
     BAIL_ON_VMDIR_ERROR(dwError);
 
 	dwError = VmDirFindUserBySID(pDirContext, pszUserSID, &pObject);
@@ -193,6 +198,7 @@ cleanup:
 
     LW_SAFE_FREE_STRING(pszDomainSID);
     LW_SAFE_FREE_STRING(pszUserSID);
+    LW_SAFE_FREE_STRING(pszRid);
 
     return dwError;
 

@@ -308,30 +308,131 @@ VmDirGetRID(
 	PDWORD pdwRID
 	)
 {
-	DWORD dwError = 0;
-	DWORD dwRID = 0;
-	PLSA_SECURITY_IDENTIFIER pSID = NULL;
+    DWORD dwError = 0;
+    PCSTR pszDash = NULL;
+    PSTR pszEnd = NULL;
+    DWORD dwDashes = 0;
+    DWORD dwMachId = 0;
+    DWORD i = 0;
+    DWORD dwRID = 0;
+    DWORD dwMachID = 0;
+    DWORD dwRetUID = 0;
 
-	dwError = LsaAllocSecurityIdentifierFromString(pszObjectSid, &pSID);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    /*
+     * Old Format:
+     *   S-1-7-21-1604805504-317578674-977968053-259541063-16778241
+     *   16778241 is the "RID" which is |-8bits-|-24-bits-|
+     *                                   MachId   RID
+     * New Format:
+     *   S-1-7-21-3080227618-571495328-3360055706-2260875924-1-1025
+     *
+     *      .... -1-1025
+     *      1:    machine ID
+     *      1025: RID
+     * Problem: Old code assumed the 8/24 "RID" format was the UNIX uid.
+     * This implementation takes the ...-MachID-RID format, and converts this
+     * to the old RID format.
+     */
 
-	dwError = LsaGetSecurityIdentifierRid(pSID, &dwRID);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    for (i=0; pszObjectSid[i]; i++)
+    {
+        /* Scan SID for dashes, to determine if new or old format */
+        if (pszObjectSid[i] == '-')
+        {
+            dwDashes++;
+            if (dwDashes == 8)
+            {
+                dwMachId = i + 1;
+            }
+        }
+    }
 
-	*pdwRID = dwRID;
+    pszDash = &pszObjectSid[dwMachId]; 
+    if (dwDashes == 8)
+    {
+        /* Old format */
+        dwRetUID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+    }
+    else
+    {
+        /* pszDash should be pointing at "M-RID" string */
+        dwMachID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd != '-')
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
 
-cleanup:
+        pszDash = pszEnd+1;
+        dwRID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
 
-	if (pSID)
-	{
-		LsaFreeSecurityIdentifier(pSID);
-	}
+        /* Test for overflow of these two values */
+        if (dwRID > 0x00FFFFFF || dwMachID > 0xFF)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
 
-	return dwError;
+        dwRetUID = dwMachID << 24 | (dwRID & 0x00FFFFFF);
+    }
+    *pdwRID = dwRetUID;
 
 error:
+    return dwError;
+}
 
-	*pdwRID = 0;
+DWORD
+VmDirGetRIDFromUID(
+    DWORD uid,
+    PSTR *pszRid
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszRetRid = NULL;
 
-	goto cleanup;
+    /*
+     * This is the inverse operation of VmDirGetRID()
+     * Scheme: |-8bits-|-24bits-|
+     * Convert UID with upper 8 bits set to M-RID format, otherwise return
+     * just the UID as the RID.
+     */
+    if (uid & 0xFF000000)
+    {
+        /* Construct M-RID formatted string */
+        dwError = LwAllocateStringPrintf(
+                      &pszRetRid,
+                      "%u-%u",
+                      (uid & 0xFF000000) >> 24,
+                      uid & 0x00FFFFFF);
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+    else
+    {
+        /* Construct RID formatted string */
+        dwError = LwAllocateStringPrintf(
+                      &pszRetRid,
+                      "%u",
+                      uid);
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    *pszRid = pszRetRid;
+    pszRetRid = NULL;
+
+error:
+    if (dwError)
+    {
+	LW_SAFE_FREE_MEMORY(pszRetRid);
+    }
+    return dwError;
 }
