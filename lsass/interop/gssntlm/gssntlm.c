@@ -331,10 +331,33 @@ typedef struct _GSS_MECH_CONFIG
         );
 
     OM_uint32
+    (*gss_localname)(
+        OM_uint32 *,
+        const gss_name_t,
+        gss_const_OID,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gssspi_authorize_localname)(
+        OM_uint32 *,
+        const gss_name_t,
+        gss_const_buffer_t,
+        gss_const_OID
+        );
+
+    OM_uint32
     (*gss_export_name)(
         OM_uint32*,
         const gss_name_t,
         gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_duplicate_name)(
+        OM_uint32*,
+        const gss_name_t,
+        gss_name_t *
         );
 
     OM_uint32
@@ -547,6 +570,153 @@ typedef struct _GSS_MECH_CONFIG
         gss_buffer_t,
         gss_any_t *
         );
+
+    OM_uint32
+    (*gss_pseudo_random)(
+        OM_uint32 *,
+        gss_ctx_id_t,
+        int,
+        const gss_buffer_t,
+        ssize_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_set_neg_mechs)(
+        OM_uint32 *,
+        gss_cred_id_t,
+        const gss_OID_set
+        );
+
+    OM_uint32
+    (*gss_inquire_saslname_for_mech)(
+        OM_uint32 *,
+        const gss_OID,
+        gss_buffer_t,
+        gss_buffer_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_inquire_mech_for_saslname)(
+        OM_uint32 *,
+        const gss_buffer_t,
+        gss_OID *
+        );
+
+    OM_uint32
+    (*gss_inquire_attrs_for_mech)(
+        OM_uint32 *,
+        gss_const_OID,
+        gss_OID_set *,
+        gss_OID_set *
+        );
+
+    OM_uint32
+    (*gss_acquire_cred_from)(
+        OM_uint32 *,
+        gss_name_t,
+        OM_uint32,
+        gss_OID_set,
+        gss_cred_usage_t,
+        gss_const_key_value_set_t,
+        gss_cred_id_t *,
+        gss_OID_set *,
+        OM_uint32 *
+        );
+
+    OM_uint32
+    (*gss_store_cred_into)(
+        OM_uint32 *,
+        gss_cred_id_t,
+        gss_cred_usage_t,
+        gss_OID,
+        OM_uint32,
+        OM_uint32,
+        gss_const_key_value_set_t,
+        gss_OID_set *,
+        gss_cred_usage_t *
+        );
+
+    OM_uint32
+    (*gssspi_acquire_cred_with_password)(
+        OM_uint32 *,
+        const gss_name_t,
+        const gss_buffer_t,
+        OM_uint32,
+        const gss_OID_set,
+        int,
+        gss_cred_id_t *,
+        gss_OID_set *,
+        OM_uint32 *
+        );
+
+    OM_uint32
+    (*gss_export_cred)(
+        OM_uint32 *,
+        gss_cred_id_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_import_cred)(
+        OM_uint32 *,
+        gss_buffer_t,
+        gss_cred_id_t *
+        );
+
+    OM_uint32
+    (*gssspi_import_sec_context_by_mech)(
+        OM_uint32 *,
+        gss_OID,
+        gss_buffer_t,
+        gss_ctx_id_t *
+        );
+
+    OM_uint32
+    (*gssspi_import_name_by_mech)(
+        OM_uint32 *,
+        gss_OID,
+        gss_buffer_t,
+        gss_OID,
+        gss_name_t*
+        );
+
+    OM_uint32
+    (*gssspi_import_cred_by_mech)(
+        OM_uint32 *,
+        gss_OID,
+        gss_buffer_t,
+        gss_cred_id_t *
+        );
+
+    OM_uint32
+    (*gss_get_mic_iov)(
+        OM_uint32 *,
+        gss_ctx_id_t,
+        gss_qop_t,
+        gss_iov_buffer_desc *,
+        int
+        );
+
+    OM_uint32
+    (*gss_verify_mic_iov)(
+        OM_uint32 *,
+        gss_ctx_id_t,
+        gss_qop_t *,
+        gss_iov_buffer_desc *,
+        int
+        );
+
+    OM_uint32
+    (*gss_get_mic_iov_length)(
+        OM_uint32 *,
+        gss_ctx_id_t,
+        gss_qop_t,
+        gss_iov_buffer_desc *,
+        int
+        );
+
 } GSS_MECH_CONFIG, *PGSS_MECH_CONFIG;
 
 typedef struct _NTLM_GSS_NAME
@@ -610,7 +780,10 @@ static GSS_MECH_CONFIG gNtlmMech =
     ntlm_gss_inquire_context,
     ntlm_gss_release_oid,
     NULL, //ntlm_gss_wrap_size_limit,
+    NULL, //ntlm_gss_localname,
+    NULL, //ntlm_gss_gssspi_authorize_localname,
     NULL, //ntlm_gss_export_name,
+    NULL, //ntlm_gss_duplicate_name,
     NULL, //ntlm_gss_store_cred,
     ntlm_gss_inquire_sec_context_by_oid,
     NULL, //ntlm_gss_inquire_cred_by_oid,
@@ -623,8 +796,32 @@ static GSS_MECH_CONFIG gNtlmMech =
     ntlm_gss_unwrap_iov,
     ntlm_gss_wrap_iov_length,
     NULL, //ntlm_gss_complete_auth_token,
-    NULL, //ntlm_gss_inquire_context2
-    .gss_get_name_attribute = ntlm_gss_get_name_attribute
+    NULL, //ntlm_gss_acquire_cred_impersonate_name,
+    NULL, //ntlm_gss_add_cred_impersonate_name,
+    NULL, //ntlm_gss_display_name_ext,
+    NULL, //ntlm_gss_inquire_name,
+    ntlm_gss_get_name_attribute,
+    NULL, //ntlm_gss_set_name_attribute,
+    NULL, //ntlm_gss_delete_name_attribute,
+    NULL, //ntlm_gss_export_name_composite,
+    NULL, //ntlm_gss_map_name_to_any,
+    NULL, //ntlm_gss_release_any_name_mapping,
+    NULL, //ntlm_gss_pseudo_random,
+    NULL, //ntlm_set_neg_mechs,
+    NULL, //ntlm_gss_inquire_saslname_for_mech,
+    NULL, //ntlm_gss_inquire_mech_for_saslname,
+    NULL, //ntlm_gss_inquire_attrs_for_mech,
+    NULL, //ntlm_gss_acquire_cred_from,
+    NULL, //ntlm_gss_store_cred_into,
+    NULL, //ntlm_gss_acquire_cred_with_password,
+    NULL, //ntlm_gss_export_cred,
+    NULL, //ntlm_gss_import_cred,
+    NULL, //ntlm_gss_import_sec_context_by_mech,
+    NULL, //ntlm_gss_import_name_by_mech,
+    NULL, //ntlm_gss_import_cred_by_mech,
+    NULL, //ntlm_gss_get_mic_iov,
+    NULL, //ntlm_gss_verify_mic_iov,
+    NULL, //ntlm_gss_get_mic_iov_length,
 };
 
 //
@@ -2604,10 +2801,17 @@ ntlm_gssspi_set_cred_option(
 {
     OM_uint32 MajorStatus = GSS_S_UNAVAILABLE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
-    PNTLM_GSS_CREDS pCreds = (PNTLM_GSS_CREDS)GssCredHandle;
+    PNTLM_GSS_CREDS pCreds = NULL;
     PSEC_WINNT_AUTH_IDENTITY pAuthData = NULL;
     PSTR pszDomain = NULL;
     SecPkgCred_DomainName spcDomainName = {0};
+
+    if (!GssCredHandle)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+    pCreds = *(PNTLM_GSS_CREDS *)GssCredHandle;
 
     if (OptionOid->length == gGssCredOptionPasswordOid->length &&
         !memcmp(
