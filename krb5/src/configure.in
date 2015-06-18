@@ -658,7 +658,7 @@ int main () {
 }],
   ac_cv_printf_positional=yes,
   ac_cv_printf_positional=no,
-  AC_MSG_ERROR([Cannot test for printf positional argument support when cross compiling]))])
+  AC_MSG_WARN([Cannot test for printf positional argument support when cross compiling]); ac_cv_printf_positional=yes)])
 dnl Nothing for autoconf.h for now.
 AC_MSG_RESULT($ac_cv_printf_positional)
 dnl

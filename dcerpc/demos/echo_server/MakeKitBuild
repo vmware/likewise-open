@@ -29,50 +29,25 @@ make()
         CSTUB="echo_client_cstub.c" \
         SSTUB="echo_client_sstub.c"
 
-    if [ "$LW_DEVICE_PROFILE" = "photon" ]
-    then
-        mk_program \
-            PROGRAM="echo_client" \
-            SOURCES="$ECHO_CLIENT_SOURCES" \
-            INSTALLDIR="${MK_BINDIR}" \
-            CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
-            CFLAGS="-Wall -Werror" \
-            INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
-            HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
-            DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+    mk_program \
+        PROGRAM="echo_client" \
+        SOURCES="$ECHO_CLIENT_SOURCES" \
+        INSTALLDIR="${MK_BINDIR}" \
+        CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
+        CFLAGS="-Wall -Werror" \
+        INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
+        HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
+        DEPS="echo.h echo_client_cstub.c" \
+        LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
 
-        mk_program \
-            PROGRAM="echo_server" \
-            SOURCES="$ECHO_SERVER_SOURCES" \
-            INSTALLDIR="${MK_BINDIR}" \
-            CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
-            CFLAGS="-Wall -Werror" \
-            INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
-            HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
-            DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
-    else
-        mk_program \
-            PROGRAM="echo_client" \
-            SOURCES="$ECHO_CLIENT_SOURCES" \
-            INSTALLDIR="${MK_BINDIR}" \
-            CPPFLAGS="$ECHO_CLIENT_CPPFLAGS" \
-            CFLAGS="-Wall -Werror" \
-            INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
-            HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
-            DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc $LIB_PTHREAD"
-
-        mk_program \
-            PROGRAM="echo_server" \
-            SOURCES="$ECHO_SERVER_SOURCES" \
-            INSTALLDIR="${MK_BINDIR}" \
-            CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
-            CFLAGS="-Wall -Werror" \
-            INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
-            HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
-            DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="dcerpc $LIB_PTHREAD"
-    fi
+    mk_program \
+        PROGRAM="echo_server" \
+        SOURCES="$ECHO_SERVER_SOURCES" \
+        INSTALLDIR="${MK_BINDIR}" \
+        CPPFLAGS="$ECHO_SERVER_CPPFLAGS" \
+        CFLAGS="-Wall -Werror" \
+        INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
+        HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
+        DEPS="echo.h echo_client_sstub.c" \
+        LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
 }
