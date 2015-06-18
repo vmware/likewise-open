@@ -137,6 +137,9 @@ configure()
         x86_64)
             target_cpu="x86_64"
             ;;
+        aarch64)
+            target_cpu="aarch64"
+            ;;
         sparc_32)
             target_cpu="sparc"
             ;;
@@ -326,9 +329,19 @@ make()
 {
     mk_system "build"
 
+    mk_get_system_var SYSTEM="build/$MK_BUILD_PRIMARY_ISA" "MK_CC"
+    BUILD_CC="$result"
+    mk_get_system_var SYSTEM="build/$MK_BUILD_PRIMARY_ISA" "MK_CFLAGS"
+    BUILD_CFLAGS="$result"
+    mk_get_system_var SYSTEM="build/$MK_BUILD_PRIMARY_ISA" "MK_LDFLAGS"
+    BUILD_LDFLAGS="$result"
+
     mk_autotools \
         SOURCEDIR=flex-2.5.4 \
         LIBDEPS=crypto \
         TARGETS="flex-2.5.4_build_${MK_BUILD_PRIMARY_ISA}/flex" \
-        INSTALL=no
+        INSTALL=no \
+        CC="$BUILD_CC" \
+        CFLAGS="$BUILD_CFLAGS" \
+        LDFLAGS="$BUILD_LDFLAGS"
 }
