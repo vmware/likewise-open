@@ -91,7 +91,7 @@ enum kdbe_attr_type_t {
 	AT_PW_POLICY = 16,
 	AT_PW_POLICY_SWITCH = 17,
 	AT_PW_HIST_KVNO = 18,
-	AT_PW_HIST = 19,
+	AT_PW_HIST = 19
 };
 typedef enum kdbe_attr_type_t kdbe_attr_type_t;
 
@@ -169,7 +169,7 @@ enum update_status_t {
 	UPDATE_FULL_RESYNC_NEEDED = 2,
 	UPDATE_BUSY = 3,
 	UPDATE_NIL = 4,
-	UPDATE_PERM_DENIED = 5,
+	UPDATE_PERM_DENIED = 5
 };
 typedef enum update_status_t update_status_t;
 
@@ -205,6 +205,9 @@ extern  kdb_incr_result_t * iprop_get_updates_1_svc(kdb_last_t *, struct svc_req
 #define IPROP_FULL_RESYNC 2
 extern  kdb_fullresync_result_t * iprop_full_resync_1(void *, CLIENT *);
 extern  kdb_fullresync_result_t * iprop_full_resync_1_svc(void *, struct svc_req *);
+#define IPROP_FULL_RESYNC_EXT 3
+extern	kdb_fullresync_result_t * iprop_full_resync_ext_1(uint32_t *, CLIENT *);
+extern	kdb_fullresync_result_t * iprop_full_resync_ext_1_svc(uint32_t *, struct svc_req *);
 extern int krb5_iprop_prog_1_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
 
 #else /* K&R C */
@@ -217,6 +220,9 @@ extern  kdb_incr_result_t * iprop_get_updates_1_svc();
 #define IPROP_FULL_RESYNC 2
 extern  kdb_fullresync_result_t * iprop_full_resync_1();
 extern  kdb_fullresync_result_t * iprop_full_resync_1_svc();
+#define IPROP_FULL_RESYNC_EXT 3
+extern  kdb_fullresync_result_t * iprop_full_resync_ext_1(uint32_t *, CLIENT *);
+extern  kdb_fullresync_result_t * iprop_full_resync_ext_1_svc(uint32_t *, struct svc_req *);
 extern int krb5_iprop_prog_1_freeresult ();
 #endif /* K&R C */
 

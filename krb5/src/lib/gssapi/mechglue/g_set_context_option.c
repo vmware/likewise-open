@@ -20,12 +20,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
-/*
- *  glue routine for gss_set_sec_context_option
- */
+/* Glue routine for gss_set_sec_context_option */
 
 #include "mglueP.h"
 #ifdef HAVE_STDLIB_H
@@ -108,4 +105,3 @@ gss_set_sec_context_option (OM_uint32 *minor_status,
 
     return status;
 }
-

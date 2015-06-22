@@ -1,6 +1,5 @@
+/* ccapi/server/win/ccs_os_pipe.c */
 /*
- * $Header$
- *
  * Copyright 2008 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -61,4 +60,3 @@ cc_int32 ccs_os_pipe_compare (ccs_pipe_t  pipe_1,
 
     return ccs_win_pipe_compare(pipe_1, pipe_2, out_equal);
     }
-

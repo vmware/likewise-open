@@ -13,4 +13,3 @@ int main (int argc, const char * argv[]) {
 	err = check_cc_context_new_ccache_iterator();
     return err;
 }
-	

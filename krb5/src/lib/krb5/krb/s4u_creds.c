@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/s4u_creds.c */
 /*
- * lib/krb5/krb/s4u_creds.c
- *
  * Copyright (C) 2009 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -23,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
- *
  */
 
 #include "k5-int.h"
@@ -49,10 +45,11 @@ krb5_get_as_key_noop(
     krb5_data *salt,
     krb5_data *params,
     krb5_keyblock *as_key,
-    void *gak_data)
+    void *gak_data,
+    k5_response_items *ritems)
 {
     /* force a hard error, we don't actually have the key */
-    return KDC_ERR_PREAUTH_FAILED;
+    return KRB5_PREAUTH_FAILED;
 }
 
 static krb5_error_code
@@ -66,7 +63,6 @@ s4u_identify_user(krb5_context context,
     krb5_creds creds;
     int use_master = 0;
     krb5_get_init_creds_opt *opts = NULL;
-    krb5_gic_opt_ext *opte = NULL;
     krb5_principal_data client_data;
     krb5_principal client;
     krb5_s4u_userid userid;
@@ -78,10 +74,17 @@ s4u_identify_user(krb5_context context,
     }
 
     if (in_creds->client != NULL &&
-        krb5_princ_type(context, in_creds->client) !=
-            KRB5_NT_ENTERPRISE_PRINCIPAL)
-        /* we already know the realm of the user */
-        return krb5_copy_principal(context, in_creds->client, canon_user);
+        in_creds->client->type != KRB5_NT_ENTERPRISE_PRINCIPAL) {
+        int anonymous;
+
+        anonymous = krb5_principal_compare(context, in_creds->client,
+                                           krb5_anonymous_principal());
+
+        return krb5_copy_principal(context,
+                                   anonymous ? in_creds->server
+                                   : in_creds->client,
+                                   canon_user);
+    }
 
     memset(&creds, 0, sizeof(creds));
 
@@ -98,10 +101,6 @@ s4u_identify_user(krb5_context context,
     krb5_get_init_creds_opt_set_proxiable(opts, 0);
     krb5_get_init_creds_opt_set_canonicalize(opts, 1);
     krb5_get_init_creds_opt_set_preauth_list(opts, ptypes, 1);
-    code = krb5int_gic_opt_to_opte(context, opts, &opte,
-                                   0, "s4u_identify_user");
-    if (code != 0)
-        goto cleanup;
 
     if (in_creds->client != NULL)
         client = in_creds->client;
@@ -115,13 +114,10 @@ s4u_identify_user(krb5_context context,
         client = &client_data;
     }
 
-    code = krb5_get_init_creds(context, &creds, client,
-                               NULL, NULL, 0, NULL, opte,
-                               krb5_get_as_key_noop, &userid,
-                               &use_master, NULL);
-    if (code == 0 ||
-        code == KDC_ERR_PREAUTH_REQUIRED ||
-        code == KDC_ERR_PREAUTH_FAILED) {
+    code = k5_get_init_creds(context, &creds, client, NULL, NULL, 0, NULL,
+                             opts, krb5_get_as_key_noop, &userid, &use_master,
+                             NULL);
+    if (code == 0 || code == KRB5_PREAUTH_FAILED) {
         *canon_user = userid.user;
         userid.user = NULL;
         code = 0;
@@ -145,48 +141,40 @@ make_pa_for_user_checksum(krb5_context context,
 {
     krb5_error_code code;
     int i;
-    krb5_int32 name_type;
     char *p;
     krb5_data data;
-    krb5_cksumtype cksumtype;
 
     data.length = 4;
-    for (i = 0; i < krb5_princ_size(context, req->user); i++) {
-        data.length += krb5_princ_component(context, req->user, i)->length;
-    }
-    data.length += krb5_princ_realm(context, req->user)->length;
+    for (i = 0; i < req->user->length; i++)
+        data.length += req->user->data[i].length;
+    data.length += req->user->realm.length;
     data.length += req->auth_package.length;
 
     p = data.data = malloc(data.length);
     if (data.data == NULL)
         return ENOMEM;
 
-    name_type = krb5_princ_type(context, req->user);
-    p[0] = (name_type >> 0 ) & 0xFF;
-    p[1] = (name_type >> 8 ) & 0xFF;
-    p[2] = (name_type >> 16) & 0xFF;
-    p[3] = (name_type >> 24) & 0xFF;
+    p[0] = (req->user->type >> 0) & 0xFF;
+    p[1] = (req->user->type >> 8) & 0xFF;
+    p[2] = (req->user->type >> 16) & 0xFF;
+    p[3] = (req->user->type >> 24) & 0xFF;
     p += 4;
 
-    for (i = 0; i < krb5_princ_size(context, req->user); i++) {
-        memcpy(p, krb5_princ_component(context, req->user, i)->data,
-               krb5_princ_component(context, req->user, i)->length);
-        p += krb5_princ_component(context, req->user, i)->length;
+    for (i = 0; i < req->user->length; i++) {
+        if (req->user->data[i].length > 0)
+            memcpy(p, req->user->data[i].data, req->user->data[i].length);
+        p += req->user->data[i].length;
     }
 
-    memcpy(p, krb5_princ_realm(context, req->user)->data,
-           krb5_princ_realm(context, req->user)->length);
-    p += krb5_princ_realm(context, req->user)->length;
+    if (req->user->realm.length > 0)
+        memcpy(p, req->user->realm.data, req->user->realm.length);
+    p += req->user->realm.length;
 
-    memcpy(p, req->auth_package.data, req->auth_package.length);
+    if (req->auth_package.length > 0)
+        memcpy(p, req->auth_package.data, req->auth_package.length);
 
-    code = krb5int_c_mandatory_cksumtype(context, key->enctype, &cksumtype);
-    if (code != 0) {
-        free(data.data);
-        return code;
-    }
-
-    code = krb5_c_make_checksum(context, cksumtype, key,
+    /* Per spec, use hmac-md5 checksum regardless of key type. */
+    code = krb5_c_make_checksum(context, CKSUMTYPE_HMAC_MD5_ARCFOUR, key,
                                 KRB5_KEYUSAGE_APP_DATA_CKSUM, &data,
                                 cksum);
 
@@ -249,9 +237,9 @@ cleanup:
 }
 
 /*
- * This function is invoked by krb5int_send_tgs() just before
- * the request is encoded; it gives us access to the nonce and
- * subkey without requiring them to be generated by the caller.
+ * This function is invoked by krb5int_make_tgs_request_ext() just before the
+ * request is encoded; it gives us access to the nonce and subkey without
+ * requiring them to be generated by the caller.
  */
 static krb5_error_code
 build_pa_s4u_x509_user(krb5_context context,
@@ -420,7 +408,7 @@ verify_s4u2self_reply(krb5_context context,
     if (not_newer) {
         if (enc_s4u_padata == NULL) {
             if (rep_s4u_user->user_id.options &
-                    KRB5_S4U_OPTS_USE_REPLY_KEY_USAGE) {
+                KRB5_S4U_OPTS_USE_REPLY_KEY_USAGE) {
                 code = KRB5_KDCREP_MODIFIED;
                 goto cleanup;
             }
@@ -476,11 +464,8 @@ krb5_get_self_cred_from_kdc(krb5_context context,
 
     memset(&s4u_user, 0, sizeof(s4u_user));
 
-    if (in_creds->client != NULL &&
-        krb5_princ_size(context, in_creds->client)) {
-        if (krb5_princ_type(context, in_creds->client) ==
-            KRB5_NT_ENTERPRISE_PRINCIPAL)
-        {
+    if (in_creds->client != NULL && in_creds->client->length > 0) {
+        if (in_creds->client->type == KRB5_NT_ENTERPRISE_PRINCIPAL) {
             code = krb5_build_principal_ext(context,
                                             &s4u_user.user_id.user,
                                             user_realm->length,
@@ -511,8 +496,8 @@ krb5_get_self_cred_from_kdc(krb5_context context,
     s4u_user.user_id.options = KRB5_S4U_OPTS_USE_REPLY_KEY_USAGE;
 
     /* First, acquire a TGT to the user's realm. */
-    code = krb5_tgtname(context, user_realm,
-                        krb5_princ_realm(context, in_creds->server), &tgs);
+    code = krb5int_tgtname(context, user_realm, &in_creds->server->realm,
+                           &tgs);
     if (code != 0)
         goto cleanup;
 
@@ -525,7 +510,7 @@ krb5_get_self_cred_from_kdc(krb5_context context,
 
     tgtptr = tgt;
 
-    code = krb5int_copy_creds_contents(context, in_creds, &s4u_creds);
+    code = k5_copy_creds_contents(context, in_creds, &s4u_creds);
     if (code != 0)
         goto cleanup;
 
@@ -556,8 +541,7 @@ krb5_get_self_cred_from_kdc(krb5_context context,
         krb5_pa_data **enc_padata = NULL;
         krb5_keyblock *subkey = NULL;
 
-        if (s4u_user.user_id.user != NULL &&
-            krb5_princ_size(context, s4u_user.user_id.user)) {
+        if (s4u_user.user_id.user != NULL && s4u_user.user_id.user->length) {
             in_padata = calloc(2, sizeof(krb5_pa_data *));
             if (in_padata == NULL) {
                 code = ENOMEM;
@@ -615,7 +599,7 @@ krb5_get_self_cred_from_kdc(krb5_context context,
                                    (*out_creds)->server)) {
             code = 0;
             goto cleanup;
-        } else if (IS_TGS_PRINC(context, (*out_creds)->server)) {
+        } else if (IS_TGS_PRINC((*out_creds)->server)) {
             krb5_data *r1 = &tgtptr->server->data[1];
             krb5_data *r2 = &(*out_creds)->server->data[1];
 
@@ -690,16 +674,20 @@ krb5_get_credentials_for_user(krb5_context context, krb5_flags options,
     if (code != 0)
         goto cleanup;
 
-    code = krb5_get_credentials(context, options | KRB5_GC_CACHED,
-                                ccache, in_creds, out_creds);
-    if ((code != KRB5_CC_NOTFOUND && code != KRB5_CC_NOT_KTYPE)
-        || options & KRB5_GC_CACHED)
-        goto cleanup;
+    if (in_creds->client != NULL &&
+        in_creds->client->type == KRB5_NT_ENTERPRISE_PRINCIPAL) {
+        /* Post-canonicalisation check for enterprise principals */
+        krb5_creds mcreds = *in_creds;
+        mcreds.client = realm;
+        code = krb5_get_credentials(context, options | KRB5_GC_CACHED,
+                                    ccache, &mcreds, out_creds);
+        if ((code != KRB5_CC_NOTFOUND && code != KRB5_CC_NOT_KTYPE)
+            || (options & KRB5_GC_CACHED))
+            goto cleanup;
+    }
 
-    code = krb5_get_self_cred_from_kdc(context, options, ccache,
-                                       in_creds, subject_cert,
-                                       krb5_princ_realm(context, realm),
-                                       out_creds);
+    code = krb5_get_self_cred_from_kdc(context, options, ccache, in_creds,
+                                       subject_cert, &realm->realm, out_creds);
     if (code != 0)
         goto cleanup;
 
@@ -766,8 +754,8 @@ krb5_get_credentials_for_proxy(krb5_context context,
         goto cleanup;
     }
 
-    code = krb5_get_credentials_core(context, options, in_creds,
-                                     &mcreds, &fields);
+    code = krb5int_construct_matching_creds(context, options, in_creds,
+                                            &mcreds, &fields);
     if (code != 0)
         goto cleanup;
 

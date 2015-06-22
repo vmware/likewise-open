@@ -20,7 +20,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
 #ifndef GSSAPI_EXT_H_
@@ -32,20 +31,102 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#if 0
 /*
  * Solaris extensions
  */
-int KRB5_CALLCONV gssd_pname_to_uid
-	(char *,
-	 gss_OID,
-	 gss_OID,
-	 uid_t *);
-
-int KRB5_CALLCONV __gss_userok
-	(const gss_name_t /*name*/,
-	 const char * /*username*/);
+#ifndef _WIN32
+OM_uint32 KRB5_CALLCONV
+gss_pname_to_uid
+	(OM_uint32 *minor,
+         const gss_name_t name,
+	 const gss_OID mech_type,
+	 uid_t *uidOut);
 #endif
+
+/**
+ * Provides a platform-specific name for a GSSAPI name as interpreted by a
+ * given mechanism.
+ *
+ * @param [out] minor      Minor status code
+ * @param [in] name        The gss name resulting from accept_sec_context
+ * @param [in] mech_type   The mechanism that will be asked to map @a name to a
+ *                         local name
+ * @param [out] localname  Caller-allocated buffer to be filled in with the
+ *                         local name on success
+ */
+OM_uint32 KRB5_CALLCONV
+gss_localname
+	(OM_uint32 *minor,
+	 const gss_name_t name,
+	 gss_const_OID mech_type,
+	 gss_buffer_t localname);
+
+/**
+ * Determine whether a mechanism name is authorized to act as a username.
+ *
+ * @param [in] name      Mechanism name
+ * @param [in] username  System username
+ *
+ * This is a simple wrapper around gss_authorize_localname().  It only supports
+ * system usernames as local names, and cannot distinguish between lack of
+ * authorization and other errors.
+ *
+ * @retval 1 @a name is authorized to act as @a username
+ * @retval 0 @a name is not authorized or an error occurred
+ */
+int KRB5_CALLCONV
+gss_userok(const gss_name_t name,
+           const char *username);
+
+/**
+ *  Determine whether a mechanism name is authorized to act as a local name.
+ *
+ * @param [out] minor  Minor status code
+ * @param [in] name    Mechanism name
+ * @param [in] user    Local name
+ *
+ * @a name is a mechanism name, typically the result of a completed
+ * gss_accept_sec_context().  @a user is an internal name representing a local
+ * name, such as a name imported by gss_import_name() with an @a
+ * input_name_type of @c GSS_C_NT_USER_NAME.
+ *
+ * @return Return GSS_S_COMPLETE if @a name is authorized to act as @a user,
+ * GSS_S_UNAUTHORIZED if not, or an appropriate GSS error code if an error
+ * occured.
+ *
+ * @sa gss_userok
+ */
+OM_uint32 KRB5_CALLCONV
+gss_authorize_localname(OM_uint32 *minor,
+                        const gss_name_t name,
+                        const gss_name_t user);
+
+OM_uint32 KRB5_CALLCONV
+gss_acquire_cred_with_password(
+    OM_uint32 *,        /* minor_status */
+    const gss_name_t,   /* desired_name */
+    const gss_buffer_t, /* password */
+    OM_uint32,          /* time_req */
+    const gss_OID_set,  /* desired_mechs */
+    gss_cred_usage_t,   /* cred_usage */
+    gss_cred_id_t *,    /* output_cred_handle */
+    gss_OID_set *,      /* actual_mechs */
+    OM_uint32 *);       /* time_rec */
+
+OM_uint32 KRB5_CALLCONV
+gss_add_cred_with_password(
+    OM_uint32 *,        /* minor_status */
+    const gss_cred_id_t,/* input_cred_handle */
+    const gss_name_t,   /* desired_name */
+    const gss_OID,      /* desired_mech */
+    const gss_buffer_t, /* password */
+    gss_cred_usage_t,   /* cred_usage */
+    OM_uint32,          /* initiator_time_req */
+    OM_uint32,          /* acceptor_time_req */
+    gss_cred_id_t *,    /* output_cred_handle */
+    gss_OID_set *,      /* actual_mechs */
+    OM_uint32 *,        /* initiator_time_rec */
+    OM_uint32 *);       /* acceptor_time_rec */
 
 /*
  * GGF extensions
@@ -88,10 +169,9 @@ OM_uint32 KRB5_CALLCONV gss_set_sec_context_option
 	 const gss_OID /*desired_object*/,
 	 const gss_buffer_t /*value*/);
 
-/* XXX do these really belong in this header? */
-OM_uint32 KRB5_CALLCONV gssspi_set_cred_option
+OM_uint32 KRB5_CALLCONV gss_set_cred_option
 	(OM_uint32 * /*minor_status*/,
-	 gss_cred_id_t /*cred*/,
+	 gss_cred_id_t * /*cred*/,
 	 const gss_OID /*desired_object*/,
 	 const gss_buffer_t /*value*/);
 
@@ -158,6 +238,7 @@ typedef struct gss_iov_buffer_desc_struct {
 #define GSS_IOV_BUFFER_TYPE_PADDING	    9	/* Padding */
 #define GSS_IOV_BUFFER_TYPE_STREAM	    10	/* Complete wrap token */
 #define GSS_IOV_BUFFER_TYPE_SIGN_ONLY	    11	/* Sign only packet data */
+#define GSS_IOV_BUFFER_TYPE_MIC_TOKEN	    12	/* MIC token destination */
 
 #define GSS_IOV_BUFFER_FLAG_MASK	    0xFFFF0000
 #define GSS_IOV_BUFFER_FLAG_ALLOCATE	    0x00010000	/* indicates GSS should allocate */
@@ -246,6 +327,46 @@ OM_uint32 KRB5_CALLCONV gss_wrap_iov_length
     int);		/* iov_count */
 
 /*
+ * Produce a GSSAPI MIC token for a sequence of buffers.  All SIGN_ONLY and
+ * DATA buffers will be signed, in the order they appear.  One MIC_TOKEN buffer
+ * must be included for the result.  Suitable space should be provided for the
+ * MIC_TOKEN buffer by calling gss_get_mic_iov_length, or the ALLOCATE flag
+ * should be set on that buffer.  If the ALLOCATE flag is used, use
+ * gss_release_iov_buffer to free the allocated buffer within the iov list when
+ * it is no longer needed.
+ */
+OM_uint32 KRB5_CALLCONV gss_get_mic_iov
+(
+    OM_uint32 *,	/* minor_status */
+    gss_ctx_id_t,	/* context_handle */
+    gss_qop_t,		/* qop_req */
+    gss_iov_buffer_desc *, /* iov */
+    int);		/* iov_count */
+
+/*
+ * Query the MIC_TOKEN buffer length within the iov list.
+ */
+OM_uint32 KRB5_CALLCONV gss_get_mic_iov_length(
+    OM_uint32 *,	/* minor_status */
+    gss_ctx_id_t,	/* context_handle */
+    gss_qop_t,		/* qop_req */
+    gss_iov_buffer_desc *, /* iov */
+    int);		/* iov_count */
+
+/*
+ * Verify the MIC_TOKEN buffer within the iov list against the SIGN_ONLY and
+ * DATA buffers in the order they appear.  Return values are the same as for
+ * gss_verify_mic.
+ */
+OM_uint32 KRB5_CALLCONV gss_verify_mic_iov
+(
+    OM_uint32 *,	/* minor_status */
+    gss_ctx_id_t,	/* context_handle */
+    gss_qop_t *,	/* qop_state */
+    gss_iov_buffer_desc *, /* iov */
+    int);		/* iov_count */
+
+/*
  * Release buffers that have the ALLOCATED flag set.
  */
 OM_uint32 KRB5_CALLCONV gss_release_iov_buffer
@@ -287,6 +408,9 @@ gss_add_cred_impersonate_name(
 /*
  * Naming extensions
  */
+GSS_DLLIMP extern gss_buffer_t GSS_C_ATTR_LOCAL_LOGIN_USER;
+GSS_DLLIMP extern gss_OID GSS_C_NT_COMPOSITE_EXPORT;
+
 OM_uint32 KRB5_CALLCONV gss_display_name_ext
 (
     OM_uint32 *,	/* minor_status */
@@ -357,6 +481,95 @@ OM_uint32 KRB5_CALLCONV gss_release_any_name_mapping
     gss_buffer_t,	/* type_id */
     gss_any_t *		/* input */
 );
+
+/* draft-josefsson-gss-capsulate */
+OM_uint32 KRB5_CALLCONV gss_encapsulate_token
+(
+    gss_const_buffer_t, /* input_token */
+    gss_const_OID,      /* token_oid */
+    gss_buffer_t        /* output_token */
+);
+
+OM_uint32 KRB5_CALLCONV gss_decapsulate_token
+(
+    gss_const_buffer_t, /* input_token */
+    gss_const_OID,      /* token_oid */
+    gss_buffer_t        /* output_token */
+);
+
+int KRB5_CALLCONV gss_oid_equal
+(
+    gss_const_OID,      /* first_oid */
+    gss_const_OID       /* second_oid */
+);
+
+/* Credential store extensions */
+
+struct gss_key_value_element_struct {
+    const char *key;
+    const char *value;
+};
+typedef struct gss_key_value_element_struct gss_key_value_element_desc;
+
+struct gss_key_value_set_struct {
+    OM_uint32 count;
+    gss_key_value_element_desc *elements;
+};
+typedef struct gss_key_value_set_struct gss_key_value_set_desc;
+typedef const gss_key_value_set_desc *gss_const_key_value_set_t;
+
+#define GSS_C_NO_CRED_STORE ((gss_const_key_value_set_t) 0)
+
+OM_uint32 KRB5_CALLCONV
+gss_acquire_cred_from(
+    OM_uint32 *,               /* minor_status */
+    gss_name_t,                /* desired_name */
+    OM_uint32,                 /* time_req */
+    gss_OID_set,               /* desired_mechs */
+    gss_cred_usage_t,          /* cred_usage */
+    gss_const_key_value_set_t, /* cred_store */
+    gss_cred_id_t *,           /* output_cred_handle */
+    gss_OID_set *,             /* actual_mechs */
+    OM_uint32 *);              /* time_rec */
+
+OM_uint32 KRB5_CALLCONV
+gss_add_cred_from(
+    OM_uint32 *,               /* minor_status */
+    gss_cred_id_t,             /* input_cred_handle */
+    gss_name_t,                /* desired_name */
+    gss_OID,                   /* desired_mech */
+    gss_cred_usage_t,          /* cred_usage */
+    OM_uint32,                 /* initiator_time_req */
+    OM_uint32,                 /* acceptor_time_req */
+    gss_const_key_value_set_t, /* cred_store */
+    gss_cred_id_t *,           /* output_cred_handle */
+    gss_OID_set *,             /* actual_mechs */
+    OM_uint32 *,               /* initiator_time_rec */
+    OM_uint32 *);              /* acceptor_time_rec */
+
+OM_uint32 KRB5_CALLCONV
+gss_store_cred_into(
+    OM_uint32 *,               /* minor_status */
+    gss_cred_id_t,             /* input_cred_handle */
+    gss_cred_usage_t,          /* input_usage */
+    gss_OID,                   /* desired_mech */
+    OM_uint32,                 /* overwrite_cred */
+    OM_uint32,                 /* default_cred */
+    gss_const_key_value_set_t, /* cred_store */
+    gss_OID_set *,             /* elements_stored */
+    gss_cred_usage_t *);       /* cred_usage_stored */
+
+OM_uint32 KRB5_CALLCONV
+gss_export_cred(
+    OM_uint32 *,               /* minor_status */
+    gss_cred_id_t,             /* cred_handle */
+    gss_buffer_t);             /* token */
+
+OM_uint32 KRB5_CALLCONV
+gss_import_cred(
+    OM_uint32 *,               /* minor_status */
+    gss_buffer_t,              /* token */
+    gss_cred_id_t *);          /* cred_handle */
 
 #ifdef __cplusplus
 }

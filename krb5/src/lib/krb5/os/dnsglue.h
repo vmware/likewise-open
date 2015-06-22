@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/os/dnsglue.h */
 /*
- * lib/krb5/os/dnsglue.h
- *
  * Copyright 2004 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,7 +22,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
+ */
+
+/*
  * Glue layer for DNS resolver, to make parsing of replies easier
  * whether we are using BIND 4, 8, or 9.
  */
@@ -59,11 +61,11 @@
 #endif /* WSHELPER */
 
 #if HAVE_SYS_PARAM_H
-#include <sys/param.h>		/* for MAXHOSTNAMELEN */
+#include <sys/param.h>          /* for MAXHOSTNAMELEN */
 #endif
 
 #ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN 64	/* if we can't find it elswhere */
+#define MAXHOSTNAMELEN 64       /* if we can't find it elswhere */
 #endif
 
 #ifndef MAXDNAME
@@ -124,9 +126,9 @@
  * Given moving pointer PTR offset from BASE, return true if adding
  * INCR to PTR doesn't move it PTR than MAX bytes from BASE.
  */
-#define INCR_OK(base, max, ptr, incr)				\
-    ((incr) <= (max) - ((const unsigned char *)(ptr)		\
-			- (const unsigned char *)(base)))
+#define INCR_OK(base, max, ptr, incr)                           \
+    ((incr) <= (max) - ((const unsigned char *)(ptr)            \
+                        - (const unsigned char *)(base)))
 
 /*
  * SAFE_GETUINT16
@@ -136,22 +138,36 @@
  * failure, goto LABEL.
  */
 
-#define SAFE_GETUINT16(base, max, ptr, incr, s, label)	\
-    do {						\
-	if (!INCR_OK(base, max, ptr, incr)) goto label;	\
-	(s) = (unsigned short)(p)[0] << 8		\
-	    | (unsigned short)(p)[1];			\
-	(p) += (incr);					\
+#define SAFE_GETUINT16(base, max, ptr, incr, s, label)  \
+    do {                                                \
+        if (!INCR_OK(base, max, ptr, incr)) goto label; \
+        (s) = (unsigned short)(p)[0] << 8               \
+            | (unsigned short)(p)[1];                   \
+        (p) += (incr);                                  \
     } while (0)
 
 struct krb5int_dns_state;
 
 int krb5int_dns_init(struct krb5int_dns_state **, char *, int, int);
 int krb5int_dns_nextans(struct krb5int_dns_state *,
-			const unsigned char **, int *);
+                        const unsigned char **, int *);
 int krb5int_dns_expand(struct krb5int_dns_state *,
-		       const unsigned char *, char *, int);
+                       const unsigned char *, char *, int);
 void krb5int_dns_fini(struct krb5int_dns_state *);
+
+struct srv_dns_entry {
+    struct srv_dns_entry *next;
+    int priority;
+    int weight;
+    unsigned short port;
+    char *host;
+};
+
+krb5_error_code krb5int_make_srv_query_realm(const krb5_data *realm,
+                                             const char *service,
+                                             const char *protocol,
+                                             struct srv_dns_entry **answers);
+void krb5int_free_srv_dns_data(struct srv_dns_entry *);
 
 #endif /* KRB5_DNS_LOOKUP */
 #endif /* !defined(KRB5_DNSGLUE_H) */

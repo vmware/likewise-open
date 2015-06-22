@@ -1,6 +1,4 @@
-/* $OpenLDAP: pkg/ldap/libraries/liblunicode/ure/ure.c,v 1.19 2008/01/07 23:20:05 kurt Exp $ */
-/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
- *
+/*
  * Copyright 1998-2008 The OpenLDAP Foundation.
  * All rights reserved.
  *
@@ -33,13 +31,20 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.2 1999/09/21 15:47:43 mleisher Exp $" */
+
+/*
+ * This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ * $OpenLDAP: pkg/ldap/libraries/liblunicode/ure/ure.c,v 1.19 2008/01/07 23:20:05 kurt Exp $
+ * $Id: ure.c,v 1.2 1999/09/21 15:47:43 mleisher Exp $"
+ */
 
 #include <k5-int.h>
 
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #include "ure.h"
 
@@ -545,8 +550,8 @@ typedef void (*_ure_cclsetup_t)(
 
 typedef struct {
     ucs2_t key;
-    unsigned long len;
-    unsigned long next;
+    unsigned int len : 8;
+    unsigned int next : 8;
     _ure_cclsetup_t func;
     unsigned long mask;
 } _ure_trie_t;
@@ -598,7 +603,7 @@ _ure_xdigit_setup(_ure_symtab_t *sym, unsigned long mask, _ure_buffer_t *b)
     _ure_add_range(&sym->sym.ccl, &range, b);
 }
 
-static _ure_trie_t cclass_trie[] = {
+static const _ure_trie_t cclass_trie[] = {
     {0x003a, 1, 1, 0, 0},
     {0x0061, 9, 10, 0, 0},
     {0x0063, 8, 19, 0, 0},
@@ -676,7 +681,7 @@ _ure_posix_ccl(ucs2_t *cp, unsigned long limit, _ure_symtab_t *sym,
 {
     int i;
     unsigned long n;
-    _ure_trie_t *tp;
+    const _ure_trie_t *tp;
     ucs2_t *sp, *ep;
 
     /*
@@ -1878,7 +1883,8 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
                     l = (ucs2_t) (((rp->min_code - 0x10000) & 1023) + 0xdc00);
                     fprintf(out, "\\x%04hX\\x%04hX", h, l);
                 } else
-                  fprintf(out, "\\x%04lX", rp->min_code & 0xffff);
+                    fprintf(out, "\\x%04lX",
+                            (unsigned long)(rp->min_code & 0xffff));
                 if (rp->max_code != rp->min_code) {
                     putc('-', out);
                     if (rp->max_code >= 0x10000 &&
@@ -1887,7 +1893,8 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
                         l = (ucs2_t) (((rp->max_code - 0x10000) & 1023) + 0xdc00);
                         fprintf(out, "\\x%04hX\\x%04hX", h, l);
                     } else
-                      fprintf(out, "\\x%04lX", rp->max_code & 0xffff);
+                        fprintf(out, "\\x%04lX",
+                                (unsigned long)(rp->max_code & 0xffff));
                 }
             }
             if (sym->sym.ccl.ranges_used > 0)
@@ -1918,7 +1925,8 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
                     l = (ucs2_t) (((sym->sym.chr - 0x10000) & 1023) + 0xdc00);
                     fprintf(out, "\\x%04hX\\x%04hX ", h, l);
                 } else
-                  fprintf(out, "\\x%04lX ", sym->sym.chr & 0xffff);
+                    fprintf(out, "\\x%04lX ",
+                            (unsigned long)(sym->sym.chr & 0xffff));
                 break;
               case _URE_ANY_CHAR:
                 fprintf(out, "<any> ");

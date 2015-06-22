@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/cp_key_cnt.c */
 /*
- * lib/krb5/krb/cp_key_cnt.c
- *
  * Copyright 1991 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * krb5_copy_keyblock()
  */
 
 #include "k5-int.h"
@@ -35,13 +32,5 @@
 krb5_error_code KRB5_CALLCONV
 krb5_copy_keyblock_contents(krb5_context context, const krb5_keyblock *from, krb5_keyblock *to)
 {
-    *to = *from;
-    if (to->length) {
-        to->contents = (krb5_octet *)malloc(to->length);
-        if (!to->contents)
-            return ENOMEM;
-        memcpy((char *)to->contents, (char *)from->contents, to->length);
-    } else 
-        to->contents = 0;
-    return 0;
+    return krb5int_c_copy_keyblock_contents(context, from, to);
 }

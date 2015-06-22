@@ -1,3 +1,4 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <assert.h>
 
 #include "autoconf.h"
@@ -27,32 +28,35 @@ int krb5int_lib_init(void)
 {
     int err;
 
-    krb5int_set_error_info_callout_fn (error_message);
+    k5_set_error_info_callout_fn(error_message);
 
 #ifdef SHOW_INITFINI_FUNCS
     printf("krb5int_lib_init\n");
 #endif
 
     add_error_table(&et_krb5_error_table);
+    add_error_table(&et_k5e1_error_table);
     add_error_table(&et_kv5m_error_table);
     add_error_table(&et_kdb5_error_table);
     add_error_table(&et_asn1_error_table);
     add_error_table(&et_k524_error_table);
 
+    bindtextdomain(KRB5_TEXTDOMAIN, LOCALEDIR);
+
     err = krb5int_rc_finish_init();
     if (err)
-	return err;
+        return err;
 #ifndef LEAN_CLIENT
     err = krb5int_kt_initialize();
     if (err)
-	return err;
+        return err;
 #endif /* LEAN_CLIENT */
     err = krb5int_cc_initialize();
     if (err)
-	return err;
+        return err;
     err = k5_mutex_finish_init(&krb5int_us_time_mutex);
     if (err)
-	return err;
+        return err;
 
     return 0;
 }
@@ -71,9 +75,9 @@ void krb5int_lib_fini(void)
 {
     if (!INITIALIZER_RAN(krb5int_lib_init) || PROGRAM_EXITING()) {
 #ifdef SHOW_INITFINI_FUNCS
-	printf("krb5int_lib_fini: skipping\n");
+        printf("krb5int_lib_fini: skipping\n");
 #endif
-	return;
+        return;
     }
 
 #ifdef SHOW_INITFINI_FUNCS
@@ -93,12 +97,13 @@ void krb5int_lib_fini(void)
 #endif
 
     remove_error_table(&et_krb5_error_table);
+    remove_error_table(&et_k5e1_error_table);
     remove_error_table(&et_kv5m_error_table);
     remove_error_table(&et_kdb5_error_table);
     remove_error_table(&et_asn1_error_table);
     remove_error_table(&et_k524_error_table);
 
-    krb5int_set_error_info_callout_fn (0);
+    k5_set_error_info_callout_fn(NULL);
 }
 
 /* Still exists because it went into the export list on Windows.  But

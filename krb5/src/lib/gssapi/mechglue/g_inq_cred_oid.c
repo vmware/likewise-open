@@ -20,12 +20,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
-/*
- *  glue routine for gss_inquire_cred_by_oid
- */
+/* Glue routine for gss_inquire_cred_by_oid */
 
 #include "mglueP.h"
 #include <stdio.h>
@@ -134,4 +131,3 @@ gss_inquire_cred_by_oid(OM_uint32 *minor_status,
 
     return status;
 }
-

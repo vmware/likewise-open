@@ -31,12 +31,14 @@
 #ifndef _PKINIT_H
 #define _PKINIT_H
 
-#include <autoconf.h>
 #include <krb5/krb5.h>
 #include <krb5/preauth_plugin.h>
+#include <k5-platform.h>
 #include <k5-int-pkinit.h>
+#include <autoconf.h>
 #include <profile.h>
 #include "pkinit_accessor.h"
+#include "pkinit_trace.h"
 
 /*
  * It is anticipated that all the special checks currently
@@ -69,8 +71,10 @@ extern int longhorn;	    /* XXX Talking to a Longhorn server? */
 
 #define PKINIT_CTX_MAGIC	0x05551212
 #define PKINIT_REQ_CTX_MAGIC	0xdeadbeef
+#define PKINIT_DEFERRED_ID_MAGIC    0x3ca20d21
 
 #define PKINIT_DEFAULT_DH_MIN_BITS  2048
+#define PKINIT_DH_MIN_CONFIG_BITS   1024
 
 #define KRB5_CONF_KDCDEFAULTS                   "kdcdefaults"
 #define KRB5_CONF_LIBDEFAULTS                   "libdefaults"
@@ -93,8 +97,8 @@ extern int longhorn;	    /* XXX Talking to a Longhorn server? */
 #define KRB5_CONF_PKINIT_WIN2K_REQUIRE_BINDING  "pkinit_win2k_require_binding"
 
 /* Make pkiDebug(fmt,...) print, or not.  */
-#ifdef PKINIT_DEBUG
-extern void pkiDebug (const char *fmt, ...);
+#ifdef DEBUG
+#define pkiDebug	printf
 #else
 /* Still evaluates for side effects.  */
 static inline void pkiDebug (const char *fmt, ...) { }
@@ -104,7 +108,7 @@ static inline void pkiDebug (const char *fmt, ...) { }
 /* #define pkiDebug	(void) */
 #endif
 
-/* Solaris compiler doesn't grok __FUNCTION__ 
+/* Solaris compiler doesn't grok __FUNCTION__
  * hack for now.  Fix all the uses eventually. */
 #define __FUNCTION__ __func__
 
@@ -114,7 +118,7 @@ static inline void pkiDebug (const char *fmt, ...) { }
 #define OCTETDATA_TO_KRB5DATA(octd, k5d) \
     (k5d)->length = (octd)->length; (k5d)->data = (char *)(octd)->data;
 
-extern const krb5_octet_data dh_oid;
+extern const krb5_data dh_oid;
 
 /*
  * notes about crypto contexts:
@@ -126,15 +130,15 @@ extern const krb5_octet_data dh_oid;
  * (the kdc's identity is at the plugin level, the client's identity
  * information could change per-request.)
  * the identity context is meant to have the entity's cert,
- * a list of trusted and intermediate cas, a list of crls, and any 
+ * a list of trusted and intermediate cas, a list of crls, and any
  * pkcs11 information.  the req context is meant to have the
  * received certificate and the DH related information. the plugin
  * context is meant to have global crypto information, i.e., OIDs
  * and constant DH parameter information.
- */ 
+ */
 
 /*
- * plugin crypto context should keep plugin common information, 
+ * plugin crypto context should keep plugin common information,
  * eg., OIDs, known DHparams
  */
 typedef struct _pkinit_plg_crypto_context *pkinit_plg_crypto_context;
@@ -160,7 +164,7 @@ typedef struct _pkinit_plg_opts {
     int accept_secondary_eku;/* accept secondary EKU (default is false) */
     int allow_upn;	    /* allow UPN-SAN instead of pkinit-SAN */
     int dh_or_rsa;	    /* selects DH or RSA based pkinit */
-    int require_crl_checking; /* require CRL for a CA (default is false) */ 
+    int require_crl_checking; /* require CRL for a CA (default is false) */
     int dh_min_bits;	    /* minimum DH modulus size allowed */
 } pkinit_plg_opts;
 
@@ -182,13 +186,6 @@ typedef struct _pkinit_req_opts {
 /*
  * information about identity from config file or command line
  */
-
-#define PKINIT_ID_OPT_USER_IDENTITY	1
-#define PKINIT_ID_OPT_ANCHOR_CAS	2
-#define PKINIT_ID_OPT_INTERMEDIATE_CAS	3
-#define PKINIT_ID_OPT_CRLS		4
-#define PKINIT_ID_OPT_OCSP		5
-#define PKINIT_ID_OPT_DN_MAPPING	6   /* XXX ? */
 
 typedef struct _pkinit_identity_opts {
     char *identity;
@@ -226,14 +223,19 @@ typedef struct _pkinit_context *pkinit_context;
  * Client's per-request context
  */
 struct _pkinit_req_context {
-    int magic;
+    unsigned int magic;
     pkinit_req_crypto_context cryptoctx;
     pkinit_req_opts *opts;
     pkinit_identity_crypto_context idctx;
     pkinit_identity_opts *idopts;
+    int do_identity_matching;
     krb5_preauthtype pa_type;
+    int rfc6112_kdc;
+    int identity_initialized;
+    int identity_prompted;
+    krb5_error_code identity_prompt_retval;
 };
-typedef struct _pkinit_kdc_context *pkinit_kdc_context;
+typedef struct _pkinit_req_context *pkinit_req_context;
 
 /*
  * KDC's (per-realm) plugin context
@@ -247,7 +249,7 @@ struct _pkinit_kdc_context {
     char *realmname;
     unsigned int realmname_len;
 };
-typedef struct _pkinit_req_context *pkinit_req_context;
+typedef struct _pkinit_kdc_context *pkinit_kdc_context;
 
 /*
  * KDC's per-request context
@@ -263,7 +265,7 @@ typedef struct _pkinit_kdc_req_context *pkinit_kdc_req_context;
 
 /*
  * Functions in pkinit_lib.c
- */ 
+ */
 
 krb5_error_code pkinit_init_req_opts(pkinit_req_opts **);
 void pkinit_fini_req_opts(pkinit_req_opts *);
@@ -288,6 +290,18 @@ krb5_error_code pkinit_identity_initialize
 	 pkinit_req_crypto_context req_cryptoctx,	/* IN */
 	 pkinit_identity_opts *idopts,			/* IN */
 	 pkinit_identity_crypto_context id_cryptoctx,	/* IN/OUT */
+	 krb5_clpreauth_callbacks cb,			/* IN/OUT */
+	 krb5_clpreauth_rock rock,			/* IN/OUT */
+	 krb5_principal princ);				/* IN (optional) */
+
+krb5_error_code pkinit_identity_prompt
+	(krb5_context context,				/* IN */
+	 pkinit_plg_crypto_context plg_cryptoctx,	/* IN */
+	 pkinit_req_crypto_context req_cryptoctx,	/* IN */
+	 pkinit_identity_opts *idopts,			/* IN */
+	 pkinit_identity_crypto_context id_cryptoctx,	/* IN/OUT */
+	 krb5_clpreauth_callbacks cb,			/* IN/OUT */
+	 krb5_clpreauth_rock rock,			/* IN/OUT */
 	 int do_matching,				/* IN */
 	 krb5_principal princ);				/* IN (optional) */
 
@@ -297,6 +311,26 @@ krb5_error_code pkinit_cert_matching
 	pkinit_req_crypto_context req_cryptoctx,
 	pkinit_identity_crypto_context id_cryptoctx,
 	krb5_principal princ);
+
+/*
+ * Client's list of identities for which it needs PINs or passwords
+ */
+struct _pkinit_deferred_id {
+    int magic;
+    char *identity;
+    unsigned long ck_flags;
+    char *password;
+};
+typedef struct _pkinit_deferred_id *pkinit_deferred_id;
+
+krb5_error_code pkinit_set_deferred_id
+	(pkinit_deferred_id **identities, const char *identity,
+	 unsigned long ck_flags, const char *password);
+const char * pkinit_find_deferred_id
+	(pkinit_deferred_id *identities, const char *identity);
+unsigned long pkinit_get_deferred_id_flags
+	(pkinit_deferred_id *identities, const char *identity);
+void pkinit_free_deferred_ids(pkinit_deferred_id *identities);
 
 /*
  * initialization and free functions
@@ -310,7 +344,6 @@ void init_krb5_auth_pack(krb5_auth_pack **in);
 void init_krb5_auth_pack_draft9(krb5_auth_pack_draft9 **in);
 void init_krb5_pa_pk_as_rep(krb5_pa_pk_as_rep **in);
 void init_krb5_pa_pk_as_rep_draft9(krb5_pa_pk_as_rep_draft9 **in);
-void init_krb5_typed_data(krb5_typed_data **in);
 void init_krb5_subject_pk_info(krb5_subject_pk_info **in);
 
 void free_krb5_pa_pk_as_req(krb5_pa_pk_as_req **in);
@@ -322,13 +355,11 @@ void free_krb5_auth_pack_draft9(krb5_context, krb5_auth_pack_draft9 **in);
 void free_krb5_pa_pk_as_rep(krb5_pa_pk_as_rep **in);
 void free_krb5_pa_pk_as_rep_draft9(krb5_pa_pk_as_rep_draft9 **in);
 void free_krb5_external_principal_identifier(krb5_external_principal_identifier ***in);
-void free_krb5_trusted_ca(krb5_trusted_ca ***in);
-void free_krb5_typed_data(krb5_typed_data ***in);
 void free_krb5_algorithm_identifiers(krb5_algorithm_identifier ***in);
 void free_krb5_algorithm_identifier(krb5_algorithm_identifier *in);
 void free_krb5_kdc_dh_key_info(krb5_kdc_dh_key_info **in);
 void free_krb5_subject_pk_info(krb5_subject_pk_info **in);
-krb5_error_code pkinit_copy_krb5_octet_data(krb5_octet_data *dst, const krb5_octet_data *src);
+krb5_error_code pkinit_copy_krb5_data(krb5_data *dst, const krb5_data *src);
 
 
 /*
@@ -364,7 +395,7 @@ krb5_error_code pkinit_libdefault_integer
 /*
  * debugging functions
  */
-void print_buffer(unsigned char *, unsigned int);
+void print_buffer(const unsigned char *, unsigned int);
 void print_buffer_bin(unsigned char *, unsigned int, char *);
 
 /*

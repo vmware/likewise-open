@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/t_authdata.c - Test authorization data search */
 /*
- * lib/krb5/krb/t_authdata.c
- *
  * Copyright (C) 2009 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -22,10 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
- *
- * Test authorization data search
  */
 
 #include <k5-int.h>
@@ -34,26 +30,25 @@
 #include <memory.h>
 
 krb5_authdata ad1 = {
-  KV5M_AUTHDATA,
-  22,
-  4,
-  (unsigned char *) "abcd"};
+    KV5M_AUTHDATA,
+    22,
+    4,
+    (unsigned char *) "abcd"};
 krb5_authdata ad2 = {
-  KV5M_AUTHDATA,
-  23,
-  5,
-  (unsigned char *) "abcde"
+    KV5M_AUTHDATA,
+    23,
+    5,
+    (unsigned char *) "abcde"
 };
 
 krb5_authdata ad3= {
-  KV5M_AUTHDATA,
-  22,
-  3,
-  (unsigned char *) "ab"
+    KV5M_AUTHDATA,
+    22,
+    3,
+    (unsigned char *) "ab"
 };
-/* we want three results in the return from krb5int_find_authdata so
-it has to grow its list.
-*/
+/* We want three results in the return from krb5_find_authdata so it has to
+ * grow its list.  */
 krb5_authdata ad4 = {
     KV5M_AUTHDATA,
     22,
@@ -73,12 +68,13 @@ krb5_keyblock key = {
 };
 
 static void compare_authdata(const krb5_authdata *adc1, krb5_authdata *adc2) {
-  assert(adc1->ad_type == adc2->ad_type);
-  assert(adc1->length == adc2->length);
-  assert(memcmp(adc1->contents, adc2->contents, adc1->length) == 0);
+    assert(adc1->ad_type == adc2->ad_type);
+    assert(adc1->length == adc2->length);
+    assert(memcmp(adc1->contents, adc2->contents, adc1->length) == 0);
 }
 
-int main()
+int
+main()
 {
     krb5_context context;
     krb5_authdata **results;
@@ -97,8 +93,8 @@ int main()
     container[0] = &ad3;
     container[1] = NULL;
     assert(krb5_encode_authdata_container( context, KRB5_AUTHDATA_IF_RELEVANT, container, &container_out) == 0);
-    assert(krb5int_find_authdata(context,
-				 adseq1, container_out, 22, &results) == 0);
+    assert(krb5_find_authdata(context, adseq1, container_out, 22,
+                              &results) == 0);
     compare_authdata(&ad1, results[0]);
     compare_authdata( results[1], &ad4);
     compare_authdata( results[2], &ad3);
@@ -112,5 +108,6 @@ int main()
     krb5_free_authdata(context, kdci);
     krb5_free_authdata(context, results);
     krb5_free_authdata(context, container_out);
+    krb5_free_context(context);
     return 0;
 }

@@ -1,6 +1,5 @@
+/* ccapi/common/mac/cci_os_identifier.c */
 /*
- * $Header$
- *
  * Copyright 2006 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -77,4 +76,3 @@ cc_int32 cci_os_identifier_new_uuid (cci_uuid_string_t *out_uuid_string)
 
     return cci_check_error (err);
 }
-

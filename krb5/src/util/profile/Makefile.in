@@ -1,18 +1,15 @@
-thisconfigdir=../..
-myfulldir=util/profile
-mydir=util/profile
+mydir=util$(S)profile
 BUILDTOP=$(REL)..$(S)..
+SUBDIRS=testmod
 PROG_LIBPATH=-L$(TOPLIBD) $(TCL_LIBPATH) -L.
 PROG_RPATH=$(KRB5_LIBDIR)$(TCL_RPATH)
-KRB5_RUN_ENV=@KRB5_RUN_ENV@
-DEFS=
 ##DOS##BUILDTOP = ..\..
 ##DOS##OBJFILE=$(OUTPRE)profile.lst
 ##DOS##LIBNAME=$(OUTPRE)profile.lib
 
 LOCALINCLUDES=-I. $(TCL_INCLUDES)
 # for tcl.h
-DEFINES=-DHAS_STDARG
+DEFINES=-DHAS_STDARG -DLIBDIR=\"$(KRB5_LIBDIR)\"
 
 STLIBOBJS = \
 	prof_tree.o \
@@ -39,7 +36,8 @@ SRCS = $(srcdir)/prof_tree.c \
 	prof_err.c \
 	$(srcdir)/prof_init.c
 
-EXTRADEPSRCS=$(srcdir)/test_parse.c $(srcdir)/test_profile.c \
+EXTRADEPSRCS=$(srcdir)/test_load.c $(srcdir)/test_parse.c \
+	$(srcdir)/test_profile.c $(srcdir)/test_vtable.c \
 	$(srcdir)/profile_tcl.c
 
 DEPLIBS = $(COM_ERR_DEPLIB) $(SUPPORT_DEPLIB)
@@ -50,10 +48,6 @@ LIBMAJOR=1
 LIBMINOR=1
 SHLIB_EXPDEPS = $(COM_ERR_DEPLIB) $(SUPPORT_DEPLIB)
 SHLIB_EXPLIBS = -lcom_err $(SUPPORT_LIB) $(LIBS)
-SHLIB_DIRS = -L$(TOPLIBD)
-SHLIB_RDIRS=$(KRB5_LIBDIR)
-
-STOBJLISTS=OBJS.ST
 
 PROFILE_HDR=$(BUILDTOP)$(S)include$(S)profile.h
 
@@ -68,7 +62,7 @@ generate-files-mac: profile.h
 $(PROFILE_HDR):: profile.h
 	$(CP) profile.h "$@"
 
-includes:: profile.h $(PROFILE_HDR)
+includes:: $(PROFILE_HDR)
 
 clean-unix::
 	$(RM) $(BUILDTOP)/include/profile.h test2.ini test3.ini test2.ini.bak
@@ -89,6 +83,15 @@ test_profile: test_profile.$(OBJEXT) argv_parse.$(OBJEXT) $(OBJS) $(DEPLIBS)
 	$(CC_LINK) -o test_profile test_profile.$(OBJEXT) \
 		argv_parse.$(OBJEXT) $(OBJS) $(MLIBS)
 
+test_vtable: test_vtable.$(OBJEXT) $(OBJS) $(DEPLIBS)
+	$(CC_LINK) -o test_vtable test_vtable.$(OBJEXT) $(OBJS) $(MLIBS)
+
+test_load: test_load.$(OBJEXT) $(OBJS) $(DEPLIBS)
+	$(CC_LINK) -o test_load test_load.$(OBJEXT) $(OBJS) $(MLIBS)
+
+modtest.conf:
+	echo "module `pwd`/testmod/proftest$(DYNOBJEXT):teststring" > $@
+
 .d: includes
 
 # NEED TO FIX!!
@@ -101,8 +104,12 @@ $(OUTPRE)test_profile.exe:
 	$(CC) $(CFLAGS2) -o test_profile.exe test_profile.c prof_init.c \
 		prof_file.c prof_parse.c prof_tree.c /link /stack:16384
 
+##DOS##!if 0
 profile.h: prof_err.h profile.hin
 	cat $(srcdir)/profile.hin prof_err.h > $@
+##DOS##!endif
+##DOS##profile.h: prof_err.h profile.hin
+##DOS##	copy /b profile.hin+prof_err.h $@
 
 prof_err.h: $(srcdir)/prof_err.et
 
@@ -112,7 +119,7 @@ prof_err.o: prof_err.c
 
 # not built by default, but may be useful for testing
 $(srcdir)/profile_tcl.c: profile.swg
-#	(cd $(srcdir) && swig -tcl8 -o profile_tcl.c profile.swg)
+#	(cd $(srcdir) && swig -tcl8 -nosafe -o profile_tcl.c profile.swg)
 profile_tcl.o: $(srcdir)/profile_tcl.c profile.h
 profile_tcl: profile_tcl.o $(PROF_DEPLIB) $(COM_ERR_DEPLIB) $(SUPPORT_DEPLIB)
 	$(CC_LINK) -o profile_tcl profile_tcl.o \
@@ -120,13 +127,17 @@ profile_tcl: profile_tcl.o $(PROF_DEPLIB) $(COM_ERR_DEPLIB) $(SUPPORT_DEPLIB)
 		-L../et -L../.. -lprofile $(TCL_LIBS) $(MLIBS)
 
 clean-unix:: clean-libs clean-libobjs
-	$(RM) $(PROGS) *.o *~ test_parse core prof_err.h \
-		prof_err.c test_profile profile.h profile_tcl
+	$(RM) $(PROGS) *.o *~ core prof_err.h profile.h prof_err.c
+	$(RM) test_load test_parse test_profile test_vtable profile_tcl
+	$(RM) modtest.conf testinc.ini testinc2.ini
+	$(RM) -r test_include_dir
 
 clean-windows::
 	$(RM) $(PROFILE_HDR)
 
-check-unix:: test_parse test_profile
+check-unix:: test_parse test_profile test_vtable test_load modtest.conf
+	$(RUN_SETUP) $(VALGRIND) ./test_vtable
+	$(RUN_SETUP) $(VALGRIND) ./test_load
 
 DO_TCL=@DO_TCL@
 check-unix:: check-unix-tcl-$(DO_TCL)
@@ -138,7 +149,7 @@ check-unix-tcl-:
 
 check-unix-tcl-ok: profile_tcl
 	cp $(srcdir)/test.ini test2.ini
-	$(KRB5_RUN_ENV) $(VALGRIND) ./profile_tcl $(srcdir)/prof_test1
+	$(RUN_SETUP) $(VALGRIND) ./profile_tcl $(srcdir)/prof_test1
 
 check-windows:: $(OUTPRE)test_profile.exe $(OUTPRE)test_parse.exe
 	$(RM) $(OUTPRE)*.obj

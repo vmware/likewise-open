@@ -13,4 +13,3 @@ int main (int argc, const char * argv[]) {
 	err = check_cc_ccache_move();
     return err;
 }
-	

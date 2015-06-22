@@ -1,8 +1,8 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
 			"http://www.w3.org/TR/REC-html40/loose.dtd">
 <HTML>
-<HEAD>
-	<TITLE>Credentials Cache API v2 Specification</TITLE>
+<HEAD> 
+	<TITLE>Credentials Cache API v2 Specification</TITLE> 
 </HEAD>
 <BODY>
 <H1>Credentials Cache API v2 Specification</H1>
@@ -11,116 +11,116 @@ Please refer to CCAPI version 3 or later for the current API.</H3>
 
 <UL>
    <LI><A HREF="#TypeDefinitions">Type Definitions</A>
-
+   
    <UL CLASS=small>
       <LI><A HREF="#cc_int32">cc_int32 &amp; cc_uint32</A>
-
+      
       <LI><A HREF="#cc_time_t">cc_time_t</A>
-
+      
       <LI><A HREF="#cc_nc_flags">cc_nc_flags</A>
-
+      
       <LI><A HREF="#typedefCC_Cred">cc_cred</A>
-
+      
       <LI><A HREF="#typedefCC_Data">cc_data</A>
-
+      
       <LI><A HREF="#typedefV4Cred_type">V4Cred_type</A>
-
+      
       <LI><A HREF="#enumStringToKey_Type">StringToKey_Type</A>
-
+      
       <LI><A HREF="#enumCc_cred_vers">cc_cred_vers</A>
-
+      
       <LI><A HREF="#unionCred_ptr_union">cred_ptr_union</A>
-
+      
       <LI><A HREF="#unionCred_union">cred_union</A>
-
+      
       <LI><A HREF="#typdefInfoNC">infoNC</A>
-
+      
       <LI><A HREF="#opaque_types">opaque types</A>
    </UL>
-
+   
    <LI><A HREF="#ErrorCodeDefinitions">Error Code Definitions</A>
-
+   
    <LI><A HREF="#ImplementationNotes">Implementation Notes</A>
-
+   
    <LI><A HREF="#FunctionDefinitions">Function Definitions</A>
-
+   
    <UL>
       <LI><A HREF="#MainCacheFunctions">Main Cache Functions</A>
-
+      
       <UL CLASS=small>
          <LI><A HREF="#cc_initialize">cc_initialize</A>
-
+         
          <LI><A HREF="#cc_create">cc_create</A>
-
+         
          <LI><A HREF="#cc_open">cc_open</A>
-
+         
          <LI><A HREF="#cc_close">cc_close</A>
-
+         
          <LI><A HREF="#cc_destroy">cc_destroy</A>
-
+         
          <LI><A HREF="#cc_shutdown">cc_shutdown</A>
-
+         
          <LI><A HREF="#cc_initialize">cc_initialize</A>
-
+         
          <LI><A HREF="#cc_get_change_time">cc_get_change_time</A>
-
+         
          <LI><A HREF="#cc_get_NC_info">cc_get_NC_info</A>
-
+         
          <LI><A HREF="#cc_seq_fetch_NCs_begin">cc_seq_fetch_NCs_begin</A>
-
+         
          <LI><A HREF="#cc_seq_fetch_NCs_next">cc_seq_fetch_NCs_next</A>
-
+         
          <LI><A HREF="#cc_seq_fetch_NCs_end">cc_seq_fetch_NCs_end</A>
-
+      
       </UL>
-
+      
       <LI><A HREF="#NCFunctions">NC Functions</A>
-
+      
       <UL CLASS=small>
          <LI><A HREF="#cc_get_name">cc_get_name</A>
-
+         
          <LI><A HREF="#cc_get_cred_version">cc_get_cred_version</A>
-
+         
          <LI><A HREF="#cc_get_principal">cc_get_principal</A>
-
+         
          <LI><A HREF="#cc_get_instance">cc_get_instance</A>
-
+         
          <LI><A HREF="#cc_remove_cred">cc_remove_cred</A>
-
+         
          <LI><A HREF="#cc_store">cc_store</A>
-
+         
          <LI><A HREF="#cc_get_instance">cc_get_instance</A>
-
+         
          <LI><A HREF="#cc_seq_fetch_creds_begin">cc_seq_fetch_creds_begin</A>
-
+         
          <LI><A HREF="#cc_seq_fetch_creds_next">cc_seq_fetch_creds_next</A>
-
+         
          <LI><A HREF="#cc_seq_fetch_creds_end">cc_seq_fetch_creds_end</A>
-
+         
          <LI><A HREF="#cc_lock_request">cc_lock_request</A>
       </UL>
-
+      
       <LI><A HREF="#LiberationFunctions">Liberation Functions</A>
-
+      
       <UL CLASS=small>
          <LI><A HREF="#cc_free_principal">cc_free_principal</A>
-
+         
          <LI><A HREF="#cc_free_name">cc_free_name</A>
-
+         
          <LI><A HREF="#cc_free_creds">cc_free_creds</A>
-
+         
          <LI><A HREF="#cc_free_NC_info">cc_free_NC_info</A>
       </UL>
    </UL>
-
+   
    <LI><A HREF="#RevisionNotes">Revision History/Notes</A>
-
+   
    <UL>
       <LI><A HREF="#ChangesRev3">Changes made during revsion 3</A>
    </UL>
-
+   
    <LI><A HREF="#FutureIdeas">Ideas for Future Versions</A>
-
+   
    <LI><A HREF="#Abstract">Abstract</A>
 </UL>
 
@@ -186,59 +186,59 @@ the distinction clearer and to reduce the overloading of the word
 
 <UL>
    <LI>Added cred version type to cc_create() &amp; cc_open()
-
+   
    <LI>New functions
-
+   
    <UL>
       <LI>cc_get_NC_info(), returns NC_info list for all NCs
-
+      
       <LI>cc_free_NC_info(), frees NC_info list
-
+      
       <LI>cc_get_cred_version(), returns version type of NC
-
+      
       <LI>cc_get_name(), returns name of NC
-
+      
       <LI>cc_free_name(), frees name aquired via cc_get_name()
-
+      
       <LI>cc_seq_fetch_NCs(), iterate over all NCs
    </UL>
-
+   
    <LI>New return codes
-
+   
    <UL>
       <LI>CC_BAD_PARM
-
+      
       <LI>CC_ERR_CACHE_ATTACH
-
+      
       <LI>CC_ERR_CACHE_RELEASE
-
+      
       <LI>CC_ERR_CACHE_FULL
-
+      
       <LI>CC_ERR_CRED_VERSION
    </UL>
-
+   
    <LI>Modified functions
-
+   
    <UL>
       <LI>cc_create(), cc_open(), pass version type of NC
-
+      
       <LI>cc_store(), cc_remove(), cc_
    </UL>
-
+   
    <LI>New &amp; Modified typedefs &amp; data structures
-
+   
    <UL>
       <LI>cc_cred_vers { CC_CRED_VUNKNOWN, CC_CRED_V4, CC_CRED_V5 }
-
+      
       <LI>cred_ptr_union : contains pointer to credentials (either V4
       or V5)
-
+      
       <LI>cred_union : contains version type and cred_ptr_union
-
+      
       <LI>modified V4Cred_type
-
+      
       <LI>enum StringToKey_Type { STK_AFS or STK_DES }
-
+      
       <LI>copies of the maximum V4 string size indicators
       KRB_PRINCIPAL_SZ, KRB_SERVICE_SZ, KRB_INSTANCE_SZ,
       KRB_REALM_SZ, ADDR_SZ
@@ -263,66 +263,66 @@ Final API Version 1 spec.
 
 <UL>
    <LI>Increased API version number to 2.
-
+   
    <LI>Added enum's defining version numbers.
-
+   
    <LI>Changes to cc_initialize() to specify how to deal with
    different API version numbers.
-
+   
    <LI>Added description of cc_int32 and cc_uint32 types.
-
+   
    <LI>Change some cc_int32's to cc_uint32's.
-
+   
    <LI>Changed way cc_create() will behave when called on an existing
    cache.
-
+   
    <LI>Replaced cc_seq_fetch_NCs() with cc_seq_fetch_NCs_begin(),
    cc_seq_fetch_NCs_next(), and cc_seq_fetch_NCs_end();
-
+   
    <LI>Replaced cc_seq_fetch_creds() with cc_seq_fetch_creds_begin(),
    cc_seq_fetch_creds_next(), and cc_seq_fetch_creds_end();
-
+   
    <LI>Replaced enum type references in structs and function
    paramenters with cc_int32 references;
-
+   
    <LI>Replaced int type references in function parameters with
    cc_int32;
-
+   
    <LI>Added return type of cc_int32 to all functions;
-
+   
    <LI>Removed #ifdef from cred_union structure;
-
+   
    <LI>Constant definitions and changes to V4Cred_type structure;
-
+   
    <LI>Removed incorrect const ccache_p * parameters from cc_store()
    and cc_remove_cred();
-
+   
    <LI>Added CC_NOERROR and CC_BAD_PARM as possible return codes from
    all functions (except no CC_BAD_PARM from cc_shutdown() );
-
+   
    <LI>Added CC_ERR_CRED_VERSION as possible return code from
    cc_open() and cc_create();
-
+   
    <LI>Moved infoNC structure definition up to be with rest of
    structure definitions;
-
+   
    <LI>Changed "struct _infoNC" to "infoNC" in parameter type
    references.
-
+   
    <LI>cc_free_principal() and cc_free_name() now take char **
    instead of char * for final parameter. (This change was made
    between rev 4a and rev 5, but I'm re-emphasizing it here.)
-
+   
    <LI>Added Implementation Notes section with requirement that all
    functions must be atomic and name requirements for Windows DLL's.
-
+   
    <LI>Renamed "the proposed changes to this API are" section to
    "Ideas for Future Versions" -- but removed all items but one
    because they'd all been done.
-
+   
    <LI>Removed most of the notes about differences with the Win NT/95
    implementation of the API -- the differences have been reconciled.
-
+   
    <LI>Removed unnecessary and inconsistent italicizing.
 </UL>
 
@@ -333,10 +333,10 @@ Final API Version 1 spec.
 <UL>
    <LI>cc_create(): Removed text about "expected" form of name.
    Removed note about "the alpha version does not do this."
-
+   
    <LI>cc_destroy(): Clarified that you do not need to call
    cc_close() on the cache_pointer after calling this function.
-
+   
    <LI>Removed note about Windows cc_get_instance() and
    cc_set_instance() functions, they are no longer part of the
    Windows code!
@@ -489,11 +489,11 @@ typedef struct _infoNC {
 
 <UL>
    <LI>keyblock
-
+   
    <LI>addresses
-
+   
    <LI>ticket (and second_ticket)
-
+   
    <LI>authorization data
 </UL>
 
@@ -1112,7 +1112,7 @@ CC_BAD_PARM, CC_NOMEM
 
 <DL>
    <DD>99/02/11 - smcguire
-
+   
    <DD><B>As of&nbsp;this date there is no locking in the Win NT/95
    or Machintosh implementations. The description below may not be
    completely accurate as to how this function should be

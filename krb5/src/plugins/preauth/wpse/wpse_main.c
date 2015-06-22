@@ -1,3 +1,4 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright (C) 2006 Red Hat, Inc.
  * All rights reserved.
@@ -58,24 +59,24 @@ client_get_flags(krb5_context kcontext, krb5_preauthtype pa_type)
 }
 
 static krb5_error_code
-client_init(krb5_context kcontext, void **ctx)
+client_init(krb5_context kcontext, krb5_clpreauth_moddata *moddata_out)
 {
     int *pctx;
 
     pctx = malloc(sizeof(int));
     if (pctx == NULL)
-	return ENOMEM;
+        return ENOMEM;
     *pctx = 0;
-    *ctx = pctx;
+    *moddata_out = (krb5_clpreauth_moddata)pctx;
     return 0;
 }
 
 static void
-client_fini(krb5_context kcontext, void *ctx)
+client_fini(krb5_context kcontext, krb5_clpreauth_moddata moddata)
 {
     int *pctx;
 
-    pctx = ctx;
+    pctx = (int *)moddata;
     if (pctx) {
 #ifdef DEBUG
         fprintf(stderr, "wpse module called total of %d times\n", *pctx);
@@ -86,22 +87,18 @@ client_fini(krb5_context kcontext, void *ctx)
 
 static krb5_error_code
 client_process(krb5_context kcontext,
-	       void *plugin_context,
-	       void *request_context,
-	       krb5_get_init_creds_opt *opt,
-	       preauth_get_client_data_proc client_get_data_proc,
-	       struct _krb5_preauth_client_rock *rock,
-	       krb5_kdc_req *request,
-	       krb5_data *encoded_request_body,
-	       krb5_data *encoded_previous_request,
-	       krb5_pa_data *pa_data,
-	       krb5_prompter_fct prompter,
-	       void *prompter_data,
-	       preauth_get_as_key_proc gak_fct,
-	       void *gak_data,
-	       krb5_data *salt, krb5_data *s2kparams,
-	       krb5_keyblock *as_key,
-	       krb5_pa_data ***out_pa_data)
+               krb5_clpreauth_moddata moddata,
+               krb5_clpreauth_modreq modreq,
+               krb5_get_init_creds_opt *opt,
+               krb5_clpreauth_callbacks cb,
+               krb5_clpreauth_rock rock,
+               krb5_kdc_req *request,
+               krb5_data *encoded_request_body,
+               krb5_data *encoded_previous_request,
+               krb5_pa_data *pa_data,
+               krb5_prompter_fct prompter,
+               void *prompter_data,
+               krb5_pa_data ***out_pa_data)
 {
     krb5_pa_data **send_pa;
     krb5_int32 nnonce, enctype;
@@ -111,58 +108,58 @@ client_process(krb5_context kcontext,
 
 #ifdef DEBUG
     fprintf(stderr, "%d bytes of preauthentication data (type %d)\n",
-	    pa_data->length, pa_data->pa_type);
+            pa_data->length, pa_data->pa_type);
 #endif
 
-    pctx = plugin_context;
+    pctx = (int *)moddata;
     if (pctx) {
-	(*pctx)++;
+        (*pctx)++;
     }
 
     if (pa_data->length == 0) {
-	/* Create preauth data. */
-	send_pa = malloc(2 * sizeof(krb5_pa_data *));
-	if (send_pa == NULL)
-	    return ENOMEM;
-	send_pa[1] = NULL;  /* Terminate list */
-	send_pa[0] = malloc(sizeof(krb5_pa_data));
-	if (send_pa[0] == NULL) {
-	    free(send_pa);
-	    return ENOMEM;
-	}
-	send_pa[0]->pa_type = KRB5_PADATA_WPSE_REQ;
-	send_pa[0]->length = 4;
-	send_pa[0]->contents = malloc(4);
-	if (send_pa[0]->contents == NULL) {
-	    free(send_pa[0]);
-	    free(send_pa);
-	    return ENOMEM;
-	}
-	/* Store the preauth data. */
-	nnonce = htonl(request->nonce);
-	memcpy(send_pa[0]->contents, &nnonce, 4);
-	*out_pa_data = send_pa;
+        /* Create preauth data. */
+        send_pa = malloc(2 * sizeof(krb5_pa_data *));
+        if (send_pa == NULL)
+            return ENOMEM;
+        send_pa[1] = NULL;  /* Terminate list */
+        send_pa[0] = malloc(sizeof(krb5_pa_data));
+        if (send_pa[0] == NULL) {
+            free(send_pa);
+            return ENOMEM;
+        }
+        send_pa[0]->pa_type = KRB5_PADATA_WPSE_REQ;
+        send_pa[0]->length = 4;
+        send_pa[0]->contents = malloc(4);
+        if (send_pa[0]->contents == NULL) {
+            free(send_pa[0]);
+            free(send_pa);
+            return ENOMEM;
+        }
+        /* Store the preauth data. */
+        nnonce = htonl(request->nonce);
+        memcpy(send_pa[0]->contents, &nnonce, 4);
+        *out_pa_data = send_pa;
     } else {
-	/* A reply from the KDC.  Conventionally this would be
-	 * indicated by a different preauthentication type, but this
-	 * mechanism/implementation doesn't do that. */
-	if (pa_data->length > 4) {
-	    memcpy(&enctype, pa_data->contents, 4);
-	    kb = NULL;
-	    status = krb5_init_keyblock(kcontext, ntohl(enctype),
-					pa_data->length - 4, &kb);
-	    if (status != 0)
-		return status;
-	    memcpy(kb->contents, pa_data->contents + 4, pa_data->length - 4);
+        /* A reply from the KDC.  Conventionally this would be
+         * indicated by a different preauthentication type, but this
+         * mechanism/implementation doesn't do that. */
+        if (pa_data->length > 4) {
+            memcpy(&enctype, pa_data->contents, 4);
+            kb = NULL;
+            status = krb5_init_keyblock(kcontext, ntohl(enctype),
+                                        pa_data->length - 4, &kb);
+            if (status != 0)
+                return status;
+            memcpy(kb->contents, pa_data->contents + 4, pa_data->length - 4);
 #ifdef DEBUG
-	    fprintf(stderr, "Recovered key type=%d, length=%d.\n",
-		    kb->enctype, kb->length);
+            fprintf(stderr, "Recovered key type=%d, length=%d.\n",
+                    kb->enctype, kb->length);
 #endif
-	    status = krb5_copy_keyblock_contents(kcontext, kb, as_key);
-	    krb5_free_keyblock(kcontext, kb);
-	    return status;
-	}
-	return KRB5KRB_ERR_GENERIC;
+            status = cb->set_as_key(kcontext, rock, kb);
+            krb5_free_keyblock(kcontext, kb);
+            return status;
+        }
+        return KRB5KRB_ERR_GENERIC;
     }
     return 0;
 }
@@ -175,124 +172,123 @@ typedef struct _wpse_req_ctx
 } wpse_req_ctx;
 
 static void
-client_req_init(krb5_context kcontext, void *plugin_context, void **req_context_p)
+client_req_init(krb5_context kcontext, krb5_clpreauth_moddata moddata,
+                krb5_clpreauth_modreq *modreq_out)
 {
     wpse_req_ctx *ctx;
 
-    *req_context_p = NULL;
+    *modreq_out = NULL;
 
     /* Allocate a request context. Useful for verifying that we do in fact
      * do per-request cleanup. */
     ctx = (wpse_req_ctx *) malloc(sizeof(*ctx));
     if (ctx == NULL)
-	return;
+        return;
     ctx->magic = WPSE_MAGIC;
     ctx->value = 0xc0dec0de;
 
-    *req_context_p = ctx;
+    *modreq_out = (krb5_clpreauth_modreq)ctx;
 }
 
 static void
-client_req_cleanup(krb5_context kcontext, void *plugin_context, void *req_context)
+client_req_cleanup(krb5_context kcontext, krb5_clpreauth_moddata moddata,
+                   krb5_clpreauth_modreq modreq)
 {
-    wpse_req_ctx *ctx = (wpse_req_ctx *)req_context;
+    wpse_req_ctx *ctx = (wpse_req_ctx *)modreq;
 
     if (ctx) {
 #ifdef DEBUG
-	fprintf(stderr, "client_req_cleanup: req_ctx at %p has magic %x and value %x\n",
-		ctx, ctx->magic, ctx->value);
+        fprintf(stderr, "client_req_cleanup: req_ctx at %p has magic %x and value %x\n",
+                ctx, ctx->magic, ctx->value);
 #endif
-	if (ctx->magic != WPSE_MAGIC) {
+        if (ctx->magic != WPSE_MAGIC) {
 #ifdef DEBUG
-	    fprintf(stderr, "client_req_cleanup: req_context at %p has bad magic value %x\n",
-		    ctx, ctx->magic);
+            fprintf(stderr, "client_req_cleanup: req_context at %p has bad magic value %x\n",
+                    ctx, ctx->magic);
 #endif
-	    return;
-	}
-	free(ctx);
+            return;
+        }
+        free(ctx);
     }
     return;
 }
 
 static krb5_error_code
 client_gic_opt(krb5_context kcontext,
-	       void *plugin_context,
-	       krb5_get_init_creds_opt *opt,
-	       const char *attr,
-	       const char *value)
+               krb5_clpreauth_moddata moddata,
+               krb5_get_init_creds_opt *opt,
+               const char *attr,
+               const char *value)
 {
 #ifdef DEBUG
     fprintf(stderr, "(wpse) client_gic_opt: received '%s' = '%s'\n",
-	    attr, value);
+            attr, value);
 #endif
     return 0;
 }
 
 
 /* Free state. */
-static krb5_error_code
-server_free_pa_request_context(krb5_context kcontext, void *plugin_context,
-			       void **request_context)
+static void
+server_free_modreq(krb5_context kcontext,
+                   krb5_kdcpreauth_moddata moddata,
+                   krb5_kdcpreauth_modreq modreq)
 {
-    if (*request_context != NULL) {
-	free(*request_context);
-	*request_context = NULL;
-    }
-    return 0;
+    free(modreq);
 }
 
 /* Obtain and return any preauthentication data (which is destined for the
  * client) which matches type data->pa_type. */
-static krb5_error_code
+static void
 server_get_edata(krb5_context kcontext,
-		 krb5_kdc_req *request,
-		 struct _krb5_db_entry_new *client,
-		 struct _krb5_db_entry_new *server,
-		 preauth_get_entry_data_proc server_get_entry_data,
-		 void *pa_module_context,
-		 krb5_pa_data *data)
+                 krb5_kdc_req *request,
+                 krb5_kdcpreauth_callbacks cb,
+                 krb5_kdcpreauth_rock rock,
+                 krb5_kdcpreauth_moddata moddata,
+                 krb5_preauthtype pa_type,
+                 krb5_kdcpreauth_edata_respond_fn respond,
+                 void *arg)
 {
-    /* Return zero bytes of data. */
-    data->length = 0;
-    data->contents = NULL;
-    return 0;
+    (*respond)(arg, 0, NULL);
 }
 
 /* Verify a request from a client. */
-static krb5_error_code
+static void
 server_verify(krb5_context kcontext,
-	      struct _krb5_db_entry_new *client,
-	      krb5_data *req_pkt,
-	      krb5_kdc_req *request,
-	      krb5_enc_tkt_part *enc_tkt_reply,
-	      krb5_pa_data *data,
-	      preauth_get_entry_data_proc server_get_entry_data,
-	      void *pa_module_context,
-	      void **pa_request_context,
-	      krb5_data **e_data,
-	      krb5_authdata ***authz_data)
+              krb5_data *req_pkt,
+              krb5_kdc_req *request,
+              krb5_enc_tkt_part *enc_tkt_reply,
+              krb5_pa_data *data,
+              krb5_kdcpreauth_callbacks cb,
+              krb5_kdcpreauth_rock rock,
+              krb5_kdcpreauth_moddata moddata,
+              krb5_kdcpreauth_verify_respond_fn respond,
+              void *arg)
 {
     krb5_int32 nnonce;
-    krb5_data *test_edata;
     krb5_authdata **my_authz_data;
+    krb5_kdcpreauth_modreq modreq;
 
 #ifdef DEBUG
     fprintf(stderr, "wpse: server_verify()!\n");
 #endif
     /* Verify the preauth data. */
-    if (data->length != 4)
-	return KRB5KDC_ERR_PREAUTH_FAILED;
+    if (data->length != 4) {
+        (*respond)(arg, KRB5KDC_ERR_PREAUTH_FAILED, NULL, NULL, NULL);
+        return;
+    }
     memcpy(&nnonce, data->contents, 4);
     nnonce = ntohl(nnonce);
-    if (memcmp(&nnonce, &request->nonce, 4) != 0)
-	return KRB5KDC_ERR_PREAUTH_FAILED;
+    if (memcmp(&nnonce, &request->nonce, 4) != 0) {
+        (*respond)(arg, KRB5KDC_ERR_PREAUTH_FAILED, NULL, NULL, NULL);
+        return;
+    }
     /* Note that preauthentication succeeded. */
     enc_tkt_reply->flags |= TKT_FLG_PRE_AUTH;
     enc_tkt_reply->flags |= TKT_FLG_HW_AUTH;
     /* Allocate a context. Useful for verifying that we do in fact do
      * per-request cleanup. */
-    if (*pa_request_context == NULL)
-	*pa_request_context = malloc(4);
+    modreq = malloc(4);
 
     /*
      * Return some junk authorization data just to exercise the
@@ -303,30 +299,35 @@ server_verify(krb5_context kcontext,
 #ifdef DEBUG
     fprintf(stderr, "wpse: doing authorization data!\n");
 #endif
-#if 1 /* USE_5000_AD */
-#define AD_ALLOC_SIZE 5000
-    /* ad_header consists of a sequence tag (0x30) and length (0x82 0x1384)
-     * followed by octet string tag (0x04) and length (0x82 0x1380) */
-    krb5_octet ad_header[] = {0x30, 0x82, 0x13, 0x84, 0x04, 0x82, 0x13, 0x80};
-#else
-#define AD_ALLOC_SIZE 100
-    /* ad_header consists of a sequence tag (0x30) and length (0x62)
-     * followed by octet string tag (0x04) and length (0x60) */
-    krb5_octet ad_header[] = {0x30, 0x62, 0x04, 0x60};
-#endif
     my_authz_data = malloc(2 * sizeof(*my_authz_data));
     if (my_authz_data != NULL) {
+#if 1 /* USE_5000_AD */
+#define AD_ALLOC_SIZE 5000
+        /* ad_header consists of a sequence tag (0x30) and length
+         * (0x82 0x1384) followed by octet string tag (0x04) and
+         * length (0x82 0x1380) */
+        krb5_octet ad_header[] = {0x30, 0x82, 0x13, 0x84, 0x04, 0x82, 0x13, 0x80};
+#else
+#define AD_ALLOC_SIZE 100
+        /* ad_header consists of a sequence tag (0x30) and length
+         * (0x62) followed by octet string tag (0x04) and length
+         * (0x60) */
+        krb5_octet ad_header[] = {0x30, 0x62, 0x04, 0x60};
+#endif
+
         my_authz_data[1] = NULL;
         my_authz_data[0] = malloc(sizeof(krb5_authdata));
         if (my_authz_data[0] == NULL) {
             free(my_authz_data);
-            return ENOMEM;
+            (*respond)(arg, ENOMEM, modreq, NULL, NULL);
+            return;
         }
         my_authz_data[0]->contents = malloc(AD_ALLOC_SIZE);
         if (my_authz_data[0]->contents == NULL) {
             free(my_authz_data[0]);
             free(my_authz_data);
-            return ENOMEM;
+            (*respond)(arg, ENOMEM, modreq, NULL, NULL);
+            return;
         }
         memset(my_authz_data[0]->contents, '\0', AD_ALLOC_SIZE);
         my_authz_data[0]->magic = KV5M_AUTHDATA;
@@ -334,44 +335,29 @@ server_verify(krb5_context kcontext,
         my_authz_data[0]->length = AD_ALLOC_SIZE;
         memcpy(my_authz_data[0]->contents, ad_header, sizeof(ad_header));
         snprintf(my_authz_data[0]->contents + sizeof(ad_header),
-		 AD_ALLOC_SIZE - sizeof(ad_header),
-		 "wpse authorization data: %d bytes worth!\n", AD_ALLOC_SIZE);
-        *authz_data = my_authz_data;
+                 AD_ALLOC_SIZE - sizeof(ad_header),
+                 "wpse authorization data: %d bytes worth!\n", AD_ALLOC_SIZE);
 #ifdef DEBUG
         fprintf(stderr, "Returning %d bytes of authorization data\n",
                 AD_ALLOC_SIZE);
 #endif
     }
 
-    /* Return edata to exercise code that handles edata... */
-    test_edata = malloc(sizeof(*test_edata));
-    if (test_edata != NULL) {
-	test_edata->data = malloc(20);
-	if (test_edata->data == NULL) {
-	    free(test_edata);
-	} else {
-	    test_edata->length = 20;
-	    memset(test_edata->data, '#', 20); /* fill it with junk */
-	    *e_data = test_edata;
-	}
-    }
-    return 0;
+    (*respond)(arg, 0, modreq, NULL, my_authz_data);
 }
 
 /* Create the response for a client. */
 static krb5_error_code
 server_return(krb5_context kcontext,
-	      krb5_pa_data *padata,
-	      struct _krb5_db_entry_new *client,
-	      krb5_data *req_pkt,
-	      krb5_kdc_req *request,
-	      krb5_kdc_rep *reply,
-	      struct _krb5_key_data *client_key,
-	      krb5_keyblock *encrypting_key,
-	      krb5_pa_data **send_pa,
-	      preauth_get_entry_data_proc server_get_entry_data,
-	      void *pa_module_context,
-	      void **pa_request_context)
+              krb5_pa_data *padata,
+              krb5_data *req_pkt,
+              krb5_kdc_req *request,
+              krb5_kdc_rep *reply,
+              krb5_keyblock *encrypting_key,
+              krb5_pa_data **send_pa,
+              krb5_kdcpreauth_callbacks cb,
+              krb5_kdcpreauth_rock rock,
+              krb5_kdcpreauth_moddata moddata, krb5_kdcpreauth_modreq modreq)
 {
     /* This module does a couple of dumb things.  It tags its reply with
      * the same type as the initial challenge (expecting the client to sort
@@ -385,39 +371,39 @@ server_return(krb5_context kcontext,
 
     /* We'll want a key with the first supported enctype. */
     for (i = 0; i < request->nktypes; i++) {
-	kb = NULL;
-	if (krb5_init_keyblock(kcontext, request->ktype[i], 0, &kb) == 0) {
-	    break;
-	}
+        kb = NULL;
+        if (krb5_init_keyblock(kcontext, request->ktype[i], 0, &kb) == 0) {
+            break;
+        }
     }
     if (i >= request->nktypes) {
-	/* No matching cipher type found. */
-	return 0;
+        /* No matching cipher type found. */
+        return 0;
     }
 
     /* Randomize a key and save it for the client. */
     if (krb5_c_make_random_key(kcontext, request->ktype[i], kb) != 0) {
-	krb5_free_keyblock(kcontext, kb);
-	return 0;
+        krb5_free_keyblock(kcontext, kb);
+        return 0;
     }
 #ifdef DEBUG
     fprintf(stderr, "Generated random key, type=%d, length=%d.\n",
-	    kb->enctype, kb->length);
+            kb->enctype, kb->length);
 #endif
 
     *send_pa = malloc(sizeof(krb5_pa_data));
     if (*send_pa == NULL) {
-	krb5_free_keyblock(kcontext, kb);
-	return ENOMEM;
+        krb5_free_keyblock(kcontext, kb);
+        return ENOMEM;
     }
     (*send_pa)->pa_type = KRB5_PADATA_WPSE_REQ;
     (*send_pa)->length = 4 + kb->length;
     (*send_pa)->contents = malloc(4 + kb->length);
     if ((*send_pa)->contents == NULL) {
-	free(*send_pa);
-	*send_pa = NULL;
-	krb5_free_keyblock(kcontext, kb);
-	return ENOMEM;
+        free(*send_pa);
+        *send_pa = NULL;
+        krb5_free_keyblock(kcontext, kb);
+        return ENOMEM;
     }
 
     /* Store the preauth data. */
@@ -443,28 +429,49 @@ server_get_flags(krb5_context kcontext, krb5_preauthtype pa_type)
 static krb5_preauthtype supported_client_pa_types[] = {KRB5_PADATA_WPSE_REQ, 0};
 static krb5_preauthtype supported_server_pa_types[] = {KRB5_PADATA_WPSE_REQ, 0};
 
-struct krb5plugin_preauth_client_ftable_v1 preauthentication_client_1 = {
-    "wpse",				    /* name */
-    &supported_client_pa_types[0],	    /* pa_type_list */
-    NULL,				    /* enctype_list */
-    client_init,			    /* plugin init function */
-    client_fini,			    /* plugin fini function */
-    client_get_flags,			    /* get flags function */
-    client_req_init,			    /* request init function */
-    client_req_cleanup,			    /* request fini function */
-    client_process,			    /* process function */
-    NULL,				    /* try_again function */
-    client_gic_opt			    /* get init creds opts function */
-};
+krb5_error_code
+clpreauth_wpse_initvt(krb5_context context, int maj_ver,
+                      int min_ver, krb5_plugin_vtable vtable);
+krb5_error_code
+kdcpreauth_wpse_initvt(krb5_context context, int maj_ver,
+                       int min_ver, krb5_plugin_vtable vtable);
 
-struct krb5plugin_preauth_server_ftable_v1 preauthentication_server_1 = {
-    "wpse",
-    &supported_server_pa_types[0],
-    NULL,
-    NULL,
-    server_get_flags,
-    server_get_edata,
-    server_verify,
-    server_return,
-    server_free_pa_request_context,
-};
+krb5_error_code
+clpreauth_wpse_initvt(krb5_context context, int maj_ver,
+                      int min_ver, krb5_plugin_vtable vtable)
+{
+    krb5_clpreauth_vtable vt;
+
+    if (maj_ver != 1)
+        return KRB5_PLUGIN_VER_NOTSUPP;
+    vt = (krb5_clpreauth_vtable)vtable;
+    vt->name = "wpse";
+    vt->pa_type_list = supported_client_pa_types;
+    vt->init = client_init;
+    vt->fini = client_fini;
+    vt->flags = client_get_flags;
+    vt->request_init = client_req_init;
+    vt->request_fini = client_req_cleanup;
+    vt->process = client_process;
+    vt->gic_opts = client_gic_opt;
+    return 0;
+}
+
+krb5_error_code
+kdcpreauth_wpse_initvt(krb5_context context, int maj_ver,
+                       int min_ver, krb5_plugin_vtable vtable)
+{
+    krb5_kdcpreauth_vtable vt;
+
+    if (maj_ver != -1)
+        return KRB5_PLUGIN_VER_NOTSUPP;
+    vt = (krb5_kdcpreauth_vtable)vtable;
+    vt->name = "wpse";
+    vt->pa_type_list = supported_server_pa_types;
+    vt->flags = server_get_flags;
+    vt->edata = server_get_edata;
+    vt->verify = server_verify;
+    vt->return_padata = server_return;
+    vt->free_modreq = server_free_modreq;
+    return 0;
+}

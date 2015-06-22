@@ -1,12 +1,13 @@
 /*
+ * Copyright (C) 1997 Cygnus Solutions.
+ *
+ * Author:  Michael Graff
+ */
+/*
  * Dialog box building for various numbers of (label, entry) fields.
  *
  * This code is somewhat hardcoded to build boxes for the krb5_get_init_creds()
  * function.
- *
- * Copyright (C) 1997 Cygnus Solutions.
- *
- * Author:  Michael Graff
  */
 
 #include <windows.h>
@@ -44,17 +45,17 @@ ADD_DWORD(unsigned char *p, DWORD dw)
 	return 4;
 }
 
-static int
+static size_t
 ADD_UNICODE_STRING(unsigned char *p, const char *s)
 {
 	WORD *w;
-	int i;
-	int len;
+	size_t i;
+	size_t len;
 
 	w = (WORD *)p;
 
 	len = strlen(s) + 1; /* copy the null, too */
-	
+
 	for (i = 0 ; i < len ; i++)
 		*w++ = *s++;
 
@@ -63,7 +64,7 @@ ADD_UNICODE_STRING(unsigned char *p, const char *s)
 
 #define DWORD_ALIGN(p) { while ((DWORD)p % 4) *p++ = 0x00; }
 
-static int
+static size_t
 ADD_DLGTEMPLATE(unsigned char *dlg, short x, short y, short cx, short cy,
 		const char *caption, const char *fontname, WORD fontsize,
 		WORD n)
@@ -106,13 +107,13 @@ ADD_DLGTEMPLATE(unsigned char *dlg, short x, short y, short cx, short cy,
 	return (p - dlg);
 }
 
-static int
+static size_t
 ADD_DLGITEM(unsigned char *dlg, short x, short y, short cx, short cy,
 	    const char *label, WORD id, WORD type, DWORD style)
 {
 	unsigned char    *p;
 	DLGITEMTEMPLATE   dit;
-	
+
 	p = dlg;
 
 	dit.style = style;
@@ -275,7 +276,7 @@ vardlg_config(HWND hwnd, WORD width, const char *banner, WORD num_prompts,
 	hdc = GetDC(GetDlgItem(hwnd, cid)); /* assume one label is the same as all the others */
 
 	for (n = 0 ; n < num_prompts ; n++) {
-		GetTextExtentPoint32(hdc, prompts[n].prompt, strlen(prompts[n].prompt), &csize);
+		GetTextExtentPoint32(hdc, prompts[n].prompt, (int)strlen(prompts[n].prompt), &csize);
 		if (csize.cx > maxsize.cx)
 			maxsize.cx = csize.cx;
 		if (csize.cy > maxsize.cy)
@@ -351,7 +352,7 @@ vardlg_config(HWND hwnd, WORD width, const char *banner, WORD num_prompts,
 
 		hdc = GetDC(GetDlgItem(hwnd, id));
 
-		GetTextExtentExPoint(hdc, p, strlen(p), cx, &nFit,
+		GetTextExtentExPoint(hdc, p, (int)strlen(p), cx, &nFit,
 			pDx, &csize);
 
 		banner_y += csize.cy;
@@ -429,7 +430,7 @@ vardlg_config(HWND hwnd, WORD width, const char *banner, WORD num_prompts,
  * button is IDCANCEL, as usual.
  *
  * After calling bld_dlg, the banner will have ID "id", and the labels
- * will be "1 + id + i * 2" (i is the entry number, starting with zero) and 
+ * will be "1 + id + i * 2" (i is the entry number, starting with zero) and
  * the entries will be "2 + id + i * 2".
  *
  *	unsigned char *dlg = vardlg_build(minwidth, banner, num_prompts,

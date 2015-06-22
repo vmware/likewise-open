@@ -1,31 +1,35 @@
 /* @(#)pmap_rmt.c	2.2 88/08/01 4.0 RPCSRC */
 /*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- * 
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- * 
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- * 
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- * 
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
+ * Copyright (c) 2010, Oracle America, Inc.
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *
+ *     * Neither the name of the "Oracle America, Inc." nor the names of
+ *       its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #if !defined(lint) && defined(SCCSIDS)
 static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
@@ -35,8 +39,6 @@ static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
  * pmap_rmt.c
  * Client interface to pmap rpc service.
  * remote call and broadcast service
- *
- * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
 #include <unistd.h>
@@ -54,10 +56,6 @@ static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
 #include <net/route.h>
 #include <sys/mbuf.h>
 #endif
-/* S7_CHANGE */
-#if defined(__hpux) && defined(__ia64)
-#include "mymp.h"
-#endif
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
@@ -68,6 +66,9 @@ static char sccsid[] = "@(#)pmap_rmt.c 1.21 87/08/27 Copyr 1984 Sun Micro";
 
 static struct timeval timeout = { 3, 0 };
 
+#ifndef GETSOCKNAME_ARG3_TYPE
+#define GETSOCKNAME_ARG3_TYPE int
+#endif
 
 /*
  * pmapper remote-call-service interface.
@@ -172,7 +173,7 @@ xdr_rmtcallres(
 
 /*
  * The following is kludged-up support for simple rpc broadcasts.
- * Someday a large, complicated system will replace these trivial 
+ * Someday a large, complicated system will replace these trivial
  * routines which only support udp/ip .
  */
 
@@ -187,7 +188,6 @@ getbroadcastnets(
 {
 	struct ifconf ifc;
         struct ifreq ifreq, *ifr;
-	struct sockaddr_in *sockin;
         int n, i;
 
         ifc.ifc_len = GIFCONF_BUFSIZE;
@@ -207,24 +207,16 @@ getbroadcastnets(
                 if ((ifreq.ifr_flags & IFF_BROADCAST) &&
 		    (ifreq.ifr_flags & IFF_UP) &&
 		    ifr->ifr_addr.sa_family == AF_INET) {
-			sockin = (struct sockaddr_in *)&ifr->ifr_addr;
 #ifdef SIOCGIFBRDADDR   /* 4.3BSD */
 			if (ioctl(sock, SIOCGIFBRDADDR, (char *)&ifreq) < 0) {
 				addrs[i++].s_addr = INADDR_ANY;
-#if 0 /* this is uuuuugly */
-				addrs[i++] = inet_makeaddr(inet_netof
-#if defined(hpux) || (defined(sun) && defined(__svr4__)) || defined(linux) || (defined(__osf__) && defined(__alpha__))
-							   (sockin->sin_addr),
-#else /* hpux or solaris */
-							   (sockin->sin_addr.s_addr),
-#endif				
-							   INADDR_ANY);
-#endif
 			} else {
 				addrs[i++] = ((struct sockaddr_in*)
 				  &ifreq.ifr_addr)->sin_addr;
 			}
 #else /* 4.2 BSD */
+			struct sockaddr_in *sockin;
+			sockin = (struct sockaddr_in *)&ifr->ifr_addr;
 			addrs[i++] = inet_makeaddr(inet_netof
 			  (sockin->sin_addr.s_addr), INADDR_ANY);
 #endif
@@ -233,7 +225,7 @@ getbroadcastnets(
 	return (i);
 }
 
-enum clnt_stat 
+enum clnt_stat
 clnt_broadcast(
 	rpcprog_t	prog,		/* program number */
 	rpcvers_t	vers,		/* version number */
@@ -249,7 +241,9 @@ clnt_broadcast(
 	AUTH *unix_auth = authunix_create_default();
 	XDR xdr_stream;
 	register XDR *xdrs = &xdr_stream;
-	int outlen, inlen, fromlen, nets;
+	int outlen, nets;
+	ssize_t inlen;
+	GETSOCKNAME_ARG3_TYPE fromlen;
         SOCKET sock;
 	int on = 1;
 #ifdef FD_SETSIZE
@@ -268,7 +262,7 @@ clnt_broadcast(
 	struct rmtcallargs a;
 	struct rmtcallres r;
 	struct rpc_msg msg;
-	struct timeval t, t2; 
+	struct timeval t, t2;
 	char outbuf[MAX_BROADCAST_SIZE];
 #ifndef MAX
 #define MAX(A,B) ((A)<(B)?(B):(A))
@@ -355,7 +349,7 @@ clnt_broadcast(
                 msg.acpted_rply.ar_results.proc = xdr_rmtcallres;
 		readfds = mask;
 		t2 = t;
-		switch (select(gssrpc__rpc_dtablesize(), &readfds, (fd_set *)NULL, 
+		switch (select(gssrpc__rpc_dtablesize(), &readfds, (fd_set *)NULL,
 			       (fd_set *)NULL, &t2)) {
 
 		case 0:  /* timed out */
@@ -381,7 +375,7 @@ clnt_broadcast(
 			stat = RPC_CANTRECV;
 			goto done_broad;
 		}
-		if (inlen < sizeof(uint32_t))
+		if ((size_t)inlen < sizeof(uint32_t))
 			goto recv_again;
 		/*
 		 * see if reply transaction id matches sent id.
@@ -421,4 +415,3 @@ done_broad:
 	AUTH_DESTROY(unix_auth);
 	return (stat);
 }
-

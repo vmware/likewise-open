@@ -36,7 +36,7 @@ proc our_kinit { name pass ccache } {
     global spawn_id
 
     # Use kinit to get a ticket.
-    spawn $KINIT -5 -c $ccache $name@$REALMNAME
+    spawn $KINIT -f -5 -c $ccache $name@$REALMNAME
     expect {
 	"Password for $name@$REALMNAME:" {
 	    verbose "kinit started"
@@ -125,7 +125,7 @@ proc run_client {test tkfile client} {
     set env(KRB5CCNAME) $tkfile
     verbose "KRB5CCNAME=$env(KRB5CCNAME)"
     verbose "spawning gssclient, identity=$client"
-    spawn $GSSCLIENT -port [expr 8 + $portbase] $hostname gssservice@$hostname "message from $client"
+    spawn $GSSCLIENT -d -port [expr 8 + $portbase] $hostname gssservice@$hostname "message from $client"
     set got_client 0
     set got_server 0
     expect_after {
@@ -285,7 +285,11 @@ proc doit { } {
     spawn $GSSSERVER -export -logfile $tmppwd/gss-server.log -verbose -port [expr 8 + $portbase] gssservice@$hostname
     set gss_server_pid [exp_pid]
     set gss_server_spawn_id $spawn_id
-    sleep 2
+
+    expect {
+	"starting" { }
+	eof        { perror "gss-server failed to start" }
+    }
 
     run_client gssclient0 $tmppwd/gss_tk_0 gssclient0
     run_client gssclient1 $tmppwd/gss_tk_1 gssclient1

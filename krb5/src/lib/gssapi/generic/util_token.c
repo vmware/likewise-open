@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -28,7 +28,7 @@
 #include <limits.h>
 
 /*
- * $Id: util_token.c 21778 2009-01-22 23:21:11Z tlyu $
+ * $Id$
  */
 
 /* XXXX this code currently makes the assumption that a mech oid will
@@ -133,7 +133,7 @@ unsigned int
 g_token_size(const gss_OID_desc * mech, unsigned int body_size)
 {
     /* set body_size to sequence contents size */
-    body_size += 4 + (int) mech->length;         /* NEED overflow check */
+    body_size += 4 + (unsigned int)mech->length;         /* NEED overflow check */
     return(1 + der_length_size(body_size) + body_size);
 }
 
@@ -148,7 +148,7 @@ g_make_token_header(
     int tok_type)
 {
     *(*buf)++ = 0x60;
-    der_write_length(buf, (tok_type == -1) ?2:4 + mech->length + body_size);
+    der_write_length(buf, ((tok_type == -1) ? 2 : 4) + mech->length + body_size);
     *(*buf)++ = 0x06;
     *(*buf)++ = (unsigned char) mech->length;
     TWRITE_STR(*buf, mech->elements, mech->length);
@@ -194,8 +194,7 @@ g_verify_token_header(
     if ((seqsize = der_read_length(&buf, &toksize)) < 0)
         return(G_BAD_TOK_HEADER);
 
-    if ((flags & G_VFY_TOKEN_HDR_IGNORE_SEQ_SIZE) == 0 &&
-        seqsize != toksize)
+    if (seqsize != toksize)
         return(G_BAD_TOK_HEADER);
 
     if ((toksize-=1) < 0)

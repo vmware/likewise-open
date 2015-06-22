@@ -2,23 +2,17 @@ prefix=@prefix@
 bindir=@bindir@
 datadir=@datadir@
 mydatadir=$(datadir)/apputils
-thisconfigdir=../..
-myfulldir=lib/apputils
-mydir=lib/apputils
+mydir=lib$(S)apputils
 BUILDTOP=$(REL)..$(S)..
 RELDIR=../lib/apputils
 SED = sed
-DEFS=
 
 ##DOS##BUILDTOP = ..\..
 ##DOS##LIBNAME=$(OUTPRE)apputils.lib
 ##DOS##XTRA=
 ##DOS##OBJFILE=$(OUTPRE)apputils.lst
 
-# LIBOBJS may or may not contain daemon.o; dummy.o is just here to
-# avoid having an empty library.
-STLIBOBJS=dummy.o @LIBOBJS@
-STOBJLISTS=OBJS.ST
+STLIBOBJS=net-server.o @LIBOBJS@
 LIBBASE=apputils
 
 all-unix:: all-liblinks
@@ -30,7 +24,7 @@ LINTFILES= daemon.c
 LIBOBJS=$(OUTPRE)daemon.$(OBJEXT)
 
 SRCS=	$(srcdir)/daemon.c \
-	$(srcdir)/dummy.c
+	$(srcdir)/net-server.c
 
 @libpriv_frag@
 @lib_frag@

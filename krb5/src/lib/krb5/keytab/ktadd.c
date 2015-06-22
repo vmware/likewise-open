@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/keytab/ktadd.c */
 /*
- * lib/krb5/keytab/ktadd.c
- *
  * Copyright 1990,2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * krb5_kt_add_entry()
  */
 
 #include "k5-int.h"
@@ -35,9 +32,8 @@ krb5_error_code KRB5_CALLCONV
 krb5_kt_add_entry (krb5_context context, krb5_keytab id, krb5_keytab_entry *entry)
 {
     if (id->ops->add)
-	return (*id->ops->add)(context, id, entry);
+        return (*id->ops->add)(context, id, entry);
     else
-	return KRB5_KT_NOWRITE;
+        return KRB5_KT_NOWRITE;
 }
 #endif /* LEAN_CLIENT */
-

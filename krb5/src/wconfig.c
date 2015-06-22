@@ -1,6 +1,5 @@
+/* wconfig.c */
 /*
- * wconfig.c
- *
  * Copyright 1995,1996,1997,1998 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -22,8 +21,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
+ */
+
+/*
  * Program to take the place of the configure shell script under DOS.
  * The makefile.in files are constructed in such a way that all this
  * program needs to do is uncomment lines beginning ##DOS by removing the
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 
 	if (mit_specific)
 		add_ignore_list("MIT##");
-		
+
 	if (wflags[0] && (argc > 0))
 		printf("WCONFIG_FLAGS=%s\n", wflags);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		copy_file (*argv, "win-pre.in");
 
 	copy_file("", "-");
-    
+
 	if (argc > 0)
 		copy_file (*argv, "win-post.in");
 
@@ -164,13 +164,13 @@ void add_ignore_list(char *str)
 	*cpp = str;
 }
 
-		
+
 /*
- * 
+ *
  * Copy_file
- * 
+ *
  * Copies file 'path\fname' to stdout.
- * 
+ *
  */
 static int
 copy_file (char *path, char *fname)
@@ -203,7 +203,7 @@ copy_file (char *path, char *fname)
 		    return 1;
 	    }
     }
-    
+
 
     while (fgets (buf, sizeof(buf), fin) != NULL) { /* Copy file over */
 	    if (buf[0] == '@') {

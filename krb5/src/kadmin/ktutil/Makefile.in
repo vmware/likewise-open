@@ -1,10 +1,5 @@
-thisconfigdir=../..
-myfulldir=kadmin/ktutil
-mydir=kadmin/ktutil
+mydir=kadmin$(S)ktutil
 BUILDTOP=$(REL)..$(S)..
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
-DEFS=
 
 OBJS= 	ktutil.o \
 	ktutil_ct.o \
@@ -21,7 +16,6 @@ ktutil: ktutil.o $(OBJS) $(SS_DEPLIB) $(KRB5_BASE_DEPLIBS)
 
 install::
 	$(INSTALL_PROGRAM) ktutil ${DESTDIR}$(CLIENT_BINDIR)/ktutil
-	$(INSTALL_DATA) $(srcdir)/ktutil.M ${DESTDIR}$(CLIENT_MANDIR)/ktutil.1
 
 generate-files-mac: ktutil_ct.c
 

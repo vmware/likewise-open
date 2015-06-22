@@ -69,10 +69,10 @@ extern "C" DWORD alloc_textual_sid(
 
     // obtain SidIdentifierAuthority
     psia = GetSidIdentifierAuthority(pSid);
-
+ 
     // obtain sidsubauthority count
     dwSubAuthorities =* GetSidSubAuthorityCount(pSid);
-
+ 
     //
     // compute buffer length
     // S-SID_REVISION- + identifierauthority- + subauthorities- + NULL
@@ -88,7 +88,7 @@ extern "C" DWORD alloc_textual_sid(
     // prepare S-SID_REVISION-
     //
     wsprintf(TextualSid, TEXT("S-%lu-"), dwSidRev );
-
+ 
     //
     // prepare SidIdentifierAuthority
     //
@@ -111,7 +111,7 @@ extern "C" DWORD alloc_textual_sid(
                  (ULONG)(psia->Value[3] << 16)   +
                  (ULONG)(psia->Value[2] << 24)   );
     }
-
+ 
     //
     // loop through SidSubAuthorities
     //
@@ -182,12 +182,12 @@ alloc_username(
     if (status) {
         if (name)   free_alloc_p(&name);
         if (domain) free_alloc_p(&domain);
-        }
+        } 
     else {
         if (pdomain) {
             *pname = name;
             *pdomain = domain;
-            }
+            } 
         else {
             DWORD size = name_len + domain_len + 1;
             *pname = (LPSTR)malloc_alloc_p(size);
@@ -302,7 +302,7 @@ DWORD alloc_name_NT(LPSTR* pname, LPSTR postfix) {
 }
 
 extern "C" DWORD alloc_name(LPSTR* pname, LPSTR postfix, BOOL isNT) {
-    return isNT ? alloc_name_NT(pname, postfix) :
+    return isNT ? alloc_name_NT(pname, postfix) : 
         alloc_name_9x(pname, postfix);
     }
 
@@ -506,7 +506,7 @@ DWORD alloc_cmdline_2_args(char* prog,
     char*   result  = (char*)malloc_alloc_p(size);
     if (!result) {
         status = ERROR_NOT_ENOUGH_MEMORY;
-        }
+        } 
     else {
         strcpy(result, prog);
         strcat(result, " ");

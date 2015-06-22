@@ -1,6 +1,5 @@
+/* ccapi/server/mac/ccs_os_pipe.c */
 /*
- * $Header$
- *
  * Copyright 2006 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -78,4 +77,3 @@ cc_int32 ccs_os_pipe_release (ccs_pipe_t io_pipe)
 
     return cci_check_error (err);
 }
-

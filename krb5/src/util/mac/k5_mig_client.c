@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* util/mac/k5_mig_client.c */
 /*
- * $Header$
- *
  * Copyright 2006 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -54,8 +54,8 @@ typedef struct k5_ipc_service_port {
 /* global service ports and mutex to protect it */
 static k5_mutex_t g_service_ports_mutex = K5_MUTEX_PARTIAL_INITIALIZER;
 static k5_ipc_service_port g_service_ports[KIPC_SERVICE_COUNT] = {
-{ "edu.mit.Kerberos.CCacheServer", MACH_PORT_NULL },
-{ "edu.mit.Kerberos.KerberosAgent", MACH_PORT_NULL } };
+    { "edu.mit.Kerberos.CCacheServer", MACH_PORT_NULL },
+    { "edu.mit.Kerberos.KerberosAgent", MACH_PORT_NULL } };
 
 /* ------------------------------------------------------------------------ */
 
@@ -77,8 +77,8 @@ typedef struct k5_ipc_connection_info {
 
 /* initializer for k5_ipc_request_port to fill in server names in TLS */
 static const char *k5_ipc_known_services[KIPC_SERVICE_COUNT] = {
-"edu.mit.Kerberos.CCacheServer",
-"edu.mit.Kerberos.KerberosAgent" };
+    "edu.mit.Kerberos.CCacheServer",
+    "edu.mit.Kerberos.KerberosAgent" };
 
 /* ------------------------------------------------------------------------ */
 
@@ -325,12 +325,12 @@ kern_return_t k5_ipc_client_reply (mach_port_t             in_reply_port,
 
     if (!err) {
         if (in_inl_replyCnt) {
-            err = k5_ipc_stream_write (cinfo->reply_stream,
-                                       in_inl_reply, in_inl_replyCnt);
+            err = krb5int_ipc_stream_write (cinfo->reply_stream,
+                                            in_inl_reply, in_inl_replyCnt);
 
         } else if (in_ool_replyCnt) {
-            err = k5_ipc_stream_write (cinfo->reply_stream,
-                                       in_ool_reply, in_ool_replyCnt);
+            err = krb5int_ipc_stream_write (cinfo->reply_stream,
+                                            in_ool_reply, in_ool_replyCnt);
 
         } else {
             err = EINVAL;
@@ -375,14 +375,14 @@ int32_t k5_ipc_send_request (const char    *in_service_id,
     if (!err) {
         /* depending on how big the message is, use the fast inline buffer or
          * the slow dynamically allocated buffer */
-        mach_msg_type_number_t request_length = k5_ipc_stream_size (in_request_stream);
+        mach_msg_type_number_t request_length = krb5int_ipc_stream_size (in_request_stream);
 
         if (request_length > K5_IPC_MAX_INL_MSG_SIZE) {
             /*dprintf ("%s choosing out of line buffer (size is %d)",
              *                  __FUNCTION__, request_length); */
 
             err = vm_read (mach_task_self (),
-                           (vm_address_t) k5_ipc_stream_data (in_request_stream),
+                           (vm_address_t) krb5int_ipc_stream_data (in_request_stream),
                            request_length,
                            (vm_address_t *) &ool_request,
                            &ool_request_length);
@@ -391,7 +391,7 @@ int32_t k5_ipc_send_request (const char    *in_service_id,
              *                  __FUNCTION__, request_length); */
 
             inl_request_length = request_length;
-            inl_request = k5_ipc_stream_data (in_request_stream);
+            inl_request = krb5int_ipc_stream_data (in_request_stream);
         }
     }
 
@@ -466,14 +466,14 @@ int32_t k5_ipc_send_request (const char    *in_service_id,
             done = 1;
 
             /* Because we use ",dealloc" ool_request will be freed by mach.
-            * Don't double free it. */
+             * Don't double free it. */
             ool_request = NULL;
             ool_request_length = 0;
         }
     }
 
     if (!err) {
-        err = k5_ipc_stream_new (&cinfo->reply_stream);
+        err = krb5int_ipc_stream_new (&cinfo->reply_stream);
     }
 
     if (!err) {
@@ -519,7 +519,7 @@ int32_t k5_ipc_send_request (const char    *in_service_id,
                        (vm_address_t) ool_request, ool_request_length);
     }
     if (cinfo && cinfo->reply_stream) {
-        k5_ipc_stream_release (cinfo->reply_stream);
+        krb5int_ipc_stream_release (cinfo->reply_stream);
         cinfo->reply_stream = NULL;
     }
 

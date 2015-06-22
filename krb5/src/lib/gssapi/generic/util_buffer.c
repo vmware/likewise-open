@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -22,7 +22,7 @@
  */
 
 /*
- * $Id: util_buffer.c 20876 2008-10-15 21:58:43Z tlyu $
+ * $Id$
  */
 
 #include "gssapiP_generic.h"
@@ -34,9 +34,12 @@
 
 int g_make_string_buffer(const char *str, gss_buffer_t buffer)
 {
+    if (buffer == GSS_C_NO_BUFFER)
+        return (1);
+
     buffer->length = strlen(str);
 
-    if ((buffer->value = strdup(str)) == NULL) {
+    if ((buffer->value = gssalloc_strdup(str)) == NULL) {
         buffer->length = 0;
         return(0);
     }

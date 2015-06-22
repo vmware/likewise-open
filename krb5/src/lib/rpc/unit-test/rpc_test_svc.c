@@ -13,13 +13,6 @@
 static int _rpcsvcstate = _IDLE;	/* Set when a request is serviced */
 static int _rpcsvccount = 0;		/* Number of requests being serviced */
 
-static
-void _msgout(msg)
-	char *msg;
-{
-	syslog(LOG_ERR, msg);
-}
-
 void
 rpc_test_prog_1_svc(rqstp, transp)
 	struct svc_req *rqstp;
@@ -53,7 +46,7 @@ rpc_test_prog_1_svc(rqstp, transp)
 		_rpcsvcstate = _SERVED;
 		return;
 	}
-	(void) memset((char *)&argument, 0, sizeof (argument));
+	(void) memset(&argument, 0, sizeof (argument));
 	if (!svc_getargs(transp, xdr_argument, &argument)) {
 		svcerr_decode(transp);
 		_rpcsvccount--;
@@ -65,7 +58,7 @@ rpc_test_prog_1_svc(rqstp, transp)
 		svcerr_systemerr(transp);
 	}
 	if (!svc_freeargs(transp, xdr_argument, &argument)) {
-		_msgout("unable to free arguments");
+		syslog(LOG_ERR, "unable to free arguments");
 		exit(1);
 	}
 	_rpcsvccount--;

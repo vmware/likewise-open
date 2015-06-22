@@ -13,4 +13,3 @@ int main (int argc, const char * argv[]) {
 	err = check_cc_ccache_get_last_default_time();
     return err;
 }
-	

@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/rcache/t_replay.c - Test harness for replay cache */
 /*
- * test/threads/t_replay.c
- *
  * Copyright (C) 2009 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -23,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- * t_replay.c: Command-line interfaces to aid testing of replay cache
- *
  */
 
 #include <stdio.h>
@@ -35,7 +31,8 @@
 
 #include "k5-int.h"
 
-static void usage(const char *progname)
+static void
+usage(const char *progname)
 {
     fprintf(stderr, "%s: Usage:\n", progname);
     fprintf(stderr, "  %s dump <filename>\n", progname);
@@ -45,7 +42,8 @@ static void usage(const char *progname)
     exit(1);
 }
 
-static char *read_counted_string(FILE *fp)
+static char *
+read_counted_string(FILE *fp)
 {
     unsigned int len;
     char *str;
@@ -63,7 +61,8 @@ static char *read_counted_string(FILE *fp)
     return str;
 }
 
-static void dump_rcache(const char *filename)
+static void
+dump_rcache(const char *filename)
 {
     FILE *fp;
     krb5_deltat lifespan;
@@ -105,9 +104,10 @@ static void dump_rcache(const char *filename)
     }
 }
 
-static void store(krb5_context ctx, char *rcspec, char *client, char *server,
-                  char *msg, krb5_timestamp timestamp, krb5_int32 usec,
-                  krb5_timestamp now_timestamp, krb5_int32 now_usec)
+static void
+store(krb5_context ctx, char *rcspec, char *client, char *server, char *msg,
+      krb5_timestamp timestamp, krb5_int32 usec, krb5_timestamp now_timestamp,
+      krb5_int32 now_usec)
 {
     krb5_rcache rc = NULL;
     krb5_error_code retval = 0;
@@ -146,8 +146,9 @@ cleanup:
         free(hash);
 }
 
-static void expunge(krb5_context ctx, char *rcspec,
-                    krb5_timestamp now_timestamp, krb5_int32 now_usec)
+static void
+expunge(krb5_context ctx, char *rcspec, krb5_timestamp now_timestamp,
+        krb5_int32 now_usec)
 {
     krb5_rcache rc = NULL;
     krb5_error_code retval = 0;
@@ -168,7 +169,8 @@ cleanup:
         krb5_rc_close(ctx, rc);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
     krb5_context ctx;
     krb5_error_code retval;

@@ -21,12 +21,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
-/*
- *  glue routine for gss_map_name_to_any
- */
+/* Glue routine for gss_map_name_to_any */
 
 #include "mglueP.h"
 
@@ -77,4 +74,3 @@ gss_map_name_to_any(OM_uint32 *minor_status,
 
     return status;
 }
-

@@ -178,7 +178,7 @@ proc doit { } {
 
     run_once sample_standalone {
 	if ![start_sserver_daemon 0 ] {
-	    return
+	    return 
 	}
 
 	if ![test_sclient sclient] {

@@ -1,12 +1,9 @@
-thisconfigdir=../../..
-myfulldir=lib/kadm5/clnt
-mydir=lib/kadm5/clnt
+mydir=lib$(S)kadm5$(S)clnt
 BUILDTOP=$(REL)..$(S)..$(S)..
 LOCALINCLUDES = -I$(BUILDTOP)/include/kadm5
-DEFS=
 
-LIBBASE=kadm5clnt
-LIBMAJOR=6
+LIBBASE=kadm5clnt_mit
+LIBMAJOR=9
 LIBMINOR=0
 STOBJLISTS=../OBJS.ST OBJS.ST
 SHLIB_EXPDEPS=\
@@ -15,9 +12,7 @@ SHLIB_EXPDEPS=\
 	$(TOPLIBD)/libkrb5$(SHLIBEXT) \
 	$(TOPLIBD)/libk5crypto$(SHLIBEXT) \
 	$(COM_ERR_DEPLIB) $(SUPPORT_LIBDEP)
-SHLIB_EXPLIBS=-lgssrpc -lgssapi_krb5 -lkrb5 -lk5crypto $(SUPPORT_LIB) -lcom_err
-SHLIB_DIRS=-L$(TOPLIBD)
-SHLIB_RDIRS=$(KRB5_LIBDIR)
+SHLIB_EXPLIBS=-lgssrpc -lgssapi_krb5 -lkrb5 -lk5crypto $(SUPPORT_LIB) -lcom_err $(LIBS)
 RELDIR=kadm5/clnt
 
 ##DOSBUILDTOP = ..\..\..
@@ -71,6 +66,13 @@ clean-windows::
 clean-unix:: clean-liblinks clean-libs clean-libobjs
 
 install:: install-libs
+
+install-unix::
+	$(RM) $(DESTDIR)$(KRB5_LIBDIR)/libkadm5clnt$(DEPLIBEXT)
+	(cd $(DESTDIR)$(KRB5_LIBDIR) && $(LN_S) lib$(LIBBASE)$(DEPLIBEXT) \
+		libkadm5clnt$(DEPLIBEXT))
+
+depend:: includes
 
 @lib_frag@
 @libobj_frag@

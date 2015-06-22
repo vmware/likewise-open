@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/gssapi/krb5/k5sealiov.c */
 /*
- * lib/gssapi/krb5/k5sealiov.c
- *
  * Copyright 2008, 2009 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -23,8 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
  */
 
 #include <assert.h>
@@ -54,17 +51,16 @@ make_seal_token_v1_iov(krb5_context context,
     unsigned char *ptr;
     krb5_keyusage sign_usage = KG_USAGE_SIGN;
 
-    assert(toktype == KG_TOK_WRAP_MSG);
-
     md5cksum.length = cksum.length = 0;
     md5cksum.contents = cksum.contents = NULL;
 
-    header = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_HEADER);
+    header = kg_locate_header_iov(iov, iov_count, toktype);
     if (header == NULL)
         return EINVAL;
 
     padding = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_PADDING);
-    if (padding == NULL && (ctx->gss_flags & GSS_C_DCE_STYLE) == 0)
+    if (padding == NULL && toktype == KG_TOK_WRAP_MSG &&
+        (ctx->gss_flags & GSS_C_DCE_STYLE) == 0)
         return EINVAL;
 
     trailer = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_TRAILER);
@@ -73,7 +69,7 @@ make_seal_token_v1_iov(krb5_context context,
 
     /* Determine confounder length */
     if (toktype == KG_TOK_WRAP_MSG || conf_req_flag)
-        k5_headerlen = kg_confounder_size(context, ctx->enc);
+        k5_headerlen = kg_confounder_size(context, ctx->enc->keyblock.enctype);
 
     /* Check padding length */
     if (toktype == KG_TOK_WRAP_MSG) {
@@ -112,7 +108,7 @@ make_seal_token_v1_iov(krb5_context context,
         if (ctx->gss_flags & GSS_C_DCE_STYLE)
             tmsglen = k5_headerlen; /* confounder length */
         else
-            tmsglen = conf_data_length + padding->buffer.length + assoc_data_length;
+            tmsglen = conf_data_length + padding->buffer.length;
     }
 
     /* Determine token size */
@@ -174,8 +170,9 @@ make_seal_token_v1_iov(krb5_context context,
         goto cleanup;
     md5cksum.length = k5_trailerlen;
 
-    if (k5_headerlen != 0) {
-        code = kg_make_confounder(context, ctx->enc, ptr + 14 + ctx->cksum_size);
+    if (k5_headerlen != 0 && toktype == KG_TOK_WRAP_MSG) {
+        code = kg_make_confounder(context, ctx->enc->keyblock.enctype,
+                                  ptr + 14 + ctx->cksum_size);
         if (code != 0)
             goto cleanup;
     }
@@ -191,10 +188,11 @@ make_seal_token_v1_iov(krb5_context context,
     switch (ctx->signalg) {
     case SGN_ALG_DES_MAC_MD5:
     case SGN_ALG_3:
-        code = kg_encrypt(context, ctx->seq, KG_USAGE_SEAL,
-                          (g_OID_equal(ctx->mech_used, gss_mech_krb5_old) ?
-                           ctx->seq->contents : NULL),
-                          md5cksum.contents, md5cksum.contents, 16);
+        code = kg_encrypt_inplace(context, ctx->seq, KG_USAGE_SEAL,
+                                  (g_OID_equal(ctx->mech_used,
+                                               gss_mech_krb5_old) ?
+                                   ctx->seq->keyblock.contents : NULL),
+                                  md5cksum.contents, 16);
         if (code != 0)
             goto cleanup;
 
@@ -226,7 +224,7 @@ make_seal_token_v1_iov(krb5_context context,
 
             store_32_be(ctx->seq_send, bigend_seqnum);
 
-            code = krb5_copy_keyblock(context, ctx->enc, &enc_key);
+            code = krb5_k_key_keyblock(context, ctx->enc, &enc_key);
             if (code != 0)
                 goto cleanup;
 
@@ -278,7 +276,6 @@ kg_seal_iov(OM_uint32 *minor_status,
 {
     krb5_gss_ctx_id_rec *ctx;
     krb5_error_code code;
-    krb5_timestamp now;
     krb5_context context;
 
     if (qop_req != 0) {
@@ -286,23 +283,10 @@ kg_seal_iov(OM_uint32 *minor_status,
         return GSS_S_FAILURE;
     }
 
-    if (!kg_validate_ctx_id(context_handle)) {
-        *minor_status = (OM_uint32)G_VALIDATE_FAILED;
-        return GSS_S_NO_CONTEXT;
-    }
-
     ctx = (krb5_gss_ctx_id_rec *)context_handle;
-    if (!ctx->established) {
+    if (ctx->terminated || !ctx->established) {
         *minor_status = KG_CTX_INCOMPLETE;
         return GSS_S_NO_CONTEXT;
-    }
-
-    context = ctx->k5_context;
-    code = krb5_timeofday(context, &now);
-    if (code != 0) {
-        *minor_status = code;
-        save_error_info(*minor_status, context);
-        return GSS_S_FAILURE;
     }
 
     if (conf_req_flag && kg_integ_only_iov(iov, iov_count)) {
@@ -310,6 +294,7 @@ kg_seal_iov(OM_uint32 *minor_status,
         conf_req_flag = FALSE;
     }
 
+    context = ctx->k5_context;
     switch (ctx->proto) {
     case 0:
         code = make_seal_token_v1_iov(context, ctx, conf_req_flag,
@@ -332,12 +317,12 @@ kg_seal_iov(OM_uint32 *minor_status,
 
     *minor_status = 0;
 
-    return (ctx->krb_times.endtime < now) ? GSS_S_CONTEXT_EXPIRED : GSS_S_COMPLETE;
+    return GSS_S_COMPLETE;
 }
 
-#define INIT_IOV_DATA(_iov)     do { (_iov)->buffer.value = NULL; \
-                                     (_iov)->buffer.length = 0; } \
-                                while (0)
+#define INIT_IOV_DATA(_iov)     do { (_iov)->buffer.value = NULL;       \
+        (_iov)->buffer.length = 0; }                                    \
+    while (0)
 
 OM_uint32
 kg_seal_iov_length(OM_uint32 *minor_status,
@@ -346,7 +331,8 @@ kg_seal_iov_length(OM_uint32 *minor_status,
                    gss_qop_t qop_req,
                    int *conf_state,
                    gss_iov_buffer_desc *iov,
-                   int iov_count)
+                   int iov_count,
+                   int toktype)
 {
     krb5_gss_ctx_id_rec *ctx;
     gss_iov_buffer_t header, trailer, padding;
@@ -355,16 +341,11 @@ kg_seal_iov_length(OM_uint32 *minor_status,
     unsigned int k5_headerlen = 0, k5_trailerlen = 0, k5_padlen = 0;
     krb5_error_code code;
     krb5_context context;
-    int dce_style;
+    int dce_or_mic;
 
     if (qop_req != GSS_C_QOP_DEFAULT) {
         *minor_status = (OM_uint32)G_UNKNOWN_QOP;
         return GSS_S_FAILURE;
-    }
-
-    if (!kg_validate_ctx_id(context_handle)) {
-        *minor_status = (OM_uint32)G_VALIDATE_FAILED;
-        return GSS_S_NO_CONTEXT;
     }
 
     ctx = (krb5_gss_ctx_id_rec *)context_handle;
@@ -373,7 +354,7 @@ kg_seal_iov_length(OM_uint32 *minor_status,
         return GSS_S_NO_CONTEXT;
     }
 
-    header = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_HEADER);
+    header = kg_locate_header_iov(iov, iov_count, toktype);
     if (header == NULL) {
         *minor_status = EINVAL;
         return GSS_S_FAILURE;
@@ -385,12 +366,15 @@ kg_seal_iov_length(OM_uint32 *minor_status,
         INIT_IOV_DATA(trailer);
     }
 
-    dce_style = ((ctx->gss_flags & GSS_C_DCE_STYLE) != 0);
+    /* MIC tokens and DCE-style wrap tokens have similar length considerations:
+     * no padding, and the framing surrounds the header only, not the data. */
+    dce_or_mic = ((ctx->gss_flags & GSS_C_DCE_STYLE) != 0 ||
+                  toktype == KG_TOK_MIC_MSG);
 
     /* For CFX, EC is used instead of padding, and is placed in header or trailer */
     padding = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_PADDING);
     if (padding == NULL) {
-        if (conf_req_flag && ctx->proto == 0 && !dce_style) {
+        if (conf_req_flag && ctx->proto == 0 && !dce_or_mic) {
             *minor_status = EINVAL;
             return GSS_S_FAILURE;
         }
@@ -408,17 +392,16 @@ kg_seal_iov_length(OM_uint32 *minor_status,
     gss_headerlen = gss_padlen = gss_trailerlen = 0;
 
     if (ctx->proto == 1) {
+        krb5_key key;
         krb5_enctype enctype;
         size_t ec;
 
-        if (ctx->have_acceptor_subkey)
-            enctype = ctx->acceptor_subkey->enctype;
-        else
-            enctype = ctx->subkey->enctype;
+        key = (ctx->have_acceptor_subkey) ? ctx->acceptor_subkey : ctx->subkey;
+        enctype = key->keyblock.enctype;
 
         code = krb5_c_crypto_length(context, enctype,
                                     conf_req_flag ?
-                                        KRB5_CRYPTO_TYPE_TRAILER : KRB5_CRYPTO_TYPE_CHECKSUM,
+                                    KRB5_CRYPTO_TYPE_TRAILER : KRB5_CRYPTO_TYPE_CHECKSUM,
                                     &k5_trailerlen);
         if (code != 0) {
             *minor_status = code;
@@ -445,7 +428,7 @@ kg_seal_iov_length(OM_uint32 *minor_status,
                 return GSS_S_FAILURE;
             }
 
-            if (k5_padlen == 0 && dce_style) {
+            if (k5_padlen == 0 && dce_or_mic) {
                 /* Windows rejects AEAD tokens with non-zero EC */
                 code = krb5_c_block_size(context, enctype, &ec);
                 if (code != 0) {
@@ -459,7 +442,7 @@ kg_seal_iov_length(OM_uint32 *minor_status,
         } else {
             gss_trailerlen = k5_trailerlen; /* Kerb-Checksum */
         }
-    } else if (!dce_style) {
+    } else if (!dce_or_mic) {
         k5_padlen = (ctx->sealalg == SEAL_ALG_MICROSOFT_RC4) ? 1 : 8;
 
         if (k5_padlen == 1)
@@ -474,18 +457,18 @@ kg_seal_iov_length(OM_uint32 *minor_status,
         /* Header | Checksum | Confounder | Data | Pad */
         size_t data_size;
 
-        k5_headerlen = kg_confounder_size(context, ctx->enc);
+        k5_headerlen = kg_confounder_size(context, ctx->enc->keyblock.enctype);
 
         data_size = 14 /* Header */ + ctx->cksum_size + k5_headerlen;
 
-        if (!dce_style)
+        if (!dce_or_mic)
             data_size += data_length;
 
         gss_headerlen = g_token_size(ctx->mech_used, data_size);
 
         /* g_token_size() will include data_size as well as the overhead, so
          * subtract data_length just to get the overhead (ie. token size) */
-        if (!dce_style)
+        if (!dce_or_mic)
             gss_headerlen -= data_length;
     }
 
@@ -508,4 +491,70 @@ kg_seal_iov_length(OM_uint32 *minor_status,
         *conf_state = conf_req_flag;
 
     return GSS_S_COMPLETE;
+}
+
+OM_uint32 KRB5_CALLCONV
+krb5_gss_wrap_iov(OM_uint32 *minor_status,
+                  gss_ctx_id_t context_handle,
+                  int conf_req_flag,
+                  gss_qop_t qop_req,
+                  int *conf_state,
+                  gss_iov_buffer_desc *iov,
+                  int iov_count)
+{
+    OM_uint32 major_status;
+
+    major_status = kg_seal_iov(minor_status, context_handle, conf_req_flag,
+                               qop_req, conf_state,
+                               iov, iov_count, KG_TOK_WRAP_MSG);
+
+    return major_status;
+}
+
+OM_uint32 KRB5_CALLCONV
+krb5_gss_wrap_iov_length(OM_uint32 *minor_status,
+                         gss_ctx_id_t context_handle,
+                         int conf_req_flag,
+                         gss_qop_t qop_req,
+                         int *conf_state,
+                         gss_iov_buffer_desc *iov,
+                         int iov_count)
+{
+    OM_uint32 major_status;
+
+    major_status = kg_seal_iov_length(minor_status, context_handle,
+                                      conf_req_flag, qop_req, conf_state, iov,
+                                      iov_count, KG_TOK_WRAP_MSG);
+    return major_status;
+}
+
+OM_uint32 KRB5_CALLCONV
+krb5_gss_get_mic_iov(OM_uint32 *minor_status,
+                     gss_ctx_id_t context_handle,
+                     gss_qop_t qop_req,
+                     gss_iov_buffer_desc *iov,
+                     int iov_count)
+{
+    OM_uint32 major_status;
+
+    major_status = kg_seal_iov(minor_status, context_handle, FALSE,
+                               qop_req, NULL,
+                               iov, iov_count, KG_TOK_MIC_MSG);
+
+    return major_status;
+}
+
+OM_uint32 KRB5_CALLCONV
+krb5_gss_get_mic_iov_length(OM_uint32 *minor_status,
+                            gss_ctx_id_t context_handle,
+                            gss_qop_t qop_req,
+                            gss_iov_buffer_desc *iov,
+                            int iov_count)
+{
+    OM_uint32 major_status;
+
+    major_status = kg_seal_iov_length(minor_status, context_handle, FALSE,
+                                      qop_req, NULL, iov, iov_count,
+                                      KG_TOK_MIC_MSG);
+    return major_status;
 }

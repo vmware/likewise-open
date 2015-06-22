@@ -1,9 +1,5 @@
-thisconfigdir=../..
-myfulldir=tests/hammer
-mydir=tests/hammer
+mydir=tests$(S)hammer
 BUILDTOP=$(REL)..$(S)..
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
 
 SRCS=$(srcdir)/kdc5_hammer.c
 

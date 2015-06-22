@@ -1,3 +1,29 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* tests/asn.1/utility.c */
+/*
+ * Copyright (C) 1994 by the Massachusetts Institute of Technology.
+ * All rights reserved.
+ *
+ * Export of this software from the United States of America may
+ *   require a specific license from the United States Government.
+ *   It is the responsibility of any person or organization contemplating
+ *   export to obtain such a license before exporting.
+ *
+ * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
+ * distribute this software and its documentation for any purpose and
+ * without fee is hereby granted, provided that the above copyright
+ * notice appear in all copies and that both that copyright notice and
+ * this permission notice appear in supporting documentation, and that
+ * the name of M.I.T. not be used in advertising or publicity pertaining
+ * to distribution of the software without specific, written prior
+ * permission.  Furthermore if you modify this software you must label
+ * your software as modified software and not distribute it in such a
+ * fashion that it might be confused with the original M.I.T. software.
+ * M.I.T. makes no representations about the suitability of
+ * this software for any purpose.  It is provided "as is" without express
+ * or implied warranty.
+ */
+
 #include "utility.h"
 #include "krb5.h"
 #include <stdlib.h>
@@ -8,60 +34,69 @@ krb5int_access acc;
 
 char hexchar (const unsigned int digit);
 
-asn1_error_code asn1_krb5_data_unparse(code, s)
-    const krb5_data * code;
-    char ** s;
+void *
+ealloc(size_t size)
+{
+    void *ptr = calloc(1, size);
+
+    if (ptr == NULL)
+        abort();
+    return ptr;
+}
+
+char *
+estrdup(const char *str)
+{
+    char *newstr = strdup(str);
+
+    if (newstr == NULL)
+        abort();
+    return newstr;
+}
+
+void
+asn1_krb5_data_unparse(const krb5_data *code, char **s)
 {
     if (*s != NULL) free(*s);
-  
-    if (code==NULL) {
-	*s = strdup("<NULL>");
-	if (*s == NULL) return ENOMEM;
-    } else if (code->data == NULL || ((int) code->length) <= 0) {
-	*s = strdup("<EMPTY>");
-	if (*s==NULL) return ENOMEM;
-    } else {
-	unsigned int i;
 
-	*s = (char*)calloc((size_t) 3*(code->length), sizeof(char));
-	if (*s == NULL) return ENOMEM;
-	for (i = 0; i < code->length; i++) {
-	    (*s)[3*i] = hexchar((unsigned char) (((code->data)[i]&0xF0)>>4));
-	    (*s)[3*i+1] = hexchar((unsigned char) ((code->data)[i]&0x0F));
-	    (*s)[3*i+2] = ' ';
-	}
-	(*s)[3*(code->length)-1] = '\0';
+    if (code==NULL) {
+        *s = estrdup("<NULL>");
+    } else if (code->data == NULL || ((int) code->length) <= 0) {
+        *s = estrdup("<EMPTY>");
+    } else {
+        unsigned int i;
+
+        *s = ealloc(3 * code->length);
+        for (i = 0; i < code->length; i++) {
+            (*s)[3*i] = hexchar((unsigned char) (((code->data)[i]&0xF0)>>4));
+            (*s)[3*i+1] = hexchar((unsigned char) ((code->data)[i]&0x0F));
+            (*s)[3*i+2] = ' ';
+        }
+        (*s)[3*(code->length)-1] = '\0';
     }
-    return 0;
 }
 
-char hexchar(digit)
-    const unsigned int digit;
+char
+hexchar(const unsigned int digit)
 {
     if (digit<=9)
-	return '0'+digit;
+        return '0'+digit;
     else if (digit<=15)
-	return 'A'+digit-10;
+        return 'A'+digit-10;
     else
-	return 'X';
+        return 'X';
 }
 
-krb5_error_code krb5_data_parse(d, s)
-    krb5_data * d;
-    const char * s;
+void
+krb5_data_parse(krb5_data *d, const char *s)
 {
-    /*if (d->data != NULL) {
-      free(d->data);
-      d->length = 0;
-      }*/
-    d->data = (char*)calloc(strlen(s),sizeof(char));
-    if (d->data == NULL) return ENOMEM;
     d->length = strlen(s);
-    memcpy(d->data,s,strlen(s));
-    return 0;
+    d->data = ealloc(d->length);
+    memcpy(d->data, s, d->length);
 }
 
-krb5_error_code krb5_data_hex_parse(krb5_data *d, const char *s)
+asn1_error_code
+krb5_data_hex_parse(krb5_data *d, const char *s)
 {
     int lo;
     long v;
@@ -69,28 +104,26 @@ krb5_error_code krb5_data_hex_parse(krb5_data *d, const char *s)
     char *dp;
     char buf[2];
 
-    d->data = calloc((strlen(s) / 2 + 1), 1);
-    if (d->data == NULL)
-	return ENOMEM;
+    d->data = ealloc(strlen(s) / 2 + 1);
     d->length = 0;
     buf[1] = '\0';
     for (lo = 0, dp = d->data, cp = s; *cp; cp++) {
-	if (*cp < 0)
-	    return ASN1_PARSE_ERROR;
-	else if (isspace((unsigned char) *cp))
-	    continue;
-	else if (isxdigit((unsigned char) *cp)) {
-	    buf[0] = *cp;
-	    v = strtol(buf, NULL, 16);
-	} else
-	    return ASN1_PARSE_ERROR;
-	if (lo) {
-	    *dp++ |= v;
-	    lo = 0;
-	} else {
-	    *dp = v << 4;
-	    lo = 1;
-	}
+        if (*cp < 0)
+            return ASN1_PARSE_ERROR;
+        else if (isspace((unsigned char) *cp))
+            continue;
+        else if (isxdigit((unsigned char) *cp)) {
+            buf[0] = *cp;
+            v = strtol(buf, NULL, 16);
+        } else
+            return ASN1_PARSE_ERROR;
+        if (lo) {
+            *dp++ |= v;
+            lo = 0;
+        } else {
+            *dp = v << 4;
+            lo = 1;
+        }
     }
 
     d->length = dp - d->data;
@@ -98,14 +131,14 @@ krb5_error_code krb5_data_hex_parse(krb5_data *d, const char *s)
 }
 
 #if 0
-void asn1buf_print(buf)
-    const asn1buf * buf;
+void
+asn1buf_print(const asn1buf *buf)
 {
     asn1buf bufcopy;
     char *s=NULL;
     int length;
     int i;
-  
+
     bufcopy.base = bufcopy.next = buf->next;
     bufcopy.bound = buf->bound;
     length = asn1buf_len(&bufcopy);
@@ -113,9 +146,9 @@ void asn1buf_print(buf)
     s = calloc(3*length, sizeof(char));
     if (s == NULL) return;
     for (i=0; i<length; i++) {
-	s[3*i] = hexchar(((bufcopy.base)[i]&0xF0)>>4);
-	s[3*i+1] = hexchar((bufcopy.base)[i]&0x0F);
-	s[3*i+2] = ' ';
+        s[3*i] = hexchar(((bufcopy.base)[i]&0xF0)>>4);
+        s[3*i+1] = hexchar((bufcopy.base)[i]&0x0F);
+        s[3*i+2] = ' ';
     }
     s[3*length-1] = '\0';
 
@@ -124,12 +157,13 @@ void asn1buf_print(buf)
 }
 #endif
 
-void init_access(const char *progname)
+void
+init_access(const char *progname)
 {
     krb5_error_code ret;
     ret = krb5int_accessor(&acc, KRB5INT_ACCESS_VERSION);
     if (ret) {
-	com_err(progname, ret, "while initializing accessor");
-	exit(1);
+        com_err(progname, ret, "while initializing accessor");
+        exit(1);
     }
 }

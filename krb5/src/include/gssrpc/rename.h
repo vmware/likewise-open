@@ -1,6 +1,5 @@
+/* include/gssrpc/rename.h */
 /*
- * lib/rpc/rename.h
- *
  * Copyright (C) 2004 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -8,7 +7,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,7 +21,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
+ */
+
+/*
  *
  * Namespace mangling for various purposes.
  *
@@ -124,10 +125,12 @@
 #define svcauth_gssapi_set_names	gssrpc_svcauth_gssapi_set_names
 #define svcauth_gssapi_unset_names	gssrpc_svcauth_gssapi_unset_names
 #define svcauth_gssapi_set_log_badauth_func	gssrpc_svcauth_gssapi_set_log_badauth_func
+#define svcauth_gssapi_set_log_badauth2_func	gssrpc_svcauth_gssapi_set_log_badauth2_func
 #define svcauth_gssapi_set_log_badverf_func	gssrpc_svcauth_gssapi_set_log_badverf_func
 #define svcauth_gssapi_set_log_miscerr_func	gssrpc_svcauth_gssapi_set_log_miscerr_func
 
 #define svcauth_gss_set_log_badauth_func	gssrpc_svcauth_gss_set_log_badauth_func
+#define svcauth_gss_set_log_badauth2_func	gssrpc_svcauth_gss_set_log_badauth2_func
 #define svcauth_gss_set_log_badverf_func	gssrpc_svcauth_gss_set_log_badverf_func
 #define svcauth_gss_set_log_miscerr_func	gssrpc_svcauth_gss_set_log_miscerr_func
 

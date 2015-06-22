@@ -2,7 +2,7 @@
 
 /*
  * Copyright 1996 by Sun Microsystems, Inc.
- * 
+ *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without fee,
  * provided that the above copyright notice appears in all copies and
@@ -12,7 +12,7 @@
  * without specific, written prior permission. Sun Microsystems makes no
  * representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied warranty.
- * 
+ *
  * SUN MICROSYSTEMS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
  * EVENT SHALL SUN MICROSYSTEMS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -190,7 +190,7 @@ OM_uint32 gssint_get_mech_type_oid(OID, token)
 {
     unsigned char * buffer_ptr;
     int length;
-    
+
     /*
      * This routine reads the prefix of "token" in order to determine
      * its mechanism type. It assumes the encoding suggested in
@@ -213,15 +213,15 @@ OM_uint32 gssint_get_mech_type_oid(OID, token)
      *
      * The routine fills in the OID value and returns an error as necessary.
      */
-    
+
 	if (OID == NULL)
 		return (GSS_S_CALL_INACCESSIBLE_WRITE);
 
 	if ((token == NULL) || (token->value == NULL))
 	return (GSS_S_DEFECTIVE_TOKEN);
-    
+
     /* Skip past the APP/Sequnce byte and the token length */
-    
+
     buffer_ptr = (unsigned char *) token->value;
 
     if (*(buffer_ptr++) != 0x60)
@@ -237,10 +237,10 @@ OM_uint32 gssint_get_mech_type_oid(OID, token)
 	    return (GSS_S_DEFECTIVE_TOKEN);
 	buffer_ptr += length & 0x7f;
     }
-    
+
     if (*(buffer_ptr++) != 0x06)
 	return (GSS_S_DEFECTIVE_TOKEN);
-    
+
     OID->length = (OM_uint32) *(buffer_ptr++);
     OID->elements = (void *) buffer_ptr;
     return (GSS_S_COMPLETE);
@@ -272,7 +272,7 @@ OM_uint32 gssint_get_mech_type(OID, token)
 	*OID = gss_ntlm_mechanism_oid_desc;
     } else if (token->length != 0 &&
 	       ((char *)token->value)[0] == 0x6E) {
-	/* Could be a raw AP-REQ (check for APPLICATION tag) */
+ 	/* Could be a raw AP-REQ (check for APPLICATION tag) */
 	*OID = gss_krb5_mechanism_oid_desc;
     } else if (token->length == 0) {
 	*OID = gss_spnego_mechanism_oid_desc;
@@ -283,87 +283,125 @@ OM_uint32 gssint_get_mech_type(OID, token)
     return (GSS_S_COMPLETE);
 }
 
+static OM_uint32
+import_internal_attributes(OM_uint32 *minor,
+			   gss_mechanism dmech,
+			   gss_union_name_t sname,
+			   gss_name_t dname)
+{
+    OM_uint32 major, tmpMinor;
+    gss_mechanism smech;
+    gss_buffer_set_t attrs = GSS_C_NO_BUFFER_SET;
+    size_t i;
+
+    if (sname->mech_name == GSS_C_NO_NAME)
+	return (GSS_S_UNAVAILABLE);
+
+    smech = gssint_get_mechanism (sname->mech_type);
+    if (smech == NULL)
+	return (GSS_S_BAD_MECH);
+
+    if (smech->gss_inquire_name == NULL ||
+	smech->gss_get_name_attribute == NULL)
+	return (GSS_S_UNAVAILABLE);
+
+    if (dmech->gss_set_name_attribute == NULL)
+	return (GSS_S_UNAVAILABLE);
+
+    major = smech->gss_inquire_name(minor, sname->mech_name,
+				    NULL, NULL, &attrs);
+    if (GSS_ERROR(major) || attrs == GSS_C_NO_BUFFER_SET) {
+	gss_release_buffer_set(&tmpMinor, &attrs);
+	return (major);
+    }
+
+    for (i = 0; i < attrs->count; i++) {
+	int more = -1;
+
+	while (more != 0) {
+	    gss_buffer_desc value, display_value;
+	    int authenticated, complete;
+
+	    major = smech->gss_get_name_attribute(minor, sname->mech_name,
+						  &attrs->elements[i],
+						  &authenticated, &complete,
+						  &value, &display_value,
+						  &more);
+	    if (GSS_ERROR(major))
+		continue;
+
+	    if (authenticated) {
+		dmech->gss_set_name_attribute(minor, dname, complete,
+					      &attrs->elements[i], &value);
+	    }
+
+	    gss_release_buffer(&tmpMinor, &value);
+	    gss_release_buffer(&tmpMinor, &display_value);
+	}
+    }
+
+    gss_release_buffer_set(&tmpMinor, &attrs);
+
+    return (GSS_S_COMPLETE);
+}
 
 /*
  *  Internal routines to get and release an internal mechanism name
  */
 
-#if 0
-static OM_uint32
-import_internal_name_composite(OM_uint32 *minor_status,
-			       gss_mechanism mech,
-			       gss_union_name_t union_name,
-			       gss_name_t *internal_name)
-{
-    OM_uint32		status, tmp;
-    gss_mechanism	name_mech;
-    gss_buffer_desc	composite_name;
-
-    if (mech->gss_import_name == NULL)
-	return (GSS_S_UNAVAILABLE);
-
-    name_mech = gssint_get_mechanism(union_name->mech_type);
-    if (name_mech == NULL)
-	return (GSS_S_BAD_MECH);
-
-    if (name_mech->gss_export_name_composite == NULL)
-	return (GSS_S_UNAVAILABLE);
-
-    composite_name.length = 0;
-    composite_name.value = NULL;
-
-    status = (*name_mech->gss_export_name_composite)(minor_status,
-						     union_name->mech_name,
-						     &composite_name);
-    if (GSS_ERROR(status))
-	return (status);
-
-    status = (*mech->gss_import_name)(minor_status,
-				      &composite_name,
-				      gss_nt_exported_name,
-				      internal_name);
-
-    gss_release_buffer(&tmp, &composite_name);
-
-    return (status);
-}
-#endif
-
-OM_uint32 gssint_import_internal_name (minor_status, mech_type, union_name, 
+OM_uint32 gssint_import_internal_name (minor_status, mech_type, union_name,
 				internal_name)
 OM_uint32	*minor_status;
 gss_OID		mech_type;
 gss_union_name_t	union_name;
 gss_name_t	*internal_name;
 {
-    OM_uint32		status;
+    OM_uint32		status, tmpMinor;
     gss_mechanism	mech;
+    gss_OID		public_mech;
 
     mech = gssint_get_mechanism (mech_type);
     if (mech == NULL)
 	return (GSS_S_BAD_MECH);
 
-#if 0
-    /* Try composite name, it will preserve any extended attributes */
-    if (union_name->mech_type && union_name->mech_name) {
-	status = import_internal_name_composite(minor_status,
-						mech,
-						union_name,
-						internal_name);
-	if (status == GSS_S_COMPLETE)
-	    return (GSS_S_COMPLETE);
+    /*
+     * If we are importing a name for the same mechanism, and the
+     * mechanism implements gss_duplicate_name, then use that.
+     */
+    if (union_name->mech_type != GSS_C_NO_OID &&
+	union_name->mech_name != GSS_C_NO_NAME &&
+	g_OID_equal(union_name->mech_type, mech_type) &&
+	mech->gss_duplicate_name != NULL) {
+	status = mech->gss_duplicate_name(minor_status,
+					  union_name->mech_name,
+					  internal_name);
+	if (status != GSS_S_UNAVAILABLE) {
+	    if (status != GSS_S_COMPLETE)
+		map_error(minor_status, mech);
+	    return (status);
+	}
     }
-#endif
 
-    if (mech->gss_import_name == NULL)
+    if (mech->gssspi_import_name_by_mech) {
+	public_mech = gssint_get_public_oid(mech_type);
+	status = mech->gssspi_import_name_by_mech(minor_status, public_mech,
+						  union_name->external_name,
+						  union_name->name_type,
+						  internal_name);
+    } else if (mech->gss_import_name) {
+	status = mech->gss_import_name(minor_status, union_name->external_name,
+				       union_name->name_type, internal_name);
+    } else {
 	return (GSS_S_UNAVAILABLE);
+    }
 
-    status = mech->gss_import_name(minor_status,
-				   union_name->external_name,
-				   union_name->name_type,
-				   internal_name);
-    if (status != GSS_S_COMPLETE)
+    if (status == GSS_S_COMPLETE) {
+        /* Attempt to round-trip attributes */
+	(void) import_internal_attributes(&tmpMinor, mech,
+				          union_name, *internal_name);
+    } else {
 	map_error(minor_status, mech);
+    }
 
     return (status);
 }
@@ -441,7 +479,7 @@ OM_uint32 gssint_export_internal_name(minor_status, mech_type,
 	mechOidTagLen + mechOidDERLen +
 	mech_type->length +
 	nameLenLen + dispName.length;
-    if ((name_buf->value = (void*)malloc(name_buf->length)) ==
+    if ((name_buf->value = (void*)gssalloc_malloc(name_buf->length)) ==
 	(void*)NULL) {
 	name_buf->length = 0;
 	(void) gss_release_buffer(&status, &dispName);
@@ -487,7 +525,7 @@ OM_uint32 gssint_export_internal_name(minor_status, mech_type,
     return (GSS_S_COMPLETE);
 } /*  gssint_export_internal_name */
 
-OM_uint32 gssint_display_internal_name (minor_status, mech_type, internal_name, 
+OM_uint32 gssint_display_internal_name (minor_status, mech_type, internal_name,
 				 external_name, name_type)
 OM_uint32	*minor_status;
 gss_OID		mech_type;
@@ -609,7 +647,7 @@ OM_uint32 gssint_convert_name_to_union_name(minor_status, mech,
 	    major_status = GSS_S_FAILURE;
 	    goto allocation_failure;
     }
-	
+
     major_status = mech->gss_display_name(minor_status,
 					  internal_name,
 					  union_name->external_name,
@@ -694,7 +732,7 @@ gssint_create_copy_buffer(srcBuf, destBuf, addNullChar)
     else
 	len = srcBuf->length;
 
-    if (!(aBuf->value = (void*)malloc(len))) {
+    if (!(aBuf->value = (void*)gssalloc_malloc(len))) {
 	free(aBuf);
 	return (GSS_S_FAILURE);
     }
@@ -710,4 +748,3 @@ gssint_create_copy_buffer(srcBuf, destBuf, addNullChar)
 
     return (GSS_S_COMPLETE);
 } /* ****** gssint_create_copy_buffer  ****** */
-

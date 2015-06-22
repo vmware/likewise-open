@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* plugins/authdata/greet/greet_auth.c */
 /*
- * plugins/authdata/greet/
- *
  * Copyright 2008 by the Massachusetts Institute of Technology.
  *
  * Export of this software from the United States of America may
@@ -21,7 +21,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
+ */
+
+/*
  *
  * Sample authorization data plugin
  */
@@ -46,9 +48,9 @@ greet_fini(krb5_context ctx, void *blob)
 
 static krb5_error_code
 greet_authdata(krb5_context ctx, krb5_db_entry *client,
-	       krb5_data *req_pkt,
-	       krb5_kdc_req *request,
-	       krb5_enc_tkt_part * enc_tkt_reply)
+               krb5_data *req_pkt,
+               krb5_kdc_req *request,
+               krb5_enc_tkt_part * enc_tkt_reply)
 {
 #define GREET_SIZE (20)
 
@@ -61,9 +63,9 @@ greet_authdata(krb5_context ctx, krb5_db_entry *client,
     a = calloc(1, sizeof(*a));
 
     if (p == NULL || a == NULL) {
-	free(p);
-	free(a);
-	return ENOMEM;
+        free(p);
+        free(a);
+        return ENOMEM;
     }
     strncpy(p, "hello there", GREET_SIZE-1);
     a->magic = KV5M_AUTHDATA;
@@ -71,17 +73,17 @@ greet_authdata(krb5_context ctx, krb5_db_entry *client,
     a->length = GREET_SIZE;
     a->contents = (unsigned char *)p;
     if (enc_tkt_reply->authorization_data == 0) {
-	count = 0;
+        count = 0;
     } else {
-	for (count = 0; enc_tkt_reply->authorization_data[count] != 0; count++)
-	    ;
+        for (count = 0; enc_tkt_reply->authorization_data[count] != 0; count++)
+            ;
     }
     new_ad = realloc(enc_tkt_reply->authorization_data,
-		     (count+2) * sizeof(krb5_authdata *));
+                     (count+2) * sizeof(krb5_authdata *));
     if (new_ad == NULL) {
-	free(p);
-	free(a);
-	return ENOMEM;
+        free(p);
+        free(a);
+        return ENOMEM;
     }
     enc_tkt_reply->authorization_data = new_ad;
     new_ad[count] = a;

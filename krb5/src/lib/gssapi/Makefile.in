@@ -1,15 +1,13 @@
-thisconfigdir=../..
-myfulldir=lib/gssapi
-mydir=lib/gssapi
+mydir=lib$(S)gssapi
 BUILDTOP=$(REL)..$(S)..
 SUBDIRS= generic krb5 spnego mechglue
-DEFS=-D_GSS_STATIC_LINK=1
+DEFINES=-D_GSS_STATIC_LINK=1
 
 ##DOSLIBNAME=$(OUTPRE)gssapi.lib
-##DOSOBJFILELIST=@$(OUTPRE)mechglue.lst @$(OUTPRE)spnego.lst @$(OUTPRE)generic.lst @$(OUTPRE)krb5.lst @$(OUTPRE)gssapi.lst
-##DOSOBJFILEDEP=$(OUTPRE)mechglue.lst $(OUTPRE)spnego.lst $(OUTPRE)generic.lst $(OUTPRE)krb5.lst $(OUTPRE)gssapi.lst
+##DOSOBJFILELIST=@$(OUTPRE)mechglue.lst @$(OUTPRE)spnego.lst @$(OUTPRE)generic.lst @$(OUTPRE)krb5.lst # @$(OUTPRE)gssapi.lst
+##DOSOBJFILEDEP=$(OUTPRE)mechglue.lst $(OUTPRE)spnego.lst $(OUTPRE)generic.lst $(OUTPRE)krb5.lst # $(OUTPRE)gssapi.lst
 
-##DOSOBJFILE=$(OUTPRE)gssapi.lst
+###DOSOBJFILE=$(OUTPRE)gssapi.lst
 ##DOSLIBOBJS=$(OBJS)
 
 ##DOS##DLL_EXP_TYPE=GSS
@@ -30,8 +28,6 @@ SUBDIROBJLISTS=generic/OBJS.ST mechglue/OBJS.ST krb5/OBJS.ST spnego/OBJS.ST
 SHLIB_EXPDEPS=\
 	$(KRB5_DEPLIB) $(CRYPTO_DEPLIB) $(SUPPORT_DEPLIB) $(COM_ERR_DEPLIB)
 SHLIB_EXPLIBS=-lkrb5 -lk5crypto -lcom_err $(SUPPORT_LIB) $(DL_LIB) $(LIBS)
-SHLIB_DIRS=-L$(TOPLIBD)
-SHLIB_RDIRS=$(KRB5_LIBDIR)
 RELDIR=gssapi
 
 all-unix:: all-liblinks @MAINT@ verify-calling-conventions-gssapi
@@ -51,43 +47,14 @@ EHDRDIR=$(BUILDTOP)$(S)include$(S)gssapi
 EXPORTED_HEADERS= \
 	$(EHDRDIR)$(S)gssapi_krb5.h \
 	$(EHDRDIR)$(S)gssapi_generic.h \
-	$(EHDRDIR)$(S)gssapi.h
+	$(EHDRDIR)$(S)gssapi.h \
+	$(EHDRDIR)$(S)gssapi_alloc.h \
+	$(EHDRDIR)$(S)gssapi_ext.h
 merged-gssapi-header.h: $(EXPORTED_HEADERS)
 	cat $(EXPORTED_HEADERS) > merged.tmp
 	$(MV) merged.tmp merged-gssapi-header.h
 verify-calling-conventions-gssapi: merged-gssapi-header.h
-	$(PERL) -w $(SRCTOP)/util/def-check.pl merged-gssapi-header.h $(srcdir)/../gssapi32.def
-
-all-windows::
-	cd generic
-	@echo Making in gssapi\generic
-	$(MAKE) -$(MFLAGS)
-	cd ..\krb5
-	@echo Making in gssapi\krb5
-	$(MAKE) -$(MFLAGS)
-	cd ..\mechglue
-	@echo Making in gssapi\mechglue
-	$(MAKE) -$(MFLAGS)
-	cd ..\spnego
-	@echo Making in gssapi\spnego
-	$(MAKE) -$(MFLAGS)
-	cd ..
-
-clean-windows::
-	cd generic
-	@echo Making clean in gssapi\generic
-	$(MAKE) -$(MFLAGS) clean
-	cd ..\krb5
-	@echo Making clean in gssapi\krb5
-	$(MAKE) -$(MFLAGS) clean
-	cd ..\mechglue
-	@echo Making clean in gssapi\mechglue
-	$(MAKE) -$(MFLAGS) clean
-	cd ..\spnego
-	@echo Making clean in gssapi\spnego
-	$(MAKE) -$(MFLAGS) clean
-	cd ..
-	@echo Making clean in gssapi
+	$(PERL) -w $(top_srcdir)/util/def-check.pl merged-gssapi-header.h $(srcdir)/../gssapi32.def
 
 # These rules are an attempt to handle several different problems:
 #

@@ -1,12 +1,5 @@
-thisconfigdir=../../..
-myfulldir=lib/krb5/keytab
-mydir=lib/krb5/keytab
+mydir=lib$(S)krb5$(S)keytab
 BUILDTOP=$(REL)..$(S)..$(S)..
-DEFS=
-
-RUN_SETUP = @KRB5_RUN_ENV@
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
 
 ##DOS##BUILDTOP = ..\..\..
 ##DOS##PREFIXDIR=keytab
@@ -49,7 +42,7 @@ SRCS=	\
 	$(srcdir)/read_servi.c
 
 EXTRADEPSRCS= \
-	$(srcdir)/t_keytab.c
+	$(srcdir)/t_keytab.c 
 
 all-windows:: $(OBJFILE)
 

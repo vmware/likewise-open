@@ -1,3 +1,4 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _KRB5_KDB5_H_
 #define _KRB5_KDB5_H_
 
@@ -10,7 +11,6 @@
 #include <utime.h>
 #include <k5-int.h>
 #include "kdb.h"
-#include "kdb_ext.h"
 
 #define KRB5_DB_GET_DB_CONTEXT(kcontext) (((kdb5_dal_handle*) (kcontext)->dal_handle)->db_context)
 #define KRB5_DB_GET_PROFILE(kcontext)  ((kcontext)->profile)
@@ -30,6 +30,8 @@ struct _kdb5_dal_handle
        extent.  */
     void *db_context;
     db_library lib_handle;
+    krb5_keylist_node *master_keylist;
+    krb5_principal master_princ;
 };
 /* typedef kdb5_dal_handle is in k5-int.h now */
 

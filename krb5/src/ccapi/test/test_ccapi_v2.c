@@ -1837,4 +1837,3 @@ cc_result check_once_cc_seq_fetch_creds_next(apiCB *context, ccache_cit *iterato
 
     return err;
 }
-

@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -53,8 +53,8 @@
 
 static krb5_error_code
 make_seal_token_v1 (krb5_context context,
-                    krb5_keyblock *enc,
-                    krb5_keyblock *seq,
+                    krb5_key enc,
+                    krb5_key seq,
                     gssint_uint64 *seqnum,
                     int direction,
                     gss_buffer_t text,
@@ -64,7 +64,6 @@ make_seal_token_v1 (krb5_context context,
                     int sealalg,
                     int do_encrypt,
                     int toktype,
-                    int bigend,
                     gss_OID oid)
 {
     krb5_error_code code;
@@ -89,8 +88,8 @@ make_seal_token_v1 (krb5_context context,
     assert((!do_encrypt) || (toktype == KG_TOK_SEAL_MSG));
     /* create the token buffer */
     /* Do we need confounder? */
-    if (do_encrypt || (!bigend && (toktype == KG_TOK_SEAL_MSG)))
-        conflen = kg_confounder_size(context, enc);
+    if (do_encrypt || toktype == KG_TOK_SEAL_MSG)
+        conflen = kg_confounder_size(context, enc->keyblock.enctype);
     else conflen = 0;
 
     if (toktype == KG_TOK_SEAL_MSG) {
@@ -112,7 +111,7 @@ make_seal_token_v1 (krb5_context context,
     }
     tlen = g_token_size((gss_OID) oid, 14+cksum_size+tmsglen);
 
-    if ((t = (unsigned char *) xmalloc(tlen)) == NULL)
+    if ((t = (unsigned char *) gssalloc_malloc(tlen)) == NULL)
         return(ENOMEM);
 
     /*** fill in the token */
@@ -159,21 +158,22 @@ make_seal_token_v1 (krb5_context context,
 
     code = krb5_c_checksum_length(context, md5cksum.checksum_type, &sumlen);
     if (code) {
-        xfree(t);
+        gssalloc_free(t);
         return(code);
     }
     md5cksum.length = sumlen;
 
 
     if ((plain = (unsigned char *) xmalloc(msglen ? msglen : 1)) == NULL) {
-        xfree(t);
+        gssalloc_free(t);
         return(ENOMEM);
     }
 
     if (conflen) {
-        if ((code = kg_make_confounder(context, enc, plain))) {
+        if ((code = kg_make_confounder(context, enc->keyblock.enctype,
+                                       plain))) {
             xfree(plain);
-            xfree(t);
+            gssalloc_free(t);
             return(code);
         }
     }
@@ -184,39 +184,36 @@ make_seal_token_v1 (krb5_context context,
     /* compute the checksum */
 
     /* 8 = head of token body as specified by mech spec */
-    if (! (data_ptr =
-           (char *) xmalloc(8 + (bigend ? text->length : msglen)))) {
+    if (! (data_ptr = xmalloc(8 + msglen))) {
         xfree(plain);
-        xfree(t);
+        gssalloc_free(t);
         return(ENOMEM);
     }
     (void) memcpy(data_ptr, ptr-2, 8);
-    if (bigend)
-        (void) memcpy(data_ptr+8, text->value, text->length);
-    else
-        (void) memcpy(data_ptr+8, plain, msglen);
-    plaind.length = 8 + (bigend ? text->length : msglen);
+    (void) memcpy(data_ptr+8, plain, msglen);
+    plaind.length = 8 + msglen;
     plaind.data = data_ptr;
-    code = krb5_c_make_checksum(context, md5cksum.checksum_type, seq,
+    code = krb5_k_make_checksum(context, md5cksum.checksum_type, seq,
                                 sign_usage, &plaind, &md5cksum);
     xfree(data_ptr);
 
     if (code) {
         xfree(plain);
-        xfree(t);
+        gssalloc_free(t);
         return(code);
     }
     switch(signalg) {
     case SGN_ALG_DES_MAC_MD5:
     case 3:
 
-        if ((code = kg_encrypt(context, seq, KG_USAGE_SEAL,
-                               (g_OID_equal(oid, gss_mech_krb5_old) ?
-                                seq->contents : NULL),
-                               md5cksum.contents, md5cksum.contents, 16))) {
+        code = kg_encrypt_inplace(context, seq, KG_USAGE_SEAL,
+                                  (g_OID_equal(oid, gss_mech_krb5_old) ?
+                                   seq->keyblock.contents : NULL),
+                                  md5cksum.contents, 16);
+        if (code) {
             krb5_free_checksum_contents(context, &md5cksum);
             xfree (plain);
-            xfree(t);
+            gssalloc_free(t);
             return code;
         }
 
@@ -247,7 +244,7 @@ make_seal_token_v1 (krb5_context context,
     if ((code = kg_make_seq_num(context, seq, direction?0:0xff,
                                 (krb5_ui_4)*seqnum, ptr+14, ptr+6))) {
         xfree (plain);
-        xfree(t);
+        gssalloc_free(t);
         return(code);
     }
 
@@ -259,11 +256,11 @@ make_seal_token_v1 (krb5_context context,
             krb5_keyblock *enc_key;
             int i;
             store_32_be(*seqnum, bigend_seqnum);
-            code = krb5_copy_keyblock (context, enc, &enc_key);
+            code = krb5_k_key_keyblock(context, enc, &enc_key);
             if (code)
             {
                 xfree(plain);
-                xfree(t);
+                gssalloc_free(t);
                 return(code);
             }
             assert (enc_key->length == 16);
@@ -277,7 +274,7 @@ make_seal_token_v1 (krb5_context context,
             if (code)
             {
                 xfree(plain);
-                xfree(t);
+                gssalloc_free(t);
                 return(code);
             }
         }
@@ -288,7 +285,7 @@ make_seal_token_v1 (krb5_context context,
                                    (krb5_pointer) (ptr+cksum_size+14),
                                    tmsglen))) {
                 xfree(plain);
-                xfree(t);
+                gssalloc_free(t);
                 return(code);
             }
         }
@@ -327,7 +324,6 @@ kg_seal(minor_status, context_handle, conf_req_flag, qop_req,
 {
     krb5_gss_ctx_id_rec *ctx;
     krb5_error_code code;
-    krb5_timestamp now;
     krb5_context context;
 
     output_message_buffer->length = 0;
@@ -335,40 +331,23 @@ kg_seal(minor_status, context_handle, conf_req_flag, qop_req,
 
     /* Only default qop or matching established cryptosystem is allowed.
 
-    There are NO EXTENSIONS to this set for AES and friends!  The
-    new spec says "just use 0".  The old spec plus extensions would
-    actually allow for certain non-zero values.  Fix this to handle
-    them later.  */
+       There are NO EXTENSIONS to this set for AES and friends!  The
+       new spec says "just use 0".  The old spec plus extensions would
+       actually allow for certain non-zero values.  Fix this to handle
+       them later.  */
     if (qop_req != 0) {
         *minor_status = (OM_uint32) G_UNKNOWN_QOP;
         return GSS_S_FAILURE;
     }
 
-    /* validate the context handle */
-    if (! kg_validate_ctx_id(context_handle)) {
-        *minor_status = (OM_uint32) G_VALIDATE_FAILED;
-        return(GSS_S_NO_CONTEXT);
-    }
-
     ctx = (krb5_gss_ctx_id_rec *) context_handle;
 
-    if (! ctx->established) {
+    if (ctx->terminated || !ctx->established) {
         *minor_status = KG_CTX_INCOMPLETE;
         return(GSS_S_NO_CONTEXT);
     }
 
     context = ctx->k5_context;
-    if ((code = krb5_timeofday(context, &now))) {
-        *minor_status = code;
-        save_error_info(*minor_status, context);
-        return(GSS_S_FAILURE);
-    }
-
-    if (ctx->krb_times.endtime < now) {
-        *minor_status = 0;
-        return (GSS_S_CONTEXT_EXPIRED);
-    }
-
     switch (ctx->proto)
     {
     case 0:
@@ -376,8 +355,7 @@ kg_seal(minor_status, context_handle, conf_req_flag, qop_req,
                                   &ctx->seq_send, ctx->initiate,
                                   input_message_buffer, output_message_buffer,
                                   ctx->signalg, ctx->cksum_size, ctx->sealalg,
-                                  conf_req_flag, toktype, ctx->big_endian,
-                                  ctx->mech_used);
+                                  conf_req_flag, toktype, ctx->mech_used);
         break;
     case 1:
         code = gss_krb5int_make_seal_token_v3(context, ctx,
@@ -400,5 +378,36 @@ kg_seal(minor_status, context_handle, conf_req_flag, qop_req,
         *conf_state = conf_req_flag;
 
     *minor_status = 0;
-    return (GSS_S_COMPLETE);
+    return(GSS_S_COMPLETE);
+}
+
+OM_uint32 KRB5_CALLCONV
+krb5_gss_wrap(minor_status, context_handle, conf_req_flag,
+              qop_req, input_message_buffer, conf_state,
+              output_message_buffer)
+    OM_uint32           *minor_status;
+    gss_ctx_id_t        context_handle;
+    int                 conf_req_flag;
+    gss_qop_t           qop_req;
+    gss_buffer_t        input_message_buffer;
+    int                 *conf_state;
+    gss_buffer_t        output_message_buffer;
+{
+    return(kg_seal(minor_status, context_handle, conf_req_flag,
+                   qop_req, input_message_buffer, conf_state,
+                   output_message_buffer, KG_TOK_WRAP_MSG));
+}
+
+OM_uint32 KRB5_CALLCONV
+krb5_gss_get_mic(minor_status, context_handle, qop_req,
+                 message_buffer, message_token)
+    OM_uint32           *minor_status;
+    gss_ctx_id_t        context_handle;
+    gss_qop_t           qop_req;
+    gss_buffer_t        message_buffer;
+    gss_buffer_t        message_token;
+{
+    return(kg_seal(minor_status, context_handle, 0,
+                   qop_req, message_buffer, NULL,
+                   message_token, KG_TOK_MIC_MSG));
 }

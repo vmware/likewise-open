@@ -2,7 +2,7 @@
 
 /*
  * Copyright 1996 by Sun Microsystems, Inc.
- * 
+ *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without fee,
  * provided that the above copyright notice appears in all copies and
@@ -12,7 +12,7 @@
  * without specific, written prior permission. Sun Microsystems makes no
  * representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied warranty.
- * 
+ *
  * SUN MICROSYSTEMS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
  * EVENT SHALL SUN MICROSYSTEMS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -86,6 +86,7 @@ gss_inquire_context(
     gss_union_ctx_id_t	ctx;
     gss_mechanism	mech;
     OM_uint32		status, temp_minor;
+    gss_OID		actual_mech;
     gss_name_t localTargName = NULL, localSourceName = NULL;
 
     status = val_inq_ctx_args(minor_status,
@@ -101,10 +102,10 @@ gss_inquire_context(
      * select the approprate underlying mechanism routine and
      * call it.
      */
-    
+
     ctx = (gss_union_ctx_id_t) context_handle;
     mech = gssint_get_mechanism (ctx->mech_type);
-    
+
     if (!mech || !mech->gss_inquire_context || !mech->gss_display_name ||
 	!mech->gss_release_name) {
 	return (GSS_S_UNAVAILABLE);
@@ -116,7 +117,7 @@ gss_inquire_context(
 			(src_name ? &localSourceName : NULL),
 			(targ_name ? &localTargName : NULL),
 			lifetime_rec,
-			mech_type,
+			&actual_mech,
 			ctx_flags,
 			locally_initiated,
 			opened);
@@ -140,7 +141,7 @@ gss_inquire_context(
 
     }
 
-    if (targ_name ) {
+    if (targ_name) {
         if (localTargName) {
 	    status = gssint_convert_name_to_union_name(minor_status, mech,
 						      localTargName, targ_name);
@@ -157,6 +158,8 @@ gss_inquire_context(
         }
     }
 
+    if (mech_type)
+	*mech_type = gssint_get_public_oid(actual_mech);
+
     return(GSS_S_COMPLETE);
 }
-

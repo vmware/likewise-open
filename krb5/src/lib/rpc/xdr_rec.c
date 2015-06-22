@@ -1,31 +1,35 @@
 /* @(#)xdr_rec.c	2.2 88/08/01 4.0 RPCSRC */
 /*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- * 
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- * 
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- * 
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- * 
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
+ * Copyright (c) 2010, Oracle America, Inc.
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *
+ *     * Neither the name of the "Oracle America, Inc." nor the names of
+ *       its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #if !defined(lint) && defined(SCCSIDS)
 static char sccsid[] = "@(#)xdr_rec.c 1.21 87/08/11 Copyr 1984 Sun Micro";
@@ -35,8 +39,6 @@ static char sccsid[] = "@(#)xdr_rec.c 1.21 87/08/11 Copyr 1984 Sun Micro";
  * xdr_rec.c, Implements TCP/IP based XDR streams with a "record marking"
  * layer above tcp (for rpc's use).
  *
- * Copyright (C) 1984, Sun Microsystems, Inc.
- *
  * These routines interface XDRSTREAMS to a tcp/ip connection.
  * There is a record marking layer between the xdr stream
  * and the tcp transport level.  A record is composed on one or more
@@ -44,7 +46,7 @@ static char sccsid[] = "@(#)xdr_rec.c 1.21 87/08/11 Copyr 1984 Sun Micro";
  * by n bytes of data, where n is contained in the header.  The header
  * is represented as a htonl(uint32_t).  Thegh order bit encodes
  * whether or not the fragment is the last fragment of the record
- * (1 => fragment is last, 0 => more fragments to follow. 
+ * (1 => fragment is last, 0 => more fragments to follow.
  * The other 31 bits encode the byte length of the fragment.
  */
 
@@ -147,8 +149,8 @@ xdrrec_create(
 
 	if (rstrm == NULL) {
 		(void)fprintf(stderr, "xdrrec_create: out of memory\n");
-		/* 
-		 *  This is bad.  Should rework xdrrec_create to 
+		/*
+		 *  This is bad.  Should rework xdrrec_create to
 		 *  return a handle, and in this case return NULL
 		 */
 		return;
@@ -242,7 +244,7 @@ static bool_t  /* must manage buffers, fragments, and records */
 xdrrec_getbytes(XDR *xdrs, caddr_t addr, u_int len)
 {
 	register RECSTREAM *rstrm = (RECSTREAM *)(xdrs->x_private);
-	register int current;
+	register u_int current;
 
 	while (len > 0) {
 		current = rstrm->fbtbc;
@@ -256,7 +258,7 @@ xdrrec_getbytes(XDR *xdrs, caddr_t addr, u_int len)
 		current = (len < current) ? len : current;
 		if (! get_input_bytes(rstrm, addr, current))
 			return (FALSE);
-		addr += current; 
+		addr += current;
 		rstrm->fbtbc -= current;
 		len -= current;
 	}
@@ -270,7 +272,7 @@ xdrrec_putbytes(XDR *xdrs, caddr_t addr, u_int len)
 	register size_t current;
 
 	while (len > 0) {
-		current = (size_t) ((long)rstrm->out_boundry - 
+		current = (size_t) ((long)rstrm->out_boundry -
 				 (long)rstrm->out_finger);
 		current = (len < current) ? len : current;
 		memmove(rstrm->out_finger, addr, current);
@@ -418,7 +420,7 @@ xdrrec_skiprecord(XDR *xdrs)
 
 /*
  * Look ahead fuction.
- * Returns TRUE iff there is no more input in the buffer 
+ * Returns TRUE iff there is no more input in the buffer
  * after consuming the rest of the current record.
  */
 bool_t
@@ -472,7 +474,7 @@ static bool_t
 flush_out(RECSTREAM *rstrm, bool_t eor)
 {
 	register uint32_t eormask = (eor == TRUE) ? LAST_FRAG : 0;
-	register uint32_t len = (u_long)(rstrm->out_finger) - 
+	register uint32_t len = (u_long)(rstrm->out_finger) -
 		(u_long)(rstrm->frag_header) - BYTES_PER_XDR_UNIT;
 
 	*(rstrm->frag_header) = htonl(len | eormask);
@@ -510,14 +512,14 @@ get_input_bytes(RECSTREAM *rstrm, caddr_t addr, int len)
 	register size_t current;
 
 	while (len > 0) {
-		current = (size_t)((long)rstrm->in_boundry - 
+		current = (size_t)((long)rstrm->in_boundry -
 				(long)rstrm->in_finger);
 		if (current == 0) {
 			if (! fill_input_buf(rstrm))
 				return (FALSE);
 			continue;
 		}
-		current = (len < current) ? len : current;
+		current = ((size_t)len < current) ? (size_t)len : current;
 		memmove(addr, rstrm->in_finger, current);
 		rstrm->in_finger += current;
 		addr += current;
@@ -546,7 +548,7 @@ skip_input_bytes(RECSTREAM *rstrm, int32_t cnt)
 	register int current;
 
 	while (cnt > 0) {
-		current = (int)((long)rstrm->in_boundry - 
+		current = (int)((long)rstrm->in_boundry -
 				(long)rstrm->in_finger);
 		if (current == 0) {
 			if (! fill_input_buf(rstrm))

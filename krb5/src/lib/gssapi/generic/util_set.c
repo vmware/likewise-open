@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1995 by OpenVision Technologies, Inc.
  *
@@ -22,7 +22,7 @@
  */
 
 /*
- * $Id: util_set.c 20876 2008-10-15 21:58:43Z tlyu $
+ * $Id$
  */
 
 #include "gssapiP_generic.h"

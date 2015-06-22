@@ -49,7 +49,7 @@ SecureClient::Attach(
         s_refcount++;
         return 0;
     }
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY,
+    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, 
                          &s_hToken)) {
         s_refcount++;
         s_error = 0;
@@ -83,11 +83,11 @@ DWORD SecureClient::Token(HANDLE& hToken) {
     if (!s_hToken) {
         cci_debug_printf("%s no process token initialized (%u)", __FUNCTION__, s_error);
         return s_error ? s_error : ERROR_INVALID_HANDLE;
-        }
+        } 
     else {
         DWORD status = 0;
-        if (!DuplicateHandle(GetCurrentProcess(), s_hToken,
-                             GetCurrentProcess(), &hToken, 0, FALSE,
+        if (!DuplicateHandle(GetCurrentProcess(), s_hToken, 
+                             GetCurrentProcess(), &hToken, 0, FALSE, 
                              DUPLICATE_SAME_ACCESS)) {
             status = GetLastError();
             cci_debug_printf("  Could not duplicate handle (%u)", status);
@@ -120,7 +120,7 @@ SecureClient::SecureClient():
 
     HANDLE hThread = GetCurrentThread();
     HANDLE hThDuplicate;
-
+    
     int status  = DuplicateHandle(  GetCurrentProcess(),
                                     hThread,
                                     GetCurrentProcess(),

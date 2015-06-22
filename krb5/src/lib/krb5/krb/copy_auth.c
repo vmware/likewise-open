@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/copy_auth.c */
 /*
- * lib/krb5/krb/copy_auth.c
- *
  * Copyright 1990 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * krb5_copy_authdata()
  */
 /*
  * Copyright (c) 2006-2008, Novell, Inc.
@@ -55,30 +52,16 @@
  */
 
 #include "k5-int.h"
-
-static krb5_error_code
-krb5_copy_authdatum(krb5_context context, const krb5_authdata *inad, krb5_authdata **outad)
-{
-    krb5_authdata *tmpad;
-
-    if (!(tmpad = (krb5_authdata *)malloc(sizeof(*tmpad))))
-	return ENOMEM;
-    *tmpad = *inad;
-    if (!(tmpad->contents = (krb5_octet *)malloc(inad->length))) {
-	free(tmpad);
-	return ENOMEM;
-    }
-    memcpy((char *)tmpad->contents, (char *)inad->contents, inad->length);
-    *outad = tmpad;
-    return 0;
-}
+#include "int-proto.h"
 
 /*
  * Copy an authdata array, with fresh allocation.
  */
 krb5_error_code KRB5_CALLCONV
-krb5_merge_authdata(krb5_context context, krb5_authdata *const *inauthdat1, krb5_authdata * const *inauthdat2,
-		    krb5_authdata ***outauthdat)
+krb5_merge_authdata(krb5_context context,
+                    krb5_authdata *const *inauthdat1,
+                    krb5_authdata * const *inauthdat2,
+                    krb5_authdata ***outauthdat)
 {
     krb5_error_code retval;
     krb5_authdata ** tempauthdat;
@@ -86,40 +69,40 @@ krb5_merge_authdata(krb5_context context, krb5_authdata *const *inauthdat1, krb5
 
     *outauthdat = NULL;
     if (!inauthdat1 && !inauthdat2) {
-	    *outauthdat = 0;
-	    return 0;
+        *outauthdat = 0;
+        return 0;
     }
 
     if (inauthdat1)
-	while (inauthdat1[nelems]) nelems++;
+        while (inauthdat1[nelems]) nelems++;
     if (inauthdat2)
-	while (inauthdat2[nelems2]) nelems2++;
+        while (inauthdat2[nelems2]) nelems2++;
 
     /* one more for a null terminated list */
     if (!(tempauthdat = (krb5_authdata **) calloc(nelems+nelems2+1,
-						  sizeof(*tempauthdat))))
-	return ENOMEM;
+                                                  sizeof(*tempauthdat))))
+        return ENOMEM;
 
     if (inauthdat1) {
-	for (nelems = 0; inauthdat1[nelems]; nelems++) {
-	    retval = krb5_copy_authdatum(context, inauthdat1[nelems],
-					 &tempauthdat[nelems]);
-	    if (retval) {
-		krb5_free_authdata(context, tempauthdat);
-		return retval;
-	    }
-	}
+        for (nelems = 0; inauthdat1[nelems]; nelems++) {
+            retval = krb5int_copy_authdatum(context, inauthdat1[nelems],
+                                            &tempauthdat[nelems]);
+            if (retval) {
+                krb5_free_authdata(context, tempauthdat);
+                return retval;
+            }
+        }
     }
 
     if (inauthdat2) {
-	for (nelems2 = 0; inauthdat2[nelems2]; nelems2++) {
-	    retval = krb5_copy_authdatum(context, inauthdat2[nelems2],
-					 &tempauthdat[nelems++]);
-	    if (retval) {
-		krb5_free_authdata(context, tempauthdat);
-		return retval;
-	    }
-	}
+        for (nelems2 = 0; inauthdat2[nelems2]; nelems2++) {
+            retval = krb5int_copy_authdatum(context, inauthdat2[nelems2],
+                                            &tempauthdat[nelems++]);
+            if (retval) {
+                krb5_free_authdata(context, tempauthdat);
+                return retval;
+            }
+        }
     }
 
     *outauthdat = tempauthdat;
@@ -128,275 +111,7 @@ krb5_merge_authdata(krb5_context context, krb5_authdata *const *inauthdat1, krb5
 
 krb5_error_code KRB5_CALLCONV
 krb5_copy_authdata(krb5_context context,
-		   krb5_authdata *const *in_authdat, krb5_authdata ***out)
+                   krb5_authdata *const *in_authdat, krb5_authdata ***out)
 {
     return krb5_merge_authdata(context, in_authdat, NULL, out);
 }
-
-krb5_error_code KRB5_CALLCONV
-krb5_decode_authdata_container(krb5_context context,
-			       krb5_authdatatype type,
-			       const krb5_authdata *container,
-			       krb5_authdata ***authdata)
-{
-    krb5_error_code code;
-    krb5_data data;
-
-    *authdata = NULL;
-
-    if ((container->ad_type & AD_TYPE_FIELD_TYPE_MASK) != type)
-	return EINVAL;
-
-    data.length = container->length;
-    data.data = (char *)container->contents;
-
-    code = decode_krb5_authdata(&data, authdata);
-    if (code)
-	return code;
-
-    return 0;
-}
-
-krb5_error_code KRB5_CALLCONV
-krb5_encode_authdata_container(krb5_context context,
-			       krb5_authdatatype type,
-			       krb5_authdata *const*authdata,
-			       krb5_authdata ***container)
-{
-    krb5_error_code code;
-    krb5_data *data;
-    krb5_authdata ad_datum;
-    krb5_authdata *ad_data[2];
-
-    *container = NULL;
-
-    code = encode_krb5_authdata((krb5_authdata * const *)authdata, &data);
-    if (code)
-	return code;
-
-    ad_datum.ad_type = type & AD_TYPE_FIELD_TYPE_MASK;
-    ad_datum.length = data->length;
-    ad_datum.contents = (unsigned char *)data->data;
-
-    ad_data[0] = &ad_datum;
-    ad_data[1] = NULL;
-
-    code = krb5_copy_authdata(context, ad_data, container);
-
-    krb5_free_data(context, data);
-
-    return code;
-}
-
-struct find_authdata_context {
-  krb5_authdata **out;
-  size_t space;
-  size_t length;
-};
-
-static krb5_error_code grow_find_authdata
-(krb5_context context, struct find_authdata_context *fctx,
- krb5_authdata *elem)
-{
-  krb5_error_code retval = 0;
-  if (fctx->length == fctx->space) {
-    krb5_authdata **new;
-    if (fctx->space >= 256) {
-      krb5_set_error_message(context, ERANGE, "More than 256 authdata matched a query");
-      return ERANGE;
-    }
-    new       = realloc(fctx->out,
-			sizeof (krb5_authdata *)*(2*fctx->space+1));
-    if (new == NULL)
-      return ENOMEM;
-    fctx->out = new;
-    fctx->space *=2;
-  }
-  fctx->out[fctx->length+1] = NULL;
-  retval = krb5_copy_authdatum(context, elem,
-			       &fctx->out[fctx->length]);
-  if (retval == 0)
-    fctx->length++;
-  return retval;
-}
-
-
-
-
-static krb5_error_code find_authdata_1
-(krb5_context context, krb5_authdata *const *in_authdat, krb5_authdatatype ad_type,
- struct find_authdata_context *fctx)
-{
-  int i = 0;
-  krb5_error_code retval=0;
-
-  for (i = 0; in_authdat[i]; i++) {
-    krb5_authdata *ad = in_authdat[i];
-    if (ad->ad_type == ad_type && retval ==0)
-      retval = grow_find_authdata(context, fctx, ad);
-    else switch (ad->ad_type) {
-      krb5_authdata **decoded_container;
-    case KRB5_AUTHDATA_IF_RELEVANT:
-      if (retval == 0)
-	retval = krb5_decode_authdata_container( context, ad->ad_type, ad, &decoded_container);
-      if (retval == 0) {
-	retval = find_authdata_1(context,
-				 decoded_container, ad_type, fctx);
-	krb5_free_authdata(context, decoded_container);
-      }
-      break;
-    default:
-      break;
-    }
-  }
-  return retval;
-}
-
-
-krb5_error_code krb5int_find_authdata
-(krb5_context context, krb5_authdata *const * ticket_authdata,
- krb5_authdata * const *ap_req_authdata,
- krb5_authdatatype ad_type,
- krb5_authdata ***results)
-{
-  krb5_error_code retval = 0;
-  struct find_authdata_context fctx;
-  fctx.length = 0;
-  fctx.space = 2;
-  fctx.out = calloc(fctx.space+1, sizeof (krb5_authdata *));
-  *results = NULL;
-  if (fctx.out == NULL)
-    return ENOMEM;
-  if (ticket_authdata)
-      retval = find_authdata_1( context, ticket_authdata, ad_type, &fctx);
-  if ((retval==0) && ap_req_authdata)
-    retval = find_authdata_1( context, ap_req_authdata, ad_type, &fctx);
-  if ((retval== 0) && fctx.length)
-    *results = fctx.out;
-  else krb5_free_authdata(context, fctx.out);
-  return retval;
-}
-
-krb5_error_code KRB5_CALLCONV
-krb5_make_authdata_kdc_issued(krb5_context context,
-    const krb5_keyblock *key,
-    krb5_const_principal issuer,
-    krb5_authdata *const *authdata,
-    krb5_authdata ***ad_kdcissued)
-{
-    krb5_error_code code;
-    krb5_ad_kdcissued ad_kdci;
-    krb5_data *data;
-    krb5_cksumtype cksumtype;
-    krb5_authdata ad_datum;
-    krb5_authdata *ad_data[2];
-
-    *ad_kdcissued = NULL;
-
-    ad_kdci.ad_checksum.contents = NULL;
-    ad_kdci.i_principal = (krb5_principal)issuer;
-    ad_kdci.elements = (krb5_authdata **)authdata;
-
-    code = krb5int_c_mandatory_cksumtype(context, key->enctype,
-                                         &cksumtype);
-    if (code != 0)
-        return code;
-
-    code = encode_krb5_authdata(ad_kdci.elements, &data);
-    if (code != 0)
-        return code;
-
-    code = krb5_c_make_checksum(context, cksumtype,
-                                key, KRB5_KEYUSAGE_AD_KDCISSUED_CKSUM,
-                                data, &ad_kdci.ad_checksum);
-    if (code != 0) {
-        krb5_free_data(context, data);
-        return code;
-    }
-
-    krb5_free_data(context, data);
-
-    code = encode_krb5_ad_kdcissued(&ad_kdci, &data);
-    if (code != 0)
-        return code;
-
-    ad_datum.ad_type = KRB5_AUTHDATA_KDC_ISSUED;
-    ad_datum.length = data->length;
-    ad_datum.contents = (unsigned char *)data->data;
-
-    ad_data[0] = &ad_datum;
-    ad_data[1] = NULL;
-
-    code = krb5_copy_authdata(context, ad_data, ad_kdcissued);
-
-    krb5_free_data(context, data);
-    krb5_free_checksum_contents(context, &ad_kdci.ad_checksum);
-
-    return code;
-}
-
-krb5_error_code KRB5_CALLCONV
-krb5_verify_authdata_kdc_issued(krb5_context context,
-    const krb5_keyblock *key,
-    const krb5_authdata *ad_kdcissued,
-    krb5_principal *issuer,
-    krb5_authdata ***authdata)
-{
-    krb5_error_code code;
-    krb5_ad_kdcissued *ad_kdci;
-    krb5_data data, *data2;
-    krb5_boolean valid = FALSE;
-
-    if ((ad_kdcissued->ad_type & AD_TYPE_FIELD_TYPE_MASK) !=
-	KRB5_AUTHDATA_KDC_ISSUED)
-	return EINVAL;
-
-    if (issuer != NULL)
-        *issuer = NULL;
-    if (authdata != NULL)
-        *authdata = NULL;
-
-    data.length = ad_kdcissued->length;
-    data.data = (char *)ad_kdcissued->contents;
-
-    code = decode_krb5_ad_kdcissued(&data, &ad_kdci);
-    if (code != 0)
-        return code;
-
-    code = encode_krb5_authdata(ad_kdci->elements, &data2);
-    if (code != 0) {
-        krb5_free_ad_kdcissued(context, ad_kdci);
-        return code;
-    }
-
-    code = krb5_c_verify_checksum(context, key,
-                                  KRB5_KEYUSAGE_AD_KDCISSUED_CKSUM,
-                                  data2, &ad_kdci->ad_checksum, &valid);
-    if (code != 0) {
-        krb5_free_ad_kdcissued(context, ad_kdci);
-        krb5_free_data(context, data2);
-        return code;
-    }
-
-    krb5_free_data(context, data2);
-
-    if (valid == FALSE) {
-        krb5_free_ad_kdcissued(context, ad_kdci);
-        return KRB5KRB_AP_ERR_BAD_INTEGRITY;
-    }
-
-    if (issuer != NULL) {
-        *issuer = ad_kdci->i_principal;
-        ad_kdci->i_principal = NULL;
-    }
-
-    if (authdata != NULL) {
-        *authdata = ad_kdci->elements;
-        ad_kdci->elements = NULL;
-    }
-
-    krb5_free_ad_kdcissued(context, ad_kdci);
-
-    return 0;
-}
-
