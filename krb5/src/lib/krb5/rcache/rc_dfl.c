@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/rcache/rc_dfl.c */
 /*
- * lib/krb5/rcache/rc_dfl.c
- *
  * This file of the Kerberos V5 software is derived from public-domain code
  * contributed by Daniel J. Bernstein, <brnstnd@acf10.nyu.edu>.
  *
@@ -202,12 +201,9 @@ krb5_error_code KRB5_CALLCONV
 krb5_rc_dfl_get_span(krb5_context context, krb5_rcache id,
                      krb5_deltat *lifespan)
 {
-    krb5_error_code err;
     struct dfl_data *t;
 
-    err = k5_mutex_lock(&id->lock);
-    if (err)
-        return err;
+    k5_mutex_lock(&id->lock);
     t = (struct dfl_data *) id->data;
     *lifespan = t->lifespan;
     k5_mutex_unlock(&id->lock);
@@ -240,9 +236,7 @@ krb5_rc_dfl_init(krb5_context context, krb5_rcache id, krb5_deltat lifespan)
 {
     krb5_error_code retval;
 
-    retval = k5_mutex_lock(&id->lock);
-    if (retval)
-        return retval;
+    k5_mutex_lock(&id->lock);
     retval = krb5_rc_dfl_init_locked(context, id, lifespan);
     k5_mutex_unlock(&id->lock);
     return retval;
@@ -277,10 +271,7 @@ krb5_rc_dfl_close_no_free(krb5_context context, krb5_rcache id)
 krb5_error_code KRB5_CALLCONV
 krb5_rc_dfl_close(krb5_context context, krb5_rcache id)
 {
-    krb5_error_code retval;
-    retval = k5_mutex_lock(&id->lock);
-    if (retval)
-        return retval;
+    k5_mutex_lock(&id->lock);
     krb5_rc_dfl_close_no_free(context, id);
     k5_mutex_unlock(&id->lock);
     k5_mutex_destroy(&id->lock);
@@ -420,11 +411,9 @@ check_hash_extension(krb5_donot_replay *rep)
     end = strchr(str, ' ');
     if (!end)
         return 0;
-    msghash = malloc(end - str + 1);
+    msghash = k5memdup0(str, end - str, &retval);
     if (!msghash)
         return KRB5_RC_MALLOC;
-    memcpy(msghash, str, end - str);
-    msghash[end - str] = '\0';
     str = end + 1;
 
     /* Parse out the client and server. */
@@ -627,9 +616,8 @@ krb5_error_code KRB5_CALLCONV
 krb5_rc_dfl_recover(krb5_context context, krb5_rcache id)
 {
     krb5_error_code ret;
-    ret = k5_mutex_lock(&id->lock);
-    if (ret)
-        return ret;
+
+    k5_mutex_lock(&id->lock);
     ret = krb5_rc_dfl_recover_locked(context, id);
     k5_mutex_unlock(&id->lock);
     return ret;
@@ -641,9 +629,7 @@ krb5_rc_dfl_recover_or_init(krb5_context context, krb5_rcache id,
 {
     krb5_error_code retval;
 
-    retval = k5_mutex_lock(&id->lock);
-    if (retval)
-        return retval;
+    k5_mutex_lock(&id->lock);
     retval = krb5_rc_dfl_recover_locked(context, id);
     if (retval)
         retval = krb5_rc_dfl_init_locked(context, id, lifespan);
@@ -656,10 +642,11 @@ krb5_rc_io_store(krb5_context context, struct dfl_data *t,
                  krb5_donot_replay *rep)
 {
     size_t clientlen, serverlen;
+    ssize_t buflen;
     unsigned int len;
     krb5_error_code ret;
     struct k5buf buf, extbuf;
-    char *ptr, *extstr;
+    char *bufptr, *extstr;
 
     clientlen = strlen(rep->client);
     serverlen = strlen(rep->server);
@@ -672,11 +659,11 @@ krb5_rc_io_store(krb5_context context, struct dfl_data *t,
          */
 
         /* Format the extension value so we know its length. */
-        krb5int_buf_init_dynamic(&extbuf);
-        krb5int_buf_add_fmt(&extbuf, "HASH:%s %lu:%s %lu:%s", rep->msghash,
-                            (unsigned long) clientlen, rep->client,
-                            (unsigned long) serverlen, rep->server);
-        extstr = krb5int_buf_data(&extbuf);
+        k5_buf_init_dynamic(&extbuf);
+        k5_buf_add_fmt(&extbuf, "HASH:%s %lu:%s %lu:%s", rep->msghash,
+                       (unsigned long)clientlen, rep->client,
+                       (unsigned long)serverlen, rep->server);
+        extstr = k5_buf_data(&extbuf);
         if (!extstr)
             return KRB5_RC_MALLOC;
 
@@ -684,34 +671,35 @@ krb5_rc_io_store(krb5_context context, struct dfl_data *t,
          * Put the extension value into the server field of a
          * regular-format record, with an empty client field.
          */
-        krb5int_buf_init_dynamic(&buf);
+        k5_buf_init_dynamic(&buf);
         len = 1;
-        krb5int_buf_add_len(&buf, (char *) &len, sizeof(len));
-        krb5int_buf_add_len(&buf, "", 1);
+        k5_buf_add_len(&buf, (char *)&len, sizeof(len));
+        k5_buf_add_len(&buf, "", 1);
         len = strlen(extstr) + 1;
-        krb5int_buf_add_len(&buf, (char *) &len, sizeof(len));
-        krb5int_buf_add_len(&buf, extstr, len);
-        krb5int_buf_add_len(&buf, (char *) &rep->cusec, sizeof(rep->cusec));
-        krb5int_buf_add_len(&buf, (char *) &rep->ctime, sizeof(rep->ctime));
+        k5_buf_add_len(&buf, (char *)&len, sizeof(len));
+        k5_buf_add_len(&buf, extstr, len);
+        k5_buf_add_len(&buf, (char *)&rep->cusec, sizeof(rep->cusec));
+        k5_buf_add_len(&buf, (char *)&rep->ctime, sizeof(rep->ctime));
         free(extstr);
     } else  /* No extension record needed. */
-        krb5int_buf_init_dynamic(&buf);
+        k5_buf_init_dynamic(&buf);
 
     len = clientlen + 1;
-    krb5int_buf_add_len(&buf, (char *) &len, sizeof(len));
-    krb5int_buf_add_len(&buf, rep->client, len);
+    k5_buf_add_len(&buf, (char *)&len, sizeof(len));
+    k5_buf_add_len(&buf, rep->client, len);
     len = serverlen + 1;
-    krb5int_buf_add_len(&buf, (char *) &len, sizeof(len));
-    krb5int_buf_add_len(&buf, rep->server, len);
-    krb5int_buf_add_len(&buf, (char *) &rep->cusec, sizeof(rep->cusec));
-    krb5int_buf_add_len(&buf, (char *) &rep->ctime, sizeof(rep->ctime));
+    k5_buf_add_len(&buf, (char *)&len, sizeof(len));
+    k5_buf_add_len(&buf, rep->server, len);
+    k5_buf_add_len(&buf, (char *)&rep->cusec, sizeof(rep->cusec));
+    k5_buf_add_len(&buf, (char *)&rep->ctime, sizeof(rep->ctime));
 
-    ptr = krb5int_buf_data(&buf);
-    if (ptr == NULL)
+    bufptr = k5_buf_data(&buf);
+    buflen = k5_buf_len(&buf);
+    if (bufptr == NULL || buflen < 0)
         return KRB5_RC_MALLOC;
 
-    ret = krb5_rc_io_write(context, &t->d, ptr, krb5int_buf_len(&buf));
-    krb5int_free_buf(&buf);
+    ret = krb5_rc_io_write(context, &t->d, bufptr, buflen);
+    k5_free_buf(&buf);
     return ret;
 }
 
@@ -728,9 +716,7 @@ krb5_rc_dfl_store(krb5_context context, krb5_rcache id, krb5_donot_replay *rep)
     if (ret)
         return ret;
 
-    ret = k5_mutex_lock(&id->lock);
-    if (ret)
-        return ret;
+    k5_mutex_lock(&id->lock);
 
     switch(rc_store(context, id, rep, now, FALSE)) {
     case CMP_MALLOC:
@@ -826,14 +812,9 @@ krb5_rc_dfl_expunge_locked(krb5_context context, krb5_rcache id)
         t = (struct dfl_data *)id->data; /* point to recovered cache */
     }
 
-    tmp = (krb5_rcache) malloc(sizeof(*tmp));
-    if (!tmp)
-        return ENOMEM;
     retval = krb5_rc_resolve_type(context, &tmp, "dfl");
-    if (retval) {
-        free(tmp);
+    if (retval)
         return retval;
-    }
     retval = krb5_rc_resolve(context, tmp, 0);
     if (retval)
         goto cleanup;
@@ -865,9 +846,8 @@ krb5_error_code KRB5_CALLCONV
 krb5_rc_dfl_expunge(krb5_context context, krb5_rcache id)
 {
     krb5_error_code ret;
-    ret = k5_mutex_lock(&id->lock);
-    if (ret)
-        return ret;
+
+    k5_mutex_lock(&id->lock);
     ret = krb5_rc_dfl_expunge_locked(context, id);
     k5_mutex_unlock(&id->lock);
     return ret;

@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -22,13 +22,13 @@
  */
 
 /*
- * $Id: indicate_mechs.c 21690 2009-01-03 23:19:42Z hartmans $
+ * $Id$
  */
 
 #include "gssapiP_krb5.h"
 #include "mglueP.h"
 
-OM_uint32
+OM_uint32 KRB5_CALLCONV
 krb5_gss_indicate_mechs(minor_status, mech_set)
     OM_uint32 *minor_status;
     gss_OID_set *mech_set;

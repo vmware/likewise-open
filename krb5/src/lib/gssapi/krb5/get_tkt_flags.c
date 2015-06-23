@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -24,10 +24,10 @@
 #include "gssapiP_krb5.h"
 
 /*
- * $Id: get_tkt_flags.c 21778 2009-01-22 23:21:11Z tlyu $
+ * $Id$
  */
 
-OM_uint32 KRB5_CALLCONV
+OM_uint32
 gss_krb5int_get_tkt_flags(OM_uint32 *minor_status,
                           const gss_ctx_id_t context_handle,
                           const gss_OID desired_object,

@@ -1,6 +1,5 @@
+/* ccapi/lib/ccapi_ipc.c */
 /*
- * $Header$
- *
  * Copyright 2006 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -29,16 +28,16 @@
 
 /* ------------------------------------------------------------------------ */
 
-cc_int32 cci_ipc_thread_init (void)
+cc_int32 cci_ipc_process_init (void)
 {
-    return cci_os_ipc_thread_init ();
+    return cci_os_ipc_process_init ();
 }
 
 /* ------------------------------------------------------------------------ */
 
-void cci_ipc_thread_fini (void)
+cc_int32 cci_ipc_thread_init (void)
 {
-    cci_os_ipc_thread_fini ();
+    return cci_os_ipc_thread_init ();
 }
 
 /* ------------------------------------------------------------------------ */
@@ -65,15 +64,15 @@ static cc_int32 _cci_ipc_send (enum cci_msg_id_t  in_request_name,
     }
 
     if (!err && in_request_data) {
-        err = k5_ipc_stream_write (request,
-                                k5_ipc_stream_data (in_request_data),
-                                k5_ipc_stream_size (in_request_data));
+        err = krb5int_ipc_stream_write (request,
+                                krb5int_ipc_stream_data (in_request_data),
+                                krb5int_ipc_stream_size (in_request_data));
     }
 
     if (!err) {
         err = cci_os_ipc (in_launch_server, request, &reply);
 
-        if (!err && k5_ipc_stream_size (reply) > 0) {
+        if (!err && krb5int_ipc_stream_size (reply) > 0) {
             err = cci_message_read_reply_header (reply, &reply_error);
         }
     }
@@ -87,8 +86,8 @@ static cc_int32 _cci_ipc_send (enum cci_msg_id_t  in_request_name,
         reply = NULL; /* take ownership */
     }
 
-    k5_ipc_stream_release (request);
-    k5_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (request);
+    krb5int_ipc_stream_release (reply);
 
     return cci_check_error (err);
 }

@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/brand.c */
 /*
- * lib/krb5/krb/brand.c
- *
  * Copyright (C) 2004 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -69,4 +69,4 @@
 
 #define BRANDSTR RELTAG " " RELNAME " " RELDATE
 
-static char krb5_brand[] = "KRB5_BRAND: " BRANDSTR;
+char krb5_brand[] = "KRB5_BRAND: " BRANDSTR;

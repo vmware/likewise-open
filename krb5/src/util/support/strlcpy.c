@@ -1,7 +1,4 @@
-#include "k5-platform.h"
-
-/* Provide strlcpy and strlcat for platforms that don't have them. */
-
+/* -*- mode: c; c-file-style: "bsd"; indent-tabs-mode: t -*- */
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
  *
@@ -18,6 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/* Provide strlcpy and strlcat for platforms that don't have them. */
+
+#include "k5-platform.h"
 #include <sys/types.h>
 #include <string.h>
 

@@ -1,6 +1,5 @@
+/* ccapi/common/cci_array_internal.c */
 /*
- * $Header$
- *
  * Copyright 2006, 2007 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -311,4 +310,3 @@ cc_int32 cci_array_push_front (cci_array_t io_array,
     cc_uint64 real_new_position = 0;
     return cci_array_move (io_array, in_position, 0, &real_new_position);
 }
-

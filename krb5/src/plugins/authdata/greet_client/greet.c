@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* plugins/authdata/greet_client/greet.c - Sample authorization data plugin */
 /*
- * plugins/authdata/greet_client/
- *
  * Copyright 2009 by the Massachusetts Institute of Technology.
  *
  * Export of this software from the United States of America may
@@ -21,9 +21,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
- * Sample authorization data plugin
  */
 
 #include <string.h>
@@ -226,6 +223,9 @@ greet_set_attribute(krb5_context kcontext,
     krb5_data data;
     krb5_error_code code;
 
+    if (!data_eq(*attribute, greet_attr))
+        return ENOENT;
+
     if (greet->greeting.data != NULL)
         return EEXIST;
 
@@ -242,10 +242,10 @@ greet_set_attribute(krb5_context kcontext,
 
 static krb5_error_code
 greet_delete_attribute(krb5_context kcontext,
-                        krb5_authdata_context context,
-                        void *plugin_context,
-                        void *request_context,
-                        const krb5_data *attribute)
+                       krb5_authdata_context context,
+                       void *plugin_context,
+                       void *request_context,
+                       const krb5_data *attribute)
 {
     struct greet_context *greet = (struct greet_context *)request_context;
 
@@ -265,8 +265,8 @@ greet_size(krb5_context kcontext,
     struct greet_context *greet = (struct greet_context *)request_context;
 
     *sizep += sizeof(krb5_int32) +
-              greet->greeting.length +
-              sizeof(krb5_int32);
+        greet->greeting.length +
+        sizeof(krb5_int32);
 
     return 0;
 }

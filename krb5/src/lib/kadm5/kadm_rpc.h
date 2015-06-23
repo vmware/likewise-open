@@ -1,3 +1,4 @@
+/* -*- mode: c; c-file-style: "bsd"; indent-tabs-mode: t -*- */
 #ifndef __KADM_RPC_H__
 #define __KADM_RPC_H__
 
@@ -51,13 +52,13 @@ struct rprinc_arg {
 typedef struct rprinc_arg rprinc_arg;
 
 struct gprincs_arg {
-        krb5_ui_4 api_version;
+	krb5_ui_4 api_version;
 	char *exp;
 };
 typedef struct gprincs_arg gprincs_arg;
 
 struct gprincs_ret {
-        krb5_ui_4 api_version;
+	krb5_ui_4 api_version;
 	kadm5_ret_t code;
 	char **princs;
 	int count;
@@ -84,15 +85,15 @@ typedef struct chpass3_arg chpass3_arg;
 struct setv4key_arg {
 	krb5_ui_4 api_version;
 	krb5_principal princ;
-        krb5_keyblock *keyblock;
+	krb5_keyblock *keyblock;
 };
 typedef struct setv4key_arg setv4key_arg;
 
 struct setkey_arg {
 	krb5_ui_4 api_version;
 	krb5_principal princ;
-        krb5_keyblock *keyblocks;
-        int n_keys;
+	krb5_keyblock *keyblocks;
+	int n_keys;
 };
 typedef struct setkey_arg setkey_arg;
 
@@ -102,8 +103,8 @@ struct setkey3_arg {
 	krb5_boolean keepold;
 	int n_ks_tuple;
 	krb5_key_salt_tuple *ks_tuple;
-        krb5_keyblock *keyblocks;
-        int n_keys;
+	krb5_keyblock *keyblocks;
+	int n_keys;
 };
 typedef struct setkey3_arg setkey3_arg;
 
@@ -179,13 +180,13 @@ struct gpol_ret {
 typedef struct gpol_ret gpol_ret;
 
 struct gpols_arg {
-        krb5_ui_4 api_version;
+	krb5_ui_4 api_version;
 	char *exp;
 };
 typedef struct gpols_arg gpols_arg;
 
 struct gpols_ret {
-        krb5_ui_4 api_version;
+	krb5_ui_4 api_version;
 	kadm5_ret_t code;
 	char **pols;
 	int count;
@@ -198,6 +199,35 @@ struct getprivs_ret {
 	long privs;
 };
 typedef struct getprivs_ret getprivs_ret;
+
+struct purgekeys_arg {
+	krb5_ui_4 api_version;
+	krb5_principal princ;
+	int keepkvno;
+};
+typedef struct purgekeys_arg purgekeys_arg;
+
+struct gstrings_arg {
+	krb5_ui_4 api_version;
+	krb5_principal princ;
+};
+typedef struct gstrings_arg gstrings_arg;
+
+struct gstrings_ret {
+	krb5_ui_4 api_version;
+	kadm5_ret_t code;
+	krb5_string_attr *strings;
+	int count;
+};
+typedef struct gstrings_ret gstrings_ret;
+
+struct sstring_arg {
+	krb5_ui_4 api_version;
+	krb5_principal princ;
+	char *key;
+	char *value;
+};
+typedef struct sstring_arg sstring_arg;
 
 #define KADM 2112
 #define KADMVERS 2
@@ -264,6 +294,15 @@ extern  chrand_ret * chrand_principal3_2_svc(chrand3_arg *, struct svc_req *);
 #define SETKEY_PRINCIPAL3 21
 extern  generic_ret * setkey_principal3_2(setkey3_arg *, CLIENT *);
 extern  generic_ret * setkey_principal3_2_svc(setkey3_arg *, struct svc_req *);
+#define PURGEKEYS 22
+extern  generic_ret * purgekeys_2(purgekeys_arg *, CLIENT *);
+extern  generic_ret * purgekeys_2_svc(purgekeys_arg *, struct svc_req *);
+#define GET_STRINGS 23
+extern  gstrings_ret * get_strings_2(gstrings_arg *, CLIENT *);
+extern  gstrings_ret * get_strings_2_svc(gstrings_arg *, struct svc_req *);
+#define SET_STRING 24
+extern  generic_ret * set_string_2(sstring_arg *, CLIENT *);
+extern  generic_ret * set_string_2_svc(sstring_arg *, struct svc_req *);
 
 extern bool_t xdr_cprinc_arg ();
 extern bool_t xdr_cprinc3_arg ();
@@ -300,6 +339,11 @@ extern bool_t xdr_gpol_ret ();
 extern bool_t xdr_gpols_arg ();
 extern bool_t xdr_gpols_ret ();
 extern bool_t xdr_getprivs_ret ();
+extern bool_t xdr_purgekeys_arg ();
+extern bool_t xdr_gstrings_arg ();
+extern bool_t xdr_gstrings_ret ();
+extern bool_t xdr_sstring_arg ();
+extern bool_t xdr_krb5_string_attr ();
 
 
 #endif /* __KADM_RPC_H__ */

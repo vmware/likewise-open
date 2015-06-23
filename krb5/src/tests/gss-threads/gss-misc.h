@@ -1,6 +1,6 @@
 /*
  * Copyright 1994 by OpenVision Technologies, Inc.
- * 
+ *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without fee,
  * provided that the above copyright notice appears in all copies and
@@ -10,7 +10,7 @@
  * without specific, written prior permission. OpenVision makes no
  * representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied warranty.
- * 
+ *
  * OPENVISION DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
  * EVENT SHALL OPENVISION BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -18,10 +18,6 @@
  * USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * $Id: gss-misc.h 17096 2005-02-09 22:37:38Z raeburn $
  */
 
 #ifndef _GSSMISC_H_
@@ -32,16 +28,11 @@
 
 extern FILE *display_file;
 
-int send_token
-	(int s, int flags, gss_buffer_t tok);
-int recv_token
-	(int s, int *flags, gss_buffer_t tok);
-void display_status
-	(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat);
-void display_ctx_flags
-	(OM_uint32 flags);
-void print_token
-	(gss_buffer_t tok);
+int send_token(int s, int flags, gss_buffer_t tok);
+int recv_token(int s, int *flags, gss_buffer_t tok);
+void display_status(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat);
+void display_ctx_flags(OM_uint32 flags);
+void print_token(gss_buffer_t tok);
 
 /* Token types */
 #define TOKEN_NOOP		(1<<0)

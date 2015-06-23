@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 2009  by the Massachusetts Institute of Technology.
  * All Rights Reserved.
@@ -21,7 +21,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 #include "k5-int.h"
 #include "gssapiP_krb5.h"
@@ -30,80 +29,11 @@
 #endif
 #include <assert.h>
 
-static OM_uint32
-kg_set_desired_mechs(OM_uint32 *minor_status,
-                     const gss_OID_set desired_mechs,
-                     krb5_gss_cred_id_t cred)
-{
-    unsigned int i;
-
-    if (desired_mechs == GSS_C_NULL_OID_SET) {
-        cred->prerfc_mech = 1;
-        cred->rfc_mech = 1;
-    } else {
-        cred->prerfc_mech = 0;
-        cred->rfc_mech = 0;
-
-        for (i = 0; i < desired_mechs->count; i++) {
-            if (g_OID_equal(gss_mech_krb5_old, &desired_mechs->elements[i]))
-                cred->prerfc_mech = 1;
-            else if (g_OID_equal(gss_mech_krb5, &desired_mechs->elements[i]))
-                cred->rfc_mech = 1;
-        }
-
-        if (!cred->prerfc_mech && !cred->rfc_mech) {
-            *minor_status = 0;
-            return GSS_S_BAD_MECH;
-        }
-    }
-
-    return GSS_S_COMPLETE;
-}
-
-static OM_uint32
-kg_return_mechs(OM_uint32 *minor_status,
-                krb5_gss_cred_id_t cred,
-                gss_OID_set *actual_mechs)
-{
-    OM_uint32 major_status, minor;
-    gss_OID_set mechs;
-
-    if (actual_mechs == NULL)
-        return GSS_S_COMPLETE;
-
-    major_status = generic_gss_create_empty_oid_set(minor_status, &mechs);
-    if (GSS_ERROR(major_status))
-        return major_status;
-
-    if (cred->prerfc_mech) {
-        major_status = generic_gss_add_oid_set_member(minor_status,
-                                                      gss_mech_krb5_old,
-                                                      &mechs);
-        if (GSS_ERROR(major_status)) {
-            generic_gss_release_oid_set(&minor, &mechs);
-            return major_status;
-        }
-    }
-    if (cred->rfc_mech) {
-        major_status = generic_gss_add_oid_set_member(minor_status,
-                                                      gss_mech_krb5,
-                                                      &mechs);
-        if (GSS_ERROR(major_status)) {
-            generic_gss_release_oid_set(&minor, &mechs);
-            return major_status;
-        }
-    }
-
-    *actual_mechs = mechs;
-
-    return GSS_S_COMPLETE;
-}
-
 static int
 kg_is_initiator_cred(krb5_gss_cred_id_t cred)
 {
     return (cred->usage == GSS_C_INITIATE || cred->usage == GSS_C_BOTH) &&
-           (cred->ccache != NULL);
+        (cred->ccache != NULL);
 }
 
 static OM_uint32
@@ -111,9 +41,7 @@ kg_impersonate_name(OM_uint32 *minor_status,
                     const krb5_gss_cred_id_t impersonator_cred,
                     const krb5_gss_name_t user,
                     OM_uint32 time_req,
-                    const gss_OID_set desired_mechs,
                     krb5_gss_cred_id_t *output_cred,
-                    gss_OID_set *actual_mechs,
                     OM_uint32 *time_rec,
                     krb5_context context)
 {
@@ -121,8 +49,8 @@ kg_impersonate_name(OM_uint32 *minor_status,
     krb5_error_code code;
     krb5_creds in_creds, *out_creds = NULL;
 
+    *output_cred = NULL;
     memset(&in_creds, 0, sizeof(in_creds));
-    memset(&out_creds, 0, sizeof(out_creds));
 
     in_creds.client = user->princ;
     in_creds.server = impersonator_cred->name->princ;
@@ -130,11 +58,7 @@ kg_impersonate_name(OM_uint32 *minor_status,
     if (impersonator_cred->req_enctypes != NULL)
         in_creds.keyblock.enctype = impersonator_cred->req_enctypes[0];
 
-    code = k5_mutex_lock(&user->lock);
-    if (code != 0) {
-        *minor_status = code;
-        return GSS_S_FAILURE;
-    }
+    k5_mutex_lock(&user->lock);
 
     if (user->ad_context != NULL) {
         code = krb5_authdata_export_authdata(context,
@@ -165,9 +89,7 @@ kg_impersonate_name(OM_uint32 *minor_status,
                                          impersonator_cred,
                                          out_creds,
                                          time_req,
-                                         desired_mechs,
                                          output_cred,
-                                         actual_mechs,
                                          time_rec,
                                          context);
 
@@ -177,7 +99,8 @@ kg_impersonate_name(OM_uint32 *minor_status,
     return major_status;
 }
 
-OM_uint32
+/* The mechglue always passes null desired_mechs and actual_mechs. */
+OM_uint32 KRB5_CALLCONV
 krb5_gss_acquire_cred_impersonate_name(OM_uint32 *minor_status,
                                        const gss_cred_id_t impersonator_cred_handle,
                                        const gss_name_t desired_name,
@@ -190,7 +113,7 @@ krb5_gss_acquire_cred_impersonate_name(OM_uint32 *minor_status,
 {
     OM_uint32 major_status;
     krb5_error_code code;
-    krb5_gss_cred_id_t cred = NULL;
+    krb5_gss_cred_id_t cred;
     krb5_context context;
 
     if (impersonator_cred_handle == GSS_C_NO_CREDENTIAL)
@@ -208,8 +131,6 @@ krb5_gss_acquire_cred_impersonate_name(OM_uint32 *minor_status,
     }
 
     *output_cred_handle = GSS_C_NO_CREDENTIAL;
-    if (actual_mechs != NULL)
-        *actual_mechs = GSS_C_NO_OID_SET;
     if (time_rec != NULL)
         *time_rec = 0;
 
@@ -219,9 +140,8 @@ krb5_gss_acquire_cred_impersonate_name(OM_uint32 *minor_status,
         return GSS_S_FAILURE;
     }
 
-    major_status = krb5_gss_validate_cred_1(minor_status,
-                                            impersonator_cred_handle,
-                                            context);
+    major_status = kg_cred_resolve(minor_status, context,
+                                   impersonator_cred_handle, NULL);
     if (GSS_ERROR(major_status)) {
         krb5_free_context(context);
         return major_status;
@@ -231,13 +151,12 @@ krb5_gss_acquire_cred_impersonate_name(OM_uint32 *minor_status,
                                        (krb5_gss_cred_id_t)impersonator_cred_handle,
                                        (krb5_gss_name_t)desired_name,
                                        time_req,
-                                       desired_mechs,
                                        &cred,
-                                       actual_mechs,
                                        time_rec,
                                        context);
 
-    *output_cred_handle = (gss_cred_id_t)cred;
+    if (!GSS_ERROR(major_status))
+        *output_cred_handle = (gss_cred_id_t)cred;
 
     k5_mutex_unlock(&((krb5_gss_cred_id_t)impersonator_cred_handle)->lock);
     krb5_free_context(context);
@@ -246,14 +165,45 @@ krb5_gss_acquire_cred_impersonate_name(OM_uint32 *minor_status,
 
 }
 
+/*
+ * Set up cred to be an S4U2Proxy credential by copying in the impersonator's
+ * creds, setting a cache config variable with the impersonator principal name,
+ * and saving the impersonator principal name in the cred structure.
+ */
+static krb5_error_code
+make_proxy_cred(krb5_context context, krb5_gss_cred_id_t cred,
+                krb5_gss_cred_id_t impersonator_cred)
+{
+    krb5_error_code code;
+    krb5_data data;
+    char *str;
+
+    code = krb5_cc_copy_creds(context, impersonator_cred->ccache,
+                              cred->ccache);
+    if (code)
+        return code;
+
+    code = krb5_unparse_name(context, impersonator_cred->name->princ, &str);
+    if (code)
+        return code;
+
+    data = string2data(str);
+    code = krb5_cc_set_config(context, cred->ccache, NULL,
+                              KRB5_CC_CONF_PROXY_IMPERSONATOR, &data);
+    krb5_free_unparsed_name(context, str);
+    if (code)
+        return code;
+
+    return krb5_copy_principal(context, impersonator_cred->name->princ,
+                               &cred->impersonator);
+}
+
 OM_uint32
 kg_compose_deleg_cred(OM_uint32 *minor_status,
                       krb5_gss_cred_id_t impersonator_cred,
                       krb5_creds *subject_creds,
                       OM_uint32 time_req,
-                      const gss_OID_set desired_mechs,
                       krb5_gss_cred_id_t *output_cred,
-                      gss_OID_set *actual_mechs,
                       OM_uint32 *time_rec,
                       krb5_context context)
 {
@@ -261,11 +211,12 @@ kg_compose_deleg_cred(OM_uint32 *minor_status,
     krb5_error_code code;
     krb5_gss_cred_id_t cred = NULL;
 
+    *output_cred = NULL;
     k5_mutex_assert_locked(&impersonator_cred->lock);
 
     if (!kg_is_initiator_cred(impersonator_cred) ||
         impersonator_cred->name == NULL ||
-        impersonator_cred->proxy_cred) {
+        impersonator_cred->impersonator != NULL) {
         code = G_BAD_USAGE;
         goto cleanup;
     }
@@ -286,41 +237,32 @@ kg_compose_deleg_cred(OM_uint32 *minor_status,
     if (code != 0)
         goto cleanup;
 
-    /*
-     * Only return a "proxy" credential for use with constrained
-     * delegation if the subject credentials are forwardable.
-     * Submitting non-forwardable credentials to the KDC for use
-     * with constrained delegation will only return an error.
-     */
     cred->usage = GSS_C_INITIATE;
-    cred->proxy_cred = !!(subject_creds->ticket_flags & TKT_FLG_FORWARDABLE);
 
-    major_status = kg_set_desired_mechs(minor_status, desired_mechs, cred);
-    if (GSS_ERROR(major_status))
-        goto cleanup;
+    cred->expire = subject_creds->times.endtime;
 
-    cred->tgt_expire = subject_creds->times.endtime;
-
-    code = kg_init_name(context, subject_creds->client, NULL, 0, &cred->name);
+    code = kg_init_name(context, subject_creds->client, NULL, NULL, NULL, 0,
+                        &cred->name);
     if (code != 0)
         goto cleanup;
 
     code = krb5_cc_new_unique(context, "MEMORY", NULL, &cred->ccache);
     if (code != 0)
         goto cleanup;
-
     cred->destroy_ccache = 1;
 
-    code = krb5_cc_initialize(context, cred->ccache,
-                              cred->proxy_cred ? impersonator_cred->name->princ :
-                                    subject_creds->client);
+    code = krb5_cc_initialize(context, cred->ccache, subject_creds->client);
     if (code != 0)
         goto cleanup;
 
-    if (cred->proxy_cred) {
-        /* Impersonator's TGT will be necessary for S4U2Proxy */
-        code = krb5_cc_copy_creds(context, impersonator_cred->ccache,
-                                  cred->ccache);
+    /*
+     * Only return a "proxy" credential for use with constrained
+     * delegation if the subject credentials are forwardable.
+     * Submitting non-forwardable credentials to the KDC for use
+     * with constrained delegation will only return an error.
+     */
+    if (subject_creds->ticket_flags & TKT_FLG_FORWARDABLE) {
+        code = make_proxy_cred(context, cred, impersonator_cred);
         if (code != 0)
             goto cleanup;
     }
@@ -336,16 +278,7 @@ kg_compose_deleg_cred(OM_uint32 *minor_status,
         if (code != 0)
             goto cleanup;
 
-        *time_rec = cred->tgt_expire - now;
-    }
-
-    major_status = kg_return_mechs(minor_status, cred, actual_mechs);
-    if (GSS_ERROR(major_status))
-        goto cleanup;
-
-    if (!kg_save_cred_id((gss_cred_id_t)cred)) {
-        code = G_VALIDATE_FAILED;
-        goto cleanup;
+        *time_rec = cred->expire - now;
     }
 
     major_status = GSS_S_COMPLETE;
@@ -361,10 +294,9 @@ cleanup:
     if (GSS_ERROR(major_status) && cred != NULL) {
         k5_mutex_destroy(&cred->lock);
         krb5_cc_destroy(context, cred->ccache);
-        kg_release_name(context, 0, &cred->name);
+        kg_release_name(context, &cred->name);
         xfree(cred);
     }
 
     return major_status;
 }
-

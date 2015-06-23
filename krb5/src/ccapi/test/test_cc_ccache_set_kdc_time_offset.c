@@ -13,4 +13,3 @@ int main (int argc, const char * argv[]) {
 	err = check_cc_ccache_set_kdc_time_offset();
     return err;
 }
-	

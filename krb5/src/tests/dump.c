@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* tests/dump.c */
 /*
- * tests/dump.c
- *
  * Copyright 1990 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,10 +22,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * Dump out a krb5_data to stderr (for debugging purposes).
  */
+
+/* Dump a krb5_data to stderr (for debugging purposes). */
 
 #include <stdio.h>
 #include "krb5.h"
@@ -36,8 +35,8 @@ void dump_data (data)
     unsigned char *ptr = (unsigned char *)data->data;
     int i;
     for (i=0; i<data->length; i++) {
-	fprintf(stderr, "%02x ", ptr[i]);
-	if ((i % 16) == 15) fprintf(stderr, "\n");
+        fprintf(stderr, "%02x ", ptr[i]);
+        if ((i % 16) == 15) fprintf(stderr, "\n");
     }
-    fprintf(stderr, "\n");    
+    fprintf(stderr, "\n");
 }

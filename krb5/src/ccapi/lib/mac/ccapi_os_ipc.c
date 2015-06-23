@@ -1,6 +1,5 @@
+/* ccapi/lib/mac/ccapi_os_ipc.c */
 /*
- * $Header$
- *
  * Copyright 2006 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -36,14 +35,6 @@ cc_int32 cci_os_ipc_thread_init (void)
 {
     /* k5_ipc_send_request handles all thread data for us */
     return 0;
-}
-
-/* ------------------------------------------------------------------------ */
-
-void cci_os_ipc_thread_fini (void)
-{
-    /* k5_ipc_send_request handles all thread data for us */
-    return;
 }
 
 /* ------------------------------------------------------------------------ */

@@ -32,9 +32,10 @@ extern "C" {
 #include "tls.h"
 #include "cci_debugging.h"
 #include "ccapi_context.h"
+#include "ccapi_ipc.h"
 #include "client.h"
 
-void cci_thread_init__auxinit();
+void cci_process_init__auxinit();
     }
 
 
@@ -48,17 +49,17 @@ static char*    ep_prefices[]   = {"CCS", "CCAPI"};
 HANDLE          hCCAPIv2Mutex   = NULL;
 DWORD           firstThreadID   = 0;
 
-// These data structures are used by the old CCAPI implementation
+// These data structures are used by the old CCAPI implementation 
 //  to keep track of the state of the RPC connection.  All data is static.
 static Init     init;
 static Client   client;
 
 DWORD    GetTlsIndex()  {return dwTlsIndex;}
 
-// DllMain() is the entry-point function for this DLL.
+// DllMain() is the entry-point function for this DLL. 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL,     // DLL module handle
                     DWORD fdwReason,        // reason called
-                    LPVOID lpvReserved) {   // reserved
+                    LPVOID lpvReserved) {   // reserved 
 
     struct tspdata* ptspdata;
     BOOL            fIgnore;
@@ -67,10 +68,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,     // DLL module handle
     DWORD           maxUN       = sizeof(_user);
     unsigned int    i           = 0;
     unsigned int    j           = 0;
-
-    switch (fdwReason) {
+ 
+    switch (fdwReason) { 
         // The DLL is loading due to process initialization or a call to LoadLibrary:
-        case DLL_PROCESS_ATTACH:
+        case DLL_PROCESS_ATTACH: 
             cci_debug_printf("%s DLL_PROCESS_ATTACH", __FUNCTION__);
             // Process-wide mutex used to allow only one thread at a time into the RPC code:
             hCCAPIv2Mutex = CreateMutex(NULL, FALSE, CCAPI_V2_MUTEX_NAME);
@@ -90,41 +91,41 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,     // DLL module handle
             //  over to this implementation.
 
             // Allocate a TLS index:
-            if ((dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES) return FALSE;
+            if ((dwTlsIndex = TlsAlloc()) == TLS_OUT_OF_INDEXES) return FALSE; 
 
-            // Initialize CCAPI once per DLL load:
-            firstThreadID = GetCurrentThreadId();
-
+            cci_process_init__auxinit();
             // Don't break; fallthrough: Initialize the TLS index for first thread.
-
+ 
         // The attached process creates a new thread:
         case DLL_THREAD_ATTACH:
-            // Initialize the TLS index for this thread:
-            ptspdata    = (struct tspdata*) LocalAlloc(LPTR, sizeof(struct tspdata));
-            cci_debug_printf("%s DLL_THREAD_ATTACH; tsp*:0x%X", __FUNCTION__, ptspdata);
-            if (ptspdata == NULL) return FALSE;
-            fIgnore     = TlsSetValue(dwTlsIndex, ptspdata);
+            cci_debug_printf("%s DLL_THREAD_ATTACH", __FUNCTION__);
+            // Don't actually rely on this case for allocation of resources.
+            // Applications (like SecureCRT) may have threads already
+            // created (say 'A' and 'B') before the dll is loaded. If the dll
+            // is loaded in thread 'A' but then used in thread 'B', thread 'B'
+            // will never execute this code.
+            fIgnore     = TlsSetValue(dwTlsIndex, NULL);
 
-            memset(ptspdata, 0, sizeof(struct tspdata));
-
-            // Initialize CCAPI once per DLL load:
-            if (GetCurrentThreadId() == firstThreadID) cci_thread_init__auxinit();
-
+            // Do not call cci_ipc_thread_init() yet; defer until we actually
+            // need it.  On XP, cci_ipc_thread_init() will cause additional
+            // threads to be immediately spawned, which will bring us right
+            // back here again ad infinitum, until windows
+            // resources are exhausted.
             break;
-
+ 
         // The thread of the attached process terminates:
-        case DLL_THREAD_DETACH:
+        case DLL_THREAD_DETACH: 
             cci_debug_printf("%s DLL_THREAD_DETACH", __FUNCTION__);
-            // Release the allocated memory for this thread:
-            ptspdata = (struct tspdata*)TlsGetValue(dwTlsIndex);
+            // Release the allocated memory for this thread
+            ptspdata = (struct tspdata*)TlsGetValue(dwTlsIndex); 
             if (ptspdata != NULL) {
-                LocalFree((HLOCAL) ptspdata);
-                TlsSetValue(dwTlsIndex, NULL);
+                free(ptspdata);
+                TlsSetValue(dwTlsIndex, NULL); 
                 }
-            break;
-
+            break; 
+ 
         // DLL unload due to process termination or FreeLibrary:
-        case DLL_PROCESS_DETACH:
+        case DLL_PROCESS_DETACH: 
             cci_debug_printf("%s DLL_PROCESS_DETACH", __FUNCTION__);
             //++ Copied from previous implementation:
             // Process Teardown "Problem"
@@ -181,21 +182,26 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,     // DLL module handle
             //-- Copied from previous implementation.
 
             // Release the allocated memory for this thread:
-            ptspdata = (struct tspdata*)TlsGetValue(dwTlsIndex);
-            if (ptspdata != NULL) LocalFree((HLOCAL) ptspdata);
+            ptspdata = (struct tspdata*)TlsGetValue(dwTlsIndex); 
+            if (ptspdata != NULL)
+                free(ptspdata);
             TlsFree(dwTlsIndex);    // Release the TLS index.
+            // Ideally, we would enumerate all other threads here and
+            // release their thread local storage as well.
+            break; 
+ 
+        default:
+            cci_debug_printf("%s unexpected reason %d", __FUNCTION__, fdwReason);
             break;
-
-        default: break;
-        }
-
+        } 
+ 
     UNREFERENCED_PARAMETER(hinstDLL);       // no whining!
-    UNREFERENCED_PARAMETER(lpvReserved);
+    UNREFERENCED_PARAMETER(lpvReserved); 
     return status ? FALSE : TRUE;
 }
 
 
-#ifdef __cplusplus    // If used by C++ code,
+#ifdef __cplusplus    // If used by C++ code, 
 extern "C" {          // we need to export the C interface
 #endif
 

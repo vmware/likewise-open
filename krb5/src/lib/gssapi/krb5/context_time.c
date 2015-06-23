@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -24,10 +24,10 @@
 #include "gssapiP_krb5.h"
 
 /*
- * $Id: context_time.c 21690 2009-01-03 23:19:42Z hartmans $
+ * $Id$
  */
 
-OM_uint32
+OM_uint32 KRB5_CALLCONV
 krb5_gss_context_time(minor_status, context_handle, time_rec)
     OM_uint32 *minor_status;
     gss_ctx_id_t context_handle;
@@ -38,15 +38,9 @@ krb5_gss_context_time(minor_status, context_handle, time_rec)
     krb5_timestamp now;
     krb5_deltat lifetime;
 
-    /* validate the context handle */
-    if (! kg_validate_ctx_id(context_handle)) {
-        *minor_status = (OM_uint32) G_VALIDATE_FAILED;
-        return(GSS_S_NO_CONTEXT);
-    }
-
     ctx = (krb5_gss_ctx_id_rec *) context_handle;
 
-    if (! ctx->established) {
+    if (ctx->terminated || !ctx->established) {
         *minor_status = KG_CTX_INCOMPLETE;
         return(GSS_S_NO_CONTEXT);
     }

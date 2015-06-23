@@ -1,5 +1,3 @@
-
-
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
@@ -280,5 +278,3 @@ void __RPC_USER HCRED_ITER_rundown( HCRED_ITER );
 #endif
 
 #endif
-
-

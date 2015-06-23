@@ -1,22 +1,21 @@
 /*
  * Copyright 1993 OpenVision Technologies, Inc., All Rights Reserved.
  *
- * $Id: client.c 21258 2008-12-01 17:09:59Z ghudson $
+ * $Id$
  *
  */
 
-#if !defined(lint) && !defined(__CODECENTER__)
-static char *rcsid = "$Header$";
-#endif
-
 #include <stdio.h>
 #include <string.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #include "autoconf.h"
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <gssrpc/rpc.h>
 #include <gssapi/gssapi.h>
+#include <gssapi/gssapi_krb5.h>
 #include <gssrpc/rpc.h>
 #include <gssrpc/auth_gssapi.h>
 #include "rpc_test.h"
@@ -55,17 +54,19 @@ main(argc, argv)
    int argc;
    char **argv;
 {
-     char        *host, *target, *echo_arg, **echo_resp, buf[BIG_BUF];
-     char	 *prot;
+     char        *host, *port, *target, *echo_arg, **echo_resp, buf[BIG_BUF];
      CLIENT      *clnt;
      AUTH	 *tmp_auth;
      struct rpc_err e;
-     int i, auth_once;
-     unsigned int count;
+     int auth_once, sock, use_tcp;
+     unsigned int count, i;
      extern int optind;
      extern char *optarg;
      extern int svc_debug_gssapi, misc_debug_gssapi, auth_debug_gssapi;
      int c;
+     struct sockaddr_in sin;
+     struct hostent *h;
+     struct timeval tv;
 
      extern int krb5_gss_dbg_client_expcreds;
      krb5_gss_dbg_client_expcreds = 1;
@@ -73,8 +74,8 @@ main(argc, argv)
      whoami = argv[0];
      count = 1026;
      auth_once = 0;
-     prot = NULL;
-     
+     use_tcp = -1;
+
      while ((c = getopt(argc, argv, "a:m:os:tu")) != -1) {
 	  switch (c) {
 	  case 'a':
@@ -90,50 +91,71 @@ main(argc, argv)
 	       svc_debug_gssapi = atoi(optarg);
 	       break;
 	  case 't':
-	       prot = "tcp";
+	       use_tcp = 1;
 	       break;
 	  case 'u':
-	       prot = "udp";
+	       use_tcp = 0;
 	       break;
 	  case '?':
 	       usage();
 	       break;
 	  }
      }
-     if (prot == NULL)
+     if (use_tcp == -1)
 	  usage();
 
      argv += optind;
      argc -= optind;
 
      switch (argc) {
-     case 3:
-	  count = atoi(argv[2]);
+     case 4:
+	  count = atoi(argv[3]);
 	  if (count > BIG_BUF-1) {
 	    fprintf(stderr, "Test count cannot exceed %d.\n", BIG_BUF-1);
 	    usage();
 	  }
-     case 2:
+     case 3:
 	  host = argv[0];
-	  target = argv[1];
+	  port = argv[1];
+	  target = argv[2];
 	  break;
      default:
 	  usage();
      }
-     
+
+     /* get server address */
+     h = gethostbyname(host);
+     if (h == NULL) {
+	 fprintf(stderr, "Can't resolve hostname %s\n", host);
+	 exit(1);
+     }
+     memset(&sin, 0, sizeof(sin));
+     sin.sin_family = h->h_addrtype;
+     sin.sin_port = ntohs(atoi(port));
+     memmove(&sin.sin_addr, h->h_addr, sizeof(sin.sin_addr));
+
      /* client handle to rstat */
-     clnt = clnt_create(host, RPC_TEST_PROG, RPC_TEST_VERS_1, prot);
+     sock = RPC_ANYSOCK;
+     if (use_tcp) {
+	 clnt = clnttcp_create(&sin, RPC_TEST_PROG, RPC_TEST_VERS_1, &sock, 0,
+			       0);
+     } else {
+	 tv.tv_sec = 5;
+	 tv.tv_usec = 0;
+	 clnt = clntudp_create(&sin, RPC_TEST_PROG, RPC_TEST_VERS_1, tv,
+			       &sock);
+     }
      if (clnt == NULL) {
 	  clnt_pcreateerror(whoami);
 	  exit(1);
      }
-     
+
      clnt->cl_auth = auth_gssapi_create_default(clnt, target);
      if (clnt->cl_auth == NULL) {
 	  clnt_pcreateerror(whoami);
 	  exit(2);
      }
-     
+
      /*
       * Call the echo service multiple times.
       */
@@ -183,7 +205,7 @@ main(argc, argv)
      echo_resp = rpc_test_echo_1(&echo_arg, clnt);
      if (echo_resp == NULL)
 	  clnt_perror(clnt, "Sequence number improperly reset");
-     
+
      /*
       * Now simulate a lost server response, and see if
       * auth_gssapi_refresh recovers.
@@ -193,7 +215,7 @@ main(argc, argv)
      echo_resp = rpc_test_echo_1(&echo_arg, clnt);
      if (echo_resp == NULL)
 	  clnt_perror(clnt, "Auto-resynchronization failed");
-     
+
      /*
       * Now make sure auto-resyncrhonization actually worked
       */
@@ -207,7 +229,7 @@ main(argc, argv)
       * unique.  Create another context from the same credentials; it
       * should have the same expiration time and will cause the server
       * to abort if the clients are not differentiated.
-      * 
+      *
       * Test fix for secure-rpc/586, part 2: btree keys cannot be
       * mutated in place.  To test this: a second client, *with a
       * later expiration time*, must be run.  The second client should
@@ -238,7 +260,7 @@ main(argc, argv)
 	  AUTH_DESTROY(clnt->cl_auth);
 	  clnt->cl_auth = tmp_auth;
      }
-     
+
      /*
       * Try RPC calls with argument/result lengths [0, 1025].  Do
       * this last, since it takes a while..
@@ -258,7 +280,7 @@ main(argc, argv)
 			    "RPC_TEST_LENGTHS call %d response wrong\n", i);
 	       gssrpc_xdr_free(xdr_wrapstring, echo_resp);
 	  }
-	  
+
 	  /* cycle from 1 to 255 */
 	  buf[i] = (i % 255) + 1;
 
@@ -273,4 +295,3 @@ main(argc, argv)
      CLNT_DESTROY(clnt);
      exit(0);
 }
-

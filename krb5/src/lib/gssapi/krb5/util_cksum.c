@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -28,11 +28,10 @@
 
 /* Checksumming the channel bindings always uses plain MD5.  */
 krb5_error_code
-kg_checksum_channel_bindings(context, cb, cksum, bigend)
+kg_checksum_channel_bindings(context, cb, cksum)
     krb5_context context;
     gss_channel_bindings_t cb;
     krb5_checksum *cksum;
-    int bigend;
 {
     size_t len;
     char *buf = 0;
@@ -75,11 +74,11 @@ kg_checksum_channel_bindings(context, cb, cksum, bigend)
 
     ptr = buf;
 
-    TWRITE_INT(ptr, cb->initiator_addrtype, bigend);
-    TWRITE_BUF(ptr, cb->initiator_address, bigend);
-    TWRITE_INT(ptr, cb->acceptor_addrtype, bigend);
-    TWRITE_BUF(ptr, cb->acceptor_address, bigend);
-    TWRITE_BUF(ptr, cb->application_data, bigend);
+    TWRITE_INT(ptr, cb->initiator_addrtype, 0);
+    TWRITE_BUF(ptr, cb->initiator_address, 0);
+    TWRITE_INT(ptr, cb->acceptor_addrtype, 0);
+    TWRITE_BUF(ptr, cb->acceptor_address, 0);
+    TWRITE_BUF(ptr, cb->application_data, 0);
 
     /* checksum the data */
 
@@ -112,8 +111,8 @@ krb5_error_code
 kg_make_checksum_iov_v1(krb5_context context,
                         krb5_cksumtype type,
                         size_t cksum_len,
-                        krb5_keyblock *seq,
-                        krb5_keyblock *enc,
+                        krb5_key seq,
+                        krb5_key enc,
                         krb5_keyusage sign_usage,
                         gss_iov_buffer_desc *iov,
                         int iov_count,
@@ -123,21 +122,19 @@ kg_make_checksum_iov_v1(krb5_context context,
     krb5_error_code code;
     gss_iov_buffer_desc *header;
     krb5_crypto_iov *kiov;
-    size_t kiov_count;
     int i = 0, j;
     size_t conf_len = 0, token_header_len;
 
-    header = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_HEADER);
+    header = kg_locate_header_iov(iov, iov_count, toktype);
     assert(header != NULL);
 
-    kiov_count = 3 + iov_count;
-    kiov = (krb5_crypto_iov *)xmalloc(kiov_count * sizeof(krb5_crypto_iov));
+    kiov = calloc(iov_count + 3, sizeof(krb5_crypto_iov));
     if (kiov == NULL)
         return ENOMEM;
 
     /* Checksum over ( Header | Confounder | Data | Pad ) */
     if (toktype == KG_TOK_WRAP_MSG)
-        conf_len = kg_confounder_size(context, (krb5_keyblock *)enc);
+        conf_len = kg_confounder_size(context, enc->keyblock.enctype);
 
     /* Checksum output */
     kiov[i].flags = KRB5_CRYPTO_TYPE_CHECKSUM;
@@ -173,7 +170,7 @@ kg_make_checksum_iov_v1(krb5_context context,
         i++;
     }
 
-    code = krb5_c_make_checksum_iov(context, type, seq, sign_usage, kiov, kiov_count);
+    code = krb5_k_make_checksum_iov(context, type, seq, sign_usage, kiov, i);
     if (code == 0) {
         checksum->length = kiov[0].data.length;
         checksum->contents = (unsigned char *)kiov[0].data.data;
@@ -189,10 +186,11 @@ static krb5_error_code
 checksum_iov_v3(krb5_context context,
                 krb5_cksumtype type,
                 size_t rrc,
-                krb5_keyblock *key,
+                krb5_key key,
                 krb5_keyusage sign_usage,
                 gss_iov_buffer_desc *iov,
                 int iov_count,
+                int toktype,
                 krb5_boolean verify,
                 krb5_boolean *valid)
 {
@@ -207,11 +205,11 @@ checksum_iov_v3(krb5_context context,
     if (verify)
         *valid = FALSE;
 
-    code = krb5_c_crypto_length(context, key->enctype, KRB5_CRYPTO_TYPE_CHECKSUM, &k5_checksumlen);
+    code = krb5_c_crypto_length(context, key->keyblock.enctype, KRB5_CRYPTO_TYPE_CHECKSUM, &k5_checksumlen);
     if (code != 0)
         return code;
 
-    header = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_HEADER);
+    header = kg_locate_header_iov(iov, iov_count, toktype);
     assert(header != NULL);
 
     trailer = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_TRAILER);
@@ -258,9 +256,9 @@ checksum_iov_v3(krb5_context context,
     i++;
 
     if (verify)
-        code = krb5_c_verify_checksum_iov(context, type, key, sign_usage, kiov, kiov_count, valid);
+        code = krb5_k_verify_checksum_iov(context, type, key, sign_usage, kiov, kiov_count, valid);
     else
-        code = krb5_c_make_checksum_iov(context, type, key, sign_usage, kiov, kiov_count);
+        code = krb5_k_make_checksum_iov(context, type, key, sign_usage, kiov, kiov_count);
 
     xfree(kiov);
 
@@ -271,25 +269,27 @@ krb5_error_code
 kg_make_checksum_iov_v3(krb5_context context,
                         krb5_cksumtype type,
                         size_t rrc,
-                        krb5_keyblock *key,
+                        krb5_key key,
                         krb5_keyusage sign_usage,
                         gss_iov_buffer_desc *iov,
-                        int iov_count)
+                        int iov_count,
+                        int toktype)
 {
     return checksum_iov_v3(context, type, rrc, key,
-                           sign_usage, iov, iov_count, 0, NULL);
+                           sign_usage, iov, iov_count, toktype, 0, NULL);
 }
 
 krb5_error_code
 kg_verify_checksum_iov_v3(krb5_context context,
                           krb5_cksumtype type,
                           size_t rrc,
-                          krb5_keyblock *key,
+                          krb5_key key,
                           krb5_keyusage sign_usage,
                           gss_iov_buffer_desc *iov,
                           int iov_count,
+                          int toktype,
                           krb5_boolean *valid)
 {
     return checksum_iov_v3(context, type, rrc, key,
-                           sign_usage, iov, iov_count, 1, valid);
+                           sign_usage, iov, iov_count, toktype, 1, valid);
 }

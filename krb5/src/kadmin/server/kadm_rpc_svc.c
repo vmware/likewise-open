@@ -1,24 +1,17 @@
+/* -*- mode: c; c-file-style: "bsd"; indent-tabs-mode: t -*- */
 /*
  * Copyright 1993 OpenVision Technologies, Inc., All Rights Reserved.
  *
  */
 
-#include <stdio.h>
+#include <k5-int.h>
 #include <gssrpc/rpc.h>
 #include <gssapi/gssapi_krb5.h> /* for gss_nt_krb5_name */
 #include <syslog.h>
-#include <string.h>
-#include "autoconf.h"
-#ifdef HAVE_MEMORY_H
-#include <memory.h>
-#endif
 #include <kadm5/kadm_rpc.h>
 #include <krb5.h>
 #include <kadm5/admin.h>
 #include <adm_proto.h>
-#ifdef HAVE_ARPA_INET_H
-#include <arpa/inet.h>
-#endif
 #include "misc.h"
 #include "kadm5/server_internal.h"
 
@@ -28,7 +21,7 @@ static int check_rpcsec_auth(struct svc_req *);
 
 /*
  * Function: kadm_1
- * 
+ *
  * Purpose: RPC proccessing procedure.
  *	    originally generated from rpcgen
  *
@@ -36,7 +29,7 @@ static int check_rpcsec_auth(struct svc_req *);
  *	rqstp		    (input) rpc request structure
  *	transp		    (input) rpc transport structure
  *	(input/output)
- * 	<return value>
+ *	<return value>
  *
  * Requires:
  * Effects:
@@ -73,42 +66,42 @@ void kadm_1(rqstp, transp)
      if (rqstp->rq_cred.oa_flavor != AUTH_GSSAPI &&
 	 !check_rpcsec_auth(rqstp)) {
 	  krb5_klog_syslog(LOG_ERR, "Authentication attempt failed: %s, "
-		 "RPC authentication flavor %d",
-		 inet_ntoa(rqstp->rq_xprt->xp_raddr.sin_addr),
-		 rqstp->rq_cred.oa_flavor);
+			   "RPC authentication flavor %d",
+			   client_addr(rqstp->rq_xprt),
+			   rqstp->rq_cred.oa_flavor);
 	  svcerr_weakauth(transp);
 	  return;
      }
-     
+
      switch (rqstp->rq_proc) {
      case NULLPROC:
 	  (void) svc_sendreply(transp, xdr_void, (char *)NULL);
 	  return;
-	  
+
      case CREATE_PRINCIPAL:
 	  xdr_argument = xdr_cprinc_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) create_principal_2_svc;
 	  break;
-	  
+
      case DELETE_PRINCIPAL:
 	  xdr_argument = xdr_dprinc_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) delete_principal_2_svc;
 	  break;
-	  
+
      case MODIFY_PRINCIPAL:
 	  xdr_argument = xdr_mprinc_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) modify_principal_2_svc;
 	  break;
-	  
+
      case RENAME_PRINCIPAL:
 	  xdr_argument = xdr_rprinc_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) rename_principal_2_svc;
 	  break;
-	  
+
      case GET_PRINCIPAL:
 	  xdr_argument = xdr_gprinc_arg;
 	  xdr_result = xdr_gprinc_ret;
@@ -120,7 +113,7 @@ void kadm_1(rqstp, transp)
 	  xdr_result = xdr_gprincs_ret;
 	  local = (char *(*)()) get_princs_2_svc;
 	  break;
-	  
+
      case CHPASS_PRINCIPAL:
 	  xdr_argument = xdr_chpass_arg;
 	  xdr_result = xdr_generic_ret;
@@ -138,31 +131,31 @@ void kadm_1(rqstp, transp)
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) setkey_principal_2_svc;
 	  break;
-	  
+
      case CHRAND_PRINCIPAL:
 	  xdr_argument = xdr_chrand_arg;
 	  xdr_result = xdr_chrand_ret;
 	  local = (char *(*)()) chrand_principal_2_svc;
 	  break;
-	  
+
      case CREATE_POLICY:
 	  xdr_argument = xdr_cpol_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) create_policy_2_svc;
 	  break;
-	  
+
      case DELETE_POLICY:
 	  xdr_argument = xdr_dpol_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) delete_policy_2_svc;
 	  break;
-	  
+
      case MODIFY_POLICY:
 	  xdr_argument = xdr_mpol_arg;
 	  xdr_result = xdr_generic_ret;
 	  local = (char *(*)()) modify_policy_2_svc;
 	  break;
-	  
+
      case GET_POLICY:
 	  xdr_argument = xdr_gpol_arg;
 	  xdr_result = xdr_gpol_ret;
@@ -174,7 +167,7 @@ void kadm_1(rqstp, transp)
 	  xdr_result = xdr_gpols_ret;
 	  local = (char *(*)()) get_pols_2_svc;
 	  break;
-	  
+
      case GET_PRIVS:
 	  xdr_argument = xdr_u_int32;
 	  xdr_result = xdr_getprivs_ret;
@@ -211,14 +204,31 @@ void kadm_1(rqstp, transp)
 	  local = (char *(*)()) setkey_principal3_2_svc;
 	  break;
 
+     case PURGEKEYS:
+	  xdr_argument = xdr_purgekeys_arg;
+	  xdr_result = xdr_generic_ret;
+	  local = (char *(*)()) purgekeys_2_svc;
+	  break;
+
+     case GET_STRINGS:
+	  xdr_argument = xdr_gstrings_arg;
+	  xdr_result = xdr_gstrings_ret;
+	  local = (char *(*)()) get_strings_2_svc;
+	  break;
+
+     case SET_STRING:
+	  xdr_argument = xdr_sstring_arg;
+	  xdr_result = xdr_generic_ret;
+	  local = (char *(*)()) set_string_2_svc;
+	  break;
+
      default:
 	  krb5_klog_syslog(LOG_ERR, "Invalid KADM5 procedure number: %s, %d",
-		 inet_ntoa(rqstp->rq_xprt->xp_raddr.sin_addr),
-		 rqstp->rq_proc);
+			   client_addr(rqstp->rq_xprt), rqstp->rq_proc);
 	  svcerr_noproc(transp);
 	  return;
      }
-     memset((char *)&argument, 0, sizeof(argument));
+     memset(&argument, 0, sizeof(argument));
      if (!svc_getargs(transp, xdr_argument, &argument)) {
 	  svcerr_decode(transp);
 	  return;
@@ -262,10 +272,9 @@ check_rpcsec_auth(struct svc_req *rqstp)
      maj_stat = gss_inquire_context(&min_stat, ctx, NULL, &name,
 				    NULL, NULL, NULL, NULL, NULL);
      if (maj_stat != GSS_S_COMPLETE) {
-	  krb5_klog_syslog(LOG_ERR, "check_rpcsec_auth: "
-			   "failed inquire_context, stat=%u", maj_stat);
-	  log_badauth(maj_stat, min_stat,
-		      &rqstp->rq_xprt->xp_raddr, NULL);
+	  krb5_klog_syslog(LOG_ERR, _("check_rpcsec_auth: failed "
+				      "inquire_context, stat=%u"), maj_stat);
+	  log_badauth(maj_stat, min_stat, rqstp->rq_xprt, NULL);
 	  goto fail_name;
      }
 
@@ -287,18 +296,12 @@ check_rpcsec_auth(struct svc_req *rqstp)
      c1 = krb5_princ_component(kctx, princ, 0);
      c2 = krb5_princ_component(kctx, princ, 1);
      realm = krb5_princ_realm(kctx, princ);
-     if (strncmp(handle->params.realm, realm->data, realm->length) == 0
-	 && strncmp("kadmin", c1->data, c1->length) == 0) {
-
-	  if (strncmp("history", c2->data, c2->length) == 0)
-	       goto fail_princ;
-	  else
-	       success = 1;
-     }
+     success = data_eq_string(*realm, handle->params.realm) &&
+	     data_eq_string(*c1, "kadmin") && !data_eq_string(*c2, "history");
 
 fail_princ:
      if (!success) {
-	 krb5_klog_syslog(LOG_ERR, "bad service principal %.*s%s",
+	 krb5_klog_syslog(LOG_ERR, _("bad service principal %.*s%s"),
 			  (int) slen, (char *) gss_str.value, sdots);
      }
      gss_release_buffer(&min_stat, &gss_str);
@@ -319,11 +322,9 @@ gss_to_krb5_name_1(struct svc_req *rqstp, krb5_context ctx, gss_name_t gss_name,
 
      status = gss_display_name(&minor_stat, gss_name, gss_str, &gss_type);
      if ((status != GSS_S_COMPLETE) || (gss_type != gss_nt_krb5_name)) {
-	  krb5_klog_syslog(LOG_ERR,
-			   "gss_to_krb5_name: "
-			   "failed display_name status %d", status);
-	  log_badauth(status, minor_stat,
-		      &rqstp->rq_xprt->xp_raddr, NULL);
+	  krb5_klog_syslog(LOG_ERR, _("gss_to_krb5_name: failed display_name "
+				      "status %d"), status);
+	  log_badauth(status, minor_stat, rqstp->rq_xprt, NULL);
 	  return 0;
      }
      str = malloc(gss_str->length +1);

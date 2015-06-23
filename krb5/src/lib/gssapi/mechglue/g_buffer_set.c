@@ -20,7 +20,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
 #include "mglueP.h"
@@ -54,4 +53,3 @@ OM_uint32 KRB5_CALLCONV gss_release_buffer_set
 {
     return generic_gss_release_buffer_set(minor_status, buffer_set);
 }
-

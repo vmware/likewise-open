@@ -1,3 +1,4 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright (C) 2008 by the Massachusetts Institute of Technology,
  * Cambridge, MA, USA.  All Rights Reserved.
@@ -38,8 +39,7 @@
  * your software as modified software and not distribute it in such a
  * fashion that it might be confused with the original M.I.T. software.
  */
-/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
- *
+/*
  * Copyright 1998-2008 The OpenLDAP Foundation.
  * All rights reserved.
  *
@@ -51,9 +51,7 @@
  * top-level directory of the distribution or, alternatively, at
  * <http://www.OpenLDAP.org/license.html>.
  */
-/* This notice applies to changes, created by or for Novell, Inc.,
- * to preexisting works for which notices appear elsewhere in this file.
- *
+/*
  * Copyright (C) 2000 Novell, Inc. All Rights Reserved.
  *
  * THIS WORK IS SUBJECT TO U.S. AND INTERNATIONAL COPYRIGHT LAWS AND TREATIES.
@@ -65,6 +63,8 @@
  * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
  * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY.
  */
+
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>. */
 
 #ifndef K5_UNICODE_H
 #define K5_UNICODE_H
@@ -111,14 +111,14 @@ void krb5int_ucstr2upper(
     krb5_unicode *,
     size_t);
 
-#define KRB5_UTF8_NOCASEFOLD	0x0U
-#define KRB5_UTF8_CASEFOLD	0x1U
-#define KRB5_UTF8_ARG1NFC	0x2U
-#define KRB5_UTF8_ARG2NFC	0x4U
-#define KRB5_UTF8_APPROX	0x8U
+#define KRB5_UTF8_NOCASEFOLD    0x0U
+#define KRB5_UTF8_CASEFOLD      0x1U
+#define KRB5_UTF8_ARG1NFC       0x2U
+#define KRB5_UTF8_ARG2NFC       0x4U
+#define KRB5_UTF8_APPROX        0x8U
 
 krb5_error_code krb5int_utf8_normalize(
-    krb5_data *,
+    const krb5_data *,
     krb5_data **,
     unsigned);
 

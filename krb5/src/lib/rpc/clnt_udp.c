@@ -1,31 +1,35 @@
 /* @(#)clnt_udp.c	2.2 88/08/01 4.0 RPCSRC */
 /*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- * 
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- * 
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- * 
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- * 
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
+ * Copyright (c) 2010, Oracle America, Inc.
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *
+ *     * Neither the name of the "Oracle America, Inc." nor the names of
+ *       its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #if !defined(lint) && defined(SCCSIDS)
 static char sccsid[] = "@(#)clnt_udp.c 1.39 87/08/11 Copyr 1984 Sun Micro";
@@ -33,8 +37,6 @@ static char sccsid[] = "@(#)clnt_udp.c 1.39 87/08/11 Copyr 1984 Sun Micro";
 
 /*
  * clnt_udp.c, Implements a UDP/IP based, client side RPC.
- *
- * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
 #include <stdio.h>
@@ -52,6 +54,9 @@ static char sccsid[] = "@(#)clnt_udp.c 1.39 87/08/11 Copyr 1984 Sun Micro";
 #include <port-sockets.h>
 #include <errno.h>
 
+#ifndef GETSOCKNAME_ARG3_TYPE
+#define GETSOCKNAME_ARG3_TYPE int
+#endif
 
 /*
  * UDP bases client side rpc operations
@@ -73,7 +78,7 @@ static struct clnt_ops udp_ops = {
 	clntudp_control
 };
 
-/* 
+/*
  * Private data kept per client handle
  */
 struct cu_data {
@@ -82,7 +87,7 @@ struct cu_data {
 	struct sockaddr_in cu_raddr;
 	int		   cu_rlen;
 	struct sockaddr_in cu_laddr;
-	int		   cu_llen;
+        GETSOCKNAME_ARG3_TYPE  cu_llen;
 	struct timeval	   cu_wait;
 	struct timeval     cu_total;
 	struct rpc_err	   cu_error;
@@ -194,7 +199,7 @@ clntudp_bufcreate(
 	     cu->cu_llen = sizeof(cu->cu_laddr);
 	if (getsockname(*sockp, (struct sockaddr *)&cu->cu_laddr, &cu->cu_llen) < 0)
 	     goto fooy;
-	
+
 	cu->cu_sock = *sockp;
 	cl->cl_auth = authnone_create();
 	return (cl);
@@ -219,7 +224,7 @@ clntudp_create(
 	    UDPMSGSIZE, UDPMSGSIZE));
 }
 
-static enum clnt_stat 
+static enum clnt_stat
 clntudp_call(
 	register CLIENT	*cl,		/* client handle */
 	rpcproc_t	proc,		/* procedure number */
@@ -234,8 +239,8 @@ clntudp_call(
 	register struct cu_data *cu = (struct cu_data *)cl->cl_private;
 	register XDR *xdrs;
 	register int outlen;
-	register int inlen;
-	int fromlen;
+	register ssize_t inlen;
+	GETSOCKNAME_ARG3_TYPE fromlen; /* Assumes recvfrom uses same type */
 #ifdef FD_SETSIZE
 	fd_set readfds;
 	fd_set mask;
@@ -303,7 +308,7 @@ send_again:
 	for (;;) {
 		readfds = mask;
 		seltimeout = cu->cu_wait;
-		switch (select(gssrpc__rpc_dtablesize(), &readfds, (fd_set *)NULL, 
+		switch (select(gssrpc__rpc_dtablesize(), &readfds, (fd_set *)NULL,
 			       (fd_set *)NULL, &seltimeout)) {
 
 		case 0:
@@ -316,7 +321,7 @@ send_again:
 			if ((time_waited.tv_sec < timeout.tv_sec) ||
 				((time_waited.tv_sec == timeout.tv_sec) &&
 				(time_waited.tv_usec < timeout.tv_usec)))
-				goto send_again;	
+				goto send_again;
 			return (cu->cu_error.re_status = RPC_TIMEDOUT);
 
 		/*
@@ -325,28 +330,28 @@ send_again:
 		 */
 		case -1:
 			if (errno == EINTR)
-				continue;	
+				continue;
 			cu->cu_error.re_errno = errno;
 			return (cu->cu_error.re_status = RPC_CANTRECV);
 		}
 		do {
 			fromlen = sizeof(struct sockaddr);
-			inlen = recvfrom(cu->cu_sock, cu->cu_inbuf, 
+			inlen = recvfrom(cu->cu_sock, cu->cu_inbuf,
 				cu->cu_recvsz, 0,
 				(struct sockaddr *)&from, &fromlen);
 		} while (inlen < 0 && errno == EINTR);
 		if (inlen < 0) {
 			if (errno == EWOULDBLOCK)
-				continue;	
+				continue;
 			cu->cu_error.re_errno = errno;
 			return (cu->cu_error.re_status = RPC_CANTRECV);
 		}
-		if (inlen < sizeof(uint32_t))
-			continue;	
+		if ((size_t)inlen < sizeof(uint32_t))
+			continue;
 		/* see if reply transaction id matches sent id */
-		if (*((uint32_t *)(void *)(cu->cu_inbuf)) != 
+		if (*((uint32_t *)(void *)(cu->cu_inbuf)) !=
 		    *((uint32_t *)(void *)(cu->cu_outbuf)))
-			continue;	
+			continue;
 		/* we now assume we have the proper reply */
 		break;
 	}
@@ -384,7 +389,7 @@ send_again:
 		    xdrs->x_op = XDR_FREE;
 		    (void)xdr_opaque_auth(xdrs,
 					  &(reply_msg.acpted_rply.ar_verf));
-		} 
+		}
 	}  /* end of valid reply message */
 	else {
 		/*
@@ -432,7 +437,7 @@ clntudp_freeres(
 
 
 /*ARGSUSED*/
-static void 
+static void
 clntudp_abort(CLIENT *h)
 {
 }
@@ -444,7 +449,7 @@ clntudp_control(
 	void *info)
 {
 	register struct cu_data *cu = (struct cu_data *)cl->cl_private;
-	
+
 	switch (request) {
 	case CLSET_TIMEOUT:
 		cu->cu_total = *(struct timeval *)info;
@@ -469,7 +474,7 @@ clntudp_control(
 	}
 	return (TRUE);
 }
-	
+
 static void
 clntudp_destroy(CLIENT *cl)
 {

@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -24,10 +24,10 @@
 #include "gssapiP_krb5.h"
 
 /*
- * $Id: delete_sec_context.c 21778 2009-01-22 23:21:11Z tlyu $
+ * $Id$
  */
 
-OM_uint32
+OM_uint32 KRB5_CALLCONV
 krb5_gss_delete_sec_context(minor_status, context_handle, output_token)
     OM_uint32 *minor_status;
     gss_ctx_id_t *context_handle;
@@ -45,13 +45,6 @@ krb5_gss_delete_sec_context(minor_status, context_handle, output_token)
     if (*context_handle == GSS_C_NO_CONTEXT) {
         *minor_status = 0;
         return(GSS_S_COMPLETE);
-    }
-
-    /*SUPPRESS 29*/
-    /* validate the context handle */
-    if (! kg_validate_ctx_id(*context_handle)) {
-        *minor_status = (OM_uint32) G_VALIDATE_FAILED;
-        return(GSS_S_NO_CONTEXT);
     }
 
     ctx = (krb5_gss_ctx_id_t) *context_handle;
@@ -72,29 +65,25 @@ krb5_gss_delete_sec_context(minor_status, context_handle, output_token)
         }
     }
 
-    /* invalidate the context handle */
-
-    (void)kg_delete_ctx_id(*context_handle);
-
     /* free all the context state */
 
     if (ctx->seqstate)
         g_order_free(&(ctx->seqstate));
 
     if (ctx->enc)
-        krb5_free_keyblock(context, ctx->enc);
+        krb5_k_free_key(context, ctx->enc);
 
     if (ctx->seq)
-        krb5_free_keyblock(context, ctx->seq);
+        krb5_k_free_key(context, ctx->seq);
 
     if (ctx->here)
-        kg_release_name(context, 0, &ctx->here);
+        kg_release_name(context, &ctx->here);
     if (ctx->there)
-        kg_release_name(context, 0, &ctx->there);
+        kg_release_name(context, &ctx->there);
     if (ctx->subkey)
-        krb5_free_keyblock(context, ctx->subkey);
+        krb5_k_free_key(context, ctx->subkey);
     if (ctx->acceptor_subkey)
-        krb5_free_keyblock(context, ctx->acceptor_subkey);
+        krb5_k_free_key(context, ctx->acceptor_subkey);
 
     if (ctx->auth_context) {
         if (ctx->cred_rcache)

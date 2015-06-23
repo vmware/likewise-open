@@ -97,7 +97,7 @@ Init::Initialize() {
             s_info.isNT = FALSE;
             break;
             }
-
+    
         if (!isSupportedVersion) {
             cci_debug_printf("%s Trying to run on an unsupported version of Windows", __FUNCTION__);
             status  = 1;
@@ -116,7 +116,7 @@ Init::Initialize() {
             status = 1;
             }
         }
-
+    
     if (!status) {
         s_info.fRpcServerRegisterIfEx = (FP_RpcServerRegisterIfEx)
             GetProcAddress(s_hRpcDll, TEXT(FN_RpcServerRegisterIfEx));

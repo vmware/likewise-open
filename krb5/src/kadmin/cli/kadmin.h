@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* kadmin/cli/kadmin.h */
 /*
- * kadmin/cli/kadmin.h
- *
  * Copyright 2001 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,7 +22,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
+ */
+
+/*
  *
  * Prototypes for kadmin functions called from SS library.
  */
@@ -36,6 +38,7 @@ extern int quit (void);
 extern void kadmin_lock(int argc, char *argv[]);
 extern void kadmin_unlock(int argc, char *argv[]);
 extern void kadmin_delprinc(int argc, char *argv[]);
+extern void kadmin_renameprinc(int argc, char *argv[]);
 extern void kadmin_cpw(int argc, char *argv[]);
 extern void kadmin_addprinc(int argc, char *argv[]);
 extern void kadmin_modprinc(int argc, char *argv[]);
@@ -49,6 +52,10 @@ extern void kadmin_getpols(int argc, char *argv[]);
 extern void kadmin_getprivs(int argc, char *argv[]);
 extern void kadmin_keytab_add(int argc, char *argv[]);
 extern void kadmin_keytab_remove(int argc, char *argv[]);
+extern void kadmin_purgekeys(int argc, char *argv[]);
+extern void kadmin_getstrings(int argc, char *argv[]);
+extern void kadmin_setstring(int argc, char *argv[]);
+extern void kadmin_delstring(int argc, char *argv[]);
 
 #include "autoconf.h"
 
@@ -67,9 +74,7 @@ extern time_t get_date(char *);
 
 /* Yucky global variables */
 extern krb5_context context;
-extern char *krb5_defkeyname;	 
 extern char *whoami;
 extern void *handle;
 
 #endif /* __KADMIN_H__ */
-

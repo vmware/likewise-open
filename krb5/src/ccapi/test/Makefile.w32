@@ -27,15 +27,15 @@ TESTDIR = $(DSTROOT)\tests
 TESTEXT = exe
 DSTDIR = $(DSTROOT)\ccapi_tests
 
-PINGOBJS = pingtest.obj
+PINGOBJS = pingtest.obj 
 SIMPLEOBJS = simple_lock_test.obj
 
 comobjs =   cci_debugging.obj cci_stream.obj
-cowobjs =   cci_os_debugging.obj
+cowobjs =   cci_os_debugging.obj 
 libobjs =   ccs_request_c.obj
-
-#all: build-base simple_lock_test pingtest
-all: build-base pingtest
+        
+#all: build-base simple_lock_test pingtest 
+all: build-base pingtest 
 
 # compile base files used by all tests
 build-base: $(comobjs) $(libobjs) $(srvobjs)

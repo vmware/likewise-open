@@ -1,17 +1,12 @@
-thisconfigdir=../../..
-myfulldir=lib/krb5/ccache
-mydir=lib/krb5/ccache
+mydir=lib$(S)krb5$(S)ccache
 BUILDTOP=$(REL)..$(S)..$(S)..
-SUBDIRS =
-DEFS=
-
-RUN_SETUP = @KRB5_RUN_ENV@
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
+SUBDIRS = # ccapi
+WINSUBDIRS = ccapi
+##WIN32##DEFINES = -DUSE_CCAPI -DUSE_CCAPI_V3
 
 LOCALINCLUDES = -I$(srcdir)$(S)ccapi $(WIN_INCLUDES)
 
-##DOS##WIN_INCLUDES = -I$(SRCTOP)\windows\lib
+##DOS##WIN_INCLUDES = -I$(top_srcdir)\windows\lib
 
 ##DOS##BUILDTOP = ..\..\..
 ##DOS##PREFIXDIR=ccache
@@ -26,6 +21,10 @@ STLIBOBJS= \
 	cccursor.o \
 	ccdefault.o \
 	ccdefops.o \
+	ccselect.o \
+	ccselect_k5identity.o \
+	ccselect_realm.o \
+	cc_dir.o \
 	cc_retr.o \
 	cc_file.o \
 	cc_memory.o \
@@ -38,6 +37,10 @@ OBJS=	$(OUTPRE)ccbase.$(OBJEXT) \
 	$(OUTPRE)cccursor.$(OBJEXT) \
 	$(OUTPRE)ccdefault.$(OBJEXT) \
 	$(OUTPRE)ccdefops.$(OBJEXT) \
+	$(OUTPRE)ccselect.$(OBJEXT) \
+	$(OUTPRE)ccselect_k5identity.$(OBJEXT) \
+	$(OUTPRE)ccselect_realm.$(OBJEXT) \
+	$(OUTPRE)cc_dir.$(OBJEXT) \
 	$(OUTPRE)cc_retr.$(OBJEXT) \
 	$(OUTPRE)cc_file.$(OBJEXT) \
 	$(OUTPRE)cc_memory.$(OBJEXT) \
@@ -50,6 +53,10 @@ SRCS=	$(srcdir)/ccbase.c \
 	$(srcdir)/cccursor.c \
 	$(srcdir)/ccdefault.c \
 	$(srcdir)/ccdefops.c \
+	$(srcdir)/ccselect.c \
+	$(srcdir)/ccselect_k5identity.c \
+	$(srcdir)/ccselect_realm.c \
+	$(srcdir)/cc_dir.c \
 	$(srcdir)/cc_retr.c \
 	$(srcdir)/cc_file.c \
 	$(srcdir)/cc_memory.c \
@@ -59,6 +66,7 @@ SRCS=	$(srcdir)/ccbase.c \
 
 EXTRADEPSRCS= \
 	$(srcdir)/t_cc.c \
+	$(srcdir)/t_cccol.c \
 	$(srcdir)/t_cccursor.c
 
 ##DOS##OBJS=$(OBJS) $(OUTPRE)ccfns.$(OBJEXT)
@@ -96,20 +104,25 @@ T_CC_OBJS=t_cc.o
 t_cc: $(T_CC_OBJS) $(KRB5_BASE_DEPLIBS)
 	$(CC_LINK) -o t_cc $(T_CC_OBJS) $(KRB5_BASE_LIBS)
 
+T_CCCOL_OBJS = t_cccol.o
+t_cccol: $(T_CCCOL_OBJS) $(KRB5_BASE_DEPLIBS)
+	$(CC_LINK) -o $@ $(T_CCCOL_OBJS) $(KRB5_BASE_LIBS)
+
 T_CCCURSOR_OBJS = t_cccursor.o
 t_cccursor: $(T_CCCURSOR_OBJS) $(KRB5_BASE_DEPLIBS)
 	$(CC_LINK) -o $@ $(T_CCCURSOR_OBJS) $(KRB5_BASE_LIBS)
 
-check-unix:: t_cc t_cccursor
+check-unix:: t_cc
 	KRB5_CONFIG=$(srcdir)/t_krb5.conf ; export KRB5_CONFIG ;\
 	$(RUN_SETUP) $(VALGRIND) ./t_cc
-	KRB5_CONFIG=$(srcdir)/../krb/t_krb5.conf ; export KRB5_CONFIG ;\
-	$(RUN_SETUP) $(VALGRIND) ./t_cccursor
+
+check-pytests:: t_cccursor t_cccol
+	$(RUNPYTEST) $(srcdir)/t_cccol.py $(PYTESTFLAGS)
 
 clean-unix::
-	$(RM) t_cc t_cc.o t_cccursor t_cccursor.o
+	$(RM) t_cc t_cc.o t_cccursor t_cccursor.o t_cccol t_cccol.o
 
-##WIN32## $(OUTPRE)cc_mslsa.$(OBJEXT): cc_mslsa.c $(SRCTOP)/include/k5-int.h $(BUILDTOP)/include/krb5/osconf.h $(BUILDTOP)/include/krb5/autoconf.h $(BUILDTOP)/include/krb5.h $(COM_ERR_DEPS)
+##WIN32## $(OUTPRE)cc_mslsa.$(OBJEXT): cc_mslsa.c $(top_srcdir)/include/k5-int.h $(BUILDTOP)/include/krb5/osconf.h $(BUILDTOP)/include/krb5/autoconf.h $(BUILDTOP)/include/krb5.h $(COM_ERR_DEPS)
 
 @libobj_frag@
 

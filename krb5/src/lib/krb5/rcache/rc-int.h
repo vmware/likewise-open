@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/rcache/rc-int.h */
 /*
- * lib/krb5/keytab/rc-int.h
- *
  * Copyright 2004 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -23,11 +22,10 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
- * This file contains constant and function declarations used in the
- * file-based replay cache routines.
  */
+
+/* This file contains constant and function declarations used in the
+ * file-based replay cache routines. */
 
 #ifndef __KRB5_RCACHE_INT_H__
 #define __KRB5_RCACHE_INT_H__
@@ -46,31 +44,46 @@ struct krb5_rc_st {
 struct _krb5_rc_ops {
     krb5_magic magic;
     char *type;
-    krb5_error_code (KRB5_CALLCONV *init)
-        (krb5_context, krb5_rcache,krb5_deltat); /* create */
-    krb5_error_code (KRB5_CALLCONV *recover)
-        (krb5_context, krb5_rcache); /* open */
-    krb5_error_code (KRB5_CALLCONV *recover_or_init)
-        (krb5_context, krb5_rcache,krb5_deltat);
-    krb5_error_code (KRB5_CALLCONV *destroy)
-        (krb5_context, krb5_rcache);
-    krb5_error_code (KRB5_CALLCONV *close)
-        (krb5_context, krb5_rcache);
-    krb5_error_code (KRB5_CALLCONV *store)
-        (krb5_context, krb5_rcache,krb5_donot_replay *);
-    krb5_error_code (KRB5_CALLCONV *expunge)
-        (krb5_context, krb5_rcache);
-    krb5_error_code (KRB5_CALLCONV *get_span)
-        (krb5_context, krb5_rcache,krb5_deltat *);
-    char *(KRB5_CALLCONV *get_name)
-        (krb5_context, krb5_rcache);
-    krb5_error_code (KRB5_CALLCONV *resolve)
-        (krb5_context, krb5_rcache, char *);
+    krb5_error_code (KRB5_CALLCONV *init)(
+        krb5_context,
+        krb5_rcache,
+        krb5_deltat); /* create */
+    krb5_error_code (KRB5_CALLCONV *recover)(
+        krb5_context,
+        krb5_rcache); /* open */
+    krb5_error_code (KRB5_CALLCONV *recover_or_init)(
+        krb5_context,
+        krb5_rcache,
+        krb5_deltat);
+    krb5_error_code (KRB5_CALLCONV *destroy)(
+        krb5_context,
+        krb5_rcache);
+    krb5_error_code (KRB5_CALLCONV *close)(
+        krb5_context,
+        krb5_rcache);
+    krb5_error_code (KRB5_CALLCONV *store)(
+        krb5_context,
+        krb5_rcache,
+        krb5_donot_replay *);
+    krb5_error_code (KRB5_CALLCONV *expunge)(
+        krb5_context,
+        krb5_rcache);
+    krb5_error_code (KRB5_CALLCONV *get_span)(
+        krb5_context,
+        krb5_rcache,
+        krb5_deltat *);
+    char *(KRB5_CALLCONV *get_name)(
+        krb5_context,
+        krb5_rcache);
+    krb5_error_code (KRB5_CALLCONV *resolve)(
+        krb5_context,
+        krb5_rcache,
+        char *);
 };
 
 typedef struct _krb5_rc_ops krb5_rc_ops;
 
-krb5_error_code krb5_rc_register_type (krb5_context, const krb5_rc_ops *);
+krb5_error_code krb5_rc_register_type(krb5_context, const krb5_rc_ops *);
 
 extern const krb5_rc_ops krb5_rc_dfl_ops;
 extern const krb5_rc_ops krb5_rc_none_ops;

@@ -13,4 +13,3 @@ int main (int argc, const char * argv[]) {
 	err = check_cc_context_get_default_ccache_name();
     return err;
 }
-	

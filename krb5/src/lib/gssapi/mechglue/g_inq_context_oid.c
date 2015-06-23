@@ -20,12 +20,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
-/*
- *  glue routine for gss_inquire_sec_context_by_oid
- */
+/* Glue routine for gss_inquire_sec_context_by_oid */
 
 #include "mglueP.h"
 
@@ -69,4 +66,3 @@ gss_inquire_sec_context_by_oid (OM_uint32 *minor_status,
 
     return GSS_S_BAD_MECH;
 }
-
