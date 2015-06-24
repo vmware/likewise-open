@@ -5615,7 +5615,9 @@ a=no
 b=no
 # blindly assume we have 'unlink'...
 if test "$cross_compiling" = yes; then :
-  as_fn_error $? "Cannot test for constructor/destructor support when cross compiling" "$LINENO" 5
+  as_fn_warn $? "Cannot test for constructor/destructor support when cross compiling" "$LINENO" 5
+  a=yes
+  b=yes
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -7362,7 +7364,8 @@ if ${ac_cv_func_regcomp+:} false; then :
 else
 
 if test "$cross_compiling" = yes; then :
-  as_fn_error $? "Cannot test regcomp when cross compiling" "$LINENO" 5
+  as_fn_warn $? "Cannot test regcomp when cross compiling" "$LINENO" 5
+  ac_cv_func_regcomp=yes
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -11120,7 +11123,8 @@ if ${ac_cv_printf_positional+:} false; then :
 else
 
 if test "$cross_compiling" = yes; then :
-  as_fn_error $? "Cannot test for printf positional argument support when cross compiling" "$LINENO" 5
+  as_fn_warn $? "Cannot test for printf positional argument support when cross compiling" "$LINENO" 5
+  ac_cv_printf_positional=yes
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
