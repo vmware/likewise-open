@@ -724,7 +724,7 @@ AC_TRY_RUN([
 #include <regex.h>
 regex_t x; regmatch_t m;
 int main() { return regcomp(&x,"pat.*",0) || regexec(&x,"pattern",1,&m,0); }
-], ac_cv_func_regcomp=yes, ac_cv_func_regcomp=no, AC_MSG_ERROR([Cannot test regcomp when cross compiling]))])
+], ac_cv_func_regcomp=yes, ac_cv_func_regcomp=no, AC_MSG_WARN([Cannot test regcomp when cross compiling]); ac_cv_func_regcomp=yes)]
 AC_MSG_RESULT($ac_cv_func_regcomp)
 test $ac_cv_func_regcomp = yes && AC_DEFINE(HAVE_REGCOMP,1,[Define if regcomp exists and functions])
 dnl
@@ -1586,7 +1586,7 @@ void foo2() __attribute__((destructor));
 void foo2() { unlink("conftest.2"); }
 int main () { return 0; }],
 [test -r conftest.1 || a=yes
-test -r conftest.2 || b=yes], , AC_MSG_ERROR(Cannot test for constructor/destructor support when cross compiling))
+test -r conftest.2 || b=yes], , AC_MSG_WARN(Cannot test for constructor/destructor support when cross compiling); a=yes; b=yes)
 case $krb5_cv_host in
 *-*-aix4.*)
 	# Under AIX 4.3.3, at least, shared library destructor functions
