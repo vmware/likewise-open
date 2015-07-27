@@ -75,6 +75,26 @@ DJUnjoinDomain(
     PCSTR pszPassword
     );
 
+DWORD
+DJConfigureNSSwitch(
+    VOID
+    );
+
+DWORD
+DJUnconfigureNSSwitch(
+    VOID
+    );
+
+DWORD
+DJConfigurePAM(
+    VOID
+    );
+
+DWORD
+DJUnconfigurePAM(
+    VOID
+    );
+
 VOID
 DJFreeMemory(
     PVOID pMemory

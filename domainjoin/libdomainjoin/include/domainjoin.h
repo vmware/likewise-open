@@ -43,6 +43,7 @@
 #include "djparsehosts.h"
 #include "djkrb5conf.h"
 #include "djnsswitch.h"
+#include "djpamconf.h"
 #include "djdaemonmgr.h"
 #include "djmethodcfg.h"
 #include "djlogincfg.h"
