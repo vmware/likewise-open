@@ -2438,7 +2438,11 @@ unsigned32          *status;
      */
     serr = rpc__socket_bind(desc, *rpc_addr);
 
-    if (RPC_SOCKET_IS_ERR(serr))
+    if (RPC_SOCKET_IS_ERR(serr)
+#ifdef LW_BUILD_ESX
+            && serr != ENOENT
+#endif
+           )
     {
         RPC_DBG_GPRINTF(
             ("rpc__network_inq_local_addr: cant bind - serror %d\n",
