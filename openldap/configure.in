@@ -1160,6 +1160,13 @@ if test $ol_enable_local != no ; then
 fi
 
 dnl ----------------------------------------------------------------
+dnl check whether sockaddr struct has sa_len member
+AC_CHECK_MEMBER([struct sockaddr.sa_len],
+	AC_DEFINE_UNQUOTED([HAVE_SA_LEN], [1], [Define if struct sockaddr contains sa_len]), [],
+	[#include <sys/types.h>
+	 #include <sys/socket.h>])
+
+dnl ----------------------------------------------------------------
 dnl GSSAPI
 ol_link_gssapi=no
 

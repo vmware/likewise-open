@@ -38,6 +38,14 @@ typedef void (*BER_LOG_FN)(FILE *file,
 
 LBER_V (BER_ERRNO_FN) ber_int_errno_fn;
 
+#ifndef SA_LEN
+# ifdef HAVE_SA_LEN
+#  define SA_LEN(x) ((x)->sa_len)
+# else
+#  define SA_LEN(x) (((x)->sa_family == AF_INET ? sizeof(struct sockaddr_in) : ((x)->sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_storage))))
+# endif
+#endif
+
 #ifdef LDAP_MEMORY_TRACE
 # ifndef LDAP_MEMORY_DEBUG
 #  define LDAP_MEMORY_DEBUG 1
