@@ -293,13 +293,12 @@ LwSmExecProgram(
             BAIL_ON_ERROR(dwError);
         }
         close(pNotifyPipe[1]);
-        putenv("LIKEWISE_SM_NOTIFY=3");
     }
 
     environLen = LwSmStringListLengthA(ENVIRON);
     envLen = LwSmStringListLength(pExec->ppwszEnv);
 
-    dwError = LwAllocateMemory((environLen + envLen + 1) * sizeof(*ppszEnv),
+    dwError = LwAllocateMemory((environLen + envLen + 2) * sizeof(*ppszEnv),
         OUT_PPVOID(&ppszEnv));
     BAIL_ON_ERROR(dwError);
 
@@ -313,6 +312,10 @@ LwSmExecProgram(
     {
         dwError = LwWc16sToMbs(pExec->ppwszEnv[i], &ppszEnv[environLen + i]);
         BAIL_ON_ERROR(dwError);
+    }
+    if (pNotifyPipe)
+    {
+       ppszEnv[environLen + envLen] = "LIKEWISE_SM_NOTIFY=3";
     }
 
     if (execve(pszPath, ppszArgs, ppszEnv) < 0)
