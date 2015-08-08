@@ -10,6 +10,7 @@
 #include <lber.h>
 
 #include <sasl/sasl.h>
+#include <krb5/krb5.h>
 
 #include <lwio/lwio.h>
 #include <reg/lwreg.h>
@@ -19,6 +20,7 @@
 #include <lwhash.h>
 #include <lwfile.h>
 #include <lwsecurityidentifier.h>
+#include <lwkrb5.h>
 
 #include <lsadef.h>
 #include <lsa/lsa.h>

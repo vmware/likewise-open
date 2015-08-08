@@ -249,6 +249,8 @@ VmAfdGetDCInfo(
                     &pszDomainName);
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    LwStrToUpper(pszDomainName);
+
     dwError = VmDirRegReadString(
                     hConnection,
                     hKeyVmAfd,

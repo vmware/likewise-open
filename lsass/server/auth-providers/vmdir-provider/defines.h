@@ -78,3 +78,4 @@
 
 #define VMDIR_DEFAULT_PRIMARY_GROUP_NAME "Users"
 
+#define VMDIR_KRB5_CC_NAME "FILE:/var/lib/likewise/krb5cc_vmdir_provider"

@@ -102,9 +102,13 @@ VmDirLdapInitialize(
 {
 	DWORD dwError = 0;
         const int ldapVer = LDAP_VERSION3;
-        VMDIR_SASL_INFO srpDefault = {0};
         PSTR  pszUPN_local = NULL;
 	LDAP* pLd = NULL;
+        PSTR pszOldCredCacheName = NULL;
+        DWORD dwCurrentTime = 0;
+        static DWORD dwStartTime = 0;
+        static DWORD dwEndTime = 0;
+        BOOLEAN bIsLocked = FALSE;
 
 	dwError = LwMapLdapErrorToLwError(
 					ldap_initialize(&pLd, pszURI));
@@ -121,30 +125,57 @@ VmDirLdapInitialize(
                                             LDAP_OPT_ON));
 	BAIL_ON_VMDIR_ERROR(dwError);
 
-        dwError = LwAllocateString(pszUPN, &pszUPN_local);
+        dwError = LwKrb5SetThreadDefaultCachePath(
+                      VMDIR_KRB5_CC_NAME,
+                      &pszOldCredCacheName);
         BAIL_ON_VMDIR_ERROR(dwError);
 
-        LwStrToLower(pszUPN_local);
+        dwCurrentTime = time(0);
 
-	srpDefault.pszAuthName = pszUPN_local;
+        pthread_rwlock_wrlock(gVmDirAuthProviderGlobals.pMutex_rw);
+        bIsLocked = TRUE;
 
-	srpDefault.pszPassword = pszPassword;
+        if (dwCurrentTime > dwStartTime + (dwEndTime - dwStartTime) / 2)
+        {
+            dwStartTime = dwCurrentTime;
+
+            dwError = LwKrb5InitializeCredentials(
+                          pszUPN,
+                          pszPassword,
+                          VMDIR_KRB5_CC_NAME,
+                          &dwEndTime);
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+
+        pthread_rwlock_unlock(gVmDirAuthProviderGlobals.pMutex_rw);
+        bIsLocked = FALSE;
 
 	dwError = LwMapLdapErrorToLwError(
 				ldap_sasl_interactive_bind_s(
 					pLd,
 					NULL,
-					"SRP",
+					"GSSAPI",
 					NULL,
 					NULL,
 					LDAP_SASL_QUIET,
 					&VmDirSASLInteraction,
-                                        &srpDefault));
+                                        NULL));
 	BAIL_ON_VMDIR_ERROR(dwError);
 
 	*ppLd = pLd;
 
 cleanup:
+        if (bIsLocked)
+        {
+            pthread_rwlock_unlock(gVmDirAuthProviderGlobals.pMutex_rw);
+        }
+
+        if (pszOldCredCacheName)
+        {
+            LwKrb5SetThreadDefaultCachePath(
+                pszOldCredCacheName,
+                NULL);
+        }
 
         LW_SAFE_FREE_STRING(pszUPN_local);
 
@@ -414,41 +445,13 @@ VmDirLdapClose(
 static
 int
 VmDirSASLInteraction(
-    LDAP*    pLd,
-    unsigned flags,
-    PVOID    pDefaults,
-    PVOID    pIn
+    LDAP *      pLd,
+    unsigned    flags,
+    void *      pDefaults,
+    void *      pIn
     )
 {
-    sasl_interact_t*                pInteract = pIn;
-    PVMDIR_SASL_INFO pDef = pDefaults;
-
-    while( (pDef != NULL) && (pInteract->id != SASL_CB_LIST_END) )
-    {
-        switch( pInteract->id )
-        {
-            case SASL_CB_GETREALM:
-                    pInteract->defresult = pDef->pszRealm;
-                    break;
-            case SASL_CB_AUTHNAME:
-                    pInteract->defresult = pDef->pszAuthName;
-                    break;
-            case SASL_CB_PASS:
-                    pInteract->defresult = pDef->pszPassword;
-                    break;
-            case SASL_CB_USER:
-                    pInteract->defresult = pDef->pszUser;
-                    break;
-            default:
-                    break;
-        }
-
-        pInteract->result = (pInteract->defresult) ? pInteract->defresult : "";
-        pInteract->len    = strlen( pInteract->result );
-
-        pInteract++;
-    }
-
+    // dummy function to satisfy ldap_sasl_interactive_bind call
     return LDAP_SUCCESS;
 }
 
