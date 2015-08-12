@@ -1,0 +1,16 @@
+
+VMware make use of the Likewise Open 6.1 code base.Prior to June 2011, Likewise maintained an open source Git repository that contained the Likewise Open 6.1 code base (formerly at http://git.likewiseopen.org)    
+ 
+Likewise Open 6.1  is comprised of the following pieces of code
+1) The Likewise Open code base released under the LGPL 2.1  for all client libraries and GPL 2.0 for all daemons
+2) The OSF DCE/RPC code base released under the Free BSD License
+3) The OpenLDAP 2.4 code base released under the OpenLDAP License
+4) The  MIT Kerberos 1.7 code base released under the MIT License
+ 
+VMware has made significant bug fixes and enhancements to the Likewise Open 6.1code base. These include
+ 
+ 1. Full IPv6 support for Likewise Open
+ 2. Support for Smart Cards
+ 3. Security and compliance fixes 
+ 
+VMware uses the Likewise Open 6.1 code base  pursuant tothe terms of the LGPL 2.1 and GPL 2.0 licenses.  Other constituent projects within Likewise Open are used  pursuant to their respective licenses.
