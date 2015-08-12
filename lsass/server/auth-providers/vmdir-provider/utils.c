@@ -436,3 +436,93 @@ error:
     }
     return dwError;
 }
+
+DWORD
+VmDirInitializeUserLoginCredentials(
+    IN PCSTR pszUPN,
+    IN PCSTR pszPassword,
+    IN uid_t uid,
+    IN gid_t gid,
+    OUT PDWORD pdwGoodUntilTime)
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwGoodUntilTime = 0;
+    PSTR pszCachePath = NULL;
+    PCSTR pszTempCachePath = NULL;
+    krb5_error_code ret = 0;
+    krb5_context ctx = NULL;
+    krb5_ccache cc = NULL;
+
+    if (!pszUPN || !pszPassword)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    ret = krb5_init_context(&ctx);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    ret = krb5_cc_new_unique(
+            ctx,
+            "FILE",
+            "hint",
+            &cc);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    pszTempCachePath = krb5_cc_get_name(ctx, cc);
+
+    dwError = LwKrb5GetTgt(
+                    pszUPN,
+                    pszPassword,
+                    pszTempCachePath,
+                    &dwGoodUntilTime);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwChangeOwner(
+                    pszTempCachePath,
+                    uid,
+                    gid);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwKrb5GetUserCachePath(
+                    uid,
+                    KRB5_File_Cache,
+                    &pszCachePath);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwMoveFile(
+                    pszTempCachePath,
+                    pszCachePath + sizeof("FILE:") - 1);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    pszTempCachePath = NULL;
+
+    if (pdwGoodUntilTime)
+    {
+        *pdwGoodUntilTime = dwGoodUntilTime;
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_STRING(pszCachePath);
+
+    if (ctx)
+    {
+        if (cc)
+        {
+            krb5_cc_destroy(ctx, cc);
+        }
+        krb5_free_context(ctx);
+    }
+
+    return dwError;
+
+error:
+
+    if (pszTempCachePath)
+    {
+        LwRemoveFile(pszTempCachePath);
+    }
+
+    goto cleanup;
+}

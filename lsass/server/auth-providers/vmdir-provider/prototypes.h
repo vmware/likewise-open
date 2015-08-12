@@ -509,3 +509,11 @@ VmDirGetRIDFromUID(
     PSTR *pszRid
     );
 
+DWORD
+VmDirInitializeUserLoginCredentials(
+    IN PCSTR pszUPN,
+    IN PCSTR pszPassword,
+    IN uid_t uid,
+    IN gid_t gid,
+    OUT PDWORD pdwGoodUntilTime
+    );

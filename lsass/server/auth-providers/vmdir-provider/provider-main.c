@@ -924,10 +924,12 @@ VmDirAuthenticateUserPam(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    dwError = VmDirRepositoryVerifyPassword(
-    				&pContext->dirContext,
+    dwError = VmDirInitializeUserLoginCredentials(
                     pObject->userInfo.pszUPN,
-                    pParams->pszPassword);
+                    pParams->pszPassword,
+                    pObject->userInfo.uid,
+                    pObject->userInfo.gid,
+                    NULL);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = LwAllocateMemory(

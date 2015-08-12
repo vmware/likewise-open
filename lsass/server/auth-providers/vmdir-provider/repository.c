@@ -1461,41 +1461,6 @@ error:
 }
 
 DWORD
-VmDirRepositoryVerifyPassword(
-	PVMDIR_DIR_CONTEXT pDirContext,
-	PCSTR              pszUPN,
-	PCSTR              pszPassword
-	)
-{
-	DWORD dwError = 0;
-	LDAP* pLd = NULL;
-
-	dwError = VmDirLdapInitialize(
-					pDirContext->pBindInfo->pszURI,
-					pszUPN,
-					pszPassword,
-					&pLd);
-	BAIL_ON_VMDIR_ERROR(dwError);
-
-cleanup:
-
-	if (pLd)
-	{
-		VmDirLdapClose(pLd);
-	}
-
-	return dwError;
-
-error:
-
-	// TODO : Differentiate error codes
-
-	dwError = LW_ERROR_PASSWORD_MISMATCH;
-
-	goto cleanup;
-}
-
-DWORD
 VmDirRepositoryChangePassword(
 	PVMDIR_DIR_CONTEXT pDirContext,
     PCSTR              pszUPN,
