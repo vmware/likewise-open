@@ -530,19 +530,14 @@ static TABLE const TimezoneTable[] = {
 
 /* ARGSUSED */
 static int
-yyerror(s)
-    char	*s;
+yyerror(char *s)
 {
   return 0;
 }
 
 
 static time_t
-ToSeconds(Hours, Minutes, Seconds, Meridian)
-    time_t	Hours;
-    time_t	Minutes;
-    time_t	Seconds;
-    MERIDIAN	Meridian;
+ToSeconds(time_t Hours, time_t Minutes, time_t Seconds, MERIDIAN Meridian)
 {
     if (Minutes < 0 || Minutes > 59 || Seconds < 0 || Seconds > 59)
 	return -1;
@@ -570,15 +565,8 @@ ToSeconds(Hours, Minutes, Seconds, Meridian)
  * of seconds since 00:00:00 1/1/70 GMT.
  */
 static time_t
-Convert(Month, Day, Year, Hours, Minutes, Seconds, Meridian, DSTmode)
-    time_t	Month;
-    time_t	Day;
-    time_t	Year;
-    time_t	Hours;
-    time_t	Minutes;
-    time_t	Seconds;
-    MERIDIAN	Meridian;
-    DSTMODE	DSTmode;
+Convert(time_t Month, time_t Day, time_t Year, time_t Hours, time_t Minutes,
+	time_t Seconds, MERIDIAN Meridian, DSTMODE DSTmode)
 {
     static int DaysInMonth[12] = {
 	31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
@@ -625,10 +613,7 @@ Convert(Month, Day, Year, Hours, Minutes, Seconds, Meridian, DSTmode)
 
 
 static time_t
-DSTcorrect(Start, Future, error)
-    time_t	Start;
-    time_t	Future;
-    int		*error;
+DSTcorrect(time_t Start, time_t Future, int *error)
 {
     time_t	StartDay;
     time_t	FutureDay;
@@ -646,16 +631,13 @@ DSTcorrect(Start, Future, error)
 	return -1;
     }
     FutureDay = (tm->tm_hour + 1) % 24;
+    *error = 0;
     return (Future - Start) + (StartDay - FutureDay) * 60L * 60L;
 }
 
 
 static time_t
-RelativeDate(Start, DayOrdinal, DayNumber, error)
-    time_t	Start;
-    time_t	DayOrdinal;
-    time_t	DayNumber;
-    int		*error;
+RelativeDate(time_t Start, time_t DayOrdinal, time_t DayNumber, int *error)
 {
     struct tm	*tm;
     time_t	now;
@@ -673,9 +655,7 @@ RelativeDate(Start, DayOrdinal, DayNumber, error)
 
 
 static time_t
-RelativeMonth(Start, RelMonth)
-    time_t	Start;
-    time_t	RelMonth;
+RelativeMonth(time_t Start, time_t RelMonth)
 {
     struct tm	*tm;
     time_t	Month;
@@ -704,8 +684,7 @@ RelativeMonth(Start, RelMonth)
 
 
 static int
-LookupWord(buff)
-    char		*buff;
+LookupWord(char *buff)
 {
     register char	*p;
     register char	*q;
@@ -859,8 +838,7 @@ yylex()
 
 /* Yield A - B, measured in seconds.  */
 static time_t
-difftm(a, b)
-     struct tm *a, *b;
+difftm(struct tm *a, struct tm *b)
 {
   int ay = a->tm_year + (TM_YEAR_ORIGIN - 1);
   int by = b->tm_year + (TM_YEAR_ORIGIN - 1);
@@ -883,11 +861,12 @@ difftm(a, b)
 
 /* For get_date extern declaration compatibility check... yuck.  */
 #include <krb5.h>
-#include "kadmin.h"
+int yyparse(void);
+
+time_t get_date(char *);
 
 time_t
-get_date(p)
-    char		*p;
+get_date(char *p)
 {
     struct my_timeb	*now = NULL;
     struct tm		*tm, gmt;
@@ -895,7 +874,7 @@ get_date(p)
     time_t		Start;
     time_t		tod;
     time_t		delta;
-    int			error = 0;
+    int			error;
 
     yyInput = p;
     if (now == NULL) {
@@ -991,8 +970,6 @@ get_date(p)
 			yyMeridian, yyDSTmode);
 	if (Start < 0)
 	    return -1;
-	if (error != 0)
-	    return -1;
     }
     else {
 	Start = now->time;
@@ -1043,9 +1020,7 @@ get_date(p)
 #if	defined(TEST)
 
 /* ARGSUSED */
-main(ac, av)
-    int		ac;
-    char	*av[];
+main(int ac, char *av[])
 {
     char	buff[128];
     time_t	d;
@@ -1053,7 +1028,7 @@ main(ac, av)
     (void)printf("Enter date, or blank line to exit.\n\t> ");
     (void)fflush(stdout);
     while (gets(buff) && buff[0]) {
-	d = get_date(buff, (struct my_timeb *)NULL);
+	d = get_date(buff);
 	if (d == -1)
 	    (void)printf("Bad format - couldn't convert.\n");
 	else

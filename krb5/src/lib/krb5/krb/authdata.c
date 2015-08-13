@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 2009 by the Massachusetts Institute of Technology.  All
  * Rights Reserved.
@@ -39,11 +39,12 @@ static const char *objdirs[] = {
 #endif
     LIBDIR "/krb5/plugins/authdata",
     NULL
- }; /* should be a list */
+}; /* should be a list */
 
 /* Internal authdata systems */
 static krb5plugin_authdata_client_ftable_v0 *authdata_systems[] = {
     &krb5int_mspac_authdata_client_ftable,
+    &krb5int_s4u2proxy_authdata_client_ftable,
     NULL
 };
 
@@ -70,7 +71,7 @@ k5_ad_init_modules(krb5_context kcontext,
     int j, k = *module_count;
     krb5_error_code code;
     void *plugin_context = NULL;
-    void **rcpp;
+    void **rcpp = NULL;
 
     if (table->ad_type_list == NULL) {
 #ifdef DEBUG
@@ -291,8 +292,7 @@ k5_ad_find_module(krb5_context kcontext,
             continue;
 
         /* check for name match */
-        if (strlen(module->name) != name->length ||
-            memcmp(module->name, name->data, name->length) != 0)
+        if (!data_eq_string(*name, module->name))
             continue;
 
         ret = module;
@@ -407,7 +407,7 @@ krb5_authdata_context_init(krb5_context kcontext,
     }
 
     context = calloc(1, sizeof(*context));
-    if (kcontext == NULL) {
+    if (context == NULL) {
         code = ENOMEM;
         goto cleanup;
     }
@@ -513,11 +513,8 @@ k5_get_kdc_issued_authdata(krb5_context kcontext,
 
     ticket_authdata = ap_req->ticket->enc_part2->authorization_data;
 
-    code = krb5int_find_authdata(kcontext,
-                                 ticket_authdata,
-                                 NULL,
-                                 KRB5_AUTHDATA_KDC_ISSUED,
-                                 &authdata);
+    code = krb5_find_authdata(kcontext, ticket_authdata, NULL,
+                              KRB5_AUTHDATA_KDC_ISSUED, &authdata);
     if (code != 0 || authdata == NULL)
         return code;
 
@@ -537,70 +534,6 @@ k5_get_kdc_issued_authdata(krb5_context kcontext,
     krb5_free_authdata(kcontext, authdata);
 
     return code;
-}
-
-krb5_error_code KRB5_CALLCONV
-krb5_authdata_export_authdata(krb5_context kcontext,
-                              krb5_authdata_context context,
-                              krb5_flags flags,
-                              krb5_authdata ***pauthdata)
-{
-    int i;
-    krb5_error_code code = 0;
-    krb5_authdata **authdata = NULL;
-    unsigned int len = 0;
-
-    *pauthdata = NULL;
-
-    for (i = 0; i < context->n_modules; i++) {
-        struct _krb5_authdata_context_module *module = &context->modules[i];
-        krb5_authdata **authdata2 = NULL;
-        int j;
-
-        if ((module->flags & flags) == 0)
-            continue;
-
-        if (module->ftable->export_authdata == NULL)
-            continue;
-
-        code = (*module->ftable->export_authdata)(kcontext,
-                                                  context,
-                                                  module->plugin_context,
-                                                  *(module->request_context_pp),
-                                                  flags,
-                                                  &authdata2);
-        if (code == ENOENT)
-            code = 0;
-        else if (code != 0)
-            break;
-
-        if (authdata2 == NULL)
-            continue;
-
-        for (j = 0; authdata2[j] != NULL; j++)
-            ;
-
-        authdata = realloc(authdata, (len + j + 1) * sizeof(krb5_authdata *));
-        if (authdata == NULL)
-            return ENOMEM;
-
-        memcpy(&authdata[len], authdata2, j * sizeof(krb5_authdata *));
-        free(authdata2);
-
-        len += j;
-    }
-
-    if (authdata != NULL)
-        authdata[len] = NULL;
-
-    if (code != 0) {
-        krb5_free_authdata(kcontext, authdata);
-        return code;
-    }
-
-    *pauthdata = authdata;
-
-    return 0;
 }
 
 krb5_error_code
@@ -634,12 +567,10 @@ krb5int_authdata_verify(krb5_context kcontext,
         if (module->ftable->import_authdata == NULL)
             continue;
 
-        if (kdc_issued_authdata != NULL) {
-            code = krb5int_find_authdata(kcontext,
-                                         kdc_issued_authdata,
-                                         NULL,
-                                         module->ad_type,
-                                         &authdata);
+        if (kdc_issued_authdata != NULL &&
+            (module->flags & AD_USAGE_KDC_ISSUED)) {
+            code = krb5_find_authdata(kcontext, kdc_issued_authdata, NULL,
+                                      module->ad_type, &authdata);
             if (code != 0)
                 break;
 
@@ -647,11 +578,24 @@ krb5int_authdata_verify(krb5_context kcontext,
         }
 
         if (authdata == NULL) {
-            code = krb5int_find_authdata(kcontext,
-                                        ticket_authdata,
-                                        authen_authdata,
-                                        module->ad_type,
-                                        &authdata);
+            krb5_boolean ticket_usage = FALSE;
+            krb5_boolean authen_usage = FALSE;
+
+            /*
+             * Determine which authdata sources to interrogate based on the
+             * module's usage. This is important if the authdata is signed
+             * by the KDC with the TGT key (as the user can forge that in
+             * the AP-REQ).
+             */
+            if (module->flags & (AD_USAGE_AS_REQ | AD_USAGE_TGS_REQ))
+                ticket_usage = TRUE;
+            if (module->flags & AD_USAGE_AP_REQ)
+                authen_usage = TRUE;
+
+            code = krb5_find_authdata(kcontext,
+                                      ticket_usage ? ticket_authdata : NULL,
+                                      authen_usage ? authen_authdata : NULL,
+                                      module->ad_type, &authdata);
             if (code != 0)
                 break;
         }
@@ -1245,3 +1189,34 @@ krb5_ser_authdata_context_init(krb5_context kcontext)
                                     &krb5_authdata_context_ser_entry);
 }
 
+krb5_error_code
+krb5int_copy_authdatum(krb5_context context,
+                       const krb5_authdata *inad, krb5_authdata **outad)
+{
+    krb5_authdata *tmpad;
+
+    if (!(tmpad = (krb5_authdata *)malloc(sizeof(*tmpad))))
+        return ENOMEM;
+    *tmpad = *inad;
+    if (!(tmpad->contents = (krb5_octet *)malloc(inad->length))) {
+        free(tmpad);
+        return ENOMEM;
+    }
+    memcpy(tmpad->contents, inad->contents, inad->length);
+    *outad = tmpad;
+    return 0;
+}
+
+void KRB5_CALLCONV
+krb5_free_authdata(krb5_context context, krb5_authdata **val)
+{
+    register krb5_authdata **temp;
+
+    if (val == NULL)
+        return;
+    for (temp = val; *temp; temp++) {
+        free((*temp)->contents);
+        free(*temp);
+    }
+    free(val);
+}

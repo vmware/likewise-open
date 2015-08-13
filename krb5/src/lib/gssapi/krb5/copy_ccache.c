@@ -1,9 +1,9 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "gssapiP_krb5.h"
 
-OM_uint32 KRB5_CALLCONV
+OM_uint32
 gss_krb5int_copy_ccache(OM_uint32 *minor_status,
-                        gss_cred_id_t cred_handle,
+                        gss_cred_id_t *cred_handle,
                         const gss_OID desired_object,
                         const gss_buffer_t value)
 {
@@ -22,13 +22,8 @@ gss_krb5int_copy_ccache(OM_uint32 *minor_status,
     out_ccache = (krb5_ccache)value->value;
 
     /* cred handle will have been validated by gssspi_set_cred_option() */
-
-    k5creds = (krb5_gss_cred_id_t) cred_handle;
-    code = k5_mutex_lock(&k5creds->lock);
-    if (code) {
-        *minor_status = code;
-        return GSS_S_FAILURE;
-    }
+    k5creds = (krb5_gss_cred_id_t) *cred_handle;
+    k5_mutex_lock(&k5creds->lock);
     if (k5creds->usage == GSS_C_ACCEPT) {
         k5_mutex_unlock(&k5creds->lock);
         *minor_status = (OM_uint32) G_BAD_USAGE;
@@ -50,8 +45,11 @@ gss_krb5int_copy_ccache(OM_uint32 *minor_status,
         krb5_free_context(context);
         return(GSS_S_FAILURE);
     }
-    while (!code && !krb5_cc_next_cred(context, k5creds->ccache, &cursor, &creds))
+    while (!code && !krb5_cc_next_cred(context, k5creds->ccache, &cursor,
+                                       &creds)) {
         code = krb5_cc_store_cred(context, out_ccache, &creds);
+        krb5_free_cred_contents(context, &creds);
+    }
     krb5_cc_end_seq_get(context, k5creds->ccache, &cursor);
     k5_mutex_unlock(&k5creds->lock);
     *minor_status = code;

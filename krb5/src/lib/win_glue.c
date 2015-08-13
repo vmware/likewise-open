@@ -1,12 +1,5 @@
-#ifdef KRB4
-#include <kerberosIV/krb.h>
-#endif
 #include "k5-int.h"
 
-#ifdef KRB4
-#include <kerberosIV/krb_err.h>
-#include <kerberosIV/kadm_err.h>
-#endif
 #ifdef KRB5
 #include "krb5_err.h"
 #include "kv5m_err.h"
@@ -137,7 +130,7 @@ void GetCallingAppVerInfo( char *AppTitle, char *AppVer, char *AppIni,
 	wsprintf(szVerQ,
 		 "\\StringFileInfo\\%04x%04x\\",
 		 LOWORD(*lpLangInfo), HIWORD(*lpLangInfo));
-	
+
 	cp = szVerQ + lstrlen(szVerQ);
 
 	lstrcpy(cp, "ProductName");
@@ -227,12 +220,12 @@ static int CallVersionServer(app_title, app_version, app_ini, code_cover)
 	vstatus = VSProcessRequest(vrequest);
 	/*
 	 * Only complain periodically, if the test tracker isn't
-	 * working... 
+	 * working...
 	 */
 	if (v_complain(vstatus, app_ini)) {
-		WinVSReportRequest(vrequest, NULL, 
+		WinVSReportRequest(vrequest, NULL,
 				   "Version Server Status Report");
-	}                                                         
+	}
 	if (vstatus == V_REQUIRED) {
 		SetCursor(LoadCursor(NULL, IDC_WAIT));
 		VSDestroyRequest(vrequest);
@@ -240,7 +233,7 @@ static int CallVersionServer(app_title, app_version, app_ini, code_cover)
 	}
 	VSDestroyRequest(vrequest);
 	return (0);
-}   
+}
 #endif
 
 #ifdef TIMEBOMB
@@ -320,7 +313,7 @@ krb5_error_code krb5_vercheck()
 				return KRB5_APPL_EXPIRED;
 		}
 #endif
-		
+
 	}
 #endif
         verchecked = 1;
@@ -374,24 +367,13 @@ control(int mode)
 	profile_library_finalizer();
 	break;
     }
-#elif defined KRB4
-    switch (mode){ 
-    case DLL_STARTUP:
-      add_error_table(&et_krb_error_table);
-      add_error_table(&et_kadm_error_table);
-      break;
-    case DLL_SHUTDOWN:
-      remove_error_table(&et_krb_error_table);
-      remove_error_table(&et_kadm_error_table);
-      break;
-    }
 #elif defined GSSAPI
     switch (mode) {
     case DLL_STARTUP:
-	gssint_lib_init__auxinit();
+	gssint_mechglue_init__auxinit();
 	break;
     case DLL_SHUTDOWN:
-	gssint_lib_fini();
+	gssint_mechglue_fini();
 	break;
     }
 #elif defined COMERR
@@ -456,7 +438,7 @@ BOOL WINAPI DllMain (HANDLE hModule, DWORD fdwReason, LPVOID lpReserved)
         default:
 	    return FALSE;
     }
- 
+
     return TRUE;   // successful DLL_PROCESS_ATTACH
 }
 
@@ -472,7 +454,7 @@ LPSTR CmdLine;
     hlibinstance = hInst;
     if (control(DLL_STARTUP))
 	return 0;
-    else 
+    else
 	return 1;
 }
 

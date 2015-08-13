@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/sendauth.c */
 /*
- * lib/krb5/krb/sendauth.c
- *
  * Copyright 1991, 2009 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -23,13 +22,10 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
- * convenience sendauth/recvauth functions
  */
 
-
 #include "k5-int.h"
+#include "os-proto.h"
 #include "com_err.h"
 #include "auth_con.h"
 #include <errno.h>
@@ -68,7 +64,7 @@ krb5_sendauth(krb5_context context, krb5_auth_context *auth_context,
     outbuf[0].data = (char *) sendauth_version;
     outbuf[1].length = strlen(appl_version) + 1;
     outbuf[1].data = appl_version;
-    if ((retval = krb5int_write_messages(context, fd, outbuf, 2)))
+    if ((retval = k5_write_messages(context, fd, outbuf, 2)))
         return(retval);
     /*
      * Now, read back a byte: 0 means no error, 1 means bad sendauth
@@ -91,7 +87,7 @@ krb5_sendauth(krb5_context context, krb5_auth_context *auth_context,
      * If no credentials were provided, try getting it from the
      * credentials cache.
      */
-    memset((char *)&creds, 0, sizeof(creds));
+    memset(&creds, 0, sizeof(creds));
 
     /*
      * See if we need to access the credentials cache
@@ -112,10 +108,8 @@ krb5_sendauth(krb5_context context, krb5_auth_context *auth_context,
         else
             retval = krb5_cc_get_principal(context, use_ccache,
                                            &creds.client);
-        if (retval) {
-            krb5_free_principal(context, creds.server);
+        if (retval)
             goto error_return;
-        }
         /* creds.times.endtime = 0; -- memset 0 takes care of this
            zero means "as long as possible" */
         /* creds.keyblock.enctype = 0; -- as well as this.

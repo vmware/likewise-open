@@ -1,9 +1,5 @@
-thisconfigdir=../..
-myfulldir=tests/create
-mydir=tests/create
+mydir=tests$(S)create
 BUILDTOP=$(REL)..$(S)..
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
 SRCS=$(srcdir)/kdb5_mkdums.c
 KDB5_DEP_LIBS=$(THREAD_LINKOPTS) $(DL_LIB)
 

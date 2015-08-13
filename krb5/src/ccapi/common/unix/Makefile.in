@@ -1,6 +1,4 @@
-thisconfigdir=../../..
-myfulldir=ccapi/common/unix
-mydir=ccapi/common/unix
+mydir=ccapi$(S)common$(S)unix
 BUILDTOP=$(REL)..$(S)..$(S)..
 
 STLIBOBJS=

@@ -1,18 +1,15 @@
-thisconfigdir=../../..
-myfulldir=lib/kadm5/srv
-mydir=lib/kadm5/srv
+mydir=lib$(S)kadm5$(S)srv
 BUILDTOP=$(REL)..$(S)..$(S)..
 LOCALINCLUDES = -I$(BUILDTOP)/include/kadm5 \
-	-I$(SRCTOP)/lib/gssapi/krb5 -I$(SRCTOP)/lib/gssapi/generic \
+	-I$(top_srcdir)/lib/gssapi/krb5 -I$(top_srcdir)/lib/gssapi/generic \
 	-I$(BUILDTOP)/lib/gssapi/krb5 -I$(BUILDTOP)/lib/gssapi/generic
 DEFINES = @HESIOD_DEFS@
-DEFS=
 
 ##DOSBUILDTOP = ..\..\..
 ##DOSLIBNAME = libkadm5srv.lib
 
-LIBBASE=kadm5srv
-LIBMAJOR=6
+LIBBASE=kadm5srv_mit
+LIBMAJOR=9
 LIBMINOR=0
 STOBJLISTS=../OBJS.ST OBJS.ST
 
@@ -24,41 +21,54 @@ SHLIB_EXPDEPS=\
 	$(TOPLIBD)/libk5crypto$(SHLIBEXT) \
 	$(COM_ERR_DEPLIB) $(SUPPORT_LIBDEP)
 SHLIB_EXPLIBS =	-lgssrpc -lgssapi_krb5 -lkdb5 $(KDB5_DB_LIB) \
-		-lkrb5 -lk5crypto $(SUPPORT_LIB) -lcom_err @GEN_LIB@
-SHLIB_DIRS=-L$(TOPLIBD)
-SHLIB_RDIRS=$(KRB5_LIBDIR)
+		-lkrb5 -lk5crypto $(SUPPORT_LIB) -lcom_err @GEN_LIB@ $(LIBS)
 RELDIR=kadm5/srv
 
-SRCS =	$(srcdir)/svr_policy.c \
+SRCS =	$(srcdir)/pwqual.c \
+	$(srcdir)/kadm5_hook.c \
+	$(srcdir)/pwqual_dict.c \
+	$(srcdir)/pwqual_empty.c \
+	$(srcdir)/pwqual_hesiod.c \
+	$(srcdir)/pwqual_princ.c \
+	$(srcdir)/svr_policy.c \
 	$(srcdir)/svr_principal.c \
 	$(srcdir)/server_acl.c \
 	$(srcdir)/server_kdb.c \
 	$(srcdir)/server_misc.c \
 	$(srcdir)/server_init.c \
-	$(srcdir)/server_dict.c \
 	$(srcdir)/svr_iters.c \
 	$(srcdir)/svr_chpass_util.c \
 	$(srcdir)/adb_xdr.c 
 
-OBJS =	svr_policy.$(OBJEXT) \
+OBJS =	pwqual.$(OBJEXT) \
+	pwqual_dict.$(OBJEXT) \
+	pwqual_empty.$(OBJEXT) \
+	pwqual_hesiod.$(OBJEXT) \
+	pwqual_princ.$(OBJEXT) \
+	kadm5_hook.$(OBJEXT) \
+	svr_policy.$(OBJEXT) \
 	svr_principal.$(OBJEXT) \
 	server_acl.$(OBJEXT) \
 	server_kdb.$(OBJEXT) \
 	server_misc.$(OBJEXT) \
 	server_init.$(OBJEXT) \
-	server_dict.$(OBJEXT) \
 	svr_iters.$(OBJEXT) \
 	svr_chpass_util.$(OBJEXT) \
 	adb_xdr.$(OBJEXT) 
 
 STLIBOBJS = \
+	pwqual.o \
+	pwqual_dict.o \
+	pwqual_empty.o \
+	pwqual_hesiod.o \
+	pwqual_princ.o \
+	kadm5_hook.o \
 	svr_policy.o \
 	svr_principal.o \
 	server_acl.o \
 	server_kdb.o \
 	server_misc.o \
 	server_init.o \
-	server_dict.o \
 	svr_iters.o \
 	svr_chpass_util.o \
 	adb_xdr.o
@@ -88,6 +98,13 @@ clean-windows::
 clean-unix:: clean-liblinks clean-libs clean-libobjs
 
 install:: install-libs
+
+install-unix::
+	$(RM) $(DESTDIR)$(KRB5_LIBDIR)/libkadm5srv$(DEPLIBEXT)
+	(cd $(DESTDIR)$(KRB5_LIBDIR) && $(LN_S) lib$(LIBBASE)$(DEPLIBEXT) \
+		libkadm5srv$(DEPLIBEXT))
+
+depend:: includes
 
 @lib_frag@
 @libobj_frag@

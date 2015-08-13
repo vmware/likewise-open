@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/set_realm.c */
 /*
- * lib/krb5/krb/set_realm.c
- *
  * Copyright 1997 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -27,25 +27,22 @@
 #include "k5-int.h"
 
 krb5_error_code KRB5_CALLCONV
-krb5_set_principal_realm(krb5_context context, krb5_principal principal, const char *realm)
+krb5_set_principal_realm(krb5_context context, krb5_principal principal,
+                         const char *realm)
 {
-	size_t	length;
-	char	*newrealm;
-	
-	if (!realm || !*realm)
-		return -EINVAL;
+    size_t  length;
+    char    *newrealm;
 
-	length = strlen(realm);
-	newrealm = strdup(realm);
-	if (!newrealm)
-		return -ENOMEM;
-	
-	(void) free(krb5_princ_realm(context,principal)->data);
+    if (!realm)
+        return EINVAL;
 
-	krb5_princ_realm(context, principal)->length = length;
-	krb5_princ_realm(context, principal)->data = newrealm;
+    length = strlen(realm);
+    newrealm = strdup(realm);
+    if (!newrealm)
+        return ENOMEM;
 
-	return 0;
+    free(principal->realm.data);
+    principal->realm = make_data(newrealm, length);
+
+    return 0;
 }
-
-

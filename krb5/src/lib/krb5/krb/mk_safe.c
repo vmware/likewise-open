@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/mk_safe.c */
 /*
- * lib/krb5/krb/mk_safe.c
- *
  * Copyright 1990,1991 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * krb5_mk_safe()
  */
 
 #include "k5-int.h"
@@ -32,25 +29,25 @@
 #include "auth_con.h"
 
 /*
- Formats a KRB_SAFE message into outbuf.
+  Formats a KRB_SAFE message into outbuf.
 
- userdata is formatted as the user data in the message.
- sumtype specifies the encryption type; key specifies the key which
- might be used to seed the checksum; sender_addr and recv_addr specify
- the full addresses (host and port) of the sender and receiver.
- The host portion of sender_addr is used to form the addresses used in the
- KRB_SAFE message.
+  userdata is formatted as the user data in the message.
+  sumtype specifies the encryption type; key specifies the key which
+  might be used to seed the checksum; sender_addr and recv_addr specify
+  the full addresses (host and port) of the sender and receiver.
+  The host portion of sender_addr is used to form the addresses used in the
+  KRB_SAFE message.
 
- The outbuf buffer storage is allocated, and should be freed by the
- caller when finished.
+  The outbuf buffer storage is allocated, and should be freed by the
+  caller when finished.
 
- returns system errors
+  returns system errors
 */
 static krb5_error_code
 krb5_mk_safe_basic(krb5_context context, const krb5_data *userdata,
-		   const krb5_keyblock *keyblock, krb5_replay_data *replaydata,
-		   krb5_address *local_addr, krb5_address *remote_addr,
-		   krb5_cksumtype sumtype, krb5_data *outbuf)
+                   krb5_key key, krb5_replay_data *replaydata,
+                   krb5_address *local_addr, krb5_address *remote_addr,
+                   krb5_cksumtype sumtype, krb5_data *outbuf)
 {
     krb5_error_code retval;
     krb5_safe safemsg;
@@ -58,11 +55,10 @@ krb5_mk_safe_basic(krb5_context context, const krb5_data *userdata,
     krb5_checksum safe_checksum;
     krb5_data *scratch1, *scratch2;
 
-    if (!krb5_c_valid_cksumtype(sumtype))
-	return KRB5_PROG_SUMTYPE_NOSUPP;
-    if (!krb5_c_is_coll_proof_cksum(sumtype)
-	|| !krb5_c_is_keyed_cksum(sumtype))
-	return KRB5KRB_AP_ERR_INAPP_CKSUM;
+    if (sumtype && !krb5_c_valid_cksumtype(sumtype))
+        return KRB5_PROG_SUMTYPE_NOSUPP;
+    if (sumtype && !krb5_c_is_keyed_cksum(sumtype))
+        return KRB5KRB_AP_ERR_INAPP_CKSUM;
 
     safemsg.user_data = *userdata;
     safemsg.s_address = (krb5_address *) local_addr;
@@ -73,10 +69,10 @@ krb5_mk_safe_basic(krb5_context context, const krb5_data *userdata,
     safemsg.usec       = replaydata->usec;
     safemsg.seq_number = replaydata->seq;
 
-    /* 
+    /*
      * To do the checksum stuff, we need to encode the message with a
      * zero-length zero-type checksum, then checksum the encoding, then
-     * re-encode with the checksum. 
+     * re-encode with the checksum.
      */
 
     safe_checksum.length = 0;
@@ -86,16 +82,16 @@ krb5_mk_safe_basic(krb5_context context, const krb5_data *userdata,
     safemsg.checksum = &safe_checksum;
 
     if ((retval = encode_krb5_safe(&safemsg, &scratch1)))
-	return retval;
+        return retval;
 
-    if ((retval = krb5_c_make_checksum(context, sumtype, keyblock,
-				       KRB5_KEYUSAGE_KRB_SAFE_CKSUM,
-				       scratch1, &safe_checksum)))
-	goto cleanup_checksum;
+    if ((retval = krb5_k_make_checksum(context, sumtype, key,
+                                       KRB5_KEYUSAGE_KRB_SAFE_CKSUM,
+                                       scratch1, &safe_checksum)))
+        goto cleanup_checksum;
 
     safemsg.checksum = &safe_checksum;
     if ((retval = encode_krb5_safe(&safemsg, &scratch2))) {
-	goto cleanup_checksum;
+        goto cleanup_checksum;
     }
     *outbuf = *scratch2;
     free(scratch2);
@@ -104,177 +100,159 @@ krb5_mk_safe_basic(krb5_context context, const krb5_data *userdata,
 cleanup_checksum:
     free(safe_checksum.contents);
 
-    memset((char *)scratch1->data, 0, scratch1->length); 
+    memset(scratch1->data, 0, scratch1->length);
     krb5_free_data(context, scratch1);
     return retval;
 }
 
+/* Return the checksum type for the KRB-SAFE message, or 0 to use the enctype's
+ * mandatory checksum. */
+static krb5_cksumtype
+safe_cksumtype(krb5_context context, krb5_auth_context auth_context,
+               krb5_enctype enctype)
+{
+    krb5_error_code retval;
+    unsigned int nsumtypes, i;
+    krb5_cksumtype *sumtypes;
+
+    /* Use the auth context's safe_cksumtype if it is valid for the enctype.
+     * Otherwise return 0 for the mandatory checksum. */
+    retval = krb5_c_keyed_checksum_types(context, enctype, &nsumtypes,
+                                         &sumtypes);
+    if (retval != 0)
+        return 0;
+    for (i = 0; i < nsumtypes; i++) {
+        if (auth_context->safe_cksumtype == sumtypes[i])
+            break;
+    }
+    krb5_free_cksumtypes(context, sumtypes);
+    return (i == nsumtypes) ? 0 : auth_context->safe_cksumtype;
+}
+
 krb5_error_code KRB5_CALLCONV
 krb5_mk_safe(krb5_context context, krb5_auth_context auth_context,
-	     const krb5_data *userdata, krb5_data *outbuf,
-	     krb5_replay_data *outdata)
+             const krb5_data *userdata, krb5_data *outbuf,
+             krb5_replay_data *outdata)
 {
-    krb5_error_code 	  retval;
-    krb5_keyblock       * keyblock;
+    krb5_error_code       retval;
+    krb5_key              key;
     krb5_replay_data      replaydata;
+    krb5_data             buf = empty_data();
+
+    *outbuf = empty_data();
 
     /* Clear replaydata block */
-    memset((char *) &replaydata, 0, sizeof(krb5_replay_data));
+    memset(&replaydata, 0, sizeof(krb5_replay_data));
 
-    /* Get keyblock */
-    if ((keyblock = auth_context->send_subkey) == NULL)
-	keyblock = auth_context->keyblock;
+    /* Get key */
+    if ((key = auth_context->send_subkey) == NULL)
+        key = auth_context->key;
 
     /* Get replay info */
     if ((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_TIME) &&
-      (auth_context->rcache == NULL))
-	return KRB5_RC_REQUIRED;
+        (auth_context->rcache == NULL))
+        return KRB5_RC_REQUIRED;
 
     if (((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_TIME) ||
-      (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)) &&
-      (outdata == NULL))
-	/* Need a better error */
-	return KRB5_RC_REQUIRED;
+         (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)) &&
+        (outdata == NULL))
+        /* Need a better error */
+        return KRB5_RC_REQUIRED;
 
     if (!auth_context->local_addr)
-	return KRB5_LOCAL_ADDR_REQUIRED;
+        return KRB5_LOCAL_ADDR_REQUIRED;
 
     if ((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_TIME) ||
-	(auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_TIME)) {
-	if ((retval = krb5_us_timeofday(context, &replaydata.timestamp,
-					&replaydata.usec)))
-	    return retval;
-	if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_TIME) {
-    	    outdata->timestamp = replaydata.timestamp;
-    	    outdata->usec = replaydata.usec;
-	}
+        (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_TIME)) {
+        if ((retval = krb5_us_timeofday(context, &replaydata.timestamp,
+                                        &replaydata.usec)))
+            return retval;
+        if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_TIME) {
+            outdata->timestamp = replaydata.timestamp;
+            outdata->usec = replaydata.usec;
+        }
     }
     if ((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_SEQUENCE) ||
-	(auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)) {
-	replaydata.seq = auth_context->local_seq_number++;
-	if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)
-    	    outdata->seq = replaydata.seq;
-    } 
-
-{
-    krb5_address * premote_fulladdr = NULL;
-    krb5_address * plocal_fulladdr;
-    krb5_address remote_fulladdr;
-    krb5_address local_fulladdr;
-    krb5_cksumtype sumtype;
-
-    CLEANUP_INIT(2);
-
-    if (auth_context->local_port) {
-	if (!(retval = krb5_make_fulladdr(context, auth_context->local_addr,
-					  auth_context->local_port,
-					  &local_fulladdr))){
-	    CLEANUP_PUSH(local_fulladdr.contents, free);
-	    plocal_fulladdr = &local_fulladdr;
-	} else {
-	    goto error;
-	}
-    } else {
-	plocal_fulladdr = auth_context->local_addr;
-    }
-
-    if (auth_context->remote_addr) {
-    	if (auth_context->remote_port) {
-            if (!(retval = krb5_make_fulladdr(context,auth_context->remote_addr,
-                                 	      auth_context->remote_port, 
-					      &remote_fulladdr))){
-            	CLEANUP_PUSH(remote_fulladdr.contents, free);
-	    	premote_fulladdr = &remote_fulladdr;
-            } else {
-                CLEANUP_DONE();
-                goto error;
-            }
-	} else {
-            premote_fulladdr = auth_context->remote_addr;
-        }
+        (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)) {
+        replaydata.seq = auth_context->local_seq_number++;
+        if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)
+            outdata->seq = replaydata.seq;
     }
 
     {
-	unsigned int nsumtypes;
-	unsigned int i;
-	krb5_cksumtype *sumtypes;
-	retval = krb5_c_keyed_checksum_types (context, keyblock->enctype,
-					      &nsumtypes, &sumtypes);
-	if (retval) {
-	    CLEANUP_DONE ();
-	    goto error;
-	}
-	if (nsumtypes == 0) {
-		retval = KRB5_BAD_ENCTYPE;
-		krb5_free_cksumtypes (context, sumtypes);
-		CLEANUP_DONE ();
-		goto error;
-	}
-	for (i = 0; i < nsumtypes; i++)
-		if (auth_context->safe_cksumtype == sumtypes[i])
-			break;
-	krb5_free_cksumtypes (context, sumtypes);
-	if (i < nsumtypes)
-	    sumtype = auth_context->safe_cksumtype;
-	else {
-	    switch (keyblock->enctype) {
-	    case ENCTYPE_DES_CBC_MD4:
-		sumtype = CKSUMTYPE_RSA_MD4_DES;
-		break;
-	    case ENCTYPE_DES_CBC_MD5:
-	    case ENCTYPE_DES_CBC_CRC:
-		sumtype = CKSUMTYPE_RSA_MD5_DES;
-		break;
-	    default:
-		retval = krb5int_c_mandatory_cksumtype(context,
-						       keyblock->enctype,
-						       &sumtype);
-		if (retval) {
-		    CLEANUP_DONE();
-		    goto error;
-		}
-		break;
-	    }
-	}
-    }
-    if ((retval = krb5_mk_safe_basic(context, userdata, keyblock, &replaydata, 
-				     plocal_fulladdr, premote_fulladdr,
-				     sumtype, outbuf))) {
-	CLEANUP_DONE();
-	goto error;
-    }
+        krb5_address * premote_fulladdr = NULL;
+        krb5_address * plocal_fulladdr;
+        krb5_address remote_fulladdr;
+        krb5_address local_fulladdr;
+        krb5_cksumtype sumtype;
 
-    CLEANUP_DONE();
-}
+        CLEANUP_INIT(2);
+
+        if (auth_context->local_port) {
+            if (!(retval = krb5_make_fulladdr(context, auth_context->local_addr,
+                                              auth_context->local_port,
+                                              &local_fulladdr))){
+                CLEANUP_PUSH(local_fulladdr.contents, free);
+                plocal_fulladdr = &local_fulladdr;
+            } else {
+                goto error;
+            }
+        } else {
+            plocal_fulladdr = auth_context->local_addr;
+        }
+
+        if (auth_context->remote_addr) {
+            if (auth_context->remote_port) {
+                if (!(retval = krb5_make_fulladdr(context,auth_context->remote_addr,
+                                                  auth_context->remote_port,
+                                                  &remote_fulladdr))){
+                    CLEANUP_PUSH(remote_fulladdr.contents, free);
+                    premote_fulladdr = &remote_fulladdr;
+                } else {
+                    CLEANUP_DONE();
+                    goto error;
+                }
+            } else {
+                premote_fulladdr = auth_context->remote_addr;
+            }
+        }
+
+        sumtype = safe_cksumtype(context, auth_context, key->keyblock.enctype);
+        if ((retval = krb5_mk_safe_basic(context, userdata, key, &replaydata,
+                                         plocal_fulladdr, premote_fulladdr,
+                                         sumtype, &buf))) {
+            CLEANUP_DONE();
+            goto error;
+        }
+
+        CLEANUP_DONE();
+    }
 
     if (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_TIME) {
-	krb5_donot_replay replay;
+        krb5_donot_replay replay;
 
-	if ((retval = krb5_gen_replay_name(context, auth_context->local_addr, 
-					   "_safe", &replay.client))) {
-	    free(outbuf);
-	    goto error;
-	}
+        if ((retval = krb5_gen_replay_name(context, auth_context->local_addr,
+                                           "_safe", &replay.client)))
+            goto error;
 
-	replay.server = "";		/* XXX */
-	replay.msghash = NULL;
-	replay.cusec = replaydata.usec;
-	replay.ctime = replaydata.timestamp;
-	if ((retval = krb5_rc_store(context, auth_context->rcache, &replay))) {
-	    /* should we really error out here? XXX */
-	    free(outbuf);
-	    goto error;
-	}
-	free(replay.client);
+        replay.server = "";             /* XXX */
+        replay.msghash = NULL;
+        replay.cusec = replaydata.usec;
+        replay.ctime = replaydata.timestamp;
+        /* should we really error out here? XXX */
+        if ((retval = krb5_rc_store(context, auth_context->rcache, &replay)))
+            goto error;
+        free(replay.client);
     }
 
+    *outbuf = buf;
     return 0;
 
 error:
+    krb5_free_data_contents(context, &buf);
     if ((auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_DO_SEQUENCE) ||
-      (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE)) 
-	auth_context->local_seq_number--;
+        (auth_context->auth_context_flags & KRB5_AUTH_CONTEXT_RET_SEQUENCE))
+        auth_context->local_seq_number--;
 
     return retval;
 }
-

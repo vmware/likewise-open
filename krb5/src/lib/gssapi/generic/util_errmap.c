@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 2007, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
@@ -29,8 +29,6 @@
 #ifndef _WIN32
 #include <unistd.h>
 #endif
-
-static const gss_OID_desc spnego_oid = { 6, "\053\006\001\005\005\002" };
 
 /* The mapping table is 0-based, but let's export codes that are
    1-based, keeping 0 for errors or unknown errors.
@@ -81,14 +79,14 @@ static inline int
 mecherror_copy(struct mecherror *dest, struct mecherror src)
 {
     *dest = src;
-    dest->mech.elements = malloc(src.mech.length);
-    if (dest->mech.elements == NULL) {
-        if (src.mech.length)
+    if (src.mech.length > 0) {
+        dest->mech.elements = malloc(src.mech.length);
+        if (dest->mech.elements == NULL)
             return ENOMEM;
-        else
-            return 0;
+        memcpy(dest->mech.elements, src.mech.elements, src.mech.length);
+    } else {
+        dest->mech.elements = NULL;
     }
-    memcpy(dest->mech.elements, src.mech.elements, src.mech.length);
     return 0;
 }
 
@@ -157,8 +155,7 @@ int gssint_mecherrmap_init(void)
    element storage when destroying the collection.  */
 static int free_one(OM_uint32 i, struct mecherror value, void *p)
 {
-    if (value.mech.length && value.mech.elements)
-        free(value.mech.elements);
+    free(value.mech.elements);
     return 0;
 }
 
@@ -186,20 +183,14 @@ OM_uint32 gssint_mecherrmap_map(OM_uint32 minor, const gss_OID_desc * oid)
 
     me.code = minor;
     me.mech = *oid;
-    err = k5_mutex_lock(&mutex);
-    if (err) {
-#ifdef DEBUG
-        if (f != stderr) fclose(f);
-#endif
-        return 0;
-    }
+    k5_mutex_lock(&mutex);
 
     /* Is this status+oid already mapped?  */
     p = mecherrmap_findright(&m, me);
     if (p != NULL) {
         k5_mutex_unlock(&mutex);
 #ifdef DEBUG
-        fprintf(f, "%s: found ", __func__);
+        fprintf(f, "%s: found ", __FUNCTION__);
         mecherror_print(me, f);
         fprintf(f, " in map as %lu\n", (unsigned long) *p);
         if (f != stderr) fclose(f);
@@ -217,18 +208,6 @@ OM_uint32 gssint_mecherrmap_map(OM_uint32 minor, const gss_OID_desc * oid)
         /* There's a theoretical infinite loop risk here, if we fill
            in 2**32 values.  Also, returning 0 has a special
            meaning.  */
-
-        /* The concept of fake error codes is fundamentally flawed
-           because they are meaningless to the caller.  Let's at
-           least not do this for SPNEGO since it was likely some other
-           mechanism which shouldn't be remapped with SPNEGO.  */
-        if (oid->length == spnego_oid.length &&
-            (memcmp(oid->elements, spnego_oid.elements, spnego_oid.length) == 0))
-        {
-            k5_mutex_unlock(&mutex);
-            return minor;
-        }
-
         do {
             next_fake++;
             new_status = next_fake;
@@ -243,12 +222,10 @@ OM_uint32 gssint_mecherrmap_map(OM_uint32 minor, const gss_OID_desc * oid)
     }
     err = mecherrmap_add(&m, new_status, me_copy);
     k5_mutex_unlock(&mutex);
-    if (err) {
-        if (me_copy.mech.length)
-            free(me_copy.mech.elements);
-    }
+    if (err)
+        free(me_copy.mech.elements);
 #ifdef DEBUG
-    fprintf(f, "%s: mapping ", __func__);
+    fprintf(f, "%s: mapping ", __FUNCTION__);
     mecherror_print(me, f);
     fprintf(f, " to %lu: err=%d\nnew map: ", (unsigned long) new_status, err);
     mecherrmap_printmap(&m, f);
@@ -271,14 +248,11 @@ int gssint_mecherrmap_get(OM_uint32 minor, gss_OID mech_oid,
                           OM_uint32 *mech_minor)
 {
     const struct mecherror *p;
-    int err;
 
     if (minor == 0) {
         return EINVAL;
     }
-    err = k5_mutex_lock(&mutex);
-    if (err)
-        return err;
+    k5_mutex_lock(&mutex);
     p = mecherrmap_findleft(&m, minor);
     k5_mutex_unlock(&mutex);
     if (!p) {

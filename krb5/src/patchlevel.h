@@ -1,6 +1,5 @@
+/* patchlevel.h */
 /*
- * patchlevel.h
- *
  * Copyright (C) 2004-2006 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -8,7 +7,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -51,8 +50,8 @@
  * organization.
  */
 #define KRB5_MAJOR_RELEASE 1
-#define KRB5_MINOR_RELEASE 7
-#define KRB5_PATCHLEVEL 0
+#define KRB5_MINOR_RELEASE 12
+#define KRB5_PATCHLEVEL 4
 /* #undef KRB5_RELTAIL */
-#define KRB5_RELDATE "20090601"
-#define KRB5_RELTAG "tags/krb5-1-7-final"
+#define KRB5_RELDATE "20150529"
+#define KRB5_RELTAG "krb5-1.12.4-final"

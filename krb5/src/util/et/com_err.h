@@ -1,6 +1,4 @@
 /*
- * Header file for common error description library.
- *
  * Copyright 1988, Student Information Processing Board of the
  * Massachusetts Institute of Technology.
  *
@@ -9,6 +7,8 @@
  * For copyright and distribution info, see the documentation supplied
  * with this package.
  */
+
+/* Header file for common error description library. */
 
 #ifndef __COM_ERR_H
 
@@ -26,7 +26,7 @@
 typedef long errcode_t;
 typedef void (*et_old_error_hook_func) (const char *, errcode_t,
 					const char *, va_list ap);
-	
+
 struct error_table {
 	/*@shared@*/ char const * const * msgs;
         long base;

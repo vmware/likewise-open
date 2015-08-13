@@ -1,6 +1,5 @@
+/* ccapi/server/ccs_list_internal.c */
 /*
- * $Header$
- *
  * Copyright 2006, 2007 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -674,4 +673,3 @@ static cc_int32 ccs_list_iterator_update (ccs_list_iterator_t  io_list_iterator,
 
     return cci_check_error (err);
 }
-

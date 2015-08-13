@@ -1,6 +1,5 @@
+/* ccapi/lib/ccapi_context.c */
 /*
- * $Header$
- *
  * Copyright 2006, 2007 Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -80,12 +79,12 @@ static cc_int32 cci_context_sync (cci_context_t in_context,
 #pragma mark -
 #endif
 
-MAKE_INIT_FUNCTION(cci_thread_init);
-MAKE_FINI_FUNCTION(cci_thread_fini);
+MAKE_INIT_FUNCTION(cci_process_init);
+MAKE_FINI_FUNCTION(cci_process_fini);
 
 /* ------------------------------------------------------------------------ */
 
-static int cci_thread_init (void)
+static int cci_process_init (void)
 {
     cc_int32 err = ccNoError;
 
@@ -94,7 +93,7 @@ static int cci_thread_init (void)
     }
 
     if (!err) {
-        err = cci_ipc_thread_init ();
+        err = cci_ipc_process_init ();
     }
 
     if (!err) {
@@ -106,15 +105,14 @@ static int cci_thread_init (void)
 
 /* ------------------------------------------------------------------------ */
 
-static void cci_thread_fini (void)
+static void cci_process_fini (void)
 {
-    if (!INITIALIZER_RAN (cci_thread_init) || PROGRAM_EXITING ()) {
+    if (!INITIALIZER_RAN (cci_process_init) || PROGRAM_EXITING ()) {
 	return;
     }
 
     remove_error_table(&et_CAPI_error_table);
     cci_context_change_time_thread_fini ();
-    cci_ipc_thread_fini ();
 }
 
 
@@ -136,7 +134,7 @@ cc_int32 cc_initialize (cc_context_t  *out_context,
     if (!out_context) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = CALL_INIT_FUNCTION (cci_thread_init);
+        err = CALL_INIT_FUNCTION (cci_process_init);
     }
 
     if (!err) {
@@ -247,11 +245,11 @@ cc_int32 ccapi_context_get_change_time (cc_context_t  in_context,
                                        NULL, &reply);
     }
 
-    if (!err && k5_ipc_stream_size (reply) > 0) {
+    if (!err && krb5int_ipc_stream_size (reply) > 0) {
         cc_time_t change_time = 0;
 
         /* got a response from the server */
-        err = k5_ipc_stream_read_time (reply, &change_time);
+        err = krb5int_ipc_stream_read_time (reply, &change_time);
 
         if (!err) {
             err = cci_context_change_time_update (context->identifier,
@@ -263,7 +261,7 @@ cc_int32 ccapi_context_get_change_time (cc_context_t  in_context,
         err = cci_context_change_time_get (out_change_time);
     }
 
-    k5_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (reply);
 
     return cci_check_error (err);
 }
@@ -280,11 +278,11 @@ cc_int32 ccapi_context_wait_for_change (cc_context_t  in_context)
     if (!in_context) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = k5_ipc_stream_new (&request);
+        err = krb5int_ipc_stream_new (&request);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_time (request, context->last_wait_for_change_time);
+        err = krb5int_ipc_stream_write_time (request, context->last_wait_for_change_time);
     }
 
     if (!err) {
@@ -299,11 +297,11 @@ cc_int32 ccapi_context_wait_for_change (cc_context_t  in_context)
     }
 
     if (!err) {
-        err = k5_ipc_stream_read_time (reply, &context->last_wait_for_change_time);
+        err = krb5int_ipc_stream_read_time (reply, &context->last_wait_for_change_time);
     }
 
-    k5_ipc_stream_release (request);
-    k5_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (request);
+    krb5int_ipc_stream_release (reply);
 
     return cci_check_error (err);
 }
@@ -334,9 +332,9 @@ cc_int32 ccapi_context_get_default_ccache_name (cc_context_t  in_context,
     }
 
     if (!err) {
-        if (k5_ipc_stream_size (reply) > 0) {
+        if (krb5int_ipc_stream_size (reply) > 0) {
             /* got a response from the server */
-            err = k5_ipc_stream_read_string (reply, &reply_name);
+            err = krb5int_ipc_stream_read_string (reply, &reply_name);
 
             if (!err) {
                 name = reply_name;
@@ -350,8 +348,8 @@ cc_int32 ccapi_context_get_default_ccache_name (cc_context_t  in_context,
         err = cci_string_new (out_name, name);
     }
 
-    k5_ipc_stream_release (reply);
-    k5_ipc_stream_free_string (reply_name);
+    krb5int_ipc_stream_release (reply);
+    krb5int_ipc_stream_free_string (reply_name);
 
     return cci_check_error (err);
 }
@@ -373,11 +371,11 @@ cc_int32 ccapi_context_open_ccache (cc_context_t  in_context,
     if (!out_ccache  ) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = k5_ipc_stream_new (&request);
+        err = krb5int_ipc_stream_new (&request);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_string (request, in_name);
+        err = krb5int_ipc_stream_write_string (request, in_name);
     }
 
     if (!err) {
@@ -391,7 +389,7 @@ cc_int32 ccapi_context_open_ccache (cc_context_t  in_context,
                                        &reply);
     }
 
-    if (!err && !(k5_ipc_stream_size (reply) > 0)) {
+    if (!err && !(krb5int_ipc_stream_size (reply) > 0)) {
         err = ccErrCCacheNotFound;
     }
 
@@ -404,8 +402,8 @@ cc_int32 ccapi_context_open_ccache (cc_context_t  in_context,
     }
 
     cci_identifier_release (identifier);
-    k5_ipc_stream_release (reply);
-    k5_ipc_stream_release (request);
+    krb5int_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (request);
 
     return cci_check_error (err);
 }
@@ -434,7 +432,7 @@ cc_int32 ccapi_context_open_default_ccache (cc_context_t  in_context,
                                        &reply);
     }
 
-    if (!err && !(k5_ipc_stream_size (reply) > 0)) {
+    if (!err && !(krb5int_ipc_stream_size (reply) > 0)) {
         err = ccErrCCacheNotFound;
     }
 
@@ -447,7 +445,7 @@ cc_int32 ccapi_context_open_default_ccache (cc_context_t  in_context,
     }
 
     cci_identifier_release (identifier);
-    k5_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (reply);
 
     return cci_check_error (err);
 }
@@ -472,19 +470,19 @@ cc_int32 ccapi_context_create_ccache (cc_context_t  in_context,
     if (!out_ccache  ) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = k5_ipc_stream_new (&request);
+        err = krb5int_ipc_stream_new (&request);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_string (request, in_name);
+        err = krb5int_ipc_stream_write_string (request, in_name);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_uint32 (request, in_cred_vers);
+        err = krb5int_ipc_stream_write_uint32 (request, in_cred_vers);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_string (request, in_principal);
+        err = krb5int_ipc_stream_write_string (request, in_principal);
     }
 
     if (!err) {
@@ -507,8 +505,8 @@ cc_int32 ccapi_context_create_ccache (cc_context_t  in_context,
     }
 
     cci_identifier_release (identifier);
-    k5_ipc_stream_release (reply);
-    k5_ipc_stream_release (request);
+    krb5int_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (request);
 
     return cci_check_error (err);
 }
@@ -531,15 +529,15 @@ cc_int32 ccapi_context_create_default_ccache (cc_context_t  in_context,
     if (!out_ccache  ) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = k5_ipc_stream_new (&request);
+        err = krb5int_ipc_stream_new (&request);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_uint32 (request, in_cred_vers);
+        err = krb5int_ipc_stream_write_uint32 (request, in_cred_vers);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_string (request, in_principal);
+        err = krb5int_ipc_stream_write_string (request, in_principal);
     }
 
     if (!err) {
@@ -562,8 +560,8 @@ cc_int32 ccapi_context_create_default_ccache (cc_context_t  in_context,
     }
 
     cci_identifier_release (identifier);
-    k5_ipc_stream_release (reply);
-    k5_ipc_stream_release (request);
+    krb5int_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (request);
 
     return cci_check_error (err);
 }
@@ -586,15 +584,15 @@ cc_int32 ccapi_context_create_new_ccache (cc_context_t in_context,
     if (!out_ccache  ) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = k5_ipc_stream_new (&request);
+        err = krb5int_ipc_stream_new (&request);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_uint32 (request, in_cred_vers);
+        err = krb5int_ipc_stream_write_uint32 (request, in_cred_vers);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_string (request, in_principal);
+        err = krb5int_ipc_stream_write_string (request, in_principal);
     }
 
     if (!err) {
@@ -617,8 +615,8 @@ cc_int32 ccapi_context_create_new_ccache (cc_context_t in_context,
     }
 
     cci_identifier_release (identifier);
-    k5_ipc_stream_release (reply);
-    k5_ipc_stream_release (request);
+    krb5int_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (request);
 
     return cci_check_error (err);
 }
@@ -648,7 +646,7 @@ cc_int32 ccapi_context_new_ccache_iterator (cc_context_t          in_context,
     }
 
     if (!err) {
-        if (k5_ipc_stream_size (reply) > 0) {
+        if (krb5int_ipc_stream_size (reply) > 0) {
             err = cci_identifier_read (&identifier, reply);
         } else {
             identifier = cci_identifier_uninitialized;
@@ -659,7 +657,7 @@ cc_int32 ccapi_context_new_ccache_iterator (cc_context_t          in_context,
         err = cci_ccache_iterator_new (out_iterator, identifier);
     }
 
-    k5_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (reply);
     cci_identifier_release (identifier);
 
     return cci_check_error (err);
@@ -678,15 +676,15 @@ cc_int32 ccapi_context_lock (cc_context_t in_context,
     if (!in_context) { err = cci_check_error (ccErrBadParam); }
 
     if (!err) {
-        err = k5_ipc_stream_new (&request);
+        err = krb5int_ipc_stream_new (&request);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_uint32 (request, in_lock_type);
+        err = krb5int_ipc_stream_write_uint32 (request, in_lock_type);
     }
 
     if (!err) {
-        err = k5_ipc_stream_write_uint32 (request, in_block);
+        err = krb5int_ipc_stream_write_uint32 (request, in_block);
     }
 
     if (!err) {
@@ -700,7 +698,7 @@ cc_int32 ccapi_context_lock (cc_context_t in_context,
                              NULL);
     }
 
-    k5_ipc_stream_release (request);
+    krb5int_ipc_stream_release (request);
 
     return cci_check_error (err);
 }
@@ -795,7 +793,7 @@ static cc_int32 cci_context_sync (cci_context_t in_context,
     }
 
     if (!err) {
-        if (k5_ipc_stream_size (reply) > 0) {
+        if (krb5int_ipc_stream_size (reply) > 0) {
             err = cci_identifier_read (&new_identifier, reply);
         } else {
             new_identifier = cci_identifier_uninitialized;
@@ -827,8 +825,7 @@ static cc_int32 cci_context_sync (cci_context_t in_context,
     }
 
     cci_identifier_release (new_identifier);
-    k5_ipc_stream_release (reply);
+    krb5int_ipc_stream_release (reply);
 
     return cci_check_error (err);
 }
-

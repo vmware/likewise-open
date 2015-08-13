@@ -1,7 +1,4 @@
-/*
- * mit2ms.c
- *
- */
+/* windows/ms2mit/mit2ms.c */
 /*
  * Copyright (C) 2003,2004 by the Massachusetts Institute of Technology.
  * All rights reserved.
@@ -24,7 +21,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
 #include "krb5.h"
@@ -36,7 +32,7 @@ extern char *optarg;
 
 static char *prog;
 
-static void 
+static void
 xusage(void)
 {
     fprintf(stderr, "xusage: %s [-c ccache]\n", prog);
@@ -79,7 +75,7 @@ main(
         com_err(argv[0], code, "while initializing kerberos library");
         exit(1);
     }
-  
+
     if (ccachestr)
         code = krb5_cc_resolve(kcontext, ccachestr, &ccache);
     else
@@ -99,7 +95,7 @@ main(
         exit(1);
     }
 
-    while (!(code = krb5_cc_next_cred(kcontext, ccache, &cursor, &creds))) 
+    while (!(code = krb5_cc_next_cred(kcontext, ccache, &cursor, &creds)))
     {
         if ( creds.ticket_flags & TKT_FLG_INITIAL ) {
             krb5_free_cred_contents(kcontext, &creds);

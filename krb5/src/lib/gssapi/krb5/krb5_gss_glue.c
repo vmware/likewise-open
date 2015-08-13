@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -49,16 +49,15 @@
  */
 
 /*
- * $Id: krb5_gss_glue.c 22028 2009-02-19 00:36:22Z tlyu $
+ * $Id$
  */
 
 #include "gssapiP_krb5.h"
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_get_tkt_flags(
-    OM_uint32 *minor_status,
-    gss_ctx_id_t context_handle,
-    krb5_flags *ticket_flags)
+gss_krb5_get_tkt_flags(OM_uint32 *minor_status,
+                       gss_ctx_id_t context_handle,
+                       krb5_flags *ticket_flags)
 {
     static const gss_OID_desc req_oid = {
         GSS_KRB5_GET_TKT_FLAGS_OID_LENGTH,
@@ -93,10 +92,9 @@ gss_krb5_get_tkt_flags(
 }
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_copy_ccache(
-    OM_uint32 *minor_status,
-    gss_cred_id_t cred_handle,
-    krb5_ccache out_ccache)
+gss_krb5_copy_ccache(OM_uint32 *minor_status,
+                     gss_cred_id_t cred_handle,
+                     krb5_ccache out_ccache)
 {
     static const gss_OID_desc req_oid = {
         GSS_KRB5_COPY_CCACHE_OID_LENGTH,
@@ -110,20 +108,53 @@ gss_krb5_copy_ccache(
     req_buffer.value = out_ccache;
     req_buffer.length = sizeof(out_ccache);
 
-    major_status = gssspi_set_cred_option(minor_status,
-                                          cred_handle,
-                                          (gss_OID)&req_oid,
-                                          &req_buffer);
+    major_status = gss_set_cred_option(minor_status,
+                                       &cred_handle,
+                                       (gss_OID)&req_oid,
+                                       &req_buffer);
 
     return major_status;
 }
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_export_lucid_sec_context(
-    OM_uint32 *minor_status,
-    gss_ctx_id_t *context_handle,
-    OM_uint32 version,
-    void **kctx)
+gss_krb5_import_cred(OM_uint32 *minor_status,
+                     krb5_ccache id,
+                     krb5_principal keytab_principal,
+                     krb5_keytab keytab,
+                     gss_cred_id_t *cred)
+{
+    static const gss_OID_desc req_oid = {
+        GSS_KRB5_IMPORT_CRED_OID_LENGTH,
+        GSS_KRB5_IMPORT_CRED_OID };
+    OM_uint32 major_status;
+    struct krb5_gss_import_cred_req req;
+    gss_buffer_desc req_buffer;
+
+    if (cred == NULL)
+        return GSS_S_CALL_INACCESSIBLE_WRITE;
+
+    *cred = GSS_C_NO_CREDENTIAL;
+
+    req.id = id;
+    req.keytab_principal = keytab_principal;
+    req.keytab = keytab;
+
+    req_buffer.value = &req;
+    req_buffer.length = sizeof(req);
+
+    major_status = gss_set_cred_option(minor_status,
+                                       cred,
+                                       (gss_OID)&req_oid,
+                                       &req_buffer);
+
+    return major_status;
+}
+
+OM_uint32 KRB5_CALLCONV
+gss_krb5_export_lucid_sec_context(OM_uint32 *minor_status,
+                                  gss_ctx_id_t *context_handle,
+                                  OM_uint32 version,
+                                  void **kctx)
 {
     unsigned char oid_buf[GSS_KRB5_EXPORT_LUCID_SEC_CONTEXT_OID_LENGTH + 6];
     gss_OID_desc req_oid;
@@ -165,7 +196,7 @@ gss_krb5_export_lucid_sec_context(
     /* Clean up the context state (it is an error for
      * someone to attempt to use this context again)
      */
-    (void)krb5_gss_delete_sec_context(minor_status, context_handle, NULL);
+    (void)gss_delete_sec_context(minor_status, context_handle, NULL);
     *context_handle = GSS_C_NO_CONTEXT;
 
     generic_gss_release_buffer_set(&minor, &data_set);
@@ -174,11 +205,10 @@ gss_krb5_export_lucid_sec_context(
 }
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_set_allowable_enctypes(
-    OM_uint32 *minor_status,
-    gss_cred_id_t cred,
-    OM_uint32 num_ktypes,
-    krb5_enctype *ktypes)
+gss_krb5_set_allowable_enctypes(OM_uint32 *minor_status,
+                                gss_cred_id_t cred,
+                                OM_uint32 num_ktypes,
+                                krb5_enctype *ktypes)
 {
     static const gss_OID_desc req_oid = {
         GSS_KRB5_SET_ALLOWABLE_ENCTYPES_OID_LENGTH,
@@ -193,19 +223,18 @@ gss_krb5_set_allowable_enctypes(
     req_buffer.length = sizeof(req);
     req_buffer.value = &req;
 
-    major_status = gssspi_set_cred_option(minor_status,
-                                          cred,
-                                          (gss_OID)&req_oid,
-                                          &req_buffer);
+    major_status = gss_set_cred_option(minor_status,
+                                       &cred,
+                                       (gss_OID)&req_oid,
+                                       &req_buffer);
 
     return major_status;
 }
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_ccache_name(
-    OM_uint32 *minor_status,
-    const char *name,
-    const char **out_name)
+gss_krb5_ccache_name(OM_uint32 *minor_status,
+                     const char *name,
+                     const char **out_name)
 {
     static const gss_OID_desc req_oid = {
         GSS_KRB5_CCACHE_NAME_OID_LENGTH,
@@ -229,9 +258,7 @@ gss_krb5_ccache_name(
 }
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_free_lucid_sec_context(
-    OM_uint32 *minor_status,
-    void *kctx)
+gss_krb5_free_lucid_sec_context(OM_uint32 *minor_status, void *kctx)
 {
     static const gss_OID_desc req_oid = {
         GSS_KRB5_FREE_LUCID_SEC_CONTEXT_OID_LENGTH,
@@ -260,7 +287,7 @@ krb5_gss_register_acceptor_identity(const char *keytab)
     OM_uint32 minor_status;
     gss_buffer_desc req_buffer;
 
-    req_buffer.length = strlen(keytab);
+    req_buffer.length = (keytab == NULL) ? 0 : strlen(keytab);
     req_buffer.value = (char *)keytab;
 
     major_status = gssspi_mech_invoke(&minor_status,
@@ -271,6 +298,7 @@ krb5_gss_register_acceptor_identity(const char *keytab)
     return major_status;
 }
 
+#ifndef _WIN32
 krb5_error_code
 krb5_gss_use_kdc_context(void)
 {
@@ -300,17 +328,17 @@ krb5_gss_use_kdc_context(void)
 
     return ret;
 }
+#endif
 
 /*
  * This API should go away and be replaced with an accessor
  * into a gss_name_t.
  */
 OM_uint32 KRB5_CALLCONV
-gsskrb5_extract_authz_data_from_sec_context(
-    OM_uint32 *minor_status,
-    gss_ctx_id_t context_handle,
-    int ad_type,
-    gss_buffer_t ad_data)
+gsskrb5_extract_authz_data_from_sec_context(OM_uint32 *minor_status,
+                                            const gss_ctx_id_t context_handle,
+                                            int ad_type,
+                                            gss_buffer_t ad_data)
 {
     gss_OID_desc req_oid;
     unsigned char oid_buf[GSS_KRB5_EXTRACT_AUTHZ_DATA_FROM_SEC_CONTEXT_OID_LENGTH + 6];
@@ -358,10 +386,9 @@ gsskrb5_extract_authz_data_from_sec_context(
 }
 
 OM_uint32 KRB5_CALLCONV
-gss_krb5_set_cred_rcache(
-    OM_uint32 *minor_status,
-    gss_cred_id_t cred,
-    krb5_rcache rcache)
+gss_krb5_set_cred_rcache(OM_uint32 *minor_status,
+                         gss_cred_id_t cred,
+                         krb5_rcache rcache)
 {
     static const gss_OID_desc req_oid = {
         GSS_KRB5_SET_CRED_RCACHE_OID_LENGTH,
@@ -372,10 +399,10 @@ gss_krb5_set_cred_rcache(
     req_buffer.length = sizeof(rcache);
     req_buffer.value = rcache;
 
-    major_status = gssspi_set_cred_option(minor_status,
-                                          cred,
-                                          (gss_OID)&req_oid,
-                                          &req_buffer);
+    major_status = gss_set_cred_option(minor_status,
+                                       &cred,
+                                       (gss_OID)&req_oid,
+                                       &req_buffer);
 
     return major_status;
 }
@@ -416,4 +443,3 @@ gsskrb5_extract_authtime_from_sec_context(OM_uint32 *minor_status,
 
     return GSS_S_COMPLETE;
 }
-

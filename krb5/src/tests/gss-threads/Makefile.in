@@ -1,12 +1,8 @@
 # Derived from appl/gss-sample, January 2005.
 
-thisconfigdir=../..
-myfulldir=tests/gss-threads
-mydir=tests/gss-threads
+mydir=tests$(S)gss-threads
 BUILDTOP=$(REL)..$(S)..
 DEFINES = -DUSE_AUTOCONF_H -DGSSAPI_V2
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
 PTHREAD_LIBS=@PTHREAD_LIBS@
 
 SRCS= $(srcdir)/gss-client.c $(srcdir)/gss-misc.c $(srcdir)/gss-server.c

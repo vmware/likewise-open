@@ -18,8 +18,22 @@
  * kadmin/server/ipropd_svc.c
  */
 
+/*
+ * This file gets fed through the preprocessor to handle RPC_*
+ * symbols, but we don't want it to chew on __GNUC__ in this phase.
+ */
+#undef __GNUC__
+
 #ifdef RPC_XDR
-%#include "iprop.h"
+/*
+ * Sloppy rpcgen code declares "buf" and rarely uses it.  As it's
+ * generated code, and not presented to code building against the
+ * Kerberos code, it's not a problem we need to fix, so suppress the
+ * complaint.
+ */
+%#ifdef __GNUC__
+%#pragma GCC diagnostic ignored "-Wunused-variable"
+%#endif
 #endif /* RPC_XDR */
 
 /*
@@ -219,5 +233,11 @@ program KRB5_IPROP_PROG {
 		 */
 		kdb_fullresync_result_t
 		IPROP_FULL_RESYNC(void) = 2;
+
+		/*
+		 * Full resync with version marker
+		 */
+		kdb_fullresync_result_t
+		IPROP_FULL_RESYNC_EXT(uint32_t) = 3;
 	} = 1;
 } = 100423;

@@ -1,3 +1,10 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* tests/mkeystash_compat/bigendian.c */
+/*
+ * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+ * Use is subject to license terms.
+ */
+
 #include <stdio.h>
 
 /*
@@ -11,7 +18,7 @@ int main()
     unsigned char *char_array = (unsigned char*)&int_var;
 
     if (char_array[0] == 0)
-	return 0; /* big endian */
+        return 0; /* big endian */
     else
-	return 1; /* little endian */
+        return 1; /* little endian */
 }

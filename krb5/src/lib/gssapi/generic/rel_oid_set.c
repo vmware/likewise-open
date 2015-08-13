@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /* #ident  "@(#)gss_release_oid_set.c 1.12     95/08/23 SMI" */
 
 /*
@@ -50,10 +50,10 @@ generic_gss_release_oid_set(
         return(GSS_S_COMPLETE);
 
     for (i=0; i<(*set)->count; i++)
-        free((*set)->elements[i].elements);
+        gssalloc_free((*set)->elements[i].elements);
 
-    free((*set)->elements);
-    free(*set);
+    gssalloc_free((*set)->elements);
+    gssalloc_free(*set);
 
     *set = GSS_C_NULL_OID_SET;
 

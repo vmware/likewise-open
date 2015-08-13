@@ -40,27 +40,45 @@ This package provides files for developing against the Likewise APIs
 case "$1" in
     1)
 
-    /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
-    /bin/systemctl daemon-reload
+    /bin/systemctl 2>/dev/null
+    if [ $? -eq 0 ]; then
+        /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
+        /bin/systemctl daemon-reload
 
-    /bin/systemctl start lwsmd.service
+        /bin/systemctl start lwsmd.service
 
-    /bin/systemctl enable lwsmd.service
+        /bin/systemctl enable lwsmd.service
 
-    echo -n "Waiting for lwreg startup."
-    while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
-    do
-        echo -n "."
-        sleep 1
-    done
-    echo "ok"
-    for file in %{_prefix}/share/config/*.reg; do
-        echo "Installing settings from $file..."
-        %{_bindir}/lwregshell import $file
-    done
-    %{_bindir}/lwsm -q refresh
-    sleep 2
-    %{_bindir}/lwsm start @PRIMARY_SERVICE@
+        echo "Waiting for lwreg startup."
+        while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
+        do
+            echo -n "."
+            sleep 1
+        done
+        echo "ok"
+        for file in %{_prefix}/share/config/*.reg; do
+            echo "Installing settings from $file..."
+            %{_bindir}/lwregshell import $file
+        done
+        %{_bindir}/lwsm -q refresh
+        sleep 2
+        %{_bindir}/lwsm start @PRIMARY_SERVICE@
+    else
+        started_lwregd=false
+        if [ -z "`pidof lwsmd`" ]; then
+            %{_sbindir}/lwregd &
+            sleep 5
+            started_lwregd=true
+        fi
+        for file in %{_prefix}/share/config/*.reg; do
+            echo "Installing settings from $file..."
+            %{_bindir}/lwregshell import $file
+        done
+        if [ $started_lwregd = true ]; then
+            kill -TERM `pidof lwregd`
+            wait
+        fi
+    fi
     ;;
 
     2)
@@ -69,24 +87,42 @@ case "$1" in
     ## chkconfig behaves differently on various updates of RHEL and SUSE
     ## So, we massage the init script according to the release, for now.
 
-    [ -z "`pidof lwsmd`" ] && /bin/systemctl start lwsmd.service
+    /bin/systemctl 2>/dev/null
+    if [ $? -eq 0 ]; then
+        [ -z "`pidof lwsmd`" ] && /bin/systemctl start lwsmd.service
 
-    echo -n "Waiting for lwreg startup."
-    while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
-    do
-        echo -n "."
-        sleep 1
-    done
-    echo "ok"
+        echo "Waiting for lwreg startup."
+        while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
+        do
+            echo -n "."
+            sleep 1
+        done
+        echo "ok"
 
-    for file in %{_prefix}/share/config/*.reg; do
-        echo "Upgrading settings from $file..."
-        %{_bindir}/lwregshell import $file
-    done
-    %{_bindir}/lwsm -q refresh
-    sleep 2
-    %{_bindir}/lwsm stop lwreg
-    %{_bindir}/lwsm start @PRIMARY_SERVICE@
+        for file in %{_prefix}/share/config/*.reg; do
+            echo "Upgrading settings from $file..."
+            %{_bindir}/lwregshell import $file
+        done
+        %{_bindir}/lwsm -q refresh
+        sleep 2
+        %{_bindir}/lwsm stop lwreg
+        %{_bindir}/lwsm start @PRIMARY_SERVICE@
+    else
+        started_lwregd=false
+        if [ -z "`pidof lwsmd`" ]; then
+            %{_sbindir}/lwregd &
+            sleep 5
+            started_lwregd=true
+        fi
+        for file in %{_prefix}/share/config/*.reg; do
+            echo "Upgrading settings from $file..."
+            %{_bindir}/lwregshell import $file
+        done
+        if [ $started_lwregd = true ]; then
+            kill -TERM `pidof lwregd`
+            wait
+        fi
+    fi
     ;;
 
 esac

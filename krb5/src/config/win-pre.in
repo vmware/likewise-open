@@ -86,9 +86,11 @@ S=^\
 C=.^\
 
 srcdir = .
-SRCTOP = $(srcdir)\$(BUILDTOP)
+top_srcdir = $(srcdir)\$(BUILDTOP)
 
-!if defined(KRB5_USE_DNS) || defined(KRB5_USE_DNS_KDC) || defined(KRB5_USE_DNS_REALMS)
+DNS_LIB=$(BUILDTOP)\util\wshelper\$(OUTPRE)$(DLIB).lib
+DNS_INC=$(BUILDTOP)\windows\include
+
 !if defined(KRB5_NO_WSHELPER)
 DNSMSG=resolver
 !else
@@ -105,23 +107,18 @@ DNSFLAGS=-DWSHELPER=1
 !endif
 DNSLIBS=$(DNS_LIB)
 DNSFLAGS=-I$(DNS_INC) $(DNSFLAGS) -DKRB5_DNS_LOOKUP=1
-!if defined(KRB5_USE_DNS_KDC)
-DNSFLAGS=$(DNSFLAGS) -DKRB5_DNS_LOOKUP_KDC=1
-!endif
 !if defined(KRB5_USE_DNS_REALMS)
 DNSFLAGS=$(DNSFLAGS) -DKRB5_DNS_LOOKUP_REALM=1
-!endif
-!else
-DNSLIBS=
-DNSFLAGS=
 !endif
 
 !if ("$(CPU)" == "i386")
 TIME_T_FLAGS=-D_USE_32BIT_TIME_T
 !endif
 
-!if defined(KRB5_KFW_COMPILE)
+!if defined (NODEBUG)
 KFWFLAGS=-DUSE_LEASH=1
+!else
+KFWFLAGS=-DUSE_LEASH=1 -DDEBUG -D_CRTDBG_MAP_ALLOC
 !endif
 
 #
@@ -130,19 +127,18 @@ KFWFLAGS=-DUSE_LEASH=1
 CC=cl
 
 PDB_OPTS=-Fd$(OUTPRE)\ -FD
-CPPFLAGS=-I$(SRCTOP)\include -I$(SRCTOP)\include\krb5 $(DNSFLAGS) -DWIN32_LEAN_AND_MEAN -DKRB5_DEPRECATED=1 -D_CRT_SECURE_NO_DEPRECATE $(KFWFLAGS) $(TIME_T_FLAGS)
-CCOPTS=-nologo /W3 $(PDB_OPTS) $(DLL_FILE_DEF)
-LOPTS=-nologo -incremental:no
+CPPFLAGS=-I$(top_srcdir)\include -I$(top_srcdir)\include\krb5 $(DNSFLAGS) -DWIN32_LEAN_AND_MEAN -DKRB5_DEPRECATED=1 -DKRB5_PRIVATE -D_CRT_SECURE_NO_DEPRECATE $(KFWFLAGS) $(TIME_T_FLAGS)
+CCOPTS=-nologo /EHsc /W3 $(PDB_OPTS) $(DLL_FILE_DEF)
+LOPTS=-nologo -incremental:no -manifest
 
 !if  ("$(CPU)" == "IA64" ) || ("$(CPU)" == "AMD64" ) || ("$(CPU)" == "ALPHA64" )
-CCLINKOPTION=/link bufferoverflowu.lib
-SCLIB=bufferoverflowu.lib
-DEBUGOPT=/Zi
+ENTRYPOINT=_DllMainCRTStartup
 !else
+ENTRYPOINT=_DllMainCRTStartup@12
+!endif
 CCLINKOPTION=
 SCLIB=
 DEBUGOPT=/Zi
-!endif
 
 #if the compiler is vstudio 8, generate manifest
 !if exists("$(VCINSTALLDIR)\..\..\MICROSOFT VISUAL STUDIO 8")
@@ -169,9 +165,15 @@ LOPTS=$(LOPTS) -debug
 !endif
 CCOPTS=/Os /MD $(CCOPTS)
 LOPTS=$(LOPTS)
+!ifdef DEBUG_SYMBOL
+INSTALLDBGSYMS=copy
+!else
+INSTALLDBGSYMS=rem
+!endif
 !else
 CCOPTS=/Od $(DEBUGOPT) /MDd $(CCOPTS)
 LOPTS=$(LOPTS) -debug
+INSTALLDBGSYMS=copy
 !endif
 
 # XXX - NOTE: We should probably use DllMainCRTStartup
@@ -198,6 +200,8 @@ KLIB=$(BUILDTOP)\lib\$(OUTPRE)krb5_32.lib
 K4LIB=$(BUILDTOP)\lib\$(OUTPRE)krb4_32.lib
 SLIB=$(BUILDTOP)\lib\$(OUTPRE)k5sprt32.lib
 GLIB=$(BUILDTOP)\lib\$(OUTPRE)gssapi32.lib
+DLIB=wshelp32
+CCLIB=krbcc32
 WLIB=
 
 !if  ("$(CPU)" == "IA64" ) || ("$(CPU)" == "AMD64" ) || ("$(CPU)" == "ALPHA64" )
@@ -207,6 +211,8 @@ KLIB=$(BUILDTOP)\lib\$(OUTPRE)krb5_64.lib
 K4LIB=$(BUILDTOP)\lib\$(OUTPRE)krb4_64.lib
 SLIB=$(BUILDTOP)\lib\$(OUTPRE)k5sprt64.lib
 GLIB=$(BUILDTOP)\lib\$(OUTPRE)gssapi64.lib
+DLIB=wshelp64
+CCLIB=krbcc64
 WLIB=
 
 !endif
@@ -215,11 +221,8 @@ KRB4_INCLUDES=-I$(BUILDTOP)/include/kerberosIV
 
 COM_ERR_DEPS	= $(BUILDTOP)/include/com_err.h
 
-ARADD=rem
 RANLIB=rem
-ARCHIVE=rem
 
-LIBEXT=lib
 OBJEXT=obj
 EXEEXT=.exe
 
@@ -227,6 +230,9 @@ MFLAGS=$(MAKEFLAGS)
 !ifdef MIGNORE
 MAKE=-$(MAKE)
 !endif
+
+CRYPTO_IMPL	= builtin
+PRNG_ALG	= fortuna
 
 CFLAGS = $(CCOPTS)
 ALL_CFLAGS = $(DEFS) $(DEFINES) $(LOCALINCLUDES) $(CPPFLAGS) $(CFLAGS)

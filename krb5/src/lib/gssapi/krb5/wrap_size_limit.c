@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 2000 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
@@ -21,7 +21,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
@@ -74,7 +73,7 @@
 #include "gssapiP_krb5.h"
 
 /* V2 interface */
-OM_uint32
+OM_uint32 KRB5_CALLCONV
 krb5_gss_wrap_size_limit(minor_status, context_handle, conf_req_flag,
                          qop_req, req_output_size, max_input_size)
     OM_uint32           *minor_status;
@@ -95,14 +94,8 @@ krb5_gss_wrap_size_limit(minor_status, context_handle, conf_req_flag,
         return(GSS_S_FAILURE);
     }
 
-    /* validate the context handle */
-    if (! kg_validate_ctx_id(context_handle)) {
-        *minor_status = (OM_uint32) G_VALIDATE_FAILED;
-        return(GSS_S_NO_CONTEXT);
-    }
-
     ctx = (krb5_gss_ctx_id_rec *) context_handle;
-    if (! ctx->established) {
+    if (ctx->terminated || !ctx->established) {
         *minor_status = KG_CTX_INCOMPLETE;
         return(GSS_S_NO_CONTEXT);
     }
@@ -114,10 +107,12 @@ krb5_gss_wrap_size_limit(minor_status, context_handle, conf_req_flag,
 
         /* Token header: 16 octets.  */
         if (conf_req_flag) {
+            krb5_key key;
             krb5_enctype enctype;
 
-            enctype = ctx->have_acceptor_subkey ? ctx->acceptor_subkey->enctype
-                                                : ctx->subkey->enctype;
+            key = ctx->have_acceptor_subkey ? ctx->acceptor_subkey
+                : ctx->subkey;
+            enctype = key->keyblock.enctype;
 
             while (sz > 0 && krb5_encrypt_size(sz, enctype) + 16 > req_output_size)
                 sz--;
@@ -140,7 +135,7 @@ krb5_gss_wrap_size_limit(minor_status, context_handle, conf_req_flag,
             size_t cksumsize;
 
             cksumtype = ctx->have_acceptor_subkey ? ctx->acceptor_subkey_cksumtype
-                                                  : ctx->cksumtype;
+                : ctx->cksumtype;
 
             err = krb5_c_checksum_length(ctx->k5_context, cksumtype, &cksumsize);
             if (err) {
@@ -163,7 +158,7 @@ krb5_gss_wrap_size_limit(minor_status, context_handle, conf_req_flag,
     /* Calculate the token size and subtract that from the output size */
     overhead = 7 + ctx->mech_used->length;
     data_size = req_output_size;
-    conflen = kg_confounder_size(ctx->k5_context, ctx->enc);
+    conflen = kg_confounder_size(ctx->k5_context, ctx->enc->keyblock.enctype);
     data_size = (conflen + data_size + 8) & (~(OM_uint32)7);
     ohlen = g_token_size(ctx->mech_used,
                          (unsigned int) (data_size + ctx->cksum_size + 14))

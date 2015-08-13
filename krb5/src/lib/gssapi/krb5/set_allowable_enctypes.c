@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/gssapi/krb5/set_allowable_enctypes.c */
 /*
- * lib/gssapi/krb5/set_allowable_enctypes.c
- *
  * Copyright 2004  by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -23,7 +22,9 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
+ */
+
+/*
  * krb5_gss_set_allowable_enctypes()
  */
 
@@ -59,9 +60,9 @@
 #endif
 #include "gssapi_krb5.h"
 
-OM_uint32 KRB5_CALLCONV
+OM_uint32
 gss_krb5int_set_allowable_enctypes(OM_uint32 *minor_status,
-                                   gss_cred_id_t cred_handle,
+                                   gss_cred_id_t *cred_handle,
                                    const gss_OID desired_oid,
                                    const gss_buffer_t value)
 {
@@ -70,7 +71,6 @@ gss_krb5int_set_allowable_enctypes(OM_uint32 *minor_status,
     OM_uint32 major_status;
     krb5_gss_cred_id_t cred;
     krb5_error_code kerr = 0;
-    OM_uint32 temp_status;
     struct krb5_gss_set_allowable_enctypes_req *req;
 
     /* Assume a failure */
@@ -81,16 +81,7 @@ gss_krb5int_set_allowable_enctypes(OM_uint32 *minor_status,
     req = (struct krb5_gss_set_allowable_enctypes_req *)value->value;
 
     /* verify and valildate cred handle */
-    if (cred_handle == GSS_C_NO_CREDENTIAL) {
-        kerr = KRB5_NOCREDS_SUPPLIED;
-        goto error_out;
-    }
-    major_status = krb5_gss_validate_cred(&temp_status, cred_handle);
-    if (GSS_ERROR(major_status)) {
-        kerr = temp_status;
-        goto error_out;
-    }
-    cred = (krb5_gss_cred_id_t) cred_handle;
+    cred = (krb5_gss_cred_id_t) *cred_handle;
 
     if (req->ktypes) {
         for (i = 0; i < req->num_ktypes && req->ktypes[i]; i++) {
@@ -100,9 +91,7 @@ gss_krb5int_set_allowable_enctypes(OM_uint32 *minor_status,
             }
         }
     } else {
-        kerr = k5_mutex_lock(&cred->lock);
-        if (kerr)
-            goto error_out;
+        k5_mutex_lock(&cred->lock);
         if (cred->req_enctypes)
             free(cred->req_enctypes);
         cred->req_enctypes = NULL;
@@ -119,11 +108,7 @@ gss_krb5int_set_allowable_enctypes(OM_uint32 *minor_status,
         kerr = ENOMEM;
         goto error_out;
     }
-    kerr = k5_mutex_lock(&cred->lock);
-    if (kerr) {
-        free(new_ktypes);
-        goto error_out;
-    }
+    k5_mutex_lock(&cred->lock);
     if (cred->req_enctypes)
         free(cred->req_enctypes);
     cred->req_enctypes = new_ktypes;

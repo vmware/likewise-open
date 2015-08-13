@@ -1,3 +1,4 @@
+
 encode_krb5_ldap_seqof_key_data:
 
 [Sequence/Sequence Of]
@@ -27,4 +28,3 @@ encode_krb5_ldap_seqof_key_data:
 .  .  .  [1] [Sequence/Sequence Of]
 .  .  .  .  [0] [Integer] 2
 .  .  .  .  [1] [Octet String] "key2"
-

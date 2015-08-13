@@ -1,5 +1,3 @@
-thisconfigdir=..$(S)..
-myfulldir=ccapi$(S)test
 mydir=ccapi$(S)test
 BUILDTOP=..$(S)..
 CCAPI=$(BUILDTOP)$(S)CCAPI
@@ -23,7 +21,6 @@ LOCALINCLUDES = /I$(BUILDTOP) /I$(BUILDTOP)$(S)include /I$(BUILDTOP)$(S)include$
 ##DOS##       ccs_reply.h \
 ##DOS##       ccs_request.h \
 ##DOS##       ccs_request_c.c \
-##DOS##       cci_stream.h \
 ##DOS##       cci_types.h \
 ##DOS##       win-utils.h
 
@@ -31,6 +28,7 @@ LOCALINCLUDES = /I$(BUILDTOP) /I$(BUILDTOP)$(S)include /I$(BUILDTOP)$(S)include$
 ##DOS##       ccapi_ccache_iterator.c \
 ##DOS##       ccapi_context.c \
 ##DOS##       ccapi_context_change_time.c \
+##DOS##       ccapi_err.c \
 ##DOS##       ccapi_ipc.c \
 ##DOS##       ccapi_credentials.c \
 ##DOS##       ccapi_credentials_iterator.c \
@@ -39,8 +37,7 @@ LOCALINCLUDES = /I$(BUILDTOP) /I$(BUILDTOP)$(S)include /I$(BUILDTOP)$(S)include$
 
 ##DOS##COMSRC=cci_cred_union.c \
 ##DOS##       cci_identifier.c \
-##DOS##       cci_message.c \
-##DOS##       cci_stream.c
+##DOS##       cci_message.c
 
 ##DOS##COWSRC=cci_os_identifier.c
 
@@ -67,6 +64,7 @@ PINGOBJS =  $(OUTPRE)ccapi_ccache.$(OBJEXT) \
             $(OUTPRE)ccapi_ccache_iterator.$(OBJEXT) \
             $(OUTPRE)ccapi_context.$(OBJEXT) \
             $(OUTPRE)ccapi_context_change_time.$(OBJEXT) \
+            $(OUTPRE)ccapi_err.$(OBJEXT) \
             $(OUTPRE)ccapi_ipc.$(OBJEXT) \
             $(OUTPRE)ccapi_credentials.$(OBJEXT) \
             $(OUTPRE)ccapi_credentials_iterator.$(OBJEXT) \
@@ -76,7 +74,6 @@ PINGOBJS =  $(OUTPRE)ccapi_ccache.$(OBJEXT) \
             $(OUTPRE)cci_identifier.$(OBJEXT) \
             $(OUTPRE)cci_os_identifier.$(OBJEXT) \
             $(OUTPRE)cci_message.$(OBJEXT) \
-            $(OUTPRE)cci_stream.$(OBJEXT) \
             $(OUTPRE)ccs_request_c.$(OBJEXT) \
             $(OUTPRE)pingtest.$(OBJEXT) \
             $(OBJECTS)
@@ -138,7 +135,7 @@ MORE_TESTS =    test_cc_context_release \
 ##### Linker
 LINK	= link
 LIBS    = -lkrb5
-##DOS##LIBS = advapi32.lib rpcrt4.lib user32.lib ws2_32.lib ccapi.lib
+##DOS##LIBS = $(CLIB) $(SLIB) advapi32.lib rpcrt4.lib user32.lib ws2_32.lib $(CCLIB).lib
 LFLAGS	= /nologo $(LOPTS)
 
 all-mac::     setup-test-dir pingtest simple_lock_test build-base build-tests link-tests copy-script success-message
@@ -191,7 +188,7 @@ $(COWSRC):
 $(OUTPRE)pingtest.exe: $(OBJECTS) $(PINGOBJS)
 # There doesn't appear to be any way to examine a variable and return a value
 #  indicating whether a string is present in it.  We use a perl script to
-#  check the LIB variable.  If the path to ccapi.lib isn't present, the script
+#  check the LIB variable.  If the path to $(CCLIB).lib isn't present, the script
 #  deletes a.tmp and the following nmake actions correct LIB.
 	echo %%PATH%% > a.tmp
     perl setlib.pl
@@ -214,10 +211,7 @@ simple_lock_test:
 	$(CC) -o $(TESTDIR)/simple_lock_test simple_lock_test.c $(LIBS)
 
 copy-script:
-    echo Copy script ...
-    cd
-    dir ccapi_test
-	cp $(SCRIPT_NAME) $(DSTDIR)$(S)$(SCRIPT_NAME)
+	$(CP) $(SCRIPT_NAME) $(DSTDIR)$(S)$(SCRIPT_NAME)
 
 success-message:
 	@echo
@@ -227,3 +221,5 @@ success-message:
 
 clean::
 	-rm -rf "$(OBJDIR)"
+	-rm -rf $(LIBSRC)
+	-rm -rf $(WINH)

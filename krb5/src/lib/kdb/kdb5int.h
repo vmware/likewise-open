@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/kdb/kdb5int.h - Private header for kdb5 library */
 /*
- * lib/kdb5/kdb5int.h
- *
  * Copyright (C) 2008 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -22,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
- * Private header file for the kdb5 library for internal functions
  */
 
 #ifndef __KDB5INT_H__
@@ -34,11 +31,10 @@
 
 krb5_error_code
 krb5int_put_principal_no_log(krb5_context kcontext,
-			     krb5_db_entry *entries, int *nentries);
+                             krb5_db_entry *entries);
 
 krb5_error_code
 krb5int_delete_principal_no_log(krb5_context kcontext,
-				krb5_principal search_for,
-				int *nentries);
+                                krb5_principal search_for);
 
 #endif /* __KDB5INT_H__ */

@@ -1,37 +1,39 @@
 /* @(#)svc.h	2.2 88/07/29 4.0 RPCSRC; from 1.20 88/02/08 SMI */
 /*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- * 
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- * 
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- * 
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- * 
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
+ * Copyright (c) 2010, Oracle America, Inc.
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ *
+ *     * Neither the name of the "Oracle America, Inc." nor the names of
+ *       its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
  * svc.h, Server-side remote procedure call interface.
- *
- * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
 #ifndef GSSRPC_SVC_H
@@ -82,18 +84,18 @@ typedef struct SVCXPRT {
 	    /* receive incomming requests */
 	    bool_t	(*xp_recv)(struct SVCXPRT *, struct rpc_msg *);
 	    /* get transport status */
-	    enum xprt_stat (*xp_stat)(struct SVCXPRT *); 
+	    enum xprt_stat (*xp_stat)(struct SVCXPRT *);
 	    /* get arguments */
 	    bool_t	(*xp_getargs)(struct SVCXPRT *, xdrproc_t,
 				      void *);
 	    /* send reply */
 	    bool_t	(*xp_reply)(struct SVCXPRT *,
-				    struct rpc_msg *);	 
+				    struct rpc_msg *);
             /* free mem allocated for args */
 	    bool_t	(*xp_freeargs)(struct SVCXPRT *, xdrproc_t,
 				       void *);
 	    /* destroy this struct */
-	    void	(*xp_destroy)(struct SVCXPRT *); 
+	    void	(*xp_destroy)(struct SVCXPRT *);
 	} *xp_ops;
 	int		xp_addrlen;	 /* length of remote address */
 	struct sockaddr_in xp_raddr;	 /* remote address */
@@ -241,7 +243,7 @@ extern void	xprt_unregister(SVCXPRT *);
  * Note: do not confuse access-control failure with weak authentication!
  *
  * NB: In pure implementations of rpc, the caller always waits for a reply
- * msg.  This message is sent when svc_sendreply is called.  
+ * msg.  This message is sent when svc_sendreply is called.
  * Therefore pure service implementations should always call
  * svc_sendreply even if the function logically returns void;  use
  * xdr.h - xdr_void for the xdr routine.  HOWEVER, tcp based rpc allows
@@ -275,7 +277,7 @@ extern void	svcerr_systemerr(SVCXPRT *);
 
 /*
  * Global keeper of rpc service descriptors in use
- * dynamic; must be inspected before each call to select 
+ * dynamic; must be inspected before each call to select
  */
 extern int svc_maxfd;
 #ifdef FD_SETSIZE

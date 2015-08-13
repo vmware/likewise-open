@@ -1,6 +1,5 @@
+/* windows/winlevel.h */
 /*
- * winlevel.h
- *
  * Copyright (C) 2006 by the Massachusetts Institute of Technology.
  * All rights reserved.
  *
@@ -25,9 +24,9 @@
  */
 
 /*
- * This is the slave file for Windows version stamping purposes. 
-/* This value should be an ever increasing number that is 
+ * This is the slave file for Windows version stamping purposes.
+/* This value should be an ever increasing number that is
  * updated for each alpha, beta, final release.   This will ensure
  * that file identifiers are unique
- */ 
+ */
 #define KRB5_BUILDLEVEL		0

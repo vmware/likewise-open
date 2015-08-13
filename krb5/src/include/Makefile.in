@@ -1,5 +1,3 @@
-thisconfigdir=..
-myfulldir=include
 mydir=include
 BUILDTOP=$(REL)..
 KRB5RCTMPDIR= @KRB5_RCTMPDIR@
@@ -19,9 +17,10 @@ maybe-make-db.h-sys:
 maybe-make-db.h-redirect:
 	test -r db.h || echo '#include <@DB_HEADER@>' > db.h
 
-ET_HEADERS = adm_err.h asn1_err.h kdb5_err.h krb5_err.h
+ET_HEADERS = adm_err.h asn1_err.h kdb5_err.h krb5_err.h k5e1_err.h
 K5_ET_HEADERS = \
 	../lib/krb5/error_tables/krb5_err.h \
+	../lib/krb5/error_tables/k5e1_err.h \
 	../lib/krb5/error_tables/kdb5_err.h \
 	../lib/krb5/error_tables/kv5m_err.h \
 	../lib/krb5/error_tables/krb524_err.h \
@@ -34,11 +33,11 @@ all-windows:: autoconf.h $(BUILT_HEADERS) verify-calling-conventions-krb5
 all-unix:: @MAINT@ verify-calling-conventions-krb5
 
 $(srcdir)/autoconf.h.in: @MAINT@ $(srcdir)/autoconf.stmp
-$(srcdir)/autoconf.stmp: $(srcdir)/$(thisconfigdir)/configure.in $(SRCTOP)/aclocal.m4
-	$(RM) -r $(srcdir)/$(thisconfigdir)/autom4te.cache
-	cd $(srcdir)/$(thisconfigdir) && $(AUTOHEADER) --include=$(CONFIG_RELTOPDIR) $(AUTOHEADERFLAGS)
+$(srcdir)/autoconf.stmp: $(top_srcdir)/configure.in $(top_srcdir)/aclocal.m4
+	$(RM) -r $(top_srcdir)/autom4te.cache
+	cd $(top_srcdir) && $(AUTOHEADER) --include=$(CONFIG_RELTOPDIR) $(AUTOHEADERFLAGS)
 	touch $(srcdir)/autoconf.stmp
-	$(RM) -r $(srcdir)/$(thisconfigdir)/autom4te.cache
+	$(RM) -r $(top_srcdir)/autom4te.cache
 
 ##DOS##autoconf.h: win-mac.h
 ##DOS##	$(CP) win-mac.h $@
@@ -49,14 +48,15 @@ $(srcdir)/autoconf.stmp: $(srcdir)/$(thisconfigdir)/configure.in $(SRCTOP)/acloc
 ##DOS##!if 0
 # config.status will now update autoconf.stamp itself.
 autoconf.h: autoconf.stamp
-autoconf.stamp: $(srcdir)/autoconf.h.in $(thisconfigdir)/config.status
-	(cd $(thisconfigdir) && $(SHELL) config.status $(mydir)/autoconf.h)
+autoconf.stamp: $(srcdir)/autoconf.h.in $(BUILDTOP)/config.status
+	(cd $(BUILDTOP) && $(SHELL) config.status $(mydir)/autoconf.h)
 
 SYSCONFDIR = @sysconfdir@
 LOCALSTATEDIR = @localstatedir@
 BINDIR = @bindir@
 SBINDIR = @sbindir@
 LIBDIR  = @libdir@
+SYSCONFCONF = @SYSCONFCONF@
 
 PROCESS_REPLACE = -e "s+@KRB5RCTMPDIR+$(KRB5RCTMPDIR)+" \
 		  -e "s+@PREFIX+$(INSTALL_PREFIX)+" \
@@ -66,8 +66,10 @@ PROCESS_REPLACE = -e "s+@KRB5RCTMPDIR+$(KRB5RCTMPDIR)+" \
 		  -e "s+@SBINDIR+$(SBINDIR)+" \
 		  -e "s+@MODULEDIR+$(MODULE_DIR)+" \
 		  -e "s+@GSSMODULEDIR+$(GSS_MODULE_DIR)+" \
-	-e 's+@LOCALSTATEDIR+$(LOCALSTATEDIR)+' \
-	-e 's+@SYSCONFDIR+$(SYSCONFDIR)+' 
+		  -e 's+@LOCALSTATEDIR+$(LOCALSTATEDIR)+' \
+		  -e 's+@SYSCONFDIR+$(SYSCONFDIR)+' \
+		  -e 's+@DYNOBJEXT+$(DYNOBJEXT)+' \
+		  -e 's+@SYSCONFCONF+$(SYSCONFCONF)+'
 
 OSCONFSRC = $(srcdir)/osconf.hin
 
@@ -92,20 +94,20 @@ krb5.stamp: $(srcdir)/krb5/krb5.hin $(K5_ET_HEADERS)
 	touch krb5.stamp
 
 verify-calling-conventions-krb5: private-and-public-decls
-	$(PERL) -w $(SRCTOP)/util/def-check.pl private-and-public-decls $(SRCTOP)/lib/krb5_32.def
+	$(PERL) -w $(top_srcdir)/util/def-check.pl private-and-public-decls $(top_srcdir)/lib/krb5_32.def
 
 ##DOS##!if 0
-HEADERS_TO_CHECK = krb5/krb5.h $(srcdir)/k5-int.h $(srcdir)/krb5/preauth_plugin.h
+HEADERS_TO_CHECK = krb5/krb5.h $(srcdir)/k5-int.h $(srcdir)/krb5/clpreauth_plugin.h
 
 private-and-public-decls: $(HEADERS_TO_CHECK)
 	cat $(HEADERS_TO_CHECK) > $@
 ##DOS##!endif
 ##DOS##private-and-public-decls:
-##DOS##	copy krb5\krb5.h+k5-int.h+krb5\preauth_plugin.h $@
+##DOS##	copy /y krb5\krb5.h+k5-int.h+krb5\clpreauth_plugin.h $@
 
 #
 # Build the error table include files:
-# asn1_err.h kdb5_err.h krb5_err.h kv5m_err.h krb524_err.h
+# asn1_err.h kdb5_err.h krb5_err.h k5e1_err.h kv5m_err.h krb524_err.h
 
 $(K5_ET_HEADERS): rebuild-error-tables
 	: $@
@@ -116,24 +118,40 @@ rebuild-error-tables:
 force:
 
 clean-unix::
-	$(RM) krb5/krb5.h krb5_err.h kdb5_err.h kv5m_err.h krb524_err.h \
-		asn1_err.h private-and-public-decls krb5.stamp
+	$(RM) krb5/krb5.h krb5_err.h k5e1_err.h kdb5_err.h kv5m_err.h \
+		krb524_err.h asn1_err.h private-and-public-decls krb5.stamp
 	$(RM) $(ET_HEADERS) autoconf.stamp
 
 clean-windows::
 	$(RM) com_err.h profile.h
-	$(RM) gssapi\gssapi.h gssapi\gssapi_generic.h gssapi\gssapi_krb5.h gssapi\timestamp
-	if exist gssapi\nul rmdir gssapi
+	$(RM) gssapi\gssapi.h gssapi\gssapi_generic.h gssapi\gssapi_krb5.h
+	$(RM) gssapi\gssapi_alloc.h gssapi\gssapi_ext.h gssapi\timestamp
+	if exist gssapi\nul rmdir /s /q gssapi
 	$(RM) osconf.h autoconf.h autoconf.stamp
 	@echo Making clean in include
 
 clean::
 	$(RM) osconf.new $(BUILT_HEADERS)
 
+distclean::
+	$(RM) autoconf.h
+
 install-headers-unix install:: krb5/krb5.h profile.h
 	$(INSTALL_DATA) $(srcdir)/krb5.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5.h
 	$(INSTALL_DATA) $(srcdir)/kdb.h $(DESTDIR)$(KRB5_INCDIR)$(S)kdb.h
 	$(INSTALL_DATA) krb5/krb5.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)krb5.h
+	$(INSTALL_DATA) $(srcdir)/krb5/ccselect_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)ccselect_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/clpreauth_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)clpreauth_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/hostrealm_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)hostrealm_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/kdcpreauth_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)kdcpreauth_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/localauth_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)localauth_plugin.h
 	$(INSTALL_DATA) $(srcdir)/krb5/locate_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)locate_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/preauth_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)preauth_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/pwqual_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)pwqual_plugin.h
+	$(INSTALL_DATA) $(srcdir)/krb5/kadm5_hook_plugin.h $(DESTDIR)$(KRB5_INCDIR)$(S)krb5$(S)kadm5_hook_plugin.h
 	$(INSTALL_DATA) profile.h $(DESTDIR)$(KRB5_INCDIR)$(S)profile.h
 	$(INSTALL_DATA) $(srcdir)/gssapi.h $(DESTDIR)$(KRB5_INCDIR)$(S)gssapi.h
+	$(INSTALL_DATA) $(srcdir)/krad.h $(DESTDIR)$(KRB5_INCDIR)/krad.h
+
+depend:: krb5/krb5.h $(BUILT_HEADERS)

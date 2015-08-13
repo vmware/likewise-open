@@ -1,6 +1,4 @@
-thisconfigdir=../../..
-myfulldir=ccapi/server/unix
-mydir=ccapi/server/unix
+mydir=ccapi$(S)server$(S)unix
 BUILDTOP=$(REL)..$(S)..$(S)..
 
 STLIBOBJS=
@@ -12,4 +10,3 @@ clean-unix:: clean-libobjs
 
 @libobj_frag@
 
-# +++ Dependency line eater +++

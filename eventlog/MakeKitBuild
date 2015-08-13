@@ -56,7 +56,11 @@ configure()
 	    VARPREFIX=LIBXML2 \
             libxml-2.0
         then
-            mk_fail "libxml2 not found"
+            # One last try using the standard CFLAGS/LDFLAGS
+            mk_check_headers \
+               FAIL=yes \
+               libxml/tree.h libxml/xpath.h libxml/parser.h libxml/xpathInternals.h
+            mk_check_libraries FAIL=yes xml2
         fi
     fi
 

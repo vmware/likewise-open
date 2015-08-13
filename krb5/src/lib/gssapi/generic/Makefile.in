@@ -1,9 +1,6 @@
-thisconfigdir=../../..
-myfulldir=lib/gssapi/generic
-mydir=lib/gssapi/generic
+mydir=lib$(S)gssapi$(S)generic
 BUILDTOP=$(REL)..$(S)..$(S)..
 LOCALINCLUDES = -I. -I$(srcdir) -I$(srcdir)/..
-DEFS=
 
 ##DOS##BUILDTOP = ..\..\..
 ##DOS##PREFIXDIR=generic
@@ -19,6 +16,7 @@ EHDRDIR= $(BUILDTOP)$(S)include$(S)gssapi
 
 HDRS=	$(EHDRDIR)$(S)gssapi.h \
 	$(EHDRDIR)$(S)gssapi_generic.h \
+	$(EHDRDIR)$(S)gssapi_alloc.h \
 	$(EHDRDIR)$(S)gssapi_ext.h
 
 MK_EHDRDIR=if test -d $(EHDRDIR); then :; else (set -x; mkdir $(EHDRDIR)); fi
@@ -30,6 +28,8 @@ $(EHDRDIR)$(S)gssapi.h: $(EHDRDIR)$(S)timestamp gssapi.h
 	$(CP) gssapi.h $@
 $(EHDRDIR)$(S)gssapi_generic.h: $(EHDRDIR)$(S)timestamp $(srcdir)$(S)gssapi_generic.h
 	$(CP) $(srcdir)$(S)gssapi_generic.h $@
+$(EHDRDIR)$(S)gssapi_alloc.h: $(EHDRDIR)$(S)timestamp $(srcdir)$(S)gssapi_alloc.h
+	$(CP) $(srcdir)$(S)gssapi_alloc.h $@
 $(EHDRDIR)$(S)gssapi_ext.h: $(EHDRDIR)$(S)timestamp $(srcdir)$(S)gssapi_ext.h
 	$(CP) $(srcdir)$(S)gssapi_ext.h $@
 
@@ -41,32 +41,26 @@ $(OUTPRE)gssapi_err_generic.$(OBJEXT): gssapi_err_generic.c
 gssapi_err_generic.h: gssapi_err_generic.et
 gssapi_err_generic.c: gssapi_err_generic.et
 
+##DOS##!if 0
 include_stdint=@include_stdint@
 include_inttypes=@include_inttypes@
 include_xom=@include_xom@
 ##DOS##include_stdint=rem
 ##DOS##include_inttypes=rem
 ##DOS##include_xom=rem
-gssapi.h: gssapi.hin $(BUILDTOP)/include/autoconf.h
+gssapi.h: gssapi.hin
 	@echo "Creating gssapi.h" ; \
 	h=gss$$$$; $(RM) $$h; \
 	(echo "/* This is the gssapi.h prologue. */"; \
 	$(include_stdint) && \
 	$(include_inttypes) && \
-	echo "#ifndef __ia64" && \
 	$(include_xom) && \
-	echo "#endif" && \
 	echo "/* End of gssapi.h prologue. */"&& \
 	cat $(srcdir)/gssapi.hin )> $$h && \
 	(set -x; $(MV) $$h $@) ; e=$$?; $(RM) $$h; exit $$e
-
-#if HasHashLibrary
-# UTIL_VALIDATE_SRC= $(srcdir)/util_validate.c
-# UTIL_VALIDATE_OBJ= util_validate.$(OBJEXT)
-#else
-#UTIL_VALIDATE_SRC= $(srcdir)/utl_nohash_validate.c
-#UTIL_VALIDATE_OBJ= utl_nohash_validate.$(OBJEXT)
-#endif
+##DOS##!endif
+##DOS##gssapi.h: gssapi.hin
+##DOS##	$(CP) $** $@
 
 SRCS = \
 	$(srcdir)/disp_com_err_status.c \
@@ -81,7 +75,6 @@ SRCS = \
 	$(srcdir)/util_ordering.c \
 	$(srcdir)/util_set.c \
 	$(srcdir)/util_token.c \
-	$(srcdir)/util_validate.c \
 	gssapi_err_generic.c
 
 OBJS = \
@@ -97,7 +90,6 @@ OBJS = \
 	$(OUTPRE)util_ordering.$(OBJEXT) \
 	$(OUTPRE)util_set.$(OBJEXT) \
 	$(OUTPRE)util_token.$(OBJEXT) \
-	$(OUTPRE)util_validate.$(OBJEXT) \
 	$(OUTPRE)gssapi_err_generic.$(OBJEXT)
 
 STLIBOBJS = \
@@ -113,29 +105,30 @@ STLIBOBJS = \
 	util_ordering.o \
 	util_set.o \
 	util_token.o \
-	util_validate.o \
 	gssapi_err_generic.o
 
-EXPORTED_HEADERS= gssapi_generic.h gssapi_ext.h
-EXPORTED_BUILT_HEADERS= gssapi.h $(ETHDRS)
+EXPORTED_HEADERS= gssapi_generic.h  gssapi_ext.h
+EXPORTED_BUILT_HEADERS= gssapi.h
 
 $(OBJS): $(EXPORTED_HEADERS) $(ETHDRS)
 
 all-unix:: $(EXPORTED_HEADERS) $(ETHDRS) $(HDRS)
 all-unix:: all-libobjs
 
-errmap.h: $(SRCTOP)/util/gen.pl $(SRCTOP)/util/t_array.pm \
-		$(SRCTOP)/util/t_bimap.pm
-	$(PERL) -w -I$(SRCTOP)/util $(SRCTOP)/util/gen.pl bimap errmap.h \
+errmap.h: $(top_srcdir)/util/gen.pl $(top_srcdir)/util/t_array.pm \
+		$(top_srcdir)/util/t_bimap.pm
+	$(PERL) -w -I$(top_srcdir)/util $(top_srcdir)/util/gen.pl bimap \
+		errmap.h \
 		NAME=mecherrmap LEFT=OM_uint32 RIGHT="struct mecherror" \
 		LEFTPRINT=print_OM_uint32 RIGHTPRINT=mecherror_print \
 		LEFTCMP=cmp_OM_uint32 RIGHTCMP=mecherror_cmp
 
-maptest.h: $(SRCTOP)/util/gen.pl $(SRCTOP)/util/t_array.pm \
-		$(SRCTOP)/util/t_bimap.pm
-	$(PERL) -w -I$(SRCTOP)/util $(SRCTOP)/util/gen.pl bimap maptest.h \
-		NAME=foo LEFT=int RIGHT=elt LEFTPRINT=intprt RIGHTPRINT=eltprt \
-		LEFTCMP=intcmp RIGHTCMP=eltcmp
+maptest.h: $(top_srcdir)/util/gen.pl $(top_srcdir)/util/t_array.pm \
+		$(top_srcdir)/util/t_bimap.pm
+	$(PERL) -w -I$(top_srcdir)/util $(top_srcdir)/util/gen.pl bimap \
+		maptest.h \
+		NAME=foo LEFT=int RIGHT=elt LEFTPRINT=intprt \
+		RIGHTPRINT=eltprt LEFTCMP=intcmp RIGHTCMP=eltcmp
 maptest.o: maptest.c maptest.h
 maptest: maptest.o
 	$(CC_LINK) -o maptest maptest.o
@@ -149,17 +142,17 @@ win-create-ehdrdir:
 	if not exist $(EHDRDIR)\nul mkdir $(EHDRDIR)
 
 clean-unix:: clean-libobjs
-	$(RM) $(ETSRCS) $(HDRS) $(EXPORTED_BUILT_HEADERS) \
-		$(EHDRDIR)$(S)timestamp
+	$(RM) $(ETHDRS) $(ETSRCS) $(HDRS) $(EXPORTED_BUILT_HEADERS) \
+		$(EHDRDIR)$(S)timestamp errmap.h maptest.h
 
 clean-windows::
-	$(RM) $(HDRS)
+	$(RM) $(HDRS) maptest.h
 	-if exist $(EHDRDIR)\nul rmdir $(EHDRDIR)
 
 generate-files-mac: gssapi.h errmap.h
 
 # Krb5InstallHeaders($(EXPORTED_HEADERS), $(KRB5_INCDIR)/krb5)
-install-headers-unix install:: $(EXPORTED_BUILT_HEADERS)
+install-headers-unix install:: gssapi.h
 	@set -x; for f in $(EXPORTED_HEADERS) ; \
 	do $(INSTALL_DATA) $(srcdir)/$$f	\
 		$(DESTDIR)$(KRB5_INCDIR)/gssapi/$$f ; \
@@ -169,7 +162,7 @@ install-headers-unix install:: $(EXPORTED_BUILT_HEADERS)
 		$(DESTDIR)$(KRB5_INCDIR)/gssapi/$$f ; \
 	done
 
-depend:: $(ETSRCS)
+depend:: $(ETSRCS) $(ETHDRS) $(HDRS) errmap.h maptest.h
 
 @libobj_frag@
 

@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * Copyright 1993 by OpenVision Technologies, Inc.
  *
@@ -24,10 +24,10 @@
 #include "gssapiP_krb5.h"
 
 /*
- * $Id: process_context_token.c 20876 2008-10-15 21:58:43Z tlyu $
+ * $Id$
  */
 
-OM_uint32
+OM_uint32 KRB5_CALLCONV
 krb5_gss_process_context_token(minor_status, context_handle,
                                token_buffer)
     OM_uint32 *minor_status;
@@ -37,17 +37,18 @@ krb5_gss_process_context_token(minor_status, context_handle,
     krb5_gss_ctx_id_rec *ctx;
     OM_uint32 majerr;
 
-    /* validate the context handle */
-    if (! kg_validate_ctx_id(context_handle)) {
-        *minor_status = (OM_uint32) G_VALIDATE_FAILED;
+    ctx = (krb5_gss_ctx_id_t) context_handle;
+
+    if (ctx->terminated || !ctx->established) {
+        *minor_status = KG_CTX_INCOMPLETE;
         return(GSS_S_NO_CONTEXT);
     }
 
-    ctx = (krb5_gss_ctx_id_t) context_handle;
-
-    if (! ctx->established) {
-        *minor_status = KG_CTX_INCOMPLETE;
-        return(GSS_S_NO_CONTEXT);
+    /* We only support context deletion tokens for now, and RFC 4121 does not
+     * define a context deletion token. */
+    if (ctx->proto) {
+        *minor_status = 0;
+        return(GSS_S_DEFECTIVE_TOKEN);
     }
 
     /* "unseal" the token */
@@ -58,8 +59,8 @@ krb5_gss_process_context_token(minor_status, context_handle,
                                      KG_TOK_DEL_CTX)))
         return(majerr);
 
-    /* that's it.  delete the context */
-
-    return(krb5_gss_delete_sec_context(minor_status, &context_handle,
-                                       GSS_C_NO_BUFFER));
+    /* Mark the context as terminated, but do not delete it (as that would
+     * leave the caller with a dangling context handle). */
+    ctx->terminated = 1;
+    return(GSS_S_COMPLETE);
 }

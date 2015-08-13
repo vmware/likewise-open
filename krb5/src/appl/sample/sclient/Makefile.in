@@ -1,10 +1,5 @@
-thisconfigdir=../../..
-myfulldir=appl/sample/sclient
-mydir=appl/sample/sclient
-
+mydir=appl$(S)sample$(S)sclient
 BUILDTOP=$(REL)..$(S)..$(S)..
-PROG_LIBPATH=-L$(TOPLIBD)
-PROG_RPATH=$(KRB5_LIBDIR)
 
 all:: sclient
 
@@ -16,4 +11,3 @@ clean::
 
 install::
 	$(INSTALL_PROGRAM) sclient ${DESTDIR}$(CLIENT_BINDIR)/sclient
-	$(INSTALL_DATA) $(srcdir)/sclient.M ${DESTDIR}$(CLIENT_MANDIR)/sclient.1

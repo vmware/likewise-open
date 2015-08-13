@@ -13,4 +13,3 @@ int main (int argc, const char * argv[]) {
 	err = check_cc_context_get_change_time();
     return err;
 }
-	

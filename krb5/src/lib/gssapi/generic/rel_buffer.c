@@ -1,4 +1,4 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /* #ident  "@(#)g_rel_buffer.c 1.2     96/02/06 SMI" */
 
 /*
@@ -48,7 +48,7 @@ generic_gss_release_buffer(
         return(GSS_S_COMPLETE);
 
     if (buffer->value) {
-        free(buffer->value);
+        gssalloc_free(buffer->value);
         buffer->length = 0;
         buffer->value = NULL;
     }

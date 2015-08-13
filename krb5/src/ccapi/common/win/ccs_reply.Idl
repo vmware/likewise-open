@@ -33,7 +33,7 @@
  */
 
 interface ccs_reply {
-    const long HSIZE = sizeof(void*);
+    const long HSIZE = 8;
 
 /* The reply from the server to a request from the client: */
 void ccs_rpc_request_reply(
@@ -53,7 +53,7 @@ void ccs_rpc_connect_reply(
     [out]                   long*           status );       /* Return code */
 
 void ccapi_listen(
-    handle_t                hBinding,
+    handle_t                hBinding,   
     [in]                    const long rpcmsg,              /* Message type */
     [out]                   long* status );                 /* Return code */
 

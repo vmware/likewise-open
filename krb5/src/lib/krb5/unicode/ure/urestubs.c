@@ -1,6 +1,4 @@
-/* $OpenLDAP: pkg/ldap/libraries/liblunicode/ure/urestubs.c,v 1.16 2008/01/07 23:20:05 kurt Exp $ */
-/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
- *
+/*
  * Copyright 1998-2008 The OpenLDAP Foundation.
  * All rights reserved.
  *
@@ -34,17 +32,18 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: urestubs.c,v 1.2 1999/09/21 15:47:44 mleisher Exp $" */
+
+/*
+ * This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ * $OpenLDAP: pkg/ldap/libraries/liblunicode/ure/urestubs.c,v 1.16 2008/01/07 23:20:05 kurt Exp $
+ * $Id: urestubs.c,v 1.2 1999/09/21 15:47:44 mleisher Exp $"
+ */
 
 #include "k5-int.h"
 
 #include "ure.h"
 
-#ifdef _MSC_VER
-#  include "../ucdata/ucdata.h"
-#else
-#  include "ucdata.h"
-#endif
+#include "ucdata.h"
 
 /*
  * This file contains stub routines needed by the URE package to test

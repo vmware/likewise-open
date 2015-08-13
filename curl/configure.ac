@@ -1580,7 +1580,9 @@ if test X"$OPENSSL_ENABLED" = X"1"; then
       [ RANDOM_FILE="$withval" ],
       [
           dnl Check for random device
-          AC_CHECK_FILE("/dev/urandom", [ RANDOM_FILE="/dev/urandom"] )
+          if test x$cross_compiling != xyes; then
+              AC_CHECK_FILE("/dev/urandom", [ RANDOM_FILE="/dev/urandom"] )
+          fi
       ]
   )
   if test -n "$RANDOM_FILE" && test X"$RANDOM_FILE" != Xno ; then

@@ -1,6 +1,6 @@
-/*	$NetBSD: strptime.c,v 1.18 1999/04/29 02:58:30 tv Exp $	*/
-
-/*-
+/* -*- mode: c; c-file-style: "bsd"; indent-tabs-mode: t -*- */
+/* lib/krb5/krb/strptime.c */
+/*
  * Copyright (c) 1997, 1998 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
@@ -82,7 +82,7 @@ strptime(buf, fmt, tm)
 			fmt++;
 			continue;
 		}
-				
+
 		if ((c = *fmt++) != '%')
 			goto literal;
 
@@ -107,7 +107,7 @@ literal:
 			LEGAL_ALT(0);
 			alt_format |= ALT_O;
 			goto again;
-			
+
 		/*
 		 * "Complex" conversion rules, implemented through recursion.
 		 */

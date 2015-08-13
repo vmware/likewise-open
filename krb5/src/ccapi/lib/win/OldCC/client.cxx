@@ -55,7 +55,7 @@ static DWORD bind_client(char* ep OPTIONAL, Init::InitInfo& info, LPSTR* endpoin
 
     if (!ep) {
         status = alloc_name(endpoint, "ep", isNT());
-        }
+        } 
     else {
         *endpoint = ep;
         }
@@ -71,7 +71,7 @@ static DWORD bind_client(char* ep OPTIONAL, Init::InitInfo& info, LPSTR* endpoin
                                          &pszStringBinding);
         cci_check_error(status);
         }
-
+            
     if (!status) {
         /* Set the binding handle that will be used to bind to the server. */
         status = RpcBindingFromStringBinding(pszStringBinding, &ccs_request_IfHandle);
@@ -100,7 +100,7 @@ static DWORD bind_client(char* ep OPTIONAL, Init::InitInfo& info, LPSTR* endpoin
         }
 
     if (pszStringBinding) {
-        DWORD status = RpcStringFree(&pszStringBinding);
+        DWORD status = RpcStringFree(&pszStringBinding); 
         cci_check_error(status);
         }
     return cci_check_error(status);
@@ -161,7 +161,7 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
             if (SecureClient::IsImp()) {
                 cci_debug_printf(STARTUP "Token is impersonation token"));
                 SecureClient::DuplicateImpAsPrimary(hToken);
-                }
+                } 
             else {
                 cci_debug_printf(STARTUP "Token is NOT impersonation token"));
                 }
@@ -174,8 +174,8 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
                                        NULL, // cmd line
                                        psa, // SA
                                        psa, // SA
-                                       FALSE,
-                                       CREATE_NEW_PROCESS_GROUP |
+                                       FALSE, 
+                                       CREATE_NEW_PROCESS_GROUP | 
                                        //CREATE_NEW_CONSOLE |
                                        NORMAL_PRIORITY_CLASS |
                                        // CREATE_NO_WINDOW |
@@ -193,14 +193,15 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
                                        NULL, //cmdline,     // cmd line is <server endpoint -[DC]>
                                        psa,         // SA
                                        psa,         // SA
-                                       FALSE,
-                                       CREATE_NEW_PROCESS_GROUP |
-                                       CREATE_NEW_CONSOLE |
+                                       FALSE, 
+                                       CREATE_NEW_PROCESS_GROUP | 
                                        NORMAL_PRIORITY_CLASS |
-                                       // CREATE_NO_WINDOW |
-                                       // DETACHED_PROCESS |    /* KPK TODO: was set - restore */
-                                       0
-                                       ,
+#ifdef CCAPI_LAUNCH_SERVER_WITH_CONSOLE
+                                       CREATE_NEW_CONSOLE |
+#else
+                                       DETACHED_PROCESS |
+#endif
+                                       0,
                                        NULL,        // environment
                                        szDir,       // current dir
                                        &si,
@@ -217,10 +218,10 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
             status = WaitForSingleObject(hEvent, (SECONDS_TO_WAIT)*1000);
             status = RpcMgmtIsServerListening(ccs_request_IfHandle);
             }
-        }
+        } 
     else if (status) {
             cci_debug_printf("  unexpected error while looking for server: 0D%d / 0U%u / 0X%X", status, status, status);
-            }
+            } 
 
 #if 0
     if (hToken)
@@ -238,9 +239,39 @@ DWORD find_server(Init::InitInfo& info, LPSTR endpoint) {
 
 static
 DWORD
+make_random_challenge(DWORD *challenge_out) {
+    HCRYPTPROV provider;
+    DWORD status = 0;
+    *challenge_out = 0;
+    if (!CryptAcquireContext(&provider, NULL, NULL, PROV_RSA_FULL,
+                             CRYPT_VERIFYCONTEXT)) {
+        status = GetLastError();
+        cci_check_error(status);
+        return status;
+        }
+    if (!CryptGenRandom(provider, sizeof(*challenge_out),
+                        (BYTE *)challenge_out)) {
+        status = GetLastError();
+        cci_check_error(status);
+        return status;
+        }
+    if (!CryptReleaseContext(provider, 0)) {
+        /*
+         * Note: even though CryptReleaseContext() failed, we don't really
+         * care since a) we've already successfully obtained our challenge
+         * anyway and b) at least one of the potential errors, "ERROR_BUSY"
+         * does not really seem to be an error at all.  So GetLastError() is
+         * logged for informational purposes only and should not be returned.
+         */
+        cci_check_error(GetLastError());
+        }
+    return status;
+}
+
+static
+DWORD
 authenticate_server(Init::InitInfo& info) {
-    DWORD               challenge       = 17; // XXX - maybe use random number
-    DWORD               desired_response= challenge + 1;
+    DWORD               challenge, desired_response;
     HANDLE              hMap            = 0;
     LPSTR               mem_name        = 0;
     PDWORD              pvalue          = 0;
@@ -254,6 +285,12 @@ authenticate_server(Init::InitInfo& info) {
     cci_check_error(status);
 
     if (!status) {
+        status = make_random_challenge(&challenge);
+        desired_response = challenge + 1;
+        cci_check_error(status);
+        }
+
+    if (!status) {
         if (isNT()) {
             sa.nLength = sizeof(sa);
             status = alloc_own_security_descriptor_NT(&sa.lpSecurityDescriptor);
@@ -262,7 +299,7 @@ authenticate_server(Init::InitInfo& info) {
     cci_check_error(status);
 
     if (!status) {
-        hMap = CreateFileMapping(INVALID_HANDLE_VALUE, isNT() ? &sa : 0,
+        hMap = CreateFileMapping(INVALID_HANDLE_VALUE, isNT() ? &sa : 0, 
                                  PAGE_READWRITE, 0, sizeof(DWORD), mem_name);
         if (!hMap)
         status = GetLastError();
@@ -294,7 +331,7 @@ authenticate_server(Init::InitInfo& info) {
         if ((response != desired_response) && (*pvalue != desired_response)) {
             cci_debug_printf("  Could not authenticate server.");
             status = ERROR_ACCESS_DENIED; // XXX - CO_E_NOMATCHINGSIDFOUND?
-            }
+            } 
         else {
             cci_debug_printf("  Server authenticated!");
             }
@@ -352,16 +389,17 @@ Client::Connect(char* ep OPTIONAL) {
 
 
     if (endpoint && (endpoint != ep)) free_alloc_p(&endpoint);
-
+    
     if (status) Client::Disconnect();
     return status;
     }
 
 DWORD Client::Initialize(char* ep OPTIONAL) {
-    CcAutoLock AL(Client::sLock);
+    CcAutoTryLock AL(Client::sLock);
+    if (!AL.IsLocked() || s_init)
+        return 0;
     SecureClient s;
     ccs_request_IfHandle  = NULL;
-    if (s_init) return 0;
     DWORD status = Client::Connect(ep);
     if (!status) s_init = true;
     return status;

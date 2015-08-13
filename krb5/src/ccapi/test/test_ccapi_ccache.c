@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -2033,5 +2032,3 @@ cc_int32 check_once_cc_ccache_clear_kdc_time_offset(cc_ccache_t ccache, cc_int32
 
 	return err;
 }
-
-

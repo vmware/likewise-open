@@ -27,15 +27,47 @@
 
 /* Defines related to GSS_SRP authentication */
 
-#ifndef GSS_SRP_PASSWORD_OID
-#define GSS_SRP_PASSWORD_OID "\x2b\x06\x01\x04\x01\x81\xd6\x29\x03\x01"
-#define GSS_SRP_PASSWORD_LEN 10
+#ifndef GSSAPI_MECH_SPNEGO
+/*
+ * SPNEGO MECH OID: 1.3.6.1.5.5.2
+ * http://www.oid-info.com/get/1.3.6.1.5.5.2
+ */
+#define GSSAPI_MECH_SPNEGO "\x2b\x06\x01\x05\x05\x02"
+#define GSSAPI_MECH_SPNEGO_LEN 6
 #endif
 
-#ifndef SPNEGO_OID
-#define SPNEGO_OID_LENGTH 6
-#define SPNEGO_OID "\053\006\001\005\005\002"
+#ifndef GSSAPI_SRP_CRED_OPT_PW
+/*
+ * vmwSrpCredOptPwd: 1.3.6.1.4.6876.11711.2.1.1.1
+ * http://www.oid-info.com/get/1.3.6.1.4.6876.11711.2.1.1.1
+ */
+#define GSSAPI_SRP_CRED_OPT_PW  \
+    "\x2b\x06\x01\x04\x01\xb5\x5c\xdb\x3f\x02\x01\x01\x01"
+#define GSSAPI_SRP_CRED_OPT_PW_LEN 13
 #endif
+
+#ifndef GSSAPI_NTLM_CRED_OPT_PW
+/*
+ * 1.3.6.1.4.1.27433.3.1
+ * http://www.oid-info.com/get/1.3.6.1.4.1.27433
+ */
+#define GSSAPI_NTLM_CRED_OPT_PW "\x2b\x06\x01\x04\x01\x81\xd6\x29\x03\x01"
+#define GSSAPI_NTLM_CRED_OPT_PW_LEN 10
+#endif
+
+typedef struct _ntlm_auth_identity
+{
+    char          *User;
+    unsigned int   UserLength;
+    char          *Domain;
+    unsigned int   DomainLength;
+    char          *Password;
+    unsigned int   PasswordLength;
+    unsigned int   Flags;
+} ntlm_auth_identity;
+
+#define GSSAPI_NTLM_AUTH_IDENTITY_UNICODE  0
+#define GSSAPI_NTLM_AUTH_IDENTITY_ANSI     1
 
 #define MAX_USER_INPUT 128
 #define MAX_LINE 100 * 1024
@@ -89,7 +121,11 @@ static void usage(char *argv0, const char *msg)
         printf("%s\n", msg);
     }
 
-    printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-l] [-n] [-u] [-t][--loop N][-g N][-d][--srp-pwd pwd][--threads num]\n", argv0);
+#ifndef _WIN32
+    printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-l] [-n] [-u] [-t][--loop N][-g N][-d][--pwd pwd][--threads num][--srp|--ntlm]\n", argv0);
+#else
+    printf("usage: %s [-h hostname] [-a name [-p level]] [-e endpoint] [-l] [-n] [-u] [-t][--loop N][-g N][-d][--pwd pwd][--threads num][--srp]\n", argv0);
+#endif
     printf("            -h: specify host of RPC server (default is localhost)\n");
     printf("            -a: specify authentication identity\n");
     printf("            -p: specify protection level\n");
@@ -103,8 +139,12 @@ static void usage(char *argv0, const char *msg)
     printf("        --loop: loop Reverseit N times\n");
     printf("      --rebind: Create new RPC binding handle N times\n");
     printf("--rebind-sleep: Delay N Seconds before acting on --rebind option\n");
-    printf("     --srp-pwd: SRP password for authentication identity\n");
-    printf(" --srp-pwd-bad: SRP bad password to test bad/good authentication\n");
+    printf("         --srp: authenticate using SRP mechanism\n");
+#ifndef _WIN32
+    printf("        --ntlm: authenticate using NTLM mechanism\n");
+#endif
+    printf("         --pwd: password for authentication identity\n");
+    printf("     --pwd-bad: bad password to test bad/good authentication\n");
     printf("     --threads: Call ReverseIt in 'num'; default --threads 10, --loop 1000\n");
     printf("\n");
     exit(1);
@@ -120,11 +160,12 @@ typedef struct _PROG_ARGS
     char *protocol;
     int generate_length;
     int do_srp;
+    int do_ntlm;
     int loop;
     int rebind_count;
     int rebind_sleep;
-    char *srp_passwd;
-    char *srp_passwd_bad;
+    char *passwd;
+    char *passwd_bad;
     int do_threads;
     int num_threads;
 } PROG_ARGS;
@@ -275,35 +316,64 @@ parseArgs(
             }
             args->rebind_sleep = atoi(argv[i]);
             i++;
-	}
-        else if (strcmp("--srp-pwd", argv[i]) == 0)
+        }
+        else if (strcmp("--srp", argv[i]) == 0)
         {
-            i++;
-            if (i >= argc)
+            if (args->do_srp)
             {
-                usage(argv0, "--srp-pwd value missing");
+                usage(argv0, "--srp option previously specified");
             }
-            if (args->srp_passwd)
-            {
-                usage(argv0, "--srp-pwd option previously specified");
-            }
-            args->srp_passwd = strdup(argv[i]);
             args->do_srp = 1;
             i++;
         }
-        else if (strcmp("--srp-pwd-bad", argv[i]) == 0)
+        else if (strcmp("--ntlm", argv[i]) == 0)
+        {
+            if (args->do_ntlm)
+            {
+                usage(argv0, "--ntlm option previously specified");
+            }
+            args->do_ntlm = 1;
+            i++;
+        }
+        else if (strcmp("--pwd", argv[i]) == 0)
         {
             i++;
             if (i >= argc)
             {
-                usage(argv0, "--srp-pwd-bad value missing");
+                usage(argv0, "--pwd value missing");
             }
-            if (args->srp_passwd_bad)
+            if (args->passwd)
             {
-                usage(argv0, "--srp-pwd-bad option previously specified");
+                usage(argv0, "--pwd option previously specified");
             }
-            args->srp_passwd_bad = strdup(argv[i]);
-            args->do_srp = 1;
+            else if (strlen(argv[i]) == 1 && argv[i][0] == '-')
+            {
+                char pwdbuf[256];
+                printf("password: ");
+                fflush(stdout);
+                fgets(pwdbuf, sizeof(pwdbuf), stdin);
+                pwdbuf[strlen(pwdbuf) - 1] = '\0';
+                printf("password is <%s>\n", pwdbuf);
+                args->passwd = strdup(pwdbuf);
+            }
+            else
+            {
+                args->passwd = strdup(argv[i]);
+            }
+            i++;
+        }
+        else if (strcmp("--pwd-bad", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--pwd-bad value missing");
+            }
+            if (args->passwd_bad)
+            {
+                usage(argv0, "--pwd-bad option previously specified");
+            }
+            args->passwd_bad = strdup(argv[i]);
             i++;
         }
         else if (strcmp("--threads", argv[i]) == 0)
@@ -328,9 +398,13 @@ parseArgs(
     {
         args->rebind_count = 1;
     }
-    if (args->rebind_count == 1 && args->srp_passwd_bad)
+    if (args->rebind_count == 1 && args->passwd_bad)
     {
-        usage(argv0, "--srp-pwd-bad has no effect without specifying --rebind > 1");
+        usage(argv0, "--pwd-bad has no effect without specifying --rebind > 1");
+    }
+    if (!args->endpoint)
+    {
+        args->endpoint = strdup("31415");
     }
     if (args->loop == 0)
     {
@@ -357,13 +431,13 @@ void freeArgs(
     {
         free(args->endpoint);
     }
-    if (args->srp_passwd)
+    if (args->passwd)
     {
-        free(args->srp_passwd);
+        free(args->passwd);
     }
-    if (args->srp_passwd_bad)
+    if (args->passwd_bad)
     {
-        free(args->srp_passwd_bad);
+        free(args->passwd_bad);
     }
 }
 
@@ -385,20 +459,23 @@ void freeInargs(
 }
 
 void freeOutargs(
-    args *args)
+    args **pargs)
 {
     size_t i = 0;
     unsigned32 sts = 0;
+    args *args = NULL;
 
-    if (!args)
+    if (!pargs || !*pargs)
     {
         return;
     }
+    args = *pargs;
     for (i=0; i < args->argc; i++)
     {
         rpc_sm_client_free(args->argv[i], &sts);
     }
     rpc_sm_client_free(args, &sts);
+    *pargs = NULL;
 }
 
 unsigned32
@@ -411,9 +488,9 @@ rpc_create_srp_auth_identity(
     OM_uint32 min = 0;
     OM_uint32 maj = 0;
     const gss_OID_desc gss_srp_password_oid =
-        {GSS_SRP_PASSWORD_LEN, (void *) GSS_SRP_PASSWORD_OID};
+        {GSSAPI_SRP_CRED_OPT_PW_LEN, (void *) GSSAPI_SRP_CRED_OPT_PW};
     gss_OID_desc spnego_mech_oid =
-        {SPNEGO_OID_LENGTH, (void *) SPNEGO_OID};
+        {GSSAPI_MECH_SPNEGO_LEN, (void *) GSSAPI_MECH_SPNEGO};
     gss_buffer_desc name_buf = {0};
     gss_name_t gss_name_buf = NULL;
     gss_buffer_desc gss_pwd = {0};
@@ -474,19 +551,121 @@ rpc_create_srp_auth_identity(
 
     gss_pwd.value = (char *) password;
     gss_pwd.length = strlen(gss_pwd.value);
-#ifdef _WIN32 /* Really _MIT_KRB5_1_11 */
+
     maj = gss_set_cred_option(
               &min,
               &cred_handle,
               (gss_OID) &gss_srp_password_oid,
               &gss_pwd);
-#else
-    maj = gssspi_set_cred_option(
+    if (maj)
+    {
+        goto error;
+    }
+
+    *rpc_identity_h = (rpc_auth_identity_handle_t) cred_handle;
+
+error:
+    if (maj)
+    {
+        maj = min ? min : maj;
+    }
+
+    if (upn != user)
+    {
+        free(upn);
+    }
+    if (gss_name_buf)
+    {
+        gss_release_name(&min, &gss_name_buf);
+    }
+
+    return maj;
+}
+
+unsigned32
+rpc_create_ntlm_auth_identity(
+    const char *user,
+    const char *domain,
+    const char *password,
+    rpc_auth_identity_handle_t *rpc_identity_h)
+{
+    OM_uint32 min = 0;
+    OM_uint32 maj = 0;
+    const gss_OID_desc gss_ntlm_cred_opt_pw_oid =
+        {GSSAPI_NTLM_CRED_OPT_PW_LEN, (void *) GSSAPI_NTLM_CRED_OPT_PW};
+    gss_OID_desc spnego_mech_oid =
+        {GSSAPI_MECH_SPNEGO_LEN, (void *) GSSAPI_MECH_SPNEGO};
+    ntlm_auth_identity ntlm_identity = {0};
+    gss_name_t gss_name_buf = NULL;
+    gss_buffer_desc gss_pwd = {0};
+    gss_buffer_desc name_buf = {0};
+    char *upn = NULL;
+    size_t upn_len = 0;
+    gss_cred_id_t cred_handle = NULL;
+    gss_OID_desc mech_oid_array[1];
+    gss_OID_set_desc desired_mechs = {0};
+
+    if (domain)
+    {
+        /* user@DOMAIN\0 */
+        upn_len = strlen(user) + 1 + strlen(domain) + 1;
+        upn = calloc(upn_len, sizeof(char));
+        if (!upn)
+        {
+            maj = GSS_S_FAILURE;
+            min = rpc_s_no_memory;
+        }
+        snprintf(upn, upn_len, "%s@%s", user, domain);
+    }
+
+    name_buf.value = upn;
+    name_buf.length = strlen(name_buf.value);
+    maj = gss_import_name(
               &min,
-              cred_handle,
-              (gss_OID) &gss_srp_password_oid,
+              &name_buf,
+              GSS_C_NT_USER_NAME,
+              &gss_name_buf);
+    if (maj)
+    {
+        goto error;
+    }
+
+    /*
+     * Use SPNEGO mech OID to acquire cred
+     */
+    desired_mechs.count = 1;
+    desired_mechs.elements = mech_oid_array;
+    desired_mechs.elements[0] = spnego_mech_oid;
+    maj = gss_acquire_cred(
+              &min,
+              gss_name_buf,
+              0,
+              &desired_mechs,
+              GSS_C_INITIATE,
+              &cred_handle,
+              NULL,
+              NULL);
+    if (maj)
+    {
+        goto error;
+    }
+
+    ntlm_identity.User = (char *)user;
+    ntlm_identity.UserLength = strlen(ntlm_identity.User);
+    ntlm_identity.Domain = (char *)domain;
+    ntlm_identity.DomainLength = strlen(ntlm_identity.Domain);
+    ntlm_identity.Password = (char *)password;
+    ntlm_identity.PasswordLength = strlen(ntlm_identity.Password);
+    ntlm_identity.Flags = GSSAPI_NTLM_AUTH_IDENTITY_ANSI;
+
+    gss_pwd.value = (char *) &ntlm_identity;
+    gss_pwd.length = sizeof(ntlm_identity);
+
+    maj = gss_set_cred_option(
+              &min,
+              &cred_handle,
+              (gss_OID) &gss_ntlm_cred_opt_pw_oid,
               &gss_pwd);
-#endif
     if (maj)
     {
         goto error;
@@ -521,22 +700,45 @@ create_rpc_identity(
     rpc_auth_identity_handle_t rpc_identity = NULL;
     unsigned32 serr = 0;
     char *passwd = NULL;
+    char *at = NULL;
+    char *username = NULL;
+    char *domain = NULL;
 
-    if (progArgs->srp_passwd_bad)
+    if (progArgs->passwd_bad)
     {
-        passwd = progArgs->srp_passwd_bad;
+        passwd = progArgs->passwd_bad;
     }
     else
     {
-        passwd = progArgs->srp_passwd;
+        passwd = progArgs->passwd;
     }
     if (progArgs->spn)
     {
+        username = strdup(progArgs->spn);
+        at = strchr(username, '@');
+        if (at)
+        {
+            *at = '\0';
+            domain = at + 1;
+        }
+
         if (progArgs->do_srp)
         {
             serr = rpc_create_srp_auth_identity(
-                      progArgs->spn,
-                      NULL,
+                      username,
+                      domain,
+                      passwd,
+                      &rpc_identity);
+            if (serr)
+            {
+                goto error;
+            }
+        }
+        else if (progArgs->do_ntlm)
+        {
+            serr = rpc_create_ntlm_auth_identity(
+                      username,
+                      domain,
                       passwd,
                       &rpc_identity);
             if (serr)
@@ -555,12 +757,16 @@ create_rpc_identity(
             goto error;
         }
     }
-    if (progArgs->srp_passwd_bad)
+    if (progArgs->passwd_bad)
     {
-        free(progArgs->srp_passwd_bad);
-        progArgs->srp_passwd_bad = NULL;
+        free(progArgs->passwd_bad);
+        progArgs->passwd_bad = NULL;
     }
 error:
+    if (username)
+    {
+        free(username);
+    }
     return serr;
 }
 
@@ -588,7 +794,7 @@ void *ReverseItThread(void *in_ctx)
             printf("ReverseIt Failed ok=%d status=%x\n", ok, status);
             return (void *) 1;
         }
-        freeOutargs(outargs);
+        freeOutargs(&outargs);
         i--;
     }
     return NULL;
@@ -836,7 +1042,7 @@ for (rebind_count=0; rebind_count < progArgs.rebind_count; rebind_count++)
         chk_dce_err(status, "ReverseIt()", "main()", 1);
 
     freeInargs(inargs), inargs = NULL;
-    freeOutargs(outargs), outargs = NULL;
+    freeOutargs(&outargs);
     if (echo_server)
     {
         rpc_binding_free(&echo_server, &status);
@@ -854,7 +1060,7 @@ cleanup:
 
     freeArgs(&progArgs);
     freeInargs(inargs);
-    freeOutargs(outargs);
+    freeOutargs(&outargs);
     return(0);
 }
 

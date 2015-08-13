@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/gssapi/krb5/lucid_context.c */
 /*
- * lib/gssapi/krb5/lucid_context.c
- *
  * Copyright 2004, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -23,13 +22,10 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
-/*
- * lucid_context.c  -  Externalize a "lucid" security
- * context from a krb5_gss_ctx_id_rec structure.
- */
+/* Externalize a "lucid" security context from a krb5_gss_ctx_id_rec
+ * structure. */
 #include "gssapiP_krb5.h"
 #include "gssapi_krb5.h"
 
@@ -60,10 +56,10 @@ make_external_lucid_ctx_v1(
  * Exported routines
  */
 
-OM_uint32 KRB5_CALLCONV
+OM_uint32
 gss_krb5int_export_lucid_sec_context(
     OM_uint32           *minor_status,
-    gss_ctx_id_t        context_handle,
+    const gss_ctx_id_t  context_handle,
     const gss_OID       desired_object,
     gss_buffer_set_t    *data_set)
 {
@@ -78,6 +74,11 @@ gss_krb5int_export_lucid_sec_context(
     retval = GSS_S_FAILURE;
     *minor_status = 0;
     *data_set = GSS_C_NO_BUFFER_SET;
+
+    if (ctx->terminated || !ctx->established) {
+        *minor_status = KG_CTX_INCOMPLETE;
+        return GSS_S_NO_CONTEXT;
+    }
 
     retval = generic_gss_oid_decompose(minor_status,
                                        GSS_KRB5_EXPORT_LUCID_SEC_CONTEXT_OID,
@@ -100,12 +101,6 @@ gss_krb5int_export_lucid_sec_context(
 
     if (kret)
         goto error_out;
-
-    /* Success!  Record the context and return the buffer */
-    if (! kg_save_lucidctx_id((void *)lctx)) {
-        kret = G_VALIDATE_FAILED;
-        goto error_out;
-    }
 
     rep.value = &lctx;
     rep.length = sizeof(lctx);
@@ -146,17 +141,10 @@ gss_krb5int_free_lucid_sec_context(
         goto error_out;
     }
 
-    /* Verify pointer is valid lucid context */
-    if (! kg_validate_lucidctx_id(kctx)) {
-        kret = G_VALIDATE_FAILED;
-        goto error_out;
-    }
-
     /* Determine version and call correct free routine */
     version = ((gss_krb5_lucid_context_version_t *)kctx)->version;
     switch (version) {
     case 1:
-        (void)kg_delete_lucidctx_id(kctx);
         free_external_lucid_ctx_v1((gss_krb5_lucid_context_v1_t*) kctx);
         break;
     default:
@@ -213,7 +201,7 @@ make_external_lucid_ctx_v1(
         lctx->rfc1964_kd.sign_alg = gctx->signalg;
         lctx->rfc1964_kd.seal_alg = gctx->sealalg;
         /* Copy key */
-        if ((retval = copy_keyblock_to_lucid_key(gctx->seq,
+        if ((retval = copy_keyblock_to_lucid_key(&gctx->seq->keyblock,
                                                  &lctx->rfc1964_kd.ctx_key)))
             goto error_out;
     }
@@ -221,11 +209,11 @@ make_external_lucid_ctx_v1(
         /* Copy keys */
         /* (subkey is always present, either a copy of the kerberos
            session key or a subkey) */
-        if ((retval = copy_keyblock_to_lucid_key(gctx->subkey,
+        if ((retval = copy_keyblock_to_lucid_key(&gctx->subkey->keyblock,
                                                  &lctx->cfx_kd.ctx_key)))
             goto error_out;
         if (gctx->have_acceptor_subkey) {
-            if ((retval = copy_keyblock_to_lucid_key(gctx->acceptor_subkey,
+            if ((retval = copy_keyblock_to_lucid_key(&gctx->acceptor_subkey->keyblock,
                                                      &lctx->cfx_kd.acceptor_subkey)))
                 goto error_out;
             lctx->cfx_kd.have_acceptor_subkey = 1;

@@ -23,6 +23,20 @@
 
 #include "ntlmclient.h"
 
+#define NTLM_FLAG_NEGOTIATE_DEFAULT ( \
+    NTLM_FLAG_SIGN                  | \
+    NTLM_FLAG_SEAL                  | \
+    NTLM_FLAG_OEM                   | \
+    NTLM_FLAG_REQUEST_TARGET        | \
+    NTLM_FLAG_NTLM                  | \
+    NTLM_FLAG_DOMAIN                | \
+    NTLM_FLAG_56                    | \
+    NTLM_FLAG_128                   | \
+    NTLM_FLAG_UNICODE               | \
+    NTLM_FLAG_NTLM2                 | \
+    NTLM_FLAG_KEY_EXCH              | \
+    0 )
+
 INT
 main(
     IN INT argc,

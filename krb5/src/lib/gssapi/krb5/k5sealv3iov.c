@@ -1,7 +1,6 @@
-/* -*- mode: c; indent-tabs-mode: nil -*- */
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/gssapi/krb5/k5sealv3iov.c */
 /*
- * lib/gssapi/krb5/k5sealv3iov.c
- *
  * Copyright 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -23,8 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
- *
  */
 
 #include <assert.h>
@@ -53,11 +50,10 @@ gss_krb5int_make_seal_token_v3_iov(krb5_context context,
     int key_usage;
     size_t rrc = 0;
     unsigned int  gss_headerlen, gss_trailerlen;
-    krb5_keyblock *key;
+    krb5_key key;
     krb5_cksumtype cksumtype;
     size_t data_length, assoc_data_length;
 
-    assert(ctx->big_endian == 0);
     assert(ctx->proto == 1);
 
     acceptor_flag = ctx->initiate ? 0 : FLAG_SENDER_IS_ACCEPTOR;
@@ -80,7 +76,7 @@ gss_krb5int_make_seal_token_v3_iov(krb5_context context,
 
     kg_iov_msglen(iov, iov_count, &data_length, &assoc_data_length);
 
-    header = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_HEADER);
+    header = kg_locate_header_iov(iov, iov_count, toktype);
     if (header == NULL)
         return EINVAL;
 
@@ -95,24 +91,26 @@ gss_krb5int_make_seal_token_v3_iov(krb5_context context,
         size_t ec = 0;
         size_t conf_data_length = data_length - assoc_data_length;
 
-        code = krb5_c_crypto_length(context, key->enctype, KRB5_CRYPTO_TYPE_HEADER, &k5_headerlen);
+        code = krb5_c_crypto_length(context, key->keyblock.enctype,
+                                    KRB5_CRYPTO_TYPE_HEADER, &k5_headerlen);
         if (code != 0)
             goto cleanup;
 
-        code = krb5_c_padding_length(context, key->enctype,
+        code = krb5_c_padding_length(context, key->keyblock.enctype,
                                      conf_data_length + 16 /* E(Header) */, &k5_padlen);
         if (code != 0)
             goto cleanup;
 
         if (k5_padlen == 0 && (ctx->gss_flags & GSS_C_DCE_STYLE)) {
             /* Windows rejects AEAD tokens with non-zero EC */
-            code = krb5_c_block_size(context, key->enctype, &ec);
+            code = krb5_c_block_size(context, key->keyblock.enctype, &ec);
             if (code != 0)
                 goto cleanup;
         } else
             ec = k5_padlen;
 
-        code = krb5_c_crypto_length(context, key->enctype, KRB5_CRYPTO_TYPE_TRAILER, &k5_trailerlen);
+        code = krb5_c_crypto_length(context, key->keyblock.enctype,
+                                    KRB5_CRYPTO_TYPE_TRAILER, &k5_trailerlen);
         if (code != 0)
             goto cleanup;
 
@@ -186,7 +184,9 @@ gss_krb5int_make_seal_token_v3_iov(krb5_context context,
 
         gss_headerlen = 16;
 
-        code = krb5_c_crypto_length(context, key->enctype, KRB5_CRYPTO_TYPE_CHECKSUM, &gss_trailerlen);
+        code = krb5_c_crypto_length(context, key->keyblock.enctype,
+                                    KRB5_CRYPTO_TYPE_CHECKSUM,
+                                    &gss_trailerlen);
         if (code != 0)
             goto cleanup;
 
@@ -240,7 +240,7 @@ gss_krb5int_make_seal_token_v3_iov(krb5_context context,
 
         code = kg_make_checksum_iov_v3(context, cksumtype,
                                        rrc, key, key_usage,
-                                       iov, iov_count);
+                                       iov, iov_count, toktype);
         if (code != 0)
             goto cleanup;
 
@@ -264,7 +264,6 @@ gss_krb5int_make_seal_token_v3_iov(krb5_context context,
     }
 
     code = 0;
-
     if (conf_state != NULL)
         *conf_state = conf_req_flag;
 
@@ -294,19 +293,16 @@ gss_krb5int_unseal_v3_iov(krb5_context context,
     int key_usage;
     size_t rrc, ec;
     size_t data_length, assoc_data_length;
-    krb5_keyblock *key;
+    krb5_key key;
     gssint_uint64 seqnum;
     krb5_boolean valid;
     krb5_cksumtype cksumtype;
     int conf_flag = 0;
 
-    if (ctx->big_endian != 0)
-        return GSS_S_DEFECTIVE_TOKEN;
-
     if (qop_state != NULL)
         *qop_state = GSS_C_QOP_DEFAULT;
 
-    header = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_HEADER);
+    header = kg_locate_header_iov(iov, iov_count, toktype);
     assert(header != NULL);
 
     padding = kg_locate_iov(iov, iov_count, GSS_IOV_BUFFER_TYPE_PADDING);
@@ -360,9 +356,9 @@ gss_krb5int_unseal_v3_iov(krb5_context context,
         rrc = load_16_be(ptr + 6);
         seqnum = load_64_be(ptr + 8);
 
-        code = krb5_c_crypto_length(context, key->enctype,
+        code = krb5_c_crypto_length(context, key->keyblock.enctype,
                                     conf_flag ? KRB5_CRYPTO_TYPE_TRAILER :
-                                                KRB5_CRYPTO_TYPE_CHECKSUM,
+                                    KRB5_CRYPTO_TYPE_CHECKSUM,
                                     &k5_trailerlen);
         if (code != 0) {
             *minor_status = code;
@@ -425,7 +421,7 @@ gss_krb5int_unseal_v3_iov(krb5_context context,
 
             code = kg_verify_checksum_iov_v3(context, cksumtype, rrc,
                                              key, key_usage,
-                                             iov, iov_count, &valid);
+                                             iov, iov_count, toktype, &valid);
             if (code != 0 || valid == FALSE) {
                 *minor_status = code;
                 return GSS_S_BAD_SIG;
@@ -442,9 +438,12 @@ gss_krb5int_unseal_v3_iov(krb5_context context,
             goto defective;
         seqnum = load_64_be(ptr + 8);
 
-        code = kg_verify_checksum_iov_v3(context, cksumtype, 0,
+        /* For MIC tokens, the GSS header and checksum are in the same buffer.
+         * Fake up an RRC so that the checksum is expected in the header. */
+        rrc = (trailer != NULL) ? 0 : header->buffer.length - 16;
+        code = kg_verify_checksum_iov_v3(context, cksumtype, rrc,
                                          key, key_usage,
-                                         iov, iov_count, &valid);
+                                         iov, iov_count, toktype, &valid);
         if (code != 0 || valid == FALSE) {
             *minor_status = code;
             return GSS_S_BAD_SIG;

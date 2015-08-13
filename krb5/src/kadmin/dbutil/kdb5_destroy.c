@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* kadmin/dbutil/kdb5_destroy.c - Destroy a KDC database */
 /*
- * admin/destroy/kdb5_destroy.c
- *
  * Copyright 1990, 2008 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,11 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * kdb_dest(roy): destroy the named database.
- *
- * This version knows about DBM format databases.
  */
 
 #include "k5-int.h"
@@ -40,8 +35,8 @@ extern int exit_status;
 extern krb5_boolean dbactive;
 extern kadm5_config_params global_params;
 
-char *yes = "yes\n";			/* \n to compare against result of
-					   fgets */
+char *yes = "yes\n";                    /* \n to compare against result of
+                                           fgets */
 
 void
 kdb5_destroy(argc, argv)
@@ -60,54 +55,55 @@ kdb5_destroy(argc, argv)
     retval1 = kadm5_init_krb5_context(&context);
     if( retval1 )
     {
-	com_err(progname, retval1, "while initializing krb5_context");
-	exit(1);
+        com_err(progname, retval1, _("while initializing krb5_context"));
+        exit(1);
     }
 
     if ((retval1 = krb5_set_default_realm(context,
-					  util_context->default_realm))) {
-	com_err(progname, retval1, "while setting default realm name");
-	exit(1);
+                                          util_context->default_realm))) {
+        com_err(progname, retval1, _("while setting default realm name"));
+        exit(1);
     }
-    
+
     dbname = global_params.dbname;
 
     optind = 1;
     while ((optchar = getopt(argc, argv, "f")) != -1) {
-	switch(optchar) {
-	case 'f':
-	    force++;
-	    break;
-	case '?':
-	default:
-	    usage();
-	    return;
-	    /*NOTREACHED*/
-	}
+        switch(optchar) {
+        case 'f':
+            force++;
+            break;
+        case '?':
+        default:
+            usage();
+            return;
+            /*NOTREACHED*/
+        }
     }
     if (!force) {
-	printf("Deleting KDC database stored in '%s', are you sure?\n", dbname);
-	printf("(type 'yes' to confirm)? ");
-	if (fgets(buf, sizeof(buf), stdin) == NULL) {
-	    exit_status++; return;
+        printf(_("Deleting KDC database stored in '%s', are you sure?\n"),
+               dbname);
+        printf(_("(type 'yes' to confirm)? "));
+        if (fgets(buf, sizeof(buf), stdin) == NULL) {
+            exit_status++; return;
         }
-	if (strcmp(buf, yes)) {
-	    exit_status++; return;
+        if (strcmp(buf, yes)) {
+            exit_status++; return;
         }
-	printf("OK, deleting database '%s'...\n", dbname);
+        printf(_("OK, deleting database '%s'...\n"), dbname);
     }
 
     retval1 = krb5_db_destroy(context, db5util_db_args);
     if (retval1) {
-	com_err(progname, retval1, "deleting database '%s'",dbname);
-	exit_status++; return;
+        com_err(progname, retval1, _("deleting database '%s'"), dbname);
+        exit_status++; return;
     }
 
     if (global_params.iprop_enabled) {
-	(void) unlink(global_params.iprop_logfile);
+        (void) unlink(global_params.iprop_logfile);
     }
 
     dbactive = FALSE;
-    printf("** Database '%s' destroyed.\n", dbname);
+    printf(_("** Database '%s' destroyed.\n"), dbname);
     return;
 }

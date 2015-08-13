@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/pr_to_salt.c */
 /*
- * lib/krb5/krb/pr_to_salt.c
- *
  * Copyright 1990 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,65 +22,62 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * krb5_principal2salt()
  */
 
 #include "k5-int.h"
 
-static krb5_error_code krb5_principal2salt_internal
-    (krb5_context, krb5_const_principal, krb5_data *ret, int);
+static krb5_error_code
+principal2salt_internal(krb5_context, krb5_const_principal,
+                        krb5_data *ret, int);
 
 /*
  * Convert a krb5_principal into the default salt for that principal.
  */
 static krb5_error_code
-krb5_principal2salt_internal(krb5_context context, register krb5_const_principal pr, krb5_data *ret, int use_realm)
+principal2salt_internal(krb5_context context,
+                        register krb5_const_principal pr,
+                        krb5_data *ret, int use_realm)
 {
     unsigned int size = 0, offset=0;
-    krb5_int32 nelem;
-    register int i;
+    krb5_int32 i;
 
-    if (pr == 0) {
-	ret->length = 0;
-	ret->data = 0;
-	return 0;
-    }
-
-    nelem = krb5_princ_size(context, pr);
+    *ret = empty_data();
+    if (pr == NULL)
+        return 0;
 
     if (use_realm)
-	    size += krb5_princ_realm(context, pr)->length;
+        size += pr->realm.length;
 
-    for (i = 0; i < (int) nelem; i++)
-	size += krb5_princ_component(context, pr, i)->length;
+    for (i = 0; i < pr->length; i++)
+        size += pr->data[i].length;
 
-    ret->length = size;
-    if (!(ret->data = malloc (size)))
-	return ENOMEM;
+    if (alloc_data(ret, size))
+        return ENOMEM;
 
     if (use_realm) {
-	    offset = krb5_princ_realm(context, pr)->length;
-	    memcpy(ret->data, krb5_princ_realm(context, pr)->data, offset);
+        offset = pr->realm.length;
+        if (offset > 0)
+            memcpy(ret->data, pr->realm.data, offset);
     }
 
-    for (i = 0; i < (int) nelem; i++) {
-	memcpy(&ret->data[offset], krb5_princ_component(context, pr, i)->data,
-	       krb5_princ_component(context, pr, i)->length);
-	offset += krb5_princ_component(context, pr, i)->length;
+    for (i = 0; i < pr->length; i++) {
+        if (pr->data[i].length > 0)
+            memcpy(&ret->data[offset], pr->data[i].data, pr->data[i].length);
+        offset += pr->data[i].length;
     }
     return 0;
 }
 
 krb5_error_code
-krb5_principal2salt(krb5_context context, register krb5_const_principal pr, krb5_data *ret)
+krb5_principal2salt(krb5_context context,
+                    register krb5_const_principal pr, krb5_data *ret)
 {
-	return krb5_principal2salt_internal(context, pr, ret, 1);
+    return principal2salt_internal(context, pr, ret, 1);
 }
 
 krb5_error_code
-krb5_principal2salt_norealm(krb5_context context, register krb5_const_principal pr, krb5_data *ret)
+krb5_principal2salt_norealm(krb5_context context,
+                            register krb5_const_principal pr, krb5_data *ret)
 {
-	return krb5_principal2salt_internal(context, pr, ret, 0);
+    return principal2salt_internal(context, pr, ret, 0);
 }

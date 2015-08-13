@@ -1,6 +1,6 @@
+/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* lib/krb5/krb/addr_order.c */
 /*
- * lib/krb5/krb/addr_order.c
- *
  * Copyright 1990 by the Massachusetts Institute of Technology.
  * All Rights Reserved.
  *
@@ -8,7 +8,7 @@
  *   require a specific license from the United States Government.
  *   It is the responsibility of any person or organization contemplating
  *   export to obtain such a license before exporting.
- * 
+ *
  * WITHIN THAT CONSTRAINT, permission to use, copy, modify, and
  * distribute this software and its documentation for any purpose and
  * without fee is hereby granted, provided that the above copyright
@@ -22,9 +22,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- * 
- *
- * krb5_address_order()
  */
 
 #include "k5-int.h"
@@ -45,18 +42,18 @@ krb5_address_order(krb5_context context, const krb5_address *addr1, const krb5_a
     const int minlen = min(addr1->length, addr2->length);
 
     if (addr1->addrtype != addr2->addrtype)
-	return(FALSE);
+        return(FALSE);
 
     dir = addr1->length - addr2->length;
 
-    
+
     for (i = 0; i < minlen; i++) {
-	if ((unsigned char) addr1->contents[i] <
-	    (unsigned char) addr2->contents[i])
-	    return -1;
-	else if ((unsigned char) addr1->contents[i] >
-		 (unsigned char) addr2->contents[i])
-	    return 1;
+        if ((unsigned char) addr1->contents[i] <
+            (unsigned char) addr2->contents[i])
+            return -1;
+        else if ((unsigned char) addr1->contents[i] >
+                 (unsigned char) addr2->contents[i])
+            return 1;
     }
     /* compared equal so far...which is longer? */
     return dir;

@@ -2,7 +2,7 @@
 
 /*
  * Copyright 1996 by Sun Microsystems, Inc.
- * 
+ *
  * Permission to use, copy, modify, distribute, and sell this software
  * and its documentation for any purpose is hereby granted without fee,
  * provided that the above copyright notice appears in all copies and
@@ -12,7 +12,7 @@
  * without specific, written prior permission. Sun Microsystems makes no
  * representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied warranty.
- * 
+ *
  * SUN MICROSYSTEMS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
  * EVENT SHALL SUN MICROSYSTEMS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -32,6 +32,7 @@
 #endif
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 #ifndef LEAN_CLIENT
 static OM_uint32
@@ -113,8 +114,7 @@ gss_cred_id_t *		d_cred;
 {
     OM_uint32		status, temp_status, temp_minor_status;
     OM_uint32		temp_ret_flags = 0;
-    gss_union_ctx_id_t	union_ctx_id;
-    gss_union_cred_t	union_cred;
+    gss_union_ctx_id_t	union_ctx_id = NULL;
     gss_cred_id_t	input_cred_handle = GSS_C_NO_CREDENTIAL;
     gss_cred_id_t	tmp_d_cred = GSS_C_NO_CREDENTIAL;
     gss_name_t		internal_name = GSS_C_NO_NAME;
@@ -122,7 +122,11 @@ gss_cred_id_t *		d_cred;
     gss_OID_desc	token_mech_type_desc;
     gss_OID		token_mech_type = &token_mech_type_desc;
     gss_OID		actual_mech = GSS_C_NO_OID;
-    gss_mechanism	mech;
+    gss_OID		selected_mech = GSS_C_NO_OID;
+    gss_OID		public_mech;
+    gss_mechanism	mech = NULL;
+    gss_union_cred_t	uc;
+    int			i;
 
     status = val_acc_sec_ctx_args(minor_status,
 				  context_handle,
@@ -144,9 +148,9 @@ gss_cred_id_t *		d_cred;
      * underlying mechanism context handle. Otherwise, cast the
      * value of *context_handle to the union context variable.
      */
-    
+
     if(*context_handle == GSS_C_NO_CONTEXT) {
-	
+
 	if (input_token_buffer == GSS_C_NO_BUFFER)
 	    return (GSS_S_CALL_INACCESSIBLE_READ);
 
@@ -155,6 +159,36 @@ gss_cred_id_t *		d_cred;
 	if (status)
 	    return status;
 
+	/*
+	 * An interposer calling back into the mechglue can't pass in a special
+	 * mech, so we have to recognize it using verifier_cred_handle.  Use
+	 * the mechanism for which we have matching creds, if available.
+	 */
+	if (verifier_cred_handle != GSS_C_NO_CREDENTIAL) {
+	    uc = (gss_union_cred_t)verifier_cred_handle;
+	    for (i = 0; i < uc->count; i++) {
+		public_mech = gssint_get_public_oid(&uc->mechs_array[i]);
+		if (public_mech && g_OID_equal(token_mech_type, public_mech)) {
+		    selected_mech = &uc->mechs_array[i];
+		    break;
+		}
+	    }
+	}
+
+	if (selected_mech == GSS_C_NO_OID) {
+	    status = gssint_select_mech_type(minor_status, token_mech_type,
+					     &selected_mech);
+	    if (status)
+		return status;
+	}
+
+    } else {
+	union_ctx_id = (gss_union_ctx_id_t)*context_handle;
+	selected_mech = union_ctx_id->mech_type;
+    }
+
+    /* Now create a new context if we didn't get one. */
+    if (*context_handle == GSS_C_NO_CONTEXT) {
 	status = GSS_S_FAILURE;
 	union_ctx_id = (gss_union_ctx_id_t)
 	    malloc(sizeof(gss_union_ctx_id_desc));
@@ -163,8 +197,7 @@ gss_cred_id_t *		d_cred;
 
 	union_ctx_id->loopback = union_ctx_id;
 	union_ctx_id->internal_ctx_id = GSS_C_NO_CONTEXT;
-	status = generic_gss_copy_oid(&temp_minor_status,
-				      token_mech_type,
+	status = generic_gss_copy_oid(&temp_minor_status, selected_mech,
 				      &union_ctx_id->mech_type);
 	if (status != GSS_S_COMPLETE) {
 	    free(union_ctx_id);
@@ -173,37 +206,28 @@ gss_cred_id_t *		d_cred;
 
 	/* set the new context handle to caller's data */
 	*context_handle = (gss_ctx_id_t)union_ctx_id;
-    } else {
-	union_ctx_id = (gss_union_ctx_id_t)*context_handle;
-	token_mech_type = union_ctx_id->mech_type;
     }
-    
-    /* 
-     * get the appropriate cred handle from the union cred struct.
-     * defaults to GSS_C_NO_CREDENTIAL if there is no cred, which will
-     * use the default credential.
-     */
-    union_cred = (gss_union_cred_t) verifier_cred_handle;
-    input_cred_handle = gssint_get_mechanism_cred(union_cred, token_mech_type);
 
     /*
-     * If the mechanism is SPNEGO, and a SPNEGO specific cred could not be
-     * found, then pass the entire cred list through. SPNEGO will send the
-     * right creds to the correct mechanism.
+     * get the appropriate cred handle from the union cred struct.
      */
-    if (input_cred_handle == NULL &&
-        token_mech_type->length == 6 &&
-        !memcmp(token_mech_type->elements, "\x2b\x06\x01\x05\x05\x02", 6))
-    {
-        input_cred_handle = (gss_cred_id_t) union_cred;
+    if (verifier_cred_handle != GSS_C_NO_CREDENTIAL) {
+	input_cred_handle =
+	    gssint_get_mechanism_cred((gss_union_cred_t)verifier_cred_handle,
+				      selected_mech);
+	if (input_cred_handle == GSS_C_NO_CREDENTIAL) {
+	    /* verifier credential specified but no acceptor credential found */
+	    status = GSS_S_NO_CRED;
+	    goto error_out;
+	}
     }
 
     /*
      * now select the approprate underlying mechanism routine and
      * call it.
      */
-    
-    mech = gssint_get_mechanism (token_mech_type);
+
+    mech = gssint_get_mechanism(selected_mech);
     if (mech && mech->gss_accept_sec_context) {
 
 	    status = mech->gss_accept_sec_context(minor_status,
@@ -221,7 +245,7 @@ gss_cred_id_t *		d_cred;
 	    /* If there's more work to do, keep going... */
 	    if (status == GSS_S_CONTINUE_NEEDED)
 		return GSS_S_CONTINUE_NEEDED;
-	    
+
 	    /* if the call failed, return with failure */
 	    if (status != GSS_S_COMPLETE) {
 		map_error(minor_status, mech);
@@ -242,12 +266,13 @@ gss_cred_id_t *		d_cred;
 			    &temp_minor_status, mech,
 			    internal_name, &tmp_src_name);
 		    if (temp_status != GSS_S_COMPLETE) {
+			status = temp_status;
 			*minor_status = temp_minor_status;
 			map_error(minor_status, mech);
 			if (output_token->length)
 			    (void) gss_release_buffer(&temp_minor_status,
 						      output_token);
-			return (temp_status);
+			goto error_out;
 		    }
 		    *src_name = tmp_src_name;
 		} else
@@ -261,8 +286,10 @@ gss_cred_id_t *		d_cred;
 	    /* Ensure we're returning correct creds format */
 	    if ((temp_ret_flags & GSS_C_DELEG_FLAG) &&
 		tmp_d_cred != GSS_C_NO_CREDENTIAL) {
+		public_mech = gssint_get_public_oid(selected_mech);
 		if (actual_mech != GSS_C_NO_OID &&
-		    !g_OID_prefix_equal(actual_mech, token_mech_type)) {
+		    public_mech != GSS_C_NO_OID &&
+		    !g_OID_prefix_equal(actual_mech, public_mech)) {
 		    *d_cred = tmp_d_cred; /* unwrapped pseudo-mech */
 		} else {
 		    gss_union_cred_t d_u_cred = NULL;
@@ -277,7 +304,7 @@ gss_cred_id_t *		d_cred;
 		    d_u_cred->count = 1;
 
 		    status = generic_gss_copy_oid(&temp_minor_status,
-						  token_mech_type,
+						  selected_mech,
 						  &d_u_cred->mechs_array);
 
 		    if (status != GSS_S_COMPLETE) {
@@ -294,78 +321,13 @@ gss_cred_id_t *		d_cred;
 			goto error_out;
 		    }
 
-		    d_u_cred->auxinfo.creation_time = time(0);
-		    d_u_cred->auxinfo.time_rec = 0;
 		    d_u_cred->loopback = d_u_cred;
-
-		    internal_name = GSS_C_NO_NAME;
-
-		    if (mech->gss_inquire_cred) {
-			status = mech->gss_inquire_cred(minor_status,
-							tmp_d_cred,
-							&internal_name,
-							&d_u_cred->auxinfo.time_rec,
-							&d_u_cred->auxinfo.cred_usage,
-							NULL);
-			if (status != GSS_S_COMPLETE)
-			    map_error(minor_status, mech);
-		    }
-
-		    if (internal_name != GSS_C_NO_NAME) {
-			/* consumes internal_name regardless of success */
-			temp_status = gssint_convert_name_to_union_name(
-			    &temp_minor_status, mech,
-			    internal_name, &tmp_src_name);
-			if (temp_status != GSS_S_COMPLETE) {
-			    *minor_status = temp_minor_status;
-			    map_error(minor_status, mech);
-			    if (output_token->length)
-				(void) gss_release_buffer(
-				    &temp_minor_status,
-				    output_token);
-			    (void) gss_release_oid(&temp_minor_status,
-						   &actual_mech);
-			    free(d_u_cred->cred_array);
-			    free(d_u_cred);
-			    return (temp_status);
-			}
-
-			if (tmp_src_name != GSS_C_NO_NAME) {
-			    status = gss_display_name(
-				&temp_minor_status,
-				tmp_src_name,
-				&d_u_cred->auxinfo.name,
-				&d_u_cred->auxinfo.name_type);
-			    (void) gss_release_name(&temp_minor_status,
-						    &tmp_src_name);
-			}
-		    }
-
 		    *d_cred = (gss_cred_id_t)d_u_cred;
 		}
 	    }
 
-            if (status == GSS_S_COMPLETE && actual_mech) {
-                gss_OID temp_mech_type = union_ctx_id->mech_type;
-
-                status = generic_gss_copy_oid(minor_status, actual_mech,
-                                              &union_ctx_id->mech_type);
-                if (status != GSS_S_COMPLETE) {
-                    gssint_delete_internal_sec_context(&temp_minor_status,
-                                                       actual_mech,
-                                                       &union_ctx_id->internal_ctx_id,
-                                                       NULL);
-                    free(union_ctx_id);
-                    *context_handle = GSS_C_NO_CONTEXT;
-                }
-                free(temp_mech_type->elements);
-                free(temp_mech_type);
-            }
-
 	    if (mech_type != NULL)
-		*mech_type = actual_mech;
-	    else
-		(void) gss_release_oid(&temp_minor_status, &actual_mech);
+		*mech_type = gssint_get_public_oid(actual_mech);
 	    if (ret_flags != NULL)
 		*ret_flags = temp_ret_flags;
 	    return	(status);
@@ -373,22 +335,22 @@ gss_cred_id_t *		d_cred;
 
 	status = GSS_S_BAD_MECH;
     }
-    
+
 error_out:
     if (union_ctx_id) {
 	if (union_ctx_id->mech_type) {
 	    if (union_ctx_id->mech_type->elements)
 		free(union_ctx_id->mech_type->elements);
 	    free(union_ctx_id->mech_type);
-	    *context_handle = GSS_C_NO_CONTEXT;
 	}
-	if (union_ctx_id->internal_ctx_id) {
-	    mech->gss_delete_sec_context(
-		&temp_minor_status,
-		&union_ctx_id->internal_ctx_id,
-		GSS_C_NO_BUFFER);
+	if (union_ctx_id->internal_ctx_id && mech &&
+	    mech->gss_delete_sec_context) {
+	    mech->gss_delete_sec_context(&temp_minor_status,
+					 &union_ctx_id->internal_ctx_id,
+					 GSS_C_NO_BUFFER);
 	}
 	free(union_ctx_id);
+	*context_handle = GSS_C_NO_CONTEXT;
     }
 
     if (src_name)
@@ -401,4 +363,3 @@ error_out:
     return (status);
 }
 #endif /* LEAN_CLIENT */
-

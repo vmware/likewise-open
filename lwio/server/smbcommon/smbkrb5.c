@@ -41,11 +41,19 @@ typedef struct _SEC_WINNT_AUTH_IDENTITY
     DWORD Flags;
 } SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
 
+/*
+ * 1.3.6.1.4.1.27433.3.1
+ * http://www.oid-info.com/get/1.3.6.1.4.1.27433
+ */
 #define GSS_CRED_OPT_PW     "\x2b\x06\x01\x04\x01\x81\xd6\x29\x03\x01"
 #define GSS_CRED_OPT_PW_LEN 10
 
-#define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
-#define GSS_MECH_NTLM_LEN   10
+/*
+ * SPNEGO MECH OID: 1.3.6.1.5.5.2
+ * http://www.oid-info.com/get/1.3.6.1.5.5.2
+ */
+#define GSS_MECH_SPNEGO     "\x2b\x06\x01\x05\x05\x02"
+#define GSS_MECH_SPNEGO_LEN 6
 
 static
 void
@@ -171,10 +179,10 @@ SMBGSSContextBuild(
         .length = GSS_CRED_OPT_PW_LEN,
         .elements = GSS_CRED_OPT_PW
     };
-    static gss_OID_desc gssNtlmOidDesc =
+    static gss_OID_desc gssSpnegoOidDesc =
     {
-        .length = GSS_MECH_NTLM_LEN,
-        .elements = GSS_MECH_NTLM
+        .length = GSS_MECH_SPNEGO_LEN,
+        .elements = GSS_MECH_SPNEGO
     };
     size_t sCopyServerChars = 0;
 
@@ -299,7 +307,7 @@ SMBGSSContextBuild(
             }
 
             desiredMechs.count = 1;
-            desiredMechs.elements = (gss_OID) &gssNtlmOidDesc;
+            desiredMechs.elements = (gss_OID) &gssSpnegoOidDesc;
 
             dwMajorStatus = gss_acquire_cred(
                 (OM_uint32 *)&dwMinorStatus,
@@ -333,9 +341,9 @@ SMBGSSContextBuild(
                 authDataBuffer.value = &authData;
                 authDataBuffer.length = sizeof(authData);
 
-                dwMajorStatus = gssspi_set_cred_option(
+                dwMajorStatus = gss_set_cred_option(
                     (OM_uint32 *)&dwMinorStatus,
-                    pContext->credHandle,
+                    &pContext->credHandle,
                     (gss_OID) &gssCredOptionPasswordOidDesc,
                     &authDataBuffer);
                 BAIL_ON_SEC_ERROR(dwMajorStatus);
@@ -414,7 +422,7 @@ SMBGSSContextNegotiate(
     DWORD dwSecurityBlobLength = 0;
 
     static gss_OID_desc gss_spnego_mech_oid_desc =
-      {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
+      {GSS_MECH_SPNEGO_LEN, GSS_MECH_SPNEGO};
 
     if (pContext->state == SMB_GSS_SEC_CONTEXT_STATE_COMPLETE)
     {

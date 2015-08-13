@@ -1623,7 +1623,8 @@ int main(argc, argv)
 }]])],[ol_cv_pthread_select_yields=no],[ol_cv_pthread_select_yields=yes],[ol_cv_pthread_select_yields=cross])])
 
 				if test $ol_cv_pthread_select_yields = cross ; then
-					AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])
+					AC_MSG_WARN([crossing compiling: use --with-yielding_select=yes|no|manual])
+                                        ol_with_yielding_select=yes
 				fi
 
 				if test $ol_cv_pthread_select_yields = yes ; then
@@ -2424,7 +2425,7 @@ dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
 
-if test $ac_cv_func_memcmp_working = no ; then
+if test $cross_compiling != yes && test $ac_cv_func_memcmp_working = no ; then
 	AC_DEFINE(NEED_MEMCMP_REPLACEMENT,1,
 		[define if memcmp is not 8-bit clean or is otherwise broken])
 fi

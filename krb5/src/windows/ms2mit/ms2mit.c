@@ -1,7 +1,4 @@
-/*
- * ms2mit.c
- *
- */
+/* windows/ms2mit/ms2mit.c */
 /*
  * Copyright (C) 2003 by the Massachusetts Institute of Technology.
  * All rights reserved.
@@ -24,7 +21,6 @@
  * M.I.T. makes no representations about the suitability of
  * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
- *
  */
 
 #include "krb5.h"
@@ -36,7 +32,7 @@ extern char *optarg;
 
 static char *prog;
 
-static void 
+static void
 xusage(void)
 {
     fprintf(stderr, "xusage: %s [-c ccache]\n", prog);
@@ -74,12 +70,12 @@ main(
             break;
         }
     }
-        
+
     if (code = krb5_init_context(&kcontext)) {
         com_err(argv[0], code, "while initializing kerberos library");
         exit(1);
     }
-  
+
     if (code = krb5_cc_resolve(kcontext, "MSLSA:", &mslsa_ccache)) {
         com_err(argv[0], code, "while opening MS LSA ccache");
         krb5_free_context(kcontext);
@@ -101,7 +97,7 @@ main(
         exit(1);
     }
 
-    while (!(code = krb5_cc_next_cred(kcontext, mslsa_ccache, &cursor, &creds))) 
+    while (!(code = krb5_cc_next_cred(kcontext, mslsa_ccache, &cursor, &creds)))
     {
         if ( creds.ticket_flags & TKT_FLG_INITIAL ) {
             krb5_free_cred_contents(kcontext, &creds);
