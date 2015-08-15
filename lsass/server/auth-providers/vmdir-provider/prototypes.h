@@ -26,6 +26,7 @@ VmDirLdapInitialize(
 	PCSTR            pszURI,
 	PCSTR            pszUPN,
 	PCSTR            pszPassword,
+        PCSTR            pszCachePath,
 	LDAP**           ppLd
 	);
 
@@ -343,6 +344,18 @@ VmDirProviderIoControl (
     PVOID  pInputBuffer,        /* IN              */
     DWORD* pdwOutputBufferSize, /*    OUT          */
     PVOID* ppOutputBuffer       /*    OUT          */
+    );
+
+// refresh.c
+
+DWORD
+VmDirStartMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT *ppRefreshContext  /*     OUT          */
+    );
+
+VOID
+VmDirStopMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT pRefreshContext     /* IN              */
     );
 
 // repository.c
