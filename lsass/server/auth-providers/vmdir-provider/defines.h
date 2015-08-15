@@ -34,6 +34,15 @@
         } \
     } while (0)
 
+#define BAIL_ON_ERRNO_ERROR(ret) \
+    do { \
+        if (ret) \
+        { \
+           (dwError) = LwErrnoToWin32Error(ret); \
+           goto error; \
+        } \
+    } while (0)
+
 #define VMDIR_ACQUIRE_RWLOCK_SHARED(pRWLock, bLocked) \
 		VmDirRWLockAcquire(pRWLock, FALSE, &bLocked)
 

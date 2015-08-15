@@ -4,53 +4,53 @@
 
 typedef enum
 {
-	VMDIR_ATTR_TYPE_UNKNOWN = 0,
-	VMDIR_ATTR_TYPE_INT32,
-	VMDIR_ATTR_TYPE_UINT32,
-	VMDIR_ATTR_TYPE_INT64,
-	VMDIR_ATTR_TYPE_UINT64,
-	VMDIR_ATTR_TYPE_STRING,
-	VMDIR_ATTR_TYPE_MULTI_STRING,
-	VMDIR_ATTR_TYPE_DN,
-	VMDIR_ATTR_TYPE_BINARY
+    VMDIR_ATTR_TYPE_UNKNOWN = 0,
+    VMDIR_ATTR_TYPE_INT32,
+    VMDIR_ATTR_TYPE_UINT32,
+    VMDIR_ATTR_TYPE_INT64,
+    VMDIR_ATTR_TYPE_UINT64,
+    VMDIR_ATTR_TYPE_STRING,
+    VMDIR_ATTR_TYPE_MULTI_STRING,
+    VMDIR_ATTR_TYPE_DN,
+    VMDIR_ATTR_TYPE_BINARY
 
 } VMDIR_ATTR_TYPE;
 
 typedef struct _VMDIR_ATTR
 {
-	PCSTR           pszName;
+    PCSTR           pszName;
 
-	VMDIR_ATTR_TYPE type;
+    VMDIR_ATTR_TYPE type;
 
-	union
-	{
-		PINT32   pData_int32;
-		PUINT32  pData_uint32;
-		PINT64   pData_int64;
-		PUINT64  pData_uint64;
-		PSTR*    ppszData;
-		PSTR**   pppszStrArray;
-		PBYTE*   ppData;
-	} dataRef;
+    union
+    {
+        PINT32   pData_int32;
+        PUINT32  pData_uint32;
+        PINT64   pData_int64;
+        PUINT64  pData_uint64;
+        PSTR*    ppszData;
+        PSTR**   pppszStrArray;
+        PBYTE*   ppData;
+    } dataRef;
 
-	size_t  size;
+    size_t  size;
 
-	PDWORD  pdwCount;
+    PDWORD  pdwCount;
 
-	BOOLEAN bOptional;
+    BOOLEAN bOptional;
 
 } VMDIR_ATTR, *PVMDIR_ATTR;
 
 typedef struct _VMDIR_BIND_INFO
 {
-	LONG refCount;
+    LONG refCount;
 
-	PSTR pszURI;
-	PSTR pszUPN;
-	PSTR pszPassword;
-	PSTR pszDomainFqdn;
-	PSTR pszDomainShort;
-	PSTR pszSearchBase;
+    PSTR pszURI;
+    PSTR pszUPN;
+    PSTR pszPassword;
+    PSTR pszDomainFqdn;
+    PSTR pszDomainShort;
+    PSTR pszSearchBase;
 
 } VMDIR_BIND_INFO, *PVMDIR_BIND_INFO;
 
@@ -64,8 +64,8 @@ typedef struct _VMDIR_SASL_INFO
 
 typedef struct _VMDIR_DIR_CONTEXT
 {
-	PVMDIR_BIND_INFO pBindInfo;
-	LDAP*            pLd;
+    PVMDIR_BIND_INFO pBindInfo;
+    LDAP*            pLd;
 
 } VMDIR_DIR_CONTEXT, *PVMDIR_DIR_CONTEXT;
 
@@ -84,21 +84,21 @@ typedef struct _VMDIR_AUTH_PROVIDER_CONTEXT
 
 typedef enum
 {
-	VMDIR_ENUM_HANDLE_TYPE_OBJECTS = 0,
-	VMDIR_ENUM_HANDLE_TYPE_MEMBERS
+    VMDIR_ENUM_HANDLE_TYPE_OBJECTS = 0,
+    VMDIR_ENUM_HANDLE_TYPE_MEMBERS
 
 } VMDIR_ENUM_HANDLE_TYPE;
 
 typedef struct _VMDIR_ENUM_HANDLE
 {
-	VMDIR_ENUM_HANDLE_TYPE type;
+    VMDIR_ENUM_HANDLE_TYPE type;
 
-	PVMDIR_DIR_CONTEXT pDirContext;
+    PVMDIR_DIR_CONTEXT pDirContext;
 
-	LSA_OBJECT_TYPE    objectType;
+    LSA_OBJECT_TYPE    objectType;
 
-	PSTR*              ppszDNArray;
-	DWORD              dwDNCount;
+    PSTR*              ppszDNArray;
+    DWORD              dwDNCount;
 
     LDAPMessage*       pSearchResult;
     LONG64             llLastUSNChanged;
@@ -109,11 +109,43 @@ typedef struct _VMDIR_ENUM_HANDLE
 
 } VMDIR_ENUM_HANDLE, *PVMDIR_ENUM_HANDLE;
 
+typedef enum
+{
+    VMDIR_JOIN_STATE_UNSET,
+    VMDIR_JOIN_STATE_NOT_JOINED,
+    VMDIR_JOIN_STATE_JOINING,
+    VMDIR_JOIN_STATE_JOINED,
+} VMDIR_JOIN_STATE;
+
+typedef enum
+{
+    VMDIR_REFRESH_STATE_UNSET,
+    VMDIR_REFRESH_STATE_POLLING,
+    VMDIR_REFRESH_STATE_CONFIGURING,
+    VMDIR_REFRESH_STATE_REFRESHING,
+    VMDIR_REFRESH_STATE_WAITING,
+    VMDIR_REFRESH_STATE_STOPPING,
+} VMDIR_REFRESH_STATE;
+
+typedef struct _VMDIR_REFRESH_CONTEXT {
+    pthread_mutex_t mutex;
+    pthread_mutex_t *pMutex;
+    pthread_cond_t cond;
+    pthread_cond_t *pCond;
+    pthread_t thread;
+    pthread_t *pThread;
+    pthread_rwlock_t rwlock;
+    pthread_rwlock_t *pRwlock;
+    VMDIR_REFRESH_STATE state;
+} VMDIR_REFRESH_CONTEXT, *PVMDIR_REFRESH_CONTEXT;
+
 typedef struct _VMDIR_AUTH_PROVIDER_GLOBALS
 {
     pthread_rwlock_t   mutex_rw;
     pthread_rwlock_t*  pMutex_rw;
 
     PVMDIR_BIND_INFO   pBindInfo;
+    VMDIR_JOIN_STATE   joinState;
+    PVMDIR_REFRESH_CONTEXT pRefreshContext;
 
 } VMDIR_AUTH_PROVIDER_GLOBALS, *PVMDIR_AUTH_PROVIDER_GLOBALS;

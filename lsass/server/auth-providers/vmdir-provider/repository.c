@@ -1474,6 +1474,7 @@ VmDirRepositoryChangePassword(
 	PSTR     vals_old[2] = {(PSTR)pszOldPassword, NULL};
 	LDAPMod  mod[2]  = {{0}};
 	LDAPMod* mods[3] = {&mod[0], &mod[1], NULL};
+	PSTR     pszCachePath = NULL;
         PLSA_SECURITY_OBJECT pObject = NULL;
 
         dwError = VmDirFindUserByName(
@@ -1482,10 +1483,17 @@ VmDirRepositoryChangePassword(
                           &pObject);
         BAIL_ON_VMDIR_ERROR(dwError);
 
+        dwError = LwKrb5GetUserCachePath(
+                        pObject->userInfo.uid,
+                        KRB5_File_Cache,
+                        &pszCachePath);
+        BAIL_ON_VMDIR_ERROR(dwError);
+
 	dwError = VmDirLdapInitialize(
 			  pDirContext->pBindInfo->pszURI,
 			  pszUPN,
 			  pszOldPassword,
+			  pszCachePath,
 			  &pLd);
 	BAIL_ON_VMDIR_ERROR(dwError);
 
@@ -1515,6 +1523,7 @@ cleanup:
 	{
 		VmDirLdapClose(pLd);
 	}
+	LW_SAFE_FREE_STRING(pszCachePath);
 
 	return dwError;
 
