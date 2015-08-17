@@ -212,26 +212,18 @@ DJConfigurePAM(
 {
     DWORD dwError = ERROR_SUCCESS;
     PCSTR testPrefix = NULL;
-    JoinProcessOptions options;
 
     LWException *exc = NULL;
 
-    DJZeroJoinProcessOptions(&options);
-    options.joiningDomain = TRUE;
-
-    LW_TRY(&exc, DJInitModuleStates(&options, &LW_EXC));
-
     LW_TRY(&exc, DJNewConfigurePamForADLogin(
                     testPrefix,
-                    &options,
-                    options.warningCallback,
+                    NULL,
+                    NULL,
                     TRUE,
                     &LW_EXC
                     ));
 
 cleanup:
-
-    DJFreeJoinProcessOptions(&options);
 
     if (!LW_IS_OK(exc))
     {
@@ -249,26 +241,18 @@ DJUnconfigurePAM(
 {
     DWORD dwError = ERROR_SUCCESS;
     PCSTR testPrefix = NULL;
-    JoinProcessOptions options;
 
     LWException *exc = NULL;
 
-    DJZeroJoinProcessOptions(&options);
-    options.joiningDomain = FALSE;
-
-    LW_TRY(&exc, DJInitModuleStates(&options, &LW_EXC));
-
     LW_TRY(&exc, DJNewConfigurePamForADLogin(
                     testPrefix,
-                    &options,
-                    options.warningCallback,
+                    NULL,
+                    NULL,
                     FALSE,
                     &LW_EXC
                     ));
 
 cleanup:
-
-    DJFreeJoinProcessOptions(&options);
 
     if (!LW_IS_OK(exc))
     {
