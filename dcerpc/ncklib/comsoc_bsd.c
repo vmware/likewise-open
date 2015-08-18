@@ -272,6 +272,12 @@ int ioctl(int d, int request, ...);
 #define CMSG_LEN(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
 #endif
 
+#ifdef LW_BUILD_ESX
+#ifndef PF_VMKUNIX
+#define PF_VMKUNIX 26
+#endif
+#endif
+
 void
 rpc_lrpc_transport_info_free(
     rpc_transport_info_handle_t info
@@ -1122,7 +1128,7 @@ accept_again:
         goto accept_again;
     }
 
-    if (!serr)
+    if (!serr && sock && sock->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
     {
         serr = rpc__bsd_socket_getpeereid((*newsock), &euid, &egid);
 	if (serr)
@@ -1369,12 +1375,30 @@ rpc_addr_p_t        addr;
         saddr_len = sizeof(struct sockaddr);
     }
     serr = (getsockname(lrpc->fd, (void*)psaddr, &saddr_len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+    if (serr != RPC_C_SOCKET_OK)
+    {
+        goto error;
+    }
+
+#ifdef LW_BUILD_ESX
+    /*
+     * ESX workaround for getsockname() returning PF_VMKUNIX vs PF_UNIX for
+     * a UDS socket.
+     */
+    if (psaddr->sa_family == PF_VMKUNIX)
+    {
+        psaddr->sa_family = PF_UNIX;
+    }
+#endif
+
     if (psaddr != (struct sockaddr *) &addr->sa)
     {
         memcpy(&addr->sa, psaddr, addr->len);
     }
-    RPC_SOCKET_RESTORE_CANCEL;
+
     RPC_SOCKET_FIX_ADDRLEN(addr);
+error:
+    RPC_SOCKET_RESTORE_CANCEL;
     RPC_LOG_SOCKET_INQ_EP_XIT;
     return (serr);
 }
@@ -3335,6 +3359,12 @@ rpc__bsd_socket_inq_transport_info(
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
     rpc_bsd_transport_info_p_t lrpc_info = NULL;
+
+    if (sock && sock->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        /* Take no action on an NCALRPC socket */
+        goto error;
+    }
 
     lrpc_info = calloc(1, sizeof(*lrpc_info));
 
