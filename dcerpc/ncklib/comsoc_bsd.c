@@ -3360,12 +3360,6 @@ rpc__bsd_socket_inq_transport_info(
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
     rpc_bsd_transport_info_p_t lrpc_info = NULL;
 
-    if (sock && sock->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
-    {
-        /* Take no action on an NCALRPC socket */
-        goto error;
-    }
-
     lrpc_info = calloc(1, sizeof(*lrpc_info));
 
     if (!lrpc_info)
