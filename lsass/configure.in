@@ -638,6 +638,12 @@ then
         AC_DEFINE([ENABLE_LOCAL], [], [Define if local provider should be built])
 fi
 
+AM_CONDITIONAL(ENABLE_VMDIR, test x"$enable_vmdir" = x"yes")
+if test x"$enable_vmdir" = x"yes"
+then
+        AC_DEFINE([ENABLE_VMDIR], [], [Define if vmdir provider should be built])
+fi
+
 # Boolean settings
 
 AC_ARG_ENABLE([static-providers], [AC_HELP_STRING([--enable-static-providers], [build providers directly into lsassd])])

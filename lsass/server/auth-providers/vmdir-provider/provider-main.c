@@ -4,6 +4,18 @@
 
 #include "includes.h"
 
+static
+DWORD
+VmDirGetJoinState(
+    VOID
+    );
+
+static
+VOID
+VmDirSetJoinState(
+    VMDIR_JOIN_STATE joinState
+    );
+
 /**
  * Entry point to initialize the authentication provider
  *
@@ -20,6 +32,7 @@ LsaInitializeProvider(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
 
     LOG_FUNC_ENTER;
 
@@ -32,6 +45,20 @@ LsaInitializeProvider(
     pthread_rwlock_init(&gVmDirAuthProviderGlobals.mutex_rw, NULL);
     gVmDirAuthProviderGlobals.pMutex_rw = &gVmDirAuthProviderGlobals.mutex_rw;
 
+    pthread_mutex_init(&gVmDirAuthProviderGlobals.mutex, NULL);
+    gVmDirAuthProviderGlobals.pMutex = &gVmDirAuthProviderGlobals.mutex;
+
+    gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_UNSET;
+    dwError = VmDirGetBindInfo(&pBindInfo);
+    if (dwError == 0)
+    {
+        gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_JOINED;
+    }
+    else
+    {
+        gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_NOT_JOINED;
+    }
+
     dwError = VmDirStartMachineAccountRefresh(&gVmDirAuthProviderGlobals.pRefreshContext);
     BAIL_ON_VMDIR_ERROR(dwError);
 
@@ -39,6 +66,11 @@ LsaInitializeProvider(
     *ppFunctionTable = &gVmDirProviderAPITable;
 
 cleanup:
+
+    if (pBindInfo)
+    {
+        VmDirReleaseBindInfo(pBindInfo);
+    }
 
     LOG_FUNC_EXIT;
 
@@ -737,11 +769,17 @@ VmDirShutdownProvider(
         gVmDirAuthProviderGlobals.pMutex_rw = NULL;
     }
 
+    if (gVmDirAuthProviderGlobals.pMutex)
+    {
+        pthread_mutex_destroy(&gVmDirAuthProviderGlobals.mutex);
+        gVmDirAuthProviderGlobals.pMutex = NULL;
+    }
+
     if (gVmDirAuthProviderGlobals.pBindInfo)
     {
-    	VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
+        VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
 
-    	gVmDirAuthProviderGlobals.pBindInfo = NULL;
+        gVmDirAuthProviderGlobals.pBindInfo = NULL;
     }
 
     LOG_FUNC_EXIT;
@@ -782,21 +820,24 @@ VmDirOpenHandle(
             &pContext->peer_gid,
             &pContext->peer_pid);
 
-    dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
-    BAIL_ON_VMDIR_ERROR(dwError);
+    if (VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-    dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
-                                &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
-                                bInLock);
-    BAIL_ON_VMDIR_ERROR(dwError);
+        dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
+                                    &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
+                                    bInLock);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-    dwError = VmDirLdapInitialize(
-                                pContext->dirContext.pBindInfo->pszURI,
-                                pContext->dirContext.pBindInfo->pszUPN,
-                                pContext->dirContext.pBindInfo->pszPassword,
-                                VMDIR_KRB5_CC_NAME,
-                                &pContext->dirContext.pLd);
-    BAIL_ON_VMDIR_ERROR(dwError);
+        dwError = VmDirLdapInitialize(
+                                    pContext->dirContext.pBindInfo->pszURI,
+                                    pContext->dirContext.pBindInfo->pszUPN,
+                                    pContext->dirContext.pBindInfo->pszPassword,
+                                    VMDIR_KRB5_CC_NAME,
+                                    &pContext->dirContext.pLd);
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
     *phProvider = pContext;
 
@@ -910,12 +951,18 @@ VmDirAuthenticateUserPam(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     dwError = VmDirFindUserByName(
-    				&pContext->dirContext,
-    				pParams->pszLoginName,
-    				&pObject);
+                                &pContext->dirContext,
+                                pParams->pszLoginName,
+                                &pObject);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     if (pObject->userInfo.bAccountDisabled)
@@ -1033,6 +1080,12 @@ VmDirValidateUser(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
 
     LSA_LOG_INFO("VmDirValidateUser: Validating user (%s)",
@@ -1095,6 +1148,11 @@ VmDirCheckUserInList(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
     LSA_LOG_INFO(
                 "VmDirCheckUserInList: Checking user (%s) in list (%s)",
@@ -1131,6 +1189,12 @@ VmDirChangePassword(
     if (!hProvider || !pszLoginId || !*pszLoginId)
     {
         dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
@@ -1268,6 +1332,12 @@ VmDirOpenSession(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     dwError = VmDirFindUserByName(&pContext->dirContext, pszLoginId, &pObject);
@@ -1344,8 +1414,16 @@ VmDirCloseSession (
 
     LOG_FUNC_ENTER;
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+error:
+
     LOG_FUNC_EXIT;
-    
+
     return dwError;
 }
 
@@ -1441,10 +1519,16 @@ VmDirGetStatus(
     PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
     PSTR pszDomainSid = NULL;
 
+    LOG_FUNC_ENTER;
+
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
-    LOG_FUNC_ENTER;
-    
     if (!ppAuthProviderStatus)
     {
         dwError = ERROR_INVALID_PARAMETER;
@@ -1555,10 +1639,83 @@ error:
 	goto cleanup;
 }
 
+static
+DWORD
+VmDirGetJoinState(
+    VOID)
+{
+    VMDIR_JOIN_STATE joinState = VMDIR_JOIN_STATE_UNSET;
+
+    pthread_mutex_lock(&gVmDirAuthProviderGlobals.mutex);
+    joinState = gVmDirAuthProviderGlobals.joinState;
+    pthread_mutex_unlock(&gVmDirAuthProviderGlobals.mutex);
+
+    return joinState;
+}
+
+static
+VOID
+VmDirSetJoinState(
+    VMDIR_JOIN_STATE joinState)
+{
+    pthread_mutex_lock(&gVmDirAuthProviderGlobals.mutex);
+    gVmDirAuthProviderGlobals.joinState = joinState;
+    pthread_mutex_unlock(&gVmDirAuthProviderGlobals.mutex);
+}
+
+static
+DWORD
+VmDirSignalProvider(
+    HANDLE hProvider,
+    uid_t  peerUID,
+    gid_t  peerGID,
+    DWORD  dwFlags
+    )
+{
+    DWORD dwError = 0;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
+
+    if (peerUID != 0)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    if (!(dwFlags & LSA_VMDIR_SIGNAL_RELOAD_CONFIG))
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    dwError = VmDirGetBindInfo(&pBindInfo);
+    if (dwError == 0)
+    {
+        VmDirSetJoinState(VMDIR_JOIN_STATE_JOINED);
+    }
+    else
+    {
+        VmDirSetJoinState(VMDIR_JOIN_STATE_NOT_JOINED);
+    }
+    VmDirSignalMachineAccountRefresh(gVmDirAuthProviderGlobals.pRefreshContext);
+
+cleanup:
+
+    if (pBindInfo)
+    {
+        VmDirReleaseBindInfo(pBindInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 DWORD
 VmDirProviderIoControl (
     HANDLE hProvider,           /* IN              */
-    uid_t  peerUid,             /* IN              */
+    uid_t  peerUID,             /* IN              */
     gid_t  peerGID,             /* IN              */
     DWORD  dwIoControlCode,     /* IN              */
     DWORD  dwInputBufferSize,   /* IN              */
@@ -1567,7 +1724,40 @@ VmDirProviderIoControl (
     PVOID* ppOutputBuffer       /*    OUT          */
     )
 {
+    DWORD dwError = 0;
+
     LOG_FUNC_ENTER;
+
+    if (!pdwOutputBufferSize || !ppOutputBuffer)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    switch (dwIoControlCode)
+    {
+        case LSA_VMDIR_IO_SIGNAL:
+            dwError = VmDirSignalProvider(
+                          hProvider,
+                          peerUID,
+                          peerGID,
+                          *(PDWORD)pInputBuffer);
+            *pdwOutputBufferSize = 0;
+            *ppOutputBuffer = NULL;
+            break;
+        default:
+            dwError = LW_ERROR_NOT_HANDLED;
+            break;
+    }
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+cleanup:
+
+    LOG_FUNC_EXIT;
+
+    return dwError;
+
+error:
 
     if (pdwOutputBufferSize)
     {
@@ -1577,8 +1767,6 @@ VmDirProviderIoControl (
     {
         *ppOutputBuffer = NULL;
     }
-    
-    LOG_FUNC_EXIT;
 
-    return LW_ERROR_NOT_HANDLED;
+    goto cleanup;
 }

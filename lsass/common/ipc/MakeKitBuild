@@ -1,10 +1,10 @@
-SUBDIRS="api ad privilege ntlm"
+SUBDIRS="api ad privilege ntlm vmdir"
 
 make()
 {
     mk_multiarch_do
         mk_group \
 	    GROUP=ipc \
-	    GROUPDEPS="api/api ad/ad privilege/privilege ntlm/ntlm"
+	    GROUPDEPS="api/api ad/ad privilege/privilege ntlm/ntlm vmdir/vmdir"
     mk_multiarch_done
 }

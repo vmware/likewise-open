@@ -120,6 +120,7 @@ typedef enum
 typedef enum
 {
     VMDIR_REFRESH_STATE_UNSET,
+    VMDIR_REFRESH_STATE_SLEEPING,
     VMDIR_REFRESH_STATE_POLLING,
     VMDIR_REFRESH_STATE_CONFIGURING,
     VMDIR_REFRESH_STATE_REFRESHING,
@@ -143,6 +144,8 @@ typedef struct _VMDIR_AUTH_PROVIDER_GLOBALS
 {
     pthread_rwlock_t   mutex_rw;
     pthread_rwlock_t*  pMutex_rw;
+    pthread_mutex_t    mutex;
+    pthread_mutex_t*   pMutex;
 
     PVMDIR_BIND_INFO   pBindInfo;
     VMDIR_JOIN_STATE   joinState;

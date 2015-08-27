@@ -354,6 +354,11 @@ VmDirStartMachineAccountRefresh(
     );
 
 VOID
+VmDirSignalMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT pRefreshContext     /* IN              */
+    );
+
+VOID
 VmDirStopMachineAccountRefresh(
     PVMDIR_REFRESH_CONTEXT pRefreshContext     /* IN              */
     );

@@ -27,6 +27,7 @@
 #include <lsa/provider.h>
 #include <lsautils.h>
 #include <lsasrvapi.h>
+#include <lsavmdirprovider.h>
 
 #include "defines.h"
 #include "structs.h"

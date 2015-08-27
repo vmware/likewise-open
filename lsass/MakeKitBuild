@@ -27,7 +27,7 @@ option()
         VAR=LSA_PROVIDERS \
         PARAM="..." \
         DEFAULT="$_default_PROVIDERS" \
-        HELP="Enabled providers (ad, local)"
+        HELP="Enabled providers (ad, local, vmdir)"
 
     mk_option \
         OPTION=lsa-rpc-servers \
@@ -139,6 +139,7 @@ configure()
             case "$_prov" in
                 "ad") mk_define ENABLE_AD;;
                 "local") mk_define ENABLE_LOCAL;;
+                "vmdir") mk_define ENABLE_VMDIR;;
             esac
         done
     fi

@@ -72,6 +72,16 @@ error:
 }
 
 VOID
+VmDirSignalMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT pRefreshContext)
+{
+    if (pRefreshContext)
+    {
+        VmDirSetRefreshState(pRefreshContext, VMDIR_REFRESH_STATE_CONFIGURING);
+    }
+}
+
+VOID
 VmDirStopMachineAccountRefresh(
     PVMDIR_REFRESH_CONTEXT pRefreshContext)
 {
@@ -204,10 +214,24 @@ VmDirMachineAccountRefreshRoutine(
 
         switch ( (state = VmDirGetRefreshState(pRefreshContext)) )
         {
+            case VMDIR_REFRESH_STATE_SLEEPING:
+
+                pthread_mutex_lock(&pRefreshContext->mutex);
+                errCode = 0;
+                while (pRefreshContext->state == VMDIR_REFRESH_STATE_SLEEPING && errCode == 0)
+                {
+                    errCode = pthread_cond_wait(
+                                  &pRefreshContext->cond,
+                                  &pRefreshContext->mutex);
+                }
+                pthread_mutex_unlock(&pRefreshContext->mutex);
+                VmDirSetRefreshState(pRefreshContext, VMDIR_REFRESH_STATE_CONFIGURING);
+                break;
+
             case VMDIR_REFRESH_STATE_POLLING:
 
                 pthread_mutex_lock(&pRefreshContext->mutex);
-                ts.tv_sec = time(0) + 60;
+                ts.tv_sec = time(NULL) + 30;
                 ts.tv_nsec = 0;
                 errCode = 0;
                 while (pRefreshContext->state == VMDIR_REFRESH_STATE_POLLING && errCode == 0)
@@ -232,7 +256,7 @@ VmDirMachineAccountRefreshRoutine(
                 dwError = VmDirGetBindInfo(&pBindInfo);
                 if (dwError)
                 {
-                    VmDirSetRefreshState(pRefreshContext, VMDIR_REFRESH_STATE_POLLING);
+                    VmDirSetRefreshState(pRefreshContext, VMDIR_REFRESH_STATE_SLEEPING);
                     break;
                 }
 
