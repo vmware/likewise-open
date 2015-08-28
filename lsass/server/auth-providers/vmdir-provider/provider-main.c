@@ -32,9 +32,6 @@ LsaInitializeProvider(
     pthread_rwlock_init(&gVmDirAuthProviderGlobals.mutex_rw, NULL);
     gVmDirAuthProviderGlobals.pMutex_rw = &gVmDirAuthProviderGlobals.mutex_rw;
 
-    dwError = VmDirStartMachineAccountRefresh(&gVmDirAuthProviderGlobals.pRefreshContext);
-    BAIL_ON_VMDIR_ERROR(dwError);
-
     *ppszProviderName = gpszVmDirProviderName;
     *ppFunctionTable = &gVmDirProviderAPITable;
 
@@ -724,13 +721,7 @@ VmDirShutdownProvider(
     DWORD dwError = LW_ERROR_SUCCESS;
 
     LOG_FUNC_ENTER;
-
-    if (gVmDirAuthProviderGlobals.pRefreshContext)
-    {
-        VmDirStopMachineAccountRefresh(gVmDirAuthProviderGlobals.pRefreshContext);
-        gVmDirAuthProviderGlobals.pRefreshContext = NULL;
-    }
-
+    
     if (gVmDirAuthProviderGlobals.pMutex_rw)
     {
         pthread_rwlock_destroy(&gVmDirAuthProviderGlobals.mutex_rw);
@@ -758,10 +749,9 @@ VmDirOpenHandle(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
-    BOOLEAN bInLock = FALSE;
 
     LOG_FUNC_ENTER;
-
+    
     if (!hServer || !phProvider)
     {
         dwError = ERROR_INVALID_PARAMETER;
@@ -785,24 +775,16 @@ VmDirOpenHandle(
     dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
     BAIL_ON_VMDIR_ERROR(dwError);
 
-    dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
-                                &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
-                                bInLock);
-    BAIL_ON_VMDIR_ERROR(dwError);
-
     dwError = VmDirLdapInitialize(
-                                pContext->dirContext.pBindInfo->pszURI,
-                                pContext->dirContext.pBindInfo->pszUPN,
-                                pContext->dirContext.pBindInfo->pszPassword,
-                                VMDIR_KRB5_CC_NAME,
-                                &pContext->dirContext.pLd);
+    				pContext->dirContext.pBindInfo->pszURI,
+    				pContext->dirContext.pBindInfo->pszUPN,
+    				pContext->dirContext.pBindInfo->pszPassword,
+    				&pContext->dirContext.pLd);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     *phProvider = pContext;
 
 cleanup:
-
-    VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.pRefreshContext->rwlock, bInLock);
 
     LOG_FUNC_EXIT;
 

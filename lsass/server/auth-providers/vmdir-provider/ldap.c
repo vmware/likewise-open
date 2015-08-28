@@ -97,7 +97,6 @@ VmDirLdapInitialize(
 	PCSTR            pszURI,
 	PCSTR            pszUPN,
 	PCSTR            pszPassword,
-        PCSTR            pszCachePath,
 	LDAP**           ppLd
 	)
 {
@@ -105,7 +104,11 @@ VmDirLdapInitialize(
         const int ldapVer = LDAP_VERSION3;
         PSTR  pszUPN_local = NULL;
 	LDAP* pLd = NULL;
-        PSTR pszOldCachePath = NULL;
+        PSTR pszOldCredCacheName = NULL;
+        DWORD dwCurrentTime = 0;
+        static DWORD dwStartTime = 0;
+        static DWORD dwEndTime = 0;
+        BOOLEAN bIsLocked = FALSE;
 
 	dwError = LwMapLdapErrorToLwError(
 					ldap_initialize(&pLd, pszURI));
@@ -123,9 +126,29 @@ VmDirLdapInitialize(
 	BAIL_ON_VMDIR_ERROR(dwError);
 
         dwError = LwKrb5SetThreadDefaultCachePath(
-                      pszCachePath,
-                      &pszOldCachePath);
+                      VMDIR_KRB5_CC_NAME,
+                      &pszOldCredCacheName);
         BAIL_ON_VMDIR_ERROR(dwError);
+
+        dwCurrentTime = time(0);
+
+        pthread_rwlock_wrlock(gVmDirAuthProviderGlobals.pMutex_rw);
+        bIsLocked = TRUE;
+
+        if (dwCurrentTime > dwStartTime + (dwEndTime - dwStartTime) / 2)
+        {
+            dwStartTime = dwCurrentTime;
+
+            dwError = LwKrb5InitializeCredentials(
+                          pszUPN,
+                          pszPassword,
+                          VMDIR_KRB5_CC_NAME,
+                          &dwEndTime);
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+
+        pthread_rwlock_unlock(gVmDirAuthProviderGlobals.pMutex_rw);
+        bIsLocked = FALSE;
 
 	dwError = LwMapLdapErrorToLwError(
 				ldap_sasl_interactive_bind_s(
@@ -142,13 +165,16 @@ VmDirLdapInitialize(
 	*ppLd = pLd;
 
 cleanup:
+        if (bIsLocked)
+        {
+            pthread_rwlock_unlock(gVmDirAuthProviderGlobals.pMutex_rw);
+        }
 
-        if (pszOldCachePath)
+        if (pszOldCredCacheName)
         {
             LwKrb5SetThreadDefaultCachePath(
-                pszOldCachePath,
+                pszOldCredCacheName,
                 NULL);
-            LwFreeString(pszOldCachePath);
         }
 
         LW_SAFE_FREE_STRING(pszUPN_local);

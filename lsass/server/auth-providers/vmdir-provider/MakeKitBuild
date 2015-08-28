@@ -6,7 +6,6 @@ make()
        ldap.c \
        lock.c \
        provider-main.c \
-       refresh.c \
        repository.c \
        utils.c"
 
