@@ -305,6 +305,12 @@ VmDirOpenEnumObjects(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     switch (objectType)
@@ -377,6 +383,12 @@ VmDirEnumObjects(
     }
 
     LOG_FUNC_ENTER;
+
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
     dwError = VmDirRepositoryEnumObjects(
     				pEnumHandle,
