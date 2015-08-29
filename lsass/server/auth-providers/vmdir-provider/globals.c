@@ -50,6 +50,10 @@ LSA_PROVIDER_FUNCTION_TABLE gVmDirProviderAPITable =
 VMDIR_AUTH_PROVIDER_GLOBALS gVmDirAuthProviderGlobals =
 {
 	.pMutex_rw  = NULL,
-	.pBindInfo  = NULL
+    .pMutex     = NULL,
+	.pBindInfo  = NULL,
+    .joinState  = VMDIR_JOIN_STATE_UNSET,
+    .pRefreshContext = NULL,
+    .bindProtocol = VMDIR_BIND_PROTOCOL_UNSET
 };
 

@@ -16,6 +16,13 @@ option()
     esac
 
     mk_option \
+        OPTION=enable-vmdir-provider \
+        VAR=ENABLE_VMDIR_PROVIDER \
+        PARAM="yes|no" \
+        DEFAULT="no" \
+        HELP="Build vmdir provider"
+
+    mk_option \
         OPTION=lsa-builtin-providers \
         VAR=LSA_BUILTIN_PROVIDERS \
         PARAM="yes|no" \
@@ -27,7 +34,7 @@ option()
         VAR=LSA_PROVIDERS \
         PARAM="..." \
         DEFAULT="$_default_PROVIDERS" \
-        HELP="Enabled providers (ad, local)"
+        HELP="Enabled providers (ad, local, vmdir)"
 
     mk_option \
         OPTION=lsa-rpc-servers \
@@ -139,8 +146,18 @@ configure()
             case "$_prov" in
                 "ad") mk_define ENABLE_AD;;
                 "local") mk_define ENABLE_LOCAL;;
+                "vmdir")
+                  mk_define ENABLE_VMDIR
+                  mk_export VMDIR_PROVIDER_LOAD_ORDER="\"VmDir\""
+                  ;;
             esac
         done
+    else
+      if [ "$ENABLE_VMDIR_PROVIDER" = "yes" ]; then
+        mk_export VMDIR_PROVIDER_LOAD_ORDER="\"VmDir\""
+      else
+        mk_export VMDIR_PROVIDER_LOAD_ORDER=""
+      fi
     fi
 
     EXTRA_SERVICE_DEPS=""

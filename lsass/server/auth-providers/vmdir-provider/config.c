@@ -38,6 +38,77 @@ VmDirFreeBindInfo(
     );
 
 DWORD
+VmDirGetBindProtocol(
+    VMDIR_BIND_PROTOCOL* pBindProtocol
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hConnection = NULL;
+    HKEY   hKeyRoot = NULL;
+    HKEY   hKeyVmDirProvider = NULL;
+    PSTR   pszBindProtocol = NULL;
+    VMDIR_BIND_PROTOCOL protocol = VMDIR_BIND_PROTOCOL_SRP;
+    
+    dwError = RegOpenServer(&hConnection);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    NULL,
+                    HKEY_THIS_MACHINE,
+                    0,
+                    KEY_READ,
+                    &hKeyRoot);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    hKeyRoot,
+                    VMDIR_AUTH_PROVIDER_KEY,
+                    0,
+                    KEY_READ,
+                    &hKeyVmDirProvider);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = VmDirRegReadString(
+                   hConnection,
+                   hKeyVmDirProvider,
+                   VMDIR_REG_KEY_BIND_PROTOCOL,
+                   &pszBindProtocol);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    if (!strcasecmp(pszBindProtocol, VMDIR_BIND_PROTOCOL_KERBEROS_STR))
+    {
+        protocol = VMDIR_BIND_PROTOCOL_KERBEROS;
+    }
+    else if (!strcasecmp(pszBindProtocol, VMDIR_BIND_PROTOCOL_SRP_STR))
+    {
+        protocol = VMDIR_BIND_PROTOCOL_SRP;
+    }
+    
+error:
+    
+    *pBindProtocol = protocol; /* on error, return default protocol */
+    
+    if (hKeyVmDirProvider)
+    {
+        RegCloseKey(hConnection, hKeyVmDirProvider);
+    }
+    if (hKeyRoot)
+    {
+        RegCloseKey(hConnection, hKeyRoot);
+    }
+    if (hConnection)
+    {
+        RegCloseServer(hConnection);
+    }
+    
+    LW_SAFE_FREE_STRING(pszBindProtocol);
+
+    return ERROR_SUCCESS;
+}
+
+DWORD
 VmDirCreateBindInfo(
     PVMDIR_BIND_INFO* ppBindInfo
     )
@@ -248,6 +319,8 @@ VmAfdGetDCInfo(
                     pszKey_DomainName,
                     &pszDomainName);
     BAIL_ON_VMDIR_ERROR(dwError);
+
+    LwStrToUpper(pszDomainName);
 
     dwError = VmDirRegReadString(
                     hConnection,

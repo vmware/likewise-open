@@ -20,6 +20,11 @@ make()
         HEADERDEPS="lsa/lsa.h"
 
     mk_headers \
+        MASTER="lsa/vmdir.h" \
+        HEADERDEPS="lsa/lsa.h" \
+        lsa/vmdir-types.h
+
+    mk_headers \
         HEADERDEPS="gssapi.h" \
         ntlm/gssntlm.h \
         ntlm/sspintlm.h
@@ -37,6 +42,7 @@ make()
 	INSTALLDIR="${MK_INCLUDEDIR}/lsa/internal" \
 	lsaadprovider.h         \
 	lsalocalprovider.h      \
+	lsavmdirprovider.h      \
 	lsadatablob.h           \
 	lsadef.h                \
 	lsaipc.h                \

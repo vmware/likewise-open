@@ -118,8 +118,9 @@ VmDirFindUserByName(
 
     dwError = LwAllocateStringPrintf(
     				&pszFilter,
-    				"(&(objectclass=%s)(%s=%s))",
+    				"(&(objectclass=%s)(!(objectclass=%s))(%s=%s))",
     				VMDIR_OBJ_CLASS_USER,
+    				VMDIR_OBJ_CLASS_COMPUTER,
     				VMDIR_ATTR_NAME_ACCOUNT,
     				pszAccount);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -170,6 +171,7 @@ VmDirFindUserById(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+    PSTR  pszRid = NULL;
     PSTR  pszDomainSID = NULL;
     PSTR  pszUserSID = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
@@ -177,11 +179,15 @@ VmDirFindUserById(
     dwError = VmDirFindDomainSID(pDirContext, &pszDomainSID);
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    /* Map UID to new RID format */
+    dwError = VmDirGetRIDFromUID(uid, &pszRid);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
     dwError = LwAllocateStringPrintf(
-    				&pszUserSID,
-    				"%s-%u",
-    				pszDomainSID,
-    				uid);
+                  &pszUserSID,
+                  "%s-%s",
+                  pszDomainSID,
+                  pszRid);
     BAIL_ON_VMDIR_ERROR(dwError);
 
 	dwError = VmDirFindUserBySID(pDirContext, pszUserSID, &pObject);
@@ -193,6 +199,7 @@ cleanup:
 
     LW_SAFE_FREE_STRING(pszDomainSID);
     LW_SAFE_FREE_STRING(pszUserSID);
+    LW_SAFE_FREE_STRING(pszRid);
 
     return dwError;
 
@@ -231,8 +238,9 @@ VmDirFindUserBySID(
 
     dwError = LwAllocateStringPrintf(
     				&pszFilter,
-    				"(&(objectclass=%s)(%s=%s))",
+    				"(&(objectclass=%s)(!(objectclass=%s))(%s=%s))",
     				VMDIR_OBJ_CLASS_USER,
+    				VMDIR_OBJ_CLASS_COMPUTER,
     				VMDIR_ATTR_NAME_OBJECTSID,
     				pszSID);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -799,8 +807,9 @@ VmDirRepositoryEnumUsers(
     {
     	dwError = LwAllocateStringPrintf(
     					&pszFilter,
-    					"(&(objectclass=%s)(%s>=%lld))",
+    					"(&(objectclass=%s)(!(objectclass=%s))(%s>=%lld))",
     					VMDIR_OBJ_CLASS_USER,
+    					VMDIR_OBJ_CLASS_COMPUTER,
     					VMDIR_ATTR_NAME_USN_CHANGED,
     					pEnumHandle->llLastUSNChanged+1);
     	BAIL_ON_VMDIR_ERROR(dwError);
@@ -1456,37 +1465,38 @@ error:
 
 DWORD
 VmDirRepositoryVerifyPassword(
-	PVMDIR_DIR_CONTEXT pDirContext,
-	PCSTR              pszUPN,
-	PCSTR              pszPassword
-	)
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PCSTR              pszUPN,
+    PCSTR              pszPassword
+    )
 {
-	DWORD dwError = 0;
-	LDAP* pLd = NULL;
-
-	dwError = VmDirLdapInitialize(
-					pDirContext->pBindInfo->pszURI,
-					pszUPN,
-					pszPassword,
-					&pLd);
-	BAIL_ON_VMDIR_ERROR(dwError);
-
+    DWORD dwError = 0;
+    LDAP* pLd = NULL;
+    
+    dwError = VmDirLdapInitialize(
+                    pDirContext->pBindInfo->pszURI,
+                    pszUPN,
+                    pszPassword,
+                    NULL, /* cache path */
+                    &pLd);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
 cleanup:
-
-	if (pLd)
-	{
-		VmDirLdapClose(pLd);
-	}
-
-	return dwError;
-
+    
+    if (pLd)
+    {
+        VmDirLdapClose(pLd);
+    }
+    
+    return dwError;
+    
 error:
-
-	// TODO : Differentiate error codes
-
-	dwError = LW_ERROR_PASSWORD_MISMATCH;
-
-	goto cleanup;
+    
+    // TODO : Differentiate error codes
+    
+    dwError = LW_ERROR_PASSWORD_MISMATCH;
+    
+    goto cleanup;
 }
 
 DWORD
@@ -1503,6 +1513,7 @@ VmDirRepositoryChangePassword(
 	PSTR     vals_old[2] = {(PSTR)pszOldPassword, NULL};
 	LDAPMod  mod[2]  = {{0}};
 	LDAPMod* mods[3] = {&mod[0], &mod[1], NULL};
+	PSTR     pszCachePath = NULL;
         PLSA_SECURITY_OBJECT pObject = NULL;
 
         dwError = VmDirFindUserByName(
@@ -1511,10 +1522,17 @@ VmDirRepositoryChangePassword(
                           &pObject);
         BAIL_ON_VMDIR_ERROR(dwError);
 
+        dwError = LwKrb5GetUserCachePath(
+                        pObject->userInfo.uid,
+                        KRB5_File_Cache,
+                        &pszCachePath);
+        BAIL_ON_VMDIR_ERROR(dwError);
+
 	dwError = VmDirLdapInitialize(
 			  pDirContext->pBindInfo->pszURI,
 			  pszUPN,
 			  pszOldPassword,
+			  pszCachePath,
 			  &pLd);
 	BAIL_ON_VMDIR_ERROR(dwError);
 
@@ -1544,6 +1562,7 @@ cleanup:
 	{
 		VmDirLdapClose(pLd);
 	}
+	LW_SAFE_FREE_STRING(pszCachePath);
 
 	return dwError;
 

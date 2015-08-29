@@ -2,7 +2,8 @@ SUBDIRS = \
     api \
     ad \
     privilege \
-    ntlm
+    ntlm \
+    vmdir
 
 noinst_LTLIBRARIES = liblsaipc.la
 
@@ -13,3 +14,4 @@ liblsaipc_la_LIBADD = \
     @builddir@/ad/liblsaipc_ad.la \
     @builddir@/privilege/liblsaipc_privilege.la \
     @builddir@/ntlm/liblsaipc_ntlm.la
+    @builddir@/ntlm/liblsaipc_vmdir.la

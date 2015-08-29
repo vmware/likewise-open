@@ -10,6 +10,7 @@
 #include <lber.h>
 
 #include <sasl/sasl.h>
+#include <krb5/krb5.h>
 
 #include <lwio/lwio.h>
 #include <reg/lwreg.h>
@@ -19,12 +20,14 @@
 #include <lwhash.h>
 #include <lwfile.h>
 #include <lwsecurityidentifier.h>
+#include <lwkrb5.h>
 
 #include <lsadef.h>
 #include <lsa/lsa.h>
 #include <lsa/provider.h>
 #include <lsautils.h>
 #include <lsasrvapi.h>
+#include <lsavmdirprovider.h>
 
 #include "defines.h"
 #include "structs.h"

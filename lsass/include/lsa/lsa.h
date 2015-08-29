@@ -2019,7 +2019,8 @@ LsaGetSmartCardUserObject(
 //
 
 #define LSA_PROVIDER_TAG_LOCAL "lsa-local-provider"
-#define LSA_PROVIDER_TAG_AD "lsa-activedirectory-provider"
+#define LSA_PROVIDER_TAG_AD    "lsa-activedirectory-provider"
+#define LSA_PROVIDER_TAG_VMDIR "lsa-vmdir-provider"
 
 #endif /* __LSA_H__ */
 

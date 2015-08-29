@@ -9,6 +9,12 @@
 //
 #define VMDIR_REG_KEY "Services\\vmdir"
 
+#define VMDIR_AUTH_PROVIDER_KEY "Services\\lsass\\Parameters\\Providers\\VmDir"
+
+#define VMDIR_REG_KEY_BIND_PROTOCOL       "BindProtocol"
+#define VMDIR_BIND_PROTOCOL_KERBEROS_STR  "kerberos"
+#define VMDIR_BIND_PROTOCOL_SRP_STR       "srp"
+
 #define VMDIR_REG_KEY_BIND_INFO_ACCOUNT   "dcAccount"
 #define VMDIR_REG_KEY_BIND_INFO_BIND_DN   "dcAccountDN"
 #define VMDIR_REG_KEY_BIND_INFO_PASSWORD  "dcAccountPassword"
@@ -24,6 +30,24 @@
         { \
             goto error; \
         }
+
+#define BAIL_ON_KRB_ERROR(ctx, ret) \
+    do { \
+        if (ret) \
+        { \
+           (dwError) = LwTranslateKrb5Error(ctx, ret, __FUNCTION__, __FILE__, __LINE__); \
+           goto error; \
+        } \
+    } while (0)
+
+#define BAIL_ON_ERRNO_ERROR(ret) \
+    do { \
+        if (ret) \
+        { \
+           (dwError) = LwErrnoToWin32Error(ret); \
+           goto error; \
+        } \
+    } while (0)
 
 #define VMDIR_ACQUIRE_RWLOCK_SHARED(pRWLock, bLocked) \
 		VmDirRWLockAcquire(pRWLock, FALSE, &bLocked)
@@ -46,6 +70,7 @@
 #define DEFAULT_LDAP_QUERY_TIMEOUT_SECS  15
 
 #define VMDIR_OBJ_CLASS_USER             "user"
+#define VMDIR_OBJ_CLASS_COMPUTER         "computer"
 #define VMDIR_OBJ_CLASS_GROUP            "group"
 
 #define VMDIR_ATTR_NAME_ACCOUNT          "sAMAccountName"
@@ -78,3 +103,4 @@
 
 #define VMDIR_DEFAULT_PRIMARY_GROUP_NAME "Users"
 
+#define VMDIR_KRB5_CC_NAME "FILE:/var/lib/likewise/krb5cc_vmdir_provider"

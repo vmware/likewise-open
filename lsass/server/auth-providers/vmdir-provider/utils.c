@@ -308,30 +308,221 @@ VmDirGetRID(
 	PDWORD pdwRID
 	)
 {
-	DWORD dwError = 0;
-	DWORD dwRID = 0;
-	PLSA_SECURITY_IDENTIFIER pSID = NULL;
+    DWORD dwError = 0;
+    PCSTR pszDash = NULL;
+    PSTR pszEnd = NULL;
+    DWORD dwDashes = 0;
+    DWORD dwMachId = 0;
+    DWORD i = 0;
+    DWORD dwRID = 0;
+    DWORD dwMachID = 0;
+    DWORD dwRetUID = 0;
 
-	dwError = LsaAllocSecurityIdentifierFromString(pszObjectSid, &pSID);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    /*
+     * Old Format:
+     *   S-1-7-21-1604805504-317578674-977968053-259541063-16778241
+     *   16778241 is the "RID" which is |-8bits-|-24-bits-|
+     *                                   MachId   RID
+     * New Format:
+     *   S-1-7-21-3080227618-571495328-3360055706-2260875924-1-1025
+     *
+     *      .... -1-1025
+     *      1:    machine ID
+     *      1025: RID
+     * Problem: Old code assumed the 8/24 "RID" format was the UNIX uid.
+     * This implementation takes the ...-MachID-RID format, and converts this
+     * to the old RID format.
+     */
 
-	dwError = LsaGetSecurityIdentifierRid(pSID, &dwRID);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    for (i=0; pszObjectSid[i]; i++)
+    {
+        /* Scan SID for dashes, to determine if new or old format */
+        if (pszObjectSid[i] == '-')
+        {
+            dwDashes++;
+            if (dwDashes == 8)
+            {
+                dwMachId = i + 1;
+            }
+        }
+    }
 
-	*pdwRID = dwRID;
+    pszDash = &pszObjectSid[dwMachId]; 
+    if (dwDashes == 8)
+    {
+        /* Old format */
+        dwRetUID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+    }
+    else
+    {
+        /* pszDash should be pointing at "M-RID" string */
+        dwMachID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd != '-')
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+
+        pszDash = pszEnd+1;
+        dwRID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+
+        /* Test for overflow of these two values */
+        if (dwRID > 0x00FFFFFF || dwMachID > 0xFF)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+
+        dwRetUID = dwMachID << 24 | (dwRID & 0x00FFFFFF);
+    }
+    *pdwRID = dwRetUID;
+
+error:
+    return dwError;
+}
+
+DWORD
+VmDirGetRIDFromUID(
+    DWORD uid,
+    PSTR *pszRid
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszRetRid = NULL;
+
+    /*
+     * This is the inverse operation of VmDirGetRID()
+     * Scheme: |-8bits-|-24bits-|
+     * Convert UID with upper 8 bits set to M-RID format, otherwise return
+     * just the UID as the RID.
+     */
+    if (uid & 0xFF000000)
+    {
+        /* Construct M-RID formatted string */
+        dwError = LwAllocateStringPrintf(
+                      &pszRetRid,
+                      "%u-%u",
+                      (uid & 0xFF000000) >> 24,
+                      uid & 0x00FFFFFF);
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+    else
+    {
+        /* Construct RID formatted string */
+        dwError = LwAllocateStringPrintf(
+                      &pszRetRid,
+                      "%u",
+                      uid);
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    *pszRid = pszRetRid;
+    pszRetRid = NULL;
+
+error:
+    if (dwError)
+    {
+	LW_SAFE_FREE_MEMORY(pszRetRid);
+    }
+    return dwError;
+}
+
+DWORD
+VmDirInitializeUserLoginCredentials(
+    IN PCSTR pszUPN,
+    IN PCSTR pszPassword,
+    IN uid_t uid,
+    IN gid_t gid,
+    OUT PDWORD pdwGoodUntilTime)
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwGoodUntilTime = 0;
+    PSTR pszCachePath = NULL;
+    PCSTR pszTempCachePath = NULL;
+    krb5_error_code ret = 0;
+    krb5_context ctx = NULL;
+    krb5_ccache cc = NULL;
+
+    if (!pszUPN || !pszPassword)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    ret = krb5_init_context(&ctx);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    ret = krb5_cc_new_unique(
+            ctx,
+            "FILE",
+            "hint",
+            &cc);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    pszTempCachePath = krb5_cc_get_name(ctx, cc);
+
+    dwError = LwKrb5GetTgt(
+                    pszUPN,
+                    pszPassword,
+                    pszTempCachePath,
+                    &dwGoodUntilTime);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwChangeOwner(
+                    pszTempCachePath,
+                    uid,
+                    gid);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwKrb5GetUserCachePath(
+                    uid,
+                    KRB5_File_Cache,
+                    &pszCachePath);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = LwMoveFile(
+                    pszTempCachePath,
+                    pszCachePath + sizeof("FILE:") - 1);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    pszTempCachePath = NULL;
+
+    if (pdwGoodUntilTime)
+    {
+        *pdwGoodUntilTime = dwGoodUntilTime;
+    }
 
 cleanup:
 
-	if (pSID)
-	{
-		LsaFreeSecurityIdentifier(pSID);
-	}
+    LW_SAFE_FREE_STRING(pszCachePath);
 
-	return dwError;
+    if (ctx)
+    {
+        if (cc)
+        {
+            krb5_cc_destroy(ctx, cc);
+        }
+        krb5_free_context(ctx);
+    }
+
+    return dwError;
 
 error:
 
-	*pdwRID = 0;
+    if (pszTempCachePath)
+    {
+        LwRemoveFile(pszTempCachePath);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }

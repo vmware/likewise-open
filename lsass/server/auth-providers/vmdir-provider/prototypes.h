@@ -5,6 +5,11 @@
 // config.c
 
 DWORD
+VmDirGetBindProtocol(
+    VMDIR_BIND_PROTOCOL* pBindProtocol
+    );
+
+DWORD
 VmDirCreateBindInfo(
 	PVMDIR_BIND_INFO* ppBindInfo
 	);
@@ -26,6 +31,7 @@ VmDirLdapInitialize(
 	PCSTR            pszURI,
 	PCSTR            pszUPN,
 	PCSTR            pszPassword,
+        PCSTR            pszCachePath,
 	LDAP**           ppLd
 	);
 
@@ -345,6 +351,23 @@ VmDirProviderIoControl (
     PVOID* ppOutputBuffer       /*    OUT          */
     );
 
+// refresh.c
+
+DWORD
+VmDirStartMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT *ppRefreshContext  /*     OUT          */
+    );
+
+VOID
+VmDirSignalMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT pRefreshContext     /* IN              */
+    );
+
+VOID
+VmDirStopMachineAccountRefresh(
+    PVMDIR_REFRESH_CONTEXT pRefreshContext     /* IN              */
+    );
+
 // repository.c
 
 BOOLEAN
@@ -502,3 +525,18 @@ VmDirGetRID(
 	PCSTR  pszObjectSid,
 	PDWORD pdwRID
 	);
+
+DWORD
+VmDirGetRIDFromUID(
+    DWORD uid,
+    PSTR *pszRid
+    );
+
+DWORD
+VmDirInitializeUserLoginCredentials(
+    IN PCSTR pszUPN,
+    IN PCSTR pszPassword,
+    IN uid_t uid,
+    IN gid_t gid,
+    OUT PDWORD pdwGoodUntilTime
+    );
