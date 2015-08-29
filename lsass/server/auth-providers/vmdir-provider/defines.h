@@ -9,6 +9,12 @@
 //
 #define VMDIR_REG_KEY "Services\\vmdir"
 
+#define VMDIR_AUTH_PROVIDER_KEY "Services\\lsass\\Parameters\\Providers\\VmDir"
+
+#define VMDIR_REG_KEY_BIND_PROTOCOL       "BindProtocol"
+#define VMDIR_BIND_PROTOCOL_KERBEROS_STR  "kerberos"
+#define VMDIR_BIND_PROTOCOL_SRP_STR       "srp"
+
 #define VMDIR_REG_KEY_BIND_INFO_ACCOUNT   "dcAccount"
 #define VMDIR_REG_KEY_BIND_INFO_BIND_DN   "dcAccountDN"
 #define VMDIR_REG_KEY_BIND_INFO_PASSWORD  "dcAccountPassword"

@@ -47,6 +47,9 @@ LsaInitializeProvider(
 
     pthread_mutex_init(&gVmDirAuthProviderGlobals.mutex, NULL);
     gVmDirAuthProviderGlobals.pMutex = &gVmDirAuthProviderGlobals.mutex;
+    
+    dwError = VmDirGetBindProtocol(&gVmDirAuthProviderGlobals.bindProtocol);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
     gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_UNSET;
     dwError = VmDirGetBindInfo(&pBindInfo);
@@ -59,8 +62,12 @@ LsaInitializeProvider(
         gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_NOT_JOINED;
     }
 
-    dwError = VmDirStartMachineAccountRefresh(&gVmDirAuthProviderGlobals.pRefreshContext);
-    BAIL_ON_VMDIR_ERROR(dwError);
+    if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
+    {
+        dwError = VmDirStartMachineAccountRefresh(
+                          &gVmDirAuthProviderGlobals.pRefreshContext);
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
     *ppszProviderName = gpszVmDirProviderName;
     *ppFunctionTable = &gVmDirProviderAPITable;
@@ -825,10 +832,13 @@ VmDirOpenHandle(
         dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
         BAIL_ON_VMDIR_ERROR(dwError);
 
-        dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
-                                    &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
-                                    bInLock);
-        BAIL_ON_VMDIR_ERROR(dwError);
+        if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
+        {
+            dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
+                            &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
+                            bInLock);
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
 
         dwError = VmDirLdapInitialize(
                                     pContext->dirContext.pBindInfo->pszURI,
@@ -988,13 +998,36 @@ VmDirAuthenticateUserPam(
         dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    dwError = VmDirInitializeUserLoginCredentials(
-                    pObject->userInfo.pszUPN,
-                    pParams->pszPassword,
-                    pObject->userInfo.uid,
-                    pObject->userInfo.gid,
-                    NULL);
+    
+    switch (gVmDirAuthProviderGlobals.bindProtocol)
+    {
+        case VMDIR_BIND_PROTOCOL_KERBEROS:
+            
+                dwError = VmDirInitializeUserLoginCredentials(
+                                pObject->userInfo.pszUPN,
+                                pParams->pszPassword,
+                                pObject->userInfo.uid,
+                                pObject->userInfo.gid,
+                                NULL);
+            
+                break;
+            
+        case VMDIR_BIND_PROTOCOL_SRP:
+            
+                dwError = VmDirRepositoryVerifyPassword(
+                                &pContext->dirContext,
+                                pObject->userInfo.pszUPN,
+                                pParams->pszPassword);
+            
+                break;
+            
+        default:
+            
+                dwError = ERROR_INVALID_STATE;
+            
+                break;
+            
+    }
     BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = LwAllocateMemory(

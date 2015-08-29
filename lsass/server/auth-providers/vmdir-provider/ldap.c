@@ -5,13 +5,42 @@
 #include "includes.h"
 
 static
+DWORD
+VmDirLdapInitializeWithKerberos(
+    PCSTR            pszURI,
+    PCSTR            pszUPN,
+    PCSTR            pszPassword,
+    PCSTR            pszCachePath,
+    LDAP**           ppLd
+    );
+
+static
+DWORD
+VmDirLdapInitializeWithSRP(
+    PCSTR            pszURI,
+    PCSTR            pszUPN,
+    PCSTR            pszPassword,
+    PCSTR            pszCachePath,
+    LDAP**           ppLd
+    );
+
+static
 int
-VmDirSASLInteraction(
+VmDirSASLInteractionKerberos(
     LDAP*    pLd,
     unsigned flags,
     PVOID    pDefaults,
     PVOID    pIn
     );
+
+static
+int
+VmDirSASLInteractionSRP(
+     LDAP*    pLd,
+     unsigned flags,
+     PVOID    pDefaults,
+     PVOID    pIn
+     );
 
 static
 DWORD
@@ -97,74 +126,44 @@ VmDirLdapInitialize(
 	PCSTR            pszURI,
 	PCSTR            pszUPN,
 	PCSTR            pszPassword,
-        PCSTR            pszCachePath,
+    PCSTR            pszCachePath,
 	LDAP**           ppLd
 	)
 {
-	DWORD dwError = 0;
-        const int ldapVer = LDAP_VERSION3;
-        PSTR  pszUPN_local = NULL;
-	LDAP* pLd = NULL;
-        PSTR pszOldCachePath = NULL;
-
-	dwError = LwMapLdapErrorToLwError(
-					ldap_initialize(&pLd, pszURI));
-	BAIL_ON_VMDIR_ERROR(dwError);
-
-	dwError = LwMapLdapErrorToLwError(
-					ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
-	BAIL_ON_VMDIR_ERROR(dwError);
-
-	dwError = LwMapLdapErrorToLwError(
-					ldap_set_option(
-                                            pLd,
-                                            LDAP_OPT_X_SASL_NOCANON,
-                                            LDAP_OPT_ON));
-	BAIL_ON_VMDIR_ERROR(dwError);
-
-        dwError = LwKrb5SetThreadDefaultCachePath(
-                      pszCachePath,
-                      &pszOldCachePath);
-        BAIL_ON_VMDIR_ERROR(dwError);
-
-	dwError = LwMapLdapErrorToLwError(
-				ldap_sasl_interactive_bind_s(
-					pLd,
-					NULL,
-					"GSSAPI",
-					NULL,
-					NULL,
-					LDAP_SASL_QUIET,
-					&VmDirSASLInteraction,
-                                        NULL));
-	BAIL_ON_VMDIR_ERROR(dwError);
-
-	*ppLd = pLd;
-
-cleanup:
-
-        if (pszOldCachePath)
-        {
-            LwKrb5SetThreadDefaultCachePath(
-                pszOldCachePath,
-                NULL);
-            LwFreeString(pszOldCachePath);
-        }
-
-        LW_SAFE_FREE_STRING(pszUPN_local);
-
-	return dwError;
-
-error:
-
-	*ppLd = NULL;
-
-	if (pLd)
-	{
-		VmDirLdapClose(pLd);
-	}
-
-	goto cleanup;
+    DWORD dwError = 0;
+    
+    switch (gVmDirAuthProviderGlobals.bindProtocol)
+    {
+        case VMDIR_BIND_PROTOCOL_KERBEROS:
+            
+            dwError = VmDirLdapInitializeWithKerberos(
+                            pszURI,
+                            pszUPN,
+                            pszPassword,
+                            pszCachePath,
+                            ppLd);
+            
+            break;
+            
+        case VMDIR_BIND_PROTOCOL_SRP:
+            
+            dwError = VmDirLdapInitializeWithSRP(
+                            pszURI,
+                            pszUPN,
+                            pszPassword,
+                            pszCachePath,
+                            ppLd);
+            
+            break;
+            
+        default:
+            
+            dwError = ERROR_INVALID_STATE;
+            
+            break;
+    }
+    
+    return dwError;
 }
 
 DWORD
@@ -417,8 +416,156 @@ VmDirLdapClose(
 }
 
 static
+DWORD
+VmDirLdapInitializeWithKerberos(
+    PCSTR            pszURI,
+    PCSTR            pszUPN,
+    PCSTR            pszPassword,
+    PCSTR            pszCachePath,
+    LDAP**           ppLd
+    )
+{
+    DWORD dwError = 0;
+    const int ldapVer = LDAP_VERSION3;
+    PSTR  pszUPN_local = NULL;
+    LDAP* pLd = NULL;
+    PSTR pszOldCachePath = NULL;
+    
+    dwError = LwMapLdapErrorToLwError(
+                    ldap_initialize(&pLd, pszURI));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwMapLdapErrorToLwError(
+                    ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwMapLdapErrorToLwError(
+                    ldap_set_option(
+                                  pLd,
+                                  LDAP_OPT_X_SASL_NOCANON,
+                                  LDAP_OPT_ON));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwKrb5SetThreadDefaultCachePath(
+                    pszCachePath,
+                    &pszOldCachePath);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwMapLdapErrorToLwError(
+                    ldap_sasl_interactive_bind_s(
+                                               pLd,
+                                               NULL,
+                                               "GSSAPI",
+                                               NULL,
+                                               NULL,
+                                               LDAP_SASL_QUIET,
+                                               &VmDirSASLInteractionKerberos,
+                                               NULL));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    *ppLd = pLd;
+    
+cleanup:
+    
+    if (pszOldCachePath)
+    {
+        LwKrb5SetThreadDefaultCachePath(
+                pszOldCachePath,
+                NULL);
+        LwFreeString(pszOldCachePath);
+    }
+    
+    LW_SAFE_FREE_STRING(pszUPN_local);
+    
+    return dwError;
+    
+error:
+    
+    *ppLd = NULL;
+    
+    if (pLd)
+    {
+        VmDirLdapClose(pLd);
+    }
+    
+    goto cleanup;
+}
+
+static
+DWORD
+VmDirLdapInitializeWithSRP(
+   PCSTR            pszURI,
+   PCSTR            pszUPN,
+   PCSTR            pszPassword,
+   PCSTR            pszCachePath,
+   LDAP**           ppLd
+   )
+{
+    DWORD dwError = 0;
+    const int ldapVer = LDAP_VERSION3;
+    VMDIR_SASL_INFO srpDefault = {0};
+    PSTR  pszUPN_local = NULL;
+    LDAP* pLd = NULL;
+    
+    dwError = LwMapLdapErrorToLwError(
+                  ldap_initialize(&pLd, pszURI));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwMapLdapErrorToLwError(
+                  ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwMapLdapErrorToLwError(
+                  ldap_set_option(
+                                  pLd,
+                                  LDAP_OPT_X_SASL_NOCANON,
+                                  LDAP_OPT_ON));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    dwError = LwAllocateString(pszUPN, &pszUPN_local);
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    LwStrToLower(pszUPN_local);
+    
+    srpDefault.pszAuthName = pszUPN_local;
+    
+    srpDefault.pszPassword = pszPassword;
+    
+    dwError = LwMapLdapErrorToLwError(
+                  ldap_sasl_interactive_bind_s(
+                                               pLd,
+                                               NULL,
+                                               "SRP",
+                                               NULL,
+                                               NULL,
+                                               LDAP_SASL_QUIET,
+                                               &VmDirSASLInteractionSRP,
+                                               &srpDefault));
+    BAIL_ON_VMDIR_ERROR(dwError);
+    
+    *ppLd = pLd;
+    
+cleanup:
+    
+    LW_SAFE_FREE_STRING(pszUPN_local);
+    
+    return dwError;
+    
+error:
+    
+    *ppLd = NULL;
+    
+    if (pLd)
+    {
+        VmDirLdapClose(pLd);
+    }
+    
+    goto cleanup;
+}
+
+static
 int
-VmDirSASLInteraction(
+VmDirSASLInteractionKerberos(
     LDAP *      pLd,
     unsigned    flags,
     void *      pDefaults,
@@ -426,6 +573,47 @@ VmDirSASLInteraction(
     )
 {
     // dummy function to satisfy ldap_sasl_interactive_bind call
+    return LDAP_SUCCESS;
+}
+
+static
+int
+VmDirSASLInteractionSRP(
+    LDAP *      pLd,
+    unsigned    flags,
+    void *      pDefaults,
+    void *      pIn
+    )
+{
+    sasl_interact_t* pInteract = pIn;
+    PVMDIR_SASL_INFO pDef = pDefaults;
+    
+    while( (pDef != NULL) && (pInteract->id != SASL_CB_LIST_END) )
+    {
+        switch( pInteract->id )
+        {
+            case SASL_CB_GETREALM:
+                pInteract->defresult = pDef->pszRealm;
+                break;
+            case SASL_CB_AUTHNAME:
+                pInteract->defresult = pDef->pszAuthName;
+                break;
+            case SASL_CB_PASS:
+                pInteract->defresult = pDef->pszPassword;
+                break;
+            case SASL_CB_USER:
+                pInteract->defresult = pDef->pszUser;
+                break;
+            default:
+                break;
+        }
+        
+        pInteract->result = (pInteract->defresult) ? pInteract->defresult : "";
+        pInteract->len    = strlen( pInteract->result );
+        
+        pInteract++;
+    }
+    
     return LDAP_SUCCESS;
 }
 

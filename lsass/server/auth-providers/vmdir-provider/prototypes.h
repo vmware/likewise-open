@@ -5,6 +5,11 @@
 // config.c
 
 DWORD
+VmDirGetBindProtocol(
+    VMDIR_BIND_PROTOCOL* pBindProtocol
+    );
+
+DWORD
 VmDirCreateBindInfo(
 	PVMDIR_BIND_INFO* ppBindInfo
 	);
