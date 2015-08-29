@@ -100,7 +100,7 @@
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers]
 "LoadOrder" = {
-    default = sza:"ActiveDirectory" "VmDir" "Local"
+    default = sza:"ActiveDirectory" @VMDIR_PROVIDER_LOAD_ORDER@ "Local"
     doc = ""
 }
 
