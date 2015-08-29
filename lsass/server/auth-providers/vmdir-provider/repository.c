@@ -118,8 +118,9 @@ VmDirFindUserByName(
 
     dwError = LwAllocateStringPrintf(
     				&pszFilter,
-    				"(&(objectclass=%s)(%s=%s))",
+    				"(&(objectclass=%s)(!(objectclass=%s))(%s=%s))",
     				VMDIR_OBJ_CLASS_USER,
+    				VMDIR_OBJ_CLASS_COMPUTER,
     				VMDIR_ATTR_NAME_ACCOUNT,
     				pszAccount);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -237,8 +238,9 @@ VmDirFindUserBySID(
 
     dwError = LwAllocateStringPrintf(
     				&pszFilter,
-    				"(&(objectclass=%s)(%s=%s))",
+    				"(&(objectclass=%s)(!(objectclass=%s))(%s=%s))",
     				VMDIR_OBJ_CLASS_USER,
+    				VMDIR_OBJ_CLASS_COMPUTER,
     				VMDIR_ATTR_NAME_OBJECTSID,
     				pszSID);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -805,8 +807,9 @@ VmDirRepositoryEnumUsers(
     {
     	dwError = LwAllocateStringPrintf(
     					&pszFilter,
-    					"(&(objectclass=%s)(%s>=%lld))",
+    					"(&(objectclass=%s)(!(objectclass=%s))(%s>=%lld))",
     					VMDIR_OBJ_CLASS_USER,
+    					VMDIR_OBJ_CLASS_COMPUTER,
     					VMDIR_ATTR_NAME_USN_CHANGED,
     					pEnumHandle->llLastUSNChanged+1);
     	BAIL_ON_VMDIR_ERROR(dwError);

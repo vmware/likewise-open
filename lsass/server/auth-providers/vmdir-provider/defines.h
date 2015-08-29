@@ -70,6 +70,7 @@
 #define DEFAULT_LDAP_QUERY_TIMEOUT_SECS  15
 
 #define VMDIR_OBJ_CLASS_USER             "user"
+#define VMDIR_OBJ_CLASS_COMPUTER         "computer"
 #define VMDIR_OBJ_CLASS_GROUP            "group"
 
 #define VMDIR_ATTR_NAME_ACCOUNT          "sAMAccountName"
