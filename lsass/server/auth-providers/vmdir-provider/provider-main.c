@@ -1772,6 +1772,79 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+VmDirGetJoinState(
+    VOID)
+{
+    VMDIR_JOIN_STATE joinState = VMDIR_JOIN_STATE_UNSET;
+
+    pthread_mutex_lock(&gVmDirAuthProviderGlobals.mutex);
+    joinState = gVmDirAuthProviderGlobals.joinState;
+    pthread_mutex_unlock(&gVmDirAuthProviderGlobals.mutex);
+
+    return joinState;
+}
+
+static
+VOID
+VmDirSetJoinState(
+    VMDIR_JOIN_STATE joinState)
+{
+    pthread_mutex_lock(&gVmDirAuthProviderGlobals.mutex);
+    gVmDirAuthProviderGlobals.joinState = joinState;
+    pthread_mutex_unlock(&gVmDirAuthProviderGlobals.mutex);
+}
+
+static
+DWORD
+VmDirSignalProvider(
+    HANDLE hProvider,
+    uid_t  peerUID,
+    gid_t  peerGID,
+    DWORD  dwFlags
+    )
+{
+    DWORD dwError = 0;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
+
+    if (peerUID != 0)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    if (!(dwFlags & LSA_VMDIR_SIGNAL_RELOAD_CONFIG))
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    dwError = VmDirGetBindInfo(&pBindInfo);
+    if (dwError == 0)
+    {
+        VmDirSetJoinState(VMDIR_JOIN_STATE_JOINED);
+    }
+    else
+    {
+        VmDirSetJoinState(VMDIR_JOIN_STATE_NOT_JOINED);
+    }
+    VmDirSignalMachineAccountRefresh(gVmDirAuthProviderGlobals.pRefreshContext);
+
+cleanup:
+
+    if (pBindInfo)
+    {
+        VmDirReleaseBindInfo(pBindInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 DWORD
 VmDirProviderIoControl (
     HANDLE hProvider,           /* IN              */

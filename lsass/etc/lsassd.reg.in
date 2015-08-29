@@ -104,30 +104,6 @@
     doc = ""
 }
 
-[HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\VmDir]
-"Id" = {
-    default = "lsa-vmdir-provider"
-    doc = ""
-}
-"Path" = {
-    default = "@providerdir@/liblsass_auth_provider_vmdir@MOD_EXT@"
-    doc = ""
-}
-
-[HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\VmDir\Credentials]
-"URI" = {
-    default = "ldap://127.0.0.1:11711"
-    doc = ""
-}
-"BindDN" = {
-    default = "CN=Administrator,CN=Users,DC=vsphere,DC=local"
-    doc = ""
-}
-"Password" = {
-    default = "vmware"
-    doc = ""
-}
-
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\ActiveDirectory]
 "Id" = {
     default = "lsa-activedirectory-provider"
