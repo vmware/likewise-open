@@ -1127,38 +1127,35 @@ accept_again:
     {
         goto accept_again;
     }
+    else if (serr)
+    {
+        goto cleanup;
+    }
 
-    if (!serr && sock && sock->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    if (sock->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
     {
         serr = rpc__bsd_socket_getpeereid((*newsock), &euid, &egid);
-	if (serr)
+        if (serr)
         {
             goto cleanup;
         }
 
 #if !defined(_WIN32) || defined(HAS_NCAL_RPC)
-        if (sock->pseq_id == rpc_c_protseq_id_ncalrpc)
+        serr = rpc__bsd_socket_createsessionkey(&session_key,
+                                                &session_key_len);
+        if (serr)
         {
-            serr = rpc__bsd_socket_createsessionkey(&session_key,
-                                                    &session_key_len);
-            if (serr)
-            {
-                goto cleanup;
-            }
+            goto cleanup;
+        }
 
-            serr = rpc__bsd_socket_sendsessionkey((*newsock),
-                                                  session_key,
-                                                  session_key_len);
-            if (serr)
-            {
-                goto cleanup;
-            }
-	}
+        serr = rpc__bsd_socket_sendsessionkey((*newsock),
+                                              session_key,
+                                              session_key_len);
+        if (serr)
+        {
+            goto cleanup;
+        }
 #endif /* defined(HAS_NCAL_RPC) */
-    }
-    else
-    {
-        goto cleanup;
     }
 
     newlrpc->info.peer_uid           = euid;
