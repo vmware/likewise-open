@@ -40,7 +40,7 @@ This package provides files for developing against the Likewise APIs
 case "$1" in
     1)
 
-    /bin/systemctl 2>/dev/null
+    /bin/systemctl >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
         /bin/systemctl daemon-reload
@@ -87,7 +87,7 @@ case "$1" in
     ## chkconfig behaves differently on various updates of RHEL and SUSE
     ## So, we massage the init script according to the release, for now.
 
-    /bin/systemctl 2>/dev/null
+    /bin/systemctl >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         [ -z "`pidof lwsmd`" ] && /bin/systemctl start lwsmd.service
 
