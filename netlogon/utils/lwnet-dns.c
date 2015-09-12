@@ -1510,6 +1510,70 @@ LWNetDnsSrvQuery(
 {
     DWORD dwError = 0;
     PSTR pszQuestion = NULL;
+    PDNS_SERVER_INFO pServerArray = NULL;
+    DWORD dwServerCount = 0;
+
+    if (IsNullOrEmptyString(pszDnsDomainName) ||
+        !ppServerArray ||
+        !pdwServerCount)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    // TODO - Handle trailing dot in domain; handle no dots in domain
+
+    dwError = LWNetDnsGetSrvRecordQuestion(
+                  &pszQuestion,
+                  pszDnsDomainName,
+                  pszSiteName,
+                  dwDsFlags);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetDnsSrvQueryByQuestion(
+                  pszQuestion,
+                  pszSiteName,
+                  dwDsFlags,
+                  &pServerArray,
+                  &dwServerCount);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    *ppServerArray = pServerArray;
+    *pdwServerCount = dwServerCount;
+
+cleanup:
+
+    LWNET_SAFE_FREE_STRING(pszQuestion);
+
+    return dwError;
+
+error:
+
+    LWNET_SAFE_FREE_MEMORY(pServerArray);
+
+    if (ppServerArray)
+    {
+        *ppServerArray = NULL;
+    }
+    if (pdwServerCount)
+    {
+        *pdwServerCount = 0;
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LWNetDnsSrvQueryByQuestion(
+    IN PCSTR pszQuestion,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PDNS_SERVER_INFO* ppServerArray,
+    OUT PDWORD pdwServerCount
+    )
+// Call LWNET_SAFE_FREE_MEMORY on returned server array
+{
+    DWORD dwError = 0;
     const size_t dwBufferSize = (64 * 1024);
     PVOID pBuffer = NULL;
     PDNS_RESPONSE_HEADER pResponse = NULL;
@@ -1520,12 +1584,14 @@ LWNetDnsSrvQuery(
     PDNS_SERVER_INFO pServerArray = NULL;
     DWORD dwServerCount = 0;
 
-    // TODO - Handle trailing dot in domain; handle no dots in domain
+    if (IsNullOrEmptyString(pszQuestion) ||
+        !ppServerArray ||
+        !pdwServerCount)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
 
-    dwError = LWNetDnsGetSrvRecordQuestion(&pszQuestion, pszDnsDomainName,
-                                           pszSiteName, dwDsFlags);
-    BAIL_ON_LWNET_ERROR(dwError);
-   
     dwError = LWNetAllocateMemory(dwBufferSize, &pBuffer);
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -1565,7 +1631,6 @@ LWNetDnsSrvQuery(
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
-    LWNET_SAFE_FREE_STRING(pszQuestion);
     LWNET_SAFE_FREE_MEMORY(pBuffer);
     LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAnswersList);
     LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAdditionalsList);
@@ -1577,8 +1642,14 @@ error:
         dwServerCount = 0;
     }
 
-    *ppServerArray = pServerArray;
-    *pdwServerCount = dwServerCount;
+    if (ppServerArray)
+    {
+        *ppServerArray = pServerArray;
+    }
+    if (pdwServerCount)
+    {
+        *pdwServerCount = dwServerCount;
+    }
 
     return dwError;
 }
