@@ -371,6 +371,15 @@ LWNetDnsSrvQuery(
     );
 
 DWORD
+LWNetDnsSrvQueryByQuestion(
+    IN PCSTR pszQuestion,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PDNS_SERVER_INFO* ppServerArray,
+    OUT PDWORD pdwServerCount
+    );
+
+DWORD
 LWNetReadNextLine(
     FILE* fp,
     PSTR *output,

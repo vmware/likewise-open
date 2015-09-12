@@ -1,5 +1,5 @@
 make()
 {
     mk_headers \
-        HEADERS='lwnet.h lwnet-plugin.h'
+        HEADERS='lwnet.h lwnet-plugin.h lwnet-utils.h'
 }
