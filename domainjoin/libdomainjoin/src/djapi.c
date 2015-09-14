@@ -218,7 +218,7 @@ DJConfigurePAM(
     LW_TRY(&exc, DJNewConfigurePamForADLogin(
                     testPrefix,
                     NULL,
-                    NULL,
+                    NULL, /* warning callback */
                     TRUE,
                     &LW_EXC
                     ));
