@@ -873,6 +873,14 @@ cleanup:
 
 error:
 
+    switch (dwError)
+    {
+        case LW_ERROR_LDAP_SERVER_DOWN:
+        case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
+            dwError = LW_ERROR_NOT_HANDLED;
+            break;
+    }
+
     if (phProvider)
     {
         *phProvider = NULL;
