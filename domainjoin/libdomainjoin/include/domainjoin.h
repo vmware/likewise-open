@@ -44,6 +44,7 @@
 #include "djkrb5conf.h"
 #include "djnsswitch.h"
 #include "djpamconf.h"
+#include "djsshconf.h"
 #include "djdaemonmgr.h"
 #include "djmethodcfg.h"
 #include "djlogincfg.h"
