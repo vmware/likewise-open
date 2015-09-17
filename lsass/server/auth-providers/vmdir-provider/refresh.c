@@ -41,7 +41,7 @@ VmDirStartMachineAccountRefresh(
 {
     int errCode = 0;
     DWORD dwError = 0;
-    PVMDIR_REFRESH_CONTEXT pRefreshContext;
+    PVMDIR_REFRESH_CONTEXT pRefreshContext = NULL;
 
     dwError = VmDirCreateRefreshContext(&pRefreshContext);
     BAIL_ON_VMDIR_ERROR(dwError);
