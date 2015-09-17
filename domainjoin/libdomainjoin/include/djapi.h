@@ -95,6 +95,16 @@ DJUnconfigurePAM(
     VOID
     );
 
+DWORD
+DJConfigureSSH(
+    VOID
+    );
+
+DWORD
+DJUnconfigureSSH(
+    VOID
+    );
+
 VOID
 DJFreeMemory(
     PVOID pMemory

@@ -548,6 +548,9 @@ static BOOLEAN TestOption(PCSTR rootPrefix, struct SshConf *conf, PCSTR binary, 
        Ssh will either complain about the first invalid option that is
        passed with -o, or it will complain about all invalid options. -o
        BadOption=yes is passed to verify that ssh understands -o.
+
+       Photon ssh returns badoption=yes for a command line of
+       -o BadOption=yes. This additional test handles this case.
      */
     LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(
         &command, "%s%s %s -o %s=yes -o BadOption=yes 2>&1",
@@ -566,7 +569,7 @@ static BOOLEAN TestOption(PCSTR rootPrefix, struct SshConf *conf, PCSTR binary, 
         goto cleanup;
     }
 
-    if(strstr(commandOutput, "BadOption") == NULL)
+    if(strcasestr(commandOutput, "BadOption") == NULL)
     {
         DJ_LOG_INFO("Sshd does not support -o");
         goto cleanup;
