@@ -264,6 +264,54 @@ cleanup:
 }
 
 DWORD
+DJConfigureSSH(
+    VOID
+    )
+{
+    LWException *exc = NULL;
+    DWORD dwError = 0;
+
+    LW_TRY(&exc, DJConfigureSshForADLogin(
+                     NULL,
+                     TRUE,
+                     NULL,
+                     &LW_EXC));
+cleanup:
+
+    if (!LW_IS_OK(exc))
+    {
+        dwError = exc->code;
+        LWHandle(&exc);
+    }
+
+    return dwError;
+}
+
+DWORD
+DJUnconfigureSSH(
+    VOID
+    )
+{
+    LWException *exc = NULL;
+    DWORD dwError = 0;
+
+    LW_TRY(&exc, DJConfigureSshForADLogin(
+                     NULL,
+                     FALSE,
+                     NULL,
+                     &LW_EXC));
+cleanup:
+
+    if (!LW_IS_OK(exc))
+    {
+        dwError = exc->code;
+        LWHandle(&exc);
+    }
+
+    return dwError;
+}
+
+DWORD
 DJUnjoinDomain(
     PCSTR pszUsername,
     PCSTR pszPassword
