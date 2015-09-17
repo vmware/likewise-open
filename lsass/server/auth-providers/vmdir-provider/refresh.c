@@ -51,7 +51,7 @@ VmDirStartMachineAccountRefresh(
                  NULL,
                  VmDirMachineAccountRefreshRoutine,
                  (void *)pRefreshContext);
-    BAIL_ON_ERRNO_ERROR(dwError);
+    BAIL_ON_ERRNO_ERROR(errCode);
 
     pRefreshContext->pThread = &pRefreshContext->thread;
 
