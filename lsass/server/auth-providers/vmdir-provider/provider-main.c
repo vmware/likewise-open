@@ -858,6 +858,18 @@ VmDirOpenHandle(
                                     pContext->dirContext.pBindInfo->pszPassword,
                                     VMDIR_KRB5_CC_NAME,
                                     &pContext->dirContext.pLd);
+        switch (dwError)
+        {
+            case LW_ERROR_LDAP_SERVER_DOWN:
+            case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
+                dwError = LW_ERROR_NOT_HANDLED;
+                break;
+            case LW_ERROR_LDAP_NO_SUCH_OBJECT:
+                dwError = 0;
+                break;
+            default:
+                break;
+        }
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
@@ -1681,7 +1693,7 @@ VmDirRefreshConfiguration(
 
 cleanup:
 
-	VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
+    VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
 
     LOG_FUNC_EXIT;
     
@@ -1689,7 +1701,7 @@ cleanup:
 
 error:
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
@@ -1739,6 +1751,9 @@ VmDirSignalProvider(
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
+
+    dwError = VmDirRefreshConfiguration();
+    BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = VmDirGetBindInfo(&pBindInfo);
     if (dwError == 0)

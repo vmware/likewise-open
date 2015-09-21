@@ -1,0 +1,13 @@
+make()
+{
+    TEST_SSHCONF_SOURCES="main.c"
+
+    mk_program \
+        PROGRAM=test_sshconf_change \
+        INSTALLDIR="$LW_TOOL_DIR" \
+        SOURCES="$TEST_SSHCONF_SOURCES" \
+        INCLUDEDIRS="../../../libdomainjoin/include ../../../domainjoin-cli/include ../../../include" \
+        HEADERDEPS="ctbase.h" \
+        LIBDEPS="lsaclient centutils domainjoin lwadvapi lwadvapi_nothr lwsm xml2"
+}
+
