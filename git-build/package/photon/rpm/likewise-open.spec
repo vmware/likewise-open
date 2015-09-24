@@ -40,8 +40,18 @@ This package provides files for developing against the Likewise APIs
 case "$1" in
     1)
 
+    try_starting_lwregd_svc=true
+
+    if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
+        try_starting_lwregd_svc=false
+    fi
+
     /bin/systemctl >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
+    if [ $? -ne 0 ]; then
+        try_starting_lwregd_svc=false
+    fi
+
+    if [ $try_starting_lwregd_svc = true ]; then
         /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
         /bin/systemctl daemon-reload
 
@@ -87,8 +97,18 @@ case "$1" in
     ## chkconfig behaves differently on various updates of RHEL and SUSE
     ## So, we massage the init script according to the release, for now.
 
+    try_starting_lwregd_svc=true
+
+    if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
+        try_starting_lwregd_svc=false
+    fi
+
     /bin/systemctl >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
+    if [ $? -ne 0 ]; then
+        try_starting_lwregd_svc=false
+    fi
+
+    if [ $try_starting_lwregd_svc = true ]; then
         [ -z "`pidof lwsmd`" ] && /bin/systemctl start lwsmd.service
 
         echo "Waiting for lwreg startup."
