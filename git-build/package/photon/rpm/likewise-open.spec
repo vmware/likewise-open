@@ -40,6 +40,9 @@ This package provides files for developing against the Likewise APIs
 case "$1" in
     1)
 
+    /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
+    /bin/systemctl enable lwsmd.service
+
     try_starting_lwregd_svc=true
 
     if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
@@ -52,12 +55,9 @@ case "$1" in
     fi
 
     if [ $try_starting_lwregd_svc = true ]; then
-        /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
         /bin/systemctl daemon-reload
 
         /bin/systemctl start lwsmd.service
-
-        /bin/systemctl enable lwsmd.service
 
         echo "Waiting for lwreg startup."
         while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
