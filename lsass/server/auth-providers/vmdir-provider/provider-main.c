@@ -865,6 +865,7 @@ VmDirOpenHandle(
                 dwError = LW_ERROR_NOT_HANDLED;
                 break;
             case LW_ERROR_LDAP_NO_SUCH_OBJECT:
+            case LW_ERROR_LDAP_LOCAL_ERROR:
                 dwError = 0;
                 break;
             default:
@@ -884,14 +885,6 @@ cleanup:
     return dwError;
 
 error:
-
-    switch (dwError)
-    {
-        case LW_ERROR_LDAP_SERVER_DOWN:
-        case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
-            dwError = LW_ERROR_NOT_HANDLED;
-            break;
-    }
 
     if (phProvider)
     {
