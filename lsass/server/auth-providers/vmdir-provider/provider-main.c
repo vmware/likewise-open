@@ -16,6 +16,12 @@ VmDirSetJoinState(
     VMDIR_JOIN_STATE joinState
     );
 
+static
+BOOLEAN
+isValidProviderContext(
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext
+    );
+
 /**
  * Entry point to initialize the authentication provider
  *
@@ -116,11 +122,16 @@ VmDirFindObjects(
 
     LOG_FUNC_ENTER;
 
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
-    
-    if (!pContext || !pppObjects || !dwCount)
+    if (!hProvider || !pppObjects || !dwCount)
     {
         dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
@@ -305,13 +316,12 @@ VmDirOpenEnumObjects(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     switch (objectType)
     {
@@ -445,6 +455,11 @@ VmDirOpenEnumMembers(
     }
 
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
     dwError = VmDirInitEnumMembersHandle(
     				&pContext->dirContext,
@@ -590,6 +605,11 @@ VmDirQueryMemberOf(
     }
 
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
     dwError = LwHashCreate(
                     13,
@@ -842,35 +862,28 @@ VmDirOpenHandle(
     if (VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED)
     {
         dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
-        BAIL_ON_VMDIR_ERROR(dwError);
-
-        if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
+        if (dwError == 0)
         {
-            dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
-                            &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
-                            bInLock);
-            BAIL_ON_VMDIR_ERROR(dwError);
-        }
+            if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
+            {
+                dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
+                                &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
+                                bInLock);
+                BAIL_ON_VMDIR_ERROR(dwError);
+            }
 
-        dwError = VmDirLdapInitialize(
-                                    pContext->dirContext.pBindInfo->pszURI,
-                                    pContext->dirContext.pBindInfo->pszUPN,
-                                    pContext->dirContext.pBindInfo->pszPassword,
-                                    VMDIR_KRB5_CC_NAME,
-                                    &pContext->dirContext.pLd);
-        switch (dwError)
-        {
-            case LW_ERROR_LDAP_SERVER_DOWN:
-            case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
-                dwError = LW_ERROR_NOT_HANDLED;
-                break;
-            case LW_ERROR_LDAP_NO_SUCH_OBJECT:
-                dwError = 0;
-                break;
-            default:
-                break;
+            dwError = VmDirLdapInitialize(
+                                        pContext->dirContext.pBindInfo->pszURI,
+                                        pContext->dirContext.pBindInfo->pszUPN,
+                                        pContext->dirContext.pBindInfo->pszPassword,
+                                        VMDIR_KRB5_CC_NAME,
+                                        &pContext->dirContext.pLd);
         }
-        BAIL_ON_VMDIR_ERROR(dwError);
+        /*
+         * Return success even if dir context initialization failed.  Each method must
+         * validate the dir context before using it.
+         */
+        dwError = LW_ERROR_SUCCESS;
     }
 
     *phProvider = pContext;
@@ -884,14 +897,6 @@ cleanup:
     return dwError;
 
 error:
-
-    switch (dwError)
-    {
-        case LW_ERROR_LDAP_SERVER_DOWN:
-        case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
-            dwError = LW_ERROR_NOT_HANDLED;
-            break;
-    }
 
     if (phProvider)
     {
@@ -993,13 +998,12 @@ VmDirAuthenticateUserPam(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     dwError = VmDirFindUserByName(
                                 &pContext->dirContext,
@@ -1145,13 +1149,12 @@ VmDirValidateUser(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
 
     LSA_LOG_INFO("VmDirValidateUser: Validating user (%s)",
                     LSA_SAFE_LOG_STRING(pszLoginId));
@@ -1205,15 +1208,14 @@ VmDirCheckUserInList(
 
     LOG_FUNC_ENTER;
 
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
-
-    if (!pContext || !pszLoginId || !pszListName)
+    if (!hProvider || !pszLoginId || !pszListName)
     {
         dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
@@ -1257,13 +1259,12 @@ VmDirChangePassword(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     dwError = VmDirFindUserByName(&pContext->dirContext, pszLoginId, &pUser);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -1397,13 +1398,12 @@ VmDirOpenSession(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     dwError = VmDirFindUserByName(&pContext->dirContext, pszLoginId, &pObject);
     BAIL_ON_VMDIR_ERROR(dwError);
@@ -1478,14 +1478,6 @@ VmDirCloseSession (
     DWORD dwError = LW_ERROR_SUCCESS;
 
     LOG_FUNC_ENTER;
-
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
-    {
-        dwError = LW_ERROR_NOT_HANDLED;
-        BAIL_ON_VMDIR_ERROR(dwError);
-    }
-
-error:
 
     LOG_FUNC_EXIT;
 
@@ -1586,13 +1578,12 @@ VmDirGetStatus(
 
     LOG_FUNC_ENTER;
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
+    if (!isValidProviderContext(pContext))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_VMDIR_ERROR(dwError);
     }
-
-    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
 
     if (!ppAuthProviderStatus)
     {
@@ -1837,4 +1828,23 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+BOOLEAN
+isValidProviderContext(
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext
+    )
+{
+    BOOLEAN isValid = FALSE;
+
+    if (pContext &&
+        pContext->dirContext.pBindInfo &&
+        pContext->dirContext.pLd &&
+        VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED)
+    {
+        isValid = TRUE;
+    }
+
+    return isValid;
 }
