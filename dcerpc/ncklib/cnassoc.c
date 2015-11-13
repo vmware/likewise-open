@@ -3678,16 +3678,6 @@ unsigned32              *st;
         while (sec_context != NULL)
         {
             /*
-             * Search for cached auth info which matches the existing
-             * association binding's auth info.
-             */
-            RPC_LIST_FIRST(info->cache_link, info, rpc_auth_info_p_t);
-            while (info && info != sec_context->sec_info)
-            {
-                RPC_LIST_NEXT(info, info, rpc_auth_info_p_t);
-            }
-
-            /*
              * If the auth info passed in equals the auth info in
              * the security context element this security context can
              * be use for the current RPC.
@@ -3876,6 +3866,13 @@ unsigned32              *st;
         {
             *st = sec_context->sec_status;
             return;
+        }
+        if (RPC_CN_AUTH_REQUIRED (info) && (sec_context->sec_state == RPC_C_SEC_STATE_INCOMPLETE))
+        {
+            RPC_CN_ASSOC_EVAL_USER_EVENT (assoc,
+                                          RPC_C_ASSOC_ALTER_CONTEXT_REQ,
+                                          &assoc_sm_work,
+                                          *st);
         }
     }
 
@@ -4631,12 +4628,10 @@ rpc_cn_assoc_p_t   assoc;
             RPC_LIST_NEXT (fragbuf,
                            next_fragbuf,
                            rpc_cn_fragbuf_p_t);
-#if 1 /* oops, fragbuf_dealloc() is corrupt, 0x21, crashes here */
             if (fragbuf->fragbuf_dealloc != NULL)
             {
                 (*fragbuf->fragbuf_dealloc)(fragbuf);
             }
-#endif
             fragbuf = next_fragbuf;
         }
         RPC_LIST_INIT (assoc->msg_list);
