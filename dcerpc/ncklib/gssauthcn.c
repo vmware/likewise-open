@@ -539,6 +539,7 @@ INTERNAL boolean32 rpc__gssauth_cn_cred_changed
 	unsigned32		*st;
 #endif
 {
+	boolean32 sec_changed = false;
 	CODING_ERROR(st);
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
 		("(rpc__gssauth_cn_cred_changed)\n"));
@@ -560,7 +561,18 @@ INTERNAL boolean32 rpc__gssauth_cn_cred_changed
 	 * Assume that cred is already valid.
 	 */
 	*st = rpc_s_ok;
-	return false;
+
+	/*
+	 * This credential must change if the there is an error status present
+	 * in the credential's context. This credential handle is invalid,
+	 * as the previous authentication failed.
+	 */
+	if (sec->sec_status != rpc_s_ok)
+	{
+	    sec_changed = true;
+	    *st = sec->sec_status;
+	}
+	return sec_changed;
 }
 
 /*****************************************************************************/
@@ -951,7 +963,7 @@ INTERNAL int rpc__gssauth_verify_server_token
 				      NULL,
 				      NULL);
 	if (gss_rc != GSS_S_COMPLETE) {
-		return gss_rc;
+	    return gss_rc;
 	}
 
 	return GSS_S_COMPLETE;
