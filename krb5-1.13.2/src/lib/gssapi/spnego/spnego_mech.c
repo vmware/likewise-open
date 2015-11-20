@@ -1036,6 +1036,7 @@ spnego_gss_init_sec_context(
 				    input_token, &mechtok_in,
 				    &mechListMIC_in, &negState, &send_token);
 		if (HARD_ERROR(ret)) {
+			spnego_ctx = (spnego_gss_ctx_id_t)*context_handle;
 			goto cleanup;
 		}
 	}
