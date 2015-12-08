@@ -1263,7 +1263,7 @@ PRIVATE void rpc__cn_stats_print (void)
 PRIVATE char *rpc__cn_pkt_name
 #ifdef _DCE_PROTO_
 (
-  unsigned32      ptype ATTRIBUTE_UNUSED
+  unsigned32      ptype
 )
 #else
 (ptype)
@@ -1272,6 +1272,8 @@ unsigned32      ptype;
 {
 #ifndef DEBUG
 
+    /* ptype ATTRIBUTE_UNUSED */
+    ptype = 0;
     return("");
 
 #else
