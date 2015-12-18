@@ -55,6 +55,15 @@ krb5int_accessor(krb5int_access *internals, krb5_int32 version)
 
             S (clean_hostname, k5_clean_hostname),
 
+#ifdef KRB5_DNS_LOOKUP
+#define SC(FIELD, VAL)  S(FIELD, VAL)
+#else /* disable */
+#define SC(FIELD, VAL)  S(FIELD, 0)
+#endif
+            SC (make_srv_query_realm, krb5int_make_srv_query_realm),
+            SC (free_srv_dns_data, krb5int_free_srv_dns_data),
+#undef SC
+
 #ifndef LEAN_CLIENT
 #define SC(FIELD, VAL)  S(FIELD, VAL)
 #else /* disable */

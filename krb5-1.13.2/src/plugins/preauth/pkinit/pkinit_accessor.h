@@ -77,4 +77,10 @@ extern void KRB5_CALLCONV (*k5int_krb5_free_kdc_req)
 extern void (*k5int_set_prompt_types)
 	(krb5_context, krb5_prompt_type *);
 
+struct srv_dns_entry;
+extern krb5_error_code (*k5int_make_srv_query_realm)
+        (const krb5_data *realm, const char *service,
+         const char *protocol, struct srv_dns_entry **answers);
+extern void (*k5int_free_srv_dns_data)(struct srv_dns_entry *);
+
 #endif /* _PKINIT_ACCESSOR_H */

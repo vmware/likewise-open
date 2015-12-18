@@ -11,6 +11,8 @@ make()
         HEADERDEPS="openssl/opensslv.h" \
         LIBDEPS="ssl crypto" \
         CPPFLAGS="$KRB5_CPPFLAGS" \
+        CFLAGS="-g" \
+        LDFLAGS="-g" \
         HEADERS='krb5.h gssapi.h gssapi/gssapi_ext.h' \
         LIBS='krb5 gssapi_krb5 k5crypto' \
         --enable-shared \

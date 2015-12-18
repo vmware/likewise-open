@@ -128,7 +128,7 @@ LwKrb5GetTgtWithSmartCard(
                 pszCcPath,
                 pdwGoodUntilTime,
                 pPreauthTypes,
-                sizeof(pPreauthTypes) / sizeof(pPreauthTypes[0]),
+                0, //sizeof(pPreauthTypes) / sizeof(pPreauthTypes[0]),
                 cbKrb5Prompter,
                 pvPrompterData
                 );

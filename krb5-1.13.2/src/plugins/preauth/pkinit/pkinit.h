@@ -1,3 +1,4 @@
+#define DEBUG
 /*
  * COPYRIGHT (C) 2006,2007
  * THE REGENTS OF THE UNIVERSITY OF MICHIGAN
@@ -31,6 +32,7 @@
 #ifndef _PKINIT_H
 #define _PKINIT_H
 
+#include <autoconf.h>
 #include <k5-platform.h>
 #include <krb5/krb5.h>
 #include <krb5/preauth_plugin.h>

@@ -1772,13 +1772,37 @@ krb5int_random_string(krb5_context, char *string, unsigned int length);
 
 /* To keep happy libraries which are (for now) accessing internal stuff */
 
+/* !!!!!! DUPLICATION
+   The following are duplicated because I don't know how else to make them available.
+*/
+struct srv_dns_entry {
+    struct srv_dns_entry *next;
+    int priority;
+    int weight;
+    unsigned short port;
+    char *host;
+};
+
+krb5_error_code krb5int_make_srv_query_realm(const krb5_data *realm,
+                                             const char *service,
+                                             const char *protocol,
+                                             struct srv_dns_entry **answers);
+void krb5int_free_srv_dns_data(struct srv_dns_entry *);
+/* !!!!!! DUPLICATION */
+
 /* Make sure to increment by one when changing the struct */
-#define KRB5INT_ACCESS_STRUCT_VERSION 21
+#define KRB5INT_ACCESS_STRUCT_VERSION 22
 
 typedef struct _krb5int_access {
     krb5_error_code (*auth_con_get_subkey_enctype)(krb5_context,
                                                    krb5_auth_context,
                                                    krb5_enctype *);
+
+    krb5_error_code (*make_srv_query_realm)(const krb5_data *realm,
+                                            const char *service,
+                                            const char *protocol,
+                                            struct srv_dns_entry **answers);
+    void (*free_srv_dns_data)(struct srv_dns_entry *);
 
     krb5_error_code (*clean_hostname)(krb5_context, const char *, char *,
                                       size_t);
