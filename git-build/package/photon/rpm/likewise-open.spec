@@ -40,8 +40,10 @@ This package provides files for developing against the Likewise APIs
 case "$1" in
     1)
 
-    /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
-    /bin/systemctl enable lwsmd.service
+    /bin/systemctl enable lwsmd.service >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/multi-user.target.wants/lwsmd.service
+    fi
 
     try_starting_lwregd_svc=true
 
