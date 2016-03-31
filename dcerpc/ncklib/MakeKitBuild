@@ -2,6 +2,10 @@ make()
 {
     # Common flags
 
+    if [ "$LW_BUILD_ESX" = "1" ]; then
+        mk_define LW_BUILD_ESX
+    fi
+
     NCK_IDLFLAGS="-no_cpp -no_mepv"
     NCK_INCLUDEDIRS=". ../include include/$target_os"
     NCK_CFLAGS="-Wall -Werror -fno-strict-aliasing"

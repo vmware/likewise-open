@@ -452,7 +452,11 @@ unsigned32              *status;
         }
 
         serr = rpc__socket_bind (sock, rpc_addr);
-        if (RPC_SOCKET_IS_ERR (serr))
+        if (RPC_SOCKET_IS_ERR (serr)
+#ifdef LW_BUILD_ESX
+            && serr != ENOENT
+#endif
+           )
         {
             *status = rpc_s_cant_bind_sock;
             RPC_SOCKET_CLOSE (sock);
@@ -1231,7 +1235,11 @@ unsigned32              *st;
          */
         serr = rpc__socket_bind (assoc->cn_ctlblk.cn_sock, temp_rpc_addr);
         rpc__naf_addr_free(&temp_rpc_addr, &temp_status);
-        if (RPC_SOCKET_IS_ERR (serr))
+        if (RPC_SOCKET_IS_ERR (serr)
+#ifdef LW_BUILD_ESX
+            && serr != ENOENT
+#endif
+           )
         {
             RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_ERRORS,
                             ("(rpc__cn_network_req_connect) desc->%x rpc__socket_bind failed, error = %d\n",
