@@ -429,44 +429,53 @@ RegLexParseAt(
     CHAR inC)
 {
     DWORD dwError = 0;
+    DWORD i = 0;
     BOOLEAN eof = FALSE;
-    BOOLEAN bHasSecurity = FALSE;
+    REGLEX_TOKEN nextToken = {0};
 
     if (lexHandle->state != REGLEX_STATE_IN_QUOTE)
     {
-        /* Default value for a registry key */
-        lexHandle->isToken = TRUE;
-        lexHandle->curToken.lineNum = lexHandle->parseLineNum;
-        lexHandle->curToken.token = REGLEX_KEY_NAME_DEFAULT;
-        lexHandle->state = REGLEX_STATE_INIT;
-        lexHandle->curToken.valueCursor = 0;
-        RegLexAppendChar(lexHandle, inC);
-
-        /* Handle the case of @frob, i.e. "@security" */
-        dwError = RegIOGetChar(ioHandle, &inC, &eof);
-        while (dwError == 0 && !eof && isalpha((int) inC))
+        dwError = RegLexGetToken(
+                      ioHandle,
+                      lexHandle,
+                      &nextToken,
+                      &eof);
+        if (dwError)
         {
-            RegLexAppendChar(lexHandle, inC);
-            dwError = RegIOGetChar(ioHandle, &inC, &eof);
-            bHasSecurity = TRUE;
+            BAIL_ON_REG_ERROR(dwError);
         }
-        if (eof)
+        if (lexHandle->curToken.token == REGLEX_PLAIN_TEXT) 
         {
-            return dwError;
-        }
-        dwError = RegIOUnGetChar(ioHandle, NULL);
-        if (bHasSecurity)
-        {
-            if (strcmp(lexHandle->curToken.pszValue, "@security") == 0)
+            /* Looking for @security */
+            if (strcmp(lexHandle->curToken.pszValue, "security") == 0)
             {
                 lexHandle->eValueNameType = REGLEX_VALUENAME_SECURITY;
+                lexHandle->curToken.token = REGLEX_KEY_NAME_DEFAULT;
+                lexHandle->curToken.valueCursor = 0;
+
+                RegLexAppendChar(lexHandle, inC);
+                for (i=0; i<sizeof("security")-1; i++)
+                {
+                    RegLexAppendChar(lexHandle, "security"[i]);
+                }
             }
             else
             {
-                dwError = LWREG_ERROR_UNEXPECTED_TOKEN;
+                RegLexUnGetToken(lexHandle);
+                dwError = RegAllocateMemory(REGLEX_DEFAULT_SZ_LEN + 1,
+                              (LW_PVOID) &lexHandle->curToken.pszValue);
+                 BAIL_ON_REG_ERROR(dwError);
+
+                lexHandle->curToken.valueCursor = 0;
+                RegLexAppendChar(lexHandle, inC);
             }
         }
     }
+    else
+    {
+        RegLexAppendChar(lexHandle, inC);
+    }
+error:
     return dwError;
 }
 
