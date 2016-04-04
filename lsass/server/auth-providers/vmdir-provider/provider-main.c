@@ -1774,30 +1774,6 @@ error:
 
 static
 DWORD
-VmDirGetJoinState(
-    VOID)
-{
-    VMDIR_JOIN_STATE joinState = VMDIR_JOIN_STATE_UNSET;
-
-    pthread_mutex_lock(&gVmDirAuthProviderGlobals.mutex);
-    joinState = gVmDirAuthProviderGlobals.joinState;
-    pthread_mutex_unlock(&gVmDirAuthProviderGlobals.mutex);
-
-    return joinState;
-}
-
-static
-VOID
-VmDirSetJoinState(
-    VMDIR_JOIN_STATE joinState)
-{
-    pthread_mutex_lock(&gVmDirAuthProviderGlobals.mutex);
-    gVmDirAuthProviderGlobals.joinState = joinState;
-    pthread_mutex_unlock(&gVmDirAuthProviderGlobals.mutex);
-}
-
-static
-DWORD
 VmDirSignalProvider(
     HANDLE hProvider,
     uid_t  peerUID,
