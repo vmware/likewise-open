@@ -2085,7 +2085,7 @@ LsaSaveMachinePassword(
 
     dwError = KtKrb5GetSaltingPrincipalW(pwszMachineName,
                                          pwszAccount,
-                                         pwszMachineDnsDomain,
+                                         pwszAdDnsDomainNameLc,
                                          pwszAdDnsDomainNameUc,
                                          pwszDCName,
                                          pwszBaseDn,
