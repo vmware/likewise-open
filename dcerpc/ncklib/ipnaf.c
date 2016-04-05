@@ -239,6 +239,13 @@ INTERNAL void desc_inq_peer_addr _DCE_PROTOTYPE_ ((
         unsigned32                  * /*status*/
     ));
 
+INTERNAL void desc_inq_peer_addr6 _DCE_PROTOTYPE_ ((
+        rpc_protseq_id_t        protseq_id,
+        rpc_socket_t            desc,
+        rpc_addr_p_t            *rpc_addr,
+        unsigned32              *status
+    ));
+
 INTERNAL void set_port_restriction _DCE_PROTOTYPE_ ((
         rpc_protseq_id_t             /*protseq_id*/,
         unsigned32                   /*n_elements*/,
@@ -496,7 +503,7 @@ unsigned32              *status;
         is_connect_closed,
         tower_flrs_from_addr,
         tower_flrs_to_addr,
-        desc_inq_peer_addr,
+        desc_inq_peer_addr6,
         set_port_restriction,
         get_next_restricted_port,
         inq_max_frag_size
@@ -1809,20 +1816,20 @@ rpc_addr_p_t            addr1, addr2;
 unsigned32              *status;
 #endif
 {
-    rpc_ip_addr_p_t     ip_addr1 = (rpc_ip_addr_p_t) addr1;
-    rpc_ip_addr_p_t     ip_addr2 = (rpc_ip_addr_p_t) addr2;
+    rpc_ip6_addr_p_t     ip6_addr1 = (rpc_ip6_addr_p_t) addr1;
+    rpc_ip6_addr_p_t     ip6_addr2 = (rpc_ip6_addr_p_t) addr2;
     int len = sizeof(struct in_addr);
 
-    if (ip_addr1->sa.sin_family == ip_addr2->sa.sin_family &&
-        ip_addr1->sa.sin_family == AF_INET6)
+    if (ip6_addr1->sa.sin6_family == ip6_addr2->sa.sin6_family &&
+        ip6_addr1->sa.sin6_family == AF_INET6)
     {
         len = sizeof(struct in6_addr);
     }
-    if (ip_addr1->sa.sin_family == ip_addr2->sa.sin_family &&
-        ip_addr1->sa.sin_port == ip_addr2->sa.sin_port &&
-        ip_addr1->len == ip_addr2->len &&
-        memcmp(&ip_addr1->sa.sin_addr.s_addr,
-               &ip_addr2->sa.sin_addr.s_addr, len) == 0)
+    if (ip6_addr1->sa.sin6_family == ip6_addr2->sa.sin6_family &&
+        ip6_addr1->sa.sin6_port == ip6_addr2->sa.sin6_port &&
+        ip6_addr1->len == ip6_addr2->len &&
+        memcmp(&ip6_addr1->sa.sin6_addr,
+               &ip6_addr2->sa.sin6_addr, len) == 0)
     {
         return true;
     }
@@ -2497,6 +2504,120 @@ unsigned32         *status;
     return;
 }
 
+
+/*
+**++
+**
+**  ROUTINE NAME:       desc_inq_peer_addr6
+**
+**  SCOPE:              INTERNAL - declared locally
+**
+**  DESCRIPTION:
+**
+**    IPV6 implementation of desc_inq_peer_addr method.
+**
+**    Receive a socket descriptor which is queried to obtain family,
+**    remote endpoint and remote network address.  If this information appears valid
+**    for an DECnet IV address,  space is allocated for an RPC address which
+**    is initialized with the information obtained from this socket.  The
+**    address indicating the created RPC address is returned in, arg., rpc_addr.
+**
+**  INPUTS:
+**
+**      protseq_id             Protocol Sequence ID representing a
+**                             particular Network Address Family,
+**                             its Transport Protocol, and type.
+**
+**      desc                   Descriptor, indicating a socket that
+**                             has been created on the local operating
+**                             platform.
+**
+**  INPUTS/OUTPUTS:
+**
+**      rpc_addr        The address of a pointer where the RPC address
+**                      created by this routine will be indicated.
+**
+**  OUTPUTS:
+**
+**      status          A value indicating the status of the routine.
+**
+**          rpc_s_ok               The call was successful.
+**
+**          rpc_s_no_memory         Call to malloc failed to allocate memory.
+**
+**          rpc_s_cant_get_peername Call to getpeername failed.
+**
+**          rpc_s_invalid_naf_id   Socket that arg desc refers is not DECnet IV.
+**
+**          Any of the RPC Protocol Service status codes.
+**
+**  IMPLICIT INPUTS:    none
+**
+**  IMPLICIT OUTPUTS:   none
+**
+**  FUNCTION VALUE:     none
+**
+**  SIDE EFFECTS:       none
+**
+**--
+**/
+
+INTERNAL void desc_inq_peer_addr6
+(
+    rpc_protseq_id_t        protseq_id,
+    rpc_socket_t            desc,
+    rpc_addr_p_t            *rpc_addr,
+    unsigned32              *status
+)
+{
+    rpc_socket_error_t  serr;
+
+    CODING_ERROR (status);
+
+
+    /*
+     * allocate memory for the new RPC address
+     */
+    RPC_MEM_ALLOC (*rpc_addr,
+                   rpc_addr_p_t,
+                   sizeof (rpc_ip6_addr_t),
+                   RPC_C_MEM_RPC_ADDR,
+                   RPC_C_MEM_WAITOK);
+
+    /*
+     * successful malloc
+     */
+    if (*rpc_addr == NULL)
+    {
+        *status = rpc_s_no_memory;
+        return;
+    }
+
+    /*
+     * insert individual parameters into RPC address
+     */
+    (*rpc_addr)->rpc_protseq_id = protseq_id;
+    (*rpc_addr)->len = sizeof (struct sockaddr_in6);
+
+    /*
+     * Get the peer address (name).
+     *
+     * If we encounter an error, free the address structure and return
+     * the status from the getpeername() call, not the free() call.
+     */
+
+    serr = rpc__socket_getpeername (desc, *rpc_addr);
+    if (RPC_SOCKET_IS_ERR (serr))
+    {
+        RPC_MEM_FREE (*rpc_addr, RPC_C_MEM_RPC_ADDR);
+        *rpc_addr = (rpc_addr_p_t)NULL;
+        *status = rpc_s_cant_getpeername;
+    }
+    else
+    {
+        *status = rpc_s_ok;
+    }
+}
 
 /*
 **++
