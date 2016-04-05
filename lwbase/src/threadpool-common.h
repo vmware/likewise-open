@@ -44,6 +44,8 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#define LW_MAX_CPU 8
+
 /*
  * Circular linked list structure
  * TODO: merge or replace with LW_LIST_LINKS from lwio
