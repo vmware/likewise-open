@@ -3320,9 +3320,10 @@ void DJUpdatePamConf(const char *testPrefix,
         }
         else
         {
-            if (distro.distro == DISTRO_VMWARE_PHOTON)
+            if (distro.distro == DISTRO_VMWARE_PHOTON &&
+                strcmp(services[i], "system-account") != 0)
             {
-                /* For Photon only update system-auth.
+                /* For Photon only update system-auth and system-account.
                  */
                 DJ_LOG_INFO("Ignoring pam service %s", services[i]);
                 continue;
