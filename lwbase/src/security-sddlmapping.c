@@ -209,6 +209,11 @@ RtlpSddlLookupSddl(
 {
     ULONG index;
 
+    if (!pszSddl)
+    {
+        return NULL;
+    }
+
     for (index = 0; index < sizeof(LwSddlSidStringTable) / sizeof(*LwSddlSidStringTable); index++)
     {
         if (!strcasecmp(LwSddlSidStringTable[index].pszSddl, pszSddl))

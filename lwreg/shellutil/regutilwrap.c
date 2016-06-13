@@ -241,3 +241,36 @@ RegUtilGetValue(
                pdwValueLen);
 }
 
+
+DWORD
+RegUtilSetSecurity(
+    IN OPTIONAL HANDLE hReg,
+    IN PSTR pszRootKeyName,
+    IN PSTR pszSubKeyPath,
+    IN PSTR keyName,
+    IN PSTR valueName)
+{
+    return RegShellUtilSetSecurity(
+               hReg,
+               pszRootKeyName,
+               pszSubKeyPath,
+               keyName,
+               valueName);
+}
+
+
+DWORD
+RegUtilGetSecurity(
+    IN OPTIONAL HANDLE hReg,
+    IN PSTR pszRootKeyName,
+    IN PSTR pszSubKeyPath,
+    IN PSTR keyName,
+    OUT PSTR *ppszSecurityDescriptor)
+{
+    return RegShellUtilGetSecurity(
+               hReg,
+               pszRootKeyName,
+               pszSubKeyPath,
+               keyName,
+               ppszSecurityDescriptor);
+}
