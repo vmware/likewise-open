@@ -318,6 +318,20 @@ RtlAllocateSecurityDescriptorFromSddlCString(
                                  pszStringSecurityDescriptor);
     GOTO_CLEANUP_ON_STATUS(status);
 
+    // Check OWNER
+    if (LwRtlCStringIsNullOrEmpty(pszOwner))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    // Check GROUP
+    if (LwRtlCStringIsNullOrEmpty(pszGroup))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
     // Check to see if it is alias sddl sid-string
     // OWNER
     pszOwnerSid = RtlpSddlToSidString(pszOwner);
@@ -327,12 +341,8 @@ RtlAllocateSecurityDescriptorFromSddlCString(
         pszOwnerSid = pszOwner;
     }
 
-    // Check OWNER
-    if (LwRtlCStringIsNullOrEmpty(pszOwnerSid))
-    {
-        status = STATUS_INVALID_PARAMETER;
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
+    status = RtlAllocateSidFromCString(&pGroupSid, pszGroupSid);
+    GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlAllocateSidFromCString(&pOwnerSid, pszOwnerSid);
     GOTO_CLEANUP_ON_STATUS(status);
@@ -351,16 +361,6 @@ RtlAllocateSecurityDescriptorFromSddlCString(
     {
         pszGroupSid = pszGroup;
     }
-
-    // Check GROUP
-    if (LwRtlCStringIsNullOrEmpty(pszGroupSid))
-    {
-        status = STATUS_INVALID_PARAMETER;
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    status = RtlAllocateSidFromCString(&pGroupSid, pszGroupSid);
-    GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlSetGroupSecurityDescriptor(
                  pSecDescAbs,
@@ -2022,6 +2022,7 @@ cleanup:
     if (!NT_SUCCESS(status))
     {
         RtlpFreeStringArray(ppszAceStrings, sCount);
+        ppszAceStrings = NULL;
         sCount = 0;
     }
 
