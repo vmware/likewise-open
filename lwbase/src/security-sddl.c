@@ -341,9 +341,6 @@ RtlAllocateSecurityDescriptorFromSddlCString(
         pszOwnerSid = pszOwner;
     }
 
-    status = RtlAllocateSidFromCString(&pGroupSid, pszGroupSid);
-    GOTO_CLEANUP_ON_STATUS(status);
-
     status = RtlAllocateSidFromCString(&pOwnerSid, pszOwnerSid);
     GOTO_CLEANUP_ON_STATUS(status);
 
@@ -361,6 +358,9 @@ RtlAllocateSecurityDescriptorFromSddlCString(
     {
         pszGroupSid = pszGroup;
     }
+
+    status = RtlAllocateSidFromCString(&pGroupSid, pszGroupSid);
+    GOTO_CLEANUP_ON_STATUS(status);
 
     status = RtlSetGroupSecurityDescriptor(
                  pSecDescAbs,
