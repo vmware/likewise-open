@@ -109,7 +109,7 @@ lwmsg_peer_session_string_for_assoc(
     }
     else
     {
-        strncpy(string, "<null session>", sizeof (string));
+        strncpy(string, "<null session>", sizeof (LWMsgSessionString));
     }
 }
 
