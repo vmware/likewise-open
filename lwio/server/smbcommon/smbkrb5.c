@@ -556,7 +556,7 @@ SMBGssGetSessionKey(
         !sessionKey->elements[0].value ||
         (0 == sessionKey->elements[0].length))
     {
-        LWIO_ASSERT_MSG(FALSE, "Invalid session key");
+        (void)LWIO_ASSERT_MSG(FALSE, "Invalid session key");
         status = STATUS_ASSERTION_FAILURE;
         BAIL_ON_LWIO_ERROR(status);
     }

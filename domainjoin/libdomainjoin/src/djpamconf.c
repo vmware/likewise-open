@@ -288,7 +288,7 @@ static DWORD CopyService(struct PamConf *conf, const char *oldName, const char *
     DWORD ceError = ERROR_SUCCESS;
     int line = -1;
     int newLine;
-    struct PamLine *oldLineObj, *newLineObj;
+    struct PamLine *newLineObj;
     for(;;)
     {
         line = NextLineForService(conf, line, oldName, NULL);
@@ -296,7 +296,6 @@ static DWORD CopyService(struct PamConf *conf, const char *oldName, const char *
             break;
 
         BAIL_ON_CENTERIS_ERROR(ceError = CopyLine(conf, line, &newLine));
-        oldLineObj = &conf->lines[line];
         newLineObj = &conf->lines[newLine];
         /* Update the service name */
         CT_SAFE_FREE_STRING(newLineObj->service->value);
@@ -3319,21 +3318,26 @@ void DJUpdatePamConf(const char *testPrefix,
                 continue;
             }
         }
-        if(!strcmp(services[i], "systemd-user"))
+        else
         {
-            if (distro.distro == DISTRO_VMWARE_PHOTON)
+            if (distro.distro == DISTRO_VMWARE_PHOTON &&
+                strcmp(services[i], "system-account") != 0)
             {
-                DJ_LOG_INFO("Not directly enabling pam entry point 'systemd-user'");
+                /* For Photon only update system-auth and system-account.
+                 */
+                DJ_LOG_INFO("Ignoring pam service %s", services[i]);
                 continue;
             }
         }
+        if(!strcmp(services[i], "systemd-user"))
+        {
+            DJ_LOG_INFO("Not directly enabling pam entry point 'systemd-user'");
+            continue;
+        }
         if(!strcmp(services[i], "other"))
         {
-            if (distro.distro == DISTRO_VMWARE_PHOTON)
-            {
-                DJ_LOG_INFO("Not directly enabling pam entry point 'other'");
-                continue;
-            }
+            DJ_LOG_INFO("Not directly enabling pam entry point 'other'");
+            continue;
         }
         if(!strcmp(services[i], "common-session"))
         {

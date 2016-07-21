@@ -4630,12 +4630,10 @@ rpc_cn_assoc_p_t   assoc;
             RPC_LIST_NEXT (fragbuf,
                            next_fragbuf,
                            rpc_cn_fragbuf_p_t);
-#if 1 /* oops, fragbuf_dealloc() is corrupt, 0x21, crashes here */
             if (fragbuf->fragbuf_dealloc != NULL)
             {
                 (*fragbuf->fragbuf_dealloc)(fragbuf);
             }
-#endif
             fragbuf = next_fragbuf;
         }
         RPC_LIST_INIT (assoc->msg_list);

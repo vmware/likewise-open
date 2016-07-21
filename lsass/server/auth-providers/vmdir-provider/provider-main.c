@@ -316,12 +316,6 @@ VmDirOpenEnumObjects(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
-    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
-    {
-        dwError = LW_ERROR_NOT_HANDLED;
-        BAIL_ON_VMDIR_ERROR(dwError);
-    }
-
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
     if (!isValidProviderContext(pContext))
     {
@@ -870,6 +864,7 @@ VmDirOpenHandle(
         dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
         if (dwError == 0)
         {
+<<<<<<< HEAD
             dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
                                     &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
                                     bInLock);
@@ -884,6 +879,25 @@ VmDirOpenHandle(
         }
         /*
          * Return success even when dir context initialization fails.  Each method must
+=======
+            if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
+            {
+                dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
+                                &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
+                                bInLock);
+                BAIL_ON_VMDIR_ERROR(dwError);
+            }
+
+            dwError = VmDirLdapInitialize(
+                                        pContext->dirContext.pBindInfo->pszURI,
+                                        pContext->dirContext.pBindInfo->pszUPN,
+                                        pContext->dirContext.pBindInfo->pszPassword,
+                                        VMDIR_KRB5_CC_NAME,
+                                        &pContext->dirContext.pLd);
+        }
+        /*
+         * Return success even if dir context initialization failed.  Each method must
+>>>>>>> origin/lcifs
          * validate the dir context before using it.
          */
         dwError = LW_ERROR_SUCCESS;
@@ -1841,10 +1855,17 @@ isValidProviderContext(
 {
     BOOLEAN isValid = FALSE;
 
+<<<<<<< HEAD
     if (VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED &&
         pContext &&
         pContext->dirContext.pBindInfo &&
         pContext->dirContext.pLd)
+=======
+    if (pContext &&
+        pContext->dirContext.pBindInfo &&
+        pContext->dirContext.pLd &&
+        VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED)
+>>>>>>> origin/lcifs
     {
         isValid = TRUE;
     }

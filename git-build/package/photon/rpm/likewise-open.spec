@@ -8,7 +8,7 @@ License: 	GPL 2.0,LGPL 2.1
 URL: 		http://www.vmware.com/
 Group: 		Development/Libraries
 
-Prereq: grep, coreutils >= 8.22, openldap >= 2.4, openssl >= 1.0.1, krb5 >= 1.12, haveged >= 1.9, sed >= 4.2
+Prereq: grep, coreutils >= 8.22, openldap >= 2.4, openssl >= 1.0.1, krb5 >= 1.12, haveged >= 1.9, sed >= 4.2, procps-ng
 ##For ESX use this line:
 ##Prereq: grep, sh-utils
 Obsoletes:   likewise-open-libs, likewise-open-lsass, likewise-open-netlogon, likewise-open-lwio, likewise-open-eventlog, likewise-open-rpc, likewise-open-lwsm, likewise-open-lwreg, likewise-open-srvsvc
@@ -40,6 +40,11 @@ This package provides files for developing against the Likewise APIs
 case "$1" in
     1)
 
+    /bin/systemctl enable lwsmd.service >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/multi-user.target.wants/lwsmd.service
+    fi
+
     try_starting_lwregd_svc=true
 
     if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
@@ -52,12 +57,9 @@ case "$1" in
     fi
 
     if [ $try_starting_lwregd_svc = true ]; then
-        /bin/ln -s /lib/systemd/system/lwsmd.service /etc/systemd/system/lwsmd.service
         /bin/systemctl daemon-reload
 
         /bin/systemctl start lwsmd.service
-
-        /bin/systemctl enable lwsmd.service
 
         echo "Waiting for lwreg startup."
         while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
