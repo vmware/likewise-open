@@ -93,11 +93,12 @@ ShowUsageInternal()
 
     fprintf(stdout, "  Internal debug commands:\n");
     fprintf(stdout, "    fixfqdn\n");
-    fprintf(stdout, "    configure { --enable | --disable } pam [--testprefix <dir>]\n");
-    fprintf(stdout, "    configure { --enable | --disable } nsswitch [--testprefix <dir>]\n");
-    fprintf(stdout, "    configure { --enable | --disable } ssh [--testprefix <dir>]\n");
+    fprintf(stdout, "    configure { --enable | --disable } [--testprefix <dir>] pam\n");
+    fprintf(stdout, "    configure { --enable | --disable } [--testprefix <dir>] nsswitch\n");
+    fprintf(stdout, "    configure { --enable | --disable } [--testprefix <dir>] ssh\n");
     fprintf(stdout, "    configure { --enable | --disable } [--testprefix <dir>] [--long <longdomain>] [--short <shortdomain>] krb5\n");
-    fprintf(stdout, "    configure { --enable | --disable } firewall [--testprefix <dir>]\n");
+    fprintf(stdout, "    configure [--testprefix <dir>] krb5-update\n");
+    fprintf(stdout, "    configure { --enable | --disable } [--testprefix <dir>] firewall\n");
     fprintf(stdout, "    configure { --enable | --disable } eventfwdd\n");
     fprintf(stdout, "    configure { --enable | --disable } reapsysld\n");
     fprintf(stdout, "    get_os_type\n");
@@ -688,7 +689,6 @@ cleanup:
     CT_SAFE_FREE_STRING(wrapped);
 }
 
-#ifndef ENABLE_MINIMAL
 void DoConfigure(int argc, char **argv, LWException **exc)
 {
     EnableType dwEnable = ENABLE_TYPE_AUTO;
@@ -751,6 +751,8 @@ void DoConfigure(int argc, char **argv, LWException **exc)
     else if(!strcmp(argv[0], "krb5"))
         LW_CLEANUP_CTERR(exc, DJModifyKrb5Conf(testPrefix,
             GetEnableBoolean(dwEnable), longDomain, shortDomain, NULL));
+    else if(!strcmp(argv[0], "krb5-update"))
+        LW_CLEANUP_CTERR(exc, DJUpdateKrb5Conf(testPrefix, NULL));
     else if(!strcmp(argv[0], "eventfwdd"))
         LW_CLEANUP_CTERR(exc, DJConfigureEventFwd(testPrefix, GetEnableBoolean(dwEnable)));
     else if(!strcmp(argv[0], "reapsysld"))
@@ -764,7 +766,6 @@ void DoConfigure(int argc, char **argv, LWException **exc)
 cleanup:
     ;
 }
-#endif
 
 void DoGetDistroInfo(int argc, char **argv, LWException **exc)
 {
@@ -966,14 +967,12 @@ int main(
     }
     else if(!strcmp(argPos[0], "fixfqdn"))
         LW_TRY(&exc, DoFixFqdn(&LW_EXC));
-#ifndef ENABLE_MINIMAL
     else if(!strcmp(argPos[0], "configure"))
     {
         argPos++;
         remainingArgs--;
         LW_TRY(&exc, DoConfigure(remainingArgs, argPos, &LW_EXC));
     }
-#endif
     else if(!strcmp(argPos[0], "get_os_type") ||
         !strcmp(argPos[0], "get_arch") ||
         !strcmp(argPos[0], "get_distro") ||

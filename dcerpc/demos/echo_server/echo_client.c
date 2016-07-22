@@ -25,7 +25,7 @@
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_ext.h>
 
-/* Defines related to GSS_SRP authentication */
+/* Defines related to GSS authentication */
 
 #ifndef GSSAPI_MECH_SPNEGO
 /*
@@ -530,7 +530,7 @@ rpc_create_srp_auth_identity(
     }
 
     /*
-     * Hard code desired mech OID to SRP
+     * Use SPNEGO mech OID to acquire cred
      */
     desired_mechs.count = 1;
     desired_mechs.elements = mech_oid_array;
@@ -762,6 +762,7 @@ create_rpc_identity(
         free(progArgs->passwd_bad);
         progArgs->passwd_bad = NULL;
     }
+
 error:
     if (username)
     {

@@ -4432,10 +4432,12 @@ boolean32		loop;
                     RPC_LIST_NEXT (assoc, assoc, rpc_cn_assoc_p_t);
                 } /* end while (assoc != NULL) */
             } /* end if ((!RPC_CN_LOCAL_ID (...)) */
+#if 1 /* oops, fragbuf_dealloc() is corrupt, 0x21, crashes here */
         } /* end for (i = 0; ... ) */
     }
 }
 
+#endif
 
 /***********************************************************************/
 /*

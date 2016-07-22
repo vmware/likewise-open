@@ -721,25 +721,20 @@ WaitWorkItems(
     UNLOCK_THREADS(pThreads);
 }
 
+ULONG
+LwRtlGetCpuCount(
+    VOID
+    )
+{
+    int numCpus = 1;
 #if defined(_SC_NPROCESSORS_ONLN)
-ULONG
-LwRtlGetCpuCount(
-    VOID
-    )
-{
-    int numCpus = sysconf(_SC_NPROCESSORS_ONLN);
-
+    numCpus = sysconf(_SC_NPROCESSORS_ONLN);
+    numCpus = LW_MIN(numCpus,LW_MAX_CPU);
     return numCpus >= 1 ? numCpus : 1;
-}
 #else
-ULONG
-LwRtlGetCpuCount(
-    VOID
-    )
-{
-    return 1;
-}
+    return numCpus;
 #endif
+}
 
 #if defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
 NTSTATUS

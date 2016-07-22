@@ -383,8 +383,11 @@ LsaPstorepCheckPasswordInfoW(
         GOTO_CLEANUP_EE(EE);
     }
 
+    /* PR 1177681 NetbiosDomainName could have lower cases.
     if (!PasswordInfo->Account.NetbiosDomainName ||
         !LsaPstorepWC16StringIsUpcase(PasswordInfo->Account.NetbiosDomainName))
+    */
+    if (!PasswordInfo->Account.NetbiosDomainName)
     {
         dwError = ERROR_INVALID_PARAMETER;
         GOTO_CLEANUP_EE(EE);

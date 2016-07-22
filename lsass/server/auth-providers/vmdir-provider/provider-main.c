@@ -1677,9 +1677,9 @@ VmDirRefreshConfiguration(
 
     if (gVmDirAuthProviderGlobals.pBindInfo)
     {
-    	VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
+        VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
 
-    	gVmDirAuthProviderGlobals.pBindInfo = NULL;
+        gVmDirAuthProviderGlobals.pBindInfo = NULL;
     }
 
 cleanup:
@@ -1687,7 +1687,7 @@ cleanup:
     VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
 
     LOG_FUNC_EXIT;
-    
+
     return dwError;
 
 error:

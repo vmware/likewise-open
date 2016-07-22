@@ -1,0 +1,551 @@
+                   Kerberos Version 5, Release 1.13
+
+                            Release Notes
+                        The MIT Kerberos Team
+
+Copyright and Other Notices
+---------------------------
+
+Copyright (C) 1985-2015 by the Massachusetts Institute of Technology
+and its contributors.  All rights reserved.
+
+Please see the file named NOTICE for additional notices.
+
+Documentation
+-------------
+
+Unified documentation for Kerberos V5 is available in both HTML and
+PDF formats.  The table of contents of the HTML format documentation
+is at doc/html/index.html, and the PDF format documentation is in the
+doc/pdf directory.
+
+Additionally, you may find copies of the HTML format documentation
+online at
+
+    http://web.mit.edu/kerberos/krb5-latest/doc/
+
+for the most recent supported release, or at
+
+    http://web.mit.edu/kerberos/krb5-devel/doc/
+
+for the release under development.
+
+More information about Kerberos may be found at
+
+    http://web.mit.edu/kerberos/
+
+and at the MIT Kerberos Consortium web site
+
+    http://kerberos.org/
+
+Building and Installing Kerberos 5
+----------------------------------
+
+Build documentation is in doc/html/build/index.html or
+doc/pdf/build.pdf.
+
+The installation guide is in doc/html/admin/install.html or
+doc/pdf/install.pdf.
+
+If you are attempting to build under Windows, please see the
+src/windows/README file.
+
+Reporting Bugs
+--------------
+
+Please report any problems/bugs/comments by sending email to
+krb5-bugs@mit.edu.
+
+You may view bug reports by visiting
+
+http://krbdev.mit.edu/rt/
+
+and using the "Guest Login" button.  Please note that the web
+interface to our bug database is read-only for guests, and the primary
+way to interact with our bug database is via email.
+
+DES transition
+--------------
+
+The Data Encryption Standard (DES) is widely recognized as weak.  The
+krb5-1.7 release contains measures to encourage sites to migrate away
+from using single-DES cryptosystems.  Among these is a configuration
+variable that enables "weak" enctypes, which defaults to "false"
+beginning with krb5-1.8.
+
+
+Major changes in 1.13.2 (2015-05-08)
+------------------------------------
+
+This is a bug fix release.
+
+* Fix a minor vulnerability in krb5_read_message, which is primarily
+  used in the BSD-derived kcmd suite of applications.  [CVE-2014-5355]
+
+* Fix a bypass of requires_preauth in KDCs that have PKINIT enabled.
+  [CVE-2015-2694]
+
+* Fix some issues with the LDAP KDC database back end.
+
+* Fix an iteration-related memory leak in the DB2 KDC database back
+  end.
+
+* Fix issues with some less-used kadm5.acl functionality.
+
+* Improve documentation.
+
+krb5-1.13.2 changes by ticket ID
+--------------------------------
+
+8050    Fix krb5_read_message handling [CVE-2014-5355]
+8149    Add formats section to documentation
+8153    Import names immediately with COMPOSITE_EXPORT
+8154    kadmind ACL back-references can affect later lines
+8155    kadm5.acl flag restrictions don't use documented syntax
+8160    requires_preauth bypass in PKINIT-enabled KDC [CVE-2015-2694]
+8162    Disable principal renames for LDAP
+8166    Fix LDAP ticket policies on big-endian LP64
+8168    Fix memory leak in DB2 iteration
+8170    Fix minor documentation errors
+
+
+Major changes in 1.13.1 (2015-02-11)
+------------------------------------
+
+This is a bug fix release.
+
+* Fix multiple vulnerabilities in the LDAP KDC back end.
+  [CVE-2014-5354] [CVE-2014-5353]
+
+* Fix multiple kadmind vulnerabilities, some of which are based in the
+  gssrpc library. [CVE-2014-5352 CVE-2014-5352 CVE-2014-9421
+  CVE-2014-9422 CVE-2014-9423]
+
+
+krb5-1.13.1 changes by ticket ID
+--------------------------------
+
+7880    Fix typo in doc for krb5_get_init_creds_keytab()
+7962    remote kadmin client doesn't parse "-norandkey"
+8011    PKINIT PKCS12 prompt length constraint limits certificate path
+        length
+8024    Use gssalloc_malloc for GSS error tokens
+8028    Report output ccache errors getting initial creds
+8029    Fix cursor leak in krb5_verify_init_creds
+8034    Fix input race condition in t_skew.py
+8035    Update example enctypes in kdc_conf.rst
+8038    Kadmind/kadmin.local issues after migration from version
+        1.12.2 to 1.13
+8041    kadmind with ldap backend crashes when putting keyless entries
+        [CVE-2014-5354]
+8049    Fix LDAP tests when sasl.h not found
+8051    Fix LDAP misused policy name crash [CVE-2014-5353]
+8053    Fix OTP tests with pyrad 2.x
+8055    Fix gss_process_context_token() [CVE-2014-5352]
+8056    Fix kadm5/gssrpc XDR double free [CVE-2014-9421]
+8057    Fix kadmind server validation [CVE-2014-9422]
+8058    Fix gssrpc data leakage [CVE-2014-9423]
+8059    Check for null *iter_p in profile_iterator()
+8060    kinit -C loops chasing realm referrals against MIT KDC
+8061    Export function gss_add_cred_with_password
+8066    Bump DAL major version for iterate change
+8072    Avoid uninitialized data in t_prf.c
+
+
+Major changes in 1.13 (2014-10-15)
+----------------------------------
+
+Administrator experience:
+
+* Add support for accessing KDCs via an HTTPS proxy server using the
+  MS-KKDCP protocol.
+
+* Add support for hierarchical incremental propagation, where slaves
+  can act as intermediates between an upstream master and other
+  downstream slaves.
+
+* Add support for configuring GSS mechanisms using
+  /etc/gss/mech.d/*.conf files in addition to /etc/gss/mech.
+
+* Add support to the LDAP KDB module for binding to the LDAP server
+  using SASL.
+
+* The KDC listens for TCP connections by default.
+
+* Fix a minor key disclosure vulnerability where using the "keepold"
+  option to the kadmin randkey operation could return the old keys.
+  [CVE-2014-5351]
+
+User experience:
+
+* Add client support for the Kerberos Cache Manager protocol. If the
+  host is running a Heimdal kcm daemon, caches served by the daemon
+  can be accessed with the KCM: cache type.
+
+* When built on OS X 10.7 and higher, use "KCM:" as the default cache
+  type, unless overridden by command-line options or krb5-config
+  values.
+
+Performance:
+
+* Add support for doing unlocked database dumps for the DB2 KDC back
+  end, which would allow the KDC and kadmind to continue accessing the
+  database during lengthy database dumps.
+
+
+krb5-1.13 changes by ticket ID
+------------------------------
+
+884     having "-" in key:salt separator list prevents salttype
+        defaulting from working
+1794    don't use mktemp
+3498    race opening/creating replay cache.
+5958    kadmin salttype "no salt" means really means "default/normal
+        salt"
+6034    rework gic_opt_ext to be more portable
+6042    krb5_string_to_keysalts should default to normal salt rather
+        than "ignore salttype"
+6413    pkinit thread safety
+6550    old_stash_bendian is a keytab
+6731    KDC should listen to TCP by default
+7232    Confusing error message for key version mismatch
+7704    Anonymous kadmin does not work
+7728    ksu assumes the invoking user's using a FILE: ccache
+7761    Document that newer AFS supports stronger crypto
+7795    Allow ":port" suffixes in sn2princ hostnames
+7800    krb5-1.11/1.12: kadm5_init_with_* interface
+7816    Don't produce context deletion token in krb5 mech
+7819    Add rcache feature to gss_acquire_cred_from
+7838    Fix gss_pseudo_random leak on zero length output
+7840    Remove krb5-send-pr
+7850    Remove kdb5_util load iprop safety net
+7855    Add hierarchical iprop support
+7857    Web Documentation: Missing reference to 1.12
+7859    Move OTP sockets to KDC_RUN_DIR
+7861    iprop can deadlock on master KDC
+7868    krb5_get_init_creds_password ignores preauth options when
+        changing password
+7869    In kdb5_util dump, only lock DB for iprop dumps
+7879    Rewrite GSS sequence state tracking code
+7882    Load mechglue config files from /etc/gss/mech.d
+7883    Try compatible keys in rd_req_dec "any" path
+7884    profile writes may not be immediately detected within same
+        process
+7886    Don't check kpasswd reply address
+7889    PKINIT use of OpenSSL OID table is not thread-safe or
+        application-friendly
+7891    Don't free cred handle used in kadm5 server handle
+7892    mismatch between client keytab default principal for kinit and
+        GSS-API
+7901    Update sample configs to include master_kdc
+7906    Don't remove ccache creds before storing them
+7907    Allow GSS mechs to force mechlistMIC in SPNEGO
+7908    Fix unlikely memory error in krb5_rd_cred
+7910    KDC does not log client principal if TGS header ticket
+        verification fails
+7913    Use case insensitive DNS SAN matching in PKINIT
+7915    Improve pointer hygiene around gss_display_name
+7918    LDAP key data decoder ignores salt type if salt value is empty
+7923    x-deltat.y is not compatible with bison 3
+7925    05cbef80d53 breaks /etc/gss/mech
+7927    Better document how to verify PGP signature
+7929    HTTP proxy support
+7933    pkinit_win2k_require_binding behavior does not match
+        documentation
+7934    Remove PKINIT longhorn compatibility option
+7935    Add a family-independent bindresvport_sa function
+7939    kadm5.acl docs wrongly imply that list permission can have a
+        target
+7944    Add SASL support to LDAP KDB module
+7947    Load plugins with RTLD_NODELETE if possible
+7961    Define _GNU_SOURCE as part of build
+7964    Add KCM credential cache type (client only)
+7968    Improve error message for PRNG seeding failure
+7974    Don't equate IAKERB and krb5 in SPNEGO initiator
+7975    Negotiating NTLM with SPNEGO against Windows Server 2003
+        doesn't work
+7977    Enable unlocked KDB iteration
+7978    Support kdb5_util dump -rev again
+7979    Add kiprop/<master-hostname> during KDB creation
+7981    Minor memory leak in GSS-API mechanism initialization
+7983    In ksu, without the -e flag, also check .k5users
+7984    Make ksu respect the default_ccache_name setting
+7986    Copy config entries to the ksu target ccache
+7987    Fix GSS krb5 GSS_C_DELEG_FLAG ret_flags result
+7988    Make krb5_cc_new_unique create DIR: directories
+7990    Fix HP-UX build support
+7992    Fix test syntax in configure.in
+7993    Autodetect OpenSSL CMS for LibreSSL compatibility
+7994    randkey does not update principal's master key version
+7995    kadmin change_password -keepold does not work with master key
+        migration
+7996    Simplify and improve ksu cred verification
+7997    kadm5_randkey_principal interop with Solaris KDC
+7998    gssapi.dll tries to get initial creds even when some are
+        present
+8000    gssapi.dll fails to detect TGTs in the MSLSA cache when UAC is
+        enabled
+8001    Allow logger.c to work with redirected stderr
+8003    Export gssrpc_bindresvport_sa
+8004    Map .hin files to the C language for doxygen
+8005    Initialize iterflags in update_princ_encryption
+8006    Update NOTICE for 1.13
+8007    In ksu, handle typeless default_ccache_name values
+8008    Document clock skew tolerance for ticket times
+8015    Fix ksu crash in cases where it obtains the TGT
+8016    Restore providing password TGTs for the ksu target
+8017    gss_acquire_cred_impersonate_name crashes with acceptor-only
+        impersonator creds
+8018    Return only new keys in randkey [CVE-2014-5351]
+
+Acknowledgements
+----------------
+
+Past and present Sponsors of the MIT Kerberos Consortium:
+
+    Apple
+    Carnegie Mellon University
+    Centrify Corporation
+    Columbia University
+    Cornell University
+    The Department of Defense of the United States of America (DoD)
+    Fidelity Investments
+    Google
+    Iowa State University
+    MIT
+    Michigan State University
+    Microsoft
+    The National Aeronautics and Space Administration
+        of the United States of America (NASA)
+    Network Appliance (NetApp)
+    Nippon Telephone and Telegraph (NTT)
+    Oracle
+    Pennsylvania State University
+    Red Hat
+    Stanford University
+    TeamF1, Inc.
+    The University of Alaska
+    The University of Michigan
+    The University of Pennsylvania
+
+Past and present members of the Kerberos Team at MIT:
+
+    Danilo Almeida
+    Jeffrey Altman
+    Justin Anderson
+    Richard Basch
+    Mitch Berger
+    Jay Berkenbilt
+    Andrew Boardman
+    Bill Bryant
+    Steve Buckley
+    Joe Calzaretta
+    John Carr
+    Mark Colan
+    Don Davis
+    Alexandra Ellwood
+    Carlos Garay
+    Dan Geer
+    Nancy Gilman
+    Matt Hancher
+    Thomas Hardjono
+    Sam Hartman
+    Paul Hill
+    Marc Horowitz
+    Eva Jacobus
+    Miroslav Jurisic
+    Barry Jaspan
+    Benjamin Kaduk
+    Geoffrey King
+    Kevin Koch
+    John Kohl
+    HaoQi Li
+    Jonathan Lin
+    Peter Litwack
+    Scott McGuire
+    Steve Miller
+    Kevin Mitchell
+    Cliff Neuman
+    Paul Park
+    Ezra Peisach
+    Chris Provenzano
+    Ken Raeburn
+    Jon Rochlis
+    Jeff Schiller
+    Jen Selby
+    Robert Silk
+    Bill Sommerfeld
+    Jennifer Steiner
+    Ralph Swick
+    Brad Thompson
+    Harry Tsai
+    Zhanna Tsitkova
+    Ted Ts'o
+    Marshall Vale
+    Tom Yu
+
+The following external contributors have provided code, patches, bug
+reports, suggestions, and valuable resources:
+
+    Ian Abbott
+    Brandon Allbery
+    Russell Allbery
+    Brian Almeida
+    Michael B Allen
+    Heinz-Ado Arnolds
+    Derek Atkins
+    Mark Bannister
+    David Bantz
+    Alex Baule
+    David Benjamin
+    Adam Bernstein
+    Arlene Berry
+    Jeff Blaine
+    Radoslav Bodo
+    Sumit Bose
+    Emmanuel Bouillon
+    Michael Calmer
+    Andrea Campi
+    Julien Chaffraix
+    Ravi Channavajhala
+    Srinivas Cheruku
+    Leonardo Chiquitto
+    Howard Chu
+    Andrea Cirulli
+    Christopher D. Clausen
+    Kevin Coffman
+    Simon Cooper
+    Sylvain Cortes
+    Arran Cudbard-Bell
+    Jeff D'Angelo
+    Nalin Dahyabhai
+    Mark Davies
+    Dennis Davis
+    Alex Dehnert
+    Mark Deneen
+    Günther Deschner
+    John Devitofranceschi
+    Roland Dowdeswell
+    Viktor Dukhovni
+    Jason Edgecombe
+    Mark Eichin
+    Shawn M. Emery
+    Douglas E. Engert
+    Peter Eriksson
+    Juha Erkkilä
+    Gilles Espinasse
+    Ronni Feldt
+    Bill Fellows
+    JC Ferguson
+    William Fiveash
+    Ákos Frohner
+    Sebastian Galiano
+    Marcus Granado
+    Scott Grizzard
+    Helmut Grohne
+    Steve Grubb
+    Philip Guenther
+    Dominic Hargreaves
+    Robbie Harwood
+    Jakob Haufe
+    Matthieu Hautreux
+    Paul B. Henson
+    Jeff Hodges
+    Christopher Hogan
+    Love Hörnquist Åstrand
+    Ken Hornstein
+    Henry B. Hotz
+    Luke Howard
+    Jakub Hrozek
+    Shumon Huque
+    Jeffrey Hutzelman
+    Wyllys Ingersoll
+    Holger Isenberg
+    Pavel Jindra
+    Joel Johnson
+    Anders Kaseorg
+    W. Trevor King
+    Patrik Kis
+    Mikkel Kruse
+    Reinhard Kugler
+    Tomas Kuthan
+    Pierre Labastie
+    Volker Lendecke
+    Jan iankko Lieskovsky
+    Oliver Loch
+    Kevin Longfellow
+    Jon Looney
+    Nuno Lopes
+    Ryan Lynch
+    Roland Mainz
+    Andrei Maslennikov
+    Michael Mattioli
+    Nathaniel McCallum
+    Greg McClement
+    Cameron Meadors
+    Alexey Melnikov
+    Franklyn Mendez
+    Markus Moeller
+    Kyle Moffett
+    Paul Moore
+    Keiichi Mori
+    Michael Morony
+    Zbysek Mraz
+    Edward Murrell
+    Nikos Nikoleris
+    Felipe Ortega
+    Michael Osipov
+    Andrej Ota
+    Dmitri Pal
+    Javier Palacios
+    Tom Parker
+    Ezra Peisach
+    Zoran Pericic
+    W. Michael Petullo
+    Mark Phalan
+    Brett Randall
+    Jonathan Reams
+    Robert Relyea
+    Martin Rex
+    Jason Rogers
+    Nate Rosenblum
+    Solly Ross
+    Mike Roszkowski
+    Guillaume Rousse
+    Andreas Schneider
+    Tom Shaw
+    Jim Shi
+    Peter Shoults
+    Simo Sorce
+    Michael Spang
+    Michael Ströder
+    Bjørn Tore Sund
+    Joe Travaglini
+    Tim Uglow
+    Rathor Vipin
+    Denis Vlasenko
+    Jorgen Wahlsten
+    Stef Walter
+    Max (Weijun) Wang
+    John Washington
+    Stef Walter
+    Xi Wang
+    Kevin Wasserman
+    Margaret Wasserman
+    Marcus Watts
+    Andreas Wiese
+    Simon Wilkinson
+    Nicolas Williams
+    Ross Wilper
+    Augustin Wolf
+    David Woodhouse
+    Xu Qiang
+    Neng Xue
+    Nickolai Zeldovich
+    Hanz van Zijst
+    Gertjan Zwartjes
+
+The above is not an exhaustive list; many others have contributed in
+various ways to the MIT Kerberos development effort over the years.
+Other acknowledgments (for bug reports and patches) are in the
+doc/CHANGES file.

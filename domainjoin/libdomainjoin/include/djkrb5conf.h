@@ -53,4 +53,10 @@ extern const JoinModule DJKrb5Module;
 
 extern const JoinModule DJKeytabModule;
 
+DWORD
+DJUpdateKrb5Conf(
+    PCSTR pszTestPrefix,
+    PBOOLEAN pbModified
+    );
+
 #endif // __DJKRB5CONF_H__

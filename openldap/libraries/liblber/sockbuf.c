@@ -936,7 +936,7 @@ sb_dgram_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	len -= sizeof( struct sockaddr_storage );
    
 	rc = sendto( sbiod->sbiod_sb->sb_fd, buf, len, 0, dst,
-		sizeof( struct sockaddr_storage ) );
+		SA_LEN(dst));
 
 	if ( rc < 0 ) return -1;
    

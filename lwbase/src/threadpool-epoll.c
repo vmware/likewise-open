@@ -1182,6 +1182,10 @@ InitEventThread(
     struct epoll_event event;
     pthread_attr_t threadAttr;
     BOOLEAN bThreadAttrInit = FALSE;
+    BOOLEAN bLockInit = FALSE;
+    BOOLEAN bEventInit = FALSE;
+    BOOLEAN bSignalFdsInit = FALSE;
+    BOOLEAN bEpollCreate = FALSE;
 
     status = LwErrnoToNtStatus(pthread_attr_init(&threadAttr));
     GOTO_ERROR_ON_STATUS(status);
@@ -1191,15 +1195,18 @@ InitEventThread(
 
     status = LwErrnoToNtStatus(pthread_mutex_init(&pThread->Lock, NULL));
     GOTO_ERROR_ON_STATUS(status);
+    bLockInit = TRUE;
 
     status = LwErrnoToNtStatus(pthread_cond_init(&pThread->Event, NULL));
     GOTO_ERROR_ON_STATUS(status);
+    bEventInit = TRUE;
 
     if (pipe(pThread->SignalFds) < 0)
     {
         status = LwErrnoToNtStatus(errno);
         GOTO_ERROR_ON_STATUS(status);
     }
+    bSignalFdsInit = TRUE;
 
     SetCloseOnExec(pThread->SignalFds[0]);
     SetCloseOnExec(pThread->SignalFds[1]);
@@ -1209,6 +1216,7 @@ InitEventThread(
         status = LwErrnoToNtStatus(errno);
         GOTO_ERROR_ON_STATUS(status);
     }
+    bEpollCreate = TRUE;
 
     SetCloseOnExec(pThread->EpollFd);
 
@@ -1251,6 +1259,29 @@ error:
         pthread_attr_destroy(&threadAttr);
     }
 
+    if (status)
+    {
+        if (bLockInit)
+        {
+            pthread_mutex_destroy(&pThread->Lock);
+        }
+
+        if (bEventInit)
+        {
+            pthread_cond_destroy(&pThread->Event);
+        }
+
+        if (bEpollCreate)
+        {
+            close(pThread->EpollFd);
+        }
+
+        if (bSignalFdsInit)
+        {
+            close(pThread->SignalFds[0]);
+            close(pThread->SignalFds[1]);
+        }
+    }
     return status;
 }
 
@@ -1289,6 +1320,7 @@ LwRtlCreateThreadPool(
     PLW_THREAD_POOL pPool = NULL;
     int i = 0;
     int numCpus = 0;
+    ULONG ulEventThreadCount = 0;
 
     status = LW_RTL_ALLOCATE_AUTO(&pPool);
     GOTO_ERROR_ON_STATUS(status);
@@ -1308,19 +1340,20 @@ LwRtlCreateThreadPool(
     }
     else
     {
-        pPool->ulEventThreadCount = GetTaskThreadsAttr(pAttrs, numCpus);
+        ulEventThreadCount = GetTaskThreadsAttr(pAttrs, numCpus);
 
-        if (pPool->ulEventThreadCount)
+        if (ulEventThreadCount)
         {
             status = LW_RTL_ALLOCATE_ARRAY_AUTO(
                 &pPool->pEventThreads,
-                pPool->ulEventThreadCount);
+                ulEventThreadCount);
             GOTO_ERROR_ON_STATUS(status);
 
-            for (i = 0; i < pPool->ulEventThreadCount; i++)
+            for (i = 0; i < ulEventThreadCount; i++)
             {
                 status = InitEventThread(pPool, pAttrs, &pPool->pEventThreads[i], i % numCpus);
                 GOTO_ERROR_ON_STATUS(status);
+                pPool->ulEventThreadCount = i + 1;
             }
         }
     }
