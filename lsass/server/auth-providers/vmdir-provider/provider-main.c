@@ -316,6 +316,12 @@ VmDirOpenEnumObjects(
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
+    if (VmDirGetJoinState() != VMDIR_JOIN_STATE_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
     pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT)hProvider;
     if (!isValidProviderContext(pContext))
     {
@@ -1677,9 +1683,9 @@ VmDirRefreshConfiguration(
 
     if (gVmDirAuthProviderGlobals.pBindInfo)
     {
-    	VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
+        VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
 
-    	gVmDirAuthProviderGlobals.pBindInfo = NULL;
+        gVmDirAuthProviderGlobals.pBindInfo = NULL;
     }
 
 cleanup:
@@ -1687,7 +1693,7 @@ cleanup:
     VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
 
     LOG_FUNC_EXIT;
-    
+
     return dwError;
 
 error:

@@ -1090,17 +1090,7 @@ LwRtlCreateThreadPool(
     int numCpus = 0;
     ULONG ulFdLimit = 0;
 
-#if defined(_SC_NPROCESSORS_ONLN)
-    numCpus = sysconf(_SC_NPROCESSORS_ONLN);
-
-    if (numCpus < 0)
-    {
-        numCpus = 1;
-    }
-#else
-    numCpus = 1;
-#endif
-
+    numCpus = LwRtlGetCpuCount();
 
     GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_AUTO(&pPool));
 

@@ -1262,6 +1262,7 @@ LwKrb5InitializeUserLoginCredentials(
     krb5_auth_context authContext = NULL;
     krb5_data apReqPacket = {0};
     krb5_keyblock serviceKey = {0};
+    krb5_principal saltPrincipal = {0};
     krb5_data salt = {0};
     // Do not free
     krb5_data machinePassword = {0};
@@ -1355,14 +1356,17 @@ LwKrb5InitializeUserLoginCredentials(
      * the service principal. pszServicePrincipal could probably be used
      * directly, but it's safer to unparse pTgsCreds->server, because the KDC
      * sent that to us.
+     * See Microsoft's document MS-KILE.pdf, section labeled
+     * "3.1.1.2 Cryptographic Material" for details.
      */
-    salt.magic = KV5M_DATA;
-    ret = krb5_unparse_name(
-            ctx,
-            pTgsCreds->server,
-            &salt.data);
+    ret = krb5_copy_principal(ctx, pTgsCreds->server, &saltPrincipal);
     BAIL_ON_KRB_ERROR(ctx, ret);
-    salt.length = strlen(salt.data);
+
+    ret = krb5_set_principal_realm(ctx, saltPrincipal, pszServiceRealm);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    ret = krb5_principal2salt(ctx, saltPrincipal, &salt);
+    BAIL_ON_KRB_ERROR(ctx, ret);
 
     machinePassword.magic = KV5M_DATA;
     machinePassword.data = (PSTR)pszServicePassword,
@@ -1525,6 +1529,10 @@ error:
         }
 
         krb5_free_data_contents(ctx, &apReqPacket);
+        if (saltPrincipal != NULL)
+        {
+            krb5_free_principal(ctx, saltPrincipal);
+        }
         krb5_free_data_contents(ctx, &salt);
         krb5_free_keyblock_contents(ctx, &serviceKey);
 

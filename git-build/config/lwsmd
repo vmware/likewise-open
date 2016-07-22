@@ -51,6 +51,8 @@ fix_locale()
 
 start_lsass()
 {
+    # Fix /etc/krb5.conf to make sure it supports AES and permits weak crypto
+    /usr/lib/vmware/likewise/bin/domainjoin-cli configure krb5-update
     sleep 1
     echo -n " [starting lsass service] "
     /usr/lib/vmware/likewise/bin/lwsm start lsass

@@ -1027,9 +1027,9 @@ Krb5JoinDomain(Krb5Entry *conf,
     char *mappingString = NULL;
     size_t i;
     const char *wantEncTypes[] = {
+        "AES256-CTS",
+        "AES128-CTS",
         "RC4-HMAC",
-        "DES-CBC-MD5",
-	"DES-CBC-CRC",
     };
     memset(&trusts, 0, sizeof(trusts));
 
@@ -1065,7 +1065,7 @@ Krb5JoinDomain(Krb5Entry *conf,
                 wantEncTypes,
                 sizeof(wantEncTypes)/sizeof(wantEncTypes[0])));
     GCE(ceError = SetNodeValue( libdefaults, "preferred_enctypes",
-                "RC4-HMAC DES-CBC-MD5 DES-CBC-CRC" ));
+                "AES256-CTS AES128-CTS RC4-HMAC" ));
     GCE(ceError = SetNodeValue( libdefaults, "dns_lookup_kdc", "true" ));
 
     GCE(ceError = SetNodeValue( libdefaults, "pkinit_kdc_hostname",
@@ -1820,3 +1820,96 @@ static PSTR GetKeytabDescription(const JoinProcessOptions *options, LWException 
 }
 
 const JoinModule DJKeytabModule = { TRUE, "keytab", "initialize kerberos keytab", QueryKeytab, DoKeytab, GetKeytabDescription };
+
+
+DWORD
+DJUpdateKrb5Conf(
+    PCSTR pszTestPrefix,
+    PBOOLEAN pbModified
+    )
+{
+    const int iCodeVersion = 1; // Increment this value when changes are made
+    DWORD dwError = 0;
+    BOOLEAN bReadModified = FALSE;
+    BOOLEAN bDisableModifications = FALSE;
+    int iVersion = 0;
+    Krb5Entry *likewise = NULL;
+    Krb5Entry *disable_modifications = NULL;
+    Krb5Entry *version = NULL;
+    Krb5Entry *libdefaults = NULL;
+    Krb5Entry conf = { 0 };
+    const char *start = NULL;
+    char *end = NULL;
+    PSTR pszVersion = NULL;
+
+    if(pszTestPrefix == NULL)
+        pszTestPrefix = "";
+
+    GCE(dwError = ReadKrb5Configuration(pszTestPrefix, &conf, &bReadModified));
+
+    likewise = GetFirstNode(&conf, "likewise");
+    if (likewise != NULL)
+    {
+        disable_modifications = GetFirstNode(likewise, "disable_modifications");
+        if (disable_modifications &&
+            disable_modifications->value.value &&
+            !strcasecmp(disable_modifications->value.value, "true"))
+        {
+            bDisableModifications = TRUE;
+        }
+
+        version = GetFirstNode(likewise, "version");
+        if (version &&
+            version->value.value)
+        {
+            start = version->value.value;
+            iVersion = strtol(start, &end, 10);
+            if (start == end)
+            {
+                goto cleanup;
+            }
+        }
+    }
+
+    if (bDisableModifications || iVersion > iCodeVersion)
+    {
+        goto cleanup;
+    }
+
+    libdefaults = GetFirstNode(&conf, "libdefaults");
+    if(libdefaults == NULL)
+    {
+        goto cleanup;
+    }
+
+    if (!bDisableModifications)
+    {
+        GCE(dwError = SetNodeValue(libdefaults, "allow_weak_crypto", "true"));
+        GCE(dwError = SetNodeValue(libdefaults, "default_tgs_enctypes", "AES256-CTS AES128-CTS RC4-HMAC"));
+        GCE(dwError = SetNodeValue(libdefaults, "default_tkt_enctypes", "AES256-CTS AES128-CTS RC4-HMAC"));
+        GCE(dwError = SetNodeValue(libdefaults, "preferred_enctypes", "AES256-CTS AES128-CTS RC4-HMAC"));
+
+        if (likewise == NULL)
+        {
+            CreateStanzaNode(&conf, "likewise", &likewise);
+            AddChildNode(&conf, likewise);
+        }
+
+        if (disable_modifications == NULL)
+        {
+            SetNodeValue(likewise, "disable_modifications", "false");
+        }
+        GCE(dwError = CTAllocateStringPrintf(&pszVersion, "%d", iCodeVersion));
+        SetNodeValue(likewise, "version", pszVersion);
+
+
+        GCE(dwError =  WriteKrb5Configuration(pszTestPrefix, "/etc/krb5.conf", &conf, pbModified));
+        if(bReadModified && (pbModified != NULL))
+            *pbModified = TRUE;
+    }
+
+cleanup:
+    FreeKrb5EntryContents(&conf);
+    CT_SAFE_FREE_STRING(pszVersion);
+    return dwError;
+}

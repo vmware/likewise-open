@@ -88,7 +88,7 @@ case "$1" in
         echo "Installing settings from $file..."
         %{_bindir}/lwregshell import $file
     done
-    /etc/init.d/lwsmd reload
+    %{_bindir}/lwsm refresh
     sleep 2
     %{_bindir}/lwsm start @PRIMARY_SERVICE@
     ;;
@@ -139,7 +139,7 @@ case "$1" in
         echo "Upgrading settings from $file..."
         %{_bindir}/lwregshell import $file
     done
-    /etc/init.d/lwsmd reload
+    %{_bindir}/lwsm refresh
     sleep 2
     %{_bindir}/lwsm stop lwreg
     %{_bindir}/lwsm start @PRIMARY_SERVICE@

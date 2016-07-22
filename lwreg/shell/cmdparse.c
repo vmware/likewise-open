@@ -335,10 +335,13 @@ RegShellCmdParseKeyName(
     dwError = RegCStringDuplicate(&pszKeyName, pszKeyName);
     BAIL_ON_REG_ERROR(dwError);
     
-    pszCursor = pszKeyName + strlen(pszKeyName) - 1;
-    if (*pszCursor == ']')
+    if (strlen(pszKeyName) > 0)
     {
-        *pszCursor-- = '\0';
+        pszCursor = pszKeyName + strlen(pszKeyName) - 1;
+        if (*pszCursor == ']')
+        {
+            *pszCursor-- = '\0';
+        }
     }
 
     /* Rip off trailing \ characters from key path */
