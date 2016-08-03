@@ -1,6 +1,7 @@
 [Unit]
 Description=Likewise Service Control Manager Service
-After=syslog.target network.target haveged.service
+Wants=network-online.target
+After=syslog.target network.target network-online.target haveged.service
 Requires=haveged.service
 
 [Service]
