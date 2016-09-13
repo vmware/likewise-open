@@ -264,8 +264,19 @@ LwSmExecProgram(
     /* Reset processor affinity and ignore errors */
     {
         cpu_set_t cpumask;
-        memset(&cpumask, 0xFF, sizeof(cpumask));
-        sched_setaffinity(0, sizeof(cpumask), &cpumask);
+        int num_procs = 0;
+        int i = 0;
+
+        CPU_ZERO(&cpumask);
+        num_procs = sysconf(_SC_NPROCESSORS_ONLN);
+        if (num_procs > -1)
+        {
+            for (i = 0; i < num_procs; i++)
+            {
+                CPU_SET(i, &cpumask);
+            }
+            sched_setaffinity(0, sizeof(cpumask), &cpumask);
+        }
     }
 #endif
 
