@@ -118,6 +118,16 @@ typedef void* (*dcethread_startroutine)(void*);
 #  define DCETHREAD_COND_INITIALIZER PTHREAD_COND_INITIALIZER
 #endif
 
+#if !defined (DCETHREAD_ATTR_CONSTRUCTOR) && !defined (DCETHREAD_ATTR_DESTRUCTOR)
+#ifdef _WIN32
+#  define DCETHREAD_ATTR_CONSTRUCTOR
+#  define DCETHREAD_ATTR_DESTRUCTOR
+#else
+#  define DCETHREAD_ATTR_CONSTRUCTOR __attribute__((constructor))
+#  define DCETHREAD_ATTR_DESTRUCTOR __attribute__((destructor))
+#endif
+#endif
+
 /* Entry points */
 int dcethread_get_expiration(struct timespec* delta, struct timespec* abstime);
 

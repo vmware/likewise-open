@@ -78,6 +78,10 @@ typedef struct
 {
     rpc_mutex_t         mutex;
     rpc_cond_t          cond;
+    rpc_mutex_t         listening_mutex;
+    rpc_cond_t          listening_cond;
+    boolean             listening;
+    boolean             listening_stop;
     unsigned16          num_desc;    /* number "busy" */
     unsigned16          high_water;  /* highest entry in use */
     unsigned32          status;      /* used to convey information about */

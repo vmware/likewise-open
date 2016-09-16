@@ -424,7 +424,7 @@ INTERNAL void rpc__gssauth_cn_create_info
 	 * Initialize the common auth_info stuff.
 	 */
 	gssauth_info->auth_info.refcount = 1;
-	gssauth_info->auth_info.server_princ_name = '\0';
+	gssauth_info->auth_info.server_princ_name = NULL;
 	gssauth_info->auth_info.authn_level = authn_level;
 	gssauth_info->auth_info.authn_protocol = authn_protocol;
 	gssauth_info->auth_info.authz_protocol = rpc_c_authz_name;
@@ -2455,7 +2455,7 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
 {
 	rpc_gssauth_cn_info_p_t gssauth_cn_info = (rpc_gssauth_cn_info_p_t)sec->sec_cn_info;
 	int gss_rc;
-	int gss_rc_tmp;
+	OM_uint32 gss_rc_tmp;
 	OM_uint32 minor_status = 0;
 	gss_buffer_desc disp_name_buf = {0};
 	gss_OID disp_name_OID = NULL;
@@ -2510,6 +2510,9 @@ INTERNAL void rpc__gssauth_cn_vfy_client_req
                  */
         } else if (gss_rc != GSS_S_COMPLETE) {
                 char msg[256];
+
+		gss_release_buffer(&gss_rc_tmp, &output_token);
+
                 rpc__gssauth_error_map(gss_rc, minor_status,
                                        (gss_OID)&rpc__gssauth_krb5_oid,
                                        msg, sizeof(msg), st);
@@ -2622,7 +2625,7 @@ INTERNAL void rpc__gssauth_cn_vfy_srvr_resp
 {
 	rpc_gssauth_info_p_t gssauth_info = (rpc_gssauth_info_p_t)sec->sec_info;
 	rpc_gssauth_cn_info_p_t gssauth_cn_info = (rpc_gssauth_cn_info_p_t)sec->sec_cn_info;
-	int gss_rc;
+	OM_uint32 gss_rc;
 	OM_uint32 minor_status;
 	gss_buffer_desc input_token, output_token = GSS_C_EMPTY_BUFFER;
 

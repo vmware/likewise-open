@@ -45,7 +45,66 @@
 #include <comp.h>       /* Private communications services */
 #include <cs_s.h>	/* I18N codesets definitions */
 #include <comtwrflr.h>
+#include <cnassoc.h>
+#include <cnid.h>
+#include <cnasgsm.h>
 
+
+/*
+ * Walk through the entire association group table, scanning
+ * all assoc_grp entries for connections which have a zero
+ * reference count. When found, free the entire security structure
+ * from that entry. This shoould clean up all referenced, but unusable
+ * security context structures which remain on the list.
+ */
+
+void
+rpc__binding_handle_sec_free
+(
+    unsigned32           *status
+)
+{
+    rpc_cn_assoc_t       *assoc = NULL;
+    unsigned32           type;
+    unsigned32           state;
+    unsigned32           i = 0;
+
+    type = RPC_C_CN_ASSOC_GRP_CLIENT;
+    state = RPC_C_ASSOC_GRP_ACTIVE;
+
+    for (i=0; i<rpc_g_cn_assoc_grp_tbl.grp_count; i++)
+    {
+       if ((rpc_g_cn_assoc_grp_tbl.assoc_grp_vector[i].grp_flags & type)
+            &&
+            (rpc_g_cn_assoc_grp_tbl.assoc_grp_vector[i].grp_state.cur_state
+             == state
+            &&
+            (rpc_g_cn_assoc_grp_tbl.assoc_grp_vector[i].grp_refcnt > 0
+             ||
+             rpc_g_cn_assoc_grp_tbl.assoc_grp_vector[i].grp_cur_assoc > 0)
+            ))
+        {
+            /*
+             * Scan the associations in this group, and release the security
+             * context data.
+             */
+            RPC_LIST_FIRST
+                    (rpc_g_cn_assoc_grp_tbl.assoc_grp_vector[i].grp_assoc_list,
+                    assoc,
+                    rpc_cn_assoc_p_t);
+            while (assoc != NULL)
+            {
+                /* Release security data for this association */
+                if (assoc->assoc_ref_count == 0)
+                {
+                    rpc__cn_assoc_acb_security_ctx_dealloc(assoc);
+                }
+                RPC_LIST_NEXT(assoc, assoc, rpc_cn_assoc_p_t);
+            }
+        }
+    }
+    *status = rpc_s_ok;
+}
 
 /*
 **++
@@ -166,6 +225,11 @@ unsigned32              *status;
 	}
     }
 #endif
+
+    /*
+     * if we have any security context data, free it up now.
+     */
+    rpc__binding_handle_sec_free(&temp_status);
 
     /*
      * if we have any authentication info, free it up now.

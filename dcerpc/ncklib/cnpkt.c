@@ -1051,7 +1051,7 @@ unsigned32 data_size;
                          rpc_svc_cn_pkt,
                          svc_c_sev_fatal | svc_c_action_abort,
                          rpc_m_unalign_authtrl,
-                         "rpc__cn_unpack_hdr" );
+                         "rpc__cn_unpack_hdr" ));
                     return (rpc_s_bad_pkt);
                 }
 #endif

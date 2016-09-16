@@ -68,6 +68,11 @@ dcethread_join(dcethread* thread, void **status)
         return dcethread__set_errno(EDEADLK);
     }
 
+    if (!thread)
+    {
+        return dcethread__set_errno(EINVAL);
+    }
+
     if (!thread->flag.joinable)
     {
         DCETHREAD_WARNING("Joining implicit dcethread %p is ill-advised", thread);

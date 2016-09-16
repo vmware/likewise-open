@@ -40,13 +40,16 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 #include <sys/time.h>
 
 static pthread_once_t dcethread_init_once = DCETHREAD_ONCE_INIT;
+static pthread_once_t dcethread_fini_once = DCETHREAD_ONCE_INIT;
 static pthread_key_t dcethread_self_key;
 static pthread_attr_t dcethread_attr_default;
 static pthread_mutexattr_t dcethread_mutexattr_default;
 static pthread_condattr_t dcethread_condattr_default;
+static int dcethread_init_called;
 
 #ifdef SIGRTMIN
 #    define INTERRUPT_SIGNAL (SIGRTMIN + 5)
@@ -81,12 +84,14 @@ self_destructor(void* data)
 }
 
 static void
-init()
+init(void)
 {
     int cancelstate, oldstate;
+    int sts;
     struct sigaction act;
 
-    pthread_key_create(&dcethread_self_key, self_destructor);
+    sts = pthread_key_create(&dcethread_self_key, self_destructor);
+    assert(sts == 0); /* There is no resonable way to recover if this fails */
 
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancelstate);
     pthread_attr_init(&dcethread_attr_default);
@@ -105,17 +110,51 @@ init()
     sigaction(INTERRUPT_SIGNAL, &act, NULL);
     if (getenv("DCETHREAD_DEBUG"))
 	dcethread__debug_set_callback(dcethread__default_log_callback, NULL);
+    dcethread_init_called = 1;
+}
+
+
+static void
+fini(void)
+{
+    int cancelstate, oldstate;
+    struct sigaction act;
+
+    if (!dcethread_init_called)
+    {
+        return;
+    }
+    pthread_key_delete(dcethread_self_key);
+    dcethread_self_key = 0;
+
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancelstate);
+    pthread_attr_destroy(&dcethread_attr_default);
+    pthread_mutexattr_destroy(&dcethread_mutexattr_default);
+    pthread_condattr_destroy(&dcethread_condattr_default);
+    dcethread__fini_exceptions();
+    pthread_setcancelstate(cancelstate, &oldstate);
+
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = NULL;
+    act.sa_flags = 0;
+    sigaction(INTERRUPT_SIGNAL, &act, NULL);
 }
 
 #ifdef __SUNPRO_C
 #pragma init dcethread__init
 #else
-void dcethread__init(void) __attribute__ ((constructor));
+void dcethread__init(void) DCETHREAD_ATTR_CONSTRUCTOR;
+void dcethread__fini(void) DCETHREAD_ATTR_DESTRUCTOR;
 #endif
 
 void dcethread__init(void)
 {
     pthread_once(&dcethread_init_once, init);
+}
+
+void dcethread__fini(void)
+{
+    pthread_once(&dcethread_fini_once, fini);
 }
 
 int

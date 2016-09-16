@@ -392,6 +392,12 @@ void rpc__cn_assoc_acb_free _DCE_PROTOTYPE_ (( rpc_cn_assoc_p_t /* assoc */ ));
 
 PRIVATE void rpc__cn_assoc_acb_dealloc _DCE_PROTOTYPE_ ((rpc_cn_assoc_p_t/* assoc */ ));
 
+/*
+ * R P C _ _ C N _ A S S O C _ A C B _ S E C U R I T Y _ C T X _ D E A L L O C
+ */
+
+PRIVATE void rpc__cn_assoc_acb_security_ctx_dealloc(rpc_cn_assoc_p_t /* assoc */);
+
 
 /*
  * R P C _ _ C N _ A S S O C _ G R P _ A L L O C

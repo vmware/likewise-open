@@ -56,10 +56,12 @@
 #if !defined(_WIN32)
 #include <lwio/lwio.h>
 #include <syslog.h>
+#define RPC_LOG_ERROR(args) syslog(LOG_ERR, args)
 #else
 /* #include <stdint.h> */
 #ifndef UINT16_MAX
 #define UINT16_MAX             (65535)
+#define RPC_LOG_ERROR(args) OutputDebugStringA(args)
 #endif
 #endif
 
@@ -3137,7 +3139,7 @@ unsigned32      st;
         return (RPC_C_CN_PREJ_PROTOCOL_VERSION_NOT_SUPPORTED);
 
         default:
-#if 0
+#if 1
         /* Map DCE/RPC error into "PREJ" error space */
         return (st - RPC_ERROR_MAP_PREJ_BASE) + RPC_PREJ_BASE;
 #else
@@ -4432,12 +4434,10 @@ boolean32		loop;
                     RPC_LIST_NEXT (assoc, assoc, rpc_cn_assoc_p_t);
                 } /* end while (assoc != NULL) */
             } /* end if ((!RPC_CN_LOCAL_ID (...)) */
-#if 1 /* oops, fragbuf_dealloc() is corrupt, 0x21, crashes here */
         } /* end for (i = 0; ... ) */
     }
 }
 
-#endif
 
 /***********************************************************************/
 /*
@@ -4555,6 +4555,51 @@ unsigned32      *st;
 /*
 **++
 **
+**  ROUTINE NAME:       rpc__cn_assoc_acb_dealloc_security_ctx
+**
+**  SCOPE:              INTERNAL
+**
+**  DESCRIPTION:
+**
+**  This routine will free all security context structures allocated
+**  within this association.
+**
+**  INPUTS:
+**
+**      assoc           The association with the security context to be freed.
+**
+*/
+PRIVATE void rpc__cn_assoc_acb_security_ctx_dealloc
+(
+  rpc_cn_assoc_p_t   assoc
+)
+{
+    rpc_cn_sec_context_t        *sec_context;
+
+    /*
+     * Free all the security context elements.
+     */
+    RPC_LIST_FIRST (assoc->security.context_list,
+                    sec_context,
+                    rpc_cn_sec_context_p_t);
+    while (sec_context != NULL)
+    {
+        rpc_cn_sec_context_t        *next_sec_context;
+
+        RPC_LIST_NEXT (sec_context, next_sec_context, rpc_cn_sec_context_p_t);
+        rpc__cn_assoc_sec_free (&sec_context);
+        sec_context = next_sec_context;
+    }
+    RPC_LIST_INIT (assoc->security.context_list);
+
+    memset (&assoc->security, 0, sizeof (rpc_cn_assoc_sec_context_t));
+}
+
+
+/***********************************************************************/
+/*
+**++
+**
 **  ROUTINE NAME:       rpc__cn_assoc_acb_dealloc
 **
 **  SCOPE:              PRIVATE - declared in cnassoc.h
@@ -4595,7 +4640,6 @@ rpc_cn_assoc_p_t   assoc;
 {
     rpc_cn_fragbuf_t            *fragbuf;
     rpc_cn_syntax_t             *pres_context;
-    rpc_cn_sec_context_t        *sec_context;
 
     RPC_LOG_CN_ASSOC_ACB_DEAL_NTR;
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_assoc_acb_dealloc);
@@ -4658,20 +4702,7 @@ rpc_cn_assoc_p_t   assoc;
         /*
          * Free all the security context elements.
          */
-        RPC_LIST_FIRST (assoc->security.context_list,
-                        sec_context,
-                        rpc_cn_sec_context_p_t);
-        while (sec_context != NULL)
-        {
-            rpc_cn_sec_context_t        *next_sec_context;
-
-            RPC_LIST_NEXT (sec_context, next_sec_context, rpc_cn_sec_context_p_t);
-            rpc__cn_assoc_sec_free (&sec_context);
-            sec_context = next_sec_context;
-        }
-        RPC_LIST_INIT (assoc->security.context_list);
-
-        memset (&assoc->security, 0, sizeof (rpc_cn_assoc_sec_context_t));
+        rpc__cn_assoc_acb_security_ctx_dealloc(assoc);
 
         /*
          * Free the call rep on the assoc.
@@ -5678,6 +5709,22 @@ unsigned32              *st;
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_assoc_grp_lkup_by_addr);
     CODING_ERROR (st);
 
+    /* Wait until association group creation has completed. */
+    if (grp_new_in_progress && dcethread_mutex_trylock(&rpc_g_global_mutex.m) != 0)
+    {
+        /*
+         * Acquiring rpc_g_global_mutex here is a bug. This should already
+         * be locked by the calling functions. err == 0 means EBUSY,
+         * 1 means lock acquired.
+         */
+         RPC_LOG_ERROR("[CODING ERROR] rpc__cn_assoc_grp_lkup_by_addr: rpc_g_global_mutex NOT LOCKED before RPC_COND_WAIT!");
+    }
+    while (grp_new_in_progress)
+    {
+        RPC_COND_WAIT (grp_new_wt,
+                       rpc_g_global_mutex);
+    }
+
     /*
      * Check whether a valid RPC address was given for the lookup.
      */
@@ -5911,6 +5958,27 @@ PRIVATE rpc_cn_local_id_t rpc__cn_assoc_grp_lkup_by_id
     RPC_LOG_CN_GRP_ID_LKUP_NTR;
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_assoc_grp_lkup_by_id);
     CODING_ERROR (st);
+
+    /*
+     * Wait until association group creation has completed.
+     * Should the first RPC from same client->server still be in progress,
+     * then this operation will fail, as the association group object
+     * is not fully initialized/created.
+     */
+    if (grp_new_in_progress && dcethread_mutex_trylock(&rpc_g_global_mutex.m) != 0)
+    {
+        /*
+         * Acquiring rpc_g_global_mutex here is a bug. This should already
+         * be locked by the calling functions. err == 0 means EBUSY,
+         * 1 means lock acquired.
+         */
+         RPC_LOG_ERROR("[CODING ERROR] rpc__cn_assoc_grp_lkup_by_id: rpc_g_global_mutex NOT LOCKED before RPC_COND_WAIT!");
+    }
+    while (grp_new_in_progress)
+    {
+        RPC_COND_WAIT (grp_new_wt,
+                       rpc_g_global_mutex);
+    }
 
 #ifdef DEBUG
     if (RPC_DBG_EXACT(rpc_es_dbg_cn_errors,

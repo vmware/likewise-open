@@ -351,6 +351,7 @@ unsigned32              *status;
     RPC_VERIFY_INIT ();
 
     RPC_MUTEX_LOCK (listener_state.mutex);
+    listener_state.listening_stop = false;
 
     /*
      * Only one listener at a time, please.
@@ -406,6 +407,22 @@ unsigned32              *status;
         return;
     }
     
+    /* Wait to be notified by lthread_loop() that select() is being entered */
+    RPC_MUTEX_LOCK (listener_state.listening_mutex);
+
+    if (listener_state.listening)
+    {
+        DCETHREAD_TRY
+        {
+            RPC_COND_WAIT (listener_state.listening_cond, listener_state.listening_mutex);
+        }
+        DCETHREAD_FINALLY
+        {
+            listener_state.listening = true;
+        }
+        DCETHREAD_ENDTRY
+    }
+    RPC_MUTEX_UNLOCK (listener_state.listening_mutex);
     RPC_DBG_PRINTF (rpc_e_dbg_general, 2, ("(rpc_server_listen) cthreads started\n"));
 
     /*
@@ -434,6 +451,19 @@ unsigned32              *status;
         }
     
         in_server_listen = false;
+        RPC_MUTEX_LOCK (listener_state.listening_mutex);
+        listener_state.listening = false;
+
+        /*
+         * Set listening_stop after shutdown_cond is signaled. This flag forces
+         * lthread()/lthread_loop() to stop processing all requests. listening is
+         * set internally by lthread_loop() once entered and initialized. As
+         * lthread is called multiple times by rpc__nlsn_activate_desc(), listening
+         * cannot be used to determine the RPC server stop listening request was
+         * received. This is why listening_stop is necessary.
+         */
+        listener_state.listening_stop = true;
+        RPC_MUTEX_UNLOCK (listener_state.listening_mutex);
                     
         /*
          * Set return status from the value in the listener state table.
@@ -457,6 +487,14 @@ unsigned32              *status;
          * stopped call threads (HP fix JAGad42160).
          */
         rpc__cthread_stop_all (status);
+
+        /*
+         * Tear down all listener sockets, freeing their resources
+         */
+        for (i = 0; i < listener_state.high_water; i++)
+        {
+            RPC_SOCKET_CLOSE(listener_state.socks[i].desc);
+        }
 
         RPC_DBG_PRINTF (rpc_e_dbg_general, 2, ("(rpc_server_listen) cthreads stopped\n"));
 
@@ -554,11 +592,15 @@ unsigned32              *status;
 
 PRIVATE boolean32 rpc__server_is_listening (void)
 {
+    boolean listening = false;
     /*
      * We could lock, but there doesn't seem much point--the state could change
      * as soon as we unlock.
      */
-    return (in_server_listen);
+    RPC_MUTEX_LOCK (listener_state.listening_mutex);
+    listening = listener_state.listening;
+    RPC_MUTEX_UNLOCK (listener_state.listening_mutex);
+    return (listening);
 }
 
 /*
@@ -1271,8 +1313,10 @@ unsigned32              *status;
     /*
      * Pass through to the network protocol routine.
      */
+    RPC_CN_LOCK();
     (*net_epv->network_mon)
         (binding_rep, client_handle, rundown_fn, status);
+    RPC_CN_UNLOCK();
 }
 
 /*
@@ -1342,8 +1386,10 @@ unsigned32                  *status;
     /*
      * Pass through to the network protocol routine.
      */
+    RPC_CN_LOCK();
     (*net_epv->network_stop_mon)
         (binding_rep, client_h, status);
+    RPC_CN_UNLOCK();
 }
 
 /*
@@ -1409,7 +1455,9 @@ unsigned32              *status;
     /*
      * Pass through to the network protocol routine.
      */
+    RPC_CN_LOCK();
     (*net_epv->network_maint) (binding_rep, status);
+    RPC_CN_UNLOCK();
 }
 
 /*
@@ -1481,8 +1529,10 @@ unsigned32              *status;
     /*
      * Pass through to the network protocol routine.
      */
+    RPC_CN_LOCK();
     (*net_epv->network_stop_maint)
         (binding_rep, status);
+    RPC_CN_UNLOCK();
 }
 
 /*
@@ -1554,8 +1604,10 @@ unsigned32              *status;
     /*
      * Pass through to the network protocol routine.
      */
+    RPC_CN_LOCK();
     (*net_epv->network_close)
         (binding_rep, status);
+    RPC_CN_UNLOCK();
 }
 
 /*
@@ -1870,6 +1922,8 @@ unsigned32              *status;
 
     RPC_MUTEX_INIT (listener_state.mutex);
     RPC_COND_INIT (listener_state.cond, listener_state.mutex);
+    RPC_MUTEX_INIT (listener_state.listening_mutex);
+    RPC_COND_INIT (listener_state.listening_cond, listener_state.listening_mutex);
 
     RPC_COND_INIT (shutdown_cond, listener_state.mutex);
 

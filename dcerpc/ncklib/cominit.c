@@ -247,6 +247,16 @@ PRIVATE void rpc__static_init(void)
 **--
 **/
 
+INTERNAL void ncklib_fini(void) DCETHREAD_ATTR_DESTRUCTOR;
+
+INTERNAL void ncklib_fini(void)
+{
+    if (rpc_g_initialized)
+    {
+        pthread_key_delete(rpc_g_thread_context_key);
+    }
+}
+
 INTERNAL void init_once(void)
 {
 	rpc_naf_id_elt_p_t      naf;
@@ -344,8 +354,9 @@ INTERNAL void init_once(void)
 	/*
 	 * create the per-thread context key
 	 */
-	dcethread_keycreate_throw (&rpc_g_thread_context_key, 
-			(void (*) _DCE_PROTOTYPE_((pointer_t))) thread_context_destructor);
+        status = pthread_key_create(&rpc_g_thread_context_key,
+ 				    (void (*)(pointer_t)) thread_context_destructor);
+        assert(status == 0);  /* There is no resonable way to recover if this fails */
 
 	/*
 	 * Initialize the timer service.
