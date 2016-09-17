@@ -133,7 +133,7 @@ INTERNAL void lthread _DCE_PROTOTYPE_ ((
         rpc_listener_state_p_t   /*lstate*/
     ));
 
-INTERNAL void lthread_loop _DCE_PROTOTYPE_ ((void));
+INTERNAL void lthread_loop _DCE_PROTOTYPE_ ((rpc_listener_state_p_t  lstate));
 
 
 
@@ -365,7 +365,7 @@ rpc_listener_state_p_t  lstate;
 
         DCETHREAD_TRY
         {
-            lthread_loop ();
+            lthread_loop (lstate);
         }     
         DCETHREAD_CATCH(dcethread_interrupt_e)
         {
@@ -376,6 +376,12 @@ rpc_listener_state_p_t  lstate;
 //		dce_pthread_clear_exit_np();
         }
         DCETHREAD_ENDTRY
+
+        /* rpc_server_listen received shutdown signal. */
+        if (lstate->listening_stop)
+        {
+            return;
+        }
     }
 }
 
@@ -387,7 +393,7 @@ rpc_listener_state_p_t  lstate;
  * Server listen thread loop.
  */
 
-INTERNAL void lthread_loop (void)
+INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
 {
     unsigned32          status;
     int                 nd;
@@ -427,6 +433,13 @@ INTERNAL void lthread_loop (void)
             dcethread_checkinterrupt();
 #endif /* NON_CANCELLABLE_IO_SELECT */
             RPC_LOG_SELECT_PRE;
+            RPC_MUTEX_LOCK (lstate->listening_mutex);
+            if (!lstate->listening)
+            {
+                lstate->listening = true;
+                RPC_COND_SIGNAL (lstate->listening_cond, lstate->listening_mutex);
+            }
+            RPC_MUTEX_UNLOCK (lstate->listening_mutex);
             n_found = dcethread_select (
 			      listener_nfds, &readfds_copy, NULL, NULL, NULL);
             RPC_LOG_SELECT_POST;
@@ -456,6 +469,16 @@ INTERNAL void lthread_loop (void)
             }
         }
         while (n_found <= 0);
+
+        /*
+         * rpc_server_listen received shutdown signal. Drop any select
+         * activity to prevent using fd resources which may have already
+         * been freed.
+         */
+        if (lstate->listening_stop)
+        {
+            return;
+        }
 
         /*
          * Process any descriptors that were active.
@@ -492,6 +515,7 @@ INTERNAL void lthread_loop (void)
             }
         }
     }
+    return;
 }
 
 #ifdef ATFORK_SUPPORTED
