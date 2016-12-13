@@ -55,7 +55,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -171,11 +171,11 @@ int ioctl(int d, int request, ...);
  * these values can be overridden in a per-system file.
  */
 
-#ifndef RPC_C_SOCKET_MAX_RCVBUF     
+#ifndef RPC_C_SOCKET_MAX_RCVBUF
 #  define RPC_C_SOCKET_MAX_RCVBUF (32 * 1024)
 #endif
 
-#ifndef RPC_C_SOCKET_MAX_SNDBUF     
+#ifndef RPC_C_SOCKET_MAX_SNDBUF
 #  define RPC_C_SOCKET_MAX_SNDBUF (32 * 1024)
 #endif
 
@@ -312,7 +312,7 @@ typedef struct rpc_bsd_socket_s
 INTERNAL int
 _bsd__socket_sendmsg(
     int s,
-    struct msghdr *msg, 
+    struct msghdr *msg,
     int flags)
 {
     WSABUF *iovec = NULL;
@@ -353,7 +353,7 @@ _bsd__socket_sendmsg(
 INTERNAL int
 _bsd__socket_recvmsg(
     int s,
-    struct msghdr *msg, 
+    struct msghdr *msg,
     int flags)
 {
     WSABUF *iovec = NULL;
@@ -393,27 +393,27 @@ _bsd__socket_recvmsg(
 
 #else
 
-/* 
+/*
  * Pure UNIX implementation, avoiding libdcethread abstractions.
  * UNIX implementation for sendmsg().
  */
 INTERNAL int
 _bsd__socket_sendmsg(
     int s,
-    struct msghdr *msg, 
+    struct msghdr *msg,
     int flags)
 {
     return sendmsg(s, msg, flags);
 }
 
-/* 
+/*
  * Pure UNIX implementation, avoiding libdcethread abstractions.
  * UNIX implementation for recvmsg().
  */
 INTERNAL int
 _bsd__socket_recvmsg(
     int s,
-    struct msghdr *msg, 
+    struct msghdr *msg,
     int flags)
 {
     return recvmsg(s, msg, flags);
@@ -598,8 +598,8 @@ error:
 /*
  * R P C _ _ S O C K E T _ O P E N _ B A S I C
  *
- * A special version of socket_open that is used *only* by 
- * the low level initialization code when it is trying to 
+ * A special version of socket_open that is used *only* by
+ * the low level initialization code when it is trying to
  * determine what network services are supported by the host OS.
  */
 
@@ -651,14 +651,9 @@ rpc__bsd_socket_close_basic(
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_destruct
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock
 )
-#else
-(sock)
-rpc_socket_t        sock;
-#endif
 {
     rpc_socket_error_t  serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -697,16 +692,10 @@ rpc_socket_t        sock;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_bind
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_addr_p_t        addr
 )
-#else
-(sock, addr)
-rpc_socket_t        sock;
-rpc_addr_p_t        addr;
-#endif
 {
     rpc_socket_error_t  serr = EINVAL;
     unsigned32 status;
@@ -741,11 +730,11 @@ rpc_addr_p_t        addr;
         status = rpc_s_ok;
     }
 
-    /* 
-     * If there is no port restriction in this address family, then do a 
-     * simple bind. 
+    /*
+     * If there is no port restriction in this address family, then do a
+     * simple bind.
      */
-   
+
     if (! RPC_PROTSEQ_TEST_PORT_RESTRICTION (addr -> rpc_protseq_id))
     {
         if (!has_endpoint && ncalrpc)
@@ -778,13 +767,13 @@ rpc_addr_p_t        addr;
     }                                   /* no port restriction */
 
 #if !defined(_WIN32) || defined(HAS_NCAL_RPC)
-    else                          
+    else
     {
-        /* 
-         * Port restriction is in place.  If the address has a well-known 
+        /*
+         * Port restriction is in place.  If the address has a well-known
          * endpoint, then do a simple bind.
          */
-        
+
         if (has_endpoint)
         {
 #if defined(SOL_SOCKET) && defined(SO_REUSEADDR)
@@ -813,23 +802,23 @@ rpc_addr_p_t        addr;
 
 	    else
 	    {
-	        /* 
-	         * Port restriction is in place and the address doesn't have a 
-	         * well-known endpoint.  Try to bind until we hit a good port, 
+	        /*
+	         * Port restriction is in place and the address doesn't have a
+	         * well-known endpoint.  Try to bind until we hit a good port,
 	         * or exhaust the retry count.
-	         * 
-	         * Make a copy of the address to work in; if we hardwire an 
-	         * endpoint into our caller's address, later logic could infer 
-	         * that it is a well-known endpoint. 
+	         *
+	         * Make a copy of the address to work in; if we hardwire an
+	         * endpoint into our caller's address, later logic could infer
+	         * that it is a well-known endpoint.
 	         */
-	    
+	
 	        unsigned32 i;
 	        boolean found;
-	    
-	        for (i = 0, found = false; 
+	
+	        for (i = 0, found = false;
 		     (i < RPC_PORT_RESTRICTION_INQ_N_TRIES (addr->rpc_protseq_id))
 		     && !found;
-		     i++)   
+		     i++)
 	        {
 		    unsigned_char_p_t port_name;
 
@@ -849,7 +838,7 @@ rpc_addr_p_t        addr;
 		        serr = RPC_C_SOCKET_EIO;
 		        break;
 		    }
-    
+
 		    rpc__naf_addr_set_endpoint (port_name, &temp_addr, &status);
 
 		    if (status != rpc_s_ok)
@@ -885,7 +874,7 @@ rpc_addr_p_t        addr;
 	serr = chmod(skun->sun_path,
 		     S_IRUSR | S_IWUSR | S_IXUSR |
                      S_IRGRP | S_IWGRP | S_IXGRP |
-                     S_IROTH | S_IWOTH | S_IXOTH) == -1 ? SocketErrno : RPC_C_SOCKET_OK; 
+                     S_IROTH | S_IWOTH | S_IXOTH) == -1 ? SocketErrno : RPC_C_SOCKET_OK;
     }
 #endif /* defined(HAS_NCAL_RPC) */
 
@@ -961,18 +950,11 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvsession_key
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_connect
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_addr_p_t        addr,
     rpc_cn_assoc_t      *assoc ATTRIBUTE_UNUSED
 )
-#else
-(sock, addr, binding_rep)
-rpc_socket_t        sock;
-rpc_addr_p_t        addr;
-rpc_cn_assoc_t     *assoc;
-#endif
 {
     rpc_socket_error_t  serr;
     //rpc_binding_rep_t *binding_rep;
@@ -1057,23 +1039,16 @@ error:
  * of addr.sa.  This operation fills in addr.sa and sets addr.len to
  * the new size of the field.  This is used only by Connection oriented
  * Protocol Services.
- * 
+ *
  * (see BSD UNIX accept(2)).
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_accept
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_addr_p_t        addr,
     rpc_socket_t        *newsock
 )
-#else
-(sock, addr, newsock)
-rpc_socket_t        sock;
-rpc_addr_p_t        addr;
-rpc_socket_t        *newsock;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -1187,16 +1162,10 @@ cleanup:
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_listen
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     int                 backlog
 )
-#else
-(sock, backlog)
-rpc_socket_t        sock;
-int                 backlog;
-#endif
 {
     rpc_socket_error_t  serr;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -1219,7 +1188,6 @@ int                 backlog;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendmsg
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_socket_iovec_p_t iov,       /* array of bufs of data to send */
@@ -1227,14 +1195,6 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_sendmsg
     rpc_addr_p_t        addr,       /* addr of receiver */
     int                 *cc        /* returned number of bytes actually sent */
 )
-#else
-(sock, iov, iov_len, addr, cc)
-rpc_socket_t        sock;
-rpc_socket_iovec_p_t iov;       /* array of bufs of data to send */
-int                 iov_len;    /* number of bufs */
-rpc_addr_p_t        addr;       /* addr of receiver */
-int                 *cc;        /* returned number of bytes actually sent */
-#endif
 {
     rpc_socket_error_t serr;
 
@@ -1251,12 +1211,11 @@ int                 *cc;        /* returned number of bytes actually sent */
  * operation fills in addr.sa and sets addr.len to the new size of the
  * field.  An error status as well as the actual number of bytes received
  * are also returned.
- * 
+ *
  * (see BSD UNIX recvfrom(2)).
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_recvfrom
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     byte_p_t            buf,        /* buf for rcvd data */
@@ -1264,14 +1223,6 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvfrom
     rpc_addr_p_t        from,       /* addr of sender */
     int                 *cc        /* returned number of bytes actually rcvd */
 )
-#else
-(sock, buf, len, from, cc)
-rpc_socket_t        sock;
-byte_p_t            buf;        /* buf for rcvd data */
-int                 len;        /* len of above buf */
-rpc_addr_p_t        from;       /* addr of sender */
-int                 *cc;        /* returned number of bytes actually rcvd */
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
 
@@ -1287,12 +1238,11 @@ int                 *cc;        /* returned number of bytes actually rcvd */
  * set to the actual size of addr.sa.  This operation fills in addr.sa
  * and sets addr.len to the new size of the field.  An error code as
  * well as the actual number of bytes received are also returned.
- * 
+ *
  * (see BSD UNIX recvmsg(2)).
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_recvmsg
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_socket_iovec_p_t iov,       /* array of bufs for rcvd data */
@@ -1300,14 +1250,6 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvmsg
     rpc_addr_p_t        addr,       /* addr of sender */
     int                 *cc        /* returned number of bytes actually rcvd */
 )
-#else
-(sock, iov, iov_len, addr, cc)
-rpc_socket_t        sock;
-rpc_socket_iovec_p_t iov;       /* array of bufs for rcvd data */
-int                 iov_len;    /* number of bufs */
-rpc_addr_p_t        addr;       /* addr of sender */
-int                 *cc;        /* returned number of bytes actually rcvd */
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
 
@@ -1335,16 +1277,10 @@ int                 *cc;        /* returned number of bytes actually rcvd */
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_inq_endpoint
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_addr_p_t        addr
 )
-#else
-(sock, addr)
-rpc_socket_t        sock;
-rpc_addr_p_t        addr;
-#endif
 {
     rpc_socket_error_t  serr;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -1408,14 +1344,9 @@ error:
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_set_broadcast
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock
 )
-#else
-(sock)
-rpc_socket_t        sock;
-#endif
 {
 #ifdef SO_BROADCAST
     int                 setsock_val = 1;
@@ -1455,8 +1386,7 @@ rpc_socket_t        sock;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_set_bufs
-    
-#ifdef _DCE_PROTO_
+
 (
     rpc_socket_t        sock,
     unsigned32          txsize,
@@ -1464,14 +1394,6 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_set_bufs
     unsigned32          *ntxsize,
     unsigned32          *nrxsize
 )
-#else
-(sock, txsize, rxsize, ntxsize, nrxsize)
-rpc_socket_t        sock;
-unsigned32          txsize;
-unsigned32          rxsize;
-unsigned32          *ntxsize;
-unsigned32          *nrxsize;
-#endif
 {
     socklen_t sizelen;
     int e;
@@ -1539,11 +1461,11 @@ unsigned32          *nrxsize;
      * detect this by the fact that the new buffer length returned is
      * 0. Return what we think the actually length is.
      */
-    if (rxsize != 0 && *nrxsize == 0) 
+    if (rxsize != 0 && *nrxsize == 0)
     {
         *nrxsize = (8 * 1024);
     }
-    if (txsize != 0 && *ntxsize == 0) 
+    if (txsize != 0 && *ntxsize == 0)
     {
         *ntxsize = (8 * 1024);
     }
@@ -1565,19 +1487,14 @@ unsigned32          *nrxsize;
  * R P C _ _ S O C K E T _ S E T _ N B I O
  *
  * Set a socket to non-blocking mode.
- * 
+ *
  * Return RPC_C_SOCKET_OK on success, otherwise an error value.
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_set_nbio
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock
 )
-#else
-(sock)
-rpc_socket_t        sock;
-#endif
 {
 #if !defined(vms) && !defined(_WIN32)
 
@@ -1603,7 +1520,7 @@ rpc_socket_t        sock;
  * on VMS this will have to be done via QIO's.
  */
     int flag = true;
-    
+
     ioctl(sock, FIONBIO, &flag);
 #endif
     return (RPC_C_SOCKET_OK);
@@ -1622,14 +1539,9 @@ rpc_socket_t        sock;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_set_close_on_exec
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock
 )
-#else
-(sock)
-rpc_socket_t        sock;
-#endif
 {
 #if !defined(vms) && !defined(_WIN32)
     rpc_socket_error_t  serr = RPC_C_SOCKET_OK;
@@ -1658,16 +1570,10 @@ rpc_socket_t        sock;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeername
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t sock,
     rpc_addr_p_t addr
 )
-#else
-(sock, addr)
-rpc_socket_t sock;
-rpc_addr_p_t addr;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -1690,16 +1596,10 @@ rpc_addr_p_t addr;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_get_if_id
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_network_if_id_t *network_if_id
 )
-#else
-(sock, network_if_id)
-rpc_socket_t        sock;
-rpc_network_if_id_t *network_if_id;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
 #if !defined(_WIN32)
@@ -1732,14 +1632,9 @@ rpc_network_if_id_t *network_if_id;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_set_keepalive
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock
 )
-#else
-(sock)
-rpc_socket_t        sock;
-#endif
 {
 #ifdef SO_KEEPALIVE
     int                 setsock_val = 1;
@@ -1772,16 +1667,10 @@ rpc_socket_t        sock;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_nowriteblock_wait
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t sock,
     struct timeval *tmo
 )
-#else
-(sock, tmo)
-rpc_socket_t sock;
-struct timeval *tmo;
-#endif
 {
     fd_set  write_fds;
     int     nfds, num_found;
@@ -1791,7 +1680,7 @@ struct timeval *tmo;
     FD_ZERO (&write_fds);
     FD_SET (lrpc->fd, &write_fds);
     nfds = lrpc->fd + 1;
-                  
+
     RPC_SOCKET_DISABLE_CANCEL;
     num_found = dcethread_select(nfds, NULL, (void *)&write_fds, NULL, tmo);
     serr = ((num_found < 0) ? SocketErrno : RPC_C_SOCKET_OK);
@@ -1823,16 +1712,10 @@ struct timeval *tmo;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_set_rcvtimeo
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     struct timeval      *tmo
 )
-#else
-(sock)
-rpc_socket_t        sock;
-struct timeval      *tmo;
-#endif
 {
 #ifdef SO_RCVTIMEO
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
@@ -1871,18 +1754,11 @@ struct timeval      *tmo;
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeereid
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     uid_t		*euid,
     gid_t		*egid
 )
-#else
-(sock, euid, egid)
-rpc_socket_t        sock;
-uid_t		    *euid;
-gid_t		    *egid;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
 #if defined(SO_PEERCRED)
@@ -1931,16 +1807,10 @@ gid_t		    *egid;
 #if !defined(SO_PEERCRED) && !(defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID) && !defined(_WIN32)
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendpeereid
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     rpc_addr_p_t        addr
 )
-#else
-(sock)
-rpc_socket_t        sock;
-rpc_addr_p_t        addr;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -2026,18 +1896,11 @@ error:
 
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_recvpeereid
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     uid_t		*euid,
     gid_t		*egid
 )
-#else
-(sock, euid, egid)
-rpc_socket_t        sock;
-uid_t		    *euid;
-gid_t		    *egid;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -2138,16 +2001,10 @@ error:
  */
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_createsessionkey
-#ifdef _DCE_PROTO_
 (
     unsigned char **session_key,
     unsigned16     *session_key_len
 )
-#else
-(session_key, session_key_len)
-unsigned char    **session_key;
-unsigned16        *session_key_len;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     unsigned16 key_len = 0;
@@ -2204,18 +2061,11 @@ cleanup:
 
 #if !defined(_WIN32) || defined(HAS_NCAL_RPC)
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendsessionkey
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     unsigned char      *session_key,
     unsigned16          session_key_len
 )
-#else
-(sock, session_key, session_key_len)
-rpc_socket_t        sock;
-unsigned char      *session_key;
-unsigned16          session_key_len;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -2249,18 +2099,11 @@ error:
 
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_recvsession_key
-#ifdef _DCE_PROTO_
 (
     rpc_socket_t        sock,
     unsigned char     **session_key,
     unsigned16 	       *session_key_len
 )
-#else
-(sock, session_key, session_key)
-rpc_socket_t        sock;
-unsigned char     **session_key;
-unsigned16         *session_key_len;
-#endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
@@ -2396,7 +2239,7 @@ rpc__inet_aton(const char *str_addr, struct in_addr *inp)
             stop = 1;
         }
     } while (*prev && !stop);
-    
+
     inp->s_addr = addr;
 
 error:
@@ -2423,8 +2266,8 @@ rpc__win64_alloc_adapter_info(
         pAdapterInfo = (PIP_ADAPTER_INFO) calloc(ulSize, sizeof(BYTE));
         if (pAdapterInfo)
         {
-            /* 
-             * Note: pAdapterInfo->CurrentIpAddress is empty 
+            /*
+             * Note: pAdapterInfo->CurrentIpAddress is empty
              * The values of interest here are:
              *     pIpAddressNext->IpAddress
              *     pIpAddressNext->IpMask
@@ -2470,7 +2313,7 @@ rpc__winx64_ipstring_to_saddr(
 
     err = 0;
     *rpc_ip_addr = ret_rpc_ip_addr;
-    
+
 error:
     if (err)
     {
@@ -2494,8 +2337,8 @@ rpc__winx64_socket_alloc_vectors(
     rpc_addr_vector_p_t ret_broadcast_addr_vec = NULL;
 
 /* (sizeof **rpc_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))), */
-    RPC_MEM_ALLOC(ret_rpc_addr_vec, 
-                  rpc_addr_vector_p_t, 
+    RPC_MEM_ALLOC(ret_rpc_addr_vec,
+                  rpc_addr_vector_p_t,
                   sizeof(*ret_rpc_addr_vec) + (count * sizeof(rpc_addr_p_t)),
                   RPC_C_MEM_RPC_ADDR_VEC,
                   RPC_C_MEM_WAITOK);
@@ -2506,8 +2349,8 @@ rpc__winx64_socket_alloc_vectors(
     }
     memset(ret_rpc_addr_vec, 0, count * sizeof(ret_rpc_addr_vec));
 
-    RPC_MEM_ALLOC(ret_netmask_addr_vec, 
-                  rpc_addr_vector_p_t, 
+    RPC_MEM_ALLOC(ret_netmask_addr_vec,
+                  rpc_addr_vector_p_t,
                   sizeof(*ret_netmask_addr_vec) + (count * sizeof(rpc_addr_p_t)),
                   RPC_C_MEM_RPC_ADDR_VEC,
                   RPC_C_MEM_WAITOK);
@@ -2517,9 +2360,9 @@ rpc__winx64_socket_alloc_vectors(
         goto error;
     }
     memset(ret_netmask_addr_vec, 0, count * sizeof(ret_netmask_addr_vec));
-    
-    RPC_MEM_ALLOC(ret_broadcast_addr_vec, 
-                  rpc_addr_vector_p_t, 
+
+    RPC_MEM_ALLOC(ret_broadcast_addr_vec,
+                  rpc_addr_vector_p_t,
                   sizeof(*ret_broadcast_addr_vec) + (count * sizeof(rpc_addr_p_t)),
                   RPC_C_MEM_RPC_ADDR_VEC,
                   RPC_C_MEM_WAITOK);
@@ -2529,7 +2372,7 @@ rpc__winx64_socket_alloc_vectors(
         goto error;
     }
     memset(ret_broadcast_addr_vec, 0, count * sizeof(ret_broadcast_addr_vec));
-    
+
     err = 0;
     *rpc_addr_vec = ret_rpc_addr_vec;
     *netmask_addr_vec = ret_netmask_addr_vec;
@@ -2613,14 +2456,14 @@ rpc__winx64_socket_enum_ifaces(
     dwError = rpc__win64_alloc_adapter_info(&pAdapter);
     if (dwError)
     {
-        return dwError; // TBD: Map to RPC error space? 
+        return dwError; // TBD: Map to RPC error space?
     }
 
     /*
-     * Enumerate the number of interfaces. This count is used to allocate 
+     * Enumerate the number of interfaces. This count is used to allocate
      * memory for the return addr, netmask and broadcast vectors.
      */
-    for (pAdapterNext = pAdapter, addrCount = 0; 
+    for (pAdapterNext = pAdapter, addrCount = 0;
          pAdapterNext;
          pAdapterNext = pAdapterNext->Next)
     {
@@ -2631,7 +2474,7 @@ rpc__winx64_socket_enum_ifaces(
             addrCount++;
         }
     }
-    
+
     err = rpc__winx64_socket_alloc_vectors(
               addrCount,
               &ret_rpc_addr_vec,
@@ -2646,7 +2489,7 @@ rpc__winx64_socket_enum_ifaces(
      * Walk through the interfaces, populating the address / netmask /
      * broadcast mask fields in the return vectors.
      */
-    for (pAdapterNext = pAdapter, addrCount = 0; 
+    for (pAdapterNext = pAdapter, addrCount = 0;
          pAdapterNext;
          pAdapterNext = pAdapterNext->Next)
     {
@@ -2687,9 +2530,9 @@ rpc__winx64_socket_enum_ifaces(
                 goto error;
             }
 
-            if (efun && 
-                efun(sock, (rpc_addr_p_t) ip_addr, 
-                           (rpc_addr_p_t) netmask_addr, 
+            if (efun &&
+                efun(sock, (rpc_addr_p_t) ip_addr,
+                           (rpc_addr_p_t) netmask_addr,
                            (rpc_addr_p_t) broadcast_addr) == false)
             {
                 if (ip_addr != NULL)
@@ -2731,7 +2574,7 @@ rpc__winx64_socket_enum_ifaces(
             }
         }
     }
-    
+
     err = 0;
     if (rpc_addr_vec) *rpc_addr_vec = ret_rpc_addr_vec;
     if (netmask_addr_vec) *netmask_addr_vec = ret_netmask_addr_vec;
@@ -2742,7 +2585,7 @@ error:
     {
         /* Free a bunch of stuff */
     }
-    
+
     return err;
 }
 
@@ -2751,7 +2594,7 @@ error:
  * Map Winsock2 errval to errno value
  */
 INTERNAL
-rpc_socket_error_t 
+rpc_socket_error_t
 rpc__winx64_winerr_to_errno(DWORD WSAErrval)
 {
     rpc_socket_error_t err = 0;
@@ -2909,7 +2752,7 @@ rpc__winx64_set_errno(DWORD WSAErrval)
 
 #endif /* _WIN32 */
 
-INTERNAL void 
+INTERNAL void
 _rpc__bsd_free_if_entry(
     rpc_ip_addr_p_t  *ip_addr,
     rpc_ip_addr_p_t  *netmask_addr,
@@ -2933,7 +2776,7 @@ _rpc__bsd_free_if_entry(
 }
 
 
-INTERNAL boolean 
+INTERNAL boolean
 _rpc__bsd_protoseq_filter_cb(
     rpc_socket_t sock,
     rpc_addr_p_t ip_addr,
@@ -3118,8 +2961,8 @@ rpc__bsd_socket_enum_ifaces(
         {
             continue;
         }
-    
-        /* 
+
+        /*
          * Interface is definitely either IPv4 or IPv6 here
          */
         if (in_addr->sin_family == AF_INET)
@@ -3224,9 +3067,9 @@ rpc__bsd_socket_enum_ifaces(
          * Default filtering out of IP address that doesn't match the protocol
          * sequence that was requested. This is determined by the sock->pseq_id.
          */
-        if (protseq_efun(sock, 
-                         (rpc_addr_p_t) ip_addr, 
-                         (rpc_addr_p_t) netmask_addr, 
+        if (protseq_efun(sock,
+                         (rpc_addr_p_t) ip_addr,
+                         (rpc_addr_p_t) netmask_addr,
                          (rpc_addr_p_t) broadcast_addr) == false)
         {
             _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
@@ -3238,9 +3081,9 @@ rpc__bsd_socket_enum_ifaces(
          * for this interface.  If the callout function returns false, we
          * forget about this interface.
          */
-        if (efun(sock, 
-            (rpc_addr_p_t) ip_addr, 
-            (rpc_addr_p_t) netmask_addr, 
+        if (efun(sock,
+            (rpc_addr_p_t) ip_addr,
+            (rpc_addr_p_t) netmask_addr,
             (rpc_addr_p_t) broadcast_addr) == false)
         {
             _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
@@ -3249,7 +3092,7 @@ rpc__bsd_socket_enum_ifaces(
 
         if (ret_rpc_addr_vec && ip_addr)
         {
-            ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++] = 
+            ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++] =
                 (rpc_addr_p_t) ip_addr;
             ip_addr = NULL;
         }
@@ -3274,7 +3117,7 @@ rpc__bsd_socket_enum_ifaces(
         err = EINVAL;   /* !!! */
         goto FREE_IT;
     }
-    
+
     if (rpc_addr_vec)
     {
         *rpc_addr_vec = ret_rpc_addr_vec;

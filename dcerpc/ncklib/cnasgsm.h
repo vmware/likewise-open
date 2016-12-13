@@ -1,5 +1,5 @@
-/* 
- * 
+/*
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,11 +28,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  Definitions of types/constants internal to the 
+**  Definitions of types/constants internal to the
 **  NCA Connection (cn) Association (as) Group (g) State Machine (sm).
 **
 **
@@ -145,10 +145,10 @@
  * State values are incremented by 100 to distinguish them from
  * action routine indexes which are all < 100.  This was done as
  * an efficiency measure to the engine, rpc__cn_sm_eval_event().
- */ 
+ */
 #define RPC_C_ASSOC_GRP_NEW                     100
-#define RPC_C_ASSOC_GRP_ADD_ASSOC               101 
-#define RPC_C_ASSOC_GRP_REM_ASSOC               102 
+#define RPC_C_ASSOC_GRP_ADD_ASSOC               101
+#define RPC_C_ASSOC_GRP_REM_ASSOC               102
 
 /*
  * Events only applicable to server state machine
@@ -164,16 +164,16 @@
 /*
  * States common to both client and server state machines
  */
-#define RPC_C_ASSOC_GRP_CLOSED                  100 
-#define RPC_C_ASSOC_GRP_OPEN                    101 
-#define RPC_C_ASSOC_GRP_ACTIVE                  102 
+#define RPC_C_ASSOC_GRP_CLOSED                  100
+#define RPC_C_ASSOC_GRP_OPEN                    101
+#define RPC_C_ASSOC_GRP_ACTIVE                  102
 
 /***********************************************************************/
 /*
  * C L I E N T   A S S O C   G R P   S T A T E S
  */
 
-#define RPC_C_CLIENT_ASSOC_GRP_STATES	        103 
+#define RPC_C_CLIENT_ASSOC_GRP_STATES	        103
 
 /***********************************************************************/
 /*
@@ -192,8 +192,8 @@ EXTERNAL char   *rpc_g_cn_grp_client_states [];
  * S E R V E R   A S S O C   G R P   S T A T E S
  */
 
-#define RPC_C_SERVER_ASSOC_GRP_CALL_WAIT        103  
-#define RPC_C_SERVER_ASSOC_GRP_STATES           104 
+#define RPC_C_SERVER_ASSOC_GRP_CALL_WAIT        103
+#define RPC_C_SERVER_ASSOC_GRP_STATES           104
 
 /***********************************************************************/
 /*

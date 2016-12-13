@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -75,7 +75,7 @@ rpc_logpt_ptr_t         rpc_g_log_ptr = &logpt_invisible;
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     
+**  FUNCTION VALUE:
 **
 **      log pointer     pointer value to location to which codes to
 **                      be timestamped are written.
@@ -110,7 +110,7 @@ rpc_logpt_ptr_t rpc__log_ptr_init (void)
 #else
 #ifndef __GNUC__
 /*
- *  ANSI c does not allow a file to be compiled without declarations.  
+ *  ANSI c does not allow a file to be compiled without declarations.
  *  If LOGPTS is not defined, we need to declare a dummy variable to
  *  compile under strict ansi c standards.
  */

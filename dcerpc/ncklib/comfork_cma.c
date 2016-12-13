@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1993 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1993 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1993 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -50,7 +50,7 @@
 
 typedef void (*atfork_handler_ptr_t) (rpc_fork_stage_id_t /*stage*/);
 /*
- * Save the address of the fork handler registered through atfork.  
+ * Save the address of the fork handler registered through atfork.
  * This pointer should be saved ONLY once by rpc__cma_atfork(). If
  * rpc__cma_atfork() is called more than once, which happens in the
  * child context when rpc__init() is called, do not register the
@@ -68,17 +68,20 @@ INTERNAL struct atfork_user_data_t
 
 /* ========================================================================= */
 
-INTERNAL void _pre_fork _DCE_PROTOTYPE_((
+INTERNAL void _pre_fork(
         cma_t_address   /*arg*/
-    ));
+    
+    );
 
-INTERNAL void _post_fork_child _DCE_PROTOTYPE_((
+INTERNAL void _post_fork_child(
         cma_t_address   /*arg*/
-    ));
+    
+    );
 
-INTERNAL void _post_fork_parent _DCE_PROTOTYPE_((
+INTERNAL void _post_fork_parent(
         cma_t_address   /*arg*/
-    ));
+    
+    );
 
 /* ========================================================================= */
 
@@ -87,17 +90,12 @@ INTERNAL void _post_fork_parent _DCE_PROTOTYPE_((
  *
  * This procedure is called by the Pthreads library prior to calling
  * the fork/vfork system call.
- */         
+ */
 INTERNAL void _pre_fork
-#ifdef _DCE_PROTO_
 (
-  cma_t_address arg 
+  cma_t_address arg
 )
-#else
-(arg)
-cma_t_address arg;
-#endif
-{                      
+{
     RPC_DBG_PRINTF(rpc_e_dbg_atfork, 1,
                ("(_pre_fork) entering, pid %d, pre %d, post_p %d, post_c %d\n",
                     ((struct atfork_user_data_t *) arg)->pid,
@@ -123,17 +121,12 @@ cma_t_address arg;
  *
  * This procedure is called in the child of a forked process immediately
  * after the fork is performed.
- */         
+ */
 
 INTERNAL void _post_fork_child
-#ifdef _DCE_PROTO_
 (
   cma_t_address arg
 )
-#else
-(arg)
-cma_t_address arg;
-#endif
 {
     RPC_DBG_PRINTF(rpc_e_dbg_atfork, 1,
         ("(_post_fork_child) entering, pid %d, pre %d, post_p %d, post_c %d\n",
@@ -160,18 +153,13 @@ cma_t_address arg;
  *
  * This procedure is called in the parent of a forked process immediately
  * after the fork is performed.
- */         
+ */
 
 
 INTERNAL void _post_fork_parent
-#ifdef _DCE_PROTO_
 (
   cma_t_address arg
 )
-#else 
-(arg)
-cma_t_address arg;
-#endif
 {
     RPC_DBG_PRINTF(rpc_e_dbg_atfork, 1,
        ("(_post_fork_parent) entering, pid %d, pre %d, post_p %d, post_c %d\n",
@@ -195,14 +183,9 @@ cma_t_address arg;
 
 
 PRIVATE void rpc__cma_atfork
-#ifdef _DCE_PROTO_
 (
  void *handler
 )
-#else 
-(handler)
-void *handler;
-#endif
 {
     if (handler == NULL)
         return;

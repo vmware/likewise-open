@@ -112,7 +112,7 @@ GLOBAL int rpc_g_cn_assoc_client_states_len = sizeof(rpc_g_cn_assoc_client_state
  * Internal function prototyes
  */
 /******************************************************************************/
-INTERNAL void send_pdu _DCE_PROTOTYPE_ ((
+INTERNAL void send_pdu(
     rpc_cn_assoc_p_t            /*assoc*/,
     unsigned32                  /*pdu_type*/,
     rpc_cn_syntax_p_t           /*pres_context*/,
@@ -120,7 +120,8 @@ INTERNAL void send_pdu _DCE_PROTOTYPE_ ((
     unsigned32                  /*grp_id*/,
     rpc_cn_sec_context_p_t      /*sec_context*/,
     boolean                     /*old_server*/,
-    unsigned32 *               /*st*/));
+    unsigned32 *               /*st*/
+    );
 
 
 /***********************************************************************/
@@ -154,31 +155,37 @@ INTERNAL void send_pdu _DCE_PROTOTYPE_ ((
 /*
  * The predicate routine prototypes.
  */
-INTERNAL unsigned8 shutdown_requested_pred_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned8 shutdown_requested_pred_rtn(
     pointer_t /* spc_struct */,
-    pointer_t /* event_param */));
+    pointer_t /* event_param */
+    );
 
-INTERNAL unsigned8 shutdown_allowed_pred_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned8 shutdown_allowed_pred_rtn(
     pointer_t /* spc_struct */,
-    pointer_t /* event_param */));
+    pointer_t /* event_param */
+    );
 
 #if 0 /* static functions that are not used anywhere */
-INTERNAL unsigned8 active_pred_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned8 active_pred_rtn(
     pointer_t /* spc_struct */,
-    pointer_t /* event_param */)) ATTRIBUTE_UNUSED;
+    pointer_t /* event_param */
+    ) ATTRIBUTE_UNUSED;
 
-INTERNAL unsigned8 shutdown_allowed_req_pred_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned8 shutdown_allowed_req_pred_rtn(
     pointer_t /* spc_struct */,
-    pointer_t /* event_param */)) ATTRIBUTE_UNUSED;
+    pointer_t /* event_param */
+    ) ATTRIBUTE_UNUSED;
 #endif /* if 0 */
 
-INTERNAL unsigned8 lastfrag_pred_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned8 lastfrag_pred_rtn(
     pointer_t /* spc_struct */,
-    pointer_t /* event_param */));
+    pointer_t /* event_param */
+    );
 
-INTERNAL unsigned8 version_mismatch_pred_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned8 version_mismatch_pred_rtn(
     pointer_t /* spc_struct */,
-    pointer_t /* event_param */));
+    pointer_t /* event_param */
+    );
 
 
 
@@ -268,125 +275,149 @@ INTERNAL unsigned8 version_mismatch_pred_rtn _DCE_PROTOTYPE_ ((
 /*
  * The action routine prototypes.
  */
-INTERNAL unsigned32     init_assoc_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     init_assoc_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     request_conn_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     request_conn_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     mark_assoc_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     mark_assoc_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     add_assoc_to_grp_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     add_assoc_to_grp_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     rem_assoc_from_grp_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     rem_assoc_from_grp_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     set_secondary_addr_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     set_secondary_addr_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     authent3_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     authent3_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     send_alt_context_req_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     send_alt_context_req_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     abort_assoc_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     abort_assoc_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     set_shutdown_request_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     set_shutdown_request_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     discon_calls_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     discon_calls_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     incr_active_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     incr_active_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     decr_active_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     decr_active_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     mark_syntax_and_sec_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     mark_syntax_and_sec_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     mark_abort_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     mark_abort_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     add_mark_set_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     add_mark_set_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     rem_mark_abort_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     rem_mark_abort_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     rem_mark_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     rem_mark_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     rem_mark_discon_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     rem_mark_discon_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     decr_rem_mark_abort_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     decr_rem_mark_abort_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     shutdown_allowed_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     shutdown_allowed_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     process_frag_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     process_frag_action_rtn(
     pointer_t /* spc_struct */,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     retry_assoc_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     retry_assoc_action_rtn(
     pointer_t /* spc_struct */,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
-INTERNAL unsigned32     illegal_event_abort_action_rtn _DCE_PROTOTYPE_ ((
+INTERNAL unsigned32     illegal_event_abort_action_rtn(
     pointer_t  /*spc_struct*/,
     pointer_t  /*event_param*/,
-    pointer_t  /*sm*/));
+    pointer_t  /*sm*/
+    );
 
 /*
  * The action table itself.
@@ -833,18 +864,10 @@ GLOBAL int rpc_g_cn_client_assoc_sm_entry_len =
 **/
 
 INTERNAL unsigned8 shutdown_requested_pred_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param)
-
-pointer_t       spc_struct;
-pointer_t       event_param;
-
-#endif
 {
     RPC_CN_DBG_RTN_PRINTF(CLIENT shutdown_requested_pred_rtn);
 
@@ -912,18 +935,10 @@ pointer_t       event_param;
 **/
 
 INTERNAL unsigned8 shutdown_allowed_pred_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param)
-
-pointer_t       spc_struct;
-pointer_t       event_param;
-
-#endif
 {
     rpc_cn_assoc_grp_t  *assoc_grp;
 
@@ -1077,18 +1092,10 @@ pointer_t       event_param;
 **/
 
 INTERNAL unsigned8 active_pred_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param)
-
-pointer_t       spc_struct;
-pointer_t       event_param;
-
-#endif
 {
     rpc_cn_assoc_t      *assoc;
 
@@ -1157,18 +1164,10 @@ pointer_t       event_param;
 **/
 
 INTERNAL unsigned8 shutdown_allowed_req_pred_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param
 )
-#else
-(spc_struct, event_param)
-
-pointer_t       spc_struct;
-pointer_t       event_param;
-
-#endif
 {
     RPC_CN_DBG_RTN_PRINTF(CLIENT shutdown_allowed_req_pred_rtn);
 
@@ -1573,18 +1572,11 @@ pointer_t       event_param;
 **/
 
 INTERNAL unsigned32     init_assoc_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t              *assoc;
     rpc_cn_assoc_sm_work_t      *assoc_sm_work;
@@ -1693,18 +1685,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     request_conn_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t              *assoc;
     rpc_cn_assoc_sm_work_t      *assoc_sm_work;
@@ -1863,18 +1848,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     mark_assoc_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t      *assoc;
     rpc_cn_packet_t     *header;
@@ -2034,18 +2012,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     add_assoc_to_grp_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm  ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t      *assoc;
 
@@ -2108,18 +2079,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     rem_assoc_from_grp_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t      *assoc;
 
@@ -2186,18 +2150,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     set_secondary_addr_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t      *assoc;
     rpc_cn_assoc_grp_t  *assoc_grp;
@@ -2335,18 +2292,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     authent3_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_assoc_sm_work_t      *assoc_sm_work;
@@ -2448,18 +2398,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     send_alt_context_req_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t              *assoc;
     rpc_cn_assoc_sm_work_t      *assoc_sm_work;
@@ -2549,18 +2492,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     abort_assoc_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t              *assoc;
     rpc_cn_sm_ctlblk_t		*sm_p;
@@ -2640,18 +2576,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     shutdown_allowed_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -2742,18 +2671,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     set_shutdown_request_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -2826,18 +2748,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     incr_active_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -2905,18 +2820,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     decr_active_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -3026,18 +2934,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     discon_calls_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param ATTRIBUTE_UNUSED,
   pointer_t       sm ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t      *assoc;
 
@@ -3101,18 +3002,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     mark_syntax_and_sec_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t                  *assoc;
     rpc_cn_packet_t                 *header;
@@ -3528,18 +3422,11 @@ DONE:
 **/
 
 INTERNAL unsigned32     mark_abort_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -3622,16 +3509,10 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned8 authent3_pred_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct __attribute__((ATTRIBUTE_UNUSED__)),
   pointer_t       event_param
 )
-#else
-(spc_struct, event_param)
-pointer_t       spc_struct;
-pointer_t       event_param;
-#endif
 {
     rpc_cn_packet_t     *header;
     rpc_cn_auth_tlr_t   *tlr;
@@ -3823,18 +3704,11 @@ pointer_t       event_param;
 **/
 
 INTERNAL unsigned32     add_mark_set_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t      *assoc;
     rpc_cn_assoc_grp_t  *assoc_grp;
@@ -4036,18 +3910,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     rem_mark_abort_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -4134,18 +4001,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     rem_mark_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -4226,18 +4086,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     rem_mark_discon_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;
@@ -4315,18 +4168,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     decr_rem_mark_abort_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
 //    rpc_cn_sm_ctlblk_t *sm_p ATTRIBUTE_UNUSED;
@@ -4392,18 +4238,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     process_frag_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm ATTRIBUTE_UNUSED
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t                      *assoc;
     rpc_cn_packet_t                     *req_header;
@@ -4565,18 +4404,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     retry_assoc_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t                      *assoc;
     rpc_cn_packet_t                     *resp_header;
@@ -4695,18 +4527,11 @@ pointer_t       sm;
 **/
 
 INTERNAL unsigned32     illegal_event_abort_action_rtn
-#ifdef _DCE_PROTO_
 (
   pointer_t       spc_struct,
   pointer_t       event_param,
   pointer_t       sm
 )
-#else
-(spc_struct, event_param, sm)
-pointer_t       spc_struct;
-pointer_t       event_param;
-pointer_t       sm;
-#endif
 {
     rpc_cn_assoc_t *assoc;
     rpc_cn_sm_ctlblk_t *sm_p;

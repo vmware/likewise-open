@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -29,7 +29,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -62,11 +62,11 @@
 *
 * IMPORTANT ORDER DEPENDENCY:
 *
-*       The <cmaxxx.h> include files above do #ifdefs on 
+*       The <cmaxxx.h> include files above do #ifdefs on
 *       _POSIX_REENTRANT_FUNCTIONS.  Under OSF/1, this
 *       is set in <unistd.h>.  The problem is that for
 *       the OSF/1 DCE reference port, we need to build
-*       with vanilla CMA threads and no help from the 
+*       with vanilla CMA threads and no help from the
 *       kernel.
 *
 *       Therefore, the include of <unistd.h> must come
@@ -142,7 +142,7 @@
 
 #define ATFORK(handler) rpc__atfork(handler)
 
-extern void rpc__cma_atfork _DCE_PROTOTYPE_((void *));
+extern void rpc__cma_atfork(void *);
 
 /****************************************************************************/
 

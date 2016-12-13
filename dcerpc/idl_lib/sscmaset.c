@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1993 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1993 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1993 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
 **
@@ -68,23 +68,16 @@ globalref rpc_trans_tab_t ndr_g_def_ebcdic_to_ascii;
  */
 static error_status_t rpc_ss_map_fault_code
 (
-#ifdef IDL_PROTOTYPES
     ndr_ulong_int fault_code
-#endif
 );
 
 /* rpc_ss_call_free is needed because we can't use 'free' as a procedure argument
     or in an assignment, because CMA has redefined free to be
     a macro with an argument */
 void rpc_ss_call_free
-#ifdef IDL_PROTOTYPES
 (
     rpc_void_p_t address
 )
-#else
-( address )
-    rpc_void_p_t address;
-#endif
 {
     free( address );
 }
@@ -99,14 +92,9 @@ void rpc_ss_call_free
 /*                                                                            */
 /******************************************************************************/
 char * safe_getenv
-#ifdef IDL_PROTOTYPES
 (
     char *variable
 )
-#else
-(variable)
-    char *variable;
-#endif
 {
     char *result;
     cma_lock_global ();
@@ -117,7 +105,7 @@ char * safe_getenv
 #define getenv safe_getenv
 #endif
 
-#if defined(CMA_INCLUDE) && defined(VMS) 
+#if defined(CMA_INCLUDE) && defined(VMS)
 /******************************************************************************/
 /* Note: CMA now provides these jackets on all platforms other than VAX/VMS   */
 /*       so we don't need them anywhere else                                  */
@@ -127,16 +115,10 @@ char * safe_getenv
 /*                                                                            */
 /******************************************************************************/
 FILE * safe_fopen
-#ifdef IDL_PROTOTYPES
 (
     char *filename,
     char *type
 )
-#else
-(filename, type)
-    char *filename;
-    char *type;
-#endif
 {
     FILE *result;
     cma_lock_global();
@@ -147,20 +129,12 @@ FILE * safe_fopen
 #define fopen safe_fopen
 
 int safe_fread
-#ifdef IDL_PROTOTYPES
 (
     char        *ptr,
     unsigned    sizeof_ptr,
     unsigned    nitems,
     FILE        *stream
 )
-#else
-(ptr, sizeof_ptr, nitems, stream)
-    char        *ptr;
-    unsigned    sizeof_ptr;
-    unsigned    nitems;
-    FILE        *stream;
-#endif
 {
     int result;
     cma_lock_global();
@@ -171,14 +145,9 @@ int safe_fread
 #define fread safe_fread
 
 int safe_fclose
-#ifdef IDL_PROTOTYPES
 (
     FILE *stream
 )
-#else
-(stream)
-    FILE *stream;
-#endif
 {
     int result;
     cma_lock_global();
@@ -196,9 +165,7 @@ int safe_fclose
  * That guarantees that it will only be invoked once per address space.
  **************************************************************************/
 void rpc_ss_trans_table_init(
-#ifdef IDL_PROTOTYPES
     void
-#endif
 )
 {
 char *filename;
@@ -402,9 +369,7 @@ globaldef dcethread_exc rpc_x_unknown_stub_rtl_if_vers;
 globaldef dcethread_exc rpc_x_ss_codeset_conv_error;
 
 static void rpc_ss_init_client(
-#ifdef IDL_PROTOTYPES
     void
-#endif
 )
 {
     /* Initialize exceptions */
@@ -679,9 +644,7 @@ static void rpc_ss_init_client(
 }
 
 void rpc_ss_init_client_once(
-#ifdef IDL_PROTOTYPES
     void
-#endif
 )
 {
     RPC_SS_THREADS_INIT;
@@ -729,14 +692,9 @@ void rpc_ss_init_client_once(
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_map_dce_to_local_status
-#ifdef IDL_PROTOTYPES
 (
     error_status_t *status_code_p   /* [in,out] pointer to DCE status -> local status */
 )
-#else
-(status_code_p)
-    error_status_t *status_code_p;  /* [in,out] pointer to DCE status -> local status */
-#endif
 {
     unsigned long facility_and_comp_code;
     unsigned short  status_code;
@@ -744,7 +702,7 @@ void rpc_ss_map_dce_to_local_status
     /*
      * extract the DCE component, facility and status codes
      */
-    facility_and_comp_code = (*status_code_p & 
+    facility_and_comp_code = (*status_code_p &
         (FACILITY_CODE_MASK|COMPONENT_CODE_MASK));
 
     status_code = (*status_code_p & STATUS_CODE_MASK)
@@ -763,12 +721,12 @@ void rpc_ss_map_dce_to_local_status
     if (facility_and_comp_code == dce_thd_s_mod)
     {
         /* Have to case this because some are system-specific errors */
-        switch (status_code) 
+        switch (status_code)
         {
             case 5:     *status_code_p = SS$_ACCVIO; break;
             case 6:     *status_code_p = SS$_EXQUOTA; break;
             case 7:     *status_code_p = SS$_INSFMEM; break;
-            case 8:     *status_code_p = SS$_NOPRIV; break;        
+            case 8:     *status_code_p = SS$_NOPRIV; break;
             case 9:     *status_code_p = SS$_NORMAL; break;
             case 10:    *status_code_p = SS$_OPCDEC; break;
             case 11:    *status_code_p = SS$_RADRMOD; break;
@@ -789,7 +747,7 @@ void rpc_ss_map_dce_to_local_status
             case 26:    *status_code_p = SS$_FLTUND; break;
             case 27:    *status_code_p = SS$_DECOVF; break;
             case 28:    *status_code_p = SS$_SUBRNG; break;
-            default:  
+            default:
                 /* Actual DCE/THD status */
                 *status_code_p =  (exc_s_exception & ~STS$M_CODE) | (status_code << 3);
                 break;
@@ -807,21 +765,16 @@ void rpc_ss_map_dce_to_local_status
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_map_local_to_dce_status
-#ifdef IDL_PROTOTYPES
 (
     error_status_t *status_code_p   /* [in,out] pointer to local status -> DCE status */
 )
-#else
-(status_code_p)
-    error_status_t *status_code_p;  /* [in,out] pointer to local status -> DCE status */
-#endif
 {
 #ifdef VMS
     int facility = $VMS_STATUS_FAC_NO(*status_code_p);
     int message_number = $VMS_STATUS_CODE(*status_code_p);
 
     /* If success, return error_status_ok */
-    if ((*status_code_p & 1) != 0) 
+    if ((*status_code_p & 1) != 0)
     {
         *status_code_p = error_status_ok;
         return;
@@ -841,12 +794,12 @@ void rpc_ss_map_local_to_dce_status
             break;
         case 0: /* VMS facility */
             /* Map system errors, onto DCE threads status values */
-            switch (*status_code_p) 
+            switch (*status_code_p)
             {
                 case SS$_ACCVIO:    *status_code_p = dce_thd_s_mod | 5; break;
                 case SS$_EXQUOTA:   *status_code_p = dce_thd_s_mod | 6; break;
                 case SS$_INSFMEM:   *status_code_p = dce_thd_s_mod | 7; break;
-                case SS$_NOPRIV:    *status_code_p = dce_thd_s_mod | 8; break;        
+                case SS$_NOPRIV:    *status_code_p = dce_thd_s_mod | 8; break;
                 case SS$_NORMAL:    *status_code_p = dce_thd_s_mod | 9; break;
                 case SS$_OPCDEC:    *status_code_p = dce_thd_s_mod |10; break;
                 case SS$_RADRMOD:   *status_code_p = dce_thd_s_mod |11; break;
@@ -881,16 +834,10 @@ void rpc_ss_map_local_to_dce_status
 /*                                                                            */
 /******************************************************************************/
 static void rpc_ss_raise_arch_exception
-#ifdef IDL_PROTOTYPES
 (
     ndr_ulong_int fault_code,
     RPC_SS_THREADS_CANCEL_STATE_T async_cancel_state
 )
-#else
-(fault_code,async_cancel_state)
-    ndr_ulong_int fault_code;
-    RPC_SS_THREADS_CANCEL_STATE_T async_cancel_state;
-#endif
 {
     dcethread_exc *p_exception;
 
@@ -969,14 +916,9 @@ static void rpc_ss_raise_arch_exception
 /*                                                                            */
 /******************************************************************************/
 static error_status_t rpc_ss_map_fault_code
-#ifdef IDL_PROTOTYPES
 (
     ndr_ulong_int fault_code
 )
-#else
-(fault_code)
-    ndr_ulong_int fault_code;
-#endif
 {
     switch (fault_code) {
         case nca_s_fault_addr_error:
@@ -1032,16 +974,10 @@ static error_status_t rpc_ss_map_fault_code
 /*                                                                            */
 /******************************************************************************/
 static void rpc_ss_raise_impl_exception
-#ifdef IDL_PROTOTYPES
 (
     ndr_ulong_int result_code,
     RPC_SS_THREADS_CANCEL_STATE_T async_cancel_state
 )
-#else
-(result_code,async_cancel_state)
-    ndr_ulong_int result_code;
-    RPC_SS_THREADS_CANCEL_STATE_T async_cancel_state;
-#endif
 {
     dcethread_exc *p_exception;
 
@@ -1411,7 +1347,6 @@ static void rpc_ss_raise_impl_exception
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_report_error_2
-#ifdef IDL_PROTOTYPES
 (
     ndr_ulong_int fault_code,
     ndr_ulong_int user_fault_id,
@@ -1422,18 +1357,6 @@ void rpc_ss_report_error_2
     dcethread_exc *user_exception_pointers[],
     IDL_msp_t IDL_msp ATTRIBUTE_UNUSED
 )
-#else
-(fault_code, user_fault_id, result_code, p_async_cancel_state, p_comm_status,
- p_fault_status, user_exception_pointers, IDL_msp)
-    ndr_ulong_int fault_code;
-    ndr_ulong_int user_fault_id;
-    ndr_ulong_int result_code;
-    RPC_SS_THREADS_CANCEL_STATE_T *p_async_cancel_state;
-    error_status_t *p_comm_status;
-    error_status_t *p_fault_status;
-    dcethread_exc *user_exception_pointers[];
-    IDL_msp_t IDL_msp;
-#endif
 {
     if (p_comm_status != NULL) *p_comm_status = error_status_ok;
     if (p_fault_status != NULL) *p_fault_status = error_status_ok;
@@ -1475,7 +1398,6 @@ void rpc_ss_report_error_2
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_report_error
-#ifdef IDL_PROTOTYPES
 (
     ndr_ulong_int fault_code,
     ndr_ulong_int result_code,
@@ -1483,15 +1405,6 @@ void rpc_ss_report_error
     error_status_t *p_comm_status,
     error_status_t *p_fault_status
 )
-#else
-(fault_code, result_code, async_cancel_state, p_comm_status,
- p_fault_status)
-    ndr_ulong_int fault_code;
-    ndr_ulong_int result_code;
-    RPC_SS_THREADS_CANCEL_STATE_T async_cancel_state;
-    error_status_t *p_comm_status;
-    error_status_t *p_fault_status;
-#endif
 {
     rpc_ss_report_error_2(fault_code, 0, result_code, &async_cancel_state,
                             p_comm_status, p_fault_status, NULL, NULL);
@@ -1504,20 +1417,12 @@ void rpc_ss_report_error
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_call_end_2
-#ifdef IDL_PROTOTYPES
 (
     volatile rpc_call_handle_t *p_call_h,
     volatile ndr_ulong_int *p_fault_code,
     volatile ndr_ulong_int *p_user_fault_id,
     volatile error_status_t *p_st
 )
-#else
-( p_call_h, p_fault_code, p_user_fault_id, p_st )
-    volatile rpc_call_handle_t *p_call_h;
-    volatile ndr_ulong_int *p_fault_code;
-    volatile ndr_ulong_int *p_user_fault_id;
-    volatile error_status_t *p_st;
-#endif
 {
     rpc_iovector_elt_t iovec_elt;
     ndr_format_t drep;
@@ -1537,7 +1442,7 @@ void rpc_ss_call_end_2
             {
                 rpc_advance_mp(mp, 4);  /* Next longword represents user
                                                                     exception */
-                rpc_convert_ulong_int(drep, ndr_g_local_drep, mp, 
+                rpc_convert_ulong_int(drep, ndr_g_local_drep, mp,
                                                     (*p_user_fault_id));
             }
             if (iovec_elt.buff_dealloc != NULL)
@@ -1545,7 +1450,7 @@ void rpc_ss_call_end_2
                 (*iovec_elt.buff_dealloc)(iovec_elt.buff_addr);
                 iovec_elt.buff_dealloc = NULL;
             }
-            
+
             /*
              * Remote comm failures are reported by a fault packet.  However,
              * we want to treat them in the same way as a local comm failure,
@@ -1574,18 +1479,11 @@ void rpc_ss_call_end_2
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_call_end
-#ifdef IDL_PROTOTYPES
 (
     volatile rpc_call_handle_t *p_call_h,
     volatile ndr_ulong_int *p_fault_code,
     volatile error_status_t *p_st
 )
-#else
-( p_call_h, p_fault_code, p_st )
-    volatile rpc_call_handle_t *p_call_h;
-    volatile ndr_ulong_int *p_fault_code;
-    volatile error_status_t *p_st;
-#endif
 {
     ndr_ulong_int user_fault_id;    /* Discarded argument */
 
@@ -1598,20 +1496,12 @@ void rpc_ss_call_end
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_new_recv_buff
-#ifdef IDL_PROTOTYPES
 (
     rpc_iovector_elt_t *elt,
     rpc_call_handle_t call_h,
     rpc_mp_t *p_mp,
     volatile error_status_t *st
 )
-#else
-( elt, call_h, p_mp, st )
-    rpc_iovector_elt_t *elt;
-    rpc_call_handle_t call_h;
-    rpc_mp_t *p_mp;
-    volatile error_status_t *st;
-#endif
 {
     if (elt->buff_dealloc && (elt->data_len != 0))
     {

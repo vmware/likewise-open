@@ -11,9 +11,9 @@ struct _dcethread
     /* Reference count */
     unsigned int refs;
 
-    /* Current state of thread 
+    /* Current state of thread
        Changing state should be done with
-       lock held and a signal should be 
+       lock held and a signal should be
        broadcast on state_changed */
     enum
     {

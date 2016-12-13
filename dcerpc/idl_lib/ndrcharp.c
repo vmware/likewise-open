@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1993 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1993 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1993 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -62,7 +62,7 @@ globaldef rpc_trans_tab_p_t ndr_g_ascii_to_ebcdic;
 globaldef rpc_trans_tab_p_t ndr_g_ebcdic_to_ascii;
 #endif
 
-/* 
+/*
 ** For alpha/VMS we need to export the globals to match the externs in
 ** stubbase.h because the default common model is ANSI-style
 */

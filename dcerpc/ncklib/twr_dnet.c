@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -33,9 +33,9 @@
 **  ABSTRACT:
 **
 **      The protocol tower service provides routines that:
-**      
-**      o  convert a socket address to the lower floors of 
-**         a protocol tower 
+**
+**      o  convert a socket address to the lower floors of
+**         a protocol tower
 **
 **      o  convert a protocol tower to a socket address
 **
@@ -47,7 +47,7 @@
 #include <com.h>        /* Common communications services */
 #include <twrp.h>	/* Private tower services */
 
-        
+
 /*
  *  Include the DECnet specific socket address
  */
@@ -66,8 +66,8 @@
 **
 **  DESCRIPTION:
 **
-**  Creates the canonical representation of a DECnet protocol tower's 
-**  lower floors from a sockadddr. The canonical form can be transmitted 
+**  Creates the canonical representation of a DECnet protocol tower's
+**  lower floors from a sockadddr. The canonical form can be transmitted
 **  on the wire, or included in a DNA tower.
 **
 **  INPUTS:
@@ -78,7 +78,7 @@
 **
 **  OUTPUTS:
 **
-**      lower_flrs      Returns the lower tower floors in a twr_t 
+**      lower_flrs      Returns the lower tower floors in a twr_t
 **                      structure (includes the floor count as the first
 **                      field of "tower_octet_string" member).
 **
@@ -97,19 +97,12 @@
 **--
 **/
 
-PUBLIC void twr_dnet_lower_flrs_from_sa 
-#ifdef _DCE_PROTO_
+PUBLIC void twr_dnet_lower_flrs_from_sa
 (
     sockaddr_p_t      sa,
     twr_p_t           *lower_flrs,
     unsigned32        *status
 )
-#else
-(sa, lower_flrs, status)
-sockaddr_p_t      sa;
-twr_p_t           *lower_flrs;
-unsigned32        *status;
-#endif
 {
     unsigned8   protocol_id[TWR_C_NUM_DNA_LOWER_FLRS];
     unsigned16  floor_count,
@@ -129,37 +122,37 @@ unsigned32        *status;
         protocol_id[0] = TWR_C_FLR_PROT_ID_DNA;
         protocol_id[1] = TWR_C_FLR_PROT_ID_NSP;
         protocol_id[2] = TWR_C_FLR_PROT_ID_ROUTING;
-        
-        /* 
-         * Since we now know the socket address we're dealing with, 
-         * collect the sizes of each field to allocate memory, and 
-         * remember the pointers to the fields so we can copy the 
+
+        /*
+         * Since we now know the socket address we're dealing with,
+         * collect the sizes of each field to allocate memory, and
+         * remember the pointers to the fields so we can copy the
          * data once we have allocated the tower string.
          */
-        
+
         floor_count = TWR_C_NUM_DNA_LOWER_FLRS;
-        
+
         related_data_size[0] =
         sizeof(((struct sockaddr_dn *)sa)->sdn_objnum) +
         sizeof(((struct sockaddr_dn *)sa)->sdn_objnamel) +
         ((struct sockaddr_dn *)sa)->sdn_objnamel;
-        
+
         related_data_ptr[0] =
         (unsigned32 *)(&((struct sockaddr_dn *)sa)->sdn_objnum);
-        
-        /*      do we need to store flags ??? 
-         *                related_data_size[1] =          
-         *                   sizeof(((struct sockaddr_dn *)sa)->sdn_flags); 
+
+        /*      do we need to store flags ???
+         *                related_data_size[1] =
+         *                   sizeof(((struct sockaddr_dn *)sa)->sdn_flags);
          */
         related_data_size[1] = 0;
-        
+
         related_data_ptr[1] =
         (unsigned32 *)(&((struct sockaddr_dn *)sa)->sdn_flags);
-        
+
         related_data_size[2] =
         sizeof(((struct sockaddr_dn *)sa)->sdn_add.a_len) +
         ((struct sockaddr_dn *)sa)->sdn_add.a_len;
-        
+
         related_data_ptr[2] =
         (unsigned32 *)(&((struct sockaddr_dn *)sa)->sdn_add);
     }
@@ -169,7 +162,7 @@ unsigned32        *status;
         return;
     }
 
-    /*  
+    /*
      * Allocate memory and copy the data into the proper
      * locations in each of up to three floors.
      */
@@ -179,14 +172,14 @@ unsigned32        *status;
      */
 
     twr_t_length = twr_c_tower_flr_count_size; /* to store floor count */
-    
+
     for ( count = 0; count < floor_count; count++ )
     {
         twr_t_length += TWR_C_FLR_OVERHEAD;
         twr_t_length += related_data_size[count];
     }
-    
-    /* 
+
+    /*
      * Next allocate space for the tower structure
      */
     RPC_MEM_ALLOC (
@@ -196,13 +189,13 @@ unsigned32        *status;
         RPC_C_MEM_TOWER,
         RPC_C_MEM_WAITOK );
 
-    /* 
+    /*
      * Copy the length of the tower octet string into the tower structure
      */
     (*lower_flrs)->tower_length = twr_t_length;
-    
-    /* 
-     * Copy the floor information into the tower octet string 
+
+    /*
+     * Copy the floor information into the tower octet string
      */
 
     /*
@@ -211,17 +204,17 @@ unsigned32        *status;
      */
     tmp_tower = (*lower_flrs)->tower_octet_string;
 
-    /* 
-     * Copy the number of floors into the tower octet string 
+    /*
+     * Copy the number of floors into the tower octet string
      */
     twr_rep_16 = floor_count;
     RPC_RESOLVE_ENDIAN_INT16 (twr_rep_16);
-    memcpy ((char *)tmp_tower, (char *)&twr_rep_16, 
+    memcpy ((char *)tmp_tower, (char *)&twr_rep_16,
             twr_c_tower_flr_count_size);
 
     tmp_tower += twr_c_tower_flr_count_size;
 
-    /* 
+    /*
      * Convert the protocol identifier size to its proper
      * representation for use in the following loop.
      */
@@ -229,16 +222,16 @@ unsigned32        *status;
 
     for (count = 0; count < floor_count; count++)
     {
-        /* 
-         * Copy the length of the protocol identifier field into 
+        /*
+         * Copy the length of the protocol identifier field into
          * tower octet string. (Converted before the loop.)
          */
-        memcpy ((char *)tmp_tower, (char *)&id_size, 
+        memcpy ((char *)tmp_tower, (char *)&id_size,
                 TWR_C_TOWER_FLR_LHS_COUNT_SIZE);
 
         tmp_tower += TWR_C_TOWER_FLR_LHS_COUNT_SIZE;
 
-        /* 
+        /*
          * Copy the protocol identifier into tower octet string
          * (1 byte so no need to convert endian representation).
          */
@@ -247,26 +240,26 @@ unsigned32        *status;
 
         tmp_tower += twr_c_tower_prot_id_size;
 
-        /* 
-         * Copy the length of the address data field into 
+        /*
+         * Copy the length of the address data field into
          * tower octet string.
          */
         twr_rep_16 = related_data_size[count];
         RPC_RESOLVE_ENDIAN_INT16 (twr_rep_16);
-        memcpy ((char *)tmp_tower, (char *)&twr_rep_16, 
+        memcpy ((char *)tmp_tower, (char *)&twr_rep_16,
                 TWR_C_TOWER_FLR_RHS_COUNT_SIZE);
- 
+
         tmp_tower += TWR_C_TOWER_FLR_RHS_COUNT_SIZE;
-         
-        /* 
-         * If there is addressing data, copy the address data field into 
+
+        /*
+         * If there is addressing data, copy the address data field into
          * tower octet string
          */
         if (related_data_size[count])
         {
-            memcpy ((char *)tmp_tower, (char *)related_data_ptr[count], 
+            memcpy ((char *)tmp_tower, (char *)related_data_ptr[count],
                     related_data_size[count] );
-            
+
             /*
              * Set up for the next floor.
              */
@@ -280,13 +273,13 @@ unsigned32        *status;
 /*
 **++
 **
-**  ROUTINE NAME:       twr_dnet_lower_flrs_to_sa 
+**  ROUTINE NAME:       twr_dnet_lower_flrs_to_sa
 **
 **  SCOPE:              PUBLIC - declared in twr.idl
 **
 **  DESCRIPTION:
 **
-**  Creates a DECnet sockaddr from the canonical representation of a 
+**  Creates a DECnet sockaddr from the canonical representation of a
 **  DECnet protocol tower's lower floors.
 **
 **  INPUTS:
@@ -299,8 +292,8 @@ unsigned32        *status;
 **  OUTPUTS:
 **
 **      sa            Returns a pointer to the created sockaddr structure.
-**      
-**      sa_len          Returns the length, in bytes, of the returned 
+**
+**      sa_len          Returns the length, in bytes, of the returned
 **                      "sa" argument.
 **
 **      status          A value indicating the return status of the routine:
@@ -318,21 +311,13 @@ unsigned32        *status;
 **--
 **/
 
-PUBLIC void twr_dnet_lower_flrs_to_sa 
-#ifdef _DCE_PROTO_
+PUBLIC void twr_dnet_lower_flrs_to_sa
 (
-    byte_p_t          tower_octet_string, 
+    byte_p_t          tower_octet_string,
     sockaddr_p_t      *sa,
     unsigned32        *sa_len,
     unsigned32        *status
 )
-#else
-( tower_octet_string, sa, sa_len, status )
-byte_p_t          tower_octet_string; 
-sockaddr_p_t      *sa;
-unsigned32        *sa_len;
-unsigned32        *status;
-#endif
 {
     unsigned8   id;
     byte_p_t    tower;
@@ -348,10 +333,10 @@ unsigned32        *status;
 
     id_size = 0;
 
-    /* 
+    /*
      * make sure we have a pointer to some data structure
      */
-    if ( !(tower = tower_octet_string)) 
+    if ( !(tower = tower_octet_string))
     {
         *status = twr_s_unknown_tower;
         return;
@@ -375,7 +360,7 @@ unsigned32        *status;
          * Get the length of this floor's protocol id field (don't
          * advance the pointer).
          */
-        memcpy ((char *)&id_size, (char *)tower, 
+        memcpy ((char *)&id_size, (char *)tower,
                 TWR_C_TOWER_FLR_LHS_COUNT_SIZE);
         RPC_RESOLVE_ENDIAN_INT16 (id_size);
 
@@ -389,7 +374,7 @@ unsigned32        *status;
         /*
          * See if we support the protocol id.
          */
-        if ( (id_size == twr_c_tower_prot_id_size) && 
+        if ( (id_size == twr_c_tower_prot_id_size) &&
              (id ==  TWR_C_FLR_PROT_ID_DNA) )
         {
             /*
@@ -405,7 +390,7 @@ unsigned32        *status;
              * Skip this floor.  Get the address size in order
              * to know how much to skip.
              */
-            memcpy ((char *)&addr_size, 
+            memcpy ((char *)&addr_size,
                     (char *)(tower + TWR_C_TOWER_FLR_LHS_COUNT_SIZE +
                             id_size), TWR_C_TOWER_FLR_RHS_COUNT_SIZE);
             RPC_RESOLVE_ENDIAN_INT16 (addr_size);
@@ -431,62 +416,62 @@ unsigned32        *status;
      */
     tower += (TWR_C_TOWER_FLR_LHS_COUNT_SIZE + id_size);
 
-    /* 
+    /*
      * Allocate space for a DECnet sockaddr
      */
     length = sizeof(struct sockaddr_dn);
-    
+
     RPC_MEM_ALLOC (
                    *sa,
                    sockaddr_p_t,
                    length,
                    RPC_C_MEM_SOCKADDR,
                    RPC_C_MEM_WAITOK );
-    
+
     *sa_len = length;
-    
-    /* 
+
+    /*
      * make sure unused bytes are null
      */
     memset ((char *) *sa, 0, length);
-    
-    /* 
+
+    /*
      * define this as a DECnet family socket
      */
-    ((struct sockaddr_dn *)(*sa))->sdn_family = RPC_C_NAF_ID_DNET;    
+    ((struct sockaddr_dn *)(*sa))->sdn_family = RPC_C_NAF_ID_DNET;
 
-    /* 
-     * Length of end user spec 
+    /*
+     * Length of end user spec
      */
     memcpy ((char *)&addr_size, (char *)tower, RPC_C_TOWER_FLR_RHS_COUNT_SIZE);
     RPC_RESOLVE_ENDIAN_INT16 (addr_size);
     tower += RPC_C_TOWER_FLR_RHS_COUNT_SIZE;
 
-    /* 
-     * End user spec 
+    /*
+     * End user spec
      */
     memcpy (&((struct sockaddr_dn *)(*sa))->sdn_objnum,
             (char *)tower,
             addr_size);
-    
+
     tower += addr_size;
-    
+
     /*
      * Length of host transport
      */
-    memcpy ((char *)&id_size, (char *)tower, 
+    memcpy ((char *)&id_size, (char *)tower,
             TWR_C_TOWER_FLR_LHS_COUNT_SIZE);
     RPC_RESOLVE_ENDIAN_INT16 (id_size);
     tower  += TWR_C_TOWER_FLR_LHS_COUNT_SIZE;
 
-    /* 
+    /*
      * Transport id
      * Expect one byte; no need to convert.
      */
     memcpy ((char *)&id, (char *)tower, twr_c_tower_prot_id_size);
     tower += id_size;
 
-    if ((id_size != twr_c_tower_prot_id_size) || 
+    if ((id_size != twr_c_tower_prot_id_size) ||
         (id != TWR_C_FLR_PROT_ID_NSP))
     {
         *status = twr_s_unknown_tower;
@@ -495,15 +480,15 @@ unsigned32        *status;
 
         return;
     }
-    
-    /* 
+
+    /*
      * Length of sdn_flags
      */
     memcpy ((char *)&addr_size, (char *)tower, RPC_C_TOWER_FLR_RHS_COUNT_SIZE);
     RPC_RESOLVE_ENDIAN_INT16 (addr_size);
     tower += RPC_C_TOWER_FLR_RHS_COUNT_SIZE;
 
-    /* 
+    /*
      * this field is probably null
      */
     if (addr_size)
@@ -511,26 +496,26 @@ unsigned32        *status;
         memcpy ( &((struct sockaddr_dn *)(*sa))->sdn_flags,
                 (char *)tower,
                 addr_size);
-        
+
         tower += addr_size;
     }
-    
-    /* 
+
+    /*
      * Length of routing id
      */
-    memcpy ((char *)&id_size, (char *)tower, 
+    memcpy ((char *)&id_size, (char *)tower,
             TWR_C_TOWER_FLR_LHS_COUNT_SIZE);
     RPC_RESOLVE_ENDIAN_INT16 (id_size);
     tower += TWR_C_TOWER_FLR_LHS_COUNT_SIZE;
 
-    /* 
+    /*
      * Protocol id
      * Expect one byte, so no need to convert.
      */
     memcpy ((char *)&id, (char *)tower, twr_c_tower_prot_id_size);
     tower += id_size;
 
-    if ( (id_size != twr_c_tower_prot_id_size) || 
+    if ( (id_size != twr_c_tower_prot_id_size) ||
          (id != TWR_C_FLR_PROT_ID_ROUTING) )
     {
         *status = twr_s_unknown_tower;
@@ -539,8 +524,8 @@ unsigned32        *status;
 
         return;
     }
-    
-    /* 
+
+    /*
      * the length of host address
      */
     memcpy ((char *)&addr_size, (char *)tower, RPC_C_TOWER_FLR_RHS_COUNT_SIZE);
@@ -550,9 +535,9 @@ unsigned32        *status;
     memcpy (&((struct sockaddr_dn *)(*sa))->sdn_add,
             (char *)tower,
             addr_size);
-    
+
     *status = twr_s_ok;
 }
-#else 
+#else
 static int _naf_dnet_dummy_ = 0 ;
 #endif /* NAF_DNET */

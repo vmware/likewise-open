@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -54,7 +54,7 @@ uuid_old_t FooType =
     0xe000,
     0x0000,
     0x0d,
-    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00} 
+    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}
 };
 
 uuid_old_t BarType =
@@ -67,7 +67,7 @@ uuid_old_t BarType =
 };
 
 dce_uuid_t ZotType =
-{ 
+{
     0x007dd408,
     0x05b0,
     0x1a36,
@@ -94,7 +94,7 @@ uuid_old_t FooObj2 =
     0x1000,
     0x0000,
     0x0d,
-    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}   
+    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}
 };
 
 /*
@@ -106,7 +106,7 @@ uuid_old_t BarObj1 =
     0x4000,
     0x0000,
     0x0d,
-    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}   
+    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}
 };
 
 uuid_old_t BarObj2 =
@@ -115,7 +115,7 @@ uuid_old_t BarObj2 =
     0x7000,
     0x0000,
     0x0d,
-    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}   
+    {0x00, 0x01, 0x34, 0x22, 0x00, 0x00, 0x00}
 };
 
 /*
@@ -151,7 +151,7 @@ dce_uuid_t NilTypeObj =
 dce_uuid_t NilObj = {0,0,0,0,0,{0,0,0,0,0,0} };
 
 
-    
+
 
 
 

@@ -225,6 +225,6 @@ MU_TEST(exception, throw_finally_throw_catch)
 MU_TEST(exception, uncaught)
 {
     MU_EXPECT(MU_STATUS_EXCEPTION);
-    
+
     DCETHREAD_RAISE(dummy_e);
 }

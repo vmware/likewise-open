@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,11 +28,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  DG protocol service routines.  Client-oriented routines that run in the 
+**  DG protocol service routines.  Client-oriented routines that run in the
 **  listener thread.
 **
 **
@@ -41,9 +41,7 @@
 #ifndef _DGCLSN_H
 #define _DGCLSN_H	1
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 
 #ifdef __cplusplus
@@ -51,47 +49,54 @@ extern "C" {
 #endif
 
 
-PRIVATE boolean rpc__dg_do_common_response _DCE_PROTOTYPE_ ((               
+PRIVATE boolean rpc__dg_do_common_response(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_reject _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_reject(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_fault _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_fault(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_response _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_response(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_working _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_working(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_nocall _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_nocall(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_quack _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_quack(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_ccall_p_t  /*ccall*/
-    ));
+    
+    );
 
 #ifdef __cplusplus
 }

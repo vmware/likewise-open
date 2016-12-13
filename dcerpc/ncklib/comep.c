@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -77,40 +77,46 @@ typedef struct {
 } mgmt_ep_inq_rep_t, *mgmt_ep_inq_rep_p_t;
 
 
-INTERNAL void ep_register _DCE_PROTOTYPE_((
+INTERNAL void ep_register(
         rpc_if_handle_t         ifspec,
         rpc_binding_vector_t    *binding_vec,
         uuid_vector_t           *object_uuid_vec,
         unsigned_char_p_t       annotation,
         boolean32               replace,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-INTERNAL void get_ep_binding _DCE_PROTOTYPE_((
+INTERNAL void get_ep_binding(
         rpc_binding_handle_t    input_binding,
         rpc_binding_handle_t    *output_binding,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-INTERNAL void tower_to_if_id _DCE_PROTOTYPE_((
+INTERNAL void tower_to_if_id(
         twr_p_t                 tower,
         rpc_if_id_t             *if_id,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-INTERNAL void ep_get_endpoint _DCE_PROTOTYPE_((
+INTERNAL void ep_get_endpoint(
        rpc_if_rep_p_t          if_r,
        rpc_binding_rep_p_t     binding_r,
        unsigned32              * /*st*/
-    ));
+    
+    );
 
-INTERNAL idl_void_p_t rpc__ep_mem_alloc _DCE_PROTOTYPE_ ((
+INTERNAL idl_void_p_t rpc__ep_mem_alloc(
         idl_size_t  /*size*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ep_mem_free _DCE_PROTOTYPE_ ((
+INTERNAL void rpc__ep_mem_free(
         pointer_t  /*ptr*/
-    ));
+    
+    );
 
 
 /*
@@ -121,20 +127,20 @@ INTERNAL void rpc__ep_mem_free _DCE_PROTOTYPE_ ((
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Adds server address information to the endpoint mapper database.
 **  A server routine calls this routine only if the server has dynamically
 **  generated endpoints.
 **
 **  INPUTS:
 **
-**      ifspec          Interface specification to register with the 
+**      ifspec          Interface specification to register with the
 **                      endpoint mapper.
 **
-**      binding_vec     Vector of binding handles over which the server 
+**      binding_vec     Vector of binding handles over which the server
 **                      can receive RPCs.
 **
-**      object_uuid_vec A vector of object UUIDs offered by the server. 
+**      object_uuid_vec A vector of object UUIDs offered by the server.
 **                      The server application constructs this vector.
 **
 **      annotation      A character string comment applied to each cross-
@@ -160,8 +166,7 @@ INTERNAL void rpc__ep_mem_free _DCE_PROTOTYPE_ ((
 **--
 **/
 
-PUBLIC void rpc_ep_register 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_ep_register
 (
     rpc_if_handle_t             ifspec,
     rpc_binding_vector_t        *binding_vec,
@@ -169,14 +174,6 @@ PUBLIC void rpc_ep_register
     unsigned_char_p_t           annotation,
     unsigned32                  *status
 )
-#else
-(ifspec, binding_vec, object_uuid_vec, annotation, status)
-rpc_if_handle_t             ifspec;
-rpc_binding_vector_t        *binding_vec;
-uuid_vector_t               *object_uuid_vec;
-unsigned_char_p_t           annotation;
-unsigned32                  *status;
-#endif
 {
     ep_register (ifspec, binding_vec, object_uuid_vec, annotation, true, status);
 }
@@ -189,18 +186,18 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Like rpc_ep_register, except doesn't replace any existing entries.
 **
 **  INPUTS:
 **
-**      ifspec          Interface specification to register with the 
+**      ifspec          Interface specification to register with the
 **                      endpoint mapper.
 **
-**      binding_vec     Vector of binding handles over which the server 
+**      binding_vec     Vector of binding handles over which the server
 **                      can receive RPCs.
 **
-**      object_uuid_vec A vector of object UUIDs offered by the server. 
+**      object_uuid_vec A vector of object UUIDs offered by the server.
 **                      The server application constructs this vector.
 **
 **      annotation      A character string comment applied to each cross-
@@ -226,8 +223,7 @@ unsigned32                  *status;
 **--
 **/
 
-PUBLIC void rpc_ep_register_no_replace 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_ep_register_no_replace
 (
     rpc_if_handle_t             ifspec,
     rpc_binding_vector_t        *binding_vec,
@@ -235,14 +231,6 @@ PUBLIC void rpc_ep_register_no_replace
     unsigned_char_p_t           annotation,
     unsigned32                  *status
 )
-#else
-(ifspec, binding_vec, object_uuid_vec, annotation, status)
-rpc_if_handle_t             ifspec;
-rpc_binding_vector_t        *binding_vec;
-uuid_vector_t               *object_uuid_vec;
-unsigned_char_p_t           annotation;
-unsigned32                  *status;
-#endif
 {
     ep_register (ifspec, binding_vec, object_uuid_vec, annotation, false, status);
 }
@@ -255,18 +243,18 @@ unsigned32                  *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**   
+**
 **  Common routine for rpc_ep_register*.
 **
 **  INPUTS:
 **
-**      ifspec          Interface specification to register with the 
+**      ifspec          Interface specification to register with the
 **                      endpoint mapper.
 **
-**      binding_vec     Vector of binding handles over which the server 
+**      binding_vec     Vector of binding handles over which the server
 **                      can receive RPCs.
 **
-**      object_uuid_vec A vector of object UUIDs offered by the server. 
+**      object_uuid_vec A vector of object UUIDs offered by the server.
 **                      The server application constructs this vector.
 **
 **      annotation      A character string comment applied to each cross-
@@ -293,8 +281,7 @@ unsigned32                  *status;
 **--
 **/
 
-INTERNAL void ep_register 
-#ifdef _DCE_PROTO_
+INTERNAL void ep_register
 (
     rpc_if_handle_t             ifspec,
     rpc_binding_vector_t        *binding_vec,
@@ -303,21 +290,12 @@ INTERNAL void ep_register
     boolean32                   replace,
     unsigned32                  *status
 )
-#else
-(ifspec, binding_vec, object_uuid_vec, annotation, replace, status)
-rpc_if_handle_t             ifspec;
-rpc_binding_vector_t        *binding_vec;
-uuid_vector_t               *object_uuid_vec;
-unsigned_char_p_t           annotation;
-boolean32                   replace;
-unsigned32                  *status;
-#endif
 {
     ept_entry_t                 *ept_entry;
     rpc_if_rep_p_t              if_rep = (rpc_if_rep_p_t) ifspec;
     rpc_binding_handle_t        ep_binding = NULL;
     unsigned32                  i, j;
-    unsigned32                  curr_hand = 0, curr_tower = 0, curr_obj = 0; 
+    unsigned32                  curr_hand = 0, curr_tower = 0, curr_obj = 0;
     unsigned32                  st;
     rpc_tower_ref_vector_p_t    tower_vec;
 
@@ -334,7 +312,7 @@ unsigned32                  *status;
     {
         *status = rpc_s_no_bindings;
         return;
-    }          
+    }
 
 #ifndef __hpux__
     /*
@@ -428,14 +406,14 @@ unsigned32                  *status;
     /*
      * Allocate the EP entry structure to avoid taking up stack space.
      */
-    
-    RPC_MEM_ALLOC(ept_entry, ept_entry_t *, sizeof *ept_entry, 
+
+    RPC_MEM_ALLOC(ept_entry, ept_entry_t *, sizeof *ept_entry,
             RPC_C_MEM_EPT_ENTRY, RPC_C_MEM_NOWAIT);
 
     rpc__strncpy(ept_entry->annotation, annotation, ept_max_annotation_size - 1);
 
     for (curr_hand = 0; curr_hand < binding_vec->count; curr_hand++)
-    {                
+    {
         rpc_binding_rep_p_t binding_rep = (rpc_binding_rep_p_t) binding_vec->binding_h[curr_hand];
         /*
          * Skip over NULL entries.
@@ -465,7 +443,7 @@ unsigned32                  *status;
         {
             rpc__tower_from_tower_ref(tower_vec->tower[curr_tower], &ept_entry->tower, status);
             if (*status != rpc_s_ok)
-                break; 
+                break;
 
             if (object_uuid_vec == NULL || object_uuid_vec->count == 0)
             {
@@ -486,13 +464,13 @@ unsigned32                  *status;
                         dcethread_interrupt_throw(dcethread_self());
                     if (*status != rpc_s_ok)
                         break;
-                }         
+                }
             }
 
             rpc__tower_free(&ept_entry->tower, &st);
 
             if (*status != rpc_s_ok)
-                break; 
+                break;
         }
 
         rpc__tower_ref_vec_free(&tower_vec, &st);
@@ -501,28 +479,28 @@ unsigned32                  *status;
             break;
     }
 
-    rpc_binding_free(&ep_binding, &st);       
+    rpc_binding_free(&ep_binding, &st);
     RPC_MEM_FREE(ept_entry, RPC_C_MEM_EPT_ENTRY);
 
     /*
-     * Handle any error conditions.  Try to unregister anything that was 
+     * Handle any error conditions.  Try to unregister anything that was
      * successfully registered.  Since we were trying to register the
-     * cross product of two vectors we need to separate recovery into 
+     * cross product of two vectors we need to separate recovery into
      * 1) binding handles for which all objects were successfully registered
      * and 2) binding handles for which some of the objects were successfully
-     * registered.  
-     * Punt on the fact that multiple towers can be derived from each binding 
-     * handle - all towers associated with a binding handle will be unregistered 
+     * registered.
+     * Punt on the fact that multiple towers can be derived from each binding
+     * handle - all towers associated with a binding handle will be unregistered
      * by rpc_ep_unregister.
      */
 
     if ((*status != rpc_s_ok) && (*status != rpc_s_comm_failure) &&
         (curr_hand > 0 || curr_tower > 0 || curr_obj > 0))
-    {   
+    {
         rpc_binding_vector_p_t  bvp;
         uuid_vector_p_t         ovp = NULL;
         unsigned32              bv_size, ov_size;
-                     
+
         /*
          * First alloc a binding vector large enough to hold the number
          * of handles for which all objects were successfully registered.
@@ -543,20 +521,20 @@ unsigned32                  *status;
          * If there were any handles that were fully registered,
          * unregister them now.
          */
-    
+
         if (curr_hand > 0)
         {
             bvp->count = curr_hand;
             for (j = 0; j < bvp->count; j++)
                 bvp->binding_h[j] = binding_vec->binding_h[j];
-    
+
             rpc_ep_unregister(ifspec, bvp, object_uuid_vec, &st);
         }
 
         /*
          * If we got part way through registering the towers associated
-         * with a binding handle for an object, behave as if we registered 
-         * all the towers associated with the binding handle and the object, 
+         * with a binding handle for an object, behave as if we registered
+         * all the towers associated with the binding handle and the object,
          * ie. increment the curr_obj.
          */
         if (curr_tower > 0) curr_obj++;
@@ -597,7 +575,7 @@ unsigned32                  *status;
              */
 
             bvp->count = 1;
-            bvp->binding_h[0] = binding_vec->binding_h[curr_hand]; 
+            bvp->binding_h[0] = binding_vec->binding_h[curr_hand];
 
             rpc_ep_unregister(ifspec, bvp, ovp, &st);
 
@@ -616,14 +594,14 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Removes server address information from the endpoint mapper database.
 **  A server calls this routine only if the server has previously
 **  registered dynamically allocated endpoints.
 **
 **  INPUTS:
 **
-**      ifspec          Interface specification to unregister with the 
+**      ifspec          Interface specification to unregister with the
 **                      endpoint mapper.
 **
 **      binding_vec     Vector of binding handles to unregister
@@ -651,22 +629,14 @@ unsigned32                  *status;
 **--
 **/
 
-PUBLIC void rpc_ep_unregister 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_ep_unregister
 (
     rpc_if_handle_t             ifspec,
     rpc_binding_vector_t        *binding_vec,
     uuid_vector_t               *object_uuid_vec,
     unsigned32                  *status
 )
-#else
-(ifspec, binding_vec, object_uuid_vec, status)
-rpc_if_handle_t             ifspec;
-rpc_binding_vector_t        *binding_vec;
-uuid_vector_t               *object_uuid_vec;
-unsigned32                  *status;
-#endif
-{ 
+{
     ept_entry_t                 *ept_entry;
     rpc_if_rep_p_t              if_rep = (rpc_if_rep_p_t) ifspec;
     rpc_binding_handle_t        ep_binding = NULL;
@@ -688,7 +658,7 @@ unsigned32                  *status;
     {
         *status = rpc_s_no_bindings;
         return;
-    }          
+    }
 
 #ifndef __hpux__
     /*
@@ -758,10 +728,10 @@ unsigned32                  *status;
     /*
      * Allocate the EP entry structure to avoid taking up stack space.
      */
-    
-    RPC_MEM_ALLOC(ept_entry, ept_entry_t *, sizeof *ept_entry, 
+
+    RPC_MEM_ALLOC(ept_entry, ept_entry_t *, sizeof *ept_entry,
             RPC_C_MEM_EPT_ENTRY, RPC_C_MEM_NOWAIT);
-    
+
     ept_entry->annotation[0] = 0;
 
     /*
@@ -779,7 +749,7 @@ unsigned32                  *status;
     lstatus = rpc_s_ok;
 
     for (i = 0; i < binding_vec->count; i++)
-    {    
+    {
         /*
          * Skip over NULL entries.
          */
@@ -841,7 +811,7 @@ unsigned32                  *status;
 
                         continue;
                     }
-                }         
+                }
             }
 
             if (st != rpc_s_ok)
@@ -853,7 +823,7 @@ unsigned32                  *status;
             rpc__tower_free(&ept_entry->tower, &st);
         }
 
-        rpc__tower_ref_vec_free(&tower_vec, &st); 
+        rpc__tower_ref_vec_free(&tower_vec, &st);
     }
 
     *status = lstatus;
@@ -869,7 +839,7 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Creates an inquiry context for viewing the elements in a local or
 **  remote endpoint map database.
 **
@@ -905,8 +875,7 @@ unsigned32                  *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_ep_elt_inq_begin 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_ep_elt_inq_begin
 (
     rpc_binding_handle_t    input_binding,
     unsigned32              inquiry_type,
@@ -916,16 +885,6 @@ PUBLIC void rpc_mgmt_ep_elt_inq_begin
     rpc_ep_inq_handle_t     *inquiry_context,
     unsigned32              *status
 )
-#else
-(input_binding, inquiry_type, if_id, vers_option, object_uuid, inquiry_context, status)
-rpc_binding_handle_t    input_binding;
-unsigned32              inquiry_type;
-rpc_if_id_p_t           if_id;
-unsigned32              vers_option;
-uuid_p_t                object_uuid;
-rpc_ep_inq_handle_t     *inquiry_context;
-unsigned32              *status;
-#endif
 {
     mgmt_ep_inq_rep_t       *chp;
     rpc_binding_handle_t    ep_binding;
@@ -967,7 +926,7 @@ unsigned32              *status;
      * Fill context's object and interface specs.  If object isn't being
      * matched, use nil_uuid.  If interface isn't being matched, use
      * nil_uuid and versions = 0.
-     */ 
+     */
 
     dce_uuid_create_nil(&UUID_NIL, &tmp_st);
 
@@ -1014,7 +973,7 @@ unsigned32              *status;
             case rpc_c_vers_major_only:
             case rpc_c_vers_upto:
                 break;
-    
+
             default:
                 *status = rpc_s_invalid_vers_option;
                 rpc_binding_free(&ep_binding, &tmp_st);
@@ -1022,7 +981,7 @@ unsigned32              *status;
                 return;
         }
     }
-     
+
     *inquiry_context = (rpc_ep_inq_handle_t) chp;
 
     *status = rpc_s_ok;
@@ -1037,7 +996,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Returns one element at a time from a local or remote endpoint map
 **  database.
 **
@@ -1069,8 +1028,7 @@ unsigned32              *status;
 **
 **--
 **/
-PUBLIC void rpc_mgmt_ep_elt_inq_next 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_ep_elt_inq_next
 (
     rpc_ep_inq_handle_t       inquiry_context,
     rpc_if_id_t               *if_id,
@@ -1079,25 +1037,16 @@ PUBLIC void rpc_mgmt_ep_elt_inq_next
     unsigned_char_p_t         *annotation,
     unsigned32                *status
 )
-#else
-(inquiry_context, if_id, binding, object_uuid, annotation, status)
-rpc_ep_inq_handle_t       inquiry_context;
-rpc_if_id_t               *if_id;
-rpc_binding_handle_t      *binding;
-dce_uuid_t                    *object_uuid;
-unsigned_char_p_t         *annotation;
-unsigned32                *status;
-#endif
 {
     mgmt_ep_inq_rep_t       *chp;
     ept_entry_t             *entp;
     unsigned32              asize;
     unsigned32              i;
     boolean32               supported_tower = false;
-    idl_void_p_t            (*old_allocate) _DCE_PROTOTYPE_ (( idl_size_t ));
-    idl_void_p_t            (*tmp_allocate) _DCE_PROTOTYPE_ (( idl_size_t ));
-    void                    (*old_free) _DCE_PROTOTYPE_ ((idl_void_p_t ));
-    void                    (*tmp_free) _DCE_PROTOTYPE_ ((idl_void_p_t ));
+    idl_void_p_t            (*old_allocate)( idl_size_t );
+    idl_void_p_t            (*tmp_allocate)( idl_size_t );
+    void                    (*old_free)(idl_void_p_t );
+    void                    (*tmp_free)(idl_void_p_t );
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -1114,7 +1063,7 @@ unsigned32                *status;
     {
         *status = rpc_s_invalid_inquiry_context;
         return;
-    } 
+    }
 
     if (if_id == NULL)
     {
@@ -1123,7 +1072,7 @@ unsigned32                *status;
     }
 
     /*
-     * Continue processing towers until we find one with a protseq 
+     * Continue processing towers until we find one with a protseq
      * supported by this runtime.
      */
     while (!supported_tower)
@@ -1146,23 +1095,23 @@ unsigned32                *status;
              * allocation.
              */
             rpc_ss_swap_client_alloc_free (
-                rpc__ep_mem_alloc, rpc__ep_mem_free, 
+                rpc__ep_mem_alloc, rpc__ep_mem_free,
                 &old_allocate, &old_free);
 
             /*
              *  No entries stashed away so read some from ept database
              */
-            (*ept_v3_0_c_epv.ept_lookup)(chp->ep_binding, 
+            (*ept_v3_0_c_epv.ept_lookup)(chp->ep_binding,
                 chp->inquiry_type, &chp->object, &chp->if_id, chp->vers_option,
-                &chp->entry_handle, MAX_ENTS, &chp->num_ents, chp->entries, 
+                &chp->entry_handle, MAX_ENTS, &chp->num_ents, chp->entries,
                 status);
 
             /*
-             * Restore the memory allocation scheme in effect before 
+             * Restore the memory allocation scheme in effect before
              * we got here.
              */
             rpc_ss_swap_client_alloc_free (
-                old_allocate, old_free, 
+                old_allocate, old_free,
                 &tmp_allocate, &tmp_free);
 
             if (*status != rpc_s_ok)
@@ -1174,13 +1123,13 @@ unsigned32                *status;
                 return;
             }
             chp->next_ent = 0;
-        } 
-     
+        }
+
         entp = &(chp->entries[chp->next_ent]);
 
         if (binding != NULL)
         {
-            rpc_tower_to_binding(entp->tower->tower_octet_string, binding, 
+            rpc_tower_to_binding(entp->tower->tower_octet_string, binding,
                                     status);
 
             /*
@@ -1213,7 +1162,7 @@ unsigned32                *status;
         if (supported_tower)
         {
             tower_to_if_id(entp->tower, if_id, status);
-            if (*status != rpc_s_ok) 
+            if (*status != rpc_s_ok)
                 return;
 
             if (object_uuid != NULL)
@@ -1228,7 +1177,7 @@ unsigned32                *status;
                     unsigned_char_p_t,
                     asize,
                     RPC_C_MEM_STRING,
-                    RPC_C_MEM_WAITOK); 
+                    RPC_C_MEM_WAITOK);
 
                 rpc__strncpy(*annotation, entp->annotation, (asize-1));
              }
@@ -1243,8 +1192,8 @@ unsigned32                *status;
              *  context to the caller.
              *  Free the towers.
              */
-            for (i = 0, entp = &(chp->entries[0]); 
-                i < chp->num_ents; 
+            for (i = 0, entp = &(chp->entries[0]);
+                i < chp->num_ents;
                 i++, entp++)
             {
                 rpc__ep_mem_free ((pointer_t) entp->tower);
@@ -1252,7 +1201,7 @@ unsigned32                *status;
 
             chp->num_ents = 0;
             chp->next_ent = 0;
-                          
+
             /*
              * If entry handle is NULL, all matching entries have been read
              * so mark context as done.
@@ -1273,13 +1222,13 @@ unsigned32                *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Deletes the inquiry context for viewing the elements in a local or
 **  remote endpoint map database.
 **
 **  INPUTS:             none
 **
-**  INPUTS/OUTPUTS:     
+**  INPUTS/OUTPUTS:
 **
 **      inquiry_context
 **
@@ -1299,18 +1248,12 @@ unsigned32                *status;
 **/
 
 PUBLIC void rpc_mgmt_ep_elt_inq_done
-#ifdef _DCE_PROTO_
 (
     rpc_ep_inq_handle_t     *inquiry_context,
     unsigned32              *status
 )
-#else
-(inquiry_context, status)
-rpc_ep_inq_handle_t     *inquiry_context;
-unsigned32              *status;
-#endif
 {
-    mgmt_ep_inq_rep_t       *chp; 
+    mgmt_ep_inq_rep_t       *chp;
     ept_entry_t             *entp;
     unsigned32              i;
 
@@ -1341,7 +1284,7 @@ unsigned32              *status;
     for (i = 0, entp = &(chp->entries[0]); i < chp->num_ents; i++, entp++)
         rpc__ep_mem_free ((pointer_t) entp->tower);
 
-    RPC_MEM_FREE(chp, RPC_C_MEM_INQ_REP); 
+    RPC_MEM_FREE(chp, RPC_C_MEM_INQ_REP);
 
     *inquiry_context = NULL;
 
@@ -1356,12 +1299,12 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**   
+**
 **  Removes server address information from an endpoint map database.
 **
 **  INPUTS:             none
 **
-**  INPUTS/OUTPUTS:     
+**  INPUTS/OUTPUTS:
 **
 **      input_binding
 **
@@ -1384,8 +1327,7 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_ep_unregister 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_ep_unregister
 (
     rpc_binding_handle_t    input_binding,
     rpc_if_id_p_t           if_id,
@@ -1393,14 +1335,6 @@ PUBLIC void rpc_mgmt_ep_unregister
     dce_uuid_p_t                object_uuid,
     unsigned32              *status
 )
-#else
-(input_binding, if_id, binding, object_uuid, status)
-rpc_binding_handle_t    input_binding;
-rpc_if_id_p_t           if_id;
-rpc_binding_handle_t    binding;
-uuid_p_t                object_uuid;
-unsigned32              *status;
-#endif
 {
     rpc_binding_handle_t        ep_binding;
     rpc_tower_ref_vector_p_t    tower_vec;
@@ -1426,7 +1360,7 @@ unsigned32              *status;
       NULL, /* server_epv */
       NULL /* manager epv */
     };
-    
+
     if (if_id == NULL)
     {
         *status = rpc_s_no_interfaces;
@@ -1477,9 +1411,9 @@ unsigned32              *status;
         object_speced = false;
         dce_uuid_create_nil(&UUID_NIL, &tmp_st);
         objp = &UUID_NIL;
-    }    
+    }
     else
-    {  
+    {
         object_speced = true;
         objp = object_uuid;
     }
@@ -1504,10 +1438,10 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**   
+**
 **  Return a binding to an endpoint mapper.
 **
-**  INPUTS: 
+**  INPUTS:
 **
 **      input_binding   Binding from which we should derive a binding on the
 **                      endpoint mapper.  Can be NULL to mean the endpoint
@@ -1533,18 +1467,11 @@ unsigned32              *status;
 **/
 
 INTERNAL void get_ep_binding
-#ifdef _DCE_PROTO_
 (
     rpc_binding_handle_t    input_binding,
     rpc_binding_handle_t    *output_binding,
     unsigned32              *status
 )
-#else
-(input_binding, output_binding, status)
-rpc_binding_handle_t    input_binding;
-rpc_binding_handle_t    *output_binding;
-unsigned32              *status;
-#endif
 {
     rpc_protseq_vector_t    *protseq_vector;
     unsigned_char_t         protseq_str[64];
@@ -1579,7 +1506,7 @@ unsigned32              *status;
             rpc__strncpy(protseq_str, protseq_vector->protseq[i], slen);
             rpc__strncpy(&protseq_str[slen], (unsigned_char_t *) ":", 1);
 
-            rpc_binding_from_string_binding(protseq_str, output_binding, status); 
+            rpc_binding_from_string_binding(protseq_str, output_binding, status);
             if (*status == rpc_s_ok)
                 break;
         }
@@ -1602,21 +1529,21 @@ unsigned32              *status;
          */
 
         RPC_BINDING_VALIDATE_CLIENT((rpc_binding_rep_p_t) input_binding, status);
-    
+
         rpc_binding_copy(input_binding, output_binding, status);
         if (*status != rpc_s_ok)
             return;
-        
+
         rpc_binding_reset(*output_binding, status);
         if (*status != rpc_s_ok)
-        { 
+        {
             rpc_binding_free(output_binding, &tmp_st);
             return;
         }
-    
+
         rpc_mgmt_set_com_timeout (*output_binding, rpc_c_binding_default_timeout, status);
         if (*status != rpc_s_ok)
-        { 
+        {
             rpc_binding_free(output_binding, &tmp_st);
             return;
         }
@@ -1624,7 +1551,7 @@ unsigned32              *status;
         rpc_binding_set_auth_info (*output_binding, NULL, rpc_c_authn_level_default,
                                     rpc_c_authn_none, NULL, rpc_c_authz_none, status);
         if (*status != rpc_s_ok)
-        { 
+        {
             rpc_binding_free(output_binding, &tmp_st);
             return;
         }
@@ -1640,10 +1567,10 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE
 **
 **  DESCRIPTION:
-**   
+**
 **  Return a binding to an endpoint mapper.
 **
-**  INPUTS: 
+**  INPUTS:
 **
 **      input_binding   Binding from which we should derive a binding on the
 **                      endpoint mapper.  Can be NULL to mean the endpoint
@@ -1668,18 +1595,11 @@ unsigned32              *status;
 **--
 **/
 PRIVATE void rpc_binding_to_epmap
-#ifdef _DCE_PROTO_
 (
     rpc_binding_handle_t    input_binding,
     rpc_binding_handle_t    *output_binding,
     unsigned32              *status
 )
-#else
-(input_binding, output_binding, status)
-rpc_binding_handle_t    input_binding;
-rpc_binding_handle_t    *output_binding;
-unsigned32              *status;
-#endif
 {
     get_ep_binding(input_binding, output_binding, status);
 }
@@ -1692,10 +1612,10 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**   
+**
 **  Convert a tower to an interface ID.
 **
-**  INPUTS: 
+**  INPUTS:
 **
 **      tower
 **
@@ -1719,24 +1639,17 @@ unsigned32              *status;
 **/
 
 INTERNAL void tower_to_if_id
-#ifdef _DCE_PROTO_
 (
     twr_p_t         tower,
     rpc_if_id_t     *if_id,
     unsigned32      *status
 )
-#else
-(tower, if_id, status)
-twr_p_t         tower;
-rpc_if_id_t     *if_id;
-unsigned32      *status;
-#endif
 {
     rpc_tower_ref_t *tref;
     unsigned32      tmp_st;
 
     rpc__tower_to_tower_ref(tower, &tref, status);
-    if (*status != rpc_s_ok) 
+    if (*status != rpc_s_ok)
         return;
 
     if (tref->count < RPC_C_NUM_RPC_FLOORS)
@@ -1810,7 +1723,7 @@ unsigned32      *status;
 **        binding       A partially bound server binding handle to resolve to
 **                      a fully bound server binding handle.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **        status        Returns the status code from the resolve binding
 **                      operation. This status code is a value that indicates
@@ -1829,7 +1742,7 @@ unsigned32      *status;
 **
 **  FUNCTION VALUE:     none
 **
-**  SIDE EFFECTS:       
+**  SIDE EFFECTS:
 **
 **      This routine does not check for concurrent use of the
 **      binding handle. It is up to the user of this routine to
@@ -1842,22 +1755,15 @@ unsigned32      *status;
 **--
 **/
 
-PUBLIC void rpc_ep_resolve_binding 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_ep_resolve_binding
 (
     rpc_binding_handle_t  binding_h,
     rpc_if_handle_t       if_spec_h,
     unsigned32            *status
 )
-#else
-(binding_h, if_spec_h, status)
-rpc_binding_handle_t  binding_h;
-rpc_if_handle_t       if_spec_h;
-unsigned32            *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
-    
+
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
     RPC_BINDING_VALIDATE_CLIENT (binding_rep, status);
@@ -1868,7 +1774,7 @@ unsigned32            *status;
 
     /*
      * Determine whther the specified binding handle is
-     * partially or fully bound.        
+     * partially or fully bound.
      */
     if (!binding_rep->addr_has_endpoint)
     {
@@ -1898,15 +1804,15 @@ unsigned32            *status;
 **
 **  DESCRIPTION:
 **
-**      Find the correct endpoint information and plug it into the 
+**      Find the correct endpoint information and plug it into the
 **      binding rep. This routine is called by rpc_ep_resolve_binding
 **      when the binding is not fully bound.
 **
-**      We first check the i/f spec to see if the endpoint information 
-**      is there to use. If not, we make an RPC call to the endpoint 
+**      We first check the i/f spec to see if the endpoint information
+**      is there to use. If not, we make an RPC call to the endpoint
 **      mapper on the node specified in the binding handle to obtain
-**      the endpoint information for the specified interface. Then we 
-**      plug in the endpoint (returned from ep_map()) in the binding 
+**      the endpoint information for the specified interface. Then we
+**      plug in the endpoint (returned from ep_map()) in the binding
 **      handle.
 **
 **
@@ -1914,7 +1820,7 @@ unsigned32            *status;
 **
 **      if_r            a pointer to the interface spec of interest
 **
-**  INPUTS/OUTPUTS:     
+**  INPUTS/OUTPUTS:
 **
 **      binding_r       a pointer to the binding rep which requires an endpoint
 **
@@ -1935,19 +1841,12 @@ unsigned32            *status;
 **--
 **/
 
-INTERNAL void ep_get_endpoint 
-#ifdef _DCE_PROTO_
+INTERNAL void ep_get_endpoint
 (
     rpc_if_rep_p_t          if_r,
     rpc_binding_rep_p_t     binding_r,
     unsigned32              *st
 )
-#else
-(if_r, binding_r, st)
-rpc_if_rep_p_t          if_r;
-rpc_binding_rep_p_t     binding_r;
-unsigned32              *st;
-#endif
 {
     unsigned32                  temp_status;
     unsigned_char_p_t           endpoint = NULL;
@@ -1966,10 +1865,10 @@ unsigned32              *st;
     volatile boolean32                   full_restore_flag = true;
     boolean32                   map_lookup;
     volatile boolean32                   free_prot_version = false;
-    idl_void_p_t            (*old_allocate) _DCE_PROTOTYPE_ (( idl_size_t ));
-    idl_void_p_t            (*tmp_allocate) _DCE_PROTOTYPE_ (( idl_size_t ));
-    void                    (*old_free) _DCE_PROTOTYPE_ ((idl_void_p_t ));
-    void                    (*tmp_free) _DCE_PROTOTYPE_ ((idl_void_p_t ));
+    idl_void_p_t            (*old_allocate)( idl_size_t );
+    idl_void_p_t            (*tmp_allocate)( idl_size_t );
+    void                    (*old_free)(idl_void_p_t );
+    void                    (*tmp_free)(idl_void_p_t );
 
 //	DO_NOT_CLOBBER(towers);
 	towers = NULL;
@@ -1977,7 +1876,7 @@ unsigned32              *st;
 	full_restore_flag = true;
 //	DO_NOT_CLOBBER(free_prot_version);
 	free_prot_version = true;
-	 
+	
     CODING_ERROR (st);
 
     rpc_addr = &binding_r->rpc_addr;
@@ -2025,7 +1924,7 @@ unsigned32              *st;
         rpc_binding_inq_object ((rpc_binding_handle_t) binding_r,
                                 &saved_object_uuid,
                                 st);
-        
+
         if (*st != rpc_s_ok)
         {
             return;
@@ -2039,7 +1938,7 @@ unsigned32              *st;
         rpc_mgmt_inq_com_timeout ((rpc_binding_handle_t) binding_r,
                                   &saved_timeout, st);
 
-        if (*st != rpc_s_ok) 
+        if (*st != rpc_s_ok)
         {
             return;
         }
@@ -2067,13 +1966,13 @@ unsigned32              *st;
         rpc_mgmt_set_com_timeout ((rpc_binding_handle_t) binding_r,
                                   rpc_c_binding_default_timeout, st);
 
-        if (*st != rpc_s_ok) 
+        if (*st != rpc_s_ok)
         {
             goto CLEANUP;
         }
 
         binding_r->auth_info = NULL;
-        
+
 
         /*
          * Construct a (fully-bound) handle to the Endpoint
@@ -2083,10 +1982,10 @@ unsigned32              *st;
          * endpoint associated with the EP interface
          * (for the designated protocol sequence).
          */
-        rpc__if_set_wk_endpoint ((rpc_if_rep_p_t) ept_v3_0_c_ifspec, 
-                                 rpc_addr, 
+        rpc__if_set_wk_endpoint ((rpc_if_rep_p_t) ept_v3_0_c_ifspec,
+                                 rpc_addr,
                                  st);
-        if (*st != rpc_s_ok) 
+        if (*st != rpc_s_ok)
         {
             goto CLEANUP;
         }
@@ -2105,7 +2004,7 @@ unsigned32              *st;
                                          &temp_prot_id,
                                          &temp_vers_major,
                                          &temp_vers_minor,
-                                         st); 
+                                         st);
 
            if (*st != rpc_s_ok)
            {
@@ -2136,14 +2035,14 @@ unsigned32              *st;
          */
         (*rpc_g_protocol_id[binding_r->protocol_id].binding_epv
          ->binding_changed) (binding_r, st);
-        
-        if (*st != rpc_s_ok) 
+
+        if (*st != rpc_s_ok)
         {
             goto CLEANUP;
         }
 
         binding_r->addr_has_endpoint = true;
-        
+
         /*
          * In order to lookup entries in the endpoint mapper
          * database we need to provide a map tower which it will
@@ -2190,11 +2089,11 @@ unsigned32              *st;
         /*
          * We want to get *all* of the compatible towers back from
          * the ep map so that we can randomly select one to provide
-         * an endpoint to the caller's binding handle. 
-         * We get all to the towers by allocating memory to hold 
+         * an endpoint to the caller's binding handle.
+         * We get all to the towers by allocating memory to hold
          * MAX_TOWERS compatible towers. If it turns out that
          * MAX_TOWERS is not sufficient, then we free the towers
-         * and try again allowing for MAX_TOWERS x 2 towers. 
+         * and try again allowing for MAX_TOWERS x 2 towers.
          * This continues ( x 3; x 4; ...) until we get them all
          * in one call.
          */
@@ -2230,10 +2129,10 @@ unsigned32              *st;
                  * allocation.
                  */
                rpc_ss_swap_client_alloc_free (
-                   rpc__ep_mem_alloc, rpc__ep_mem_free, 
+                   rpc__ep_mem_alloc, rpc__ep_mem_free,
                    &old_allocate, &old_free);
 
-                (*ept_v3_0_c_epv.ept_map) 
+                (*ept_v3_0_c_epv.ept_map)
                 ((rpc_binding_handle_t) binding_r,
                  &saved_object_uuid,
                  map_tower,
@@ -2244,16 +2143,16 @@ unsigned32              *st;
                  st);
 
                 /*
-                 * Restore the memory allocation scheme in effect before 
+                 * Restore the memory allocation scheme in effect before
                  * we got here
                  */
                 rpc_ss_swap_client_alloc_free (
-                    old_allocate, old_free, 
+                    old_allocate, old_free,
                     &tmp_allocate, &tmp_free);
 
                 /*
                  * If we got all  of the compatible bindings, we're
-                 * done with ep map. 
+                 * done with ep map.
                  * Otherwise, let's get rid of the ones returned (this was
                  * memory allocated by the stub) and we'll try again.
                  */
@@ -2267,9 +2166,9 @@ unsigned32              *st;
                     {
                         rpc__ep_mem_free ((pointer_t) towers[j]);
                     }
-                    
+
                     RPC_MEM_FREE (towers, RPC_C_MEM_TOWER);
-                    
+
                     /*
                      * So we'll know what to do for cleanup.
                      */
@@ -2282,7 +2181,7 @@ unsigned32              *st;
                     ((rpc_binding_handle_t) binding_r,
                      &map_lookup_handle,
                      &temp_status);
-                    
+
                     if (temp_status == rpc_s_call_cancelled)
                         dcethread_interrupt_throw(dcethread_self());
 
@@ -2294,12 +2193,12 @@ unsigned32              *st;
                     if (temp_status != rpc_s_ok)
                     {
                         RPC_DBG_PRINTF (rpc_e_dbg_general, 1,
-                                        ("(ep_get_endpoint) call_rep->none binding_rep->%x ept_lookup_handle_free returned %x\n", 
+                                        ("(ep_get_endpoint) call_rep->none binding_rep->%x ept_lookup_handle_free returned %x\n",
                                          binding_r, temp_status));
                     }
 #endif
                 }
-            } 
+            }
         }
         DCETHREAD_CATCH_ALL(THIS_CATCH)
         {
@@ -2309,7 +2208,7 @@ unsigned32              *st;
             *st = rpc_s_rpcd_comm_failure;
         }
         DCETHREAD_ENDTRY
-             
+
         if (*st != rpc_s_ok)
         {
             goto CLEANUP;
@@ -2366,9 +2265,9 @@ unsigned32              *st;
 
 #ifdef DEBUG
         RPC_DBG_PRINTF (rpc_e_dbg_general, 1,
-                        ("(ep_get_endpoint) call_rep->none binding_rep->%x endpoint mapper returned %s\n", 
+                        ("(ep_get_endpoint) call_rep->none binding_rep->%x endpoint mapper returned %s\n",
                          binding_r, endpoint));
-#endif        
+#endif
 
         /*
          * Notify the protocol service that the binding has changed.
@@ -2383,17 +2282,17 @@ unsigned32              *st;
 
         full_restore_flag = false;
     }
-  
+
 CLEANUP:
 
-    /* 
-     * If an error occurred, restore the caller's binding back to 
-     * its original condition before returning. 
+    /*
+     * If an error occurred, restore the caller's binding back to
+     * its original condition before returning.
      */
     if (full_restore_flag)
     {
         binding_r->addr_has_endpoint = false;
-        rpc__naf_addr_set_endpoint ((unsigned_char_p_t) "", rpc_addr, 
+        rpc__naf_addr_set_endpoint ((unsigned_char_p_t) "", rpc_addr,
             &temp_status);
     }
 
@@ -2468,7 +2367,7 @@ CLEANUP:
     if (tower_rpc_addr != NULL)
     {
         rpc__naf_addr_free (&tower_rpc_addr, &temp_status);
-        
+
         if (temp_status != rpc_s_ok)
         {
             goto EXIT;
@@ -2506,7 +2405,7 @@ EXIT:
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Wrapper around RPC_MEM_ALLOC to use in call to
 **  rpc_ss_swap_client_alloc_free.
 **
@@ -2531,15 +2430,10 @@ EXIT:
 **--
 **/
 
-INTERNAL idl_void_p_t rpc__ep_mem_alloc 
-#ifdef _DCE_PROTO_
+INTERNAL idl_void_p_t rpc__ep_mem_alloc
 (
  idl_size_t           size
 )
-#else
-(size)
-     idl_size_t size;
-#endif
 {
     idl_void_p_t             ptr;
 
@@ -2562,7 +2456,7 @@ INTERNAL idl_void_p_t rpc__ep_mem_alloc
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Wrapper around RPC_MEM_FREE to use in call to
 **  rpc_ss_swap_client_alloc_free.
 **
@@ -2578,22 +2472,17 @@ INTERNAL idl_void_p_t rpc__ep_mem_alloc
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     none  
+**  FUNCTION VALUE:     none
 **
 **  SIDE EFFECTS:       none
 **
 **--
 **/
 
-INTERNAL void rpc__ep_mem_free 
-#ifdef _DCE_PROTO_
+INTERNAL void rpc__ep_mem_free
 (
   pointer_t            ptr
 )
-#else
-(ptr)
-pointer_t            ptr;
-#endif
 {
     RPC_MEM_FREE (ptr, RPC_C_MEM_TOWER);
 }

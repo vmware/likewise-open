@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -59,15 +59,15 @@
 **
 **  INPUTS:                 none
 **
-**  INPUT/OUTPUTS:          
+**  INPUT/OUTPUTS:
 **
 **      floor               The tower floor to be freed.
 **                          Nulled on output.
 **  OUTPUTS:
 **
 **      status              Returns the status code from the floor free
-**                          operation.  This status code is a value 
-**                          that inidicates whether the routine completed 
+**                          operation.  This status code is a value
+**                          that inidicates whether the routine completed
 **                          successfully and, if not,
 **                          why.  Returns:
 **                              rpc_s_ok
@@ -83,17 +83,11 @@
 **--
 */
 
-PRIVATE void rpc__tower_flr_free 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_free
 (
     rpc_tower_floor_p_t     *floor,
     unsigned32              *status
 )
-#else
-(floor, status)
-rpc_tower_floor_p_t     *floor;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
 
@@ -103,7 +97,7 @@ unsigned32              *status;
      */
     if ((*floor)->free_twr_octet_flag)
     {
-        RPC_MEM_FREE ((*floor)->octet_string, 
+        RPC_MEM_FREE ((*floor)->octet_string,
                       RPC_C_MEM_TOWER_FLOOR_OCTET);
     }
 
@@ -130,7 +124,7 @@ unsigned32              *status;
 **
 **  INPUTS:
 **
-**      transfer_syntax     Data representation (transfer syntax) to 
+**      transfer_syntax     Data representation (transfer syntax) to
 **                          convert to a tower floor.
 **
 **  INPUT/OUTPUTS:          none
@@ -138,7 +132,7 @@ unsigned32              *status;
 **  OUTPUTS:
 **
 **      floor               The returned tower floor.
-**  
+**
 **      status              Returns the status code from the data
 **                          representation to floor operation.  This
 **                          status code is a value that inidicates whether
@@ -157,27 +151,20 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_from_drep 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_from_drep
 (
     rpc_syntax_id_p_t       transfer_syntax,
     rpc_tower_floor_p_t     *floor,
     unsigned32              *status
 )
-#else
-(transfer_syntax, floor, status)
-rpc_syntax_id_p_t       transfer_syntax;
-rpc_tower_floor_p_t     *floor;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
 
     /*
-     * Get the floor from the tower floor from uuid routine, passing 
+     * Get the floor from the tower floor from uuid routine, passing
      * it the uuid and version number of the transfer syntax.
      */
-    rpc__tower_flr_from_uuid (&(transfer_syntax->id), 
+    rpc__tower_flr_from_uuid (&(transfer_syntax->id),
                               (transfer_syntax->version) & 0x0000FFFF,
                               (transfer_syntax->version) >> 16,
                               floor,
@@ -209,10 +196,10 @@ unsigned32              *status;
 **  OUTPUTS:
 **
 **      floor               The returned tower floor.
-**  
+**
 **      status              Returns the status code from the interface id
-**                          to floor operation.  This status code is a 
-**                          value that inidicates whether the routine 
+**                          to floor operation.  This status code is a
+**                          value that inidicates whether the routine
 **                          completed successfully and, if not, why.
 **                          Returns:
 **                              status of the rpc__tower_flr_from_uuid routine.
@@ -228,28 +215,21 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_from_if_id 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_from_if_id
 (
     rpc_if_id_p_t           if_id,
     rpc_tower_floor_p_t     *floor,
     unsigned32              *status
 )
-#else
-(if_id, floor, status)
-rpc_if_id_p_t           if_id;
-rpc_tower_floor_p_t     *floor;
-unsigned32              *status;
-#endif
 {
 
     CODING_ERROR (status);
 
     /*
-     * Get the floor from tower floor from uuid routine, passing 
+     * Get the floor from tower floor from uuid routine, passing
      * it the uuid and version number of the interface identifier.
      */
-    rpc__tower_flr_from_uuid (&(if_id->uuid), 
+    rpc__tower_flr_from_uuid (&(if_id->uuid),
                               if_id->vers_major,
                               if_id->vers_minor,
                               floor,
@@ -276,7 +256,7 @@ unsigned32              *status;
 **  INPUTS:
 **
 **      rpc_protseq_id      The RPC protocol sequence id from which the
-**                          tower protocol id and version is obtained 
+**                          tower protocol id and version is obtained
 **                          to place in the tower floor.
 **
 **      protocol_version    The RPC protocol version to place in the tower.
@@ -286,10 +266,10 @@ unsigned32              *status;
 **  OUTPUTS:
 **
 **      floor               The returned tower floor.
-**  
+**
 **      status              Returns the status code from the protocol id
-**                          to floor operation.  This status code is a 
-**                          value that indicates whether the routine 
+**                          to floor operation.  This status code is a
+**                          value that indicates whether the routine
 **                          completed successfully and, if not, why.
 **                          Returns:
 **                              rpc_s_ok
@@ -305,21 +285,13 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_from_rpc_prot_id 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_from_rpc_prot_id
 (
     rpc_protseq_id_t        rpc_protseq_id,
     rpc_protocol_version_p_t protocol_version,
     rpc_tower_floor_p_t     *floor,
     unsigned32              *status
 )
-#else
-(rpc_protseq_id, floor, status)
-rpc_protseq_id_t        rpc_protseq_id;
-rpc_protocol_version_p_t protocol_version;
-rpc_tower_floor_p_t     *floor;
-unsigned32              *status;
-#endif
 {
     unsigned8       tower_protocol_id;
     unsigned16      prot_id_size,
@@ -366,15 +338,15 @@ unsigned32              *status;
      */
 
     /*
-     * Convert the prot_id_count to little endian 
+     * Convert the prot_id_count to little endian
      * representation and copy to the octet string.
      */
     twr_rep_16 = (*floor)->prot_id_count;
     RPC_RESOLVE_ENDIAN_INT16 (twr_rep_16);
-    memcpy ((char *)RPC_PROT_ID_COUNT (*floor), (char *)&twr_rep_16, 
+    memcpy ((char *)RPC_PROT_ID_COUNT (*floor), (char *)&twr_rep_16,
             RPC_C_TOWER_FLR_LHS_COUNT_SIZE);
 
-    
+
     /*
      * Obtain the RPC tower protocol id and minor version number
      */
@@ -391,16 +363,16 @@ unsigned32              *status;
     /*
      * Copy the RPC tower protocol id to the octet string.
      */
-    memcpy ((char *)RPC_PROT_ID_START (*floor), 
+    memcpy ((char *)RPC_PROT_ID_START (*floor),
             (char *)&tower_protocol_id, (*floor)->prot_id_count);
 
     /*
-     * Convert the address_count (rhs) to little endian 
+     * Convert the address_count (rhs) to little endian
      * representation and copy to the octet string.
      */
     twr_rep_16 = (*floor)->address_count;
     RPC_RESOLVE_ENDIAN_INT16 (twr_rep_16);
-    memcpy ((char *)RPC_ADDRESS_COUNT (*floor), (char *)&twr_rep_16, 
+    memcpy ((char *)RPC_ADDRESS_COUNT (*floor), (char *)&twr_rep_16,
             RPC_C_TOWER_FLR_RHS_COUNT_SIZE);
 
 
@@ -448,10 +420,10 @@ unsigned32              *status;
 **      uuid                The uuid to place in the protocol
 **                          identifier field of the tower floor.
 **
-**      version_major       The major version number to place in the 
+**      version_major       The major version number to place in the
 **                          protocol identifier field of the tower floor.
 **
-**      version_minor       The minor version number to place in the 
+**      version_minor       The minor version number to place in the
 **                          protocol identifier field of the tower floor.
 **
 **  INPUT/OUTPUTS:          none
@@ -459,10 +431,10 @@ unsigned32              *status;
 **  OUTPUTS:
 **
 **      floor               The returned tower floor.
-**  
-**      status              Returns the status code from the UUID 
-**                          to floor operation.  This status code is a 
-**                          value that indicates whether the routine 
+**
+**      status              Returns the status code from the UUID
+**                          to floor operation.  This status code is a
+**                          value that indicates whether the routine
 **                          completed successfully and, if not, why.
 **                          Returns:
 **                              rpc_s_ok
@@ -478,8 +450,7 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_from_uuid 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_from_uuid
 (
     dce_uuid_p_t                uuid,
     unsigned32              version_major,
@@ -487,14 +458,6 @@ PRIVATE void rpc__tower_flr_from_uuid
     rpc_tower_floor_p_t     *floor,
     unsigned32              *status
 )
-#else
-(uuid, version_major, version_minor, floor, status)
-uuid_p_t                uuid;
-unsigned32              version_major;
-unsigned32              version_minor;
-rpc_tower_floor_p_t     *floor;
-unsigned32              *status;
-#endif
 {
     byte_p_t        prot_id;
     unsigned16      address_size,
@@ -506,10 +469,10 @@ unsigned32              *status;
     CODING_ERROR (status);
 
     /*
-     * Encode the uuid and major version number into the 
+     * Encode the uuid and major version number into the
      * protocol identifier (lhs) for storage in the tower floor.
      */
-    rpc__tower_flr_id_from_uuid 
+    rpc__tower_flr_id_from_uuid
         (uuid, version_major, &prot_id_len, &prot_id, status);
 
     if (*status != rpc_s_ok)
@@ -550,13 +513,13 @@ unsigned32              *status;
      */
 
     /*
-     * Convert the prot_id count to to little endian 
+     * Convert the prot_id count to to little endian
      * representationt and copy to the octet string.
      */
     twr_rep_16 = (*floor)->prot_id_count;
     RPC_RESOLVE_ENDIAN_INT16 (twr_rep_16);
-    memcpy ((char *) RPC_PROT_ID_COUNT (*floor), 
-            (char *) &twr_rep_16, 
+    memcpy ((char *) RPC_PROT_ID_COUNT (*floor),
+            (char *) &twr_rep_16,
             RPC_C_TOWER_FLR_LHS_COUNT_SIZE);
 
 
@@ -573,12 +536,12 @@ unsigned32              *status;
     RPC_MEM_FREE (prot_id, RPC_C_MEM_TOWER_FLOOR_ID);
 
     /*
-     * Convert the address count to little endian 
+     * Convert the address count to little endian
      * representation and copy to the octet string.
      */
     twr_rep_16 = (*floor)->address_count;
     RPC_RESOLVE_ENDIAN_INT16 (twr_rep_16);
-    memcpy ((char *)RPC_ADDRESS_COUNT (*floor), (char *)&twr_rep_16, 
+    memcpy ((char *)RPC_ADDRESS_COUNT (*floor), (char *)&twr_rep_16,
             RPC_C_TOWER_FLR_RHS_COUNT_SIZE);
 
 
@@ -604,28 +567,28 @@ unsigned32              *status;
 **
 **  DESCRIPTION:
 **
-**  Creates a tower floor protocol identifier from a UUID 
+**  Creates a tower floor protocol identifier from a UUID
 **  and major version for storage in a tower floor.
 **
 **  INPUTS:
 **
-**      uuid            Pointer to the UUID to encode into the 
+**      uuid            Pointer to the UUID to encode into the
 **                      tower floor protocol identifier.
 **
-**      version_major   Major version number to encode into the 
+**      version_major   Major version number to encode into the
 **                      tower floor protocol identifier.
 **
 **  INPUT/OUTPUTS:      none
 **
 **  OUTPUTS:
-**      
+**
 **      prot_id_len     Returns the length of the tower floor protocol id.
 **
 **      prot_id         Returns the tower floor protocol identifier.
 **
 **      status          Returns the status code from the protocol id
-**                      from uuid operation.  This status code is a 
-**                      value that indicates whether the routine 
+**                      from uuid operation.  This status code is a
+**                      value that indicates whether the routine
 **                      completed successfully and, if not, why.
 **                      Returns:
 **                          rpc_s_ok
@@ -641,8 +604,7 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_id_from_uuid 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_id_from_uuid
 (
     dce_uuid_p_t        uuid,
     unsigned32      version_major,
@@ -650,15 +612,6 @@ PRIVATE void rpc__tower_flr_id_from_uuid
     byte_p_t        *prot_id,
     unsigned32      *status
 )
-#else
-(uuid, version_major, prot_id_len, prot_id, status)
-uuid_p_t        uuid;
-unsigned32      version_major;
-unsigned32      *prot_id_len;
-byte_p_t        *prot_id;
-unsigned32      *status;
-
-#endif
 {
 
     byte_t          prot_id_prefix = RPC_C_PROT_ID_PREFIX,
@@ -673,7 +626,7 @@ unsigned32      *status;
      * Calculate the length of the returned tower floor
      * protocol id.
      */
-    *prot_id_len = 
+    *prot_id_len =
         RPC_C_TOWER_PROT_ID_SIZE +        /* protocol id prefix (0x0D) */
         RPC_C_TOWER_UUID_SIZE +           /* UUID of interest          */
         RPC_C_TOWER_VERSION_SIZE;         /* major version number      */
@@ -691,7 +644,7 @@ unsigned32      *status;
      * Copy the RPC protocol id prefix.
      * One byte, no need to convert.
      */
-    memcpy ((char *)prot_id_p, (char *)&prot_id_prefix, 
+    memcpy ((char *)prot_id_p, (char *)&prot_id_prefix,
         RPC_C_TOWER_PROT_ID_SIZE);
     prot_id_p++;
 
@@ -709,7 +662,7 @@ unsigned32      *status;
      */
     tower_vers_major = (unsigned16) version_major;
     RPC_RESOLVE_ENDIAN_INT16 (tower_vers_major);
-    memcpy ((char *)prot_id_p, (char *)&tower_vers_major, 
+    memcpy ((char *)prot_id_p, (char *)&tower_vers_major,
         RPC_C_TOWER_VERSION_SIZE);
 
     *status = rpc_s_ok;
@@ -725,7 +678,7 @@ unsigned32      *status;
 **
 **  DESCRIPTION:
 **
-**  Converts a tower floor protocol identifier to a UUID 
+**  Converts a tower floor protocol identifier to a UUID
 **  and major version number.
 **
 **  INPUTS:
@@ -736,14 +689,14 @@ unsigned32      *status;
 **  INPUT/OUTPUTS:      none
 **
 **  OUTPUTS:
-**      
+**
 **      uuid            Returned UUID.
 **
 **      version_major   Returned major version number.
 **
 **      status          Returns the status code from the protocol id
-**                      to uuid operation.  This status code is a 
-**                      value that indicates whether the routine 
+**                      to uuid operation.  This status code is a
+**                      value that indicates whether the routine
 **                      completed successfully and, if not, why.
 **                      Returns:
 **                          rpc_s_ok
@@ -759,21 +712,13 @@ unsigned32      *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_id_to_uuid 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_id_to_uuid
 (
     byte_p_t        prot_id,
     dce_uuid_t          *uuid,
     unsigned32      *version_major,
     unsigned32      *status
 )
-#else
-(prot_id, uuid, version_major, status)
-byte_p_t        prot_id;
-dce_uuid_t          *uuid;
-unsigned32      *version_major;
-unsigned32      *status;
-#endif
 {
     byte_t          prot_id_prefix,
                     *prot_id_p;
@@ -790,7 +735,7 @@ unsigned32      *status;
      * Copy the protocol id prefix and compare with the expected value.
      * One byte, no conversion necessary.
      */
-    memcpy ((char *)&prot_id_prefix, (char *)prot_id_p, 
+    memcpy ((char *)&prot_id_prefix, (char *)prot_id_p,
         RPC_C_TOWER_PROT_ID_SIZE);
 
     if (prot_id_prefix != RPC_C_PROT_ID_PREFIX)
@@ -811,7 +756,7 @@ unsigned32      *status;
     /*
      * Copy the major version and resolve to host's endian.
      */
-    memcpy ((char *)&flr_vers_major, (char *)prot_id_p, 
+    memcpy ((char *)&flr_vers_major, (char *)prot_id_p,
         RPC_C_TOWER_VERSION_SIZE);
     RPC_RESOLVE_ENDIAN_INT16 (flr_vers_major);
 
@@ -844,7 +789,7 @@ unsigned32      *status;
 **
 **      transfer_syntax The returned transfer syntax.
 **
-**      status          Returns the status code from the floor to data 
+**      status          Returns the status code from the floor to data
 **                      representation operation.  This status code is a
 **                      value that indicates whether the routine completed
 **                      successfully and, if not, why.  Returns:
@@ -861,19 +806,12 @@ unsigned32      *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_to_drep 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_to_drep
 (
     rpc_tower_floor_p_t     floor,
     rpc_syntax_id_t         *transfer_syntax,
     unsigned32              *status
 )
-#else
-(floor, transfer_syntax, status)
-rpc_tower_floor_p_t     floor;
-rpc_syntax_id_t         *transfer_syntax;
-unsigned32              *status;
-#endif
 {
     unsigned32      version_major,
                     version_minor;
@@ -889,7 +827,7 @@ unsigned32              *status;
                             &version_major, &version_minor, status);
 
     /*
-     * Place the two version numbers into a single unsigned32 
+     * Place the two version numbers into a single unsigned32
      * version for the transfer syntax.
      */
      transfer_syntax->version = version_minor << 16;
@@ -940,19 +878,12 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_to_if_id 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_to_if_id
 (
     rpc_tower_floor_p_t     floor,
     rpc_if_id_t             *if_id,
     unsigned32              *status
 )
-#else
-(floor, if_id, status)
-rpc_tower_floor_p_t     floor;
-rpc_if_id_t             *if_id;
-unsigned32              *status;
-#endif
 {
     unsigned32          version_major,
                         version_minor;
@@ -1021,8 +952,7 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_to_rpc_prot_id 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_to_rpc_prot_id
 (
     rpc_tower_floor_p_t     floor,
     rpc_protocol_id_t       *rpc_protocol_id,
@@ -1030,14 +960,6 @@ PRIVATE void rpc__tower_flr_to_rpc_prot_id
     unsigned32              *version_minor,
     unsigned32              *status
 )
-#else
-(floor, rpc_protocol_id, version_major, version_minor, status)
-rpc_tower_floor_p_t     floor;
-rpc_protocol_id_t       *rpc_protocol_id;
-unsigned32              *version_major;
-unsigned32              *version_minor;
-unsigned32              *status;
-#endif
 {
     boolean             match;
     rpc_protseq_id_t    protseq_id;
@@ -1063,10 +985,10 @@ unsigned32              *status;
         protseq_id = RPC_PROTSEQ_INQ_PROTSEQ_ID (i);
 
         /*
-         * Get the network's 'tower' protocol id for this 
+         * Get the network's 'tower' protocol id for this
          * protocol sequence and return its major version.
          */
-        rpc__network_inq_prot_version (protseq_id, &network_prot_id, 
+        rpc__network_inq_prot_version (protseq_id, &network_prot_id,
             version_major, &temp_vers_minor, status);
 
         /*
@@ -1087,14 +1009,14 @@ unsigned32              *status;
         }
 
         /*
-         * Obtain the tower's protocol id and see if it 
+         * Obtain the tower's protocol id and see if it
          * matches the network's tower protocol id for this
-         * protocol sequence.  
+         * protocol sequence.
          *
-         * Note: protocol id is only one byte so no need to 
+         * Note: protocol id is only one byte so no need to
          * memcpy or convert to host representation.
          */
-        if ((unsigned8) *(RPC_PROT_ID_START(floor)) == 
+        if ((unsigned8) *(RPC_PROT_ID_START(floor)) ==
             (unsigned8) network_prot_id)
         {
             /*
@@ -1150,7 +1072,7 @@ unsigned32              *status;
 **
 **  INPUTS:
 **
-**      floor           The tower floor to convert to a UUID and 
+**      floor           The tower floor to convert to a UUID and
 **                      version numbers.
 **
 **  INPUT/OUTPUTS:      none
@@ -1181,8 +1103,7 @@ unsigned32              *status;
 **--
 */
 
-PRIVATE void rpc__tower_flr_to_uuid 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__tower_flr_to_uuid
 (
     rpc_tower_floor_p_t     floor,
     dce_uuid_t                  *uuid,
@@ -1190,14 +1111,6 @@ PRIVATE void rpc__tower_flr_to_uuid
     unsigned32              *version_minor,
     unsigned32              *status
 )
-#else
-(floor, uuid, version_major, version_minor, status)
-rpc_tower_floor_p_t     floor;
-dce_uuid_t                  *uuid;
-unsigned32              *version_major;
-unsigned32              *version_minor;
-unsigned32              *status;
-#endif
 {
     unsigned16          flr_vers_minor;
 
@@ -1207,7 +1120,7 @@ unsigned32              *status;
      * Decode the protocol identifier information into the uuid
      * and major version number compatible with the host architecture.
      */
-    rpc__tower_flr_id_to_uuid ((byte_p_t)RPC_PROT_ID_START (floor), 
+    rpc__tower_flr_id_to_uuid ((byte_p_t)RPC_PROT_ID_START (floor),
         uuid, version_major, status);
 
     if (*status != rpc_s_ok)
@@ -1216,7 +1129,7 @@ unsigned32              *status;
     }
 
     /*
-     * Obtain the address information (right hand side) from the 
+     * Obtain the address information (right hand side) from the
      * tower floor and convert to host's endian.
      */
     memcpy ((char *)&flr_vers_minor, (char *)RPC_ADDRESS_START (floor),

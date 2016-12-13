@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -52,18 +52,11 @@
 #endif
 
 void rpc_ss_marsh_change_buff
-#ifdef IDL_PROTOTYPES
 (
     rpc_ss_marsh_state_t    *msp,  /* Pointer to marshalling state block */
     unsigned long size_next_structure
                             /* Size of next structure to be marshalled */
 )
-#else
-( msp, size_next_structure )
-    rpc_ss_marsh_state_t    *msp;  /* Pointer to marshalling state block */
-    unsigned long size_next_structure;
-                            /* Size of next structure to be marshalled */
-#endif
 {
     ndr_byte *wp_buff;
     unsigned long req_buff_size;

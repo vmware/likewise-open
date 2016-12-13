@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -85,7 +85,7 @@ INTERNAL rpc_object_inq_fn_t inq_fn = NULL;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Initializes this module.
 **
 **  INPUTS:             none
@@ -107,15 +107,10 @@ INTERNAL rpc_object_inq_fn_t inq_fn = NULL;
 **--
 **/
 
-PRIVATE void rpc__obj_init 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__obj_init
 (
     unsigned32                  *status
 )
-#else
-(status)
-unsigned32                  *status;
-#endif
 {
     CODING_ERROR (status);
 
@@ -133,10 +128,10 @@ unsigned32                  *status;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Initializes this module.
 **
-**  INPUTS:             stage   The stage of the fork we are 
+**  INPUTS:             stage   The stage of the fork we are
 **                              currently handling.
 **
 **  INPUTS/OUTPUTS:     none
@@ -155,15 +150,10 @@ unsigned32                  *status;
 **/
 
 PRIVATE void rpc__obj_fork_handler
-#ifdef _DCE_PROTO_
 (
     rpc_fork_stage_id_t stage
 )
-#else
-(stage)
-rpc_fork_stage_id_t stage;
-#endif
-{   
+{
     unsigned32 i;
 
     switch ((int)stage)
@@ -172,13 +162,13 @@ rpc_fork_stage_id_t stage;
                 break;
         case RPC_C_POSTFORK_PARENT:
                 break;
-        case RPC_C_POSTFORK_CHILD:  
+        case RPC_C_POSTFORK_CHILD:
 
                 inq_fn = NULL;
-            
+
                 /*
                  * Empty the Object Registry Table
-                 */                                  
+                 */
                 for (i = 0; i < RPC_C_OBJ_REGISTRY_SIZE; i++)
                 {
                     obj_registry[i].next = NULL;
@@ -211,7 +201,7 @@ rpc_fork_stage_id_t stage;
 **  then be found using the results of a call to the rpc_server_register_if
 **  routine.
 **
-**  INPUTS:  
+**  INPUTS:
 **
 **      object_uuid     The object to be registered.
 **
@@ -239,24 +229,17 @@ rpc_fork_stage_id_t stage;
 **--
 **/
 
-PUBLIC void rpc_object_set_type 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_object_set_type
 (
     dce_uuid_p_t                object_uuid,
     dce_uuid_p_t                type_uuid,
     unsigned32              *status
 )
-#else
-(object_uuid, type_uuid, status)
-uuid_p_t                object_uuid;
-uuid_p_t                type_uuid;
-unsigned32              *status;
-#endif
 {
     rpc_obj_rgy_entry_p_t   obj_entry;
     unsigned32              index;
-    
-    
+
+
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
 
@@ -274,13 +257,13 @@ unsigned32              *status;
         *status = rpc_s_invalid_object;
         return;
     }
-    
+
     /*
      * compute a hash value using the object uuid - check the status
      * from dce_uuid_hash to make sure the uuid has a valid format
      */
     index = (dce_uuid_hash (object_uuid, status)) % RPC_C_OBJ_REGISTRY_SIZE;
-    
+
     if (*status != uuid_s_ok)
     {
         return;
@@ -334,7 +317,7 @@ unsigned32              *status;
                 sizeof (rpc_obj_rgy_entry_t),
                 RPC_C_MEM_OBJ_RGY_ENTRY,
                 RPC_C_MEM_WAITOK);
-            
+
             /*
              * initialize the entry
              */
@@ -388,8 +371,8 @@ unsigned32              *status;
 **  will execute, but the type UUID will not be returned. This can be
 **  useful to determine if an object is registered without requiring a
 **  return value to be supplied.
-** 
-**  INPUTS:  
+**
+**  INPUTS:
 **
 **      object_uuid     The object being looked up.
 **
@@ -416,19 +399,12 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_object_inq_type 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_object_inq_type
 (
     dce_uuid_p_t                object_uuid,
     dce_uuid_t                  *type_uuid,
     unsigned32              *status
 )
-#else
-(object_uuid, type_uuid, status)
-uuid_p_t                object_uuid;
-dce_uuid_t                  *type_uuid;
-unsigned32              *status;
-#endif
 {
     rpc_obj_rgy_entry_p_t   obj_entry;
     unsigned32              index;
@@ -543,17 +519,11 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_object_set_inq_fn 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_object_set_inq_fn
 (
     rpc_object_inq_fn_t     inq_fn_arg,
     unsigned32              *status
 )
-#else
-(inq_fn_arg, status)
-rpc_object_inq_fn_t     inq_fn_arg;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();

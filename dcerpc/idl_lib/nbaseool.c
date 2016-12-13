@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -54,23 +54,17 @@
 #endif
 
 void rpc_ss_m_uuid
-#ifdef IDL_PROTOTYPES
 (
 dce_uuid_t *p_node,
 rpc_ss_marsh_state_t *NIDL_msp
 )
-#else
-( p_node, NIDL_msp )
-dce_uuid_t *p_node;
-rpc_ss_marsh_state_t *NIDL_msp;
-#endif
 {
-  
+
   /* local variables */
   unsigned long space_for_node;
   rpc_mp_t mp;
   rpc_op_t op;
-  
+
 #ifdef PERFMON
     RPC_SS_M_UUID_N;
 #endif
@@ -93,7 +87,7 @@ rpc_ss_marsh_state_t *NIDL_msp;
   rpc_advance_mp(mp, 1);
   rpc_marshall_usmall_int(mp, (*p_node).clock_seq_low);
   rpc_advance_mp(mp, 1);
-  
+
 #ifdef PACKED_BYTE_ARRAYS
   memcpy((char *)mp, (char *)&(*p_node).node[0], (5-0+1)*1);
   rpc_advance_mp(mp, (5-0+1)*1);
@@ -118,18 +112,12 @@ rpc_ss_marsh_state_t *NIDL_msp;
 }
 
 void rpc_ss_u_uuid
-#ifdef IDL_PROTOTYPES
 (
 dce_uuid_t *p_node,
 rpc_ss_marsh_state_t *p_unmar_params
 )
-#else
-( p_node, p_unmar_params )
-dce_uuid_t *p_node;
-rpc_ss_marsh_state_t *p_unmar_params;
-#endif
 {
-  
+
   /* local variables */
   idl_byte *IDL_element_1;
 
@@ -138,65 +126,65 @@ rpc_ss_marsh_state_t *p_unmar_params;
 #endif
 
   rpc_align_mop(p_unmar_params->mp, p_unmar_params->op, 4);
-  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >= 
+  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >=
 p_unmar_params->p_rcvd_data->data_len)
   {
-    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h, 
+    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h,
 &(p_unmar_params->mp), &(*p_unmar_params->p_st));
   }
-  rpc_convert_ulong_int(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_ulong_int(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, (*p_node).time_low);
   rpc_advance_mp(p_unmar_params->mp, 4);
 
-  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >= 
+  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >=
 p_unmar_params->p_rcvd_data->data_len)
   {
-    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h, 
+    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h,
 &(p_unmar_params->mp), &(*p_unmar_params->p_st));
   }
-  rpc_convert_ushort_int(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_ushort_int(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, (*p_node).time_mid);
   rpc_advance_mp(p_unmar_params->mp, 2);
-  rpc_convert_ushort_int(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_ushort_int(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, (*p_node).time_hi_and_version);
   rpc_advance_mp(p_unmar_params->mp, 2);
 
-  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >= 
+  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >=
 p_unmar_params->p_rcvd_data->data_len)
   {
-    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h, 
+    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h,
 &(p_unmar_params->mp), &(*p_unmar_params->p_st));
   }
-  rpc_convert_usmall_int(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_usmall_int(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, (*p_node).clock_seq_hi_and_reserved);
   rpc_advance_mp(p_unmar_params->mp, 1);
-  rpc_convert_usmall_int(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_usmall_int(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, (*p_node).clock_seq_low);
   rpc_advance_mp(p_unmar_params->mp, 1);
   IDL_element_1 = &(*p_node).node[0];
-  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, IDL_element_1[0]);
   rpc_advance_mp(p_unmar_params->mp, 1);
-  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, IDL_element_1[1]);
   rpc_advance_mp(p_unmar_params->mp, 1);
 
-  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >= 
+  if ((unsigned32)((byte_p_t)p_unmar_params->mp - p_unmar_params->p_rcvd_data->data_addr) >=
 p_unmar_params->p_rcvd_data->data_len)
   {
-    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h, 
+    rpc_ss_new_recv_buff(p_unmar_params->p_rcvd_data, p_unmar_params->call_h,
 &(p_unmar_params->mp), &(*p_unmar_params->p_st));
   }
-  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, IDL_element_1[2]);
   rpc_advance_mp(p_unmar_params->mp, 1);
-  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, IDL_element_1[3]);
   rpc_advance_mp(p_unmar_params->mp, 1);
-  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, IDL_element_1[4]);
   rpc_advance_mp(p_unmar_params->mp, 1);
-  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep, 
+  rpc_convert_byte(p_unmar_params->src_drep, ndr_g_local_drep,
 p_unmar_params->mp, IDL_element_1[5]);
   rpc_advance_mp(p_unmar_params->mp, 1);
 

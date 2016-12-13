@@ -54,7 +54,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -161,13 +161,13 @@
 
 /***********************************************************************/
 /*
- * R P C _ C N _ A S S O C _ E V A L _ N E T W O R K _ E V E N T 
+ * R P C _ C N _ A S S O C _ E V A L _ N E T W O R K _ E V E N T
  *
  * This macro will be called by the network receiver thread when an
  * association network event is detected. The "scanned" bit in
  * the association is turned off. This bit is used in finding
  * associations to reclaim. The fragbuf is freed if provided as an
- * event parameter. 
+ * event parameter.
  */
 
 
@@ -213,7 +213,7 @@ __RPC_CN_ASSOC_EVAL_NETWORK_EVENT(
  *
  * This macro will be called when user level events are detected. If
  * the association status is bad then don't evaluate the user event.
- * The "scanned" bit in the association is turned off. 
+ * The "scanned" bit in the association is turned off.
  */
 void static inline
 __RPC_CN_ASSOC_EVAL_USER_EVENT(
@@ -273,7 +273,7 @@ __RPC_CN_ASSOC_EVAL_USER_EVENT(
  * State values are incremented by 100 to distinguish them from
  * action routine indexes which are all < 100.  This was done as
  * an efficiency measure to the engine, rpc__cn_sm_eval_event().
- */ 
+ */
 #define RPC_C_ASSOC_ABORT_REQ  		101  /* user         */
 #define RPC_C_ASSOC_NO_CONN_IND         104  /* network      */
 #define RPC_C_ASSOC_ALLOCATE_REQ        109  /* user         */
@@ -286,11 +286,11 @@ __RPC_CN_ASSOC_EVAL_USER_EVENT(
  *
  * Note: calls_done is 12 in the architecture. I'm
  * making it 13 here so local_error will be 12 and therefore the same
- * as the server local_error event. 
+ * as the server local_error event.
  *
  * Note: shutdown_ind is 11 in the architecture. I'm
  * making it 14 here so shutdown_req will be 11 and therefore the same
- * as the server shutdown_req event. 
+ * as the server shutdown_req event.
  */
 #define RPC_C_ASSOC_REQ		        100  /* user         */
 #define RPC_C_ASSOC_REQUEST_CONN_ACK    102  /* network      */
@@ -308,7 +308,7 @@ __RPC_CN_ASSOC_EVAL_USER_EVENT(
 /*
  * Note: alter_context_resp is 4 in the architecture. I'm
  * making it 5 here so no_conn_ind will be 4 and therefore the same
- * as the client no_conn_ind event. 
+ * as the client no_conn_ind event.
  *
  * Note: accept_resp is 1 in the architecture. I'm making
  * it 13 here so abort_req will be 1 and therefore the same as the
@@ -331,12 +331,12 @@ __RPC_CN_ASSOC_EVAL_USER_EVENT(
  */
 
 #define	RPC_C_CLIENT_ASSOC_CLOSED	        100
-#define RPC_C_CLIENT_ASSOC_CONNECT_WAIT         101 
+#define RPC_C_CLIENT_ASSOC_CONNECT_WAIT         101
 #define RPC_C_CLIENT_ASSOC_INIT_WAIT            102
 #define RPC_C_CLIENT_ASSOC_OPEN                 103
-#define RPC_C_CLIENT_ASSOC_ACTIVE               104 
-#define RPC_C_CLIENT_ASSOC_CALL_DONE_WAIT       105 
-#define RPC_C_CLIENT_ASSOC_STATES	        106 
+#define RPC_C_CLIENT_ASSOC_ACTIVE               104
+#define RPC_C_CLIENT_ASSOC_CALL_DONE_WAIT       105
+#define RPC_C_CLIENT_ASSOC_STATES	        106
 
 /***********************************************************************/
 /*
@@ -353,13 +353,13 @@ EXTERNAL char   *rpc_g_cn_assoc_client_states [];
 /*
  * S E R V E R   A S S O C   S T A T E S
  */
-#define RPC_C_SERVER_ASSOC_CLOSED               100 
-#define RPC_C_SERVER_ASSOC_REQUESTED            101 
-#define RPC_C_SERVER_ASSOC_AUTH3_WAIT           102 
-#define RPC_C_SERVER_ASSOC_AUTH3                103 
-#define RPC_C_SERVER_ASSOC_OPEN                 104 
-#define RPC_C_SERVER_ASSOC_WAIT			105 
-#define RPC_C_SERVER_ASSOC_STATES               106 
+#define RPC_C_SERVER_ASSOC_CLOSED               100
+#define RPC_C_SERVER_ASSOC_REQUESTED            101
+#define RPC_C_SERVER_ASSOC_AUTH3_WAIT           102
+#define RPC_C_SERVER_ASSOC_AUTH3                103
+#define RPC_C_SERVER_ASSOC_OPEN                 104
+#define RPC_C_SERVER_ASSOC_WAIT			105
+#define RPC_C_SERVER_ASSOC_STATES               106
 
 /***********************************************************************/
 /*

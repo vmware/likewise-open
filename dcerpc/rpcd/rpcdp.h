@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -55,16 +55,18 @@ EXTERNAL boolean32 dflag;
 typedef enum {warning, fatal, fatal_usage} check_mode_t;
 
 PRIVATE boolean32 check_st_bad
-    _DCE_PROTOTYPE_ ((
+   (
         char            *str,
         error_status_t  *st
-    ));
+    
+    );
 
 PRIVATE void show_st
-    _DCE_PROTOTYPE_ ((
+   (
         char            *str,
         error_status_t  *st
-    ));
+    
+    );
 
 #endif
 

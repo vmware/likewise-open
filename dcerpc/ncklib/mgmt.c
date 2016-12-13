@@ -17,7 +17,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -29,7 +29,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -52,7 +52,7 @@
 
 
 /*
- * Authorization function to use to check remote access. 
+ * Authorization function to use to check remote access.
  */
 
 INTERNAL rpc_mgmt_authorization_fn_t authorization_fn = NULL;
@@ -74,48 +74,55 @@ INTERNAL unsigned32 server_com_timeout;
  * of mgmt.idl).
  */
 
-INTERNAL void inq_if_ids _DCE_PROTOTYPE_ ((    
+INTERNAL void inq_if_ids(
         rpc_binding_handle_t     /*binding_h*/,
         rpc_if_id_vector_p_t    * /*if_id_vector*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-INTERNAL void inq_stats _DCE_PROTOTYPE_ ((            
+INTERNAL void inq_stats(
         rpc_binding_handle_t     /*binding_h*/,
         unsigned32              * /*count*/,
         unsigned32              statistics[],
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-INTERNAL boolean32 is_server_listening _DCE_PROTOTYPE_ ((            
+INTERNAL boolean32 is_server_listening(
         rpc_binding_handle_t     /*binding_h*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
 
-INTERNAL void inq_princ_name _DCE_PROTOTYPE_ ((            
+INTERNAL void inq_princ_name(
         rpc_binding_handle_t     /*binding_h*/,
         unsigned32               /*authn_proto*/,
         unsigned32               /*princ_name_size*/,
         idl_char                princ_name[],
         unsigned32              * /*status*/
-    ));
+    
+    );
 
 
 
 
-INTERNAL idl_void_p_t my_allocate _DCE_PROTOTYPE_ ((
+INTERNAL idl_void_p_t my_allocate(
         idl_size_t  /*size*/
-    ));
+    
+    );
 
-INTERNAL void my_free _DCE_PROTOTYPE_ ((
+INTERNAL void my_free(
         idl_void_p_t  /*ptr*/
-    ));
+    
+    );
 
-INTERNAL void remote_binding_validate _DCE_PROTOTYPE_ ((
+INTERNAL void remote_binding_validate(
         rpc_binding_handle_t     /*binding_h*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
 
 
@@ -127,7 +134,7 @@ INTERNAL void remote_binding_validate _DCE_PROTOTYPE_ ((
 **  SCOPE:              PRIVATE - declared in cominit.c
 **
 **  DESCRIPTION:
-**      
+**
 **  Initialize the management component. Register the remote management
 **  interface for the RPC runtime.
 **
@@ -167,18 +174,18 @@ PRIVATE unsigned32 rpc__mgmt_init(void)
         inq_princ_name
     };
 
-    
+
 
     /*
      * register the remote management interface with the runtime
      * as an internal interface
      */
     rpc__server_register_if_int
-        ((rpc_if_handle_t) mgmt_v1_0_s_ifspec, NULL, 
+        ((rpc_if_handle_t) mgmt_v1_0_s_ifspec, NULL,
         (rpc_mgr_epv_t) &mgmt_v1_0_mgr_epv, 0,
         rpc_c_listen_max_calls_default, -1, NULL,
         true, &status);
-                                   
+
     authorization_fn = NULL;
 
     server_com_timeout = rpc_c_binding_default_timeout;
@@ -194,7 +201,7 @@ PRIVATE unsigned32 rpc__mgmt_init(void)
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that inquires what the timeout
 **  value is in a binding.
 **
@@ -229,17 +236,17 @@ PRIVATE unsigned32 rpc__mgmt_init(void)
 **/
 
 PUBLIC void rpc_mgmt_inq_com_timeout (binding_handle, timeout, status)
-        
+
 rpc_binding_handle_t    binding_handle;
 unsigned32              *timeout;
 unsigned32              *status;
 
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_handle;
-    
+
 
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, status);
     if (*status != rpc_s_ok)
         return;
@@ -256,7 +263,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpcpvt.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that returns the default server-side
 **  com timeout setting.
 **
@@ -282,7 +289,7 @@ PUBLIC unsigned32 rpc_mgmt_inq_server_com_timeout (void)
 
 {
     RPC_VERIFY_INIT ();
-    
+
     return (server_com_timeout);
 }
 
@@ -295,7 +302,7 @@ PUBLIC unsigned32 rpc_mgmt_inq_server_com_timeout (void)
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local/Remote management function that obtains a vector of
 **  interface identifications listing the interfaces registered with the
 **  RPC runtime. If a server has not registered any interfaces this routine
@@ -330,27 +337,20 @@ PUBLIC unsigned32 rpc_mgmt_inq_server_com_timeout (void)
 **--
 **/
 
-PRIVATE void rpc_mgmt_inq_if_ids 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc_mgmt_inq_if_ids
 (
     rpc_binding_handle_t    binding_h,
     rpc_if_id_vector_p_t    *if_id_vector,
     unsigned32              *status
 )
-#else
-(binding_h, if_id_vector, status)
-rpc_binding_handle_t    binding_h;
-rpc_if_id_vector_p_t    *if_id_vector;
-unsigned32              *status;
-#endif
 {
-    idl_void_p_t            (*old_allocate) _DCE_PROTOTYPE_ ((idl_size_t));
-    idl_void_p_t            (*tmp_allocate) _DCE_PROTOTYPE_ ((idl_size_t));
-    void                    (*old_free) _DCE_PROTOTYPE_ ((idl_void_p_t));
-    void                    (*tmp_free) _DCE_PROTOTYPE_ ((idl_void_p_t));
+    idl_void_p_t            (*old_allocate)(idl_size_t);
+    idl_void_p_t            (*tmp_allocate)(idl_size_t);
+    void                    (*old_free)(idl_void_p_t);
+    void                    (*tmp_free)(idl_void_p_t);
 
     RPC_VERIFY_INIT ();
-    
+
     /*
      * if this is a local request, just do it locally
      */
@@ -379,7 +379,7 @@ unsigned32              *status;
 
         if (*status == rpc_s_call_cancelled)
             dcethread_interrupt_throw(dcethread_self());
-        
+
         /*
          * restore the memory allocation scheme in effect before we got here
          */
@@ -396,7 +396,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local/Remote management function that obtains statistics
 **  about the specified server from the RPC runtime. Each element in the
 **  returned argument contains an integer value which can be indexed using
@@ -429,19 +429,12 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_inq_stats 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_inq_stats
 (
     rpc_binding_handle_t    binding_h,
     rpc_stats_vector_p_t    *statistics,
     unsigned32              *status
 )
-#else
-(binding_h, statistics, status)
-rpc_binding_handle_t    binding_h;
-rpc_stats_vector_p_t    *statistics;
-unsigned32              *status;
-#endif
 {
     unsigned32              i;
 
@@ -452,15 +445,15 @@ unsigned32              *status;
      * statistics we know about and set the vector count to match
      * the size allocated.
      */
-    RPC_MEM_ALLOC (*statistics, rpc_stats_vector_p_t, 
+    RPC_MEM_ALLOC (*statistics, rpc_stats_vector_p_t,
                    sizeof (rpc_stats_vector_t)
                    + (sizeof ((*statistics)->stats) *
                       (rpc_c_stats_array_max_size - 1)),
                    RPC_C_MEM_STATS_VECTOR,
                    RPC_C_MEM_WAITOK);
     (*statistics)->count = rpc_c_stats_array_max_size;
-    
-    /*  
+
+    /*
      * If this is a local request, just do it locally.
      */
     if (binding_h == NULL)
@@ -478,20 +471,20 @@ unsigned32              *status;
                 (*rpc_g_protocol_id[i].mgmt_epv->mgmt_inq_calls_rcvd)();
 
                 (*statistics)->stats[rpc_c_stats_calls_out] +=
-                (*rpc_g_protocol_id[i].mgmt_epv->mgmt_inq_calls_sent)(); 
+                (*rpc_g_protocol_id[i].mgmt_epv->mgmt_inq_calls_sent)();
 
                 (*statistics)->stats[rpc_c_stats_pkts_in] +=
                 (*rpc_g_protocol_id[i].mgmt_epv->mgmt_inq_pkts_rcvd)();
 
                 (*statistics)->stats[rpc_c_stats_pkts_out] +=
-                (*rpc_g_protocol_id[i].mgmt_epv->mgmt_inq_pkts_sent)(); 
+                (*rpc_g_protocol_id[i].mgmt_epv->mgmt_inq_pkts_sent)();
             }
         }
         *status = rpc_s_ok;
     }
     else
     {
-    
+
         remote_binding_validate(binding_h, status);
         if (*status != rpc_s_ok)
             return;
@@ -499,8 +492,8 @@ unsigned32              *status;
         /*
          * Call the corresponding remote routine to get remote stats.
          */
-        (*mgmt_v1_0_c_epv.rpc__mgmt_inq_stats) (binding_h, 
-                                                &(*statistics)->count, 
+        (*mgmt_v1_0_c_epv.rpc__mgmt_inq_stats) (binding_h,
+                                                &(*statistics)->count,
                                                 &(*statistics)->stats[0],
                                                 status);
 
@@ -517,13 +510,13 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will free the statistics vector memory allocated by
 **  and returned by rpc_mgmt_inq_stats.
 **
 **  INPUTS:             none
 **
-**  INPUTS/OUTPUTS:    
+**  INPUTS/OUTPUTS:
 **
 **      stats           A pointer to a pointer to the stats vector.
 **                      The contents will be NULL on output.
@@ -545,17 +538,11 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_stats_vector_free 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_stats_vector_free
 (
     rpc_stats_vector_p_t    *statistics,
     unsigned32              *status
 )
-#else
-(statistics, status)
-rpc_stats_vector_p_t    *statistics;
-unsigned32              *status;
-#endif
 {
     RPC_MEM_FREE (*statistics, RPC_C_MEM_STATS_VECTOR);
     *statistics = NULL;
@@ -570,7 +557,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local/Remote management function that determines if the
 **  specified server is listening for remote procedure calls.
 **
@@ -602,22 +589,16 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC boolean32 rpc_mgmt_is_server_listening 
-#ifdef _DCE_PROTO_
+PUBLIC boolean32 rpc_mgmt_is_server_listening
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *status;
-#endif
 {
 
 
     RPC_VERIFY_INIT ();
-    
+
     /*
      * if this is a local request, just do it locally
      */
@@ -652,13 +633,13 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that sets the amount of time the
 **  RPC runtime is to wait for a server to acknowledge a cancel before
 **  orphaning the call. The application should specify to either wait
 **  forever or to wait the length of the time specified in seconds. If the
 **  value of seconds is 0 the remote procedure call is orphaned as soon as
-**  a cancel is received by the server and control returns immediately to 
+**  a cancel is received by the server and control returns immediately to
 **  the client application. The default is to wait forever for the call to
 **  complete.
 **
@@ -692,21 +673,15 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_set_cancel_timeout 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_set_cancel_timeout
 (
     signed32                seconds,
     unsigned32              *status
 )
-#else
-(seconds, status)
-signed32                seconds;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     /*
      * set the cancel timeout value in the per-thread context block
      * for this thread
@@ -722,7 +697,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - (SHOULD BE) declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that sets the amount of time the
 **  RPC runtime is to wait for a server to complete a call.  A timeout of
 **  0 means no max call execution time is imposed (this is the default).
@@ -766,27 +741,21 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_set_call_timeout _DCE_PROTOTYPE_ ((
+PUBLIC void rpc_mgmt_set_call_timeout(
         rpc_binding_handle_t     /*binding_h*/,
         unsigned32               /*seconds*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-PUBLIC void rpc_mgmt_set_call_timeout 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_set_call_timeout
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              seconds,
     unsigned32              *status
 )
-#else
-(binding_h, seconds, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              seconds;
-unsigned32              *status;
-#endif
 {
-    rpc_binding_rep_p_t binding_rep = (rpc_binding_rep_p_t) binding_h; 
+    rpc_binding_rep_p_t binding_rep = (rpc_binding_rep_p_t) binding_h;
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -807,7 +776,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that sets the RPC timeout for a
 **  binding. The timeout value is a metric indicating the relative amount
 **  of time retries to contact the server should be made. The value 10
@@ -854,30 +823,23 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_set_com_timeout 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_set_com_timeout
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              timeout,
     unsigned32              *status
 )
-#else
-(binding_h, timeout, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              timeout;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
 
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, status);
     if (*status != rpc_s_ok)
         return;
-    
+
     /*
      * see if the timeout value is valid
      */
@@ -890,7 +852,7 @@ unsigned32              *status;
             return;
         }
     }
-         
+
     /*
      * copy the new timeout value into the binding rep
      */
@@ -921,13 +883,13 @@ Note: there should be a dispatching routine in com...
 **  SCOPE:              PUBLIC - declared in rpcpvt.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that sets a default RPC timeout for
-**  all calls handled by a server.  The timeout value is a metric indicating 
-**  the relative amount of time retries to contact the client should be made. 
-**  The value 10 indicates an unbounded wait. A zero value indicates no wait. 
-**  Values 1-5 favor fast reponse time over correctness in determining whether 
-**  the client is alive. Values 6-9 favor correctness over response time. 
+**  all calls handled by a server.  The timeout value is a metric indicating
+**  the relative amount of time retries to contact the client should be made.
+**  The value 10 indicates an unbounded wait. A zero value indicates no wait.
+**  Values 1-5 favor fast reponse time over correctness in determining whether
+**  the client is alive. Values 6-9 favor correctness over response time.
 **
 **  INPUTS:
 **
@@ -961,22 +923,16 @@ Note: there should be a dispatching routine in com...
 **--
 **/
 
-PUBLIC void rpc_mgmt_set_server_com_timeout 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_set_server_com_timeout
 (
  unsigned32              timeout,
  unsigned32 * status
 )
-#else
-(timeout, status)
-unsigned32              timeout;
-unsigned32              *status;
-#endif
 {
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     /*
      * see if the timeout value is valid
      */
@@ -1003,7 +959,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local management function that sets the value that the
 **  RPC runtime is to use in specifying the the thread stack size when
 **  creating call threads. This value will be applied to all threads
@@ -1034,17 +990,11 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_set_server_stack_size 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_set_server_stack_size
 (
     unsigned32              thread_stack_size,
     unsigned32              *status
 )
-#else
-(thread_stack_size, status)
-unsigned32              thread_stack_size;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -1080,7 +1030,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local/Remote management function that directs a server to
 **  stop listening for remote procedure calls. On receipt of a stop listening
 **  request the RPC runtime stops accepting new remote procedure calls for all
@@ -1113,21 +1063,15 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_stop_server_listening 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_stop_server_listening
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *status;
-#endif
 {
 
     RPC_VERIFY_INIT ();
-    
+
     /*
      * if this is a local request, just do it locally
      */
@@ -1160,13 +1104,13 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a Local/Remote management function that directs a server to
-**  
-**  
-**  
-**  
-**  
+**
+**
+**
+**
+**
 **
 **  INPUTS:
 **
@@ -1193,21 +1137,13 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_inq_server_princ_name 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_inq_server_princ_name
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              authn_protocol,
     unsigned_char_p_t       *server_princ_name,
     unsigned32              *status
 )
-#else
-(binding_h, authn_protocol, server_princ_name, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              authn_protocol;
-unsigned_char_p_t       *server_princ_name;
-unsigned32              *status;
-#endif
 {
     unsigned32          dce_rpc_authn_protocol;
 
@@ -1216,7 +1152,7 @@ unsigned32              *status;
 
     RPC_AUTHN_CHECK_SUPPORTED (authn_protocol, status);
 
-    dce_rpc_authn_protocol = 
+    dce_rpc_authn_protocol =
         rpc_g_authn_protocol_id[authn_protocol].dce_rpc_authn_protocol_id;
 
     RPC_MEM_ALLOC (
@@ -1225,14 +1161,14 @@ unsigned32              *status;
         MAX_SERVER_PRINC_NAME_LEN,
         RPC_C_MEM_STRING,
         RPC_C_MEM_WAITOK);
-    
+
     /*
      * if this is a local request, just do it locally
      */
     if (binding_h == NULL)
     {
-        rpc__auth_inq_my_princ_name 
-            (dce_rpc_authn_protocol, MAX_SERVER_PRINC_NAME_LEN, 
+        rpc__auth_inq_my_princ_name
+            (dce_rpc_authn_protocol, MAX_SERVER_PRINC_NAME_LEN,
              *server_princ_name, status);
     }
     else
@@ -1248,9 +1184,9 @@ unsigned32              *status;
          * call the corresponding remote routine
          */
         (*mgmt_v1_0_c_epv.rpc__mgmt_inq_princ_name)
-            (binding_h, 
+            (binding_h,
              dce_rpc_authn_protocol,
-             MAX_SERVER_PRINC_NAME_LEN, 
+             MAX_SERVER_PRINC_NAME_LEN,
              *server_princ_name,
              status);
 
@@ -1272,7 +1208,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  A server application calls the rpc_mgmt_set_authorization_fn routine
 **  to specify an authorization function to control remote access to
 **  the server's remote management routines.
@@ -1301,17 +1237,11 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_mgmt_set_authorization_fn 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_set_authorization_fn
 (
     rpc_mgmt_authorization_fn_t authorization_fn_arg,
     unsigned32              *status
 )
-#else
-(authorization_fn_arg, status)
-rpc_mgmt_authorization_fn_t authorization_fn_arg;
-unsigned32              *status;
-#endif
 {
     RPC_VERIFY_INIT ();
     authorization_fn = authorization_fn_arg;
@@ -1326,7 +1256,7 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  This is the manager routine that provides remote access to the
 **  rpc_mgmt_inq_if_ids function.
 **
@@ -1356,26 +1286,19 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL void inq_if_ids 
-#ifdef _DCE_PROTO_
+INTERNAL void inq_if_ids
 (
     rpc_binding_handle_t    binding_h,
     rpc_if_id_vector_p_t    *if_id_vector,
     unsigned32              *status
 )
-#else
-(binding_h, if_id_vector, status)
-rpc_binding_handle_t    binding_h;
-rpc_if_id_vector_p_t    *if_id_vector;
-unsigned32              *status;
-#endif
 {
     rpc_if_id_vector_p_t    local_if_id_vector;
     unsigned32              index;
     unsigned32              temp_status;
-    
 
-    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_inq_if_ids, 
+
+    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_inq_if_ids,
                                true, status))
     {
         *if_id_vector = NULL;
@@ -1386,7 +1309,7 @@ unsigned32              *status;
      * call the corresponding local routine to get a local if id vector
      */
     rpc_mgmt_inq_if_ids (NULL, &local_if_id_vector, status);
-    
+
     if (*status != rpc_s_ok)
     {
         *if_id_vector = NULL;
@@ -1411,7 +1334,7 @@ unsigned32              *status;
      * set the count field in the output vector
      */
     (*if_id_vector)->count = local_if_id_vector->count;
-    
+
     /*
      * walk the local vector and for each element create a copy in the
      * output vector
@@ -1420,7 +1343,7 @@ unsigned32              *status;
     {
         (*if_id_vector)->if_id[index] = (rpc_if_id_p_t)
             rpc_ss_allocate (sizeof (rpc_if_id_t));
-            
+
         if ((*if_id_vector)->if_id[index] == NULL)
         {
             /*
@@ -1435,9 +1358,9 @@ unsigned32              *status;
             {
                 rpc_ss_free ((char *) (*if_id_vector)->if_id[--index]);
             }
-            
+
             rpc_ss_free ((char *) *if_id_vector);
-            
+
             *if_id_vector = NULL;
             *status = rpc_s_no_memory;
             return;
@@ -1446,11 +1369,11 @@ unsigned32              *status;
         /*
          * Copy the the entry in the local vector to the output vector.
          */
-        (*if_id_vector)->if_id[index]->uuid = 
+        (*if_id_vector)->if_id[index]->uuid =
             local_if_id_vector->if_id[index]->uuid;
-        (*if_id_vector)->if_id[index]->vers_major = 
+        (*if_id_vector)->if_id[index]->vers_major =
             local_if_id_vector->if_id[index]->vers_major;
-        (*if_id_vector)->if_id[index]->vers_minor = 
+        (*if_id_vector)->if_id[index]->vers_minor =
             local_if_id_vector->if_id[index]->vers_minor;
     }
 
@@ -1473,7 +1396,7 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in mgmtp.h
 **
 **  DESCRIPTION:
-**      
+**
 **  This is the manager routine that provides remote access to the
 **  rpc_mgmt_stop_server_listening function.  This routine is PRIVATE
 **  instead of INTERNAL so it can be used by the RRPC i/f as well.
@@ -1501,19 +1424,13 @@ unsigned32              *status;
 **--
 **/
 
-PRIVATE void rpc__mgmt_stop_server_lsn_mgr 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__mgmt_stop_server_lsn_mgr
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *status;
-#endif
 {
-    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_stop_server_listen, 
+    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_stop_server_listen,
                                false, status))
     {
         return;
@@ -1530,7 +1447,7 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  This is the manager routine that provides remote access to the
 **  rpc_mgmt_inq_stats function.
 **
@@ -1538,7 +1455,7 @@ unsigned32              *status;
 **
 **      binding_h       The binding handle for this remote call.
 **
-**  INPUTS/OUTPUTS:     
+**  INPUTS/OUTPUTS:
 **
 **      count           The maximum size of the array on input and
 **                      the actual size of the array on output.
@@ -1562,27 +1479,19 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL void inq_stats 
-#ifdef _DCE_PROTO_
+INTERNAL void inq_stats
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *count,
     unsigned32              statistics[],
     unsigned32              *status
 )
-#else
-(binding_h, count, statistics, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *count;
-unsigned32              statistics[];
-unsigned32              *status;
-#endif
 {
     rpc_stats_vector_p_t        stats_vector;
     unsigned32                  temp_status;
     unsigned32                  i;
 
-    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_inq_stats, 
+    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_inq_stats,
                                true, status))
     {
         *count = 0;
@@ -1598,7 +1507,7 @@ unsigned32              *status;
         *count = 0;
         return;
     }
-     
+
     *count = stats_vector->count;
 
     for (i = 0; i < *count; i++)
@@ -1616,7 +1525,7 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  This is the manager routine that returns true if it is ever executed to
 **  indicate that the server is listening for remote calls.
 **
@@ -1646,19 +1555,13 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL boolean32 is_server_listening 
-#ifdef _DCE_PROTO_
+INTERNAL boolean32 is_server_listening
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *status;
-#endif
 {
-    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_is_server_listen, 
+    if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_is_server_listen,
                                true, status))
     {
         return (false);     /* Sort of pointless, since we're answering anyway */
@@ -1679,7 +1582,7 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  This is a manager routine that provides a remote caller with the
 **  principal name (really one of the principal names) for a server.
 **
@@ -1713,8 +1616,7 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL void inq_princ_name 
-#ifdef _DCE_PROTO_
+INTERNAL void inq_princ_name
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              authn_proto,
@@ -1722,14 +1624,6 @@ INTERNAL void inq_princ_name
     idl_char                princ_name[],
     unsigned32              *status
 )
-#else
-(binding_h, authn_proto, princ_name_size, princ_name, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              authn_proto;
-unsigned32              princ_name_size;
-idl_char                princ_name[];
-unsigned32              *status;
-#endif
 {
     if (! rpc__mgmt_authorization_check (binding_h, rpc_c_mgmt_inq_princ_name,
                                true, status))
@@ -1738,10 +1632,10 @@ unsigned32              *status;
         return;
     }
 
-    rpc__auth_inq_my_princ_name 
+    rpc__auth_inq_my_princ_name
         (authn_proto, princ_name_size, (unsigned_char_p_t) princ_name, status);
 
-    if (*status != rpc_s_ok) 
+    if (*status != rpc_s_ok)
     {
         princ_name[0] = '\0';
     }
@@ -1756,7 +1650,7 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in mgmtp.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Routine to check whether a management operation is allowed.  This
 **  routine is PRIVATE instead of INTERNAL so it can be used by the RRPC
 **  i/f as well.
@@ -1767,11 +1661,11 @@ unsigned32              *status;
 **
 **      op              Management operation in question
 **
-**      deflt           What to return in there's no authorization function set 
+**      deflt           What to return in there's no authorization function set
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **      status          A value indicating the status of the routine.
 **
@@ -1788,21 +1682,13 @@ unsigned32              *status;
 **--
 **/
 
-PRIVATE boolean32 rpc__mgmt_authorization_check 
-#ifdef _DCE_PROTO_
+PRIVATE boolean32 rpc__mgmt_authorization_check
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              op,
     boolean32               deflt,
     unsigned32              *status
 )
-#else
-(binding_h, op, deflt, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              op;
-boolean32               deflt;
-unsigned32              *status;
-#endif
 {
     if (authorization_fn == NULL)
     {
@@ -1832,7 +1718,7 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Wrapper around RPC_MEM_ALLOC to use in call to
 **  rpc_ss_swap_client_alloc_free.
 **
@@ -1857,15 +1743,10 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL idl_void_p_t my_allocate 
-#ifdef _DCE_PROTO_
+INTERNAL idl_void_p_t my_allocate
 (
     idl_size_t           size
 )
-#else
-(size)
-     idl_size_t size;
-#endif
 {
     idl_void_p_t             ptr;
 
@@ -1888,7 +1769,7 @@ INTERNAL idl_void_p_t my_allocate
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Wrapper around RPC_MEM_FREE to use in call to
 **  rpc_ss_swap_client_alloc_free.
 **
@@ -1904,22 +1785,17 @@ INTERNAL idl_void_p_t my_allocate
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     none  
+**  FUNCTION VALUE:     none
 **
 **  SIDE EFFECTS:       none
 **
 **--
 **/
 
-INTERNAL void my_free 
-#ifdef _DCE_PROTO_
+INTERNAL void my_free
 (
     idl_void_p_t            ptr
 )
-#else
-(ptr)
-idl_void_p_t            ptr;
-#endif
 {
     RPC_MEM_FREE (ptr, RPC_C_MEM_STRING);
 }
@@ -1933,7 +1809,7 @@ idl_void_p_t            ptr;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Function to make sure a binding is sensible to use as a parameter to
 **  one of the local/remote mgmt calls.  "Sensible" means (a) it's a
 **  client binding, and (b) it has at least one of an object UUID or an
@@ -1954,24 +1830,18 @@ idl_void_p_t            ptr;
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     none  
+**  FUNCTION VALUE:     none
 **
 **  SIDE EFFECTS:       none
 **
 **--
 **/
 
-INTERNAL void remote_binding_validate 
-#ifdef _DCE_PROTO_
+INTERNAL void remote_binding_validate
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t binding_rep = (rpc_binding_rep_p_t) binding_h;
 

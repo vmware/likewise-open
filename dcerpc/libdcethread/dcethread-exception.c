@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -32,7 +32,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -49,7 +49,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 
 #include <config.h>
@@ -123,13 +123,13 @@ default_uncaught_handler(dcethread_exc* exc, const char* file, unsigned int line
 #ifdef HAVE_BACKTRACE_SYMBOLS_FD
         void* buffer[256];
         int size;
-        
+
         size = backtrace(buffer, 256);
 
         fprintf(stderr, "Backtrace:\n");
         backtrace_symbols_fd(buffer, size, fileno(stderr));
 #endif
-        abort();        
+        abort();
     }
 
     pthread_exit(0);
@@ -192,11 +192,11 @@ dcethread__frame_push(dcethread_frame* frame)
 
     dcethread__init();
     cur = pthread_getspecific(frame_key);
-    
+
     memset(pframe, 0, sizeof(*frame));
 
     frame->parent = cur;
-    
+
     DCETHREAD_TRACE("dcethread__frame_push:  TID=%p frame=%p parent=%p", dcethread_self(), frame, cur);
     pthread_setspecific(frame_key, (void*) frame);
 }
@@ -292,7 +292,7 @@ dcethread__exc_raise(dcethread_exc* exc, const char* file, unsigned int line)
 void
 dcethread__exc_handle_interrupt(dcethread* thread, void* data)
 {
-    DCETHREAD_TRACE("dcethread__exc_raise: Thread %p longjmp %p", 
+    DCETHREAD_TRACE("dcethread__exc_raise: Thread %p longjmp %p",
                     thread, ((struct _dcethread_frame*) pthread_getspecific(frame_key))->jmpbuf);
     dcethread__exc_raise((dcethread_exc*) data, NULL, 0);
 }

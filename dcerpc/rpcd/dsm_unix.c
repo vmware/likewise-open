@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -24,7 +24,7 @@
  */
 
 /*
- *  OSF DCE Version 1.0 
+ *  OSF DCE Version 1.0
  */
 
 /*
@@ -61,13 +61,13 @@ public int dsm__flush_file (fd)
 int fd;
 {
     return (fsync(fd));
-} 
+}
 
 /*
  *  dsm__lock_file (fd)
  *
- *  Locks the given open fd such that other DSM instances will not be able 
- *  to open it (to lock it).  File locking varies from system to system; 
+ *  Locks the given open fd such that other DSM instances will not be able
+ *  to open it (to lock it).  File locking varies from system to system;
  *  currently BSD and SYS5 are supported.
  */
 
@@ -101,5 +101,5 @@ error_status_t *st;
             (*st) = dsm_err_file_io_error;
     }
     else (*st) = status_ok;
-} 
+}
 

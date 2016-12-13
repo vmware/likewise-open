@@ -16,7 +16,7 @@ int dcethread__set_errno(int err);
             return dcethread__set_errno(EINTR);                         \
         }                                                               \
     } while (0)
-        
+
 #define DCETHREAD_END_SYSCALL                                           \
     do                                                                  \
     {                                                                   \
@@ -48,5 +48,5 @@ int dcethread__set_errno(int err);
 	    dcethread__exc_raise(dcethread__exc_from_errno(errno), __FILE__, __LINE__); \
 	return ret;							\
     } while (0);							\
-	      
+	
 #endif

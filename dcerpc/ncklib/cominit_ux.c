@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  * Copyright (c) 1983, 1993
@@ -61,7 +61,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -143,7 +143,7 @@ PRIVATE void rpc__register_authn_protocol(rpc_authn_protocol_id_elt_p_t auth, in
 {
         int i;
         for (i=0; i<number; i++)        {
-                RPC_DBG_PRINTF(rpc_es_dbg_general, 1, ("Register authn protocol 0x%0x\n", auth[i].authn_protocol_id));        
+                RPC_DBG_PRINTF(rpc_es_dbg_general, 1, ("Register authn protocol 0x%0x\n", auth[i].authn_protocol_id));
 
                 memcpy(&rpc_g_authn_protocol_id[auth[i].authn_protocol_id],
                                 &auth[i],
@@ -157,7 +157,7 @@ PRIVATE void rpc__register_protseq(rpc_protseq_id_elt_p_t elt, int number)
 {
         int i;
         for (i=0; i<number; i++)        {
-                RPC_DBG_PRINTF(rpc_es_dbg_general, 1, ("Register protseq 0x%0x %s\n", elt[i].rpc_protseq_id, elt[i].rpc_protseq));        
+                RPC_DBG_PRINTF(rpc_es_dbg_general, 1, ("Register protseq 0x%0x %s\n", elt[i].rpc_protseq_id, elt[i].rpc_protseq));
                 memcpy(&rpc_g_protseq_id[elt[i].rpc_protseq_id],
                                 &elt[i],
                                 sizeof(rpc_protseq_id_elt_t));
@@ -170,12 +170,12 @@ PRIVATE void rpc__register_tower_prot_id(rpc_tower_prot_ids_p_t tower_prot, int 
         int i;
         for (i=0; i<number; i++) {
                 rpc_tower_prot_ids_p_t tower = &tower_prot[i];
-                
+
                 RPC_DBG_PRINTF(rpc_es_dbg_general, 1,
                                 ("Register tower protocol for %s\n",
                                          rpc_g_protseq_id[tower->rpc_protseq_id].rpc_protseq
                                 )
-                );        
+                );
 
                 memcpy(&rpc_g_tower_prot_ids[rpc_g_tower_prot_id_number],
                                 tower, sizeof(rpc_tower_prot_ids_t));
@@ -189,7 +189,7 @@ PRIVATE void rpc__register_protocol_id(rpc_protocol_id_elt_p_t prot, int number)
         int i;
         for (i=0; i<number; i++)        {
                 RPC_DBG_PRINTF(rpc_es_dbg_general, 1,
-                                ("Register protocol id 0x%x\n", prot[i].rpc_protocol_id));        
+                                ("Register protocol id 0x%x\n", prot[i].rpc_protocol_id));
 
 
                 memcpy(&rpc_g_protocol_id[prot[i].rpc_protocol_id],
@@ -203,7 +203,7 @@ PRIVATE void rpc__register_naf_id(rpc_naf_id_elt_p_t naf, int number)
         int i;
         for (i=0; i < number; i++)        {
                 RPC_DBG_PRINTF(rpc_es_dbg_general, 1,
-                                ("Register network address family id 0x%x\n", naf[i].naf_id));        
+                                ("Register network address family id 0x%x\n", naf[i].naf_id));
 
 
                 memcpy(&rpc_g_naf_id[naf[i].naf_id],
@@ -263,7 +263,7 @@ PRIVATE void rpc__load_modules(void)
 
         rpc_g_authn_protocol_id[rpc_c_authn_none].authn_protocol_id = rpc_c_authn_none;
         rpc_g_authn_protocol_id[rpc_c_authn_none].dce_rpc_authn_protocol_id = dce_c_rpc_authn_protocol_none;
-        
+
         /* Load static modules */
         for (i = 0; i < sizeof(rpc__g_static_modules) / sizeof(rpc__g_static_modules[0]); i++)
         {
@@ -277,7 +277,7 @@ PRIVATE void rpc__load_modules(void)
 
                 sprintf(buf, "%s/%s", IMAGE_DIR, namelist[i]->d_name);
 
-                RPC_DBG_PRINTF(rpc_es_dbg_general, 1, ("Loading module %s\n", buf));        
+                RPC_DBG_PRINTF(rpc_es_dbg_general, 1, ("Loading module %s\n", buf));
 
 #ifdef RTLD_LAZY
                 /* Allow lazy symbol binding */
@@ -293,11 +293,11 @@ PRIVATE void rpc__load_modules(void)
                 if (image != NULL)
                 {
                         void (*init_func)(void);
-                        
+
                         init_func = dlsym(image, "rpc__module_init_func");
                         if (init_func != NULL)
                                 (*init_func)();
-                        else                        
+                        else
                                 dlclose(image);
                 }
                 else
@@ -321,7 +321,7 @@ PRIVATE void rpc__load_modules(void)
 
 
 
-/* 
+/*
  * Routines for loading Network Families and Protocol Families as shared
  * images.  i.e., VMS
  */

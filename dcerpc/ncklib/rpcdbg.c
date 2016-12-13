@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -52,7 +52,7 @@
  */
 
 GLOBAL unsigned8 rpc_g_dbg_switches[RPC_C_DBG_SWITCHES];
-      
+
 /*
  * string buffer used by uuid_string()
  */
@@ -81,7 +81,7 @@ INTERNAL char         uuid_string_buff[40];
  * can process is: "1-5.7,6.3,9.5". *
  *
  * This code largely cribbed from sendmail's "tTflag" function, which is...
- * 
+ *
  * Copyright (c) 1988 Regents of the University of California.
  * All rights reserved.
  *
@@ -97,17 +97,11 @@ INTERNAL char         uuid_string_buff[40];
  *  Berkeley, California
  */
 
-PUBLIC void rpc__dbg_set_switches 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc__dbg_set_switches
 (
     char            *s ATTRIBUTE_UNUSED,
     unsigned32      *status
 )
-#else
-(s, status)
-char            *s;
-unsigned32      *status;
-#endif
 {
 #ifndef DEBUG
 
@@ -118,7 +112,7 @@ unsigned32      *status;
     int         first, last;
     register int i;
 
-    *status = rpc_s_ok; 
+    *status = rpc_s_ok;
 
     for (;;)
     {
@@ -196,7 +190,7 @@ unsigned32      *status;
  * The last choice is to use the "old" notation. In this case also you
  * can't use prototypes.
  *
- * Only support the stdargs form 
+ * Only support the stdargs form
  */
 PRIVATE int rpc__printf (char *format, ...)
 {
@@ -259,21 +253,14 @@ PRIVATE int rpc__printf (char *format, ...)
  *
  */
 
-PRIVATE void rpc__die 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__die
 (
     char            *text,
     char            *file,
     int             line
 )
-#else
-(text, file, line)
-char            *text;
-char            *file;
-int             line;
-#endif
 {
-#ifndef FILE_SEPARATOR_CHAR 
+#ifndef FILE_SEPARATOR_CHAR
 #define FILE_SEPARATOR_CHAR '/'
 /*#error  "FILE_SEPARATOR_CHAR not defined!"*/
 #endif
@@ -304,15 +291,10 @@ int             line;
  * Return a pointer to a printed UUID.
  */
 
-PRIVATE char *rpc__uuid_string 
-#ifdef _DCE_PROTO_
+PRIVATE char *rpc__uuid_string
 (
     dce_uuid_t          *uuid ATTRIBUTE_UNUSED
 )
-#else
-(uuid)
-dce_uuid_t          *uuid;
-#endif
 {
 #ifndef DEBUG
 

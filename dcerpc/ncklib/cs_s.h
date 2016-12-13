@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -46,7 +46,7 @@
 #define UCS2_L2		0x0010101
 
 /*
- * When rpc_ns_mgmt_*** routines are extended in the future to, 
+ * When rpc_ns_mgmt_*** routines are extended in the future to,
  * deal with attributes other than code sets, the new attribute
  * specifier needs to be added here.
  */
@@ -73,7 +73,7 @@
 #define	RPC_EVAL_UNIVERSAL_MODEL	0x0006
 
 
-/* 
+/*
  * Extension to an import context handle.  The new field 'eval_routines'
  * in 'rpc_lkup_rep_t' will be the following data structure.
  */
@@ -111,11 +111,9 @@ typedef struct codeset_i14y_data {
  * to be used by application developers.  Only runtime uses it.
  */
 extern void rpc_cs_binding_set_method (
-#ifdef IDL_PROTOTYPES
     /* [in, out] */ rpc_binding_handle_t *h,
     /* [in] */ rpc_cs_method_eval_p_t method_p,
     /* [out] */ error_status_t *status
-#endif
 );
 
 
@@ -123,7 +121,7 @@ extern void rpc_cs_binding_set_method (
  * prototype declarations for locally defined routines
  */
 extern void stub_conversion
-    _DCE_PROTOTYPE_ ((
+   (
 	rpc_binding_handle_t	h,
 	boolean32		server_side,
 	unsigned32		from_tag,
@@ -133,7 +131,8 @@ extern void stub_conversion
 	byte_t			*conv_wdata,
 	unsigned32		*conv_p_w_data_len,
 	error_status_t		*status
-    ));
+    
+    );
 
 /*
  * Well-known UUID for code set attribute

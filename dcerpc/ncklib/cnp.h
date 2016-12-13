@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -49,9 +49,9 @@
 
 /*
  * CN internal status codes. These will not be passed out of CN.
- *	RPC_C_CN_STATEBASE:  determines base value for the state 
- *			     and this value is used to quickly determine 
- *			     by the state evaluation routine, whether a 
+ *	RPC_C_CN_STATEBASE:  determines base value for the state
+ *			     and this value is used to quickly determine
+ *			     by the state evaluation routine, whether a
  *			     value is a state or action.
  */
 #define RPC_S_HEADER_FULL               0x0001beef
@@ -108,7 +108,7 @@
                                           /* (>1 assoc on group) */
                                           /* Must be more than 1 */
                                           /* client thread making */
-                                          /* call on group. */ 
+                                          /* call on group. */
 #define RPC_C_CN_DBG_GRP_ALLOC          3 /* server: make alloc fail */
 #define RPC_C_CN_DBG_HEADER_FULL        4 /* server: make bind ACK too big */
                                           /* for large fragbuf */
@@ -117,7 +117,7 @@
                                           /* (>1 assoc on group) */
                                           /* Must be more than 1 */
                                           /* client thread making */
-                                          /* call on group. */ 
+                                          /* call on group. */
 /*
  * Switches to set on server to generate bind ACKs with various
  * pprov reason codes.
@@ -140,7 +140,7 @@
  * Error switches to force packet fragmentation.
  */
 #define RPC_C_CN_DBG_FRAG_BIND		10 /* bind (and alter_ctx) fragment */
-#define RPC_C_CN_DBG_FRAG_BIND_ACK	11 /* bind_ack (and alter_ctx_resp) 
+#define RPC_C_CN_DBG_FRAG_BIND_ACK	11 /* bind_ack (and alter_ctx_resp)
                                               fragment */
 
 #define RPC_CN_DBG_RTN_PRINTF(s) RPC_DBG_PRINTF(rpc_e_dbg_general, \
@@ -153,7 +153,7 @@
  * R P C _ C N _ M G M T _ T
  */
 #include <cnpkt.h>
-typedef struct 
+typedef struct
 {
     unsigned32          calls_sent;
     unsigned32          calls_rcvd;
@@ -166,7 +166,7 @@ typedef struct
     unsigned32          aborted_assocs;
     unsigned32          assoc_grps;
     struct cn_pkt_stats_t              /* Breakdown of pkts sent/rcvd by pkt type */
-    {                               
+    {
         unsigned32 sent;
         unsigned32 rcvd;
     } pstats[RPC_C_CN_PKT_MAX_TYPE + 1];
@@ -203,16 +203,16 @@ typedef struct
 
 #define RPC_C_NUM_PREDICATES 	3
 
-/* 
+/*
  * The rpc_cn_sm_state_entry_t can contain either the action
  * or the next state.  If both are required, then we include the
  * action, which updates the next state internally.  Distinguish
  * between actions and states by numeric value.  States will
- * be some value (usually 0 -> 14) + rpc_c_cn_statebase. 
- */ 
+ * be some value (usually 0 -> 14) + rpc_c_cn_statebase.
+ */
 typedef struct
 {
-    unsigned8                           action;  
+    unsigned8                           action;
 } rpc_cn_sm_state_entry_t, *rpc_cn_sm_state_entry_p_t;
 
 #define ILLEGAL_TRANSITION \
@@ -232,10 +232,11 @@ typedef rpc_cn_sm_state_entry_t         rpc_cn_sm_state_tbl_entry_t[];
  * R P C _ C N _ S M _ A C T I O N _ F N _ T
  */
 
-typedef unsigned32     (*rpc_cn_sm_action_fn_t) _DCE_PROTOTYPE_((
+typedef unsigned32     (*rpc_cn_sm_action_fn_t)(
     pointer_t   /*spc_struct*/,
     pointer_t   /*event_parameter*/,
-    pointer_t   /*sm*/));
+    pointer_t   /*sm*/
+    );
 
 typedef rpc_cn_sm_action_fn_t      *rpc_cn_sm_action_fn_p_t;
 
@@ -243,9 +244,10 @@ typedef rpc_cn_sm_action_fn_t      *rpc_cn_sm_action_fn_p_t;
  * R P C _ C N _ S M _ P R E D I C A T E _ F N _ T
  */
 
-typedef unsigned8 (*rpc_cn_sm_predicate_fn_t) _DCE_PROTOTYPE_((
+typedef unsigned8 (*rpc_cn_sm_predicate_fn_t)(
     pointer_t   /*spc_struct*/,
-    pointer_t   /*event_parameter*/));
+    pointer_t   /*event_parameter*/
+    );
 
 typedef rpc_cn_sm_predicate_fn_t   *rpc_cn_sm_predicate_fn_p_t;
 
@@ -265,7 +267,7 @@ typedef struct
 
 #define RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES 2
 typedef rpc_cn_sm_event_entry_t
-        rpc_cn_sm_event_list_t [ RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES ]; 
+        rpc_cn_sm_event_list_t [ RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES ];
 
 /*
  * R P C _ C N _ S M _ C T L B L K _ T
@@ -274,10 +276,10 @@ typedef rpc_cn_sm_event_entry_t
  * State values are incremented by 100 to distinguish them from
  * action routine indexes which are all < 100.  This was done as
  * an efficiency measure to the engine, rpc__cn_sm_eval_event().
- */ 
+ */
 
 /*
- * Performance Table ID defines 
+ * Performance Table ID defines
  */
 #define       rpc_c_cn_svr_assoc   1  /* server association tbl */
 #define       rpc_c_cn_cl_assoc    2  /* client association tbl */
@@ -299,7 +301,7 @@ typedef struct
 #define RPC_C_CN_SM_EVENT_LIST_EMPTY       0
     unsigned8                           event_list_state;
     rpc_cn_sm_event_list_t              event_list;
-    unsigned32				tbl_id; 
+    unsigned32				tbl_id;
 } rpc_cn_sm_ctlblk_t, *rpc_cn_sm_ctlblk_p_t;
 
 
@@ -337,7 +339,7 @@ typedef struct
     unsigned16                          id_seqnum;
     unsigned16                          id_index;
 } rpc_cn_local_id_parts_t, *rpc_cn_local_id_parts_p_t;
-    
+
 typedef union
 {
     unsigned long                       all;
@@ -380,14 +382,14 @@ typedef struct
  * local_count         : # of cancels detected locally but not
  *                       forwarded yet. These may be forwarded
  *                       by setting the PFC_PENDING_ALERT bit in
- *                       the first fragment of a request. 
+ *                       the first fragment of a request.
  * server_count        : # of cancels detected and forwarded
  *                       locally *not* including the PFC_PENDING_ALERT
  *                       bit in the first fragment of a request.
  * server_had_pending  : indicates whether the server completed
  *                       with a pending alert. If so the alert
  *                       should be re-generated before returning
- *                       to the client stub  
+ *                       to the client stub
  */
 typedef struct rpc_cn_cancel_info_s_t
 {
@@ -410,7 +412,7 @@ typedef struct rpc_cn_call_rep_s_t
     struct rpc_cn_assoc_s_t             *assoc;
     rpc_cn_fragbuf_t                    *prot_header;
     rpc_cn_fragbuf_t                    *prot_tlr;
-    unsigned32                          max_seg_size;   
+    unsigned32                          max_seg_size;
     rpc_cn_buffered_output_t            buffered_output;
     unsigned16                          context_id;
     unsigned16                          num_pkts;
@@ -421,7 +423,7 @@ typedef struct rpc_cn_call_rep_s_t
     rpc_cn_sec_context_t                *sec;
     union
     {
-        struct 
+        struct
         {
             rpc_cn_fragbuf_t            *fault_data;
             rpc_cn_cancel_info_t        cancel;
@@ -455,7 +457,7 @@ typedef struct rpc_cn_call_rep_s_t
 
 /*
  * R P C _ C N _ C R E P _ A D J _ F O R _ T L R
- * 
+ *
  * This macro will adjust all the appriate field in the call rep
  * "buffered_output" structure so that an authentication trailer can
  * be added to the packet. Note that the size of the trailer will be
@@ -507,7 +509,7 @@ typedef struct
  * R P C _ C N _ S Y N T A X _ T
  */
 
-typedef void    (*rpc_cn_marshal_fn_t) _DCE_PROTOTYPE_((void));
+typedef void    (*rpc_cn_marshal_fn_t)(void);
 
 typedef struct rpc_cn_syntax_s_t
 {
@@ -531,7 +533,7 @@ typedef struct rpc_cn_syntax_s_t
  *
  * This structure is used to hold various pieces of information
  * which are needed by action routines in the association state
- * machine. 
+ * machine.
  */
 typedef struct
 {
@@ -541,7 +543,7 @@ typedef struct
     rpc_cn_sec_context_t        *sec_context;
 } rpc_cn_assoc_sm_work_t, *rpc_cn_assoc_sm_work_p_t;
 
-/* 
+/*
  * R P C _ C N _ A S S O C _ G R P _ T
  */
 

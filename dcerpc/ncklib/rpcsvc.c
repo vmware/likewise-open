@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -31,7 +31,7 @@
 dce_svc_handle_t rpc_g_svc_handle;
 */
 DCE_SVC_DEFINE_HANDLE(rpc_g_svc_handle, rpc_g_svc_table, "rpc")
-      
+
 
 /*
  * R P C _ _ S V C _ E P R I N T F
@@ -66,7 +66,7 @@ PRIVATE void rpc__svc_init ( void )
     /*
      * Currently, all we have to do is return, since
      * everything is statically registered.
-     * 
+     *
      * But someday we might do something like turn
      * on debug levels corresponding to things set
      * in rpc_g_dbg_switches[], or ...

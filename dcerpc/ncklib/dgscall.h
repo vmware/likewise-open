@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -40,9 +40,7 @@
 #ifndef _DGSCALL_H
 #define _DGSCALL_H
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 
 /*
@@ -79,29 +77,33 @@
 }
 
 
-PRIVATE void rpc__dg_scall_free _DCE_PROTOTYPE_((rpc_dg_scall_p_t  /*scall*/));
+PRIVATE void rpc__dg_scall_free(rpc_dg_scall_p_t  /*scall*/);
 
 
-PRIVATE void rpc__dg_scall_reinit _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_scall_reinit(
         rpc_dg_scall_p_t  /*scall*/,
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/
-    ));
+    
+    );
 
-PRIVATE rpc_dg_scall_p_t rpc__dg_scall_alloc _DCE_PROTOTYPE_((
+PRIVATE rpc_dg_scall_p_t rpc__dg_scall_alloc(
         rpc_dg_sct_elt_p_t  /*scte*/,
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/
-    ));
+    
+    );
 
-PRIVATE rpc_dg_scall_p_t rpc__dg_scall_cbk_alloc _DCE_PROTOTYPE_((
+PRIVATE rpc_dg_scall_p_t rpc__dg_scall_cbk_alloc(
         rpc_dg_ccall_p_t  /*ccall*/,
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_scall_orphan_call _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_scall_orphan_call(
 	rpc_dg_scall_p_t  /*scall*/
-    ));
+    
+    );
 
 #endif /* _DGSCALL_H */

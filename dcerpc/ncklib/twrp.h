@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -72,18 +72,18 @@
 #define TWR_C_NUM_NP_LOWER_FLRS       2  /* Number lower flrs in np tower */
 
 /*
- * Number of bytes overhead per floor = protocol identifier (lhs) count 
+ * Number of bytes overhead per floor = protocol identifier (lhs) count
  * unsigned (2) + protocol identifier (1) + address data (rhs) count unsigned (2)
  */
-#define TWR_C_FLR_OVERHEAD  5  
+#define TWR_C_FLR_OVERHEAD  5
 
 /*
- * If (and when) the twr facility is separated from rpc, modify 
+ * If (and when) the twr facility is separated from rpc, modify
  * these twr_c_* to replace the rpc_c_* with the underlying constant.
  */
 
 /*
- * Number of bytes in the tower floor count field 
+ * Number of bytes in the tower floor count field
  */
 
 #define  TWR_C_TOWER_FLR_COUNT_SIZE  RPC_C_TOWER_FLR_COUNT_SIZE
@@ -101,7 +101,7 @@
 /*
  * Number of bytes for storing a major or minor version.
  */
-#define  TWR_C_TOWER_VERSION_SIZE  RPC_C_TOWER_VERSION_SIZE  
+#define  TWR_C_TOWER_VERSION_SIZE  RPC_C_TOWER_VERSION_SIZE
 
 /*
  * Number of bytes for storing a tower floor protocol id or protocol id prefix.
@@ -112,7 +112,7 @@
 /*
  * Number of bytes for storing a uuid.
  */
-#define  TWR_C_TOWER_UUID_SIZE  RPC_C_TOWER_UUID_SIZE  
+#define  TWR_C_TOWER_UUID_SIZE  RPC_C_TOWER_UUID_SIZE
 
 /*
  * IP family port and address sizes

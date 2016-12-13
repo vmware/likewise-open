@@ -61,7 +61,7 @@ MU_TEST(dcethread_pause, interrupt_post)
 
     ts.tv_nsec = 100000000;
     ts.tv_sec = 0;
-    
+
     MU_TRY_DCETHREAD( dcethread_create(&thread, NULL, basic_thread, NULL) );
     MU_TRY_DCETHREAD( dcethread_delay(&ts) );
     MU_TRY_DCETHREAD( dcethread_interrupt(thread) );

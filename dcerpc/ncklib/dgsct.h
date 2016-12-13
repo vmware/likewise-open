@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -39,9 +39,7 @@
 **
 */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 /*
  * R P C _ D G _ S C T _ I S _ W A Y _ V A L I D A T E D
@@ -90,48 +88,56 @@
 }
 
 
-PRIVATE void rpc__dg_sct_inq_scall _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_sct_inq_scall(
         rpc_dg_sct_elt_p_t  /*scte*/,
         rpc_dg_scall_p_t * /*scallp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_sct_new_call _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_sct_new_call(
         rpc_dg_sct_elt_p_t  /*scte*/,
         rpc_dg_sock_pool_elt_p_t  /*si*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t * /*scallp*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_sct_backout_new_call _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_sct_backout_new_call(
         rpc_dg_sct_elt_p_t  /*scte*/,
         unsigned32  /*seq*/
-    ));
+    
+    );
 
-PRIVATE rpc_dg_sct_elt_p_t rpc__dg_sct_lookup _DCE_PROTOTYPE_((
+PRIVATE rpc_dg_sct_elt_p_t rpc__dg_sct_lookup(
         dce_uuid_p_t  /*actid*/,
         unsigned32  /*probe_hint*/
-    ));
+    
+    );
 
-PRIVATE rpc_dg_sct_elt_p_t rpc__dg_sct_get _DCE_PROTOTYPE_((
+PRIVATE rpc_dg_sct_elt_p_t rpc__dg_sct_get(
         dce_uuid_p_t  /*actid*/,
         unsigned32  /*probe_hint*/,
         unsigned32  /*seq*/
-    ));
+    
+    );
 
-PRIVATE rpc_binding_handle_t rpc__dg_sct_make_way_binding _DCE_PROTOTYPE_((
+PRIVATE rpc_binding_handle_t rpc__dg_sct_make_way_binding(
         rpc_dg_sct_elt_p_t  /*scte*/,
         unsigned32 * /*st*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_sct_way_validate _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__dg_sct_way_validate(
         rpc_dg_sct_elt_p_t  /*scte*/,
         unsigned32       /*force_way_auth*/,
         unsigned32      * /*st*/
-    ));
-      
-PRIVATE void rpc__dg_sct_fork_handler _DCE_PROTOTYPE_((
+    
+    );
+
+PRIVATE void rpc__dg_sct_fork_handler(
         rpc_fork_stage_id_t  /*stage*/
-    ));
+    
+    );
 
 #endif /* _DGSCT_H */

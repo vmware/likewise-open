@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -65,8 +65,7 @@ INTERNAL rpc_auth_epv_t rpc_g_noauth_epv =
  *
  */
 
-PRIVATE void rpc__noauth_bnd_set_auth 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__noauth_bnd_set_auth
 (
         unsigned_char_p_t server_name,
         rpc_authn_level_t level,
@@ -76,16 +75,6 @@ PRIVATE void rpc__noauth_bnd_set_auth
         rpc_auth_info_p_t *infop,
         unsigned32 *stp
 )
-#else
-(server_name, level, auth_ident, authz_prot, binding_h, infop, stp)
-    unsigned_char_p_t server_name;
-    rpc_authn_level_t level;
-    rpc_auth_identity_handle_t auth_ident;
-    rpc_authz_protocol_id_t authz_prot;
-    rpc_binding_handle_t binding_h;
-    rpc_auth_info_p_t *infop;
-    unsigned32 *stp;
-#endif
 {
     int st, i;
     rpc_noauth_info_p_t noauth_info;
@@ -112,7 +101,7 @@ PRIVATE void rpc__noauth_bnd_set_auth
     if (server_name == NULL)
     {
         rpc_mgmt_inq_server_princ_name
-            (binding_h, 
+            (binding_h,
              dce_c_rpc_authn_protocol_krb5,
              &server_name,
              stp);
@@ -121,22 +110,22 @@ PRIVATE void rpc__noauth_bnd_set_auth
     } else {
         server_name = rpc_stralloc(server_name);
     }
-                                    
+
     RPC_DBG_PRINTF(rpc_e_dbg_auth, 1, (
-            "(rpc__noauth_bnd_set_auth) %x created (now %d active)\n", 
+            "(rpc__noauth_bnd_set_auth) %x created (now %d active)\n",
             noauth_info, rpc_g_noauth_alloc_count - rpc_g_noauth_free_count));
-    
+
     memset (noauth_info, 0, sizeof(*noauth_info));
-    
+
     RPC_MUTEX_INIT(noauth_info->lock);
-    
+
     noauth_info->auth_info.server_princ_name = server_name;
     noauth_info->auth_info.authn_level = level;
     noauth_info->auth_info.authn_protocol = rpc_c_authn_dce_dummy;
     noauth_info->auth_info.authz_protocol = authz_prot;
     noauth_info->auth_info.is_server = 0;
     noauth_info->auth_info.u.auth_identity = auth_ident;
-    
+
     noauth_info->auth_info.refcount = 1;
 
     noauth_info->creds_valid = 1;       /* XXX what is this used for? */
@@ -152,16 +141,16 @@ poison:
     noauth_info->status = st;
     *stp = st;
     return;
-}    
- 
+}
+
 #include <comp.h>
 void rpc__module_init_func(void)
 {
 	static rpc_authn_protocol_id_elt_t auth[1] =	{
 		{                               /* 0 */
-        NULL, 
-        rpc_c_authn_none,	/* FIXME: probably incorrect */ 
-        dce_c_rpc_authn_protocol_none, 
+        NULL,
+        rpc_c_authn_none,	/* FIXME: probably incorrect */
+        dce_c_rpc_authn_protocol_none,
         NULL,
 		  NULL
     }	
@@ -175,19 +164,12 @@ void rpc__module_init_func(void)
  * Initialize the world.
  */
 
-PRIVATE void rpc__noauth_init 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__noauth_init
 (
         rpc_auth_epv_p_t *epv,
         rpc_auth_rpc_prot_epv_tbl_t *rpc_prot_epv,
         unsigned32 *st
 )
-#else
-(epv, rpc_prot_epv, st)
-    rpc_auth_epv_p_t *epv;
-    rpc_auth_rpc_prot_epv_tbl_t *rpc_prot_epv;
-    unsigned32 *st;
-#endif
 {
     unsigned32                  prot_id;
     rpc_auth_rpc_prot_epv_t     *prot_epv;
@@ -227,15 +209,10 @@ PRIVATE void rpc__noauth_init
  * Free info.
  */
 
-PRIVATE void rpc__noauth_free_info 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__noauth_free_info
 (
         rpc_auth_info_p_t *info
 )
-#else
-(info)
-    rpc_auth_info_p_t *info;
-#endif
 {
     rpc_noauth_info_p_t noauth_info = (rpc_noauth_info_p_t)*info ;
     char *info_type = (*info)->is_server?"server":"client";
@@ -254,7 +231,7 @@ PRIVATE void rpc__noauth_free_info
     RPC_MEM_FREE (noauth_info, RPC_C_MEM_UTIL);
     rpc_g_noauth_free_count++;
     RPC_DBG_PRINTF(rpc_e_dbg_auth, 1, (
-        "(rpc__noauth_release) freeing %s auth_info (now %d active).\n", 
+        "(rpc__noauth_release) freeing %s auth_info (now %d active).\n",
         info_type, rpc_g_noauth_alloc_count - rpc_g_noauth_free_count));
     *info = NULL;
 }
@@ -269,16 +246,10 @@ PRIVATE void rpc__noauth_free_info
  */
 
 PRIVATE void rpc__noauth_mgt_inq_def
-#ifdef _DCE_PROTO_
 (
         unsigned32 *authn_level,
         unsigned32 *stp
 )
-#else
-(authn_level, stp)
-    unsigned32 *authn_level;
-    unsigned32 *stp;
-#endif
 {
     *authn_level = rpc_c_authn_level_none;
     *stp = rpc_s_ok;
@@ -290,21 +261,13 @@ PRIVATE void rpc__noauth_mgt_inq_def
  *
  */
 
-PRIVATE void rpc__noauth_srv_reg_auth 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__noauth_srv_reg_auth
 (
         unsigned_char_p_t server_name,
         rpc_auth_key_retrieval_fn_t get_key_func,
         pointer_t arg,
         unsigned32 *stp
 )
-#else
-(server_name, get_key_func, arg, stp)
-    unsigned_char_p_t server_name;
-    rpc_auth_key_retrieval_fn_t get_key_func;
-    pointer_t arg;
-    unsigned32 *stp;
-#endif
 {
     *stp = rpc_s_ok;
 }
@@ -316,19 +279,12 @@ PRIVATE void rpc__noauth_srv_reg_auth
  * All this doesn't matter for this module, but we need the placebo.
  */
 
-PRIVATE void rpc__noauth_inq_my_princ_name 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__noauth_inq_my_princ_name
 (
         unsigned32 name_size,
         unsigned_char_p_t name,
         unsigned32 *stp
 )
-#else
-(name_size, name, stp)
-    unsigned32 name_size;
-    unsigned_char_p_t name;
-    unsigned32 *stp;
-#endif
 {
     if (name_size > 0) {
         rpc__strncpy(name, (unsigned char *)"", name_size - 1);

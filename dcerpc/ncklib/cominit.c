@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -60,28 +60,32 @@
 #define DEFAULT_STACK_SIZE 64000
 
 #ifdef RRPC
-PRIVATE unsigned32 rpc__rrpc_init _DCE_PROTOTYPE_ ((void));
+PRIVATE unsigned32 rpc__rrpc_init(void);
 #endif
 
-INTERNAL boolean supported_naf _DCE_PROTOTYPE_ ((
+INTERNAL boolean supported_naf(
         rpc_naf_id_elt_p_t               /*naf*/
-    ));
     
-INTERNAL boolean supported_interface _DCE_PROTOTYPE_ ((
+    );
+
+INTERNAL boolean supported_interface(
         rpc_naf_id_t                    /*naf*/,
         rpc_network_if_id_t             /*network_if*/,
         rpc_network_protocol_id_t        /*network_protocol*/
-    ));
+    
+    );
 
-INTERNAL boolean protocol_is_compatible _DCE_PROTOTYPE_ ((
+INTERNAL boolean protocol_is_compatible(
         rpc_protocol_id_elt_p_t          /*rpc_protocol*/
-    ));
+    
+    );
 
-INTERNAL void init_once _DCE_PROTOTYPE_ ((void));
+INTERNAL void init_once(void);
 
-INTERNAL void thread_context_destructor _DCE_PROTOTYPE_ ((
+INTERNAL void thread_context_destructor(
         rpc_thread_context_p_t   /*ctx_value*/
-    ));
+    
+    );
 
 /*
  * The structure that defines the one-time initialization code. This
@@ -98,7 +102,7 @@ INTERNAL boolean        init_in_progress = false;
 INTERNAL rpc_mutex_t    rpc_in_fork_mutex;
 
 /*
- * The id of the thread that is executing (has executed) the RPC runtime 
+ * The id of the thread that is executing (has executed) the RPC runtime
  * initialization code.
  */
 GLOBAL   dcethread*      init_thread;
@@ -114,11 +118,11 @@ GLOBAL   dcethread*      init_thread;
 
 #ifndef NO_GETENV
 
-INTERNAL void init_getenv_protseqs _DCE_PROTOTYPE_ ((void));
+INTERNAL void init_getenv_protseqs(void);
 
-INTERNAL void init_getenv_debug _DCE_PROTOTYPE_ ((void));
+INTERNAL void init_getenv_debug(void);
 
-INTERNAL void init_getenv_port_restriction _DCE_PROTOTYPE_ ((void));
+INTERNAL void init_getenv_port_restriction(void);
 
 #endif
 
@@ -131,7 +135,7 @@ INTERNAL void init_getenv_port_restriction _DCE_PROTOTYPE_ ((void));
 **  SCOPE:              PRIVATE - declared in cominit.h
 **
 **  DESCRIPTION:
-**      
+**
 **  rpc__init() is called to intialize the runtime.  It can safely be
 **  called at any time, though it is typically called only be
 **  RPC_VERIFY_INIT() in order to minimize overhead.  Upon return from
@@ -162,12 +166,12 @@ PRIVATE void rpc__init(void)
 
 {
     dcethread*       current_thread;
-    
+
 
     if (init_in_progress)
     {
         current_thread = dcethread_self();
-        
+
         if (dcethread_equal(init_thread, current_thread))
         {
             /*
@@ -192,12 +196,12 @@ PRIVATE void rpc__init(void)
 PRIVATE void rpc__static_init(void)
 {
     dcethread*       current_thread;
-    
+
 
     if (init_in_progress)
     {
         current_thread = dcethread_self();
-        
+
         if (dcethread_equal(init_thread, current_thread))
         {
             /*
@@ -221,7 +225,7 @@ PRIVATE void rpc__static_init(void)
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  init_once() is invoked only once, by either the RPC runtime or,
 **  (in the case of shared images), the host operating system. It performs
 **  the basic initialization functions for the all of the RPC Runtime
@@ -309,7 +313,7 @@ INTERNAL void init_once(void)
 	 * operations that would normally want to ensure that the runtime
 	 * is initialized prior to executing (which would typically recursively
 	 * call dcethread_once for this block and deadlock).
-	 * 
+	 *
 	 * While this capability now allows the initializing thread to not
 	 * deadlock, it also allows it to *potentially* attempt some operation
 	 * that require initialization that hasn't yet been performed.
@@ -366,14 +370,14 @@ INTERNAL void init_once(void)
 	/*
 	 * Initialize the interface service.
 	 */
-	rpc__if_init (&status);    
+	rpc__if_init (&status);
 	if (status != rpc_s_ok)
 	{
 		dce_error_string_t error_text;
 		int temp_status;
 
 		dce_error_inq_text(status, (unsigned char*) error_text, &temp_status);
-                
+
 		/*
 		 * rpc_m_call_failed
 		 * "%s failed: %s"
@@ -390,7 +394,7 @@ INTERNAL void init_once(void)
 	/*
 	 * Initialize the object service.
 	 */
-	rpc__obj_init (&status);    
+	rpc__obj_init (&status);
 	if (status != rpc_s_ok)
 	{
 		dce_error_string_t error_text;
@@ -415,7 +419,7 @@ INTERNAL void init_once(void)
 	 * Initialize the cthread service (this doesn't do too much
 	 * so it doesn't matter if this process never becomes a server).
 	 */
-	rpc__cthread_init (&status);    
+	rpc__cthread_init (&status);
 	if (status != rpc_s_ok)
 	{
 		dce_error_string_t error_text;
@@ -561,7 +565,7 @@ INTERNAL void init_once(void)
 		naf = (rpc_naf_id_elt_p_t)
 			&(rpc_g_naf_id[RPC_PROTSEQ_INQ_NAF_ID(ctr)]);
 
-		if (rpc_protocol->prot_init != NULL 
+		if (rpc_protocol->prot_init != NULL
 				&& naf->naf_init != NULL
 				&& supported_interface (rpc_protseq->naf_id,
 					rpc_protseq->network_if_id, rpc_protseq->network_protocol_id))
@@ -590,7 +594,7 @@ INTERNAL void init_once(void)
 	/*
 	 * Initialize the auth info cache.
 	 */
-	rpc__auth_info_cache_init (&status);    
+	rpc__auth_info_cache_init (&status);
 	if (status != rpc_s_ok)
 	{
 		dce_error_string_t error_text;
@@ -663,7 +667,7 @@ INTERNAL void init_once(void)
 					errno ));
 	}
 #else
-	DCETHREAD_TRY 
+	DCETHREAD_TRY
 		dcethread_attr_create_throw(&rpc_g_server_dcethread_attr);
 	DCETHREAD_CATCH_ALL(THIS_CATCH)
 		/*
@@ -702,7 +706,7 @@ INTERNAL void init_once(void)
 						errno ));
 		}
 	if (dcethread_attr_setstacksize(&rpc_g_default_dcethread_attr,
-				DEFAULT_STACK_SIZE) == -1) 
+				DEFAULT_STACK_SIZE) == -1)
 	{
 		/*
 		 * rpc_m_call_failed_errno
@@ -718,7 +722,7 @@ INTERNAL void init_once(void)
 	}
 
 #else  /* _DCE_PTHREAD_EXC_H */
-	DCETHREAD_TRY 
+	DCETHREAD_TRY
 		dcethread_attr_create_throw(&rpc_g_default_dcethread_attr);
 	DCETHREAD_CATCH_ALL(THIS_CATCH)
 		/*
@@ -733,7 +737,7 @@ INTERNAL void init_once(void)
 					"dcethread_attr_create" ));
 	DCETHREAD_ENDTRY
 
-		DCETHREAD_TRY 
+		DCETHREAD_TRY
 		dcethread_attr_setstacksize_throw(&rpc_g_default_dcethread_attr,
 				DEFAULT_STACK_SIZE);
 	DCETHREAD_CATCH_ALL(THIS_CATCH)
@@ -751,7 +755,7 @@ INTERNAL void init_once(void)
 #endif    /* not _DCE_PTHREAD_EXC_H */
 
 
-		rpc__network_init (&status);    
+		rpc__network_init (&status);
 	if (status != rpc_s_ok)
 	{
 		dce_error_string_t error_text;
@@ -824,8 +828,8 @@ INTERNAL void init_once(void)
 
 #ifndef NO_GETENV
 
-	/* 
-	 * See if there are any protocol sequences which should only bind to 
+	/*
+	 * See if there are any protocol sequences which should only bind to
 	 * certain ranges of network endpoints.
 	 */
 
@@ -835,7 +839,7 @@ INTERNAL void init_once(void)
 
 	init_in_progress = false;
 	rpc_g_initialized = true;
-}    
+}
 
 /*
 **++
@@ -845,8 +849,8 @@ INTERNAL void init_once(void)
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
-**  Called by rpc__init to determine whether a specified Network Family 
+**
+**  Called by rpc__init to determine whether a specified Network Family
 **  is supported on the local host operating system.  It makes this
 **  determination by trying to create a "socket" under the specified
 **  network family.
@@ -873,25 +877,20 @@ INTERNAL void init_once(void)
 **--
 **/
 
-INTERNAL boolean supported_naf 
-#ifdef _DCE_PROTO_
+INTERNAL boolean supported_naf
 (
     rpc_naf_id_elt_p_t      naf
 )
-#else
-(naf)
-rpc_naf_id_elt_p_t      naf;
-#endif
 {
     rpc_socket_basic_t            socket;
     rpc_socket_error_t      socket_error;
-    
+
     if (naf->naf_id == 0)
         return (false);
     else if (naf->naf_id >= RPC_C_NAF_ID_VIRTUAL)
         /* NAF id is not known by OS, so assume it is supported */
         return (true);
-    
+
     socket_error = rpc__socket_open_basic
         (naf->naf_id, naf->network_if_id, 0, &socket);
 
@@ -912,9 +911,9 @@ rpc_naf_id_elt_p_t      naf;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Called by rpc__init to determine whether the Network Protocol ID/
-**  Network Interface Type ID combination will work on the local host 
+**  Network Interface Type ID combination will work on the local host
 **  operating system (for the specified Network Family).
 **
 **  INPUTS:
@@ -943,19 +942,12 @@ rpc_naf_id_elt_p_t      naf;
 **--
 **/
 
-INTERNAL boolean supported_interface 
-#ifdef _DCE_PROTO_
+INTERNAL boolean supported_interface
 (
     rpc_naf_id_t            naf,
     rpc_network_if_id_t     network_if,
     rpc_network_protocol_id_t network_protocol
 )
-#else
-(naf, network_if, network_protocol)
-rpc_naf_id_t            naf;
-rpc_network_if_id_t     network_if;
-rpc_network_protocol_id_t network_protocol;
-#endif
 {
     rpc_socket_basic_t            socket;
     rpc_socket_error_t      socket_error;
@@ -985,7 +977,7 @@ rpc_network_protocol_id_t network_protocol;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Called by rpc__init to determine whether the specified RPC protocol
 **  is compatible with at least one of the Network Families previously
 **  found to be supported under the local operating system.
@@ -1012,20 +1004,15 @@ rpc_network_protocol_id_t network_protocol;
 **--
 **/
 
-INTERNAL boolean protocol_is_compatible 
-#ifdef _DCE_PROTO_
+INTERNAL boolean protocol_is_compatible
 (
     rpc_protocol_id_elt_p_t rpc_protocol
 )
-#else
-(rpc_protocol)
-rpc_protocol_id_elt_p_t rpc_protocol;
-#endif
 {
     unsigned32              i;
     rpc_protseq_id_elt_p_t  rpc_protseq;
-    
-    
+
+
     for (i = 0; i < RPC_C_PROTSEQ_ID_MAX; i++)
     {
         rpc_protseq = (rpc_protseq_id_elt_p_t) &(rpc_g_protseq_id[i]);
@@ -1049,7 +1036,7 @@ rpc_protocol_id_elt_p_t rpc_protocol;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Called by the threads mechanism when a context has been
 **  associated with a particular key. For RPC this routine will be
 **  used to free the context associated with the
@@ -1075,15 +1062,10 @@ rpc_protocol_id_elt_p_t rpc_protocol;
 **--
 **/
 
-INTERNAL void thread_context_destructor 
-#ifdef _DCE_PROTO_
+INTERNAL void thread_context_destructor
 (
     rpc_thread_context_p_t      ctx_value
 )
-#else
-(ctx_value)
-rpc_thread_context_p_t      ctx_value;
-#endif
 {
     RPC_MEM_FREE (ctx_value, RPC_C_MEM_THREAD_CONTEXT);
 }
@@ -1098,9 +1080,9 @@ rpc_thread_context_p_t      ctx_value;
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Read the RPC_DEBUG enviroment variable to set some debug switches.
-**  
+**
 **  INPUTS:             none
 **
 **  INPUTS/OUTPUTS:     none
@@ -1113,7 +1095,7 @@ rpc_thread_context_p_t      ctx_value;
 **
 **  FUNCTION VALUE:     none
 **
-**  SIDE EFFECTS:       
+**  SIDE EFFECTS:
 **
 **      Sets RPC debugging switches.
 **
@@ -1162,7 +1144,7 @@ INTERNAL void init_getenv_debug (void)
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Read the RPC_SUPPORTED_PROTSEQS enviroment variable to determine
 **  whether we're restricting the protocol sequence we'll use.  The value
 **  of the environment variable is a ":"-separated list of protocol
@@ -1178,7 +1160,7 @@ INTERNAL void init_getenv_debug (void)
 **
 **  OUTPUTS:            none
 **
-**  IMPLICIT INPUTS:   
+**  IMPLICIT INPUTS:
 **
 **  IMPLICIT OUTPUTS:   none
 **
@@ -1245,7 +1227,7 @@ INTERNAL void init_getenv_protseqs (void)
      */
 
     if (protseq_count == 0)
-    {   
+    {
         return;
     }
 
@@ -1260,11 +1242,11 @@ INTERNAL void init_getenv_protseqs (void)
 
         if (protseq->supported)
         {
-            for (i = 0; 
-                 i < protseq_count && protseq_id_vec[i] != protseq->rpc_protseq_id; 
+            for (i = 0;
+                 i < protseq_count && protseq_id_vec[i] != protseq->rpc_protseq_id;
                  i++)
                 ;
-    
+
             if (i >= protseq_count)
             {
                 protseq->supported = UNSUPPORTED;
@@ -1282,7 +1264,7 @@ INTERNAL void init_getenv_protseqs (void)
 **  SCOPE:              INTERNAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Read the RPC_RESTRICTED_PORTS environment variable to determine whether
 **  we're restricting the ports for a (set of) protocol sequence.
 **
@@ -1292,7 +1274,7 @@ INTERNAL void init_getenv_protseqs (void)
 **
 **  OUTPUTS:            none
 **
-**  IMPLICIT INPUTS:   
+**  IMPLICIT INPUTS:
 **
 **  IMPLICIT OUTPUTS:   none
 **
@@ -1330,26 +1312,26 @@ INTERNAL void init_getenv_port_restriction (void)
 **  SCOPE:              PRIVATE
 **
 **  DESCRIPTION:
-**      
+**
 **  Parses an input string containing a port restriction list for one or
 **  more protocol sequences.
 **
 **  Input grammar:
-** 
-**     <entry> [COLON <entry>]*
-**     
-**     <entry> : <protseq_name> LEFT-BRACKET <ranges> RIGHT-BRACKET
-**    
-**     <ranges>: <range> [COMMA <range>]*
-**     
-**     <range> : <endpoint-low> HYPHEN <endpoint-high>
-**     
-**     Example:
-**     
-**          ncacn_ip_tcp[5000-5110,5500-5521]:ncadg_ip_udp[6500-7000]
-**     
 **
-**  INPUTS:             
+**     <entry> [COLON <entry>]*
+**
+**     <entry> : <protseq_name> LEFT-BRACKET <ranges> RIGHT-BRACKET
+**
+**     <ranges>: <range> [COMMA <range>]*
+**
+**     <range> : <endpoint-low> HYPHEN <endpoint-high>
+**
+**     Example:
+**
+**          ncacn_ip_tcp[5000-5110,5500-5521]:ncadg_ip_udp[6500-7000]
+**
+**
+**  INPUTS:
 **
 **      input_string    String as described above.
 **
@@ -1360,7 +1342,7 @@ INTERNAL void init_getenv_port_restriction (void)
 **      status          rpc_s_ok
 **                      rpc_s_invalid_rpc_protseq
 **
-**  IMPLICIT INPUTS:   
+**  IMPLICIT INPUTS:
 **
 **  IMPLICIT OUTPUTS:   none
 **
@@ -1373,16 +1355,10 @@ INTERNAL void init_getenv_port_restriction (void)
 
 
 PRIVATE void rpc__set_port_restriction_from_string
-#ifdef _DCE_PROTO_
 (
  unsigned_char_p_t  input_string,
  unsigned32         *status
 )
-#else
-(input_string, status)
-unsigned_char_p_t  input_string;
-unsigned32         *status;
-#endif
 {
     unsigned_char_p_t       buf = NULL;
     unsigned_char_p_t       p;
@@ -1398,16 +1374,16 @@ unsigned32         *status;
 
     CODING_ERROR (status);
 
-    /* 
-     * We're going to do some serious gnawing on the input string, so 
+    /*
+     * We're going to do some serious gnawing on the input string, so
      * make a copy.
      */
-    
+
     buf = rpc__stralloc (input_string);
 
-    /* 
-     * rpc__naf_set_port_restriction takes two arrays of pointers to 
-     * strings (low port & high port).  Make a pass through the input text 
+    /*
+     * rpc__naf_set_port_restriction takes two arrays of pointers to
+     * strings (low port & high port).  Make a pass through the input text
      * to find how large these vectors must be.  Allocate the vectors.
      */
 
@@ -1427,24 +1403,24 @@ unsigned32         *status;
         goto cleanup_and_return;
     }
 
-    RPC_MEM_ALLOC 
+    RPC_MEM_ALLOC
         (from_vec,
          unsigned_char_p_t *,
          max_ranges * sizeof (* from_vec),
          RPC_C_MEM_STRING,
          RPC_C_MEM_WAITOK);
 
-    RPC_MEM_ALLOC 
+    RPC_MEM_ALLOC
         (to_vec,
          unsigned_char_p_t *,
          max_ranges * sizeof (* to_vec),
          RPC_C_MEM_STRING,
          RPC_C_MEM_WAITOK);
 
-    /* 
+    /*
      * Loop over protseqs in input string.
      */
-    
+
     p = buf;
 
     protseq_name = p;
@@ -1452,8 +1428,8 @@ unsigned32         *status;
 
     while (more_protseqs)
     {
-        
-        /* 
+
+        /*
          * Loop to find end of protseq.
          */
 
@@ -1468,20 +1444,20 @@ unsigned32         *status;
             }
             p++;
         }                               /* while *p */
-        
+
         if (!found)
         {
             *status = rpc_s_invalid_rpc_protseq;
             goto cleanup_and_return;
         }
 
-        protseq_id = 
+        protseq_id =
             rpc__network_pseq_id_from_pseq (protseq_name, status);
 
         if (*status != rpc_s_ok)
             goto cleanup_and_return;
 
-        /* 
+        /*
          * Loop over ranges for this protseq.
          */
 
@@ -1490,13 +1466,13 @@ unsigned32         *status;
 
         while (more_ranges)
         {
-            /* 
+            /*
              * Grab low port and null terminate.
              */
 
             from_vec [range_index] = p;
 
-            /* 
+            /*
              * Scan for end of low range.
              */
 
@@ -1519,10 +1495,10 @@ unsigned32         *status;
 
             to_vec [range_index] = p;
 
-            /* 
+            /*
              * Scan for end of high range.
              */
-            
+
             found = false;
             while (*p && !found)
             {
@@ -1540,7 +1516,7 @@ unsigned32         *status;
                 }
                 p++;
             }                           /* while *p */
-            
+
             if (!found)
             {
                 *status = rpc_s_invalid_rpc_protseq;
@@ -1551,28 +1527,28 @@ unsigned32         *status;
 
         }                               /* while more ranges */
 
-        /* 
-         * Have everything for this protocol sequence.  
+        /*
+         * Have everything for this protocol sequence.
          */
 
         rpc__naf_set_port_restriction
             (protseq_id,
              range_index,
-             from_vec,      
+             from_vec,
              to_vec,
              status);
 
         if (*status != rpc_s_ok)
             goto cleanup_and_return;
-                 
-        /* 
-         * At this point we're at the physical end of the string, or at the 
+
+        /*
+         * At this point we're at the physical end of the string, or at the
          * beginning of the next protseq.
          */
-        
+
         if (*p == ':')
         {
-            more_protseqs = true;       
+            more_protseqs = true;
             p++;
             protseq_name = p;
         }
@@ -1584,9 +1560,9 @@ unsigned32         *status;
             goto cleanup_and_return;
         }
     }                                   /* while more_protseqs */
-                   
+
     *status = rpc_s_ok;
-    
+
 cleanup_and_return:
 
     if (buf != NULL)
@@ -1610,12 +1586,12 @@ cleanup_and_return:
 **  SCOPE:              PRIVATE - declared in cominit.h
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine is called prior to, and immediately after, forking
 **  the process's address space.  The input argument specifies which
 **  stage of the fork we're currently in.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **        stage         indicates the stage in the fork operation
 **                      (prefork | postfork_parent | postfork_child)
@@ -1633,17 +1609,12 @@ cleanup_and_return:
 **  SIDE EFFECTS:       none
 **
 **--
-**/       
+**/
 PRIVATE void rpc__fork_handler
-#ifdef _DCE_PROTO_
 (
   rpc_fork_stage_id_t stage
 )
-#else
-(stage)
-rpc_fork_stage_id_t stage;
-#endif
-{   
+{
     unsigned32 ctr;
     rpc_protocol_id_elt_p_t rpc_protocol;
 
@@ -1651,7 +1622,7 @@ rpc_fork_stage_id_t stage;
      * Pre-fork handlers are called in reverse order of init_once().
      * Post-fork handlers are called in same order.
      *
-     * First, take care of stage-independent operations, such as 
+     * First, take care of stage-independent operations, such as
      * calling into handlers that differentiate among the stages
      * themselves.
      *
@@ -1671,7 +1642,7 @@ rpc_fork_stage_id_t stage;
          * fork handler.
          */
         for (ctr = 0; ctr < RPC_C_PROTOCOL_ID_MAX; ctr++)
-        {   
+        {
             rpc_protocol = (rpc_protocol_id_elt_p_t) &(rpc_g_protocol_id[ctr]);
             if (rpc_protocol->prot_fork_handler != NULL)
             {
@@ -1686,29 +1657,29 @@ rpc_fork_stage_id_t stage;
         rpc__list_fork_handler(stage);
         RPC_MUTEX_UNLOCK(rpc_in_fork_mutex);
         break;
-    case RPC_C_POSTFORK_CHILD:  
+    case RPC_C_POSTFORK_CHILD:
         /*
          * Reset any debug switches.
-         */       
+         */
 #ifdef DEBUG
         if (!RPC_DBG(rpc_es_dbg_inherit, 1))
         {
             for (ctr = 0; ctr < RPC_C_DBG_SWITCHES; ctr++)
-                rpc_g_dbg_switches[ctr] = 0; 
+                rpc_g_dbg_switches[ctr] = 0;
         }
-#endif            
+#endif
         /*
          * We want the rpc__init code to run in the new invokation.
          */
         rpc_g_initialized = false;
         memset((char *)&init_once_block, 0, sizeof(dcethread_oncectl));
-        
+
         /*
          * Increment the global fork count.  For more info on the use
          * of this variable, see comp.c.
          */
         rpc_g_fork_count++;
-        
+
         /* fall through */
     case RPC_C_POSTFORK_PARENT:
         rpc__list_fork_handler(stage);
@@ -1722,7 +1693,7 @@ rpc_fork_stage_id_t stage;
          * fork handler.
          */
         for (ctr = 0; ctr < RPC_C_PROTOCOL_ID_MAX; ctr++)
-        {   
+        {
             rpc_protocol = (rpc_protocol_id_elt_p_t) &(rpc_g_protocol_id[ctr]);
             if (rpc_protocol->prot_fork_handler != NULL)
             {
@@ -1733,7 +1704,7 @@ rpc_fork_stage_id_t stage;
         /* each auth protocol */
         rpc__network_fork_handler(stage);
         break;
-    }  
+    }
 }
 #endif
 

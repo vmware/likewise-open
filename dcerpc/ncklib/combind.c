@@ -1,6 +1,6 @@
 /* ex: set shiftwidth=4 expandtab: */
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -17,7 +17,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -29,7 +29,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -114,7 +114,7 @@ rpc__binding_handle_sec_free
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will really free the Binding Rep memory - this routine
 **  should not be called directly; RPC_BINDING_RELEASE() should be used.
 **  Since a Binding Rep's size is RPC Protocol Service-specific the RPC
@@ -144,17 +144,11 @@ rpc__binding_handle_sec_free
 **--
 **/
 
-PRIVATE void rpc__binding_free 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__binding_free
 (
   rpc_binding_rep_p_t     *binding_rep_p,
   unsigned32              *status
 )
-#else
-(binding_rep_p, status)
-rpc_binding_rep_p_t     *binding_rep_p;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = *binding_rep_p;
     unsigned32		    temp_status = rpc_s_ok;
@@ -168,7 +162,7 @@ unsigned32              *status;
      * free it.
      */
     RPC_LOCK_ASSERT(0);
-    
+
     /*
      * see if an RPC address exists in this binding
      */
@@ -270,7 +264,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will release the reference on the Binding Rep and free
 **  the rep when no more references exist.  A NULL pointer will be
 **  returned.  Most runtime internal operations that want to release a binding
@@ -304,24 +298,18 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_free 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_free
 (
   rpc_binding_handle_t    *binding_h,
   unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    *binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) *binding_h;
 
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, status);
     if (*status != rpc_s_ok)
         return;
@@ -348,7 +336,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will free the Binding Rep pointed to by each non-NULL
 **  entry in the vector array. The vector memory itself is then freed.
 **
@@ -357,14 +345,14 @@ unsigned32              *status;
 **  INPUTS/OUTPUTS:
 **
 **      binding_vec     A vector of pointers to binding rep structures.
-**                      
+**
 **  OUTPUTS:
 **
 **      status          A value indicating the status of the routine.
 **
 **          rpc_s_ok        The call was successful.
 **          rpc_s_coding_error
-**          rpc_s_invalid_arg  
+**          rpc_s_invalid_arg
 **
 **  IMPLICIT INPUTS:    none
 **
@@ -377,24 +365,18 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_vector_free 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_vector_free
 (
   rpc_binding_vector_p_t  *binding_vec,
   unsigned32              *status
 )
-#else
-(binding_vec, status)
-rpc_binding_vector_p_t  *binding_vec;
-unsigned32              *status;
-#endif
 {
     unsigned32              i;
 
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     /*
      * check to see if binding_vec is NULL, and if so,
      * return with an error status
@@ -404,7 +386,7 @@ unsigned32              *status;
         *status = rpc_s_invalid_arg;
         return;
     }
-                                       
+
     /*
      * free each element in the vector array (that's non-NULL)
      */
@@ -416,14 +398,14 @@ unsigned32              *status;
             if (*status != rpc_s_ok) return;
         }
     }
-    
+
     /*
      * now free the vector memory itself
      */
     RPC_MEM_FREE (*binding_vec, RPC_C_MEM_BINDING_VEC);
 
     *binding_vec = NULL;
-     
+
     *status = rpc_s_ok;
 }
 
@@ -435,7 +417,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will set the object UUID field in the Binding Rep to the
 **  object UUID given. The RPC Protocol Service identified by the RPC
 **  Protocol ID in the Binding Rep will be notified that the Binding Rep
@@ -471,26 +453,19 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_set_object 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_set_object
 (
     rpc_binding_handle_t    binding_h,
     dce_uuid_p_t                object_uuid,
     unsigned32              *status
 )
-#else
-(binding_h, object_uuid, status)
-rpc_binding_handle_t    binding_h;
-uuid_p_t                object_uuid;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
 
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, status);
     if (*status != rpc_s_ok)
         return;
@@ -523,7 +498,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will inquire what the object UUID is in a Binding Rep.
 **
 **  INPUTS:
@@ -556,31 +531,24 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_inq_object 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_inq_object
 (
     rpc_binding_handle_t    binding_h,
     dce_uuid_t                  *object_uuid,
     unsigned32              *status
 )
-#else
-(binding_h, object_uuid, status)
-rpc_binding_handle_t    binding_h;
-dce_uuid_t              *object_uuid;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t binding_rep = (rpc_binding_rep_p_t) binding_h;
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE(binding_rep, status);
     if (*status != rpc_s_ok)
         return;
 
     *object_uuid = binding_rep->obj;
-    
+
     *status = rpc_s_ok;
 }
 
@@ -592,7 +560,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will clear the endpoint in the RPC address of the Binding
 **  Rep. The Network Address Family Extension Service identified by the
 **  NAF ID in the RPC address will be called to actually clear the endpoint
@@ -627,29 +595,23 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_reset 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_reset
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              *status
 )
-#else
-(binding_h, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
 
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
 
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, status);
     if (*status != rpc_s_ok)
         return;
-      
+
     /*
      * There is no longer a server instance associated with the binding.
      */
@@ -666,9 +628,9 @@ unsigned32              *status;
         *status = rpc_s_ok;
         return;
     }
-    
+
     assert(binding_rep->rpc_addr != NULL);
-    
+
     /*
      * Tell the NAF extension service to clear the endpoint. A zero
      * length string *must* be passed in to naf_addr_set_endpoint to
@@ -684,7 +646,7 @@ unsigned32              *status;
      * clear the endpoint flag in the binding rep
      */
     binding_rep->addr_has_endpoint = false;
-    
+
     /*
      * notify the protocol service that the binding rep has been reset
      */
@@ -700,7 +662,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will allocate a new Binding Rep through the RPC Protocol
 **  Service. The common part of the Binding Rep will then be filled in and
 **  the RPC Protocol Service will be called to initialize the RPC Protocol
@@ -736,19 +698,12 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_copy 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_copy
 (
     rpc_binding_handle_t    src_binding_h,
     rpc_binding_handle_t    *dst_binding_h,
     unsigned32              *status
 )
-#else
-(src_binding_h, dst_binding_h, status)
-rpc_binding_handle_t    src_binding_h;
-rpc_binding_handle_t    *dst_binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     src_binding_rep = (rpc_binding_rep_p_t) src_binding_h;
     rpc_binding_rep_p_t     dst_binding_rep;
@@ -763,18 +718,18 @@ unsigned32              *status;
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_CLIENT(src_binding_rep, status);
     if (*status != rpc_s_ok)
         return;
-      
+
     assert(src_binding_rep->rpc_addr != NULL);
 
     (*rpc_g_naf_id[src_binding_rep->rpc_addr->sa.family].epv
         ->naf_addr_copy)
             (src_binding_rep->rpc_addr, &rpc_addr, status);
     if (*status != rpc_s_ok) return;
-    
+
     have_addr = true;
 
     /*
@@ -784,7 +739,7 @@ unsigned32              *status;
         (boolean)src_binding_rep->is_server, &src_binding_rep->obj,
         src_binding_rep->protocol_id, rpc_addr, status);
     if (*status != rpc_s_ok) goto CLEANUP;
-    
+
     /*
      * copy other common parts of the binding rep from the source to dest
      */
@@ -821,22 +776,22 @@ unsigned32              *status;
     {
         rpc__binding_prot_version_alloc(
                             &(dst_binding_rep->protocol_version),
-                            src_binding_rep->protocol_version->major_version, 
-                            src_binding_rep->protocol_version->minor_version, 
+                            src_binding_rep->protocol_version->major_version,
+                            src_binding_rep->protocol_version->minor_version,
                             status);
         if (*status != rpc_s_ok) goto CLEANUP;
     }
 
     /*
-     * Copy the ns_specific. 
+     * Copy the ns_specific.
      */
     if (src_binding_rep->ns_specific != NULL)
     {
         /* 		NOTE
          *  This needs to be replaced with the real copy.
-         *  For now set the field to NULL so later we don't improperly 
+         *  For now set the field to NULL so later we don't improperly
          *  try to free the field.
-         *  
+         *
          *  When we get around to doing this, see how this field is
          *  freed in rpc_binding_free for a hint on doing this.
          *  You'll probably need to add a similar entry point in nsinit.c
@@ -862,10 +817,10 @@ unsigned32              *status;
 		method_d_p->method = method_s_p->method;
 		method_d_p->tags.stag = method_s_p->tags.stag;
 		method_d_p->tags.drtag = method_s_p->tags.drtag;
-		method_d_p->tags.stag_max_bytes 
+		method_d_p->tags.stag_max_bytes
 					= method_s_p->tags.stag_max_bytes;
 		method_d_p->tags.client_tag = method_s_p->tags.client_tag;
-		method_d_p->tags.client_max_bytes 
+		method_d_p->tags.client_max_bytes
 					= method_s_p->tags.client_max_bytes;
 		method_d_p->tags.type_handle = method_d_p->tags.type_handle;
 		method_d_p->fixed = method_s_p->fixed;
@@ -895,7 +850,7 @@ unsigned32              *status;
 		break;
 	}
     }
-    
+
     /*
      * return the destination binding rep as a binding handle
      */
@@ -921,7 +876,7 @@ CLEANUP:
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will convert a Binding Rep data structure to its string
 **  represenation, which is called a "string binding". It will first convert
 **  the object UUID contained in the Binding Rep to string format. The string
@@ -942,7 +897,7 @@ CLEANUP:
 **
 **      string_binding  A string representation of the binding rep data
 **                      structure.
-**                      
+**
 **      status          A value indicating the status of the routine.
 **
 **          rpc_s_ok        The call was successful.
@@ -961,19 +916,12 @@ CLEANUP:
 **--
 **/
 
-PUBLIC void rpc_binding_to_string_binding 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_to_string_binding
 (
     rpc_binding_handle_t    binding_h,
     unsigned_char_p_t       *string_binding,
     unsigned32              *status
 )
-#else
-(binding_h, string_binding, status)
-rpc_binding_handle_t    binding_h;
-unsigned_char_p_t       *string_binding;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_addr_p_t            rpc_addr = NULL;
@@ -982,11 +930,11 @@ unsigned32              *status;
     unsigned_char_p_t       netaddr = NULL;
     unsigned_char_p_t       network_options = NULL;
     unsigned32              temp_status;
-    
+
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     /*
      * if the output argument is NULL, don't do anything
      */
@@ -1013,13 +961,13 @@ unsigned32              *status;
             goto CLEANUP;
         }
     }
-    
+
     /*
      * if the RPC address in the binding is NULL, get one from protocol service
      */
     if (binding_rep->rpc_addr == NULL)
     {
-    
+
         /*
          * get the RPC address from the protocol service
          */
@@ -1038,7 +986,7 @@ unsigned32              *status;
          */
         rpc_addr = binding_rep->rpc_addr;
     }
-    
+
     /*
      * get the endpoint from the network address family extension
      */
@@ -1049,7 +997,7 @@ unsigned32              *status;
     {
         goto CLEANUP;
     }
-    
+
     /*
      * get the network address from the network address family extension
      */
@@ -1060,7 +1008,7 @@ unsigned32              *status;
     {
         goto CLEANUP;
     }
-    
+
     /*
      * get the network options from the network address family extension
      */
@@ -1093,17 +1041,17 @@ CLEANUP:
     {
         rpc_string_free (&object_uuid, &temp_status);
     }
-    
+
     if (endpoint != NULL)
     {
         rpc_string_free (&endpoint, &temp_status);
     }
-    
+
     if (netaddr != NULL)
     {
         rpc_string_free (&netaddr, &temp_status);
     }
-    
+
     if (network_options != NULL)
     {
         rpc_string_free (&network_options, &temp_status);
@@ -1118,7 +1066,7 @@ CLEANUP:
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine converts a string binding to a Binding Rep data structure.
 **  It will strip the object UUID, RPC Protocol Sequence string, endpoint,
 **  network address and network options out of the string binding provided.
@@ -1166,19 +1114,12 @@ CLEANUP:
 **--
 **/
 
-PUBLIC void rpc_binding_from_string_binding 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_from_string_binding
 (
     unsigned_char_p_t       string_binding,
     rpc_binding_handle_t    *binding_h,
     unsigned32              *status
 )
-#else
-(string_binding, binding_h, status)
-unsigned_char_p_t       string_binding;
-rpc_binding_handle_t    *binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep;
     dce_uuid_t                  obj_uuid;
@@ -1192,11 +1133,11 @@ unsigned32              *status;
     rpc_protocol_id_t       protocol_id;
     rpc_naf_id_t            naf_id = 0;
     unsigned32              temp_status;
-    
+
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     /*
      * extract the various fields from the string binding
      */
@@ -1207,7 +1148,7 @@ unsigned32              *status;
     {
         goto CLEANUP;
     }
-    
+
     /*
      * Convert the protocol sequence string to and protseq ID.
      */
@@ -1217,9 +1158,9 @@ unsigned32              *status;
     {
         goto CLEANUP;
     }
-         
+
     if (rpc_g_protseq_id[protseq_id].supported == false)
-    {            
+    {
         *status = rpc_s_protseq_not_supported;
         goto CLEANUP;
     }
@@ -1248,7 +1189,7 @@ unsigned32              *status;
 
     /*
      * A NULL network address means to bind to the local host.
-     * Otherwise, get an RPC address from the Network Address Family 
+     * Otherwise, get an RPC address from the Network Address Family
      * Extension Service.
      */
     if (*netaddr == '\0')
@@ -1262,7 +1203,7 @@ unsigned32              *status;
                 &rpc_addr, status);
     }
 
-    if (*status != rpc_s_ok) 
+    if (*status != rpc_s_ok)
     {
         rpc_addr = NULL;
         goto CLEANUP;
@@ -1284,7 +1225,7 @@ unsigned32              *status;
     {
         binding_rep->addr_is_dynamic = false;
     }
-    
+
     /*
      * cast the binding handle to a binding rep pointer
      */
@@ -1299,17 +1240,17 @@ CLEANUP:
     {
         rpc_string_free (&string_object_uuid, &temp_status);
     }
-    
+
     if (protseq != NULL)
     {
         rpc_string_free (&protseq, &temp_status);
     }
-    
+
     if (endpoint != NULL)
     {
         rpc_string_free (&endpoint, &temp_status);
     }
-    
+
     if (netaddr != NULL)
     {
         rpc_string_free (&netaddr, &temp_status);
@@ -1346,9 +1287,9 @@ CLEANUP:
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will split the string binding provided into multiple
-**  components. 
+**  components.
 **
 **  INPUTS:
 **
@@ -1372,7 +1313,7 @@ CLEANUP:
 **      status          A value indicating the status of the routine.
 **
 **          rpc_s_ok        The call was successful.
-**          rpc_s_invalid_string_binding 
+**          rpc_s_invalid_string_binding
 **                          The string binding could not be parsed
 **          rpc_s_coding_error
 **
@@ -1387,8 +1328,7 @@ CLEANUP:
 **--
 **/
 
-PUBLIC void rpc_string_binding_parse 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_string_binding_parse
 (
     unsigned_char_p_t       string_binding,
     unsigned_char_p_t       *string_object_uuid,
@@ -1398,17 +1338,6 @@ PUBLIC void rpc_string_binding_parse
     unsigned_char_p_t       *network_options,
     unsigned32              *status
 )
-#else
-(string_binding, string_object_uuid, protseq, netaddr, endpoint, 
- network_options, status)
-unsigned_char_p_t       string_binding;
-unsigned_char_p_t       *string_object_uuid;
-unsigned_char_p_t       *protseq;
-unsigned_char_p_t       *netaddr;
-unsigned_char_p_t       *endpoint;
-unsigned_char_p_t       *network_options;
-unsigned32              *status;
-#endif
 {
 #define RPC_C_NETWORK_OPTIONS_MAX   1024
 
@@ -1431,7 +1360,7 @@ unsigned32              *status;
         *status = rpc_s_invalid_string_binding;
         return;
     }
-                                         
+
     /*
      * Initialize netaddr, endpoint and network_options if pointers are non-NULL
      */
@@ -1449,12 +1378,12 @@ unsigned32              *status;
     }
 
     binding_ptr = string_binding;
-    
+
     /*
      * get in the object UUID and protocol sequence
      */
     count = rpc__strcspn (binding_ptr, "@");
-    if (string_object_uuid != NULL) 
+    if (string_object_uuid != NULL)
     {
         {
             RPC_MEM_ALLOC (
@@ -1478,7 +1407,7 @@ unsigned32              *status;
      * In any case, advance the pointer.
      */
     binding_ptr += count;
-    
+
     count = rpc__strcspn (binding_ptr, ":");
     if (protseq != NULL)
     {
@@ -1509,7 +1438,7 @@ unsigned32              *status;
      * see if there are options after the network address
      */
     if ((count = rpc__strcspn (binding_ptr, "[")) == 0)
-    {            
+    {
         /*
          * if there was no '[' terminator, maybe there are no options -
          * but there still might be a network address - go for it!
@@ -1575,11 +1504,11 @@ unsigned32              *status;
             option_ptr = *network_options;
             *option_ptr = '\0';
         }
-        
+
         while ((count > 0) && (*binding_ptr != '\0'))
         {
             get_endpoint = false;
-            
+
             /*
              * first see if there's an option tag
              */
@@ -1601,7 +1530,7 @@ unsigned32              *status;
                 for (; (*binding_ptr == ' ' || *binding_ptr == '\t') &&
                     *binding_ptr != '\0'; binding_ptr++, count--);
 
-                if ((strncmp ((char *) binding_ptr, "endpoint", (count-1))) 
+                if ((strncmp ((char *) binding_ptr, "endpoint", (count-1)))
                     == 0)
                 {
                     /*
@@ -1675,7 +1604,7 @@ unsigned32              *status;
                 {
                     /*
                      * We can have any number of network options, but we'll
-                     * lose the last one if the string doesn't have a 
+                     * lose the last one if the string doesn't have a
                      * terminator.
                      * (this code is probably redundant, now)
                      */
@@ -1696,7 +1625,7 @@ unsigned32              *status;
             }
         }
     }
-    
+
 
     /*
      * if component strings were created, compress white space out of the
@@ -1853,7 +1782,7 @@ CLEANUP:
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will combine the components of a string binding and
 **  return a formatted string binding.
 **
@@ -1894,8 +1823,7 @@ CLEANUP:
 **--
 **/
 
-PUBLIC void rpc_string_binding_compose 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_string_binding_compose
 (
     unsigned_char_p_t       string_object_uuid,
     unsigned_char_p_t       protseq,
@@ -1905,21 +1833,10 @@ PUBLIC void rpc_string_binding_compose
     unsigned_char_p_t       *string_binding,
     unsigned32              *status
 )
-#else
-(string_object_uuid, protseq, netaddr,endpoint, 
- network_options, string_binding, status)
-unsigned_char_p_t       string_object_uuid;
-unsigned_char_p_t       protseq;
-unsigned_char_p_t       netaddr;
-unsigned_char_p_t       endpoint;
-unsigned_char_p_t       network_options;
-unsigned_char_p_t       *string_binding;
-unsigned32              *status;
-#endif
 {
     unsigned_char_p_t   string_binding_ptr;
     unsigned32          string_binding_size = 1;
-    
+
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -1948,22 +1865,22 @@ unsigned32              *status;
     {
         string_binding_size += strlen ((char *) protseq) + 1;
     }
-    
+
     if (netaddr != NULL)
     {
         string_binding_size += strlen ((char *) netaddr) + 1;
     }
-    
+
     if (endpoint != NULL)
     {
         string_binding_size += strlen ((char *) endpoint) + 2;
     }
-    
+
     if (network_options != NULL)
     {
         string_binding_size += strlen ((char *) network_options) + 2;
     }
-    
+
     /*
      * heap allocate storage for the string binding
      */
@@ -1973,9 +1890,9 @@ unsigned32              *status;
         string_binding_size,
         RPC_C_MEM_STRING,
         RPC_C_MEM_WAITOK);
-    
+
     string_binding_ptr = *string_binding;
-    
+
     /*
      * fill in the object UUID
      */
@@ -2046,12 +1963,12 @@ unsigned32              *status;
 
         *(string_binding_ptr++) = ']';
     }
-    
+
     /*
      * terminate the string
      */
     *(string_binding_ptr) = '\0';
-    
+
     *status = rpc_s_ok;
     return;
 }
@@ -2064,7 +1981,7 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in combind.h
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will allocate the memory for a Binding Rep data structure
 **  through the RPC Protocol Service identified in the input arguments.
 **  All the common fields of the Binding Rep will be initialized using
@@ -2110,8 +2027,7 @@ unsigned32              *status;
 **--
 **/
 
-PRIVATE rpc_binding_rep_t *rpc__binding_alloc 
-#ifdef _DCE_PROTO_
+PRIVATE rpc_binding_rep_t *rpc__binding_alloc
 (
     boolean32               is_server,
     dce_uuid_p_t                object_uuid,
@@ -2119,19 +2035,11 @@ PRIVATE rpc_binding_rep_t *rpc__binding_alloc
     rpc_addr_p_t            rpc_addr,
     unsigned32              *status
 )
-#else
-(is_server, object_uuid, protocol_id, rpc_addr, status)
-boolean32               is_server;
-uuid_p_t                object_uuid;
-rpc_protocol_id_t       protocol_id;
-rpc_addr_p_t            rpc_addr;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep;
     unsigned_char_p_t       endpoint = NULL;
     unsigned32              temp_status;
-    
+
 
     CODING_ERROR (status);
 
@@ -2140,7 +2048,7 @@ unsigned32              *status;
      */
     binding_rep = (*rpc_g_protocol_id[protocol_id].binding_epv
         ->binding_alloc) (is_server, status);
-    
+
     /*
      * Initialize the common part of the binding rep.
      */
@@ -2185,7 +2093,7 @@ unsigned32              *status;
              * then ask the protocol service to free the binding rep and
              * NULL the reference.
              */
-            (*rpc_g_protocol_id[protocol_id].binding_epv->binding_free) 
+            (*rpc_g_protocol_id[protocol_id].binding_epv->binding_free)
                 (&binding_rep, &temp_status);
 				/* mdn 23.10.1999: FIXME if I am wrong
 				 * if endpoint was allocated it is not a NULL pointer, so
@@ -2234,7 +2142,7 @@ CLEANUP:
 **  SCOPE:              PUBLIC
 **
 **  DESCRIPTION:
-**               
+**
 **  This routine returns a protocol service dependent client handle which
 **  can be used by the stubs to identify a particular instance of a
 **  particular client process.
@@ -2246,7 +2154,7 @@ CLEANUP:
 **  INPUTS/OUTPUTS:     none
 **
 **  OUTPUTS:
-** 
+**
 **      client_h        Client handle for use with monitor_liveness routine
 **
 **      status          A value indicating the status of the routine.
@@ -2268,19 +2176,12 @@ CLEANUP:
 **--
 **/
 
-PUBLIC void rpc_binding_inq_client 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_inq_client
 (
     rpc_binding_handle_t    binding_h,
     rpc_client_handle_t     *client_h,
     unsigned32              *status
 )
-#else
-(binding_h, client_h, status)
-rpc_binding_handle_t    binding_h;
-rpc_client_handle_t     *client_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t binding_rep = (rpc_binding_rep_p_t) binding_h;
 
@@ -2295,7 +2196,7 @@ unsigned32              *status;
      * Ask the protocol service for a client handle associated with
      * the client on the other end of the connection specified by this
      * server binding handle.
-     */                      
+     */
     (*rpc_g_protocol_id[binding_rep->protocol_id].binding_epv
         ->binding_inq_client) (binding_rep, client_h, status);
 }
@@ -2308,7 +2209,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC
 **
 **  DESCRIPTION:
-**               
+**
 **  This routine creates a duplicate handle to an existing
 **  (now shared) binding (via bumping a reference count).
 **
@@ -2321,7 +2222,7 @@ unsigned32              *status;
 **
 **  OUTPUTS:
 **
-**      destination_binding   
+**      destination_binding
 **                      The binding handle which points to the shared
 **                      binding rep data structure.
 **
@@ -2343,32 +2244,25 @@ unsigned32              *status;
 **--
 **/
 
- void rpc_binding_handle_copy 
-#ifdef _DCE_PROTO_
+ void rpc_binding_handle_copy
 (
     rpc_binding_handle_t    source_binding,
     rpc_binding_handle_t    *destination_binding,
     unsigned32              *status
 )
-#else
-(source_binding, destination_binding, status)
-rpc_binding_handle_t    source_binding;
-rpc_binding_handle_t    *destination_binding;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     src_binding_rep = (rpc_binding_rep_p_t) source_binding;
-    rpc_binding_rep_p_t     *dst_binding_rep = 
+    rpc_binding_rep_p_t     *dst_binding_rep =
                                 (rpc_binding_rep_p_t *) destination_binding;
 
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_CLIENT(src_binding_rep, status);
     if (*status != rpc_s_ok)
         return;
-      
+
     /*
      * Add a new reference.
      */
@@ -2390,7 +2284,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC
 **
 **  DESCRIPTION:
-**               
+**
 **  This routine compares two binding handles to determine if they
 **  reference the same binding object.  The current external binding handle
 **  representation (a pointer) doesn't really require the assistance
@@ -2426,23 +2320,16 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC boolean32 rpc_binding_handle_equal 
-#ifdef _DCE_PROTO_
+PUBLIC boolean32 rpc_binding_handle_equal
 (
     rpc_binding_handle_t    binding1,
     rpc_binding_handle_t    binding2,
     unsigned32              *status
 )
-#else
-(binding1, binding2, status)
-rpc_binding_handle_t    binding1;
-rpc_binding_handle_t    binding2;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     *status = rpc_s_ok;
 
     return (binding1 == binding2);
@@ -2456,7 +2343,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpcpvt.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine provides compatibility for DCE components that were
 **  coded prior to the routine name change from rpc_binding_server_to_client()
 **  to rpc_binding_server_from_client().
@@ -2466,11 +2353,11 @@ unsigned32              *status;
 **
 **  	NOTE: This description uses old terminology.
 **
-**  Convert a server binding handle to a client handle.  The new handle's    
-**  endpoint is reset and it has no associated authentication information.    
-**      
-**  Server binding handles are those created by the runtime and provided    
-**  to the server manager as a result of a [handle_t] RPC parameter.    
+**  Convert a server binding handle to a client handle.  The new handle's
+**  endpoint is reset and it has no associated authentication information.
+**
+**  Server binding handles are those created by the runtime and provided
+**  to the server manager as a result of a [handle_t] RPC parameter.
 **
 **  INPUTS:
 **
@@ -2502,19 +2389,12 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_server_to_client 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_server_to_client
 (
     rpc_binding_handle_t    src_binding_h,
     rpc_binding_handle_t    *dst_binding_h,
     unsigned32              *status
 )
-#else
-(src_binding_h, dst_binding_h, status)
-rpc_binding_handle_t    src_binding_h;
-rpc_binding_handle_t    *dst_binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_server_from_client (src_binding_h, dst_binding_h, status);
     return;
@@ -2528,17 +2408,17 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **      NOTE: This description and the code use phrases "server binding
 **            handle" and "client binding handle" opposite from the way
 **            these are used in the API documentation. At some point, we
 **            should change the code to match the documentation.
 **
-**  Convert a server binding handle to a client handle.  The new handle's    
-**  endpoint is reset and it has no associated authentication information.    
-**      
-**  Server binding handles are those created by the runtime and provided    
-**  to the server manager as a result of a [handle_t] RPC parameter.    
+**  Convert a server binding handle to a client handle.  The new handle's
+**  endpoint is reset and it has no associated authentication information.
+**
+**  Server binding handles are those created by the runtime and provided
+**  to the server manager as a result of a [handle_t] RPC parameter.
 **
 **  INPUTS:
 **
@@ -2570,19 +2450,12 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_binding_server_from_client 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_server_from_client
 (
     rpc_binding_handle_t    src_binding_h,
     rpc_binding_handle_t    *dst_binding_h,
     unsigned32              *status
     )
-#else
-(src_binding_h, dst_binding_h, status)
-rpc_binding_handle_t    src_binding_h;
-rpc_binding_handle_t    *dst_binding_h;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     src_binding_rep = (rpc_binding_rep_p_t) src_binding_h;
     rpc_binding_rep_p_t     dst_binding_rep;
@@ -2593,7 +2466,7 @@ unsigned32              *status;
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_SERVER(src_binding_rep, status);
     if (*status != rpc_s_ok)
         return;
@@ -2608,7 +2481,7 @@ unsigned32              *status;
         (*rpc_g_protocol_id[src_binding_rep->protocol_id].binding_epv
          ->binding_inq_addr) (src_binding_rep, &srpc_addr, status);
 
-        if (*status != rpc_s_ok) 
+        if (*status != rpc_s_ok)
             return;
 
         /*
@@ -2623,7 +2496,7 @@ unsigned32              *status;
     {
         /*
          * otherwise, make a copy of the one in the source
-         */    
+         */
         (*rpc_g_naf_id[src_binding_rep->rpc_addr->sa.family].epv
             ->naf_addr_copy)
                 (src_binding_rep->rpc_addr, &rpc_addr, status);
@@ -2645,7 +2518,7 @@ unsigned32              *status;
         false, &src_binding_rep->obj,
         src_binding_rep->protocol_id, rpc_addr, status);
     if (*status != rpc_s_ok) goto CLEANUP;
-    
+
     /*
      * copy other common parts of the binding rep from the source to dest
      *
@@ -2656,7 +2529,7 @@ unsigned32              *status;
     dst_binding_rep->timeout            = src_binding_rep->timeout;
     dst_binding_rep->call_timeout_time  = src_binding_rep->call_timeout_time;
     dst_binding_rep->addr_is_dynamic    = src_binding_rep->addr_is_dynamic;
-    
+
     /*
      * return the destination binding rep as a binding handle
      */
@@ -2679,9 +2552,9 @@ CLEANUP:
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Inquire the sockaddr that is associated with a binding handle.
-**  
+**
 **  This is kernel RPC only (private) operation and exists strictly for
 **  performance reasons.  The returned sockaddr pointer points to storage
 **  directly associated with the binding handle.  This pointer can become
@@ -2718,19 +2591,12 @@ CLEANUP:
 **--
 **/
 
-PRIVATE void rpc__binding_inq_sockaddr 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__binding_inq_sockaddr
 (
     rpc_binding_handle_t    binding_h,
     sockaddr_p_t            *sa,
     unsigned32              *status
 )
-#else
-(binding_h, sa, status)
-rpc_binding_handle_t    binding_h;
-sockaddr_p_t            *sa;
-unsigned32              *status;
-#endif
 {
     *sa = &((rpc_binding_rep_p_t) binding_h)->rpc_addr->sa;
 
@@ -2745,10 +2611,10 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Perform whatever actions are required to make a binding handle usable
 **  in the client of a fork.
-**                          
+**
 **  Currently there is no common processing performed, and we just pass
 **  the binding rep to protocol specific routines for processing.
 **
@@ -2771,25 +2637,19 @@ unsigned32              *status;
 **
 **  FUNCTION VALUE:     void
 **
-**  SIDE EFFECTS:       Any state associated with the binding handle is 
+**  SIDE EFFECTS:       Any state associated with the binding handle is
 **                      dropped so that it is not inherited by the child
 **                      of a fork.
 **
 **--
 **/
 
-PRIVATE void rpc__binding_cross_fork 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__binding_cross_fork
 (
   rpc_binding_rep_p_t binding_rep,
-  unsigned32 * status 
+  unsigned32 * status
 )
-#else
-(binding_rep, status)
-rpc_binding_rep_p_t binding_rep;                
-unsigned32 *status;
-#endif
-{  
+{
     /*
      * Servers aren't allowed to fork, so we only allow passing
      * client binding handles across the fork.
@@ -2799,14 +2659,14 @@ unsigned32 *status;
         *status = rpc_s_wrong_kind_of_binding;
         return;
     }
- 
+
     /*
      * We only want to bring the handle across the fork once.
      * Take the global lock, then check that the handle still
      * needs to cross the fork.
      */
-    RPC_LOCK(0);  
-     
+    RPC_LOCK(0);
+
     if (binding_rep->fork_count != rpc_g_fork_count)
     {
         /*
@@ -2815,14 +2675,14 @@ unsigned32 *status;
          */
         (*rpc_g_protocol_id[binding_rep->protocol_id].binding_epv
            ->binding_cross_fork) (binding_rep, status);
-                
+
         /*
          * Update the handle to the current fork count.
          */
         binding_rep->fork_count = rpc_g_fork_count;
     }
 
-    RPC_UNLOCK(0);  
+    RPC_UNLOCK(0);
 }
 
 /*
@@ -2835,7 +2695,7 @@ unsigned32 *status;
 **
 **  Allocates and initializes an rpc_protocol_version_t struct.
 **
-**  INPUTS:             
+**  INPUTS:
 **      major_version       The major version of the protocol
 **
 **      minor_version       The minor version of the protocol.
@@ -2844,9 +2704,9 @@ unsigned32 *status;
 **  OUTPUTS:
 **      prot_version        The allocated protocol_version structure.
 **
-**      status         
-**                          rpc_s_ok 
-**                          
+**      status
+**                          rpc_s_ok
+**
 **
 **  IMPLICIT INPUTS:    none
 **
@@ -2869,7 +2729,7 @@ PRIVATE void rpc__binding_prot_version_alloc(
     /*
      * Alocate a version struct
      */
-    RPC_MEM_ALLOC(*prot_version, 
+    RPC_MEM_ALLOC(*prot_version,
                   rpc_protocol_version_p_t,
                   sizeof(rpc_protocol_version_t),
                   RPC_C_MEM_PROTOCOL_VERSION,
@@ -2898,7 +2758,7 @@ PRIVATE void rpc__binding_prot_version_alloc(
 **  Free's an rpc_protocol_version_t struct.
 **  The pointer is set to NULL.
 **
-**  INPUTS:             
+**  INPUTS:
 **    protocol_version  Pointer to the version stuct.
 **
 **
@@ -2927,13 +2787,13 @@ PRIVATE void rpc__binding_prot_version_free(
 **
 **  DESCRIPTION:
 **
-**  Sets the protocol version in a binding_rep data structure 
+**  Sets the protocol version in a binding_rep data structure
 **  from a protocol tower.
 **
-**  INPUTS:             
+**  INPUTS:
 **      binding_h       The binding handle which points to the binding
 **                      rep data structure to be modified.
-** 
+**
 **      tower_ref	The tower to get the protocol version information
 **
 **  OUTPUTS:
@@ -2988,7 +2848,7 @@ PRIVATE void rpc__binding_set_prot_version(
 **
 **  DESCRIPTION:
 **
-**  INPUTS:             
+**  INPUTS:
 **      template        binding handle template
 **
 **      security        security options
@@ -3034,7 +2894,7 @@ PUBLIC void rpc_binding_create(
 	if (*st != rpc_s_ok)
 	    return;
     }
- 
+
     rpc_string_binding_compose(string_object_uuid,
 			       template->protseq,
 			       template->network_address,

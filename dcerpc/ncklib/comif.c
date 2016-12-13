@@ -17,7 +17,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -29,11 +29,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  Interface Service for the Common Communications Service.  Contains 
+**  Interface Service for the Common Communications Service.  Contains
 **  routines to register an interface, unregister an interface, perform lookups
 **  of interface specifications within the Interface Registry Table, which is
 **  contained within this module.
@@ -91,11 +91,12 @@ typedef struct
 } rpc_if_type_info_t, *rpc_if_type_info_p_t;
 
 
-INTERNAL void unregister_if_entry _DCE_PROTOTYPE_ ((
+INTERNAL void unregister_if_entry(
         rpc_if_rgy_entry_p_t    /*if_entry*/,
         dce_uuid_p_t                /*mgr_type_uuid*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
 /*
 **++
@@ -105,7 +106,7 @@ INTERNAL void unregister_if_entry _DCE_PROTOTYPE_ ((
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Initializes this module.
 **
 **  INPUTS:             none
@@ -128,14 +129,9 @@ INTERNAL void unregister_if_entry _DCE_PROTOTYPE_ ((
 **/
 
 PRIVATE void rpc__if_init
-#ifdef _DCE_PROTO_
 (
-    unsigned32 * status 
+    unsigned32 * status
 )
-#else 
-(status)
-unsigned32                  *status;
-#endif
 {
     RPC_MUTEX_INIT (if_mutex);
     *status = rpc_s_ok;
@@ -150,10 +146,10 @@ unsigned32                  *status;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Initializes this module.
 **
-**  INPUTS:             stage   The stage of the fork we are 
+**  INPUTS:             stage   The stage of the fork we are
 **                              currently handling.
 **
 **  INPUTS/OUTPUTS:     none
@@ -172,15 +168,10 @@ unsigned32                  *status;
 **/
 
 PRIVATE void rpc__if_fork_handler
-#ifdef _DCE_PROTO_
 (
   rpc_fork_stage_id_t stage
 )
-#else 
-(stage)
-rpc_fork_stage_id_t stage;
-#endif
-{   
+{
     unsigned32 i;
 
     switch ((int)stage)
@@ -189,10 +180,10 @@ rpc_fork_stage_id_t stage;
                 break;
         case RPC_C_POSTFORK_PARENT:
                 break;
-        case RPC_C_POSTFORK_CHILD:  
+        case RPC_C_POSTFORK_CHILD:
                 /*
                  * Empty the Interface Registry Table
-                 */                                  
+                 */
                 for (i = 0; i < RPC_C_IF_REGISTRY_SIZE; i++)
                 {
                     if_registry[i].next = NULL;
@@ -211,7 +202,7 @@ rpc_fork_stage_id_t stage;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  See description of "rpc__server_register_if_int".
 **
 **  INPUTS:
@@ -243,21 +234,13 @@ rpc_fork_stage_id_t stage;
 **--
 **/
 
-PUBLIC void rpc_server_register_if 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_server_register_if
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
     rpc_mgr_epv_t               mgr_epv,
     unsigned32                  *status
 )
-#else
-(ifspec_h, mgr_type_uuid, mgr_epv, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-rpc_mgr_epv_t               mgr_epv;
-unsigned32                  *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -275,7 +258,7 @@ unsigned32                  *status;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Perform a hash lookup through the Interface Registry Table to try to
 **  locate the interface spec requested. If the search fails, add the
 **  interface entry to the appropriate list. Then proceed to insert the type
@@ -325,8 +308,7 @@ unsigned32                  *status;
 **--
 **/
 
-PRIVATE void rpc__server_register_if_int 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__server_register_if_int
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
@@ -338,19 +320,7 @@ PRIVATE void rpc__server_register_if_int
     boolean32                   is_internal,
     unsigned32                  *status
 )
-#else 
-(ifspec_h, mgr_type_uuid, mgr_epv, flags, max_calls, max_rpc_size, is_internal, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-rpc_mgr_epv_t               mgr_epv;
-unsigned32                  flags;
-unsigned32                  max_calls;
-unsigned32                  max_rpc_size;
-rpc_if_callback_fn_t        if_callback;
-boolean32                   is_internal;
-unsigned32                  *status;
-#endif
-{ 
+{
     rpc_if_rep_p_t              if_rep = (rpc_if_rep_p_t) ifspec_h;
     rpc_mgr_epv_t               mepv;
     rpc_if_rgy_entry_p_t        if_entry;
@@ -362,8 +332,8 @@ unsigned32                  *status;
     boolean                     type_info_added = false;
     boolean                     if_entry_alloced = false;
     boolean                     if_entry_added = false;
-    
-    
+
+
     CODING_ERROR (status);
 
     RPC_IF_VALIDATE(if_rep, status);
@@ -372,7 +342,7 @@ unsigned32                  *status;
         return;
     }
 
-    /* 
+    /*
      * check to see if a NULL mgr_epv was passed
      * - if so, use the default one in the ifspec
      * - if it's non-NULL, make a copy of it
@@ -418,7 +388,7 @@ unsigned32                  *status;
      * from dce_uuid_hash to make sure the uuid has a valid format
      */
     index = (dce_uuid_hash (&(if_rep->id), status)) % RPC_C_IF_REGISTRY_SIZE;
-    
+
     if (*status != uuid_s_ok)
     {
         if (copied_mepv)
@@ -463,7 +433,7 @@ unsigned32                  *status;
             sizeof (rpc_if_rgy_entry_t),
             RPC_C_MEM_IF_RGY_ENTRY,
             RPC_C_MEM_WAITOK);
-            
+
         if (if_entry == NULL)
         {
             *status = rpc_s_no_memory;
@@ -536,7 +506,7 @@ unsigned32                  *status;
                 goto ERROR_AND_LOCKED;
             }
             type_info_alloced = true;
-                
+
             /*
              * fill in the supplied type info
              */
@@ -612,7 +582,7 @@ ERROR_AND_LOCKED:
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Perform a hash lookup on the Interface Registry Table to locate the
 **  specified interface spec. If the search fails, return
 **  'rpc_s_unknown_if'.  If a registered interface is located with the
@@ -652,27 +622,19 @@ ERROR_AND_LOCKED:
 **--
 **/
 
-PRIVATE void rpc__server_unregister_if_int 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__server_unregister_if_int
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
     rpc_if_handle_t             *rtn_ifspec_h,
     unsigned32                  *status
 )
-#else
-(ifspec_h, mgr_type_uuid, rtn_ifspec_h, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-rpc_if_handle_t             *rtn_ifspec_h;
-unsigned32                  *status;
-#endif
 {
     rpc_if_rep_p_t              if_rep = (rpc_if_rep_p_t) ifspec_h;
     unsigned32                  index;
     rpc_if_rgy_entry_p_t        if_entry, next_if_entry;
     boolean                     found_mgr_type;
-    
+
 
     CODING_ERROR (status);
 
@@ -733,7 +695,7 @@ unsigned32                  *status;
                     if_entry->default_mepv == NULL)
                 {
                     RPC_LIST_REMOVE (if_registry[index], if_entry);
-    
+
                     RPC_MEM_FREE (if_entry, RPC_C_MEM_IF_RGY_ENTRY);
                 }
 
@@ -760,7 +722,7 @@ unsigned32                  *status;
         {
             RPC_MUTEX_UNLOCK (if_mutex);
             return;
-        }        
+        }
 
         /*
          * walk the list of entries for this hash value
@@ -838,7 +800,7 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  See description of "rpc__server_unregister_int".
 **
 **  INPUTS:
@@ -867,19 +829,12 @@ unsigned32                  *status;
 **--
 **/
 
-PUBLIC void rpc_server_unregister_if 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_server_unregister_if
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
     unsigned32                  *status
 )
-#else
-(ifspec_h, mgr_type_uuid, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-unsigned32                  *status;
-#endif
 {
     rpc_if_handle_t             rtn_ifspec_h;
 
@@ -894,19 +849,12 @@ unsigned32                  *status;
 **  interface entry in the if registry.
 **/
 
-INTERNAL void unregister_if_entry 
-#ifdef _DCE_PROTO_
+INTERNAL void unregister_if_entry
 (
     rpc_if_rgy_entry_p_t    if_entry,
     dce_uuid_p_t                mgr_type_uuid,
     unsigned32              *status
 )
-#else
-(if_entry, mgr_type_uuid, status)
-rpc_if_rgy_entry_p_t    if_entry;
-uuid_p_t                mgr_type_uuid;
-unsigned32              *status;
-#endif
 {
     rpc_if_type_info_p_t        type_info;
     rpc_if_type_info_p_t        current_type_info;
@@ -923,7 +871,7 @@ unsigned32              *status;
         if (if_entry->copied_mepv)
         {
             RPC_MEM_FREE (if_entry->default_mepv, RPC_C_MEM_MGR_EPV);
-        }        
+        }
 
         if_entry->default_mepv = NULL;
 
@@ -952,7 +900,7 @@ unsigned32              *status;
              * save this entry and get the next one on the list
              */
             current_type_info = type_info;
-            
+
             RPC_LIST_FIRST
                 (if_entry->type_info_list, type_info, rpc_if_type_info_p_t);
 
@@ -981,12 +929,12 @@ unsigned32              *status;
             if (if_entry->copied_mepv)
             {
                 RPC_MEM_FREE (if_entry->default_mepv, RPC_C_MEM_MGR_EPV);
-            }        
+            }
 
             if_entry->default_mepv = NULL;
         }
         else
-        {        
+        {
             /*
              * walk the type info list looking for matches
              */
@@ -1047,7 +995,7 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in comif.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Look into the Interface Registry Table for the Interface requested.
 **  The search is conducted in either one or two steps.  First the index
 **  from a previous request that is remembered in 'ihint' is tried,  then
@@ -1105,8 +1053,7 @@ unsigned32              *status;
 **--
 **/
 
-PRIVATE void rpc__if_lookup 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__if_lookup
 (
     dce_uuid_p_t                    if_uuid,
     unsigned32                  if_vers,
@@ -1117,17 +1064,6 @@ PRIVATE void rpc__if_lookup
     rpc_mgr_epv_t               *mepv,
     unsigned32                  *status
 )
-#else
-(if_uuid, if_vers, mgr_type_uuid, ihint, ifspec, sepv, mepv, status)
-uuid_p_t                    if_uuid;
-unsigned32                  if_vers;
-uuid_p_t                    mgr_type_uuid;
-unsigned16                  *ihint;
-rpc_if_rep_p_t              *ifspec;
-rpc_v2_server_stub_epv_t    *sepv;
-rpc_mgr_epv_t               *mepv;
-unsigned32                  *status;
-#endif
 {
            rpc__if_lookup2 (if_uuid, if_vers, mgr_type_uuid,
                             ihint, ifspec, sepv, mepv,
@@ -1143,7 +1079,7 @@ unsigned32                  *status;
 **  SCOPE:              PRIVATE - declared in comif.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Look into the Interface Registry Table for the Interface requested.
 **  The search is conducted in either one or two steps.  First the index
 **  from a previous request that is remembered in 'ihint' is tried,  then
@@ -1214,7 +1150,6 @@ unsigned32                  *status;
 **/
 
 PRIVATE void rpc__if_lookup2
-#ifdef _DCE_PROTO_
 (
     dce_uuid_p_t                    if_uuid,
     unsigned32                  if_vers,
@@ -1229,29 +1164,13 @@ PRIVATE void rpc__if_lookup2
     rpc_if_callback_fn_t        *if_callback,
     unsigned32                  *status
 )
-#else
-(if_uuid, if_vers, mgr_type_uuid, ihint, ifspec, sepv, mepv, flags,
- max_calls, max_rpc_size, if_callback, status)
-uuid_p_t                    if_uuid;
-unsigned32                  if_vers;
-uuid_p_t                    mgr_type_uuid;
-unsigned16                  *ihint;
-rpc_if_rep_p_t              *ifspec;
-rpc_v2_server_stub_epv_t    *sepv;
-rpc_mgr_epv_t               *mepv;
-unsigned32                  *flags;
-unsigned32                  *max_calls;
-unsigned32                  *max_rpc_size;
-rpc_if_callback_fn_t        *if_callback;
-unsigned32                  *status;
-#endif
 {
     rpc_if_rgy_entry_p_t        if_entry = NULL;
     rpc_if_type_info_p_t        type_info;
     unsigned32                  index;
     unsigned32                  entry_count = 0;
     unsigned32                  temp_status;
-    
+
     RPC_LOG_IF_LOOKUP_NTR;
     CODING_ERROR (status);
 
@@ -1259,7 +1178,7 @@ unsigned32                  *status;
      * take out a lock to protect access to the if registry
      */
     RPC_MUTEX_LOCK (if_mutex);
-    
+
     /*
      * see if the interface hint we're given is valid
      */
@@ -1278,7 +1197,7 @@ unsigned32                  *status;
         RPC_LIST_LOOKUP
             (if_registry[index], if_entry, rpc_if_rgy_entry_p_t, entry_count);
 
-        if (if_entry != NULL && 
+        if (if_entry != NULL &&
             ! RPC_IF_IS_COMPATIBLE (if_entry, if_uuid, if_vers, status))
         {
             if_entry = NULL;
@@ -1291,14 +1210,14 @@ unsigned32                  *status;
          * from dce_uuid_hash to make sure the uuid has a valid format
          */
         index = dce_uuid_hash (if_uuid, status) % RPC_C_IF_REGISTRY_SIZE;
-    
+
         if (*status != uuid_s_ok)
         {
             RPC_MUTEX_UNLOCK (if_mutex);
             return;
         }
     }
-    
+
     /*
      * if we got this far and didn't find a match, search the whole list
      * under the current hash value for the given interface
@@ -1327,9 +1246,9 @@ unsigned32                  *status;
         *status = rpc_s_unknown_if;
         RPC_MUTEX_UNLOCK (if_mutex);
         return;
-    }        
+    }
 
-    
+
     /*
      * if a manager type uuid is given, and is not the nil uuid, try to match
      * for a registered type - otherwise, return the default manager epv
@@ -1356,7 +1275,7 @@ unsigned32                  *status;
 
             RPC_LIST_NEXT (type_info, type_info, rpc_if_type_info_p_t);
         }
-        
+
         if (type_info == NULL)
         {
             /*
@@ -1381,7 +1300,7 @@ unsigned32                  *status;
         }
     }
     else
-    {    
+    {
         /*
          * The default (nil-type) manager epv is requested,
          * return an error if one isn't registered and a manager epv
@@ -1453,7 +1372,7 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Extract the interface id (UUID and version numbers) from the given
 **  interface spec.
 **
@@ -1482,19 +1401,12 @@ unsigned32                  *status;
 **--
 **/
 
-PUBLIC void rpc_if_inq_id 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_if_inq_id
 (
     rpc_if_handle_t             ifspec_h,
     rpc_if_id_t                 *if_id,
     unsigned32                  *status
 )
-#else
-(ifspec_h, if_id, status)
-rpc_if_handle_t             ifspec_h;
-rpc_if_id_t                 *if_id;
-unsigned32                  *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -1522,7 +1434,7 @@ unsigned32                  *status;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Compares two interface id's and matches based on the version option.
 **
 **  INPUTS:
@@ -1562,24 +1474,16 @@ unsigned32                  *status;
 **--
 **/
 
-PRIVATE boolean rpc__if_id_compare 
-#ifdef _DCE_PROTO_
+PRIVATE boolean rpc__if_id_compare
 (
     rpc_if_id_p_t           if_id_ref,
     rpc_if_id_p_t           if_id,
     unsigned32              if_vers_option,
     unsigned32              *status
 )
-#else
-(if_id_ref, if_id, if_vers_option, status)
-rpc_if_id_p_t           if_id_ref;
-rpc_if_id_p_t           if_id;
-unsigned32              if_vers_option;
-unsigned32              *status;
-#endif
 {
     *status = rpc_s_ok;
-    
+
     /*
      * see if the returned if uuid matches the one given
      */
@@ -1689,7 +1593,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Free the memory allocated for an rpc_if_id_vector_t.
 **
 **  INPUTS:             none
@@ -1716,24 +1620,18 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_if_id_vector_free 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_if_id_vector_free
 (
     rpc_if_id_vector_p_t    *if_id_vector,
     unsigned32              *status
 )
-#else
-(if_id_vector, status)
-rpc_if_id_vector_p_t    *if_id_vector;
-unsigned32              *status;
-#endif
 {
     unsigned32              i;
-    
+
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
-    
+
     /*
      * check to see if if_id_vector is NULL, and if
      * so, return an error status
@@ -1743,8 +1641,8 @@ unsigned32              *status;
         *status = rpc_s_invalid_arg;
         return;
     }
-    
- 
+
+
     /*
      * walk the if id vector and free each element
      */
@@ -1755,12 +1653,12 @@ unsigned32              *status;
             RPC_MEM_FREE ((*if_id_vector)->if_id[i], RPC_C_MEM_IF_ID);
         }
     }
-    
+
     /*
      * then free the vector itself
      */
     RPC_MEM_FREE ((*if_id_vector), RPC_C_MEM_IF_ID_VECTOR);
-    
+
     /*
      * return a NULL pointer
      */
@@ -1777,14 +1675,14 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in comif.h
 **
 **  DESCRIPTION:
-**      
+**
 **  With the given interface spec, search through the associated array
 **  of RPC Protocol Sequence/endpoint pairs.  Compare the Protocol Sequence
 **  ID given to the one in the ifspec (protocol_id's are used instead
 **  of protseq id strings to make handling of aliases simpler and
 **  localized). Filter out any extraneous info, such as "endpoint=" and
 **  other information the user may have put into the endpoint attribute in
-**  the idl file.  If the requested endpoint can't be located, return 
+**  the idl file.  If the requested endpoint can't be located, return
 **  'rpc_s_endpoint_not_found'.
 **
 **  INPUTS:
@@ -1816,32 +1714,24 @@ unsigned32              *status;
 **--
 **/
 
-PRIVATE void rpc__if_inq_endpoint 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__if_inq_endpoint
 (
     rpc_if_rep_p_t              ifspec,
     rpc_protseq_id_t            protseq_id,
     unsigned_char_t             **endpoint,
     unsigned32                  *status
 )
-#else
-(ifspec, protseq_id, endpoint, status)
-rpc_if_rep_p_t              ifspec;
-rpc_protseq_id_t            protseq_id;
-unsigned_char_t             **endpoint;
-unsigned32                  *status;
-#endif
 {
     unsigned16              ctr;
     rpc_protseq_id_t        pseq_id;
-    unsigned_char_t         *scratch_endpoint;  
+    unsigned_char_t         *scratch_endpoint;
 
     CODING_ERROR (status);
-    
+
     for (ctr = 0; ctr < ifspec->endpoint_vector.count; ctr++)
     {
         pseq_id = rpc__network_pseq_id_from_pseq (
-            ifspec->endpoint_vector.endpoint_vector_elt[ctr].rpc_protseq, 
+            ifspec->endpoint_vector.endpoint_vector_elt[ctr].rpc_protseq,
             status);
         if (*status == rpc_s_protseq_not_supported)
         {
@@ -1856,12 +1746,12 @@ unsigned32                  *status;
         {
             /*
              * Allocate enough space so we can place brackets around the
-             * string before attempting to filter it.  We need 3 extra 
+             * string before attempting to filter it.  We need 3 extra
              * bytes, for '[', ']', and '\0'.
              */
             RPC_MEM_ALLOC (
                 scratch_endpoint,
-                unsigned_char_p_t, 
+                unsigned_char_p_t,
                 ((unsigned32) strlen ((char *)
                     ifspec->endpoint_vector.endpoint_vector_elt[ctr].endpoint)
                     +3),
@@ -1900,7 +1790,7 @@ unsigned32                  *status;
 **  SCOPE:              PRIVATE - declared in comif.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Set an RPC addr's endpoint based on the well-known endpoint in the
 **  given ifspec, if there is one.
 **
@@ -1931,26 +1821,19 @@ unsigned32                  *status;
 **--
 **/
 
-PRIVATE void rpc__if_set_wk_endpoint 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__if_set_wk_endpoint
 (
   rpc_if_rep_p_t          ifspec,
   rpc_addr_p_t            *rpc_addr,
   unsigned32              *status
 )
-#else
-(ifspec, rpc_addr, status)
-rpc_if_rep_p_t          ifspec;
-rpc_addr_p_t            *rpc_addr;
-unsigned32              *status;
-#endif
 {
     unsigned_char_p_t       endpoint;
     unsigned32              temp_status;
 
 
     CODING_ERROR (status);
-    
+
     /*
      * get the endpoint from the if spec
      */
@@ -1980,7 +1863,7 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Perform a linear search through the Interface Registry Table.
 **  For each slot found to contain a registered Interface specification,
 **  increment a counter.  Return the number of active slots located.
@@ -2009,7 +1892,7 @@ PRIVATE unsigned32 rpc__if_mgmt_inq_num_registered( void )
     unsigned32              entry_count = 0;
     unsigned32              index;
     rpc_if_rgy_entry_p_t    if_entry;
-    
+
 
     /*
      * take out a lock to protect access to the if registry
@@ -2025,7 +1908,7 @@ PRIVATE unsigned32 rpc__if_mgmt_inq_num_registered( void )
          * walk the list under this hash entry
          */
         RPC_LIST_FIRST (if_registry[index], if_entry, rpc_if_rgy_entry_p_t);
-        
+
         while (if_entry != NULL)
         {
             /*
@@ -2059,7 +1942,7 @@ PRIVATE unsigned32 rpc__if_mgmt_inq_num_registered( void )
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Obtain the number of active entries in the Interface Registry Table.
 **  Then allocate enough memory to hold a vector of if_id elements.  Scan
 **  through the Interface Registry Table and for each active interface copy
@@ -2091,27 +1974,21 @@ PRIVATE unsigned32 rpc__if_mgmt_inq_num_registered( void )
 **--
 **/
 
-PRIVATE void rpc__if_mgmt_inq_if_ids 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__if_mgmt_inq_if_ids
 (
     rpc_if_id_vector_p_t    *if_id_vector,
     unsigned32              *status
 )
-#else
-(if_id_vector, status)
-rpc_if_id_vector_p_t    *if_id_vector;
-unsigned32              *status;
-#endif
 {
     rpc_if_rgy_entry_p_t    if_entry;
     unsigned32              if_count;
     unsigned32              index;
     unsigned32              if_id_index;
     unsigned32              temp_status;
-    
-    
+
+
     CODING_ERROR (status);
-    
+
     /*
      * find the number of registered interfaces
      */
@@ -2121,7 +1998,7 @@ unsigned32              *status;
 	*if_id_vector = NULL;
         return;
     }
-    
+
     /*
      * allocate memory for the if id vector
      */
@@ -2136,7 +2013,7 @@ unsigned32              *status;
      * set the count field in the vector
      */
     (*if_id_vector)->count = if_count;
-    
+
     /*
      * take out a lock to protect access to the if registry
      */
@@ -2151,7 +2028,7 @@ unsigned32              *status;
          * walk the list under this hash entry
          */
         RPC_LIST_FIRST (if_registry[index], if_entry, rpc_if_rgy_entry_p_t);
-        
+
         while (if_entry != NULL)
         {
             /*
@@ -2168,7 +2045,7 @@ unsigned32              *status;
                     sizeof (rpc_if_id_t),
                     RPC_C_MEM_IF_ID,
                     RPC_C_MEM_WAITOK);
-                
+
                 /*
                  * extract the if id info for this registry entry
                  */
@@ -2178,7 +2055,7 @@ unsigned32              *status;
                 if (*status != rpc_s_ok)
                 {
                     /*
-                     * If anything went wrong, free the vector allocated; 
+                     * If anything went wrong, free the vector allocated;
                      * but first reset the count field to the right value.
                      */
                     (*if_id_vector)->count = if_id_index;
@@ -2206,7 +2083,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Given an interface spec and type ID, return the manager EPV that has
 **  been registered for them (if any).
 **
@@ -2233,21 +2110,13 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_server_inq_if 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_server_inq_if
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
     rpc_mgr_epv_t               *mgr_epv,
     unsigned32                  *status
 )
-#else
-(ifspec_h, mgr_type_uuid, mgr_epv, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-rpc_mgr_epv_t               *mgr_epv;
-unsigned32                  *status;
-#endif
 {
     rpc_if_rep_p_t              ifspec = (rpc_if_rep_p_t) ifspec_h;
     unsigned16                  ihint = RPC_C_INVALID_IHINT;
@@ -2255,7 +2124,7 @@ unsigned32                  *status;
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
 
-    rpc__if_lookup2 (&ifspec->id, ifspec->vers, mgr_type_uuid, 
+    rpc__if_lookup2 (&ifspec->id, ifspec->vers, mgr_type_uuid,
                      &ihint, NULL, NULL, mgr_epv,
                      NULL, NULL, NULL, NULL, status);
 }
@@ -2269,7 +2138,7 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  See description of "rpc__server_register_if_int".
 **
 **  INPUTS:
@@ -2308,7 +2177,6 @@ unsigned32                  *status;
 **/
 
 PUBLIC void rpc_server_register_if_ex
-#ifdef _DCE_PROTO_
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
@@ -2318,16 +2186,6 @@ PUBLIC void rpc_server_register_if_ex
     rpc_if_callback_fn_t        if_callback,
     unsigned32                  *status
 )
-#else
-(ifspec_h, mgr_type_uuid, mgr_epv, flags, max_calls, if_callback, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-rpc_mgr_epv_t               mgr_epv;
-unsigned32                  flags;
-unsigned32                  max_calls;
-rpc_if_callback_fn_t        if_callback;
-unsigned32                  *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -2346,7 +2204,7 @@ unsigned32                  *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  See description of "rpc__server_register_if_int".
 **
 **  INPUTS:
@@ -2387,7 +2245,6 @@ unsigned32                  *status;
 **/
 
 PUBLIC void rpc_server_register_if_2
-#ifdef _DCE_PROTO_
 (
     rpc_if_handle_t             ifspec_h,
     dce_uuid_p_t                    mgr_type_uuid,
@@ -2398,17 +2255,6 @@ PUBLIC void rpc_server_register_if_2
     rpc_if_callback_fn_t        if_callback,
     unsigned32                  *status
 )
-#else
-(ifspec_h, mgr_type_uuid, mgr_epv, flags, max_calls, if_callback, status)
-rpc_if_handle_t             ifspec_h;
-uuid_p_t                    mgr_type_uuid;
-rpc_mgr_epv_t               mgr_epv;
-unsigned32                  flags;
-unsigned32                  max_calls;
-unsigned32                  max_rpc_size;
-rpc_if_callback_fn_t        if_callback;
-unsigned32                  *status;
-#endif
 {
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,13 +16,13 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
 
 /*
- *  OSF DCE Version 1.0 
+ *  OSF DCE Version 1.0
  */
 /*
 **
@@ -87,14 +87,14 @@
 **  SCOPE:              PUBLIC - declared in dce_error.h
 **
 **  DESCRIPTION:
-**      
-**  Returns a text string in a user provided buffer associated with a given 
-**  error status code. In the case of errors a text string will also be 
+**
+**  Returns a text string in a user provided buffer associated with a given
+**  error status code. In the case of errors a text string will also be
 **  returned indicating the nature of the error.
 **
 **  INPUTS:
 **
-**      status_to_convert   A DCE error status code to be converted to 
+**      status_to_convert   A DCE error status code to be converted to
 **                          text form.
 **
 **  INPUTS/OUTPUTS:         None.
@@ -104,7 +104,7 @@
 **      error_text          A user provided buffer to hold the text
 **                          equivalent of status_to_convert or
 **                          a message indicating what error occurred.
-**                          
+**
 **
 **      status              The result of the operation. One of:
 **                           0  -  success
@@ -155,7 +155,7 @@ int                     *status;
     {
         *status = -1;
     }
-    
+
     /*
      * check for ok input status
      */
@@ -174,7 +174,7 @@ int                     *status;
      */
     facility_code = (status_to_convert & FACILITY_CODE_MASK)
         >> FACILITY_CODE_SHIFT;
-        
+
     component_code = (status_to_convert & COMPONENT_CODE_MASK)
         >> COMPONENT_CODE_SHIFT;
 
@@ -187,7 +187,7 @@ int                     *status;
     if (facility_code == 0 || facility_code > sizeof (facility_names) / sizeof (char *))
     {
         sprintf ((char *) error_text, "status %08lx (unknown facility)", status_to_convert);
-        return; 
+        return;
     }
 
     facility_name = facility_names[facility_code - 1];
@@ -223,18 +223,18 @@ int                     *status;
          * If we did not succeed in opening message file using NLSPATH,
          * try to open the message file in a well-known default area
          */
-         
+
         sprintf (alt_filename,
                  RPC_DEFAULT_NLSPATH,
                  filename_prefix);
         catd = (nl_catd) catopen (alt_filename, 0);
-            
+
         if (catd == (nl_catd) -1)
         {
             sprintf ((char *) error_text, "status %08lx", status_to_convert);
             return;
         }
-    }    
+    }
 
     /*
      * try to get the specified message from the file
@@ -262,7 +262,7 @@ int                     *status;
 #else
     sprintf ((char *) error_text, "status %08lx", status_to_convert);
 #endif
-}        
+}
 void dce_error_inq_text (
 unsigned long           status_to_convert,
 unsigned char           *error_text,

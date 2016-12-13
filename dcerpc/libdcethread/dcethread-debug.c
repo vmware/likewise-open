@@ -105,7 +105,7 @@ my_vasprintf(const char* format, va_list args)
     return outputString;
 }
 
-void 
+void
 dcethread__debug_printf(const char* file, unsigned int line, int level, const char* fmt, ...)
 {
     va_list ap;

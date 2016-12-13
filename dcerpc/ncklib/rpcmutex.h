@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -45,10 +45,10 @@
 **  condition variables have an associated mutex).
 **
 **  This package provides the following PRIVATE data types and operations:
-**  
+**
 **      rpc_mutex_t m;
 **      rpc_cond_t c;
-**  
+**
 **      void RPC_MUTEX_INIT(m)
 **      void RPC_MUTEX_DELETE(m)
 **      void RPC_MUTEX_LOCK(m)
@@ -72,14 +72,14 @@
 */
 
 /*
- * The rpc_mutex_t data type.  
+ * The rpc_mutex_t data type.
  *
  * If debugging isn't configured, this is just a unadorned mutex, else we adorn
  * the struct with goodies to enable assertion checking, deadlock detection
  * and statistics gathering.
  */
 
-typedef struct rpc_mutex_stats_t 
+typedef struct rpc_mutex_stats_t
 {
     unsigned32 busy;            /* total lock requests when already locked */
     unsigned32 lock;            /* total locks */
@@ -92,7 +92,7 @@ typedef struct rpc_mutex_stats_t
 } rpc_mutex_stats_t, *rpc_mutex_stats_p_t;
 #define RPC_MUTEX_STATUS_INITIALIZER {0, 0, 0, 0, 0, 0, 0, 0}
 
-typedef struct rpc_mutex_t 
+typedef struct rpc_mutex_t
 {
     dcethread_mutex m;          /* the unadorned mutex lock */
 #if defined(RPC_MUTEX_DEBUG) || defined(RPC_MUTEX_STATS)
@@ -563,73 +563,79 @@ typedef struct rpc_cond_t
  * Prototypes for the support routines.
  */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif /* _DCE_PROTOTYPE_ */
 
-boolean rpc__mutex_init _DCE_PROTOTYPE_(( rpc_mutex_p_t  /*mp*/ ));
+boolean rpc__mutex_init( rpc_mutex_p_t  /*mp*/ );
 
-boolean rpc__mutex_delete _DCE_PROTOTYPE_(( rpc_mutex_p_t  /*mp*/ ));
+boolean rpc__mutex_delete( rpc_mutex_p_t  /*mp*/ );
 
-boolean rpc__mutex_lock _DCE_PROTOTYPE_((
+boolean rpc__mutex_lock(
         rpc_mutex_p_t  /*mp*/,
         char * /*file*/,
         int  /*line*/
-    ));
+    
+    );
 
-boolean rpc__mutex_try_lock _DCE_PROTOTYPE_((
+boolean rpc__mutex_try_lock(
         rpc_mutex_p_t  /*mp*/,
         boolean * /*bp*/,
         char * /*file*/,
         int  /*line*/
-    ));
+    
+    );
 
-boolean rpc__mutex_unlock _DCE_PROTOTYPE_(( rpc_mutex_p_t  /*mp*/ ));
+boolean rpc__mutex_unlock( rpc_mutex_p_t  /*mp*/ );
 
-boolean rpc__mutex_lock_assert _DCE_PROTOTYPE_(( rpc_mutex_p_t  /*mp*/));
+boolean rpc__mutex_lock_assert( rpc_mutex_p_t  /*mp*/);
 
-boolean rpc__mutex_unlock_assert _DCE_PROTOTYPE_(( rpc_mutex_p_t  /*mp*/));
+boolean rpc__mutex_unlock_assert( rpc_mutex_p_t  /*mp*/);
 
 
-boolean rpc__cond_init _DCE_PROTOTYPE_((
+boolean rpc__cond_init(
         rpc_cond_p_t  /*cp*/,
         rpc_mutex_p_t  /*mp*/
-    ));
+    
+    );
 
-boolean rpc__cond_delete _DCE_PROTOTYPE_((
+boolean rpc__cond_delete(
         rpc_cond_p_t  /*cp*/,
         rpc_mutex_p_t  /*mp*/
-    ));
+    
+    );
 
-boolean rpc__cond_wait _DCE_PROTOTYPE_((
+boolean rpc__cond_wait(
         rpc_cond_p_t  /*cp*/,
         rpc_mutex_p_t  /*mp*/,
         char * /*file*/,
         int  /*line*/
-    ));
+    
+    );
 
-boolean rpc__cond_timed_wait _DCE_PROTOTYPE_((
+boolean rpc__cond_timed_wait(
         rpc_cond_p_t  /*cp*/,
         rpc_mutex_p_t  /*mp*/,
         struct timespec * /*wtime*/,
         char * /*file*/,
         int  /*line*/
-    ));
+    
+    );
 
-boolean rpc__cond_signal _DCE_PROTOTYPE_((
+boolean rpc__cond_signal(
         rpc_cond_p_t  /*cp*/,
         rpc_mutex_p_t  /*mp*/
-    ));
+    
+    );
 
-boolean rpc__cond_broadcast _DCE_PROTOTYPE_((
+boolean rpc__cond_broadcast(
         rpc_cond_p_t  /*cp*/,
         rpc_mutex_p_t  /*mp*/
-    ));
+    
+    );
 
-#else 
+#else
 
 #ifdef MIREK_NOT_DEFINED
-static void rpc__mutex_none _DCE_PROTOTYPE_((void));
+static void rpc__mutex_none(void);
 #endif
 #endif /* defined(RPC_MUTEX_DEBUG) || defined(RPC_MUTEX_STATS) */
 

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -49,9 +49,9 @@
  * State values are incremented by 100 to distinguish them from
  * action routine indexes which are all < 100.  This was done as
  * an efficiency measure to the engine, rpc__cn_sm_eval_event().
- */ 
+ */
 #define RPC_C_CLIENT_CALL_INIT              100
-#define RPC_C_CLIENT_CALL_ASSOC_ALLOC_WAIT  101 
+#define RPC_C_CLIENT_CALL_ASSOC_ALLOC_WAIT  101
 #define RPC_C_CLIENT_CALL_STUB_WAIT         102
 #define RPC_C_CLIENT_CALL_REQUEST           103
 #define RPC_C_CLIENT_CALL_RESPONSE          104
@@ -69,16 +69,16 @@
 /*
  * Events common to both client and server state machines
  */
-#define RPC_C_CALL_SEND                     100 
+#define RPC_C_CALL_SEND                     100
 #define RPC_C_CALL_TRANSMIT_REQ             100    /* client */
 #define RPC_C_CALL_RPC_RESP                 100    /* server */
-#define RPC_C_CALL_RECV                     101  
+#define RPC_C_CALL_RECV                     101
 #define RPC_C_CALL_RPC_CONF                 101   /* client */
 #define RPC_C_CALL_RPC_IND                  101   /* server */
-#define RPC_C_CALL_FAULT_DNE                102  
-#define RPC_C_CALL_FAULT                    103  
-#define RPC_C_CALL_LOCAL_ALERT              104  
-#define RPC_C_CALL_END                      105 
+#define RPC_C_CALL_FAULT_DNE                102
+#define RPC_C_CALL_FAULT                    103
+#define RPC_C_CALL_LOCAL_ALERT              104
+#define RPC_C_CALL_END                      105
 
 /*
  * Events only applicable to client state machine
@@ -88,14 +88,14 @@
 #define RPC_C_CALL_START_CALL               108
 #define RPC_C_CALL_LAST_TRANSMIT_REQ        109
 #define RPC_C_CALL_LOCAL_ERR                110
-#define RPC_C_CALL_ALERT_TIMEOUT            111 
-#define RPC_C_CALL_CLIENT_EVENTS            112 
+#define RPC_C_CALL_ALERT_TIMEOUT            111
+#define RPC_C_CALL_CLIENT_EVENTS            112
 
 /*
  * Events only applicable to server state machine
  */
 #define RPC_C_CALL_REMOTE_ALERT_IND         106
-#define RPC_C_CALL_ORPHANED                 107 
+#define RPC_C_CALL_ORPHANED                 107
 #define RPC_C_CALL_SERVER_EVENTS            108
 
 
@@ -115,10 +115,10 @@ EXTERNAL char   *rpc_g_cn_call_client_states [];
 /*
  * S E R V E R   C A L L   S T A T E S
  */
-#define RPC_C_SERVER_CALL_INIT              100 
-#define RPC_C_SERVER_CALL_CALL_REQUEST      101 
-#define RPC_C_SERVER_CALL_CALL_RESPONSE     102  
-#define RPC_C_SERVER_CALL_CALL_COMPLETED    103  
+#define RPC_C_SERVER_CALL_INIT              100
+#define RPC_C_SERVER_CALL_CALL_REQUEST      101
+#define RPC_C_SERVER_CALL_CALL_RESPONSE     102
+#define RPC_C_SERVER_CALL_CALL_COMPLETED    103
 
 
 /***********************************************************************/
@@ -137,11 +137,12 @@ EXTERNAL char   *rpc_g_cn_call_server_states [];
  * Action routine to invoke in case of a protocol error detected
  * during an illegal state transition.
  */
-PRIVATE unsigned32     rpc__cn_call_sm_protocol_error _DCE_PROTOTYPE_ ((
+PRIVATE unsigned32     rpc__cn_call_sm_protocol_error(
         pointer_t /* sc_struct */,
         pointer_t /* event_param */,
 	pointer_t /* sm		 */
-    ));
+    
+    );
 
 
 /***********************************************************************/
@@ -273,7 +274,7 @@ PRIVATE unsigned32     rpc__cn_call_sm_protocol_error _DCE_PROTOTYPE_ ((
              (pointer_t)(crep), &((crep)->call_state)); \
         RPC_CN_CALL_SM_TRC_STATE (crep, (RPC_CN_PKT_CALL_ID ((rpc_cn_packet_p_t) RPC_CN_CREP_SEND_HDR (crep))));\
     }\
-} 
+}
 
 
 /***********************************************************************/
@@ -300,7 +301,7 @@ PRIVATE unsigned32     rpc__cn_call_sm_protocol_error _DCE_PROTOTYPE_ ((
                                 (pointer_t)(crep), \
                                 &(crep)->call_state); \
     RPC_CN_CALL_SM_TRC_STATE (crep, (RPC_CN_PKT_CALL_ID ((rpc_cn_packet_p_t) RPC_CN_CREP_SEND_HDR (crep)))); \
-} 
+}
 
 
 /***********************************************************************/

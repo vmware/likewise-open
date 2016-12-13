@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -125,15 +125,17 @@ INTERNAL RPC_SELECT_FD_SET_T        readfds_copy;
 
 
 
-INTERNAL void copy_listener_state _DCE_PROTOTYPE_ ((
+INTERNAL void copy_listener_state(
         rpc_listener_state_p_t   /*lstate*/
-    ));
+    
+    );
 
-INTERNAL void lthread _DCE_PROTOTYPE_ ((
+INTERNAL void lthread(
         rpc_listener_state_p_t   /*lstate*/
-    ));
+    
+    );
 
-INTERNAL void lthread_loop _DCE_PROTOTYPE_ ((rpc_listener_state_p_t  lstate));
+INTERNAL void lthread_loop(rpc_listener_state_p_t  lstate);
 
 
 
@@ -142,28 +144,21 @@ INTERNAL void lthread_loop _DCE_PROTOTYPE_ ((rpc_listener_state_p_t  lstate));
  *
  * Mark that the specified descriptor is now "live" -- i.e., that events
  * on it should be processed.  This routine is also responsible for
- * starting up a listener thread if once doesn't already exist.  
+ * starting up a listener thread if once doesn't already exist.
  *
  * Note that once a socket has been activated, it is should never be
  * removed and not closed from the set of sockets that are
  * select(2)'d on, because we always must always "drain" the socket
  * of events (via recv or accept) so it doesn't get "clogged up"
- * with stuff (that would consume system resources). 
+ * with stuff (that would consume system resources).
  */
 
-PRIVATE void rpc__nlsn_activate_desc 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__nlsn_activate_desc
 (
     rpc_listener_state_p_t  lstate,
     unsigned32              idx,
     unsigned32              *status
 )
-#else
-(lstate, idx, status)
-rpc_listener_state_p_t  lstate;
-unsigned32              idx;
-unsigned32              *status;
-#endif
 {
     RPC_MUTEX_LOCK_ASSERT (lstate->mutex);
 
@@ -201,19 +196,12 @@ unsigned32              *status;
  * events on it should NOT be processed.
  */
 
-PRIVATE void rpc__nlsn_deactivate_desc 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__nlsn_deactivate_desc
 (
     rpc_listener_state_p_t  lstate,
     unsigned32              idx,
     unsigned32              *status
 )
-#else
-(lstate, idx, status)
-rpc_listener_state_p_t  lstate;
-unsigned32              idx;
-unsigned32              *status;
-#endif
 {
     dcethread*   current_thread;
 
@@ -250,7 +238,7 @@ unsigned32              *status;
     {
         copy_listener_state(lstate);
     }
-    else 
+    else
     {
         lstate->reload_pending = true;
         dcethread_interrupt_throw (listener_thread);
@@ -260,7 +248,7 @@ unsigned32              *status;
             RPC_COND_WAIT (lstate->cond, lstate->mutex);
         }
     }
-} 
+}
 
 
 
@@ -272,15 +260,10 @@ unsigned32              *status;
  * from the listener thread.
  */
 
-INTERNAL void copy_listener_state 
-#ifdef _DCE_PROTO_
+INTERNAL void copy_listener_state
 (
     rpc_listener_state_p_t  lstate
 )
-#else
-(lstate)
-rpc_listener_state_p_t  lstate;
-#endif
 {
     unsigned16              nd;
 
@@ -332,15 +315,10 @@ rpc_listener_state_p_t  lstate;
  * Startup routine for the listen thread.
  */
 
-INTERNAL void lthread 
-#ifdef _DCE_PROTO_
+INTERNAL void lthread
 (
     rpc_listener_state_p_t  lstate
 )
-#else
-(lstate)
-rpc_listener_state_p_t  lstate;
-#endif
 {
     /*
      * Loop, calling the real listen loop on each pass.  Each time a
@@ -350,7 +328,7 @@ rpc_listener_state_p_t  lstate;
      * go away, as on a fork, the handle_cancel boolean will be set
      * appropriately before the cancel is posted.
      */
-              
+
     while (listener_should_handle_cancels)
     {
         /*
@@ -366,7 +344,7 @@ rpc_listener_state_p_t  lstate;
         DCETHREAD_TRY
         {
             lthread_loop (lstate);
-        }     
+        }
         DCETHREAD_CATCH(dcethread_interrupt_e)
         {
 #ifdef NON_CANCELLABLE_IO_SELECT
@@ -410,7 +388,7 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
          */
 
         do
-        { 
+        {
             RPC_SELECT_FDSET_COPY(listener_readfds, readfds_copy, listener_nfds);
 
             /*
@@ -426,7 +404,7 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
              * dcethread_enableasync_throw(1) will not deliver
              * a pending cancel nor will the cancel be delivered asynchronously,
              * thus the need for dcethread_checkinterrupt.
-             * 
+             *
              */
 #ifdef NON_CANCELLABLE_IO_SELECT
             dcethread_enableasync_throw(1);
@@ -451,10 +429,10 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
             {
                 if (errno != EINTR)
                 {
-                    RPC_DBG_GPRINTF 
+                    RPC_DBG_GPRINTF
                         (("(lthread_loop) select failed: %d, errno=%d\n",
                         n_found, errno));
-                
+
                     /*
                      * Check for pending cancels.  Select might return
                      * EIO (and not check for a pending cancel) because
@@ -526,17 +504,11 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
  */
 
 PRIVATE void rpc__nlsn_fork_handler
-#ifdef _DCE_PROTO_
 (
   rpc_listener_state_p_t  lstate,
   rpc_fork_stage_id_t stage
 )
-#else
-(lstate, stage)
-rpc_listener_state_p_t  lstate;
-rpc_fork_stage_id_t stage;
-#endif
-{ 
+{
     unsigned32 st;
 
     switch ((int)stage)
@@ -576,7 +548,7 @@ rpc_fork_stage_id_t stage;
             RPC_MUTEX_UNLOCK (lstate->mutex);
             break;
 
-        case RPC_C_POSTFORK_CHILD:  
+        case RPC_C_POSTFORK_CHILD:
             /*
              * Unset the flag that says the listern thread has been started
              */

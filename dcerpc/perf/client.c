@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -1019,7 +1019,7 @@ char                *argv[];
 
 	DO_NOT_CLOBBER(rh);
 	DO_NOT_CLOBBER(rsum);
-	 
+	
     if (argc < 4)
     {
         usage(test);
@@ -2426,7 +2426,7 @@ char                *argv[];
     pthread_t           tasks[MAX_TASKS];
 
 	DO_NOT_CLOBBER(i);
-	 
+	
     if (n_tasks > MAX_TASKS)
     {
         fprintf(stderr, "%d is too many tasks (max is %d)\n", n_tasks, MAX_TASKS);
@@ -2684,7 +2684,7 @@ fork_test_replay:
 	case 'B':
 	    socket_buf_size = atoi(optarg);
 	    break;
-   
+
         default:
             usage(-1);
         }

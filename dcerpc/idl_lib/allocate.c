@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1992 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1992 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1992 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -63,7 +63,7 @@ typedef struct memlink
     struct memlink *next;
 } memlink;
 
-byte_p_t 
+byte_p_t
 rpc_ss_mem_alloc(rpc_ss_mem_handle *handle, unsigned bytes)
 {
 
@@ -112,7 +112,7 @@ rpc_sm_mem_alloc (rpc_ss_mem_handle *handle, unsigned bytes, error_status_t *st)
     return l->obj;
 }
 
-void 
+void
 rpc_ss_mem_free (rpc_ss_mem_handle *handle)
 {
     memlink* lp, *next;
@@ -133,7 +133,7 @@ rpc_ss_mem_free (rpc_ss_mem_handle *handle)
 
 }
 
-void 
+void
 rpc_ss_mem_release (rpc_ss_mem_handle *handle, byte_p_t data_addr, int freeit)
 {
     memlink** lp, **next, *memory;
@@ -146,7 +146,7 @@ rpc_ss_mem_release (rpc_ss_mem_handle *handle, byte_p_t data_addr, int freeit)
     for (lp = &memory; *lp; lp = next)
     {
         next = &(*lp)->next;
-        
+
         if ((*lp)->obj == data_addr)
         {
             memlink* realnext = *next;
