@@ -41,6 +41,10 @@
 
 #include <dce/dce.h>
 
+#ifdef _WIN32
+#include <comsoc_ncalrpc.h>
+#endif
+
 /***********************************************************************/
 /*
  * The Network Address Family EPV.
@@ -338,6 +342,13 @@ PRIVATE void rpc__naf_get_next_restricted_port (
     rpc_protseq_id_t,
     unsigned_char_p_t *,
     unsigned32 *
+
+    );
+
+PRIVATE void rpc__naf_is_valid_endpoint(
+    rpc_protseq_id_t  rpc_protseq_id,
+    unsigned_char_p_t endpoint,
+    unsigned32        *status
 
     );
 

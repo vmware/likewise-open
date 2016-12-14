@@ -49,7 +49,11 @@ PRIVATE void rpc__random_init
     unsigned32 seed
 )
 {
+#if defined(_WIN32)
+    srand ((int) seed);
+#else
     srandom ((int) seed);
+#endif
 }
 
 /*
@@ -62,5 +66,9 @@ PRIVATE unsigned32 rpc__random_get
     unsigned32 upper ATTRIBUTE_UNUSED
 )
 {
+#if defined(_WIN32)
+    return (rand ());
+#else
     return (random ());
+#endif
 }

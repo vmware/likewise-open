@@ -41,11 +41,6 @@
 
 #include <dce/dce.h>
 
-#ifdef _WIN32
-#ifndef inline
-#define inline __inline
-#endif
-#endif
 /*
  * R P C _ _ C N _ S M _ I N I T
  */

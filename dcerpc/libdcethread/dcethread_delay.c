@@ -52,10 +52,14 @@
  *
  */
 
-#include <sys/time.h>
 #include <time.h>
 #include <errno.h>
 #include <config.h>
+#ifndef _WIN32
+#include <sys/time.h>
+#else
+#include <Winsock2.h>
+#endif
 
 #include "dcethread-private.h"
 #include "dcethread-util.h"
@@ -65,7 +69,22 @@ int
 dcethread_delay(struct timespec const* interval)
 {
 #ifdef HAVE_PTHREAD_DELAY_NP
-#if defined(_AIX)
+#if defined (_WIN32)
+    struct timeval tv;
+    int ret;
+    
+    tv.tv_sec = (long) interval->tv_sec;
+    tv.tv_usec = interval->tv_nsec / 1000;
+    
+    ret = -1;
+    do {
+	ret = select(0, 0, 0, 0, &tv);
+    }
+    while (ret != 0 && errno == EINTR);
+    
+    return ret;
+
+#elif defined(_AIX)
     return pthread_delay_np((struct timespec*) interval);
 #else
     return pthread_delay_np(interval);

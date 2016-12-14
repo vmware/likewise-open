@@ -227,7 +227,7 @@ heap_mem *BE_ctx_malloc
 #endif
 
       /* Return the value after our header for use by the caller */
-      return &new->data;
+      return (heap_mem *) &new->data;
 }
 
 /*

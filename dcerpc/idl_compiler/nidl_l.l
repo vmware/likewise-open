@@ -298,7 +298,6 @@ other           .
 }
 
 \"[^\"\n]*  {
-    char stripped_string[max_string_len] ATTRIBUTE_UNUSED;
     if (yytext[yyleng-1] == '\\')
         yymore(); /* Allow backslashed " within strings, look for next " */
     else {
@@ -541,13 +540,13 @@ nidl_uuid_t *uuid;
 
     /* scanf only returns ints, so scan into ints and copy into smaller types */
     uuid->time_low                  = v1_time_high;
-    uuid->time_mid                  = v1_time_low;
-    uuid->time_hi_and_version       = v1_reserved;
-    uuid->clock_seq_hi_and_reserved = v1_family;
-    uuid->clock_seq_low             = v1_host[0];
+    uuid->time_mid                  = (unsigned16) v1_time_low;
+    uuid->time_hi_and_version       = (unsigned16) v1_reserved;
+    uuid->clock_seq_hi_and_reserved = (unsigned8) v1_family;
+    uuid->clock_seq_low             = (unsigned8) v1_host[0];
 
     for (i=0; i < 6; i++)
-        uuid->node[i] = v1_host[i+1];
+        uuid->node[i] = (unsigned8) v1_host[i+1];
 
     uuid_str = (char *)malloc(sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"));
 
@@ -580,12 +579,12 @@ nidl_uuid_t *uuid;
 
     /* scanf only returns ints, so scan into ints and copy into smaller types */
     uuid->time_low = time_low;
-    uuid->time_mid = time_mid;
-    uuid->time_hi_and_version = time_hi_and_version;
-    uuid->clock_seq_hi_and_reserved = clock_seq_hi_and_reserved;
-    uuid->clock_seq_low = clock_seq_low;
+    uuid->time_mid = (unsigned16) time_mid;
+    uuid->time_hi_and_version = (unsigned16) time_hi_and_version;
+    uuid->clock_seq_hi_and_reserved = (unsigned8) clock_seq_hi_and_reserved;
+    uuid->clock_seq_low = (unsigned8) clock_seq_low;
     for (i=0; i < 6; i++)
-        uuid->node[i] = node[i];
+        uuid->node[i] = (unsigned8) node[i];
     return (UUID_REP);
 }
 

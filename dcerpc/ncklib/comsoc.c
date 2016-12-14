@@ -7,6 +7,15 @@
 #include <comsoc_bsd.h>
 #include <errno.h>
 
+#if defined(_WIN32)
+int __rpc_socket_close(rpc_socket_t* sock)
+{
+    int __err = rpc__socket_close(*sock);
+    *sock = NULL;
+    return __err;
+}
+#endif
+
 rpc_socket_error_t
 rpc__socket_open_basic (
     rpc_naf_id_t  naf,

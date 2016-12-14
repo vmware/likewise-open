@@ -39,6 +39,10 @@
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
+#if defined(_WIN32)
+#include <process.h>
+#define getpid _getpid
+#endif
 
 
 #include <ctype.h>
@@ -194,7 +198,7 @@ PUBLIC void rpc__dbg_set_switches
  */
 PRIVATE int rpc__printf (char *format, ...)
 {
-    char            buff[300];
+    char            buff[1024];
     char            *s = buff;
 
     if (RPC_DBG (rpc_e_dbg_pid, 1))
@@ -230,16 +234,20 @@ PRIVATE int rpc__printf (char *format, ...)
 	va_end (arg_ptr);
     }
 
+#ifdef _WIN32
+    OutputDebugStringA(buff);
+#else
     {
         int             cs;
         int ret;
 
         cs = dcethread_enableinterrupt_throw(0);
-        ret = dcethread_write (2, buff, strlen (buff));
+        ret = (int) dcethread_write (2, buff, strlen (buff));
         dcethread_enableinterrupt_throw(cs);
         if (ret < 0)
             return ret;
     }
+#endif
     return 0;
 }
 

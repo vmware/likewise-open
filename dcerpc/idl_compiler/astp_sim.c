@@ -1873,9 +1873,9 @@ void ASTP_parse_port
         }
         else {
 	    interface_p->protocol =
-		RENEW (interface_p->protocol, interface_p->number_of_ports);
+		RENEW (interface_p->protocol, sizeof(interface_p->protocol), interface_p->number_of_ports);
 	    interface_p->endpoints =
-		RENEW (interface_p->endpoints, interface_p->number_of_ports);
+		RENEW (interface_p->endpoints, sizeof(interface_p->endpoints), interface_p->number_of_ports);
         }
         (interface_p->protocol)[i] = protocol_id;
         (interface_p->endpoints)[i] = endpoint_id;

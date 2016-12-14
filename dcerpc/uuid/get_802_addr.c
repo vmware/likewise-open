@@ -21,7 +21,16 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+
+#if !defined(_WIN32)
 #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#else
+#include <Winsock2.h>
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 #ifndef UUID_BUILD_STANDALONE
@@ -31,15 +40,12 @@
 #include "uuid.h"
 #endif
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 /* Bizarre hack for HP-UX ia64 where a system header
  * makes reference to a kernel-only data structure
  */
 #if defined(__hpux) && defined(__ia64) && !defined(_DEFINED_MPINFOU)
 union mpinfou {};
 #endif
-#include <net/if.h>
 #ifdef HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h>
 #endif

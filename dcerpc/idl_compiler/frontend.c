@@ -619,7 +619,7 @@ static boolean parse
     if (!FILE_form_filespec(file_name, (char *)NULL, CONFIG_SUFFIX,
                             (char *)NULL, acf_file))
         return false;
-#ifdef UNIX
+#if defined(UNIX) || defined(_WIN32)
     /*
      * If the created ACF filespec matches the file_name portion of the IDL
      * filespec, it implies that the IDL filespec contains multiple '.'s - in

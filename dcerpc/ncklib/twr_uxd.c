@@ -50,10 +50,12 @@
 /*
  *  Include the Internet specific socket address
  */
+#if !defined(_WIN32)
 #ifdef VMS
 #include <un.h>
 #else
 #include <sys/un.h>
+#endif
 #endif
 
 /*
@@ -155,7 +157,7 @@ PUBLIC void twr_uxd_lower_flrs_from_sa
     {
         related_data_ptr[0] = (byte_p_t)sun_path;
     }
-    related_data_size[0] = strlen((char*) related_data_ptr[0]) + 1;
+    related_data_size[0] = (unsigned16) (strlen((char*) related_data_ptr[0]) + 1);
 
     /*
      * Calculate the length of the tower floors.

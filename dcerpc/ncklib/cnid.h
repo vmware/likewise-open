@@ -50,7 +50,7 @@
  * R P C _ C N _ L O C A L _ I D _ V A L I D
  */
 
-#define RPC_CN_LOCAL_ID_VALID(id) (id.parts.id_seqnum != 0)
+#define RPC_CN_LOCAL_ID_VALID(id) ((id).parts.id_seqnum != 0)
 
 /*
  * R P C _ C N _ L O C A L _ I D _ C L E A R

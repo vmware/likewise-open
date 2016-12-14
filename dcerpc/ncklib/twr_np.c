@@ -78,6 +78,7 @@
 /*
  *  Include the Internet specific socket address
  */
+#if !defined(_WIN32)
 #if HAVE_SYS_UN_H
 #include <sys/un.h>
 #else
@@ -85,7 +86,14 @@
 #endif
 #include <sys/param.h>
 #include <netdb.h>
+#endif
 #include <ctype.h>
+
+
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 64
+#endif
+
 
 /*
 **++
@@ -186,7 +194,7 @@ PUBLIC void twr_np_lower_flrs_from_sa
         /* Path is relative, but do not chop off first /. */
         related_data_ptr[0] += RPC_C_NP_DIR_LEN;
     }
-    related_data_size[0] = strlen((char*) related_data_ptr[0]) + 1;
+    related_data_size[0] = (unsigned16) (strlen((char*) related_data_ptr[0]) + 1);
 
     /*
      * related_data[1] contains the NetBIOS name (eg. \\MYSERVER)
@@ -197,7 +205,7 @@ PUBLIC void twr_np_lower_flrs_from_sa
     hostname[MAXHOSTNAMELEN - 1] = '\0';
     for (p = &hostname[2]; *p != '\0'; p++)
         *p = toupper((int)*p);
-    related_data_size[1] = strlen(hostname) + 1;
+    related_data_size[1] = (unsigned16) (strlen(hostname) + 1);
     related_data_ptr[1] = (unsigned char*) hostname;
 
     /*

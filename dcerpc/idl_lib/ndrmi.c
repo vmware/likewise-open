@@ -87,7 +87,7 @@ void rpc_ss_attach_buff_to_iovec
     p_elt->buff_addr = (byte_p_t)IDL_msp->IDL_buff_addr;
     p_elt->buff_len = IDL_BUFF_SIZE;
     p_elt->data_addr = (byte_p_t)IDL_msp->IDL_data_addr;
-    p_elt->data_len = IDL_msp->IDL_mp - IDL_msp->IDL_data_addr;
+    p_elt->data_len = (unsigned32) (IDL_msp->IDL_mp - IDL_msp->IDL_data_addr);
     (IDL_msp->IDL_elts_in_use)++;
     IDL_msp->IDL_buff_addr = NULL;
 }
@@ -196,7 +196,7 @@ void rpc_ss_ndr_marsh_init_buffer
                 ((((IDL_msp->IDL_buff_addr - (idl_byte *)0) + 7) & (~7))
                                              + IDL_msp->IDL_mp_start_offset);
     IDL_msp->IDL_mp = IDL_msp->IDL_data_addr;
-    IDL_msp->IDL_left_in_buff = beyond_usable_buffer - IDL_msp->IDL_data_addr;
+    IDL_msp->IDL_left_in_buff = (idl_ulong_int) (beyond_usable_buffer - IDL_msp->IDL_data_addr);
 }
 
 /******************************************************************************/
@@ -313,7 +313,7 @@ void rpc_ss_ndr_marsh_struct
     IDL_bound_pair_t *conf_bounds;   /* Bounds list from conformance info */
     IDL_bound_pair_t normal_conf_bounds[IDL_NORMAL_DIMS];
     IDL_bound_pair_t range_bounds; /* Bounds list from range info */
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
     IDL_bound_pair_t *range_list;
     IDL_bound_pair_t normal_range_list[IDL_NORMAL_DIMS];
@@ -689,7 +689,7 @@ void rpc_ss_ndr_marsh_struct
                 rpc_ss_ndr_marsh_cs_array(
                         (rpc_void_p_t)((idl_byte *)struct_addr+offset),
                         cs_shadow,
-                        offset_vec_ptr-(struct_offset_vec_ptr+1),
+                        (idl_ulong_int) (offset_vec_ptr-(struct_offset_vec_ptr+1)),
                         idl_true, &defn_vec_ptr, IDL_msp);
                 offset_vec_ptr++;
                 break;
@@ -863,7 +863,7 @@ void rpc_ss_ndr_marsh_by_looping
                     base_type_size = rpc_ss_type_size(element_defn_ptr,
                                                                      IDL_msp);
                     if (base_type_size == 1)
-                        B = strlen(array_addr) + 1;
+                        B = (idl_ulong_int) (strlen(array_addr) + 1);
                     else
                         B = rpc_ss_strsiz((idl_char *)array_addr,
                                                                base_type_size);
@@ -931,15 +931,15 @@ void rpc_ss_ndr_m_fix_or_conf_arr
     IDL_msp_t IDL_msp
 )
 {
-    idl_ulong_int element_count;
-    int i;
-    idl_ulong_int element_defn_index;
-    idl_ulong_int element_offset_index;
-    idl_ulong_int element_size;
-    idl_byte *element_defn_ptr;
-    idl_byte base_type;
-    idl_boolean marshall_by_pointing;
-    IDL_bound_pair_t *bound_p;	    /* Steps through bounds */
+    idl_ulong_int element_count = 0;
+    int i = 0;
+    idl_ulong_int element_defn_index = 0;
+    idl_ulong_int element_offset_index = 0;
+    idl_ulong_int element_size = 0;
+    idl_byte *element_defn_ptr = 0;
+    idl_byte base_type = 0;
+    idl_boolean marshall_by_pointing = 0;
+    IDL_bound_pair_t *bound_p = 0;	    /* Steps through bounds */
 
     if ( (*defn_vec_ptr == IDL_DT_STRING)
         || (*defn_vec_ptr == IDL_DT_V1_STRING) )
@@ -1383,7 +1383,7 @@ void rpc_ss_ndr_marsh_varying_arr
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
     IDL_bound_pair_t *range_list;
     IDL_bound_pair_t normal_range_list[IDL_NORMAL_DIMS];
@@ -1469,7 +1469,7 @@ static void rpc_ss_ndr_marsh_conf_arr
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
     IDL_bound_pair_t normal_bounds_list[IDL_NORMAL_DIMS];
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
 
     defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index;
@@ -1516,7 +1516,7 @@ void rpc_ss_ndr_marsh_open_arr
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
     IDL_bound_pair_t normal_bounds_list[IDL_NORMAL_DIMS];
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
     IDL_bound_pair_t *range_list;
     IDL_bound_pair_t normal_range_list[IDL_NORMAL_DIMS];

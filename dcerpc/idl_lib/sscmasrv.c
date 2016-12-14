@@ -35,7 +35,7 @@
 **  VERSION: DCE 1.0
 **
 */
-#if HAVE_CONFIG_H
+#ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
@@ -62,10 +62,12 @@
     ndr_boolean rpc_ss_server_is_set_up = ndr_false;
 #endif
 
-void rpc_ss_init_server_once(
+/* This is used by functions internal dcelib */
+static void rpc__static_ss_init_server_once(
     void
 )
 {
+    if (rpc_ss_server_is_set_up) return;
 
 #ifdef PERFMON
     RPC_SS_INIT_SERVER_ONCE_N;
@@ -78,13 +80,45 @@ void rpc_ss_init_server_once(
     rpc_ss_server_is_set_up = ndr_true;
 #endif
 
+    rpc_ss_server_is_set_up = ndr_true;
 #ifdef PERFMON
     RPC_SS_INIT_SERVER_ONCE_X;
 #endif
 
 }
 
+typedef void (*pf_ss_init_server_once_t)(void);
 
+
+/*
+ * Return pointer to static function for internal use by macros
+ * within dcelib.
+ */
+pf_ss_init_server_once_t rpc__pf_static_ss_init_server_once(void)
+{
+    return rpc__static_ss_init_server_once;
+}
+
+/*
+ * This is publicly exported function, which is a wrapper
+ * around rpc__static_ss_init_server_once().
+ */
+void rpc_ss_init_server_once(
+    void
+)
+{
+    pf_ss_init_server_once_t pf_once = NULL;
+
+    pf_once = rpc__pf_static_ss_init_server_once();
+    pf_once();
+}
+
+void rpc__internal_ss_init_server_once(
+    void
+)
+{
+    rpc__static_ss_init_server_once();
+}
 /******************************************************************************/
 /*                                                                            */
 /*   Map an exception into a fault code and send a fault packet               */

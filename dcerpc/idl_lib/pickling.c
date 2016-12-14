@@ -619,7 +619,7 @@ void idl_es_encode_attach_buff
         case IDL_incremental_k:
             (*(p_es_state->IDL_write))(p_es_state->IDL_state,
                                       IDL_msp->IDL_buff_addr,
-                                      IDL_msp->IDL_mp - IDL_msp->IDL_data_addr);
+                                      (idl_ulong_int) (IDL_msp->IDL_mp - IDL_msp->IDL_data_addr));
             break;
         case IDL_fixed_k:
             /* Can only happen at end of operation - do nothing */
@@ -627,7 +627,7 @@ void idl_es_encode_attach_buff
         case IDL_dynamic_k:
             p_iovec_elt = p_es_state->IDL_dyn_buff_chain_tail->IDL_p_iovec_elt;
             p_iovec_elt->data_addr = (byte_p_t)IDL_msp->IDL_data_addr;
-            p_iovec_elt->data_len = IDL_msp->IDL_mp - IDL_msp->IDL_data_addr;
+            p_iovec_elt->data_len = (unsigned32) (IDL_msp->IDL_mp - IDL_msp->IDL_data_addr);
             break;
         default:
 #ifdef DEBUG_INTERP
@@ -696,9 +696,9 @@ static void idl_es_put_encoding_header
                                                                      IDL_msp);
     IDL_MARSH_ULONG(&p_es_state->IDL_pickle_header.IDL_syntax_id.version);
     idl_es_put_encoding_uuid(&p_if_spec->id, IDL_msp);
-    vers_field = p_if_spec->vers / 65536;   /* Major version */
+    vers_field = (idl_ushort_int) (p_if_spec->vers / 65536);   /* Major version */
     IDL_MARSH_USHORT(&vers_field);
-    vers_field = p_if_spec->vers % 65536;   /* Minor version */
+    vers_field = (idl_ushort_int) (p_if_spec->vers % 65536);   /* Minor version */
     IDL_MARSH_USHORT(&vers_field);
     IDL_MARSH_ULONG(&op_num);
     if (es_transfer_syntax == idl_es_transfer_syntax_ndr)
@@ -717,7 +717,7 @@ static void idl_es_put_encoding_header
     /* Store interface ID and operation number in state block */
     p_es_state->IDL_pickle_header.IDL_if_id.uuid = p_if_spec->id;
     p_es_state->IDL_pickle_header.IDL_if_id.vers_major
-                                                     = p_if_spec->vers / 65536;
+        = (unsigned16) (p_if_spec->vers / 65536);
     p_es_state->IDL_pickle_header.IDL_if_id.vers_minor
                                                      = p_if_spec->vers % 65536;
     p_es_state->IDL_pickle_header.IDL_op_num = op_num;
@@ -1141,8 +1141,8 @@ void idl_es_after_interp_call
                 break;
             case IDL_fixed_k:
                 /* Set size of pickle for user */
-                *(p_es_state->IDL_esize) = IDL_msp->IDL_mp
-                                                     - IDL_msp->IDL_data_addr;
+                *(p_es_state->IDL_esize) =
+                    (idl_ulong_int) (IDL_msp->IDL_mp - IDL_msp->IDL_data_addr);
                 break;
             case IDL_dynamic_k:
                 if ( (p_es_state->IDL_dyn_buff_chain_head->IDL_next == NULL)
@@ -1312,7 +1312,7 @@ void idl_es_decode_check_buffer
 void idl_es_inq_encoding_id
 (
     idl_es_handle_t	    h,	    /* [in] decoding handle */
-    rpc_if_id_t		    * volatile if_id, /* [out] RPC interface	    */
+    rpc_if_id_t		    *if_id, /* [out] RPC interface	    */
 				    /* identifier (including	    */
 				    /* version information)	    */
     idl_ulong_int	    *op,    /* [out] operation number */

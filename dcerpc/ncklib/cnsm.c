@@ -43,10 +43,7 @@
 #include <cnp.h>        /* NCA Connection private declarations */
 #include <cnsm.h>
 
-/* Enable for verbose state machine action/state interpretation */
-#ifdef DCE_SM_DEBUG
-#define DCERPC_SM_DEBUG
-#endif
+
 
 typedef enum RPC_ACTION_TBL_e
 {
@@ -67,6 +64,35 @@ typedef enum RPC_SM_TBL_e
     S_ASSOC_SM,
     S_CALL_SM,
 } RPC_SM_TBL_e_t;
+
+/* Enable for verbose state machine action/state interpretation */
+INTERNAL int
+rpc__cn_sm_debug(void)
+{
+    static int dcerpc_sm_debug = -1;
+    if (dcerpc_sm_debug == -1)
+    {
+        /*
+         * The use of RPC_DEBUG here is deliberate. This is NOT yet integrated
+         * with the existing rpclog.c debugging system, which also uses this
+         * environment variable. The use here will not interfere with
+         * RPC_DEBUG use in rpc_log.c, it will merely be enabled whould anyone
+         * compile DCE/RPC #define debug, and then set RPC_DEBUG to some value.
+         * Additional cnsm: debug messages will be emitted in that case.
+         *
+         * TBD:Adam-Integrate cnsm logging with RPC_DDBUG at a later date.
+         */
+        if (getenv("RPC_DEBUG"))
+        {
+            dcerpc_sm_debug = 1;
+        }
+        else
+        {
+            dcerpc_sm_debug = 0;
+        }
+    }
+    return dcerpc_sm_debug;
+}
 
 PRIVATE char *rpc__state_table_lookup(RPC_SM_TBL_e_t type, int action)
 {
@@ -700,12 +726,13 @@ PRIVATE unsigned32     rpc__cn_sm_eval_event
 	if (action_index >= RPC_C_CN_STATEBASE)
 	{
             sm->cur_state = action_index;
-#ifdef DCERPC_SM_DEBUG
-            rpc__printf("cnsm: S (t=%-7s:l=%d) -> (s[%s])\n",
-              state_tbl_name,
-              state_tbl_sz,
-              rpc__state_table_lookup(state_tbl_type, action_index));
-#endif
+            if (rpc__cn_sm_debug())
+            {
+                rpc__printf("cnsm: S (t=%-7s:l=%d) -> (s[%s])\n",
+                  state_tbl_name,
+                  state_tbl_sz,
+                  rpc__state_table_lookup(state_tbl_type, action_index));
+	    }
 	}
 	else
 	{
@@ -722,12 +749,15 @@ PRIVATE unsigned32     rpc__cn_sm_eval_event
                 return rpc_s_sm_invalid_state;
             }
 
-#ifdef DCERPC_SM_DEBUG
-            rpc__printf("cnsm: A (t=%-7s:l=%d) -> (a[%-20s])\n",
-              act_tbl_name,
-              act_tbl_sz,
-              rpc__action_table_lookup(act_tbl_type, action_index));
-#endif
+            if (rpc__cn_sm_debug())
+            {
+                rpc__printf("cnsm: t=%ld tid=%x A (t=%-7s:l=%d) 	-> (a[%-20s])\n",
+                  time(NULL),
+                  pthread_self(),
+                  act_tbl_name,
+                  act_tbl_sz,
+                  rpc__action_table_lookup(act_tbl_type, action_index));
+            }
             /*
              * Call the action routine.  The spc_struct and event_param
 	     * and sm will be passed to the action routine.  Note

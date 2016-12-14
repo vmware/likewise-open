@@ -2538,6 +2538,17 @@ unsigned32              *status;
         memset(endpoint_copy, 0, count + 1);
 
         /*
+         * TBD: Adam: Why are escape sequences used?
+         * Unknown if this will negatively impact UNIX/Linux.
+         * This breaks windows \ path separator support.
+         * Normalize string to lower case for path
+         * comparisons. Windows filesystem is case-insensitive,
+         * so this operation won't harm saving endpoints to disc.
+         */
+#if defined(_WIN32)
+        snprintf(endpoint_copy, count+1, "%s", endpoint);
+#else
+        /*
          * copy the string, filtering out escape chars
          */
         {
@@ -2561,6 +2572,7 @@ unsigned32              *status;
             }
         }
         endpoint_copy[count] = '\0';
+#endif
     }
 
   /*

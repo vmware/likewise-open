@@ -49,11 +49,13 @@
  */
 
 
-#define RPC_C_CN_DBG_AUTH_ROUTINE_TRACE 20
-#define RPC_C_CN_DBG_AUTH_PKT           7
-#define RPC_C_CN_DBG_AUTH_REFRESH       5
-#define RPC_C_CN_DBG_AUTH_BIG_PAC       3
-#define RPC_C_CN_DBG_AUTH_GENERAL       1
+enum {
+        RPC_C_CN_DBG_AUTH_ROUTINE_TRACE = 20,
+        RPC_C_CN_DBG_AUTH_PKT           = 7,
+        RPC_C_CN_DBG_AUTH_REFRESH       = 5,
+        RPC_C_CN_DBG_AUTH_BIG_PAC       = 3,
+        RPC_C_CN_DBG_AUTH_GENERAL       = 1,
+};
 
 
 /*
@@ -63,19 +65,21 @@
  * when one of the error debug levels are set.
  */
 
-#define RPC_S_CN_DBG_AUTH_FAILURE               0xdeadbeefU
-#define RPC_C_CN_DBG_AUTH_CREATE_INFO           64      /* server */
-#define RPC_C_CN_DBG_AUTH_CRED_CHANGED          65      /* client */
-#define RPC_C_CN_DBG_AUTH_FMT_CLIENT_REQ        66      /* client */
-#define RPC_C_CN_DBG_AUTH_FMT_SERVER_RESP       67      /* server */
-#define RPC_C_CN_DBG_AUTH_GET_PROT_INFO         68      /* client & server */
-#define RPC_C_CN_DBG_AUTH_PRE_CALL              69      /* client & server */
-#define RPC_C_CN_DBG_AUTH_PRE_SEND              70      /* client & server */
-#define RPC_C_CN_DBG_AUTH_RECV_CHECK            71      /* client & server */
-#define RPC_C_CN_DBG_AUTH_VFY_CLIENT_REQ        72      /* server */
-#define RPC_C_CN_DBG_AUTH_VFY_SERVER_RESP       73      /* client */
-#define RPC_C_CN_DBG_AUTH_CONTEXT_VALID         74      /* client */
-#define RPC_C_CN_DBG_AUTH_CRED_REFRESH          75      /* client */
+enum {
+        RPC_S_CN_DBG_AUTH_FAILURE             = 0xdeadbeefU,
+        RPC_C_CN_DBG_AUTH_CREATE_INFO         = 64,     /* server */
+        RPC_C_CN_DBG_AUTH_CRED_CHANGED,                 /* client */
+        RPC_C_CN_DBG_AUTH_FMT_CLIENT_REQ,               /* client */
+        RPC_C_CN_DBG_AUTH_FMT_SERVER_RESP,              /* server */
+        RPC_C_CN_DBG_AUTH_GET_PROT_INFO,                /* client & server */
+        RPC_C_CN_DBG_AUTH_PRE_CALL,                     /* client & server */
+        RPC_C_CN_DBG_AUTH_PRE_SEND,                     /* client & server */
+        RPC_C_CN_DBG_AUTH_RECV_CHECK,                   /* client & server */
+        RPC_C_CN_DBG_AUTH_VFY_CLIENT_REQ,               /* server */
+        RPC_C_CN_DBG_AUTH_VFY_SERVER_RESP,              /* client */
+        RPC_C_CN_DBG_AUTH_CONTEXT_VALID,                /* client */
+        RPC_C_CN_DBG_AUTH_CRED_REFRESH,                 /* client */
+};
 
 /*
  * NOTE: rpc_c_cn_large_frag_size must always be at least
@@ -99,9 +103,12 @@ typedef struct rpc_cn_auth_info_s_t
  * R P C _ C N _ S E C _ C O N T E X T _ T
  */
 
-#define RPC_C_SEC_STATE_INVALID			0
-#define RPC_C_SEC_STATE_INCOMPLETE		1
-#define RPC_C_SEC_STATE_COMPLETE		2
+enum
+{
+    RPC_C_SEC_STATE_INVALID = 0,
+    RPC_C_SEC_STATE_INCOMPLETE,
+    RPC_C_SEC_STATE_COMPLETE,
+};
 
 typedef struct rpc_cn_sec_context_s_t
 {

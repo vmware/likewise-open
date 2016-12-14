@@ -281,14 +281,18 @@ EXTERNAL rpc_authn_protocol_id_elt_t  rpc_g_authn_protocol_id[RPC_C_AUTHN_PROTOC
  * future.)
  */
 
+#if defined(_WIN32)
+int RPC_AUTHN_IN_RANGE(unsigned32 id);
+#else
 static inline int RPC_AUTHN_IN_RANGE(unsigned32 id)
 {
 	return (id > 0) ? (id < RPC_C_AUTHN_PROTOCOL_ID_MAX) : 0;
 }
+#endif
 	
 #define RPC_AUTHN_CHECK_SUPPORTED(id, st) \
 { \
-    if ((id) == (typeof(id))(rpc_c_authn_default)) \
+    if ((id) == (unsigned32)(rpc_c_authn_default)) \
     { \
         id = rpc_c_authn_dce_private; \
     } \

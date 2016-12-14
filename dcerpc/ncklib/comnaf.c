@@ -49,6 +49,73 @@
 
 #include <assert.h>
 
+#ifdef _WIN32
+PRIVATE
+void rpc__naf_is_valid_endpoint(
+    rpc_protseq_id_t  rpc_protseq_id,
+    unsigned_char_p_t endpoint,
+    unsigned32        *status)
+{
+    char *end = NULL;
+    char *port_path = NULL;
+    unsigned32 port_value = 0;
+    char port_str[12];
+    rpc_socket_error_t serr = 0;
+
+    if (!endpoint)
+    {
+        *status = rpc_s_ok;
+        goto error;
+    }
+    if (rpc_protseq_id != RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        *status = rpc_s_ok;
+        goto error;
+    }
+
+    /* "endpoint" should be an ncalrpc service name; get its port value */
+    serr = rpc__ncalrpc_read_value_from_endpoint(
+               (char *) endpoint,
+               &port_path);
+    if (serr)
+    {
+        *status = serr;
+        goto error;
+    }
+
+    /* Deal with fully-qualified path to endpoint (port) value */
+    end = strrchr(port_path, '/');
+    if (end)
+    {
+        snprintf(port_str, sizeof(port_str), "%s", end+1);
+    }
+    else
+    {
+        snprintf(port_str, sizeof(port_str), "%s", port_path);
+    }
+
+    port_value = strtoul(port_str, &end, 10);
+    if (*end != '\0' || end == port_str)
+    {
+        *status = rpc_s_invalid_endpoint_format;
+        goto error;
+    }
+
+    if (port_value < RPC_S_NCALRPC_START_PORT ||
+        port_value > (RPC_S_NCALRPC_START_PORT + RPC_S_NCALRPC_MAX_PORT_RANGE))
+    {
+        *status = rpc_s_invalid_endpoint_format;
+    }
+    *status = rpc_s_ok;
+
+error:
+    if (port_path)
+    {
+        free(port_path);
+    }
+    return;
+}
+#endif
 
 /*
 **++
@@ -740,6 +807,12 @@ unsigned32              *status;
     /*
      * dispatch to the appropriate NAF service
      */
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
     (*rpc_g_naf_id[naf_id].epv->naf_desc_inq_addr)
         (protseq_id, desc, rpc_addr_vec, status);
 }
@@ -799,6 +872,12 @@ unsigned32                *status;
      * Determine the network address family.
      */
 
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
     rpc__naf_desc_inq_naf_id (desc, naf_id, status);
     if (*status != rpc_s_ok) return;
 
@@ -883,6 +962,12 @@ PRIVATE void rpc__naf_desc_inq_naf_id
     addr->len = (long) (&(addr->sa.data) - &(addr->sa));
 #endif /* AIX32 */
 
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
     addr->sa.family = 0;
     serr = rpc__socket_inq_endpoint (desc, addr);
 
@@ -972,12 +1057,24 @@ PRIVATE void rpc__naf_desc_inq_protseq_id
     rpc_naf_id_t             naf_id;      /* naf id returned to us */
     rpc_network_if_id_t      socket_type; /* network protocol type */
 
+#ifdef _WIN32
+    rpc_addr_vector_p_t rpc_addr_vec = NULL;
+    unsigned32          temp_status = 0;
+    char str_ip_addr[128];
+#endif
+
     CODING_ERROR (status);
 
     /*
      * Determine the correct network address family.
      */
 
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
     rpc__naf_desc_inq_naf_id (desc, &naf_id, status);
     if (*status != rpc_s_ok) return;
 
@@ -995,6 +1092,70 @@ PRIVATE void rpc__naf_desc_inq_protseq_id
      * on the network address family id, socket type (rpc protocol id)
      * and the network protocol id.
      */
+
+#ifdef _WIN32
+    /*
+     * Inquire the network addresses for this descriptor. Convert the resultant
+     * address structure to a string address.
+     */
+    rpc__naf_desc_inq_addr(RPC_C_PROTSEQ_ID_NCACN_IP_TCP,
+                           desc,
+                           &rpc_addr_vec,
+                           &temp_status);
+    if (temp_status)
+    {
+        rpc__naf_desc_inq_addr(RPC_C_PROTSEQ_ID_NCACN_IP6_TCP,
+                               desc,
+                               &rpc_addr_vec,
+                               &temp_status);
+    }
+
+    if (temp_status == rpc_s_ok)
+    {
+        int sa_len = 0;
+        void *p_ip = NULL;
+
+        if (rpc_addr_vec->addrs[0]->sa.family == RPC_C_NAF_ID_IP)
+        {
+            sa_len = sizeof(struct sockaddr_in);
+        }
+        else if (rpc_addr_vec->addrs[0]->sa.family == RPC_C_NAF_ID_IP6)
+        {
+            sa_len = sizeof(struct sockaddr_in6);
+        }
+        else
+        {
+            *protseq_id = RPC_C_INVALID_PROTSEQ_ID;
+            *status = rpc_s_invalid_rpc_protseq;
+            return;
+        }
+
+        p_ip = &rpc_addr_vec->addrs[0]->sa;
+        temp_status = getnameinfo(
+            (const struct sockaddr *) p_ip,
+            sa_len,
+            str_ip_addr,
+            sizeof(str_ip_addr),
+            NULL,
+            0,
+            NI_NUMERICHOST);
+    }
+
+    /*
+     * Look at rpc_addr_vec for IPv4/IPv6 loopback address. When found,
+     * then the returned protocol_seq must be NCALRPC, as it is impossible
+     * to formulate a connection on the loopback address which isn't mapped
+     * to NCALRPC by the client.
+     */
+    if (temp_status == rpc_s_ok &&
+        (strncmp(str_ip_addr, RPC_NETWORK_IF_ADDR_LOOPBACK_IPV4, 4) == 0 ||
+         strncmp(str_ip_addr, RPC_NETWORK_IF_ADDR_LOOPBACK_IPV6, 3) == 0))
+    {
+        *protseq_id = RPC_C_PROTSEQ_ID_NCALRPC;
+        *status = rpc_s_ok;
+        return;
+    }
+#endif
 
     for (i=0; i<RPC_C_PROTSEQ_ID_MAX; i++)
     {
@@ -1074,6 +1235,13 @@ PRIVATE void rpc__naf_desc_inq_peer_addr
     /*
      * dispatch to the appropriate NAF service
      */
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
+
     (*rpc_g_naf_id[naf_id].epv->naf_desc_inq_peer_addr)
         (protseq_id, desc, addr, status);
 }
@@ -1432,6 +1600,12 @@ PRIVATE void rpc__naf_set_pkt_nodelay
     /*
      * dispatch to the appropriate NAF service
      */
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
     if (rpc_addr == NULL)
     {
         rpc__naf_desc_inq_naf_id (desc, &naf_id, status);
@@ -1496,6 +1670,12 @@ PRIVATE boolean rpc__naf_is_connect_closed
     /*
      * dispatch to the appropriate NAF service
      */
+#if defined(_WIN32) /* May work on Linux */
+    if (desc->pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+    {
+        desc = desc->sock_transport;
+    }
+#endif
     rpc__naf_desc_inq_naf_id (desc, &naf_id, status);
     if (*status != rpc_s_ok) return TRUE; /* ??? */
     return ((*rpc_g_naf_id[naf_id].epv->naf_is_connect_closed)

@@ -54,6 +54,7 @@
 #include <cnfbuf.h>     /* NCA Connection fragment buffer service */
 #include <cnclsm.h>     /* NCA Connection call state machine */
 #include <cnassm.h>     /* NCA Connection association state machine */
+#include <cninline.h>
 
 
 /******************************************************************************/
@@ -123,6 +124,8 @@ INTERNAL void send_pdu(
     unsigned32 *               /*st*/
     );
 
+static inline void
+DECR_ACTIVE_ACTION(rpc_cn_assoc_t *assoc);
 
 /***********************************************************************/
 /*
@@ -246,31 +249,33 @@ INTERNAL unsigned8 version_mismatch_pred_rtn(
  * action) so that rpc__cn_assoc_pop_call() will not have to check the
  * state before generating the event.
  */
-#define INIT_ASSOC              0
-#define REQUEST_CONN            1
-#define MARK_ASSOC              2
-#define ADD_ASSOC_TO_GRP        3
-#define REM_ASSOC_FROM_GRP      4
-#define SET_SECONDARY_ADDR      5
-#define AUTHENT3                6
-#define SEND_ALT_CONTEXT_REQ    7
-#define ABORT_ASSOC             8
-#define SET_SHUTDOWN_REQUEST    9
-#define DISCON_CALLS            10
-#define INCR_ACTIVE             11
-#define DECR_ACTIVE             12
-#define MARK_SYNTAX_AND_SEC     13
-#define MARK_ABORT              14
-#define ADD_MARK_SET            15
-#define REM_MARK_ABORT          16
-#define REM_MARK                17
-#define REM_MARK_DISCON         18
-#define DECR_REM_MARK_ABORT     19
-#define PROTOCOL_ERROR          20
-#define PROCESS_FRAG		21
-#define RETRY_ASSOC 		22
-#define SHUTDOWN_ALLOWED	23
-#define ILLEGAL_EVENT_ABORT     24
+enum {
+/*#define*/ INIT_ASSOC             = 0,
+/*#define*/ REQUEST_CONN           = 1,
+/*#define*/ MARK_ASSOC             = 2,
+/*#define*/ ADD_ASSOC_TO_GRP       = 3,
+/*#define*/ REM_ASSOC_FROM_GRP     = 4,
+/*#define*/ SET_SECONDARY_ADDR     = 5,
+/*#define*/ AUTHENT3               = 6,
+/*#define*/ SEND_ALT_CONTEXT_REQ   = 7,
+/*#define*/ ABORT_ASSOC            = 8,
+/*#define*/ SET_SHUTDOWN_REQUEST   = 9,
+/*#define*/ DISCON_CALLS           = 10,
+/*#define*/ INCR_ACTIVE            = 11,
+/*#define*/ DECR_ACTIVE            = 12,
+/*#define*/ MARK_SYNTAX_AND_SEC    = 13,
+/*#define*/ MARK_ABORT             = 14,
+/*#define*/ ADD_MARK_SET           = 15,
+/*#define*/ REM_MARK_ABORT         = 16,
+/*#define*/ REM_MARK               = 17,
+/*#define*/ REM_MARK_DISCON        = 18,
+/*#define*/ DECR_REM_MARK_ABORT    = 19,
+/*#define*/ PROTOCOL_ERROR         = 20,
+/*#define*/ PROCESS_FRAG           = 21,
+/*#define*/ RETRY_ASSOC            = 22,
+/*#define*/ SHUTDOWN_ALLOWED       = 23,
+/*#define*/ ILLEGAL_EVENT_ABORT    = 24,
+};
 
 /*
  * The action routine prototypes.
@@ -1029,20 +1034,31 @@ INTERNAL unsigned8 shutdown_allowed_pred_rtn
 **
 **--
 **/
-#define  SHUTDOWN_ALLOWED_PRED(spc_struct, event_param, status)\
-{\
-    RPC_CN_DBG_RTN_PRINTF(CLIENT shutdown_allowed_pred_macro);\
-    assoc_grp = RPC_CN_ASSOC_GRP (((rpc_cn_assoc_t *)spc_struct)->assoc_grp_id);\
-    if ((assoc_grp->grp_refcnt == 0) ||\
-        (assoc_grp->grp_cur_assoc > 1))\
-    {\
-        status = 1;\
-    }\
-    else\
-    {\
-        status = 0;\
-    }\
+
+static inline void
+_SHUTDOWN_ALLOWED_PRED(
+    pointer_t spc_struct,
+    pointer_t event_param, /* not used */
+    rpc_cn_assoc_grp_t  **assoc_grp_p,
+    unsigned32 *status)
+{
+    rpc_cn_assoc_grp_t  *assoc_grp = NULL;
+
+    RPC_CN_DBG_RTN_PRINTF(CLIENT shutdown_allowed_pred_macro);
+    *assoc_grp_p = RPC_CN_ASSOC_GRP (((rpc_cn_assoc_t *)spc_struct)->assoc_grp_id);
+    assoc_grp = *assoc_grp_p;
+    if ((assoc_grp->grp_refcnt == 0) ||
+        (assoc_grp->grp_cur_assoc > 1))
+    {
+        *status = 1;
 }
+    else
+    {
+        *status = 0;
+    }
+}
+#define SHUTDOWN_ALLOWED_PRED(spc_struct, event_param, assoc_grp, status)\
+    _SHUTDOWN_ALLOWED_PRED(spc_struct, event_param, &assoc_grp, &status)
 
 #if 0 /* static functions that are not used anywhere */
 
@@ -1248,19 +1264,25 @@ INTERNAL unsigned8 shutdown_allowed_req_pred_rtn
 **
 **--
 **/
-#define  SHUTDOWN_ALLOWED_REQ_PRED(spc_struct, event_param, status)\
-{\
-    RPC_CN_DBG_RTN_PRINTF(CLIENT shutdown_allowed_req_pred_macro);\
-    if (shutdown_requested_pred_rtn (spc_struct, event_param) &&\
-        shutdown_allowed_pred_rtn (spc_struct, event_param))\
-    {\
-        status = 1;\
-    }\
-    else\
-    {\
-        status = 0;\
-    }\
+static inline void
+_SHUTDOWN_ALLOWED_REQ_PRED(
+    pointer_t spc_struct,
+    pointer_t  event_param,
+    unsigned32 *status)
+{
+    RPC_CN_DBG_RTN_PRINTF(CLIENT shutdown_allowed_req_pred_macro);
+    if (shutdown_requested_pred_rtn (spc_struct, event_param) &&
+        shutdown_allowed_pred_rtn (spc_struct, event_param))
+    {
+        *status = 1;
+    }
+    else
+    {
+        *status = 0;
+    }
 }
+#define  SHUTDOWN_ALLOWED_REQ_PRED(spc_struct, event_param, status)\
+    _SHUTDOWN_ALLOWED_REQ_PRED(spc_struct, event_param, &status)
 
 
 /*
@@ -1470,19 +1492,27 @@ pointer_t       event_param;
 **
 **--
 **/
-#define  DECR_REM_MARK_ABORT_ACTION(spc_struct, event_param, sm)\
-{\
-    RPC_CN_DBG_RTN_PRINTF(CLIENT decr_rem_mark_abort_action_macro);\
-	assoc = (rpc_cn_assoc_t *) spc_struct;\
-	sm_p = (rpc_cn_sm_ctlblk_t *)sm;\
-	DECR_ACTIVE_ACTION(assoc);\
-	if (assoc->assoc_status != rpc_s_ok)\
-	{\
-		sm_p->cur_state = RPC_C_CLIENT_ASSOC_CLOSED;\
-		return(assoc->assoc_status);\
-	}\
-	rem_mark_abort_action_rtn (spc_struct, event_param, sm);\
-	sm_p->cur_state = RPC_C_CLIENT_ASSOC_CLOSED;\
+static inline unsigned32
+DECR_REM_MARK_ABORT_ACTION(
+    pointer_t spc_struct,
+    pointer_t event_param,
+    pointer_t sm)
+{
+    rpc_cn_assoc_t *assoc = NULL;
+    rpc_cn_sm_ctlblk_t *sm_p = NULL;
+
+    RPC_CN_DBG_RTN_PRINTF(CLIENT decr_rem_mark_abort_action_macro);
+    assoc = (rpc_cn_assoc_t *) spc_struct;
+    sm_p = (rpc_cn_sm_ctlblk_t *)sm;
+    DECR_ACTIVE_ACTION(assoc);
+    if (assoc->assoc_status != rpc_s_ok)
+    {
+        sm_p->cur_state = RPC_C_CLIENT_ASSOC_CLOSED;
+        return(assoc->assoc_status);
+    }
+    rem_mark_abort_action_rtn (spc_struct, event_param, sm);
+    sm_p->cur_state = RPC_C_CLIENT_ASSOC_CLOSED;
+    return 0;
 }
 
 
@@ -1521,11 +1551,12 @@ pointer_t       event_param;
 **
 **--
 **/
-#define   DECR_ACTIVE_ACTION(assoc)\
-{\
-        RPC_CN_DBG_RTN_PRINTF(CLIENT decr_active_action_macro);\
-	assoc->assoc_ref_count--;\
-}\
+static inline void
+DECR_ACTIVE_ACTION(rpc_cn_assoc_t *assoc)
+{
+        RPC_CN_DBG_RTN_PRINTF(CLIENT decr_active_action_macro);
+	assoc->assoc_ref_count--;
+}
 
 
 /*
@@ -2598,7 +2629,7 @@ INTERNAL unsigned32     shutdown_allowed_action_rtn
      * result into status which is used later to determine
      * the updated state for sm->cur_state.
      */
-    SHUTDOWN_ALLOWED_PRED(spc_struct, event_param, status);
+    SHUTDOWN_ALLOWED_PRED(spc_struct, event_param, assoc_grp, status);
 
    /*
     * The special structure is a pointer to the association.
@@ -3101,6 +3132,7 @@ INTERNAL unsigned32     mark_syntax_and_sec_action_rtn
 
                 for (i = 0; i < pres_context->syntax_vector->count; i++)
                 {
+                    /* Note: local_st isn't used in this macro; local_st isn't defined anywhere */
                     if (RPC_CN_ASSOC_SYNTAX_EQUAL (&pres_context->syntax_vector->syntax_id[i],
                         &pres_result_list->pres_results[0].transfer_syntax,
                         &local_st))
@@ -3621,37 +3653,60 @@ INTERNAL unsigned8 authent3_pred_rtn
 **
 **--
 **/
-#define  AUTHENT3_PRED(spc_struct, event_param, status, tlr, st, three_way)\
-{\
-    RPC_CN_DBG_RTN_PRINTF(CLIENT authent3_pred_macro);\
-    header = (rpc_cn_packet_t *) ((rpc_cn_fragbuf_t *)event_param)->data_p;\
-    if (RPC_CN_PKT_AUTH_LEN (header) == 0)\
-    {\
-        status = 0;\
-    }\
-    else\
-    {\
-        rpc_authn_protocol_id_t authn_protocol; \
-        tlr = RPC_CN_PKT_AUTH_TLR (header, RPC_CN_PKT_FRAG_LEN (header));\
-        authn_protocol = RPC_CN_AUTH_CVT_ID_WIRE_TO_API (tlr->auth_type, &st); \
-        if (st == rpc_s_ok) \
-        {\
-            RPC_CN_AUTH_THREE_WAY (authn_protocol, three_way);\
-            if (three_way)\
-            {\
-                status = 1;\
-            }\
-            else\
-            {\
-                status = 0;\
-            }\
-        }\
-        else\
-        {\
-            status = 0;\
-        }\
-    }\
+
+static inline void
+_RPC_CN_AUTH_THREE_WAY(rpc_authn_protocol_id_t prot, boolean32 *ind)
+{
+    rpc_cn_auth_epv_t   *_cn_epv;
+    _cn_epv = RPC_CN_AUTH_PROT_EPV(prot);
+    *ind = _cn_epv->three_way();
 }
+#define RPC_CN_AUTH_THREE_WAY(prot, ind) \
+    _RPC_CN_AUTH_THREE_WAY(prot, &ind)
+
+
+static inline void
+_AUTHENT3_PRED(
+    pointer_t spc_struct, /* not used */
+    pointer_t event_param,
+    rpc_cn_packet_t *header,
+    unsigned32 *status,
+    rpc_cn_auth_tlr_t **tlr,
+    unsigned32  *st,
+    boolean32 three_way)
+{
+    RPC_CN_DBG_RTN_PRINTF(CLIENT authent3_pred_macro);
+    header = (rpc_cn_packet_t *) ((rpc_cn_fragbuf_t *)event_param)->data_p;
+    if (RPC_CN_PKT_AUTH_LEN (header) == 0)
+    {
+        *status = 0;
+    }
+    else
+    {
+        rpc_authn_protocol_id_t authn_protocol; 
+        *tlr = RPC_CN_PKT_AUTH_TLR (header, RPC_CN_PKT_FRAG_LEN (header));
+        authn_protocol = RPC_CN_AUTH_CVT_ID_WIRE_TO_API ((*tlr)->auth_type, st); 
+        if (*st == rpc_s_ok) 
+        {
+            RPC_CN_AUTH_THREE_WAY (authn_protocol, three_way);
+            if (three_way)
+            {
+                *status = 1;
+            }
+            else
+            {
+                *status = 0;
+            }
+        }
+        else
+        {
+            *status = 0;
+        }
+    }
+}
+#define AUTHENT3_PRED(spc_struct, event_param, header, status, tlr, st, three_way) \
+    _AUTHENT3_PRED(spc_struct, event_param, header, &status, &tlr, &st, three_way)
+
 
 
 /*
@@ -3801,7 +3856,7 @@ INTERNAL unsigned32     add_mark_set_action_rtn
      * AUTHENT3_PRED, used *again* in
      */
 
-    AUTHENT3_PRED(spc_struct, event_param, status, tlr, local_st, three_way);
+    AUTHENT3_PRED(spc_struct, event_param, header, status, tlr, local_st, three_way);
 
     if (three_way)
     {
@@ -4735,7 +4790,7 @@ INTERNAL void send_pdu
 
         if (!reuse_context)
         {
-            pres_context->syntax_pres_id = RPC_CN_ASSOC_CONTEXT_ID (assoc)++;
+            pres_context->syntax_pres_id = (*RPC_CN_ASSOC_CONTEXT_ID_PTR (assoc))++;
         }
 
         pres_cont_list->pres_cont_elem[0].pres_context_id = pres_context->syntax_pres_id;

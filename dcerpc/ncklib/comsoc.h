@@ -223,6 +223,7 @@ typedef struct rpc_socket_vtbl_s
         rpc_socket_t sock,
         struct timeval *tmo
         );
+
     /* Get peer credentials for local connection */
     rpc_socket_error_t
     (*socket_getpeereid) (
@@ -230,6 +231,7 @@ typedef struct rpc_socket_vtbl_s
         uid_t* uid,
         gid_t* gid
         );
+
     /* Get a file descriptor suitable for using select() to decide when data is readable */
     int
     (*socket_get_select_desc) (
@@ -279,6 +281,9 @@ typedef struct rpc_socket_handle_s
         ssize_t word;
         void* pointer;
     } data;
+    rpc_socket_t sock_transport;
+    char endpoint[108]; /* Size of sun_path in sockaddr_un */
+    char *ncalrpc_port;
 } rpc_socket_handle_t, *rpc_socket_handle_p_t;
 
 typedef int rpc_socket_basic_t;
@@ -732,6 +737,52 @@ rpc__transport_info_equal(
  */
 
 #define RPC_C_SOCKET_OK           0             /* a successful error value */
+
+#ifdef _WIN32
+/* Windows: Use WSAXXX equivalents here */
+#define RPC_C_SOCKET_EWOULDBLOCK  WSAEWOULDBLOCK   /* operation would block */
+#define RPC_C_SOCKET_EINTR        WSAEINTR         /* operation was interrupted */
+#define RPC_C_SOCKET_EIO          WSAEIO           /* I/O error */
+#define RPC_C_SOCKET_EADDRINUSE   WSAEADDRINUSE    /* address was in use (see bind) */
+#define RPC_C_SOCKET_ECONNRESET   WSAECONNRESET    /* connection reset by peer */
+#define RPC_C_SOCKET_ETIMEDOUT    WSAETIMEDOUT     /* connection request timed out*/
+#define RPC_C_SOCKET_ECONNREFUSED WSAECONNREFUSED  /* connection request refused */
+#define RPC_C_SOCKET_ENOTSOCK     WSAENOTSOCK      /* descriptor was not a socket */
+#define RPC_C_SOCKET_ENETUNREACH  WSAENETUNREACH   /* network is unreachable*/
+#define RPC_C_SOCKET_ENOSPC       ENOSPC        /* no local or remote resources */
+#define RPC_C_SOCKET_ENETDOWN     WSAENETDOWN      /* network is down */
+#define RPC_C_SOCKET_ETOOMANYREFS WSAETOOMANYREFS  /* too many remote connections */
+#define RPC_C_SOCKET_ESRCH        ESRCH         /* remote endpoint not found */
+#define RPC_C_SOCKET_EHOSTDOWN    WSAEHOSTDOWN     /* remote host is down */
+#define RPC_C_SOCKET_EHOSTUNREACH WSAEHOSTUNREACH  /* remote host is unreachable */
+#define RPC_C_SOCKET_ECONNABORTED WSAECONNABORTED  /* local host aborted connect */
+#define RPC_C_SOCKET_ENETRESET    WSAENETRESET     /* remote host crashed */
+#define RPC_C_SOCKET_ENOEXEC      ENOEXEC       /* invalid endpoint format for remote */
+#define RPC_C_SOCKET_EACCESS      WSAEACCES        /* access control information */
+                                                /* invalid at remote node */
+#define RPC_C_SOCKET_EPIPE        EPIPE         /* a write on a pipe */
+                                                /* or socket for which there */
+                                                /* is no process to */
+                                                /* read the data. */
+#define RPC_C_SOCKET_EAGAIN       WSAEAGAIN        /* no more processes */
+#define RPC_C_SOCKET_EALREADY     WSAEALREADY      /* operation already */
+                                                /* in progress */
+#define RPC_C_SOCKET_EDEADLK      WSAEDEADLK       /* resource deadlock */
+                                                /* would occur */
+#define RPC_C_SOCKET_EINPROGRESS  WSAEINPROGRESS   /* operation now in */
+                                                /* progress */
+#define RPC_C_SOCKET_EISCONN      WSAEISCONN       /* socket is already */
+                                                /* connected */
+#define RPC_C_SOCKET_ENOTSUP      WSAENOTSUP       /* operation not supported */
+
+#ifdef ETIME
+#define RPC_C_SOCKET_ETIME        ETIME   /* A time skew occurred */
+#else
+#define RPC_C_SOCKET_ETIME        WSAENOBUFS   /* A time skew occurred; can't find better substitute */
+#endif
+#else
+
+/* UNIX implementation */
 #define RPC_C_SOCKET_EWOULDBLOCK  EWOULDBLOCK   /* operation would block */
 #define RPC_C_SOCKET_EINTR        EINTR         /* operation was interrupted */
 #define RPC_C_SOCKET_EIO          EIO           /* I/O error */
@@ -767,10 +818,12 @@ rpc__transport_info_equal(
 #define RPC_C_SOCKET_EISCONN      EISCONN       /* socket is already */
                                                 /* connected */
 #define RPC_C_SOCKET_ENOTSUP      ENOTSUP       /* operation not supported */
+
 #ifdef ETIME
 #define RPC_C_SOCKET_ETIME        ETIME         /* A time skew occurred */
 #else
 #define RPC_C_SOCKET_ETIME        (ELAST + 1)   /* A time skew occurred */
+#endif
 #endif
 
 /*
@@ -787,6 +840,43 @@ rpc__transport_info_equal(
 
 #define RPC_SOCKET_ETOI(serr)       (serr)
 
+#if defined(_WIN32)
+int __rpc_socket_close(rpc_socket_t* sock);
+#ifndef ATTRIBUTE_UNUSED
+#define ATTRIBUTE_UNUSED
+#endif
+
+#define strncasecmp _strnicmp
+#define snprintf _snprintf
+
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX    108
+#endif
+
+struct sockaddr_un {
+  unsigned short int  sun_family;               /* AF_UNIX */
+  char        sun_path[UNIX_PATH_MAX];  /* pathname */
+};
+
+
+struct iovec {
+    void  *iov_base;    /* Starting address */
+    size_t iov_len;     /* Number of bytes to transfer */
+};
+
+struct msghdr {
+    void         *msg_name;       /* optional address */
+    socklen_t     msg_namelen;    /* size of address */
+    struct iovec *msg_iov;        /* scatter/gather array */
+    size_t        msg_iovlen;     /* # elements in msg_iov */
+    void         *msg_control;    /* ancillary data, see below */
+    socklen_t     msg_controllen; /* ancillary data buffer len */
+    int           msg_flags;      /* flags on received message */
+};
+
+
+
+#else
 static inline int
 __rpc_socket_close(rpc_socket_t* sock)
 {
@@ -794,6 +884,7 @@ __rpc_socket_close(rpc_socket_t* sock)
     *sock = NULL;
     return __err;
 }
+#endif
 
 #define RPC_SOCKET_CLOSE(s) __rpc_socket_close((rpc_socket_t*)(void*)&(s))
 

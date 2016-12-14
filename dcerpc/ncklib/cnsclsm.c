@@ -52,6 +52,7 @@
 #include <comcthd.h>    /* Externals for Call Thread sub-component  */
 #include <cncall.h>     /* NCA connection call service */
 #include <cnclsm.h>
+#include <cninline.h>
 
 
 /******************************************************************************/

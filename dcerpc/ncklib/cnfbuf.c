@@ -42,6 +42,7 @@
 #include <com.h>        /* More common declarations */
 #include <cnp.h>        /* Connection common declarations */
 #include <cnfbuf.h>	/* Fragment buffer declarations */
+#include <cninline.h>
 
 GLOBAL unsigned32 rpc_g_cn_large_frag_size = RPC_C_CN_LARGE_FRAG_SIZE;
 

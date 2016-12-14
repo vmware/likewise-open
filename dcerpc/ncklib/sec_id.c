@@ -51,7 +51,9 @@
 #include <dce/idl_es.h>
 #include <sec_id_pickle.h>
 
+#if !defined(_WIN32)
 #include <unistd.h>
+#endif
 #include <ctype.h>
 
 #include "pickle.h"

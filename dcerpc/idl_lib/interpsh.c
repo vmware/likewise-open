@@ -328,7 +328,7 @@ void rpc_ss_Z_values_from_bounds
     IDL_msp_t IDL_msp
 )
 {
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     unsigned32 i;
 
     if (*p_Z_values == NULL)
@@ -693,6 +693,7 @@ idl_long_int rpc_ss_get_typed_integer
         default:
             DCETHREAD_RAISE( rpc_x_coding_error );
     }
+    return 0; /* This case will never be executed, but makes compiler happy */
 }
 
 /******************************************************************************/
@@ -718,7 +719,7 @@ void rpc_ss_build_bounds_list
     IDL_msp_t IDL_msp
 )
 {
-    return rpc_ss_build_bounds_list_2(p_defn_vec_ptr, array_addr, struct_addr,
+    rpc_ss_build_bounds_list_2(p_defn_vec_ptr, array_addr, struct_addr,
                                       struct_offset_vec_ptr, dimensionality,
                                       NULL, p_bounds_list, IDL_msp);
 }
@@ -826,7 +827,7 @@ void rpc_ss_build_bounds_list_2
                 }
                 if (element_size == 1)
                     bounds_list[i].upper = bounds_list[i].lower
-                                                             + strlen(array_addr);
+                                               + (idl_long_int) strlen(array_addr);
                 else
                 {
                     size = rpc_ss_strsiz( (idl_char *)array_addr, element_size );
@@ -905,7 +906,7 @@ void rpc_ss_build_range_list
     IDL_msp_t IDL_msp
 )
 {
-    return rpc_ss_build_range_list_2(p_defn_vec_ptr, array_addr, struct_addr,
+    rpc_ss_build_range_list_2(p_defn_vec_ptr, array_addr, struct_addr,
                                      struct_offset_vec_ptr, dimensionality,
                                      bounds_list, NULL, p_range_list, p_add_null,
                                      IDL_msp);
@@ -1013,7 +1014,7 @@ void rpc_ss_build_range_list_2
             if (unmarshalled_list == NULL || unmarshalled_list[i])
             {
                 if (element_size == 1)
-                    data_limit = strlen(array_addr) + 1;
+                    data_limit = (idl_long_int) (strlen(array_addr) + 1);
                 else
                     data_limit = rpc_ss_strsiz( (idl_char *)array_addr,
                                                                  element_size );

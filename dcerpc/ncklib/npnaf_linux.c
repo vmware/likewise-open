@@ -78,9 +78,11 @@
 #include <comsoc.h>
 #include <npnaf.h>
 
+#if !defined(_WIN32)
 #include <sys/ioctl.h>
-#include <ctype.h>
 #include <stddef.h>
+#endif
+#include <ctype.h>
 
 
 /***********************************************************************

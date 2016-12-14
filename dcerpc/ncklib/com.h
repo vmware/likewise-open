@@ -249,6 +249,7 @@ typedef unsigned32       rpc_protocol_id_t, *rpc_protocol_id_p_t;
 #else
 #define RPC_C_NAF_ID_IP6     6
 #endif
+#define RPC_C_NAF_ID_NCALRPC 10
 #define RPC_C_NAF_ID_DNET    12
 #define RPC_C_NAF_ID_DDS     13         /* ###Check this one ###*/
 #define RPC_C_NAF_ID_NP      14
@@ -284,11 +285,19 @@ typedef unsigned32       rpc_naf_id_t, *rpc_naf_id_p_t;
 #define RPC_C_NETWORK_PROTOCOL_ID_UNS   0
 /* This is a big hack - 1 is ICMP */
 #define RPC_C_NETWORK_PROTOCOL_ID_NP    1
+#define RPC_C_NETWORK_PROTOCOL_ID_NCALRPC 10
 #define RPC_C_NETWORK_PROTOCOL_ID_HTTP  20
 #define RPC_C_NETWORK_PROTOCOL_ID_VIRTUAL 20
 
 typedef unsigned32 rpc_network_protocol_id_t, *rpc_network_protocol_id_p_t;
 
+/***********************************************************************/
+/*
+ * R P C _ N E T W O R K _ I F _ A D D R _ L O O P B A C K
+ */
+
+#define RPC_NETWORK_IF_ADDR_LOOPBACK_IPV4 "127.0.0.171"
+#define RPC_NETWORK_IF_ADDR_LOOPBACK_IPV6 "::1"
 
 /***********************************************************************/
 /*
@@ -1015,7 +1024,7 @@ typedef struct
 #define RPC_CALL_TRY_LOCK(call, bp)     RPC_MUTEX_TRY_LOCK((call)->m,(bp))
 #define RPC_CALL_LOCK_DELETE(call)      RPC_MUTEX_DELETE((call)->m)
 #define RPC_CALL_LOCK_ASSERT(call)      RPC_MUTEX_LOCK_ASSERT((call)->m)
-#define RPC_CALL_UNLOCK_ASSERT(call)    RPC_MUTEX_UNLOCKED_ASSERT(call->m)
+#define RPC_CALL_UNLOCK_ASSERT(call)    RPC_MUTEX_UNLOCKED_ASSERT((call)->m)
 
 /***********************************************************************/
 /*

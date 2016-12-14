@@ -56,7 +56,11 @@ dcethread_cond_wait(dcethread_cond *cond, dcethread_mutex *mutex)
         dcethread__dispatchinterrupt(dcethread__self());
         return dcethread__set_errno(EINTR);
     }
+#if defined(_WIN32)
+    memset((void *) &mutex->owner, 0, sizeof(mutex->owner));
+#else
     mutex->owner = (pthread_t) -1;
+#endif
     ret = dcethread__set_errno(pthread_cond_wait(cond, (pthread_mutex_t*) &mutex->mutex));
     mutex->owner = pthread_self();
     if (dcethread__end_block(dcethread__self(), interrupt_old, data_old))

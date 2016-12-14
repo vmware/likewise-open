@@ -92,7 +92,7 @@ INTERNAL void rpc__auth_info_cache_remove(
 
 #define ASSIGN_COPY(buffer, length, val) do { \
         char* _val = (char*) (val);                             \
-        unsigned32 _vallength = _val ? strlen(_val) : 0;        \
+        unsigned32 _vallength = _val ? (unsigned32) strlen(_val) : 0;        \
         if ((buffer) == NULL || (length) < _vallength) { \
             *st = rpc_s_ss_bad_buffer; \
             return; \
@@ -1028,7 +1028,7 @@ PUBLIC void rpc_server_register_auth_info
         return;
     }
 
-    if (authn_protocol == (typeof(authn_protocol))(rpc_c_authn_default) && get_key_func != NULL)
+    if (authn_protocol == (unsigned32)(rpc_c_authn_default) && get_key_func != NULL)
     {
         *st = rpc_s_key_func_not_allowed;
         return;

@@ -47,6 +47,7 @@
 #include <cncall.h>     /* NCA connection call service */
 #include <cnassoc.h>    /* NCA Connection association services */
 #include <cncthd.h>     /* local header file for prototype */
+#include <cninline.h>
 
 
 /*
@@ -231,7 +232,7 @@ PRIVATE void rpc__cn_call_executor
         ((handle_t) call_r->binding_rep,
          (rpc_call_handle_t) call_r,
          &iovector.elt[0],
-         &(RPC_CN_ASSOC_NDR_FORMAT (call_r->assoc)),
+         RPC_CN_ASSOC_NDR_FORMAT (call_r->assoc),
          &call_r->transfer_syntax,
          manager_epv,
          &status);

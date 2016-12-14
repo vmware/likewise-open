@@ -245,7 +245,7 @@ PRIVATE size_t rpc__get_token(
     RPC_MEM_ALLOC (
         *token,
         unsigned_char_p_t,
-        escaped_size + 1,
+        (unsigned32) (escaped_size + 1),
         RPC_C_MEM_STRING,
         RPC_C_MEM_NOWAIT);
     if(*token == NULL)
@@ -361,6 +361,7 @@ PRIVATE unsigned32 rpc__strcspn
      */
     for (count = 1, escaped = false, ptr = string; *ptr != '\0'; count++, ptr++)
     {
+#if !defined(_WIN32)
         /*
          * Check to see if the current character is an escape character
          * and if so, skip over it to the next character, setting the flag.
@@ -370,6 +371,7 @@ PRIVATE unsigned32 rpc__strcspn
             escaped = true;
             ptr++;
         }
+#endif
 
         /*
          * make sure it's not the end of the line
@@ -521,9 +523,10 @@ PRIVATE unsigned32 rpc__strsqz
     unsigned_char_t         *string
 )
 {
+#if !defined(_WIN32)
     unsigned_char_p_t   ptr1, ptr2;
-    unsigned32          count;
-
+    unsigned32          count = 0;
+#endif
 
     /*
      * make sure there's something to do before we start
@@ -533,6 +536,18 @@ PRIVATE unsigned32 rpc__strsqz
         return (0);
     }
 
+#if defined(_WIN32)
+    /*
+     * TBD: Adam: Why are escape sequences used?
+     * Unknown if this will negatively impact UNIX/Linux.
+     * This breaks windows \ path separator support.
+     * Normalize string to lower case for path
+     * comparisons. Windows filesystem is case-insensitive,
+     * so this operation won't harm saving endpoints to disc.
+     */
+    return (unsigned32) strlen(string);
+
+#else /* !defined(_WIN32) */
     for (count = 0, ptr1 = ptr2 = string; *ptr1 != '\0'; ptr1++)
     {
         /*
@@ -573,6 +588,7 @@ PRIVATE unsigned32 rpc__strsqz
      */
     *ptr2 = '\0';
     return (count);
+#endif
 }
 
 
@@ -620,7 +636,7 @@ unsigned_char_p_t       string;
     RPC_MEM_ALLOC (
         cstring,
         unsigned_char_p_t,
-        strlen ((char *) string) + 1,
+        (unsigned32) (strlen ((char *) string) + 1),
         RPC_C_MEM_STRING,
         RPC_C_MEM_WAITOK);
 

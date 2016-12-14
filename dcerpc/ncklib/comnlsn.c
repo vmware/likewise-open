@@ -52,6 +52,8 @@
 */
 
 #include "config.h"
+#include <commonp.h>
+#include <cnp.h>
 
 #ifdef HAVE_SYS_FD_SET_H
 #include <sys/fd_set.h>
@@ -79,6 +81,12 @@
  * Some defaults related to select() fd_sets.
  */
 
+#ifdef _WIN32
+#define RPC_SELECT_FD_MASK_T FD_SET
+#define RPC_C_SELECT_NFDBITS FD_SETSIZE
+#endif
+
+
 #ifndef RPC_C_SELECT_NFDBITS
 #  define RPC_C_SELECT_NFDBITS      NFDBITS
 #endif
@@ -93,14 +101,9 @@
 
 #ifndef RPC_SELECT_FD_COPY
 #  define RPC_SELECT_FDSET_COPY(src_fd_set,dst_fd_set,nfd) { \
-    int i; \
-    RPC_SELECT_FD_MASK_T *s = (RPC_SELECT_FD_MASK_T *) &src_fd_set; \
-    RPC_SELECT_FD_MASK_T *d = (RPC_SELECT_FD_MASK_T *) &dst_fd_set; \
-    for (i = 0; i < (nfd); i += RPC_C_SELECT_NFDBITS) \
-        *d++ = *s++; \
+       dst_fd_set = src_fd_set; \
    }
 #endif
-
 
 /*
  * Miscellaneous Data Declarations
@@ -307,8 +310,7 @@ INTERNAL void copy_listener_state
     lstate->reload_pending = false;
     RPC_COND_BROADCAST (lstate->cond, lstate->mutex);
 }
-
-
+
 /*
  * L T H R E A D
  *
@@ -390,6 +392,21 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
         do
         {
             RPC_SELECT_FDSET_COPY(listener_readfds, readfds_copy, listener_nfds);
+#ifdef _WIN32
+          {
+            RPC_SOCKET_T        shutdown_sock;
+            /*
+             * Additional socket that is closed during shutdown to "wake
+             * up" select.
+             */
+            shutdown_sock = dcethread_get_shutdown_sock();
+            FD_SET (shutdown_sock, &readfds_copy);
+            if (shutdown_sock >= listener_nfds)
+            {
+                listener_nfds = (int) (shutdown_sock + 1);
+            }
+          }
+#endif
 
             /*
              * Block waiting for packets.  We ocassionally need to see
@@ -425,9 +442,10 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
 #ifdef NON_CANCELLABLE_IO_SELECT
             dcethread_enableasync_throw(0);
 #endif /* NON_CANCELLABLE_IO_SELECT */
+
             if (n_found < 0)
             {
-                if (errno != EINTR)
+                if (SocketErrno != EINTR)
                 {
                     RPC_DBG_GPRINTF
                         (("(lthread_loop) select failed: %d, errno=%d\n",
@@ -496,6 +514,7 @@ INTERNAL void lthread_loop (rpc_listener_state_p_t  lstate)
     return;
 }
 
+#ifndef _WIN32
 #ifdef ATFORK_SUPPORTED
 /*
  * R P C _ _ N L S N _ F O R K _ H A N D L E R
@@ -562,3 +581,5 @@ PRIVATE void rpc__nlsn_fork_handler
     }
 }
 #endif
+
+#endif /* ifndef _WIN32 */

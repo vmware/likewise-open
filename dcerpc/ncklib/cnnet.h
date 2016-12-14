@@ -44,48 +44,30 @@
 /*
  * C O N N E C T I O N   S T A T E S
  */
-#define RPC_C_CN_CLOSED         0
-#define RPC_C_CN_CONNECTING     1
-#define RPC_C_CN_OPEN           2
+enum
+{
+     RPC_C_CN_CLOSED = 0,
+     RPC_C_CN_CONNECTING,
+     RPC_C_CN_OPEN,
+};
 
+/* Moved to cninline.c */
 /*
  * R P C _ C N _ N E T W O R K _ I O V E C T O R _ T O _ I O V
  */
 
 #define RPC_CN_NETWORK_IOVECTOR_TO_IOV(iovector, iov, iovcnt, bytes_to_send)\
-{\
-    unsigned8   _num_elts;\
-\
-    for (_num_elts = 0, (bytes_to_send) = 0; _num_elts < (iovector)->num_elt; _num_elts++) \
-    { \
-        (iov)[_num_elts].iov_base = (byte_p_t) ((iovector)->elt[_num_elts].data_addr); \
-        (iov)[_num_elts].iov_len = (int) ((iovector)->elt[_num_elts].data_len); \
-        (bytes_to_send) += (iov)[_num_elts].iov_len; \
-    } \
-    (iovcnt) = _num_elts; \
-}
+    _RPC_CN_NETWORK_IOVECTOR_TO_IOV(iovector, iov, (unsigned32 *) &iovcnt, (unsigned32 *) &bytes_to_send)
 
+
+/* Moved to cninline.c */
 /*
  * R P C _ C N _ N E T W O R K _ I O V _ A D J U S T
  */
 
 #define RPC_CN_NETWORK_IOV_ADJUST(iovp, iovcnt, cc)\
-{\
-    unsigned8   _num_elts;\
-    unsigned32    _bytes_to_adjust;\
-\
-    for (_bytes_to_adjust = (cc), _num_elts = 0;; _num_elts++, iovp++) \
-    { \
-        if ((iovp)->iov_len > _bytes_to_adjust) \
-        { \
-            (iovp)->iov_len -= _bytes_to_adjust; \
-            (iovp)->iov_base += _bytes_to_adjust; \
-            break; \
-        } \
-        _bytes_to_adjust -= (iovp)->iov_len; \
-    } \
-    (iovcnt) -= _num_elts; \
-}
+    _RPC_CN_NETWORK_IOV_ADJUST(iovp, (int *) &iovcnt, (int) cc)
+
 
 /*
  * R P C _ _ C N _ N E T W O R K _ U S E _ P R O T S E Q

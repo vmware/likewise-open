@@ -76,6 +76,10 @@
 #include <comp.h>
 #include <cominitp.h>
 
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
 /* Determine shared library extension
  * FIXME: move this into a centralized location
  */
@@ -225,37 +229,45 @@ static void (*rpc__g_static_modules[])(void) =
 {
 #ifdef ENABLE_PROT_NCACN
     rpc__cn_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_PROT_NCADG
     rpc__dg_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_NAF_IP
     rpc__ip_naf_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_NAF_NP
     rpc__np_naf_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_NAF_HTTP
     rpc__http_naf_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_AUTH_GSS_NEGOTIATE
     rpc__gssauth_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_AUTH_NTLMSSP
     rpc__ntlmauth_init_func,
+#define _INIT_STATIC_MODULES_ENABLED
 #endif
 #ifdef ENABLE_AUTH_SCHANNEL
     rpc__schnauth_init_func
+#define _INIT_STATIC_MODULES_ENABLED
+#endif
+#ifndef _INIT_STATIC_MODULES_ENABLED
+#error "No RPC protocol module enabled!"
 #endif
 };
 
 PRIVATE void rpc__load_modules(void)
 {
-#if HAVE_DLFCN_H
         struct dirent **namelist = NULL;
-        int i, n;
-        void * image;
-        char buf[PATH_MAX];
+        int i;
 
         memset(rpc_g_protseq_id, 0, sizeof(rpc_g_protseq_id));
         memset(rpc_g_naf_id, 0, sizeof(rpc_g_naf_id));
@@ -270,6 +282,11 @@ PRIVATE void rpc__load_modules(void)
             rpc__g_static_modules[i]();
         }
 
+#if HAVE_DLFCN_H
+      {
+        int n;
+        void * image;
+        char buf[PATH_MAX];
         n = scandir(IMAGE_DIR, &namelist, (void*) select_module, (void*) sort_modules);
         for (i = 0; i < n; i++)
         {
@@ -316,6 +333,7 @@ PRIVATE void rpc__load_modules(void)
 	{
 	        free(namelist);
 	}
+      }
 #endif /* HAVE_DLFCN_H */
 }
 

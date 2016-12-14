@@ -48,7 +48,12 @@
 #include <cnfbuf.h>     /* NCA Connection fragment buffer service */
 #include <cncall.h>     /* NCA Connection call service */
 #include <cnnet.h>
+#include <cninline.h>
+#ifndef _WIN32
+#ifdef LW_USE_TYPES
 #include <lw/ntstatus.h>
+#endif
+#endif
 
 /***********************************************************************/
 /*
@@ -2002,11 +2007,15 @@ INTERNAL void rpc__cn_network_serr_to_status
         *st = rpc_s_auth_skew;
         break;
 
+#ifndef _WIN32
+#ifdef LW_USE_TYPES
         // Using this to pass through an RODC error that
         // requires reauthentication.
         case LW_STATUS_KDC_CERT_REVOKED:
         *st = rpc_s_auth_tkt_expired;
         break;
+#endif
+#endif
 
         case -1:
         *st = rpc_s_unknown_status_code;

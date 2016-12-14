@@ -51,6 +51,7 @@
 #include <comauth.h>    /* Externals for Auth. Services sub-component   */
 #include <cncall.h>     /* NCA connection call service */
 #include <cnassoc.h>
+#include <cninline.h>
 
 #include <dce/rpcexc.h>
 #if !defined(_WIN32)
@@ -258,7 +259,17 @@ INTERNAL rpc_cn_syntax_t *rpc__cn_assoc_syntax_alloc(
  */
 #define RPC_C_ASSOC_MAX_WAIT_INTERVAL           5
 
-
+static inline void
+RPC_CN_AUTH_GET_PROT_INFO(
+    rpc_auth_info_p_t info,
+    rpc_cn_auth_info_p_t *cn_info,
+    unsigned32 *st)
+{
+    rpc_cn_auth_epv_t *_cn_epv;
+    _cn_epv = RPC_CN_AUTH_PROT_EPV((info)->authn_protocol);
+    _cn_epv->get_prot_info(info, cn_info, st);
+}
+
 /******************************************************************************/
 /*
  * Routine definitions
@@ -4441,7 +4452,6 @@ PRIVATE void rpc__cn_assoc_acb_dealloc
     RPC_CN_DBG_RTN_PRINTF(rpc__cn_assoc_acb_dealloc);
 
     RPC_CN_ASSOC_ACB_DEC_REF (assoc);
-
     if (assoc->assoc_acb_ref_count == 0)
     {
         /*
@@ -4526,7 +4536,7 @@ PRIVATE void rpc__cn_assoc_acb_dealloc
         assoc->assoc_local_status = rpc_s_ok;
         RPC_CN_LOCAL_ID_CLEAR (assoc->assoc_grp_id);
         assoc->assoc_flags = 0;
-        RPC_CN_ASSOC_CONTEXT_ID (assoc) = 0;
+        *RPC_CN_ASSOC_CONTEXT_ID_PTR (assoc) = 0;
         assoc->assoc_max_xmit_frag = 0;
         assoc->assoc_max_recv_frag = 0;
         assoc->assoc_vers_minor = RPC_C_CN_PROTO_VERS_MINOR;

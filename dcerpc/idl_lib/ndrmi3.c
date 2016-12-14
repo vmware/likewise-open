@@ -1002,7 +1002,7 @@ void rpc_ss_ndr_marsh_v1_string
     idl_byte dummy_defn_vec = IDL_DT_CHAR;  /* [v1_string] always of char */
     IDL_bound_pair_t bounds_list;  /* Bounds of array data */
 
-    actual_count = strlen((char *)param_addr);
+    actual_count = (idl_ushort_int) strlen((char *)param_addr);
     IDL_MARSH_CUSHORT(&actual_count);
     bounds_list.lower = 0;
     bounds_list.upper = actual_count;

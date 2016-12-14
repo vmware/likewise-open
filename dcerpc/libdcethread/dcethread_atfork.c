@@ -51,7 +51,45 @@
 #include "dcethread-debug.h"
 
 #ifdef API
+#if defined(_WIN32)
+/*
+ * stub out functions for platforms that don't have fork() system call
+ */
 
+int
+dcethread_atfork(void *user_state, void (*pre_fork)(void *), void (*parent_fork)(void *), void (*child_fork)(void *))
+{
+    /*
+     * Return failure: Should not use these functions without 
+     * supported fork() call.
+     */
+    return -1;
+}
+
+int
+dcethread_atfork_throw(void *user_state, void (*pre_fork)(void *), void (*parent_fork)(void *), void (*child_fork)(void *))
+{
+    /*
+     * Return failure: Should not use these functions without 
+     * supported fork() call.
+     */
+    return -1;
+}
+
+pid_t
+dcethread_fork(void)
+{
+    /*
+     * Return failure: Should not use these functions without 
+     * supported fork() call.
+     */
+    return -1;
+}
+
+#else
+/*
+ * Everything below this line is for POSIX/UNIX platforms
+ */
 #define ATFORK_MAX_HANDLERS 256
 
 /* pthread fork handling wrapper
@@ -249,6 +287,7 @@ dcethread_fork(void)
 
     return pid;
 }
+#endif /* !defined(_WIN32) */
 
 #endif /* API */
 
