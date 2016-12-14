@@ -69,7 +69,7 @@ void rpc_ss_build_indirection_struct
 
     RPC_SS_THREADS_MUTEX_CREATE(&(p_thread_support_ptrs->mutex));
     p_thread_support_ptrs->p_mem_h = p_mem_handle;
-    p_thread_support_ptrs->p_allocate = rpc_ss_allocate;
+    p_thread_support_ptrs->p_allocate = (void *) rpc_ss_allocate;
     p_thread_support_ptrs->p_free = rpc_ss_free;
 
     helper_thread_indirection_ptr = (rpc_ss_thread_indirection_t *)

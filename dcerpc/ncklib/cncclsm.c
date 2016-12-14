@@ -49,6 +49,7 @@
 #include <cnsm.h>       /* NCA Connection state machine declarations */
 #include <cncall.h>     /* NCA connection call service */
 #include <cnclsm.h>
+#include <cninline.h>
 
 
 /******************************************************************************/

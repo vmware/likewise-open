@@ -283,10 +283,16 @@ INTERNAL void init_once(void)
 	*  operands.  The following assert will also have to be changed
 	*  to use the new scalar data type.
 	*/
-	assert(sizeof(unsigned long) == sizeof(unsigned8 *));
+	assert(sizeof(size_t) == sizeof(unsigned8 *));
 
 #ifdef APOLLO_GLOBAL_LIBRARY
 	apollo_global_lib_init();
+#endif
+#ifdef _WIN32
+{
+        WSADATA wsaData = {0};
+        WSAStartup(MAKEWORD(2, 2), &wsaData);
+}
 #endif
 
 	/*
@@ -824,7 +830,8 @@ INTERNAL void init_once(void)
 	 * initialize (seed) the random number generator using the current
 	 * system time
 	 */
-	RPC_RANDOM_INIT(time (NULL));
+        /* passing time_t into unsigned32 function: Y2K38 bug */
+	RPC_RANDOM_INIT((unsigned32) time(NULL));
 
 #ifndef NO_GETENV
 
@@ -888,8 +895,21 @@ INTERNAL boolean supported_naf
     if (naf->naf_id == 0)
         return (false);
     else if (naf->naf_id >= RPC_C_NAF_ID_VIRTUAL)
+    {
         /* NAF id is not known by OS, so assume it is supported */
         return (true);
+    }
+#if defined(_WIN32)
+    else if (naf->naf_id == RPC_C_NAF_ID_NCALRPC)
+    {
+        /*
+         * NCALRPC implementation uses loopback interface, which
+         * is difficult to disable on Windows. Assume it is supported,
+         * and this will fail later when a bind on loopback is attempted.
+         */
+        return (true);
+    }
+#endif
 
     socket_error = rpc__socket_open_basic
         (naf->naf_id, naf->network_if_id, 0, &socket);
@@ -956,6 +976,18 @@ INTERNAL boolean supported_interface
     {
         return (true);
     }
+#if defined(_WIN32)
+    else if (naf == RPC_C_NAF_ID_NCALRPC
+             && network_if == RPC_C_NETWORK_IF_ID_STREAM)
+    {
+        /*
+         * NCALRPC implementation uses loopback interface, which
+         * is difficult to disable on Windows. Assume it is supported,
+         * and this will fail later when a bind on loopback is attempted.
+         */
+        return (true);
+    }
+#endif
 
     socket_error = rpc__socket_open_basic
         (naf, network_if, network_protocol, &socket);

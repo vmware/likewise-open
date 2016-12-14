@@ -695,7 +695,9 @@ INTERNAL void _rpc__ipx_init_local_addr_vec(
         memcpy(&local_ip_addr_vec->elt[i].netmask,
                &((rpc_ip_addr_p_t) netmask_addr_vec->addrs[i])->sa,
                sin_addr_len);
-#ifdef DEBUG
+
+
+#ifdef DEBUG_FIXME /* TBD:Adam-BUGBUG build break for "DEBUG" in below section */
         if (RPC_DBG2(rpc_e_dbg_general, 10))
         {
             char         buff[128], mbuff[128];

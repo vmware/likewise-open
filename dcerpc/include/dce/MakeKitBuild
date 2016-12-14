@@ -35,7 +35,7 @@ make()
             IDL="$_idl" \
             HEADER="$_idl_header" \
             INCLUDEDIRS=". .." \
-            IDLFLAGS="-cepv $IDL_CFLAGS" \
+            IDLFLAGS="-cepv $IDL_CFLAGS -DLW_USE_TYPES" \
             HEADERDEPS="lw/base.h"
     done
 

@@ -85,11 +85,13 @@
  */
 
 
+#if !defined(_WIN32)
 #ifdef HAVE_SYS_UN_H
 #include <sys/un.h>
 #else
 #include <un.h>
 #endif
+#endif /* !defined(_WIN32) */
 
 #ifndef RPC_C_NP_DIR
 #define RPC_C_NP_DIR	"/var/opt/novell/xad/rpc"
@@ -151,6 +153,12 @@ extern "C" {
 
 
 PRIVATE void rpc__np_init(
+        rpc_naf_epv_p_t             * /*naf_epv*/,
+        unsigned32                  * /*status*/
+    
+    );
+
+PRIVATE void rpc__ncalrpc_init(
         rpc_naf_epv_p_t             * /*naf_epv*/,
         unsigned32                  * /*status*/
     

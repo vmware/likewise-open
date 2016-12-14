@@ -74,12 +74,6 @@
 
 #include <dce/dce.h>
 
-#ifdef _WIN32
-#ifndef inline
-#define inline __inline
-#endif
-#endif
-
 /*int pthd4_get_expiration_np(struct timespec *delta, struct timespec *abstime);*/
 
 

@@ -159,7 +159,7 @@ void rpc_ss_ndr_unmar_pointee
     idl_ulong_int array_defn_index;
     idl_byte *array_defn_ptr = NULL;
     idl_ulong_int conf_dims = 0;    /* Number of dimensions of conformance info */
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_byte *constr_defn_ptr;   /* Pointer to definition of constructed type */
     idl_ulong_int switch_value;  /* Also used for [cs_char] machinery */
     IDL_cs_shadow_elt_t *struct_cs_shadow = NULL;
@@ -296,7 +296,7 @@ void rpc_ss_ndr_unmar_pointee
     {
         p_node = (rpc_void_p_t)rpc_ss_return_pointer_to_node(
                     IDL_msp->IDL_node_table,
-                    node_number, node_size,
+                    (idl_ulong_int) node_number, node_size,
                     (IDL_msp->IDL_side == IDL_client_side_k)
                         ? IDL_msp->IDL_p_allocate : NULL,
                     &already_unmarshalled,
@@ -1010,7 +1010,7 @@ void rpc_ss_ndr_u_fixed_arr_ptees
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     IDL_bound_pair_t *bounds_list;
 
     defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index;
@@ -1279,7 +1279,7 @@ void rpc_ss_init_new_struct_ptrs
     idl_boolean type_has_pointers;
     idl_ulong_int pointee_defn_index;
     IDL_bound_pair_t *bounds_list;
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int array_dims;    /* Number of dimensions of array */
 
     IDL_GET_LONG_FROM_VECTOR(offset_index,defn_vec_ptr);
@@ -1604,7 +1604,7 @@ static void rpc_ss_init_new_store_ptrs
 )
 {
     idl_ulong_int dimensionality;
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     IDL_bound_pair_t *bounds_list;
 
     switch (storage_type)
@@ -1765,7 +1765,7 @@ void rpc_ss_ndr_unmar_pointee_desc
                                                     IDL_msp->IDL_node_table,
                                                     *(idl_ulong_int *)p_pointer,
                                                     &already_unmarshalled);
-        p_pointee_desc->already_unmarshalled = already_unmarshalled;
+        p_pointee_desc->already_unmarshalled = (idl_boolean) already_unmarshalled;
         if (p_pointee_desc->already_unmarshalled)
         {
             *(rpc_void_p_t *)p_pointer = p_node;

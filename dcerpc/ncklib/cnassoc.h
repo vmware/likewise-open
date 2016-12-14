@@ -38,48 +38,27 @@
 **
 **
 */
+#include <cnp.h>
+#include <cnid.h>
+#include <comcthd.h>
 
 
+/* Moved to cninline.c */
 /******************************************************************************/
 /*
  * R P C _ C N _ A S S O C _ A C B _ I N C _ R E F
  */
 
-#ifdef RPC_CN_DEBUG_REFCNT
-static void RPC_CN_ASSOC_ACB_INC_REF(rpc_cn_assoc_t *assoc)
-{
-    (assoc)->assoc_acb_ref_count++;
-    RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                    ("(RPC_CN_ASSOC_ACB_INC_REF) assoc->%x new refcnt->%d\n",
-                     assoc, assoc->assoc_acb_ref_count));
-}
-#else
-#define RPC_CN_ASSOC_ACB_INC_REF(assoc) (assoc)->assoc_acb_ref_count++;
-#endif /* RPC_CN_DEBUG_REFCNT */
-
 /*
  * R P C _ C N _ A S S O C _ A C B _ D E C _ R E F
  */
-
-#ifdef RPC_CN_DEBUG_REFCNT
-static void RPC_CN_ASSOC_ACB_DEC_REF(rpc_cn_assoc_t *assoc)
-{
-    (assoc)->assoc_acb_ref_count--;
-    RPC_DBG_PRINTF (rpc_e_dbg_general, RPC_C_CN_DBG_GENERAL,
-                    ("(RPC_CN_ASSOC_ACB_DEC_REF) assoc->%x new refcnt->%d\n",
-                     assoc, assoc->assoc_acb_ref_count));
-}
-#else
-#define RPC_CN_ASSOC_ACB_DEC_REF(assoc) (assoc)->assoc_acb_ref_count--;
-#endif /* RPC_CN_DEBUG_REFCNT */
 
 /*
  * R P C _ C N _ A S S O C _ G R P
  */
 
-#define RPC_CN_ASSOC_GRP(grp_id)\
-    (RPC_CN_LOCAL_ID_VALID (grp_id)) ?\
-        &rpc_g_cn_assoc_grp_tbl.assoc_grp_vector[(grp_id).parts.id_index] : NULL;
+#define RPC_CN_ASSOC_GRP(grp_id) \
+    _RPC_CN_ASSOC_GRP(&grp_id)
 
 /*
  * R P C _ C N _ A S S O C _ S Y N T A X _ E Q U A L
@@ -93,60 +72,47 @@ static void RPC_CN_ASSOC_ACB_DEC_REF(rpc_cn_assoc_t *assoc)
 error "***Make sure memcmp works on this version of UUIDs***"
 #endif
 
+/* Moved to cninline.c */
 /*
  * R P C _ C N _ A S S O C _ C A L L
  */
-
-#define RPC_CN_ASSOC_CALL(assoc)          (assoc)->call_rep
 
 /*
  * R P C _ C N _ A S S O C _ M A X _ X M I T _ F R A G
  */
 
-#define RPC_CN_ASSOC_MAX_XMIT_FRAG(assoc) (assoc)->assoc_max_xmit_frag
-
 /*
  * R P C _ C N _ A S S O C _ M A X _ R E C V _ F R A G
  */
 
-#define RPC_CN_ASSOC_MAX_RECV_FRAG(assoc) (assoc)->assoc_max_recv_frag
-
 /*
  * R P C _ C N _ A S S O C _ C O N T E X T _ I D
  */
-
-#define RPC_CN_ASSOC_CONTEXT_ID(assoc)     (assoc)->assoc_pres_context_id
-
+ 
+/*
+ * R P C _ C N _ A S S O C _ C O N T E X T _ I D _ M O D I F Y
+ */
+ 
 /*
  * R P C _ C N _ A S S O C _ N D R _ F O R M A T
  */
-
-#define RPC_CN_ASSOC_NDR_FORMAT(assoc)      (assoc)->assoc_remote_ndr_format
 
 /*
  * R P C _ C N _ A S S O C _ S E C U R I T Y
  */
 
-#define RPC_CN_ASSOC_SECURITY(assoc)        &(assoc)->security
+/*
+ * R P C _ _ C N _ A S S O C _ Q U E U E _ D U M M Y _ F R A G
+ */
 
+/* Moved to cninline.c */
 /*
  * R P C _ C N _ A S S O C _ W A K E U P
  */
 
-#define RPC_CN_ASSOC_WAKEUP(assoc)          rpc__cn_assoc_queue_dummy_frag(assoc);
-
 /*
  * R P C _ C N _ A S S O C _ C A N C E L _ A N D _ W A K E U P
  */
-
-#define RPC_CN_ASSOC_CANCEL_AND_WAKEUP(assoc)\
-{\
-    RPC_CALL_LOCK (((rpc_call_rep_t *) assoc->call_rep));\
-    rpc__cthread_cancel (((rpc_call_rep_t *) assoc->call_rep));\
-    rpc__cn_assoc_queue_dummy_frag(assoc);\
-    RPC_CALL_UNLOCK (((rpc_call_rep_t *) assoc->call_rep));\
-}
-
 
 /******************************************************************************/
 /*
@@ -422,7 +388,6 @@ PRIVATE void rpc__cn_assoc_acb_dealloc(rpc_cn_assoc_p_t/* assoc */ );
  */
 
 PRIVATE void rpc__cn_assoc_acb_security_ctx_dealloc(rpc_cn_assoc_p_t /* assoc */);
-
 
 /*
  * R P C _ _ C N _ A S S O C _ G R P _ A L L O C

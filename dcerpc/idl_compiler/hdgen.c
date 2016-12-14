@@ -239,7 +239,7 @@ unescape_string(const char* str)
     char* res;
     int src, dst, len;
 
-    len = strlen(str);
+    len = (int) strlen(str);
     res = malloc(len+1);
 
     for (src = 0, dst = 0; src < len; src++)

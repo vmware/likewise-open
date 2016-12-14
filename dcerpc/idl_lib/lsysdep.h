@@ -46,7 +46,9 @@
 #else
 #   include <stdlib.h>
 #   include <stdio.h>
+#if !defined(_WIN32)
 #   include <inttypes.h>
+#endif
 #endif
 
 #endif

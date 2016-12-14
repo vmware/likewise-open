@@ -54,6 +54,17 @@
 #include <comtwrref.h>  /* tower defs for other RPC components */
 #include <dce/ep.h>     /* rpcd endpoint (ep) interface definitions */
 #include <cncall.h>
+#include <cninline.h>
+
+static inline void
+RPC_CN_AUTH_CRED_REFRESH(
+    rpc_auth_info_p_t auth_info,
+    unsigned32 *st)
+{
+    rpc_cn_auth_epv_t   *_cn_epv;
+    _cn_epv = RPC_CN_AUTH_PROT_EPV((auth_info)->authn_protocol);
+    _cn_epv->cred_refresh(auth_info, st);
+}
 
 /*
  * Macro to test for a cancel every so often for a cancel. The
@@ -1048,7 +1059,7 @@ PRIVATE void rpc__cn_call_transceive
                  * (which is in the 4 byte wire format)
                  * to the output remote_ndr_format arg.
                  */
-                *remote_ndr_format = RPC_CN_ASSOC_NDR_FORMAT (call_rep->assoc);
+                *remote_ndr_format = *RPC_CN_ASSOC_NDR_FORMAT (call_rep->assoc);
 
                 /*
                  * Now adjust data_p to point to just the stub data.
@@ -2080,7 +2091,7 @@ PRIVATE void rpc__cn_call_receive_fault
         /*
          * Copy the remote NDR format into the output arguments.
          */
-        *remote_ndr_format = RPC_CN_ASSOC_NDR_FORMAT (call_rep->assoc);
+        *remote_ndr_format = *RPC_CN_ASSOC_NDR_FORMAT (call_rep->assoc);
 
         /*
          * We now copy the descriptors into the iovector.
@@ -2909,7 +2920,7 @@ PRIVATE void rpc__cn_call_start_cancel_timer
          * cancel timeout for this thread is not infinite.
          */
         if ((!call_r->u.client.cancel.timer_running) &&
-            (call_r->u.client.cancel.timeout_time != (typeof(call_r->u.client.cancel.timeout_time))(rpc_c_cancel_infinite_timeout)))
+            (call_r->u.client.cancel.timeout_time != (rpc_clock_t)(rpc_c_cancel_infinite_timeout)))
         {
             RPC_DBG_PRINTF (rpc_e_dbg_cancel, RPC_C_CN_DBG_CANCEL,
                            ("(rpc__cn_call_start_cancel_timer) call_rep->%x starting cancel timer - %d seconds\n",

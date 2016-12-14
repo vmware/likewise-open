@@ -53,6 +53,7 @@
 
 #include <comnaf.h>
 #include <commonp.h>
+#include <comsoc.h>
 #include <ipnaf.h>
 
 PRIVATE rpc_socket_error_t

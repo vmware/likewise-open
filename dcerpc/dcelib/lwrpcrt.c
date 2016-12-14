@@ -28,12 +28,20 @@
  * license@likewisesoftware.com
  */
 
-#include "lwrpcrt/lwrpcrt.h"
-#include <lw/winerror.h>
 #include <stdlib.h>
-#include <wc16str.h>
 #include <errno.h>
+#include <stdint.h>
 
+#include "lwrpcrt/lwrpcrt.h"
+#ifndef _WIN32
+
+#include <lw/winerror.h>
+#include <wc16str.h>
+
+#endif
+
+
+#ifndef _WIN32
 RPC_STATUS WideChar16ToMultiByte(PWSTR input, idl_char **output)
 {
     if (input == NULL)
@@ -100,6 +108,7 @@ RPC_STATUS RpcCompatExceptionToCode(dcethread_exc *exc)
         return RPC_S_INTERNAL_ERROR;
     return LwMapDCEStatusToWinerror(status);
 }
+#endif
 
 RPC_STATUS g_lastcode = 0;
 RPC_STATUS RpcCompatReturnLastCode()
@@ -144,6 +153,7 @@ RPC_STATUS RpcStringBindingComposeW(
 )
 {
     RPC_STATUS status = rpc_s_ok;
+#ifndef _WIN32
     CONVERT_INPUTSTR(string_object_uuid);
     CONVERT_INPUTSTR(string_protseq);
     CONVERT_INPUTSTR(string_netaddr);
@@ -169,6 +179,7 @@ RPC_STATUS RpcStringBindingComposeW(
     FREE_INPUTSTR(string_options);
     CONVERT_OUTPUTSTR(string_binding);
 
+#endif
     return LwMapDCEStatusToWinerror(status);
 }
 

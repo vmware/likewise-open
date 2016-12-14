@@ -49,6 +49,23 @@
 #include <cnid.h>
 #include <cnasgsm.h>
 
+#ifdef _WIN32
+#include <comsoc_ncalrpc.h>
+#endif
+
+/*
+ * Flip '\' path separators to '/'
+ * Operates on string in-place.
+ */
+PRIVATE
+void rpc_normalize_path(char *str)
+{
+    while (*str)
+    {
+        *str = RPC_NORMALIZE_SLASH(*str);
+        str++;
+    }
+}
 
 /*
  * Walk through the entire association group table, scanning
@@ -152,8 +169,6 @@ PRIVATE void rpc__binding_free
 {
     rpc_binding_rep_p_t     binding_rep = *binding_rep_p;
     unsigned32		    temp_status = rpc_s_ok;
-    rpc_cs_method_eval_p_t  method_p ATTRIBUTE_UNUSED;
-    rpc_cs_tags_eval_p_t    tags_p ATTRIBUTE_UNUSED;
 
     CODING_ERROR (status);
 
@@ -190,6 +205,8 @@ PRIVATE void rpc__binding_free
      */
     if (binding_rep->extended_bind_flag == RPC_C_BH_EXTENDED_CODESETS)
     {
+        rpc_cs_method_eval_p_t  method_p = NULL;
+
 	/* Release codesets relating binding information.
 	 * Determine the data structure
 	 */
@@ -1341,12 +1358,12 @@ PUBLIC void rpc_string_binding_parse
 {
 #define RPC_C_NETWORK_OPTIONS_MAX   1024
 
-    unsigned_char_p_t       binding_ptr;
+    unsigned_char_p_t       binding_ptr = NULL;
     unsigned_char_p_t       option_ptr = NULL;
-    unsigned32              count;
-    boolean                 get_endpoint;
-    unsigned32              temp_status;
-    unsigned32              len;
+    unsigned32              count = 0;
+    boolean                 get_endpoint = 0;
+    unsigned32              temp_status = 0;
+    unsigned32              len = 0;
 
 
     CODING_ERROR (status);
@@ -1445,7 +1462,7 @@ PUBLIC void rpc_string_binding_parse
          */
         if (netaddr != NULL)
         {
-            len = strlen ((char *) binding_ptr);
+            len = (unsigned32) strlen ((char *) binding_ptr);
             RPC_MEM_ALLOC (
                 *netaddr,
                 unsigned_char_p_t,
@@ -1497,7 +1514,7 @@ PUBLIC void rpc_string_binding_parse
             RPC_MEM_ALLOC (
                 *network_options,
                 unsigned_char_p_t,
-                strlen ((char *)binding_ptr) + 1,
+                (unsigned32) strlen ((char *)binding_ptr) + 1,
                 RPC_C_MEM_STRING,
                 RPC_C_MEM_WAITOK);
 
@@ -1693,7 +1710,32 @@ PUBLIC void rpc_string_binding_parse
     {
         if (*endpoint != NULL)
         {
+#ifdef _WIN32
+        {
+            rpc_protseq_id_t pseq_id = 0;
+
+            if (protseq && *protseq)
+            {
+                 pseq_id = rpc__network_pseq_id_from_pseq(*protseq, status);
+                 if (*status != rpc_s_ok)
+                 {
+                     goto CLEANUP;
+                 }
+                 rpc__naf_is_valid_endpoint(pseq_id, *endpoint, status);
+                 if (*status != rpc_s_ok)
+                 {
+                     goto CLEANUP;
+                 }
+            }
             rpc__strsqz (*endpoint);
+            if (pseq_id == RPC_C_PROTSEQ_ID_NCALRPC)
+            {
+                rpc_normalize_path(*endpoint);
+            }
+        }
+#else
+            rpc__strsqz (*endpoint);
+#endif
         }
         else
         {
@@ -1718,7 +1760,7 @@ PUBLIC void rpc_string_binding_parse
              * clip the trailing separator off the network options string
              * to be neat
              */
-            if ((count = strlen ((char *) *network_options)) > 0)
+            if ((count = (unsigned32) strlen ((char *) *network_options)) > 0)
             {
                 (*network_options)[count - 1] = '\0';
             }
@@ -1836,7 +1878,8 @@ PUBLIC void rpc_string_binding_compose
 {
     unsigned_char_p_t   string_binding_ptr;
     unsigned32          string_binding_size = 1;
-
+    char                *endpoint_str = NULL;
+    boolean             is_ncalrpc = FALSE;
 
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
@@ -1849,6 +1892,50 @@ PUBLIC void rpc_string_binding_compose
         *status = rpc_s_ok;
         return;
     }
+    is_ncalrpc = FALSE;
+#ifdef _WIN32
+    /*
+     * ncalrpc: ignore netaddr, as ncalrpc implies the loopback
+     * interface in this implementation.
+     */
+    if (strcmp(protseq, RPC_PROTSEQ_NCALRPC) == 0)
+    {
+        if (!endpoint)
+        {
+            *status = rpc_s_invalid_endpoint_format;
+            return;
+        }
+        netaddr = NULL;
+        is_ncalrpc = TRUE;
+    }
+
+    /*
+     * Deal with ncalrpc implementation details. The assumption is no one
+     * can create a bound endpoint using the loopback interface, except
+     * for ncalrpc.
+     *
+     * When the loopback address for IPv4 or IPv6 is found, then switch
+     * the input protocol sequence from ncacn_ip_tcp to ncalrpc. Additional
+     * work must also be done to look up the endpoint name from the IP port.
+     */
+    if (protseq && netaddr && endpoint &&
+        strcmp(protseq, RPC_PROTSEQ_NCACN_IP_TCP) == 0 &&
+        (strcmp(netaddr, RPC_NETWORK_IF_ADDR_LOOPBACK_IPV4) == 0 ||
+         strcmp(netaddr, RPC_NETWORK_IF_ADDR_LOOPBACK_IPV6) == 0))
+    {
+        rpc_socket_error_t serr = RPC_C_SOCKET_OK;
+
+        protseq = RPC_PROTSEQ_NCALRPC;
+        netaddr = NULL;
+        serr = rpc__ncalrpc_read_value_from_endpoint(endpoint, &endpoint_str);
+        if (serr)
+        {
+            *status =  serr;
+            return;
+        }
+        endpoint = endpoint_str;
+    }
+#endif
 
     /*
      * calculate the total size of the resulting string binding - the sum
@@ -1858,27 +1945,27 @@ PUBLIC void rpc_string_binding_compose
      */
     if ((string_object_uuid != NULL) && (*string_object_uuid != '\0'))
     {
-        string_binding_size += strlen ((char *) string_object_uuid) + 1;
+        string_binding_size += (unsigned32) strlen ((char *) string_object_uuid) + 1;
     }
 
     if (protseq != NULL)
     {
-        string_binding_size += strlen ((char *) protseq) + 1;
+        string_binding_size += (unsigned32) strlen ((char *) protseq) + 1;
     }
 
     if (netaddr != NULL)
     {
-        string_binding_size += strlen ((char *) netaddr) + 1;
+        string_binding_size += (unsigned32) strlen ((char *) netaddr) + 1;
     }
 
     if (endpoint != NULL)
     {
-        string_binding_size += strlen ((char *) endpoint) + 2;
+        string_binding_size += (unsigned32) strlen ((char *) endpoint) + 2;
     }
 
     if (network_options != NULL)
     {
-        string_binding_size += strlen ((char *) network_options) + 2;
+        string_binding_size += (unsigned32) strlen ((char *) network_options) + 2;
     }
 
     /*
@@ -1968,6 +2055,16 @@ PUBLIC void rpc_string_binding_compose
      * terminate the string
      */
     *(string_binding_ptr) = '\0';
+    if (endpoint_str)
+    {
+        free(endpoint_str);
+    }
+#ifdef _WIN32
+    if (is_ncalrpc)
+    {
+        rpc_normalize_path(*string_binding);
+    }
+#endif
 
     *status = rpc_s_ok;
     return;

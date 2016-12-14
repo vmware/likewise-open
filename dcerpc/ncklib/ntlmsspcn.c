@@ -390,7 +390,7 @@ INTERNAL void rpc__ntlmauth_cn_create_info
 	 * Initialize the common auth_info stuff.
 	 */
 	ntlmauth_info->auth_info.refcount           = 1;
-	ntlmauth_info->auth_info.server_princ_name  = '\0';
+	ntlmauth_info->auth_info.server_princ_name  = NULL;
 	ntlmauth_info->auth_info.authn_level        = authn_level;
 	ntlmauth_info->auth_info.authn_protocol     = rpc_c_authn_winnt;
 	ntlmauth_info->auth_info.authz_protocol     = rpc_c_authz_name;

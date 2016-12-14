@@ -79,6 +79,7 @@
 #include <cncall.h>     /* NCA connection call service */
 #include <comcthd.h>    /* Externals for call thread services component */
 #include <cncthd.h>     /* NCA Connection call executor service */
+#include <cninline.h>
 
 
 /******************************************************************************/
@@ -656,7 +657,7 @@ INTERNAL void receive_dispatch
              * to determine whether we have to bother unpacking the
              * packet header.
              */
-            NDR_UNPACK_DREP (&(RPC_CN_ASSOC_NDR_FORMAT (assoc)),
+            NDR_UNPACK_DREP (RPC_CN_ASSOC_NDR_FORMAT (assoc),
                              RPC_CN_PKT_DREP (pktp));
             if ((NDR_DREP_INT_REP (RPC_CN_PKT_DREP (pktp)) !=
                  NDR_LOCAL_INT_REP))

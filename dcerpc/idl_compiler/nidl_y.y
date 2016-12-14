@@ -346,9 +346,9 @@ interface_init:
         /* Always create the interface node and auto-import the system idl */		
         {
             STRTAB_str_t nidl_idl_str;
-            nidl_idl_str = STRTAB_add_string (AUTO_IMPORT_FILE);
             AST_interface_n_t* old = the_interface;
 
+            nidl_idl_str = STRTAB_add_string (AUTO_IMPORT_FILE);
 	    the_interface = AST_interface_node();			  		
             the_interface->prev = old;
 	    the_interface->exports = NULL;

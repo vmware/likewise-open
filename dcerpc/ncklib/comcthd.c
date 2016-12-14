@@ -304,7 +304,7 @@ INTERNAL rpc_thread_pool_fn_t   cthread_pool_lookup_fn;
 
 
 INTERNAL void cthread_create(
-        cthread_elt_p_t          /*cthread*/,
+        cthread_elt_p_t volatile /*cthread*/,
         unsigned32              * /*status*/
     
     );
@@ -443,7 +443,7 @@ INTERNAL void cthread_create
         *status = rpc_s_cthread_create_failed;
 		  /* FIXME MNE */
 		  fprintf(stderr, "XXX MIREK: %s: %s: %d: cthread creation failure\n",
-				  __FILE__, __PRETTY_FUNCTION__, __LINE__);
+				  __FILE__, "cthread_create()", __LINE__);
     } DCETHREAD_ENDTRY
 
     return;

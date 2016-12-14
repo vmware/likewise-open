@@ -98,12 +98,12 @@ rpc_sm_mem_alloc (rpc_ss_mem_handle *handle, unsigned bytes, error_status_t *st)
     if (l->obj == NULL)
     {
         *st = rpc_s_no_memory;
-        handle->free(l);
+        handle->free((void *) l);
         return NULL;
     }
 
     l->next = (memlink*) handle->memory;
-    handle->memory = l;
+    handle->memory = (void *) l;
 
 #ifdef PERFMON
     RPC_SM_MEM_ALLOC_X;
@@ -124,7 +124,7 @@ rpc_ss_mem_free (rpc_ss_mem_handle *handle)
     {
         next = lp->next;
         handle->free(lp->obj);
-        handle->free(lp);
+        handle->free((void *) lp);
     }
 
 #ifdef PERFMON
@@ -152,7 +152,7 @@ rpc_ss_mem_release (rpc_ss_mem_handle *handle, byte_p_t data_addr, int freeit)
             memlink* realnext = *next;
             if (freeit)
                 handle->free((*lp)->obj);
-            handle->free(*lp);
+            handle->free((void *) *lp);
             *lp = realnext;
             break;
         }

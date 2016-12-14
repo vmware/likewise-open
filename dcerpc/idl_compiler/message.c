@@ -82,6 +82,7 @@
 #   define MSG_OPTS       0xF      /* %FACIL-S-IDENT, Text */
 #else
 #   define MAX_FMT_TEXT   512      /* Max size of formatted output string */
+#ifndef _WIN32
 #   ifdef HAVE_NL_TYPES_H
 #       include <nl_types.h>
 #   else
@@ -93,6 +94,7 @@
 #   else
 #       include <varargs.h> /* Traditional Method */
 #       define VA_START(L, A, T) T A; va_start(L); A = va_arg(L,T)
+#   endif
 #   endif
 
 #ifdef UUIDGEN
@@ -258,7 +260,12 @@ void message_printv
 {
     va_list arglist;
     char format[MAX_FMT_TEXT];     /* Format string */
+#ifdef _WIN32
+    arglist = args;
+#else
     va_copy(arglist, args);
+#endif
+
 
  #ifdef HAVE_NL_TYPES_H
      /*

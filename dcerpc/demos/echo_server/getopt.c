@@ -39,8 +39,9 @@
 #include <string.h>
 #include "getopt.h"
 
-
-// static const char* ID = "$Id: getopt.c,v 1.2 2003/10/26 03:10:20 vindaci Exp $";
+/*
+static const char* ID = "$Id: getopt.c,v 1.2 2003/10/26 03:10:20 vindaci Exp $";
+*/
 
 
 char* optarg = NULL;

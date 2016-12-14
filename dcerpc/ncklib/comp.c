@@ -241,6 +241,8 @@ GLOBAL rpc_tower_prot_ids_t rpc_g_tower_prot_ids[RPC_C_PROTSEQ_ID_MAX*2] =
 			{0x00,   { 0, 0, 0, 0, 0, {0} }}
 		}
 	}
+#else
+    {0}
 #endif
 };
 
@@ -363,6 +365,8 @@ rpc_protseq_id_elt_t     rpc_g_protseq_id[RPC_C_PROTSEQ_ID_MAX] =
         (rpc_port_restriction_list_p_t) NULL
 #endif /* TEST_PROTOCOL */
     }
+#else
+    {0}
 #endif
 };
 
@@ -434,6 +438,8 @@ GLOBAL rpc_protocol_id_elt_t     rpc_g_protocol_id[RPC_C_PROTOCOL_ID_MAX] =
         NULL, NULL, NULL, NULL
     }
 #endif
+#else
+    {0}
 #endif
 };
 
@@ -525,6 +531,8 @@ GLOBAL rpc_naf_id_elt_t     rpc_g_naf_id[RPC_C_NAF_ID_MAX] =
 #else
     {NULL, 0, 0, NULL}
 #endif
+#else
+    {0}
 #endif
 };
 
@@ -602,7 +610,16 @@ GLOBAL rpc_authn_protocol_id_elt_t rpc_g_authn_protocol_id[RPC_C_AUTHN_PROTOCOL_
         NULL,
 		  NULL
     }
+#else
+    {0}
 #endif
 };
+
+#if defined(_WIN32)
+int RPC_AUTHN_IN_RANGE(unsigned32 id)
+{
+        return (id > 0) ? (id < RPC_C_AUTHN_PROTOCOL_ID_MAX) : 0;
+}
+#endif
 
 

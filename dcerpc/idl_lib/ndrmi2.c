@@ -411,7 +411,7 @@ void rpc_ss_ndr_m_struct_pointees
     idl_byte *field_defn_ptr;
     idl_ulong_int conf_dims;    /* Number of dimensions of conformance info */
     IDL_bound_pair_t *conf_bounds;   /* Bounds list from conformance info */
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     IDL_bound_pair_t *range_list;
     idl_boolean type_has_pointers;
     IDL_pointee_desc_t pointee_desc;    /* Description of pointee */
@@ -950,7 +950,7 @@ void rpc_ss_ndr_m_dvo_arr_ptees
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     IDL_bound_pair_t *range_list;
     idl_boolean add_null;       /* Dummy argument in procedure call */
 

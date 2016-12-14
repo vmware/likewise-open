@@ -44,12 +44,20 @@
 #include "uuid.h"
 #endif
 #include <stdio.h>
+
+#if !defined(_WIN32)
 #include <unistd.h>
+#include <sys/time.h>           /* for struct timeval */
+#else
+#include <Winsock2.h>
+#include <process.h>
+#define getpid _getpid
+#endif
+
 #include <stdlib.h>
 #include "uuid_i.h"              /* uuid idl definitions (private)       */
 
 
-#include <sys/time.h>           /* for struct timeval */
 /*
  *  Define constant designation difference in Unix and DTSS base times:
  *  DTSS UTC base time is October 15, 1582.
@@ -57,6 +65,23 @@
  */
 #define uuid_c_os_base_time_diff_lo     0x13814000
 #define uuid_c_os_base_time_diff_hi     0x01B21DD2
+
+/* TBD: Adam This is duplicated between libdcethread and ncklib; FIXME */
+#ifdef _WIN32
+#include <sys/timeb.h>
+#include <sys/types.h>
+static int gettimeofday(struct timeval *tnow, void *tz)
+{
+    struct _timeb timev;
+    _ftime(&timev);
+
+    tnow->tv_sec = (long) timev.time;
+    tnow->tv_usec = timev.millitm * 1000;
+
+    return 0;
+}
+#endif
+
 
 /*
  * U U I D _ _ G E T _ O S _ T I M E

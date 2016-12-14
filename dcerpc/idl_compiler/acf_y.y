@@ -1253,7 +1253,6 @@ static boolean lookup_exception
 {
     AST_exception_n_t *excep_p;     /* Ptr to node bound to looked up name */
     char const      *perm_excep_name;   /* Ptr to permanent copy */
-    NAMETABLE_id_t  name_id ATTRIBUTE_UNUSED;            /* Handle on permanent copy */
 
     if (excep_id != NAMETABLE_NIL_ID)
     {

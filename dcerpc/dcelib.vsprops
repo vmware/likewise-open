@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="dcelib"
+	>
+	<Tool
+		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="&quot;$(SolutionDir)$(PlatformName)\include\dce&quot;;&quot;$(SolutionDir)$(PlatformName)\include&quot;;&quot;$(SolutionDir)..\..\include\win_x64&quot;;&quot;$(SolutionDir)..\..\ncklib\include\win_x64&quot;;&quot;$(GOBUILD_VMWARE_MIT_KERBEROS_ROOT)\$(ConfigurationName)\include&quot;;&quot;$(GOBUILD_PTHREADS_W32_291_ROOT)\$(ConfigurationName)\include&quot;;&quot;$(TCROOT)\win32\winsdk-7.0.7600\Include&quot;;&quot;$(TCROOT)\win32\winsdk-7.0.7600\VC\Include&quot;"
+	/>
+	<Tool
+		Name="VCLinkerTool"
+		AdditionalDependencies="comerr64.lib gssapi64.lib k5sprt64.lib wshelp64.lib krb5_64.lib pthreadVC2.lib $(NOINHERIT)"
+		AdditionalLibraryDirectories="&quot;$(TCROOT)\win64\vmware-mit-kerberos\release\lib&quot;;&quot;$(GOBUILD_VMWARE_MIT_KERBEROS_ROOT)\$(ConfigurationName)\lib&quot;;&quot;$(GOBUILD_PTHREADS_W32_291_ROOT)\$(ConfigurationName)\lib&quot;;&quot;$(TCROOT)\win32\winsdk-7.0.7600\Lib\x64&quot;;&quot;$(TCROOT)\win32\winsdk-7.0.7600\VC\Lib\amd64&quot;"
+	/>
+</VisualStudioPropertySheet>

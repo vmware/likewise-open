@@ -261,12 +261,12 @@ INTERNAL void desc_inq_peer_addr(
     
     );
 
-INTERNAL void desc_inq_peer_addr6(
+INTERNAL void desc_inq_peer_addr6
+(
         rpc_protseq_id_t        protseq_id,
         rpc_socket_t            desc,
         rpc_addr_p_t            *rpc_addr,
         unsigned32              *status
-    
     );
 
 INTERNAL void set_port_restriction(

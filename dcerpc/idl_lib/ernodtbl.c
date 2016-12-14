@@ -956,8 +956,8 @@ static void rpc_ss_register_node_num
     while (depth > 1)
     {
         mapped = mapped / rpc_ss_node_array_size;
-        index = (num-1) / mapped;
-        num = num - (index * mapped);
+        index = (idl_ulong_int) ((num-1) / mapped);
+        num = (idl_ulong_int) (num - (index * mapped));
 
         if (((*array)[index]).array_ptr == 0)
         {
@@ -1375,7 +1375,7 @@ byte_p_t rpc_ss_lookup_node_by_num
     }
 
     str = (rpc_ss_pvt_node_table_t *) tab;
-    mapped = str->currently_mapped;
+    mapped = (idl_ulong_int) str->currently_mapped;
 
     /* Make sure the table is large enough to do a lookup */
     if (mapped < num)

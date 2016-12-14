@@ -40,6 +40,20 @@
 
 #include <commonp.h>
 
+/* TBD: Adam This is duplicated between libdcethread and ncklib; FIXME */
+#ifdef _WIN32
+#include <sys/timeb.h>
+#include <sys/types.h>
+static void gettimeofday(struct timeval *tnow, void *tz)
+{
+    struct _timeb timev = {0};
+    _ftime(&timev);
+
+    tnow->tv_sec = (long) timev.time;
+    tnow->tv_usec = timev.millitm * 1000;
+}
+#endif
+
 
 /* ========================================================================= */
 

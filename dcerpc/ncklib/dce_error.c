@@ -51,7 +51,9 @@
 #ifdef HAVE_NL_TYPES_H
 #include <nl_types.h>       /* public types for NLS (I18N) routines */
 #else
+#if !defined(_WIN32)
 #warning Message catalog support disabled
+#endif
 #endif /* HAVE_NL_TYPES_H */
 
 #define FACILITY_CODE_MASK          0xF0000000
@@ -140,8 +142,10 @@ int                     *status;
     char        *facility_name;
     char        filename_prefix[7];
     char        nls_filename[11];
+#ifdef HAVE_NL_TYPES_H
     char        alt_filename[80];
     char        *message;
+#endif
     static char alphabet[] = "abcdefghijklmnopqrstuvwxyz_0123456789-+@";
     static char *facility_names[] = {
         "dce",
@@ -175,8 +179,8 @@ int                     *status;
     facility_code = (status_to_convert & FACILITY_CODE_MASK)
         >> FACILITY_CODE_SHIFT;
 
-    component_code = (status_to_convert & COMPONENT_CODE_MASK)
-        >> COMPONENT_CODE_SHIFT;
+    component_code = (unsigned short) ((status_to_convert & COMPONENT_CODE_MASK)
+        >> COMPONENT_CODE_SHIFT);
 
     status_code = (status_to_convert & STATUS_CODE_MASK)
         >> STATUS_CODE_SHIFT;
@@ -285,7 +289,7 @@ int                     *status
         return;
     }
 
-    dce_get_msg (status_to_convert, error_text, fname, cname, status);
+    dce_get_msg (status_to_convert, error_text, (unsigned char *)fname, (unsigned char *)cname, status);
     strcat ((char*) error_text, " (");
     strcat ((char*) error_text, fname);
     strcat ((char*) error_text, " / ");
@@ -300,7 +304,7 @@ int dce_fprintf(FILE *f, unsigned long index, ...)
     int i;
     char format[1024];
 
-    dce_get_msg(index, format, NULL, NULL, &st);
+    dce_get_msg(index, (unsigned char *)format, NULL, NULL, &st);
     if (st != 0) return EOF;
 
     va_start(ap, index);
@@ -315,7 +319,7 @@ int dce_printf(unsigned long index, ...)
     int i;
     char format[1024];
 
-    dce_get_msg(index, format, NULL, NULL, &st);
+    dce_get_msg(index, (unsigned char *)format, NULL, NULL, &st);
     if (st != 0) return EOF;
 
     va_start(ap, index);

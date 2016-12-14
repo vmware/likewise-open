@@ -101,7 +101,6 @@ void ASTP_add_name_binding
     ASTP_node_t const *binding;    /* place to recieve binding */
     char        const *filename;   /* place to receive the filename text pointer */
     int issue_error;
-    int issue_case_warning ATTRIBUTE_UNUSED;
 
     /*
      * Check to see if there is already a constant binding to the name.
@@ -306,7 +305,7 @@ AST_type_n_t *ASTP_chase_ptr_to_type
     short int    pointer_count;
 
     for (tp= type_node, pointer_count = 0;
-        (tp->kind == AST_pointer_k);
+        tp->kind == AST_pointer_k;
         tp = tp->type_structure.pointer->pointee_type, pointer_count++)
     {
         /* Chase pointer until we find the base type node */
@@ -1620,9 +1619,6 @@ void ASTP_set_array_rep_type
     boolean             is_varying;
 #endif
 {
-    char *identifier ATTRIBUTE_UNUSED;
-    AST_type_p_n_t *tp_node ATTRIBUTE_UNUSED;    /* type pointer node for interface's
-                                   linked list of transmit_as types */
 
     /* If the type is pointer, and no array_rep_type then create one */
     if (type_node_ptr->kind == AST_pointer_k)
@@ -1778,9 +1774,8 @@ AST_field_attr_n_t *AST_set_field_attrs
     ASTP_node_t
             *referent_node;     /* Pointer to node describing the reference
                                      specified as the array bound */
-    AST_type_n_t
-            *clone_type ATTRIBUTE_UNUSED,        /* For setting conformant flag for pointer types */
-            *tp;                /* For loop to get to index_count */
+
+    AST_type_n_t *tp;                /* For loop to get to index_count */
     unsigned short
             dimension = 0,          /* number of dimensions for the array */
             index_count;        /* Used to catch mismatch in number of
@@ -2543,7 +2538,8 @@ void ASTP_set_fe_info
 {
     fe_info_t *fe_info;
 
-    fe_info = *fe_info_ptr = BE_ctx_malloc(sizeof (fe_info_t));
+    fe_info = *fe_info_ptr =
+        (fe_info_t *) BE_ctx_malloc(sizeof (fe_info_t));
 
     fe_info->source_line = nidl_yylineno;
     fe_info->file = error_file_name_id;

@@ -404,7 +404,7 @@ INTERNAL void rpc__schnauth_cn_create_info
      * Initialize the common auth_info stuff.
      */
     schnauth_info->auth_info.refcount = 1;
-    schnauth_info->auth_info.server_princ_name = '\0';
+    schnauth_info->auth_info.server_princ_name = NULL;
     schnauth_info->auth_info.authn_level = authn_level;
     schnauth_info->auth_info.authn_protocol = rpc_c_authn_schannel;
     schnauth_info->auth_info.authz_protocol = rpc_c_authz_name;
@@ -468,8 +468,6 @@ INTERNAL boolean32 rpc__schnauth_cn_cred_changed
     unsigned32                      *st
 )
 {
-    rpc_schnauth_cn_info_t *schnauth_cn_info ATTRIBUTE_UNUSED;
-    rpc_schnauth_info_p_t   schnuth_info ATTRIBUTE_UNUSED;
     boolean32               different_creds;
 
     CODING_ERROR (st);
@@ -630,7 +628,6 @@ INTERNAL void rpc__schnauth_cn_fmt_client_req
    unsigned32                      * st
 )
 {
-    rpc_cn_bind_auth_value_priv_t       *priv_auth_value ATTRIBUTE_UNUSED;
     rpc_cn_auth_info_t                  *auth_info;
     rpc_schnauth_cn_info_t              *schnauth_info;
     struct schn_blob                    schn_creds;
@@ -991,7 +988,6 @@ INTERNAL void rpc__schnauth_cn_pre_call
     unsigned32                      *st
 )
 {
-    rpc_cn_auth_value_priv_t    *priv_auth_value ATTRIBUTE_UNUSED;
     unsigned32 ptype;
 
     CODING_ERROR(st);

@@ -408,7 +408,7 @@ void getflags
              */
             for (o = 0;  table[o].option;  o++)
             {
-                optlen = strlen(table[o].option);
+                optlen = (int) strlen(table[o].option);
                 if (strncmp(flag, table[o].option, optlen) == 0)
                 {
                     /*
@@ -489,7 +489,7 @@ void printflags
 
     for (o = 0; table[o].option; o++)
         if (strlen(table[o].option) > option_len)
-            option_len = strlen(table[o].option);
+            option_len = (unsigned int) strlen(table[o].option);
 
     option_len += 3;
 

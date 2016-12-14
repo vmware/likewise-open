@@ -69,6 +69,7 @@
 #include <ndrp.h>       /* System (machine architecture) dependent definitions */
 #include <cnp.h>        /* NCA Connection private declarations */
 #include <cnpkt.h>	/* NCA Connection packet encoding */
+#include <cninline.h>
 
 /*
  * R P C _ G _ C N _ C O M M O N _ H D R
@@ -647,7 +648,7 @@ INTERNAL rpc_cn_auth_tlr_p_t end_of_stub_data
 	    break;
 		default:
 			 /* FIXME */
-			 fprintf(stderr, "%s, unhandled case in switch: aborting\n", __PRETTY_FUNCTION__);
+			 fprintf(stderr, "%s, unhandled case in switch: aborting\n", "end_of_stub_data()");
 			 raise(SIGILL);
     }
 
@@ -1244,7 +1245,7 @@ PRIVATE char *rpc__cn_pkt_name
         "ORPHANED     "
     };
 
-    return((int) ptype > RPC_C_CN_PKT_MAX_TYPE ? "BOGUS PACKET TYPE" : names[(int) ptype]);
+    return((int) ptype > RPC_C_CN_PKT_MAX_TYPE ? "BOGUS PACKET TYPE" : (char *) names[(int) ptype]);
 
 #endif
 }

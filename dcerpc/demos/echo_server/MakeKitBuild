@@ -10,18 +10,26 @@ make()
     fi
 
     ECHO_CLIENT_SOURCES="\
-        echo_client.c echo_client_cstub.c misc.c getopt.c"
+        echo_client.c echo_client_cstub.c misc.c"
 
+    if [ "$MK_HOST_OS" = "linux" ]
+    then
     ECHO_CLIENT_CPPFLAGS="-DHAVE_GETOPT_H=1"
+        ECHO_CLIENT_SOURCES="$ECHO_CLIENT_SOURCES getopt.c"
+    fi
 
 # ======= server ========
     ECHO_SERVER_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
     ECHO_SERVER_HEADERDEPS="dce/rpc.h gssapi.h"
 
     ECHO_SERVER_SOURCES="\
-        echo_server.c echo_client_sstub.c misc.c getopt.c"
+        echo_server.c echo_client_sstub.c misc.c"
 
+    if [ "$MK_HOST_OS" = "linux" ]
+    then
     ECHO_SERVER_CPPFLAGS="-DHAVE_GETOPT_H=1"
+        ECHO_SERVER_SOURCES="$ECHO_SERVER_SOURCES getopt.c"
+    fi
 
     lw_dceidl \
         IDL="echo.idl" \

@@ -1,5 +1,7 @@
 #include <config.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #include "dcethread-private.h"
 #include "dcethread-util.h"
@@ -7,13 +9,23 @@
 #include "dcethread-exception.h"
 
 #ifdef API
+#if defined(_WIN32)
 
+/* No one uses this API */
+int
+dcethread_pause()
+{
+    return -1;
+}
+
+#else
 int
 dcethread_pause()
 {
     DCETHREAD_SYSCALL(int, pause());
 }
 
+#endif /* defined(_WIN32) */
 #endif /* API */
 
 #ifdef TEST

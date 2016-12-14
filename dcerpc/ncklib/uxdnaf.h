@@ -48,11 +48,12 @@
  *  Include the Internet specific socket address
  */
 
-
+#ifndef _WIN32
 #ifdef VMS
 #include <un.h>
 #else
 #include <sys/un.h>
+#endif
 #endif
 
 #ifndef RPC_C_UXD_DIR

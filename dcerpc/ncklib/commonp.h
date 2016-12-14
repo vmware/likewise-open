@@ -202,6 +202,9 @@ typedef idl_byte byte_t ;
 #  include <rpcsvc.h>
 #else
 
+#define RPC_NORMALIZE_SLASH(c) ((c) == '\\' ? '/' : (c))
+PRIVATE void rpc_normalize_path(char *str);
+
 #ifndef EPRINTF
 #  define EPRINTF           rpc__printf
 #endif /* EPRINTF */

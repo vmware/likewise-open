@@ -45,6 +45,7 @@
 #include <cnassoc.h>    /* NCA Connection association service */
 #include <cnid.h>       /* NCA Connection local id service */
 #include <cnbind.h>
+#include <cninline.h>
 
 
 /*

@@ -93,11 +93,11 @@
 #include <lw/base.h>
 #include <ifaddrs.h>
 
-#define SocketErrno errno
-#define SocketErrnoReturn -1
-
 /* ncalrpc supported only on UNIX by Unix Domain Sockets */
 #define HAS_NCAL_RPC 1
+
+
+#define RPC_SOCK_SOL_IPV6 SOL_IPV6
 #define CLOSESOCKET(s) close(s)
 
 #else
@@ -109,18 +109,14 @@
 
 #define SHUT_RDWR SD_BOTH
 #define unlink _unlink
-#define inline
-#define SocketErrno rpc__winx64_winerr_to_errno(WSAGetLastError())
-#define SocketErrnoReturn rpc__winx64_set_errno(WSAGetLastError())
+#ifndef inline
+#define inline __inline
+#endif
+
+
+#define RPC_SOCK_SOL_IPV6 SOL_SOCKET
 #define CLOSESOCKET(s) closesocket(s)
 
-INTERNAL
-rpc_socket_error_t
-rpc__winx64_winerr_to_errno(DWORD WSAErrval);
-
-INTERNAL
-int
-rpc__winx64_set_errno(DWORD WSAErrval);
 
 #endif  /* ------------------ system deps ---------------------------- */
 
@@ -149,6 +145,19 @@ int ioctl(int d, int request, ...);
 #endif
 
 /*#include <dce/cma_ux_wrappers.h>*/
+
+INTERNAL boolean
+_rpc__bsd_protoseq_filter_cb(
+    rpc_socket_t sock,
+    rpc_addr_p_t ip_addr,
+    rpc_addr_p_t netmask_addr,
+    rpc_addr_p_t broadcast_addr);
+
+INTERNAL void
+_rpc__bsd_free_if_entry(
+    rpc_addr_p_t  *ip_addr,
+    rpc_addr_p_t  *netmask_addr,
+    rpc_addr_p_t  *broadcast_addr);
 
 /* ======================================================================== */
 
@@ -436,7 +445,7 @@ sendmsg_again:
 	memset(&msg, 0, sizeof(msg));
 	RPC_LOG_SOCKET_SENDMSG_NTR;
 	RPC_SOCKET_INIT_MSGHDR(&msg);
-#if !defined(_WIN32_TBD)
+#if !defined(_WIN32)
 	if ((addrp) != NULL)
 	{
 		RPC_SOCKET_FIX_ADDRLEN(addrp);
@@ -450,7 +459,7 @@ sendmsg_again:
 #endif
 	msg.msg_iov = (struct iovec *) iovp;
 	msg.msg_iovlen = iovlen;
-	*(ccp) = _bsd__socket_sendmsg (lrpc->fd, (struct msghdr *) &msg, 0);
+	*(ccp) = _bsd__socket_sendmsg(lrpc->fd, (struct msghdr *) &msg, 0);
 	*(serrp) = (*(ccp) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
 	RPC_LOG_SOCKET_SENDMSG_XIT;
 	if (*(serrp) == EINTR)
@@ -501,7 +510,7 @@ recvmsg_again:
 	memset(&msg, 0, sizeof(msg));
 	RPC_LOG_SOCKET_RECVMSG_NTR;
 	RPC_SOCKET_INIT_MSGHDR(&msg);
-#if !defined(_WIN32_TBD)
+#if !defined(_WIN32)
 	if ((addrp) != NULL)
 	{
 		RPC_SOCKET_FIX_ADDRLEN(addrp);
@@ -704,7 +713,6 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_bind
     int setsock_val = 1;
     int ncalrpc;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
-    int one = 1;
 
     RPC_LOG_SOCKET_BIND_NTR;
 
@@ -743,7 +751,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_bind
         }
         else
         {
-#if defined(SOL_SOCKET) && defined(SO_REUSEADDR)
+#if defined(SOL_SOCKET) && defined(SO_REUSEADDR) && !defined(_WIN32)
 	    setsockopt(lrpc->fd, SOL_SOCKET, SO_REUSEADDR,
 		       (const void *) &setsock_val, sizeof(setsock_val));
 #endif
@@ -756,10 +764,13 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_bind
                 // Ignore any errors from this function.
                 unlink((const char*)addr->sa.data);
             }
+#if defined(SOL_IPV6) && defined(IPV6_V6ONLY)
             if (((struct sockaddr_in6 *) &addr->sa)->sin6_family == AF_INET6)
             {
-                setsockopt(lrpc->fd, SOL_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+                int one = 1;
+                setsockopt(lrpc->fd, SOL_IPV6, IPV6_V6ONLY, (void *) &one, sizeof(one));
             }
+#endif
             serr =
                 (bind(lrpc->fd, (struct sockaddr *)&addr->sa, addr->len) == -1) ?
                       SocketErrno : RPC_C_SOCKET_OK;
@@ -776,7 +787,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_bind
 
         if (has_endpoint)
         {
-#if defined(SOL_SOCKET) && defined(SO_REUSEADDR)
+#if defined(SOL_SOCKET) && defined(SO_REUSEADDR) && !defined(_WIN32)
 	    setsockopt(lrpc->fd, SOL_SOCKET, SO_REUSEADDR,
 		       &setsock_val, sizeof(setsock_val));
 #endif
@@ -934,7 +945,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvsession_key
 (
     rpc_socket_t        sock,
     unsigned char     **session_key,
-    unsigned16 	       *session_key_len
+    unsigned16         *session_key_len
 );
 #endif /* defined(HAS_NCAL_RPC) */
 
@@ -1083,6 +1094,9 @@ accept_again:
     RPC_LOG_SOCKET_ACCEPT_NTR;
     if (addr == NULL)
     {
+        socklen_t addrlen;
+        addrlen = 0;
+
         /*
          * Not legal on Windows to pass NULL sockaddr but a pointer
          * to addrlen, even if the value of addrlen = 0.
@@ -1282,9 +1296,9 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_inq_endpoint
     rpc_addr_p_t        addr
 )
 {
-    rpc_socket_error_t  serr;
+    rpc_socket_error_t  serr = 0;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
-    struct sockaddr saddr;
+    struct sockaddr_in6 saddr;
     struct sockaddr *psaddr = NULL;
     socklen_t saddr_len = 0;
 
@@ -1295,17 +1309,17 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_inq_endpoint
 
     /*
      * Not legal on Windows to pass an address length that is smaller
-     * than struct sockaddr. Strategy here is to use a local sockaddr
-     * buffer when the request length is shorter than sizeof(struct sockaddr),
+     * than required. Strategy here is to use a local sockaddr_in6
+     * buffer when the request length is shorter than sizeof(struct sockaddr_in6),
      * get the data from getsockname(), then copy as much data from
      * the local buffer into the buffer passed by the caller.
      */
     psaddr = (struct sockaddr *) &addr->sa;
     saddr_len = addr->len;
-    if (addr->len < sizeof(struct sockaddr))
+    if (addr->len < sizeof(saddr))
     {
-        psaddr = &saddr;
-        saddr_len = sizeof(struct sockaddr);
+        psaddr = (struct sockaddr*) &saddr;
+        saddr_len = sizeof(saddr);
     }
     serr = (getsockname(lrpc->fd, (void*)psaddr, &saddr_len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     if (serr != RPC_C_SOCKET_OK)
@@ -1577,10 +1591,46 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeername
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
+    struct sockaddr_in6 saddr;
+    struct sockaddr *psaddr = NULL;
+    socklen_t saddr_len = 0;
 
+    memset(&saddr, 0, sizeof(saddr));
     RPC_SOCKET_FIX_ADDRLEN(addr);
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (getpeername(lrpc->fd, (void *)&addr->sa, &addr->len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+
+    /*
+     * Not legal on Windows to pass an address length that is smaller
+     * than required. Strategy here is to use a local sockaddr_in6
+     * buffer when the request length is shorter than sizeof(struct sockaddr_in6),
+     * get the data from getsockname(), then copy as much data from
+     * the local buffer into the buffer passed by the caller.
+     */
+    psaddr = (struct sockaddr *) &addr->sa;
+    saddr_len = addr->len;
+    if (addr->len < sizeof(saddr))
+    {
+        psaddr = (struct sockaddr*) &saddr;
+        saddr_len = sizeof(saddr);
+    }
+    serr = (getpeername(lrpc->fd, (void *)psaddr, &saddr_len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+    if (serr == 0 && psaddr->sa_family == AF_UNIX && saddr_len == sizeof(psaddr->sa_family))
+    {
+        /*
+         * The point of this code is to obtain an address name for who has
+         * contacted the server, so that name will appear in the RPC binding string.
+         * The issue: calling getpeername() on an AF_UNIX socket will only
+         * return the sa_family, but *not* the endpoint name. For only AF_UNIX
+         * call getsockname() when just the sa_family value is returned by
+         * getpeername().
+         */
+        saddr_len = addr->len;
+        serr = (getsockname(lrpc->fd, (void *)psaddr, &saddr_len) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
+    }
+    if (serr == 0 && psaddr != (struct sockaddr *) &addr->sa)
+    {
+        memcpy(&addr->sa, psaddr, addr->len);
+    }
     RPC_SOCKET_RESTORE_CANCEL;
     RPC_SOCKET_FIX_ADDRLEN(addr);
 
@@ -1602,7 +1652,6 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_get_if_id
 )
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
-#if !defined(_WIN32)
     socklen_t optlen = 0;
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 
@@ -1612,10 +1661,9 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_get_if_id
     serr = (getsockopt (lrpc->fd,
                         SOL_SOCKET,
                         SO_TYPE,
-                        network_if_id,
+                        (char *) network_if_id,
                         &optlen) == -1  ? SocketErrno : RPC_C_SOCKET_OK);
     RPC_SOCKET_RESTORE_CANCEL;
-#endif
     return serr;
 }
 
@@ -1785,7 +1833,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeereid
     gid_t gid = -1;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (getpeereid(lrpc->fd, &uid, &gid)) ? SocketErrno : RPC_C_SOCKET_OK;
+    serr = (getpeereid(lrpc->fd, &uid, &gid) == -1) ? SocketErrno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr == RPC_C_SOCKET_OK)
     {
@@ -1871,7 +1919,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_sendpeereid
     RPC_SOCKET_RESTORE_CANCEL;
     if (bytes_sent == -1)
     {
-        serr = errno;
+        serr = SocketErrno;
         goto error;
     }
 
@@ -1935,7 +1983,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvpeereid
     RPC_SOCKET_RESTORE_CANCEL;
     if (bytes_rcvd == -1)
     {
-        serr = errno;
+        serr = SocketErrno;
         goto error;
     }
 
@@ -2126,7 +2174,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_recvsession_key
     RPC_SOCKET_RESTORE_CANCEL;
     if (bytes_rcvd == -1)
     {
-        serr = errno;
+        serr = SocketErrno;
         goto error;
     }
 
@@ -2166,136 +2214,93 @@ int rpc__bsd_socket_get_select_desc(
 }
 
 #ifdef _WIN32
-
-
-INTERNAL int
-rpc__inet_ntoa(struct in_addr *inp, char *buf, int buflen)
-{
-    unsigned32 addr = 0;
-    int i;
-    unsigned char octet = 0;
-    int len = 0;
-
-    addr = inp->s_addr;
-    for (i=0; i<4; i++)
-    {
-        octet = 0xff & addr;
-        addr >>= 8;
-        len += sprintf(&buf[len], "%d", octet);
-        if (i<3)
-        {
-            len += sprintf(&buf[len], ".");
-        }
-    }
-    return 0;
-}
-
-
-INTERNAL int
-rpc__inet_aton(const char *str_addr, struct in_addr *inp)
-{
-    unsigned32 addr = 0;
-    unsigned32 val = 0;
-    char *cp = NULL;
-    const char *prev = NULL;
-    int shift = 0;
-    int stop = 0;
-    int dot_count = 0;
-    int err = 0;
-
-    if (!str_addr || !inp || strlen(str_addr) > 15)
-    {
-        err = EINVAL;
-        goto error;
-    }
-
-    prev = str_addr;
-    do
-    {
-        val = strtol(prev, &cp, 10);
-        if (val < 0 || val > 255)
-        {
-            err = EINVAL;
-            goto error;
-        }
-        if (cp != prev && (!*cp || *cp == '.') && val >= 0 && val <= 255)
-        {
-            /* Insure value is 0-255 and put into network byte order */
-            addr |= (val & 0xff) << (shift++ * 8);
-            if (*cp)
-            {
-                dot_count++;
-                if (dot_count > 3)
-                {
-                    err = EINVAL;
-                    goto error;
-                }
-                ++cp;
-            }
-            prev = cp;
-        }
-        else
-        {
-            stop = 1;
-        }
-    } while (*prev && !stop);
-
-    inp->s_addr = addr;
-
-error:
-    return err;
-}
-
-
 INTERNAL DWORD
-rpc__win64_alloc_adapter_info(
-    PIP_ADAPTER_INFO *ppAdapter)
+rpc__win64_alloc_ipv4_adapter_table(
+    PMIB_IPADDRTABLE *ppIpAddrTable)
 {
-    PIP_ADAPTER_INFO pAdapterInfo = NULL;
+    PMIB_IPADDRTABLE pIpAddrTable = NULL;
+    MIB_IPADDRTABLE ipAddrTable = {0};
+    DWORD dwSize = 0;
     DWORD dwError = 0;
-    ULONG ulSize = 0;
 
-    dwError = GetAdaptersInfo(NULL, &ulSize);
-    if (ulSize == 0)
+    pIpAddrTable = &ipAddrTable;
+    dwError = GetIpAddrTable(pIpAddrTable, &dwSize, 0);
+    if (dwError == ERROR_INSUFFICIENT_BUFFER)
     {
-        return EINVAL;
-    }
-
-    if (ulSize > 0)
-    {
-        pAdapterInfo = (PIP_ADAPTER_INFO) calloc(ulSize, sizeof(BYTE));
-        if (pAdapterInfo)
+        pIpAddrTable = calloc(dwSize, sizeof(BYTE));
+        if (!pIpAddrTable)
         {
-            /*
-             * Note: pAdapterInfo->CurrentIpAddress is empty
-             * The values of interest here are:
-             *     pIpAddressNext->IpAddress
-             *     pIpAddressNext->IpMask
-             */
-            dwError = GetAdaptersInfo(pAdapterInfo, &ulSize);
+            return EINVAL;
         }
-        *ppAdapter = pAdapterInfo;
     }
-
+    dwError = GetIpAddrTable(pIpAddrTable, &dwSize, dwSize);
+    if (dwError == NO_ERROR)
+    {
+        *ppIpAddrTable = pIpAddrTable;
+    }
     return dwError;
 }
 
+INTERNAL DWORD
+rpc__win64_alloc_ipv6_adapter_info(PIP_ADAPTER_ADDRESSES *ppAdapter)
+{
+    PIP_ADAPTER_ADDRESSES pAdapter = NULL;
+    ULONG adapterLen = 0;
+    ULONG rsts = 0;
+
+    /* Probe for buffer size */
+    rsts = GetAdaptersAddresses(
+               AF_INET6,
+               GAA_FLAG_INCLUDE_PREFIX,
+               NULL,
+               NULL,
+               (PULONG) &adapterLen);
+    if (rsts != ERROR_BUFFER_OVERFLOW)
+    {
+        goto error;
+    }
+
+    pAdapter = (PIP_ADAPTER_ADDRESSES) calloc(adapterLen, sizeof(BYTE));
+    if (!pAdapter)
+    {
+        rsts = errno;
+        goto error;
+    }
+
+    /* This call should not fail, unless there isn't IPv6 support */
+    rsts = GetAdaptersAddresses(
+               AF_INET6,
+               GAA_FLAG_INCLUDE_PREFIX,
+               NULL,
+               pAdapter,
+               (PULONG) &adapterLen);
+    if (rsts)
+    {
+        goto error;
+    }
+    *ppAdapter = pAdapter;
+
+error:
+    if (rsts)
+    {
+        if (pAdapter)
+        {
+            free(pAdapter);
+        }
+    }
+    return rsts;
+}
 
 INTERNAL int
-rpc__winx64_ipstring_to_saddr(
-    rpc_protseq_id_t pseq_id,
-    char *ipaddr,
-    rpc_ip_addr_p_t *rpc_ip_addr)
+rpc__winx64_ipaddr_to_rpc_addr(
+    unsigned32 ip_addr,
+    rpc_addr_p_t *rpc_ip_addr)
 {
     rpc_socket_error_t err = -1;
-    struct sockaddr_in addr_in;
     rpc_ip_addr_p_t ret_rpc_ip_addr = NULL;
 
-    memset(&addr_in, 0, sizeof(addr_in));
-    addr_in.sin_family = AF_INET;
-    rpc__inet_aton(ipaddr, &addr_in.sin_addr);
     RPC_MEM_ALLOC (
-        ret_rpc_ip_addr,
+        (rpc_ip_addr_p_t) ret_rpc_ip_addr,
         rpc_ip_addr_p_t,
         sizeof (rpc_ip_addr_t),
         RPC_C_MEM_RPC_ADDR,
@@ -2307,17 +2312,122 @@ rpc__winx64_ipstring_to_saddr(
     }
     memset(ret_rpc_ip_addr, 0, sizeof (rpc_ip_addr_t));
 
-    ret_rpc_ip_addr->rpc_protseq_id = pseq_id;
+    ret_rpc_ip_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP_TCP;
     ret_rpc_ip_addr->len = sizeof(struct sockaddr_in);
-    memcpy (&ret_rpc_ip_addr->sa, &addr_in, sizeof(struct sockaddr_in));
+    memcpy(&ret_rpc_ip_addr->sa.sin_addr.s_addr, &ip_addr, sizeof(ip_addr));
+    ret_rpc_ip_addr->sa.sin_family = AF_INET;
 
     err = 0;
-    *rpc_ip_addr = ret_rpc_ip_addr;
+    *rpc_ip_addr = (rpc_addr_p_t) ret_rpc_ip_addr;
 
 error:
     if (err)
     {
-        RPC_MEM_FREE (ret_rpc_ip_addr, RPC_C_MEM_RPC_ADDR);
+        if (ret_rpc_ip_addr)
+        {
+            RPC_MEM_FREE(ret_rpc_ip_addr, RPC_C_MEM_RPC_ADDR);
+        }
+    }
+
+    return err;
+}
+
+INTERNAL int
+rpc__winx64_s6addr_to_rpc_addr(
+    struct sockaddr *sa_addr,
+    rpc_addr_p_t *rpc_ip6_addr)
+{
+    rpc_socket_error_t err = -1;
+    rpc_ip6_addr_p_t ret_rpc_ip6_addr = NULL;
+
+    RPC_MEM_ALLOC (
+        (rpc_ip_addr_p_t) ret_rpc_ip6_addr,
+        rpc_ip_addr_p_t,
+        sizeof (rpc_ip6_addr_t),
+        RPC_C_MEM_RPC_ADDR,
+        RPC_C_MEM_WAITOK);
+    if (!ret_rpc_ip6_addr)
+    {
+        err = ENOMEM;
+        goto error;
+    }
+    memset(ret_rpc_ip6_addr, 0, sizeof (rpc_ip6_addr_t));
+
+    ret_rpc_ip6_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
+    ret_rpc_ip6_addr->len = sizeof(struct sockaddr_in6);
+    memcpy(&ret_rpc_ip6_addr->sa, sa_addr, sizeof(struct sockaddr_in6));
+
+    err = 0;
+    *rpc_ip6_addr = (rpc_addr_p_t) ret_rpc_ip6_addr;
+
+error:
+    if (err)
+    {
+        if (ret_rpc_ip6_addr)
+        {
+            RPC_MEM_FREE(ret_rpc_ip6_addr, RPC_C_MEM_RPC_ADDR);
+        }
+    }
+
+    return err;
+}
+
+
+INTERNAL int
+rpc__winx64_s6addr_to_netmask_rpc_addr(
+    struct sockaddr *sa_addr,
+    rpc_addr_p_t *rpc_addr)
+{
+    rpc_socket_error_t err = -1;
+    rpc_ip6_addr_p_t ret_rpc_ip6_addr = NULL;
+    struct sockaddr_in6 *src6_addr = (struct sockaddr_in6 *) sa_addr;
+    struct sockaddr_in6 *dst6_addr = NULL;
+    unsigned char link_layer_prefix[] = {'\xfe', '\x80'};
+
+    RPC_MEM_ALLOC (
+        (rpc_ip_addr_p_t) ret_rpc_ip6_addr,
+        rpc_ip_addr_p_t,
+        sizeof (rpc_ip6_addr_t),
+        RPC_C_MEM_RPC_ADDR,
+        RPC_C_MEM_WAITOK);
+    if (!ret_rpc_ip6_addr)
+    {
+        err = ENOMEM;
+        goto error;
+    }
+    memset(ret_rpc_ip6_addr, 0, sizeof (rpc_ip6_addr_t));
+    dst6_addr = (struct sockaddr_in6 *) &ret_rpc_ip6_addr->sa;
+
+    ret_rpc_ip6_addr->rpc_protseq_id = RPC_C_PROTSEQ_ID_NCACN_IP6_TCP;
+    ret_rpc_ip6_addr->len = sizeof(struct sockaddr_in6);
+    memcpy(&ret_rpc_ip6_addr->sa, src6_addr, sizeof(struct sockaddr_in6));
+    memset(&dst6_addr->sin6_addr, 0, sizeof(struct in6_addr));
+
+    /*
+     * The trick here assumes the netmask is the first 64 bits of the
+     * IPv6 address. The exception is for link-layer addresses, which
+     * don't have a network mask. Skip addresses with link-layer
+     * 0xfe80... prefix.
+     */
+    if (memcmp(link_layer_prefix,
+                &src6_addr->sin6_addr,
+                sizeof(link_layer_prefix)) != 0)
+    {
+        memcpy(&dst6_addr->sin6_addr,
+               &src6_addr->sin6_addr,
+               sizeof(struct in6_addr)/2);
+    }
+
+    err = 0;
+    *rpc_addr = (rpc_addr_p_t) ret_rpc_ip6_addr;
+
+error:
+    if (err)
+    {
+        if (ret_rpc_ip6_addr)
+        {
+            RPC_MEM_FREE(ret_rpc_ip6_addr, RPC_C_MEM_RPC_ADDR);
+        }
     }
 
     return err;
@@ -2336,47 +2446,64 @@ rpc__winx64_socket_alloc_vectors(
     rpc_addr_vector_p_t ret_netmask_addr_vec = NULL;
     rpc_addr_vector_p_t ret_broadcast_addr_vec = NULL;
 
-/* (sizeof **rpc_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))), */
-    RPC_MEM_ALLOC(ret_rpc_addr_vec,
+    if (rpc_addr_vec)
+    {
+        RPC_MEM_ALLOC(ret_rpc_addr_vec,
                   rpc_addr_vector_p_t,
-                  sizeof(*ret_rpc_addr_vec) + (count * sizeof(rpc_addr_p_t)),
+                  sizeof(*ret_rpc_addr_vec)+(count*sizeof(rpc_addr_p_t)),
                   RPC_C_MEM_RPC_ADDR_VEC,
                   RPC_C_MEM_WAITOK);
-    if (ret_rpc_addr_vec == NULL)
-    {
-        err = ENOMEM;
-        goto error;
+        if (ret_rpc_addr_vec == NULL)
+        {
+            err = ENOMEM;
+            goto error;
+        }
+        memset(ret_rpc_addr_vec, 0, count*sizeof(ret_rpc_addr_vec));
     }
-    memset(ret_rpc_addr_vec, 0, count * sizeof(ret_rpc_addr_vec));
 
-    RPC_MEM_ALLOC(ret_netmask_addr_vec,
+    if (netmask_addr_vec)
+    {
+        RPC_MEM_ALLOC(ret_netmask_addr_vec,
                   rpc_addr_vector_p_t,
-                  sizeof(*ret_netmask_addr_vec) + (count * sizeof(rpc_addr_p_t)),
+                  sizeof(*ret_netmask_addr_vec)+(count*sizeof(rpc_addr_p_t)),
                   RPC_C_MEM_RPC_ADDR_VEC,
                   RPC_C_MEM_WAITOK);
-    if (ret_netmask_addr_vec == NULL)
-    {
-        err = ENOMEM;
-        goto error;
+        if (ret_netmask_addr_vec == NULL)
+        {
+            err = ENOMEM;
+            goto error;
+        }
+        memset(ret_netmask_addr_vec, 0, count*sizeof(ret_netmask_addr_vec));
     }
-    memset(ret_netmask_addr_vec, 0, count * sizeof(ret_netmask_addr_vec));
 
-    RPC_MEM_ALLOC(ret_broadcast_addr_vec,
+    if (broadcast_addr_vec)
+    {
+        RPC_MEM_ALLOC(ret_broadcast_addr_vec,
                   rpc_addr_vector_p_t,
-                  sizeof(*ret_broadcast_addr_vec) + (count * sizeof(rpc_addr_p_t)),
+                  sizeof(*ret_broadcast_addr_vec)+(count*sizeof(rpc_addr_p_t)),
                   RPC_C_MEM_RPC_ADDR_VEC,
                   RPC_C_MEM_WAITOK);
-    if (ret_broadcast_addr_vec == NULL)
-    {
-        err = ENOMEM;
-        goto error;
+        if (ret_broadcast_addr_vec == NULL)
+        {
+            err = ENOMEM;
+            goto error;
+        }
+        memset(ret_broadcast_addr_vec, 0, count*sizeof(ret_broadcast_addr_vec));
     }
-    memset(ret_broadcast_addr_vec, 0, count * sizeof(ret_broadcast_addr_vec));
 
     err = 0;
-    *rpc_addr_vec = ret_rpc_addr_vec;
-    *netmask_addr_vec = ret_netmask_addr_vec;
-    *broadcast_addr_vec = ret_broadcast_addr_vec;
+    if (rpc_addr_vec)
+    {
+        *rpc_addr_vec = ret_rpc_addr_vec;
+    }
+    if (netmask_addr_vec)
+    {
+        *netmask_addr_vec = ret_netmask_addr_vec;
+    }
+    if (broadcast_addr_vec)
+    {
+        *broadcast_addr_vec = ret_broadcast_addr_vec;
+    }
 
 error:
     if (err)
@@ -2399,24 +2526,67 @@ error:
 }
 
 INTERNAL void
-rpc__winx64_socket_make_broadcast_addr(
-    char *ipaddr,
-    char *netmask,
-    char *broadcast)
+rpc__winx64_socket_free_vectors(
+    rpc_addr_vector_p_t address_vec,
+    rpc_addr_vector_p_t netmask_vec,
+    rpc_addr_vector_p_t broadcast_vec)
 {
-    struct in_addr in_ipaddr;
-    struct in_addr in_netmask;
-    struct in_addr in_broadcast;
+    DWORD i = 0;
 
-    memset(&in_ipaddr, 0, sizeof(in_ipaddr));
-    memset(&in_netmask, 0, sizeof(in_netmask));
-    memset(&in_broadcast, 0, sizeof(in_broadcast));
+    if (address_vec)
+    {
+        for (i=0; i < address_vec->len; i++)
+        {
+            RPC_MEM_FREE (address_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE (address_vec, RPC_C_MEM_RPC_ADDR_VEC);
+    }
+    if (netmask_vec)
+    {
+        for (i=0; i < netmask_vec->len; i++)
+        {
+            RPC_MEM_FREE (netmask_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE (netmask_vec, RPC_C_MEM_RPC_ADDR_VEC);
+    }
+    if (broadcast_vec)
+    {
+        for (i=0; i < broadcast_vec->len; i++)
+        {
+            RPC_MEM_FREE (broadcast_vec->addrs[i], RPC_C_MEM_RPC_ADDR);
+        }
+        RPC_MEM_FREE (broadcast_vec, RPC_C_MEM_RPC_ADDR_VEC);
+    }
+}
 
-    rpc__inet_aton(ipaddr, &in_ipaddr);
-    rpc__inet_aton(netmask, &in_netmask);
-    in_broadcast.s_addr = in_ipaddr.s_addr | in_netmask.s_addr;
+INTERNAL void
+_rpc__process_addr_entry(
+    rpc_addr_p_t *address,
+    rpc_addr_p_t *netmask,
+    rpc_addr_p_t *broadcast,
+    rpc_addr_vector_p_t address_vec,
+    rpc_addr_vector_p_t netmask_vec,
+    rpc_addr_vector_p_t broadcast_vec)
+{
+    /* Populate address vectors provided by caller */
+    if (address_vec)
+    {
+        address_vec->addrs[address_vec->len++] = *address;
+        *address = NULL;
+    }
+    if (netmask_vec)
+    {
+        netmask_vec->addrs[netmask_vec->len++] = *netmask;
+        *netmask = NULL;
+    }
+    if (broadcast_vec)
+    {
+        broadcast_vec->addrs[broadcast_vec->len++] = *broadcast;
+        *broadcast = NULL;
+    }
 
-    rpc__inet_ntoa(&in_broadcast, broadcast, 16);
+    /* Free address entries not appended to above vectors */
+    _rpc__bsd_free_if_entry(address, netmask, broadcast);
 }
 
 
@@ -2432,158 +2602,250 @@ rpc__winx64_socket_enum_ifaces(
     rpc_socket_error_t err = -1;
     int sts = 0;
     DWORD dwError = 0;
-    PIP_ADAPTER_INFO pAdapter = NULL;
-    PIP_ADAPTER_INFO pAdapterNext = NULL;
+    DWORD dwError2 = 0;
+    PMIB_IPADDRTABLE pIpV4AddrTable = NULL;
+    PIP_ADAPTER_INFO pIpV4Adapter = NULL;
+    PIP_ADAPTER_INFO pIpV4AdapterNext = NULL;
+    PIP_ADAPTER_ADDRESSES pIpV6Adapter = NULL;
+    PIP_ADAPTER_ADDRESSES pIpV6AdapterNext = NULL;
+    PIP_ADAPTER_UNICAST_ADDRESS pIpV6UnicastNext = NULL;
     PIP_ADDR_STRING  pIpAddrString = NULL;
     int addrCount = 0;
-    rpc_addr_vector_p_t ret_rpc_addr_vec;
-    rpc_addr_vector_p_t ret_netmask_addr_vec;
-    rpc_addr_vector_p_t ret_broadcast_addr_vec;
+    rpc_addr_vector_p_t ret_rpc_addr_vec = NULL;
+    rpc_addr_vector_p_t ret_netmask_addr_vec = NULL;
+    rpc_addr_vector_p_t ret_broadcast_addr_vec = NULL;
     char broadcast_addr_str[16] = {0}; // xxx.xxx.xxx.xxx\0
-    int i = 0;
+    rpc_socket_enum_iface_fn_p_t protseq_efun = _rpc__bsd_protoseq_filter_cb;
+    DWORD i = 0;
+    boolean keep_entry = true;
 
-    rpc_ip_addr_p_t ip_addr = NULL;
-    rpc_ip_addr_p_t netmask_addr = NULL;
-    rpc_ip_addr_p_t broadcast_addr = NULL;
+    rpc_addr_p_t ip_addr = NULL;
+    rpc_addr_p_t netmask_addr = NULL;
+    rpc_addr_p_t broadcast_addr = NULL;
+    struct sockaddr_in6 mock_broadcast_addr;
+    struct sockaddr *saddr = NULL;
 
     /*
      * Get information about network interfaces for further
-     * processing. Note: pAdapter->IpAddressList contains
+     * processing. Note: pIpV4Adapter->IpAddressList contains
      * all IP addresses for the current adapter, and the subnet
      * mask. Count all adapters and IP addresses for
      * each adapter.
      */
-    dwError = rpc__win64_alloc_adapter_info(&pAdapter);
-    if (dwError)
+    dwError = rpc__win64_alloc_ipv4_adapter_table(&pIpV4AddrTable);
+    dwError2 = rpc__win64_alloc_ipv6_adapter_info(&pIpV6Adapter);
+    if (dwError && dwError2)
     {
-        return dwError; // TBD: Map to RPC error space?
+        /* Fatal error not having both IPv4 or IPv6 interfaces */
+        err = dwError;    // TBD: Map to RPC error space
+        goto error;
+    }
+    if (pIpV4AddrTable)
+    {
+        addrCount += pIpV4AddrTable->dwNumEntries;
     }
 
     /*
-     * Enumerate the number of interfaces. This count is used to allocate
+     * Enumerate the number of IPv6 interfaces. This count is used to allocate
      * memory for the return addr, netmask and broadcast vectors.
      */
-    for (pAdapterNext = pAdapter, addrCount = 0;
-         pAdapterNext;
-         pAdapterNext = pAdapterNext->Next)
+    for (pIpV6AdapterNext = pIpV6Adapter;
+         pIpV6AdapterNext;
+         pIpV6AdapterNext = pIpV6AdapterNext->Next)
     {
-        for (pIpAddrString = &pAdapter->IpAddressList;
-             pIpAddrString;
-             pIpAddrString = pIpAddrString->Next)
+        for (pIpV6UnicastNext = pIpV6AdapterNext->FirstUnicastAddress;
+             pIpV6UnicastNext != NULL;
+             pIpV6UnicastNext = pIpV6UnicastNext->Next)
         {
+            /*
+             * Don't need to work through the unicast address list.
+             * The list contents are redundant.
+             */
             addrCount++;
         }
     }
-
     err = rpc__winx64_socket_alloc_vectors(
               addrCount,
-              &ret_rpc_addr_vec,
-              &ret_netmask_addr_vec,
-              &ret_broadcast_addr_vec);
+              rpc_addr_vec       ? &ret_rpc_addr_vec       : NULL,
+              netmask_addr_vec   ? &ret_netmask_addr_vec   : NULL,
+              broadcast_addr_vec ? &ret_broadcast_addr_vec : NULL);
     if (err)
     {
         goto error;
     }
 
-    /*
-     * Walk through the interfaces, populating the address / netmask /
-     * broadcast mask fields in the return vectors.
-     */
-    for (pAdapterNext = pAdapter, addrCount = 0;
-         pAdapterNext;
-         pAdapterNext = pAdapterNext->Next)
+    for (i = 0; pIpV4AddrTable && i < pIpV4AddrTable->dwNumEntries; i++)
     {
-        for (pIpAddrString = &pAdapter->IpAddressList;
-             pIpAddrString;
-             pIpAddrString = pIpAddrString->Next)
+        keep_entry = true;
+        err = rpc__winx64_ipaddr_to_rpc_addr(pIpV4AddrTable->table[i].dwAddr, &ip_addr);
+        if (err)
         {
-            err = rpc__winx64_ipstring_to_saddr(
-                      sock->pseq_id,
-                      pIpAddrString->IpAddress.String,
+            goto error;
+        }
+
+        err = rpc__winx64_ipaddr_to_rpc_addr(pIpV4AddrTable->table[i].dwMask, &netmask_addr);
+        if (err)
+        {
+            goto error;
+        }
+        err = rpc__winx64_ipaddr_to_rpc_addr(pIpV4AddrTable->table[i].dwBCastAddr, &broadcast_addr);
+        if (err)
+        {
+            goto error;
+        }
+
+        /*
+         * Default filtering out of IP address that doesn't match the
+         * protocol sequence that was requested. This is determined by
+         * the sock->pseq_id.
+         */
+        keep_entry &= protseq_efun(sock,
+                         ip_addr,
+                         netmask_addr,
+                         broadcast_addr);
+        if (efun)
+        {
+            keep_entry &= efun(sock,
+                             ip_addr,
+                             netmask_addr,
+                             broadcast_addr);
+        }
+        if (!keep_entry)
+        {
+            _rpc__bsd_free_if_entry(&ip_addr,
+                                    &netmask_addr,
+                                    &broadcast_addr);
+            continue;
+        }
+
+        _rpc__process_addr_entry(
+            &ip_addr,
+            &netmask_addr,
+            &broadcast_addr,
+            ret_rpc_addr_vec,
+            ret_netmask_addr_vec,
+            ret_broadcast_addr_vec);
+    }
+
+    /*
+     * Walk through the IPv6 interfaces, populating the address / netmask
+     * fields. Note: There isn't a broadcast mask in IPv6.
+     */
+    memset(&mock_broadcast_addr, 0, sizeof(mock_broadcast_addr));
+    mock_broadcast_addr.sin6_family = AF_INET6;
+
+    for (pIpV6AdapterNext = pIpV6Adapter;
+         pIpV6AdapterNext;
+         pIpV6AdapterNext = pIpV6AdapterNext->Next)
+    {
+        keep_entry = true;
+
+        /* Skip interface that isn't Ethernet */
+        if (pIpV6AdapterNext->IfType != IF_TYPE_ETHERNET_CSMACD)
+        {
+            continue;
+        }
+
+        /* Skip interface with a "down" status */
+        if (pIpV6AdapterNext->OperStatus != 1)
+        {
+            continue;
+        }
+
+        for (pIpV6UnicastNext = pIpV6AdapterNext->FirstUnicastAddress;
+             pIpV6UnicastNext != NULL;
+             pIpV6UnicastNext = pIpV6UnicastNext->Next)
+        {
+            saddr = pIpV6UnicastNext->Address.lpSockaddr;
+            err = rpc__winx64_s6addr_to_rpc_addr(
+                      saddr,
                       &ip_addr);
             if (err)
             {
                 goto error;
             }
-
-            err = rpc__winx64_ipstring_to_saddr(
-                      sock->pseq_id,
-                      pIpAddrString->IpMask.String,
+            err = rpc__winx64_s6addr_to_netmask_rpc_addr(
+                      saddr,
                       &netmask_addr);
             if (err)
             {
                 goto error;
             }
-
-            /* Synthesize a broadcast mask from IP address and netmask */
-            rpc__winx64_socket_make_broadcast_addr(
-                  pIpAddrString->IpAddress.String,
-                  pIpAddrString->IpMask.String,
-                  broadcast_addr_str);
-
-            err = rpc__winx64_ipstring_to_saddr(
-                      sock->pseq_id,
-                      broadcast_addr_str,
+            err = rpc__winx64_s6addr_to_rpc_addr(
+                      (struct sockaddr *) &mock_broadcast_addr,
                       &broadcast_addr);
             if (err)
             {
                 goto error;
             }
 
-            if (efun &&
-                efun(sock, (rpc_addr_p_t) ip_addr,
-                           (rpc_addr_p_t) netmask_addr,
-                           (rpc_addr_p_t) broadcast_addr) == false)
+            /*
+             * Default filtering out of IP address that doesn't match the
+             * protocol sequence that was requested. This is determined by
+             * the sock->pseq_id.
+             */
+            keep_entry &= protseq_efun(sock,
+                             ip_addr,
+                             netmask_addr,
+                             broadcast_addr);
+            if (efun)
             {
-                if (ip_addr != NULL)
-                {
-                    RPC_MEM_FREE (ip_addr, RPC_C_MEM_RPC_ADDR);
-                    ip_addr = NULL;
-                }
-                if (netmask_addr != NULL)
-                {
-                    RPC_MEM_FREE (netmask_addr, RPC_C_MEM_RPC_ADDR);
-                    netmask_addr = NULL;
-                }
-                if (broadcast_addr != NULL)
-                {
-                    RPC_MEM_FREE (broadcast_addr, RPC_C_MEM_RPC_ADDR);
-                    broadcast_addr = NULL;
-                }
+                keep_entry &= efun(sock,
+                                 ip_addr,
+                                 netmask_addr,
+                                 broadcast_addr);
             }
-            else
+            if (!keep_entry)
             {
-                if (rpc_addr_vec && ip_addr)
-                {
-                    ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++]
-                        = (rpc_addr_p_t) ip_addr;
-                    ip_addr = NULL;
-                }
-                if (netmask_addr_vec && netmask_addr)
-                {
-                    ret_netmask_addr_vec->addrs[ret_netmask_addr_vec->len++]
-                        = (rpc_addr_p_t) netmask_addr;
-                    netmask_addr = NULL;
-                }
-                if (broadcast_addr_vec && broadcast_addr)
-                {
-                    ret_broadcast_addr_vec->addrs[ret_broadcast_addr_vec->len++]
-                        = (rpc_addr_p_t) broadcast_addr;
-                    broadcast_addr = NULL;
-                }
+                _rpc__bsd_free_if_entry(&ip_addr,
+                                        &netmask_addr,
+                                        &broadcast_addr);
+                continue;
             }
+
+            _rpc__process_addr_entry(
+                &ip_addr,
+                &netmask_addr,
+                &broadcast_addr,
+                ret_rpc_addr_vec,
+                ret_netmask_addr_vec,
+                ret_broadcast_addr_vec);
         }
     }
 
+    /* Success. Assign return values to caller */
     err = 0;
-    if (rpc_addr_vec) *rpc_addr_vec = ret_rpc_addr_vec;
-    if (netmask_addr_vec) *netmask_addr_vec = ret_netmask_addr_vec;
-    if (broadcast_addr_vec) *broadcast_addr_vec = ret_broadcast_addr_vec;
+    if (rpc_addr_vec)
+    {
+        *rpc_addr_vec = ret_rpc_addr_vec;
+    }
+    if (netmask_addr_vec)
+    {
+        *netmask_addr_vec = ret_netmask_addr_vec;
+    }
+    if (broadcast_addr_vec)
+    {
+        *broadcast_addr_vec = ret_broadcast_addr_vec;
+    }
 
 error:
     if (err)
     {
-        /* Free a bunch of stuff */
+        _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
+        rpc__winx64_socket_free_vectors(
+            ret_rpc_addr_vec,
+            ret_netmask_addr_vec,
+            ret_broadcast_addr_vec);
+    }
+
+    if (pIpV4AddrTable)
+    {
+        free(pIpV4AddrTable);
+    }
+
+    if (pIpV6Adapter)
+    {
+        free(pIpV6Adapter);
     }
 
     return err;
@@ -2593,7 +2855,7 @@ error:
 /*
  * Map Winsock2 errval to errno value
  */
-INTERNAL
+PRIVATE
 rpc_socket_error_t
 rpc__winx64_winerr_to_errno(DWORD WSAErrval)
 {
@@ -2601,6 +2863,15 @@ rpc__winx64_winerr_to_errno(DWORD WSAErrval)
 
     switch (WSAErrval)
     {
+      case WSA_INVALID_HANDLE:
+        err = EINVAL;
+        break;
+      case WSA_NOT_ENOUGH_MEMORY:
+        err = ENOMEM;
+        break;
+      case WSA_INVALID_PARAMETER:
+        err = EINVAL;
+        break;
       case WSAEINTR:
         err = EINTR;
         break;
@@ -2730,7 +3001,7 @@ rpc__winx64_winerr_to_errno(DWORD WSAErrval)
 //    case WSAEREMOTE:
 //      err = RPC_C_SOCKET_EREMOTE;
       default:
-        err = EINVAL;
+        err = WSAErrval;
         break;
     }
     return err;
@@ -2742,7 +3013,7 @@ rpc__winx64_winerr_to_errno(DWORD WSAErrval)
  * a function that fails with -1 return status, and sets errno
  * to indicate the failure.
  */
-INTERNAL
+PRIVATE
 int
 rpc__winx64_set_errno(DWORD WSAErrval)
 {
@@ -2754,21 +3025,21 @@ rpc__winx64_set_errno(DWORD WSAErrval)
 
 INTERNAL void
 _rpc__bsd_free_if_entry(
-    rpc_ip_addr_p_t  *ip_addr,
-    rpc_ip_addr_p_t  *netmask_addr,
-    rpc_ip_addr_p_t  *broadcast_addr)
+    rpc_addr_p_t  *ip_addr,
+    rpc_addr_p_t  *netmask_addr,
+    rpc_addr_p_t  *broadcast_addr)
 {
-    if (*ip_addr)
+    if (ip_addr && *ip_addr)
     {
         RPC_MEM_FREE((*ip_addr), RPC_C_MEM_RPC_ADDR);
         *ip_addr = NULL;
     }
-    if (*netmask_addr)
+    if (netmask_addr && *netmask_addr)
     {
         RPC_MEM_FREE((*netmask_addr), RPC_C_MEM_RPC_ADDR);
         *netmask_addr = NULL;
     }
-    if (*broadcast_addr)
+    if (broadcast_addr && *broadcast_addr)
     {
         RPC_MEM_FREE((*broadcast_addr), RPC_C_MEM_RPC_ADDR);
         *broadcast_addr = NULL;
@@ -2835,9 +3106,9 @@ rpc__bsd_socket_enum_ifaces(
     rpc_addr_vector_p_t ret_rpc_addr_vec = NULL;
     rpc_addr_vector_p_t ret_netmask_addr_vec = NULL;
     rpc_addr_vector_p_t ret_broadcast_addr_vec = NULL;
-    rpc_ip_addr_p_t    ip_addr = NULL;
-    rpc_ip_addr_p_t    netmask_addr = NULL;
-    rpc_ip_addr_p_t    broadcast_addr = NULL;
+    rpc_addr_p_t    ip_addr = NULL;
+    rpc_addr_p_t    netmask_addr = NULL;
+    rpc_addr_p_t    broadcast_addr = NULL;
     rpc_socket_error_t err = 0;
     int                n_ifs = 0;
     int                sts = 0;
@@ -2850,19 +3121,19 @@ rpc__bsd_socket_enum_ifaces(
     struct sockaddr_in *in_addr;
     rpc_socket_enum_iface_fn_p_t protseq_efun = _rpc__bsd_protoseq_filter_cb;
 
-    /* Note: "sock" was used in ioctl() implementation, but not here */
-    sts = getifaddrs(&ifaddrs_save);
+    sts = getifaddrs(&ifaddrs);
     if (sts == -1)
     {
         err = errno;
         goto done;
     }
 
-    /* Don't modify original value. Count number of entries initially */
-    for (ifaddrs = ifaddrs_save; ifaddrs; ifaddrs = ifaddrs->ifa_next)
+    /* Save original value, as need to count number of entries initially */
+    for (ifaddrs_save = ifaddrs; ifaddrs; ifaddrs = ifaddrs->ifa_next)
     {
         n_ifs++;
     }
+    ifaddrs = ifaddrs_save;
 
     if (rpc_addr_vec)
     {
@@ -2941,7 +3212,6 @@ rpc__bsd_socket_enum_ifaces(
             continue;
         }
 
-/* TBD: Adam-Do we care if this is conditionally compiled in? */
 #ifndef USE_LOOPBACK
         /*
          * Ignore the loopback interface
@@ -2984,7 +3254,7 @@ rpc__bsd_socket_enum_ifaces(
              */
             RPC_MEM_ALLOC(
                 ip_addr,
-                rpc_ip_addr_p_t,
+                rpc_addr_p_t,
                 rpc_ip_addrlen,
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
@@ -3011,7 +3281,7 @@ rpc__bsd_socket_enum_ifaces(
         {
             RPC_MEM_ALLOC(
                 netmask_addr,
-                rpc_ip_addr_p_t,
+                rpc_addr_p_t,
                 rpc_ip_addrlen,
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
@@ -3039,7 +3309,7 @@ rpc__bsd_socket_enum_ifaces(
         {
             RPC_MEM_ALLOC(
                 broadcast_addr,
-                rpc_ip_addr_p_t,
+                rpc_addr_p_t,
                 rpc_ip_addrlen,
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
@@ -3068,9 +3338,9 @@ rpc__bsd_socket_enum_ifaces(
          * sequence that was requested. This is determined by the sock->pseq_id.
          */
         if (protseq_efun(sock,
-                         (rpc_addr_p_t) ip_addr,
-                         (rpc_addr_p_t) netmask_addr,
-                         (rpc_addr_p_t) broadcast_addr) == false)
+                         ip_addr,
+                         netmask_addr,
+                         broadcast_addr) == false)
         {
             _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
             continue;
@@ -3082,9 +3352,9 @@ rpc__bsd_socket_enum_ifaces(
          * forget about this interface.
          */
         if (efun(sock,
-            (rpc_addr_p_t) ip_addr,
-            (rpc_addr_p_t) netmask_addr,
-            (rpc_addr_p_t) broadcast_addr) == false)
+            ip_addr,
+            netmask_addr,
+            broadcast_addr) == false)
         {
             _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
             continue;
@@ -3092,21 +3362,20 @@ rpc__bsd_socket_enum_ifaces(
 
         if (ret_rpc_addr_vec && ip_addr)
         {
-            ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++] =
-                (rpc_addr_p_t) ip_addr;
+            ret_rpc_addr_vec->addrs[ret_rpc_addr_vec->len++] = ip_addr;
             ip_addr = NULL;
         }
 
         if (ret_netmask_addr_vec && netmask_addr)
         {
             ret_netmask_addr_vec->addrs[ret_netmask_addr_vec->len++]
-                = (rpc_addr_p_t) netmask_addr;
+                = netmask_addr;
             netmask_addr = NULL;
         }
         if (ret_broadcast_addr_vec && broadcast_addr)
         {
             ret_broadcast_addr_vec->addrs[ret_broadcast_addr_vec->len++]
-                = (rpc_addr_p_t) broadcast_addr;
+                = broadcast_addr;
             broadcast_addr = NULL;
         }
         _rpc__bsd_free_if_entry(&ip_addr, &netmask_addr, &broadcast_addr);
