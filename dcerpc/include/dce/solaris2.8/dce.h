@@ -46,8 +46,12 @@ extern "C" {
 #include <sys/byteorder.h>
 
 /* Only one place needed for DCE to define these */
+#ifndef FALSE
 #define FALSE 0
+#endif
+#ifndef TRUE
 #define TRUE 1
+#endif
 
 #if !defined(MIN)
 #  define MIN(x, y)         ((x) < (y) ? (x) : (y))

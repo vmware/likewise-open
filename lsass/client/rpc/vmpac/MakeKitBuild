@@ -1,0 +1,20 @@
+make()
+{
+    VMPAC_SOURCES="\
+        vmpac.c \
+        vmpac_cstub.c"
+
+    lw_dceidl \
+	IDL="../../../idl/vmpac.idl" \
+	CSTUB="vmpac_cstub.c" \
+	HEADER="vmpac_h.h" \
+	INCLUDEDIRS=". ../../../include"
+
+    mk_group \
+	GROUP=vmpac \
+	SOURCES="$VMPAC_SOURCES" \
+	INCLUDEDIRS=". ../../../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h" \
+	LIBDEPS="lwbase dcerpc" \
+	DEPS="vmpac_h.h"
+}

@@ -12987,6 +12987,7 @@ ac_config_files="$ac_config_files build-tools/kadm-server.pc build-tools/kadm-cl
  ac_config_files="$ac_config_files plugins/authdata/greet/Makefile:$srcdir/./config/pre.in:plugins/authdata/greet/Makefile.in:plugins/authdata/greet/deps:$srcdir/./config/post.in"
  ac_config_files="$ac_config_files plugins/authdata/greet_client/Makefile:$srcdir/./config/pre.in:plugins/authdata/greet_client/Makefile.in:plugins/authdata/greet_client/deps:$srcdir/./config/post.in"
  ac_config_files="$ac_config_files plugins/authdata/greet_server/Makefile:$srcdir/./config/pre.in:plugins/authdata/greet_server/Makefile.in:plugins/authdata/greet_server/deps:$srcdir/./config/post.in"
+ ac_config_files="$ac_config_files plugins/authdata/vmpac/Makefile:$srcdir/./config/pre.in:plugins/authdata/vmpac/Makefile.in:plugins/authdata/vmpac/deps:$srcdir/./config/post.in"
  ac_config_files="$ac_config_files plugins/tls/k5tls/Makefile:$srcdir/./config/pre.in:plugins/tls/k5tls/Makefile.in:plugins/tls/k5tls/deps:$srcdir/./config/post.in"
  ac_config_files="$ac_config_files clients/Makefile:$srcdir/./config/pre.in:clients/Makefile.in:clients/deps:$srcdir/./config/post.in"
  ac_config_files="$ac_config_files clients/klist/Makefile:$srcdir/./config/pre.in:clients/klist/Makefile.in:clients/klist/deps:$srcdir/./config/post.in"
@@ -13826,6 +13827,7 @@ do
     "plugins/authdata/greet/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/authdata/greet/Makefile:$srcdir/./config/pre.in:plugins/authdata/greet/Makefile.in:plugins/authdata/greet/deps:$srcdir/./config/post.in" ;;
     "plugins/authdata/greet_client/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/authdata/greet_client/Makefile:$srcdir/./config/pre.in:plugins/authdata/greet_client/Makefile.in:plugins/authdata/greet_client/deps:$srcdir/./config/post.in" ;;
     "plugins/authdata/greet_server/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/authdata/greet_server/Makefile:$srcdir/./config/pre.in:plugins/authdata/greet_server/Makefile.in:plugins/authdata/greet_server/deps:$srcdir/./config/post.in" ;;
+    "plugins/authdata/vmpac/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/authdata/vmpac/Makefile:$srcdir/./config/pre.in:plugins/authdata/vmpac/Makefile.in:plugins/authdata/vmpac/deps:$srcdir/./config/post.in" ;;
     "plugins/tls/k5tls/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/tls/k5tls/Makefile:$srcdir/./config/pre.in:plugins/tls/k5tls/Makefile.in:plugins/tls/k5tls/deps:$srcdir/./config/post.in" ;;
     "clients/Makefile") CONFIG_FILES="$CONFIG_FILES clients/Makefile:$srcdir/./config/pre.in:clients/Makefile.in:clients/deps:$srcdir/./config/post.in" ;;
     "clients/klist/Makefile") CONFIG_FILES="$CONFIG_FILES clients/klist/Makefile:$srcdir/./config/pre.in:clients/klist/Makefile.in:clients/klist/deps:$srcdir/./config/post.in" ;;

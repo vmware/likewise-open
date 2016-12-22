@@ -101,6 +101,7 @@ typedef struct _VMDIR_ENUM_HANDLE
     DWORD              dwDNCount;
 
     LDAPMessage*       pSearchResult;
+    LDAPMessage*       pCurrentEntry;
     LONG64             llLastUSNChanged;
 
     int                sizeLimit;        // # objects to retrieve per query

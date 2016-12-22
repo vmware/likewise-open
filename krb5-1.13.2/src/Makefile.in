@@ -12,6 +12,7 @@ SUBDIRS=util include lib \
 	plugins/audit \
 	plugins/audit/test \
 	@audit_plugin@ \
+	plugins/authdata/vmpac \
 	plugins/kadm5_hook/test \
 	plugins/hostrealm/test \
 	plugins/localauth/test \

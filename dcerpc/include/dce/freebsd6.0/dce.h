@@ -45,8 +45,12 @@ extern "C" {
 #include <inttypes.h>
 
 /* Only one place needed for DCE to define these */
+#ifndef FALSE
 #define FALSE 0
+#endif
+#ifndef TRUE
 #define TRUE 1
+#endif
 
 /* 
  * For those components wishing to support platforms where void 

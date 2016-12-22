@@ -59,7 +59,7 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 $LIB_PTHREAD"
     else
         mk_program \
             PROGRAM="echo_client" \
@@ -81,6 +81,6 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="dcerpc $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc $LIB_PTHREAD"
     fi
 }

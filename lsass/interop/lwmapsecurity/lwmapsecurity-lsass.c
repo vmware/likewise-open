@@ -53,6 +53,7 @@
 #include <lw/rpc/samr.h>
 #include <lw/rpc/netlogon.h>
 #include <lw/rpc/krb5pac.h>
+#include <lw/rpc/vmpac.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_ext.h>
 #include <sys/types.h>
@@ -567,15 +568,52 @@ LsaMapSecurityResolveObjectInfoFromPac(
     HANDLE hLsaConnection = NULL;
 
     status = LsaMapSecurityConstructSid(
-        pPac->info3.base.domain_sid,
-        pPac->info3.base.rid,
-        &objectInfo.Sid);
+                     pPac->info3.base.domain_sid,
+                     pPac->info3.base.rid,
+                     &objectInfo.Sid);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = LsaMapSecurityConstructSid(
-        pPac->info3.base.domain_sid,
-        pPac->info3.base.primary_gid,
-        &objectInfo.PrimaryGroupSid);
+                     pPac->info3.base.domain_sid,
+                     pPac->info3.base.primary_gid,
+                     &objectInfo.PrimaryGroupSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LsaMapSecurityOpenConnection(Context, &hLsaConnection);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LsaMapSecurityCompleteObjectInfoFromSid(hLsaConnection, &objectInfo);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+
+    if (!NT_SUCCESS(status))
+    {
+        LsaMapSecurityFreeObjectInfo(&objectInfo);
+    }
+
+    LsaMapSecurityCloseConnection(Context, &hLsaConnection);
+
+    *pObjectInfo = objectInfo;
+
+    return status;
+}
+
+static
+NTSTATUS
+LsaMapSecurityResolveObjectInfoFromVmPac(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    IN VMPAC_ACCESS_INFO* pVmPac,
+    OUT PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
+    HANDLE hLsaConnection = NULL;
+
+    status = RtlDuplicateSid(
+                     &objectInfo.Sid,
+                     pVmPac->user_sid);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = LsaMapSecurityOpenConnection(Context, &hLsaConnection);
@@ -1605,7 +1643,7 @@ cleanup:
 
 static
 NTSTATUS
-LsaMapSecurityGetPacInfoFromGssContext(
+LsaMapSecurityGetMsPacInfoFromGssContext(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PAC_LOGON_INFO** ppPac,
     IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
@@ -1706,6 +1744,107 @@ cleanup:
 
 static
 NTSTATUS
+LsaMapSecurityGetVmPacInfoFromGssContext(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT VMPAC_ACCESS_INFO** ppVmPac,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    )
+{
+    static const CHAR szAccessInfoUrn[] = "urn:vmpac:access-info";
+    NTSTATUS status = STATUS_SUCCESS;
+    OM_uint32 minorStatus = 0;
+    OM_uint32 majorStatus = 0;
+    gss_name_t srcName = GSS_C_NO_NAME;
+    gss_buffer_desc accessInfoUrn =
+    {
+        .length = sizeof(szAccessInfoUrn) - 1,
+        .value = (PBYTE) szAccessInfoUrn
+    };
+    gss_buffer_desc pacData = {0};
+    gss_buffer_desc displayData = {0};
+    VMPAC_ACCESS_INFO *pVmPac = NULL;
+    int more = -1;
+
+    majorStatus = gss_inquire_context(
+        &minorStatus,
+        GssContext,
+        &srcName,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL);
+    if (majorStatus != GSS_S_COMPLETE)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    majorStatus = gss_get_name_attribute(
+        &minorStatus,
+        srcName,
+        &accessInfoUrn,
+        NULL,
+        NULL,
+        &pacData,
+        &displayData,
+        &more);
+    if (majorStatus != GSS_S_COMPLETE)
+    {
+        // Try to convert the minorStatus as a Win32 error.  At worst we'll end
+        // up with a squashed error code if it is not a valid Win32 error. But to
+        // be fair we were always returning STATUS_UNSUCCESSFUL here before.
+
+        status = LwWin32ErrorToNtStatus(minorStatus);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    if (pacData.value == NULL)
+    {
+        status = STATUS_INVALID_USER_BUFFER;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    status = DecodeVmPacAccessInfo(
+        pacData.value,
+        pacData.length,
+        &pVmPac);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    *ppVmPac = pVmPac;
+
+cleanup:
+
+    if (!NT_SUCCESS(status))
+    {
+        *ppVmPac = NULL;
+        if (pVmPac)
+        {
+            FreeVmPacAccessInfo(pVmPac);
+        }
+    }
+
+    if (pacData.value)
+    {
+        gss_release_buffer(&minorStatus, &pacData);
+    }
+
+    if (displayData.value)
+    {
+        gss_release_buffer(&minorStatus, &displayData);
+    }
+
+    if (srcName)
+    {
+        gss_release_name(&minorStatus, &srcName);
+    }
+
+    return status;
+}
+
+static
+NTSTATUS
 LsaMapSecurityGetAccessTokenCreateInformationFromUid(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
@@ -1739,30 +1878,29 @@ LsaMapSecurityGetAccessTokenCreateInformationFromUsername(
 
 static
 NTSTATUS
-LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
+LsaMapSecurityGetAccessTokenCreateInformationFromPac(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    IN PAC_LOGON_INFO* pPac
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PAC_LOGON_INFO* pPac = NULL;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = {0};
     DWORD dwInputSidCount = 0;
     PSID* ppInputSids = NULL;
     DWORD dwIndex = 0;
     PSID pSid = NULL;
 
-    status = LsaMapSecurityGetPacInfoFromGssContext(
-        Context,
-        &pPac,
-        GssContext);
+    status = LsaMapSecurityResolveObjectInfoFromPac(
+                     Context,
+                     pPac,
+                     &objectInfo);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = LsaMapSecurityResolveObjectInfoFromPac(Context, pPac, &objectInfo);
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    status = RTL_ALLOCATE(&ppInputSids, PSID, sizeof(PSID) *
+    status = RTL_ALLOCATE(
+                     &ppInputSids,
+                     PSID,
+                     sizeof(PSID) *
                           (pPac->info3.base.groups.dwCount +
                            pPac->res_groups.dwCount +
                            pPac->info3.sidcount));
@@ -1771,9 +1909,9 @@ LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
     for (dwIndex = 0; dwIndex < pPac->info3.base.groups.dwCount; dwIndex++)
     {
         status = LsaMapSecurityConstructSid(
-            pPac->info3.base.domain_sid,
-            pPac->info3.base.groups.pRids[dwIndex].dwRid,
-            &pSid);
+                         pPac->info3.base.domain_sid,
+                         pPac->info3.base.groups.pRids[dwIndex].dwRid,
+                         &pSid);
         GOTO_CLEANUP_ON_STATUS(status);
 
         ppInputSids[dwInputSidCount++] = pSid;
@@ -1783,9 +1921,9 @@ LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
     for (dwIndex = 0; dwIndex < pPac->res_groups.dwCount; dwIndex++)
     {
         status = LsaMapSecurityConstructSid(
-            pPac->res_group_dom_sid,
-            pPac->res_groups.pRids[dwIndex].dwRid,
-            &pSid);
+                         pPac->res_group_dom_sid,
+                         pPac->res_groups.pRids[dwIndex].dwRid,
+                         &pSid);
         GOTO_CLEANUP_ON_STATUS(status);
 
         ppInputSids[dwInputSidCount++] = pSid;
@@ -1794,7 +1932,9 @@ LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
 
     for (dwIndex = 0; dwIndex < pPac->info3.sidcount; dwIndex++)
     {
-        status = RtlDuplicateSid(&pSid, pPac->info3.sids[dwIndex].sid);
+        status = RtlDuplicateSid(
+                         &pSid,
+                         pPac->info3.sids[dwIndex].sid);
         GOTO_CLEANUP_ON_STATUS(status);
 
         ppInputSids[dwInputSidCount++] = pSid;
@@ -1802,11 +1942,11 @@ LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
     }
 
     status = LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
-        Context,
-        CreateInformation,
-        &objectInfo,
-        dwInputSidCount,
-        ppInputSids);
+                     Context,
+                     CreateInformation,
+                     &objectInfo,
+                     dwInputSidCount,
+                     ppInputSids);
     GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:
@@ -1826,6 +1966,152 @@ cleanup:
     }
 
     LsaMapSecurityFreeObjectInfo(&objectInfo);
+
+    return status;
+}
+
+static
+NTSTATUS
+LsaMapSecurityGetAccessTokenCreateInformationFromVmPac(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
+    IN VMPAC_ACCESS_INFO* pVmPac
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    LSA_MAP_SECURITY_OBJECT_INFO objectInfo = {0};
+    DWORD dwInputSidCount = 0;
+    PSID* ppInputSids = NULL;
+    DWORD dwIndex = 0;
+    PSID pSid = NULL;
+    PSID pTmpSid = NULL;
+
+    status = LsaMapSecurityResolveObjectInfoFromVmPac(
+                     Context,
+                     pVmPac,
+                     &objectInfo);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RTL_ALLOCATE(
+                     &ppInputSids,
+                     PSID,
+                     sizeof(PSID) *
+                          (pVmPac->group_count +
+                           pVmPac->sidcount));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    for (dwIndex = 0; dwIndex < pVmPac->group_count; dwIndex++)
+    {
+        if (pVmPac->groups[dwIndex].Identifier[0] == 0)
+        {
+            status = LsaMapSecurityConstructSid(
+                             pVmPac->domain_sid,
+                             pVmPac->groups[dwIndex].Identifier[1],
+                             &pSid);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+        else
+        {
+            status = LsaMapSecurityConstructSid(
+                             pVmPac->domain_sid,
+                             pVmPac->groups[dwIndex].Identifier[0],
+                             &pTmpSid);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            status = LsaMapSecurityConstructSid(
+                             pTmpSid,
+                             pVmPac->groups[dwIndex].Identifier[1],
+                             &pSid);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            RTL_FREE(&pTmpSid);
+            pTmpSid = NULL;
+        }
+
+        ppInputSids[dwInputSidCount++] = pSid;
+        pSid = NULL;
+    }
+
+    for (dwIndex = 0; dwIndex < pVmPac->sidcount; dwIndex++)
+    {
+        status = RtlDuplicateSid(
+                         &pSid,
+                         pVmPac->sids[dwIndex].sid);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        ppInputSids[dwInputSidCount++] = pSid;
+        pSid = NULL;
+    }
+
+    status = LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
+                     Context,
+                     CreateInformation,
+                     &objectInfo,
+                     dwInputSidCount,
+                     ppInputSids);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+
+    RTL_FREE(&pSid);
+    RTL_FREE(&pTmpSid);
+
+    for (dwIndex = 0; dwIndex < dwInputSidCount; dwIndex++)
+    {
+        RTL_FREE(&ppInputSids[dwIndex]);
+    }
+
+    RTL_FREE(&ppInputSids);
+
+    if (pVmPac)
+    {
+        FreeVmPacAccessInfo(pVmPac);
+    }
+
+    LsaMapSecurityFreeObjectInfo(&objectInfo);
+
+    return status;
+}
+
+static
+NTSTATUS
+LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PAC_LOGON_INFO* pMsPac = NULL;
+    VMPAC_ACCESS_INFO* pVmPac = NULL;
+
+    status = LsaMapSecurityGetMsPacInfoFromGssContext(
+                     Context,
+                     &pMsPac,
+                     GssContext);
+    if (status == 0 && pMsPac != NULL)
+    {
+        status = LsaMapSecurityGetAccessTokenCreateInformationFromPac(
+                         Context,
+                         CreateInformation,
+                         pMsPac);
+        goto cleanup;
+    }
+
+    status = LsaMapSecurityGetVmPacInfoFromGssContext(
+                     Context,
+                     &pVmPac,
+                     GssContext);
+    if (status == 0 && pVmPac != NULL)
+    {
+        status = LsaMapSecurityGetAccessTokenCreateInformationFromVmPac(
+                         Context,
+                         CreateInformation,
+                         pVmPac);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+cleanup:
 
     return status;
 }

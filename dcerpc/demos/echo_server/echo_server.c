@@ -17,6 +17,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <lw/base.h>
 
 #include <dce/dcethread.h>
 #include <dce/dce_error.h>
@@ -319,6 +320,130 @@ int main(int argc, char *argv[])
     return(0);
 }
 
+#ifndef _WIN32
+static void
+display_access_token(
+    PACCESS_TOKEN pAccessToken)
+{
+    union
+    {
+        SID_AND_ATTRIBUTES user;
+        BYTE buffer[sizeof(SID_AND_ATTRIBUTES) + SID_MAX_SIZE];
+    } u;
+    NTSTATUS status = 0;
+    ULONG len = 0;
+    PSTR sidstr = NULL;
+    DWORD dwError = 0;
+    DWORD dwSize = 0;
+    PTOKEN_GROUPS pTokenInfo = NULL;
+    DWORD iGroup = 0;
+    PSTR *ppszSIDs = NULL;
+
+    status = RtlQueryAccessTokenInformation(
+        pAccessToken,
+        TokenUser,
+        &u.user,
+        sizeof(u),
+        &len);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError)
+    {
+        printf("RtlQueryAccessTokenInformation() failed: %d, %d\n", status, dwError);
+        goto error;
+    }
+
+    status = RtlAllocateCStringFromSid(
+        &sidstr,
+        u.user.Sid);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError)
+    {
+        printf("RtlAllocateCStringFromSid() failed: %d, %d\n", status, dwError);
+        goto error;
+    }
+
+    printf("client: %s\n", sidstr);
+
+    status = RtlQueryAccessTokenInformation(
+                     pAccessToken,
+                     TokenGroups,
+                     pTokenInfo,
+                     dwSize,
+                     &dwSize);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError == ERROR_INSUFFICIENT_BUFFER)
+    {
+        dwError = 0;
+    }
+    if (dwError)
+    {
+        goto error;
+    }
+
+    pTokenInfo = calloc(dwSize, 1);
+    if (!pTokenInfo)
+    {
+        dwError = ERROR_OUTOFMEMORY;
+        goto error;
+    }
+
+    status = RtlQueryAccessTokenInformation(
+                     pAccessToken,
+                     TokenGroups,
+                     pTokenInfo,
+                     dwSize,
+                     &dwSize);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError)
+    {
+        printf("RtlQueryAccessTokenInformation() failed: %d, %d\n", status, dwError);
+        goto error;
+    }
+
+    printf("Number of groups: %d\n", pTokenInfo->GroupCount);
+
+    if (pTokenInfo->GroupCount)
+    {
+        ppszSIDs = calloc(sizeof(PSTR *) *pTokenInfo->GroupCount, 1);
+        if (!ppszSIDs)
+        {
+            dwError = ERROR_OUTOFMEMORY;
+            goto error;
+        }
+
+        for (iGroup = 0; iGroup < pTokenInfo->GroupCount; iGroup++)
+        {
+            status = RtlAllocateCStringFromSid(
+                          &ppszSIDs[iGroup],
+                          pTokenInfo->Groups[iGroup].Sid);
+            dwError = LwNtStatusToWin32Error(status);
+            if (dwError)
+            {
+                printf("RtlAllocateCStringFromSid() failed: %d, %d\n", status, dwError);
+                goto error;
+            }
+
+            printf("%s\n", ppszSIDs[iGroup]);
+        }
+
+    }
+
+cleanup:
+    if (pTokenInfo)
+    {
+        free(pTokenInfo);
+    }
+    if (ppszSIDs)
+    {
+        free(ppszSIDs);
+    }
+    RTL_FREE(&sidstr);
+    return;
+
+error:
+    goto cleanup;
+}
+#endif
 
 /*=========================================================================
  *
@@ -344,6 +469,7 @@ ReverseIt(
     unsigned32 dwProtectLevel = 0;
     unsigned32 rpc_status = rpc_s_ok;
     unsigned char *authPrinc = NULL;
+    PACCESS_TOKEN token = NULL;
 #if 0
     rpc_transport_info_handle_t transport_info = NULL;
     unsigned32 rpcstatus = 0;
@@ -375,8 +501,17 @@ ReverseIt(
         printf("rpc_binding_inq_auth_caller: sts=%d authPrinc=%s prot=%d\n",
                rpc_status, (char*) authPrinc, dwProtectLevel);
         rpc_string_free(&authPrinc, status);
-
     }
+
+    rpc_binding_inq_access_token_caller(
+            h,
+            &token,
+            &rpc_status);
+    if (rpc_status == rpc_s_ok)
+    {
+        display_access_token(token);
+    }
+
 #if 0
     rpc_binding_inq_transport_info(h, &transport_info, &rpcstatus);
 

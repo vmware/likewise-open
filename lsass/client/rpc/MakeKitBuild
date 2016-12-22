@@ -1,9 +1,10 @@
-SUBDIRS="common lsa samr netlogon dssetup wkssvc krb5pac"
+SUBDIRS="common lsa samr netlogon dssetup wkssvc krb5pac vmpac"
 
 make()
 {
     mk_library \
 	LIB=lsarpc \
 	GROUPS="common/common lsa/lsa samr/samr netlogon/netlogon \
-                dssetup/dssetup wkssvc/wkssvc krb5pac/krb5pac"
+                dssetup/dssetup wkssvc/wkssvc krb5pac/krb5pac \
+                vmpac/vmpac"
 }

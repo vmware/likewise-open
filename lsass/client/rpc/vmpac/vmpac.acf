@@ -1,0 +1,5 @@
+interface vmpac
+{
+	[encode] VMPAC_ACCESS_INFO_Encode();
+	[decode] VMPAC_ACCESS_INFO_Decode();
+}
