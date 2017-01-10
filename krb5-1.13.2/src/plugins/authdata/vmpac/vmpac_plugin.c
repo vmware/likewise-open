@@ -101,8 +101,10 @@ vmpac_import_authdata(krb5_context kcontext,
     }
 
     assert(authdata[0] != NULL);
+#if 0
     assert((authdata[0]->ad_type & AD_TYPE_FIELD_TYPE_MASK) ==
            KRB5_AUTHDATA_VM_PAC);
+#endif
 
     code = krb5_pac_parse(kcontext, authdata[0]->contents,
                           authdata[0]->length, &pacctx->pac);
