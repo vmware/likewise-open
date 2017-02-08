@@ -288,15 +288,18 @@ LwIoAssertionFailedFormat(
     ...
     );
 
+static inline int __lwio_true(void) { return 1; }
+static inline int __lwio_false(void) { return 0; }
+
 #define LWIO_ASSERT_MSG(Expression, Message) \
     ((Expression) ? \
-     TRUE : \
-     (LwIoAssertionFailed(#Expression, Message, __FUNCTION__, __FILE__, __LINE__), FALSE))
+     __lwio_true() : \
+     (LwIoAssertionFailed(#Expression, Message, __FUNCTION__, __FILE__, __LINE__), __lwio_false()))
 
 #define LWIO_ASSERT_FORMAT(Expression, Format, ...) \
     ((Expression) ? \
-     TRUE : \
-     (LwIoAssertionFailedFormat(#Expression, Format, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__), FALSE))
+     __lwio_true() : \
+     (LwIoAssertionFailedFormat(#Expression, Format, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__), __lwio_false()))
 
 #define LWIO_ASSERT(Expression) \
     LWIO_ASSERT_MSG(Expression, NULL)
