@@ -1973,6 +1973,14 @@ RtlpParseSddlAclString(
     PSTR pszTmp = NULL;
     PSTR pszstrtok_rSav = NULL;
 
+    //
+    // A DACL can have zero ACEs.
+    //
+    if (LwRtlCStringIsNullOrEmpty(pszSddlAclString))
+    {
+        GOTO_CLEANUP();
+    }
+
     status  = LwRtlCStringDuplicate(&pszSddlAclString1,
                                     pszSddlAclString);
     GOTO_CLEANUP_ON_STATUS(status);
@@ -2268,17 +2276,28 @@ RtlpGetAclFromSddlAclString(
     PSDDL_ACE* ppSddlAces = NULL;
     PACCESS_ALLOWED_ACE pAce = NULL;
 
-
     if (LwRtlCStringIsNullOrEmpty(pszAclString))
     {
         GOTO_CLEANUP();
     }
 
-    // Obtain Dacl_flags/Sacl_flags in front of the first '('
+    //
+    // Obtain Dacl_flags/Sacl_flags. Note that there might not be any ACEs
+    // after the flags.
+    //
     pszAceBegin = strchr(pszAclString, SDDL_ACE_BEGIN_C);
-    if (pszAceBegin-pszAclString)
+    if (pszAceBegin == NULL)
     {
-        memcpy(szAclFlag, pszAclString, pszAceBegin-pszAclString);
+        //
+        // There are no ACEs, so we want to just copy the remainder of
+        // pszAclString.
+        //
+        pszAceBegin = pszAclString + strlen(pszAclString);
+    }
+
+    if (pszAceBegin - pszAclString)
+    {
+        memcpy(szAclFlag, pszAclString, pszAceBegin - pszAclString);
     }
 
     status = RtlpMapSddlControlToAclControl(szAclFlag,
@@ -2291,8 +2310,11 @@ RtlpGetAclFromSddlAclString(
                                     pszAceBegin);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RTL_ALLOCATE(&ppSddlAces, PSDDL_ACE, sizeof(*ppSddlAces) * sAceCount);
-    GOTO_CLEANUP_ON_STATUS(status);
+    if (sAceCount != 0)
+    {
+        status = RTL_ALLOCATE(&ppSddlAces, PSDDL_ACE, sizeof(*ppSddlAces) * sAceCount);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     for (sIndex = 0; sIndex < sAceCount; sIndex++)
     {
