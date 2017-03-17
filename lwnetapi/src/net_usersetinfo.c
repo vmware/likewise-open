@@ -243,6 +243,11 @@ cleanup:
         NetFreeMemory(pSamrUserInfo);
     }
 
+    if (pSamrPasswordUserInfo)
+    {
+        NetFreeMemory(pSamrPasswordUserInfo);
+    }
+
     if (pCreds)
     {
         LwIoDeleteCreds(pCreds);
