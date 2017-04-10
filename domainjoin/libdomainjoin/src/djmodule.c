@@ -65,7 +65,7 @@ const JoinModule *stopList[] = {
 #else
 const JoinModule *startList[] = {
     &DJDaemonStopModule,
-    &DJSetHostname,
+    // &DJSetHostname, // commented to allow disjoint namespaces
     &DJKeytabModule,
     &DJDoJoinModule,
     &DJDoLeaveModule,
@@ -100,7 +100,7 @@ const JoinModule *stopList[] = {
     &DJDoLeaveModule,
     &DJDoJoinModule,
     &DJKeytabModule,
-    &DJSetHostname,
+//    &DJSetHostname,
     NULL };
 #endif
 
