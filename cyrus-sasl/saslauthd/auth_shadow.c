@@ -180,16 +180,13 @@ auth_shadow (
      * not returning any information about a login until we have validated
      * the password.
      */
-    cpw = strdup((const char *)crypt(password, sp->sp_pwdp));
-    if (strcmp(sp->sp_pwdp, cpw)) {
+    if (!(cpw = crypt(password, sp->sp_pwdp)) || strcmp(sp->sp_pwdp, (const char *)cpw)) {
 	if (flags & VERBOSE) {
 	    syslog(LOG_DEBUG, "DEBUG: auth_shadow: pw mismatch: '%s' != '%s'",
 		   sp->sp_pwdp, cpw);
 	}
-	free(cpw);
 	RETURN("NO");
     }
-    free(cpw);
 
     /*
      * The following fields will be set to -1 if:
@@ -251,7 +248,7 @@ auth_shadow (
 	RETURN("NO");
     }
   
-    if (strcmp(upw->upw_passwd, crypt(password, upw->upw_passwd)) != 0) {
+    if (!(cpw = crypt(password, upw->upw_passwd)) || (strcmp(upw->upw_passwd, (const char *)cpw) != 0)) {
 	if (flags & VERBOSE) {
 	    syslog(LOG_DEBUG, "auth_shadow: pw mismatch: %s != %s",
 		   password, upw->upw_passwd);
