@@ -65,7 +65,7 @@ const JoinModule *stopList[] = {
 #else
 const JoinModule *startList[] = {
     &DJDaemonStopModule,
-    // &DJSetHostname, // commented to allow disjoint namespaces
+//    &DJSetHostname, // commented to allow disjoint namespaces
     &DJKeytabModule,
     &DJDoJoinModule,
     &DJDoLeaveModule,
@@ -330,7 +330,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
 	DJ_LOG_INFO("Running module %s", state->module->shortName);
         state->module->MakeChanges(options, &moduleException);
         LW_TRY(exc, state->lastResult = state->module->QueryState(options, &LW_EXC));
-        if(!LW_IS_OK(moduleException))
+        if(!LW_IS_OK(moduleException) && !strcmp(state->module->shortName, "hostname"))
         {
             switch(state->lastResult)
             {
@@ -362,7 +362,7 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
                     goto cleanup;
             }
         }
-        else
+        else if (!strcmp(state->module->shortName, "hostname"))
         {
             switch(state->lastResult)
             {
