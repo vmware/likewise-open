@@ -61,10 +61,6 @@ Note: This command does not automatically disable the nsswitch and PAM integrati
 
 ###How do I know that my system has been integrated with Active Directory?
 
-<<<<<<< HEAD
- - Run "/opt/likewise/bin/domainjoin-cli query" to find the current state of the join to Active Directory.
-=======
->>>>>>> upstream/lcifs
  - If nsswitch has been configured to recognize the Likewise stack, running "id fqdn-of-user-in-active-directory" should locate the user record.
  - If nsswitch has not been configured, one can use "/opt/likewise/bin/lw-find-user-by-name id-fqdn-of-user-in-active-directory". For instance, "/opt/likewise/bin/lw-find-user-by-name joe@mycompany.com"
  - On Photon, ssh has been configured to integrate with PAM. If the Likewise stack has been configured with PAM, it should be possible to login to the localhost using SSH as a user in Active Directory.

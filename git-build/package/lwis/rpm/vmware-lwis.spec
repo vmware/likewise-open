@@ -8,7 +8,7 @@ License: 	GPL 2.0,LGPL 2.1
 URL: 		http://www.vmware.com/
 Group: 		Development/Libraries
 
-Prereq: grep, sh-utils, libopenssl1_0_1
+Requires(pre,preun): grep, sh-utils, libopenssl1_0_1
 ##For ESX use this line:
 ##Prereq: grep, sh-utils
 Obsoletes:   likewise-open-libs, likewise-open-lsass, likewise-open-netlogon, likewise-open-lwio, likewise-open-eventlog, likewise-open-rpc, likewise-open-lwsm, likewise-open-lwreg, likewise-open-srvsvc

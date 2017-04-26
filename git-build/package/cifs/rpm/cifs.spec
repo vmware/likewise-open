@@ -8,7 +8,7 @@ License: 	HP
 URL: 		http://www.likewise.com/
 Group: 		Development/Libraries
 
-Prereq: grep, sh-utils
+Requires(pre,preun): grep, sh-utils
 Obsoletes:   likewise-open-libs, likewise-open-lsass, likewise-open-netlogon, likewise-open-lwio, likewise-open-eventlog, likewise-open-rpc, likewise-open-lwsm, likewise-open-lwreg, likewise-open-srvsvc
 
 %if @PKG_RPM_COMPAT@

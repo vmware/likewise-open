@@ -1984,9 +1984,14 @@ static void IR_gen_pointer_rep
      
 
     if (inst_p && inst_p->type == type_p)
+	{
         tup_p = IR_gen_ptr_tup(ctx_p, type_p, inst_p);
+	}
     else
+	{
         tup_p = IR_gen_ptr_tup(ctx_p, type_p, NULL);
+	}
+
 	IR_process_tup(ctx_p, tup_p);
 
 	/*

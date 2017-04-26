@@ -8,6 +8,5 @@ make()
         SOURCES="$TEST_SSHCONF_SOURCES" \
         INCLUDEDIRS="../../../libdomainjoin/include ../../../domainjoin-cli/include ../../../include" \
         HEADERDEPS="ctbase.h" \
-        LIBDEPS="lsaclient centutils domainjoin lwadvapi lwadvapi_nothr lwsm xml2"
+        LIBDEPS="lsaclient centutils domainjoin lwadvapi lwadvapi_nothr lwsm"
 }
-

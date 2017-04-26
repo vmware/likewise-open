@@ -58,12 +58,15 @@ static LWMsgTypeSpec gLsaIPCErrorSpec[] =
     LWMSG_TYPE_END
 };
 
+#if 0
 static LWMsgTypeSpec gLsaStringSpec[] =
 {
     LWMSG_PSTR,
     LWMSG_TYPE_END
 };
+#endif
 
+#if 1
 LWMsgTypeSpec gLsaGroupInfo0Spec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_GROUP_INFO_0),
@@ -73,6 +76,7 @@ LWMsgTypeSpec gLsaGroupInfo0Spec[] =
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
+#endif
 
 LWMsgTypeSpec gLsaGroupInfo1Spec[] =
 {
@@ -353,7 +357,7 @@ static LWMsgTypeSpec gLsaIPCUserModInfo2Spec[] =
     LWMSG_TYPE_END
 };
 
-
+#if 0
 static LWMsgTypeSpec gLsaIPCGroupMemberInfoSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_GROUP_MEMBER_INFO),
@@ -361,6 +365,7 @@ static LWMsgTypeSpec gLsaIPCGroupMemberInfoSpec[] =
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
+#endif
 
 static LWMsgTypeSpec gLsaIPCGroupModInfo2Spec[] =
 {
@@ -543,6 +548,7 @@ static LWMsgTypeSpec gLsaStatusPtrSpec[] =
     LWMSG_TYPE_END
 };
 
+#if 0
 static LWMsgTypeSpec gLsaIpcEnumUsersHandleExistingSpec[] =
 {
     /* Identify type name of handle */
@@ -554,7 +560,9 @@ static LWMsgTypeSpec gLsaIpcEnumUsersHandleExistingSpec[] =
     /* End specification */
     LWMSG_TYPE_END
 };
+#endif
 
+#if 0
 static LWMsgTypeSpec gLsaIpcEnumGroupsHandleExistingSpec[] =
 {
     /* Identify type name of handle */
@@ -566,6 +574,7 @@ static LWMsgTypeSpec gLsaIpcEnumGroupsHandleExistingSpec[] =
     /* End specification */
     LWMSG_TYPE_END
 };
+#endif
 
 static LWMsgTypeSpec gLsaIpcEnumArtefactsHandleExistingSpec[] =
 {
@@ -579,6 +588,7 @@ static LWMsgTypeSpec gLsaIpcEnumArtefactsHandleExistingSpec[] =
     LWMSG_TYPE_END
 };
 
+#if 0
 static LWMsgTypeSpec gLsaIpcEnumUsersHandleNewSpec[] =
 {
     /* Identify type name of handle */
@@ -590,7 +600,9 @@ static LWMsgTypeSpec gLsaIpcEnumUsersHandleNewSpec[] =
     /* End specification */
     LWMSG_TYPE_END
 };
+#endif
 
+#if 0
 static LWMsgTypeSpec gLsaIpcEnumGroupsHandleNewSpec[] =
 {
     /* Identify type name of handle */
@@ -602,6 +614,7 @@ static LWMsgTypeSpec gLsaIpcEnumGroupsHandleNewSpec[] =
     /* End specification */
     LWMSG_TYPE_END
 };
+#endif
 
 static LWMsgTypeSpec gLsaIpcEnumArtefactsHandleNewSpec[] =
 {
@@ -637,11 +650,13 @@ static LWMsgTypeSpec gLsaIPCBeginNssArtefactEnumReqSpec[] =
     LWMSG_TYPE_END
 };
 
+#if 0
 static LWMsgTypeSpec gLsaIPCDelObjectInfoReqSpec[] =
 {
     LWMSG_PSTR,
     LWMSG_TYPE_END
 };
+#endif
 
 static LWMsgTypeSpec gLsaIPCAuthUserReqSpec[] =
 {
@@ -841,6 +856,7 @@ static LWMsgTypeSpec gLsaIPCLsaRidAttribSpec[] =
     LWMSG_TYPE_END
 };
 
+#if 0
 static LWMsgTypeSpec gLsaIPCLsaRidAttribPtrSpec[] =
 {
     LWMSG_POINTER_BEGIN,
@@ -848,6 +864,7 @@ static LWMsgTypeSpec gLsaIPCLsaRidAttribPtrSpec[] =
     LWMSG_POINTER_END,
     LWMSG_TYPE_END
 };
+#endif
 
 static LWMsgTypeSpec gLsaIPCLsaSidAttribSpec[] =
 {
@@ -858,6 +875,8 @@ static LWMsgTypeSpec gLsaIPCLsaSidAttribSpec[] =
     LWMSG_TYPE_END
 };
 
+
+#if 0
 static LWMsgTypeSpec gLsaIPCLsaSidAttribPtrSpec[] =
 {
     LWMSG_POINTER_BEGIN,
@@ -865,6 +884,8 @@ static LWMsgTypeSpec gLsaIPCLsaSidAttribPtrSpec[] =
     LWMSG_POINTER_END,
     LWMSG_TYPE_END
 };
+#endif
+
 
 static LWMsgTypeSpec gLsaAuthUserInfoSpec[] =
 {

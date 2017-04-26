@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -e
+
+PATH=$PATH:@MK_BINDIR@
+export PATH
+
+case "$1" in
+    abort-upgrade)
+	;;
+
+    configure)
+#        if [ "@IS_EMBEDDED@" = "no" ]
+#        then
+#	    domainjoin-cli configure --enable pam >/dev/null
+#	    domainjoin-cli configure --enable nsswitch >/dev/null
+#        fi
+
+        ln -f -s /lib/systemd/system/lwsmd.service /etc/systemd/system/multi-user.target.wants/lwsmd.service
+        systemctl restart lwsmd
+        lwsm start lwreg
+        for file in "@LW_CONFIGDIR@/"*.reg; do
+            echo "Importing $file..."
+            lwregshell import $file >/dev/null
+        done
+
+        sleep 2
+        systemctl restart lwsmd
+        sleep 2
+        lwsm start @PRIMARY_SERVICE@
+	;;
+esac
+
+#DEBHELPER#

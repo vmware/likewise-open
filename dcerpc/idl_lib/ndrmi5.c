@@ -126,11 +126,15 @@ static void rpc_ss_ndr_m_array_shadow (
 
     if (array_type == IDL_DT_VARYING_ARRAY)
     {
-      if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
-        rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
-                                        IDL_msp);
-      else
-        bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
+        {
+            rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
+                                            IDL_msp);
+        }
+        else
+        {
+            bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
         array_defn_ptr += IDL_FIXED_BOUND_PAIR_WIDTH;
         l_storage_len = bounds_list[0].upper - bounds_list[0].lower + 1;
     }
@@ -590,11 +594,16 @@ void rpc_ss_ndr_marsh_cs_array (
 
     if (array_type == IDL_DT_VARYING_ARRAY)
     {
-      if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
-	rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
+        if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
+        {
+            rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
                                         IDL_msp);
-      else
-	bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
+        else
+        {
+	        bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
+
         array_defn_ptr += IDL_FIXED_BOUND_PAIR_WIDTH;
     }
     else    /* Conformant or varying */

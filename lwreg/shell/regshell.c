@@ -2267,8 +2267,10 @@ RegShellProcessInteractiveEditLine(
     /* Signal handling in editline seems not to function... */
     el_set(el, EL_SIGNAL, 0);
 
+#if 0
     /* Set escape character from \ to | */
     el_set(el, EL_ESC_CHAR, (int) REGSHELL_ESC_CHAR);
+#endif
 
     /* Editline prompt function; display info from pParseState */
     el_set(el, EL_PROMPT, pfnRegShellPromptCallback);

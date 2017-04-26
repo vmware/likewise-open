@@ -66,6 +66,7 @@ static LWMsgTypeSpec gLsaLuidAndAttributesSpec[] =
     LWMSG_TYPE_END
 };
 
+#if 0
 static LWMsgTypeSpec gLsaPrivilegeSetSpec[] =
 {
     LWMSG_STRUCT_BEGIN(PRIVILEGE_SET),
@@ -78,6 +79,7 @@ static LWMsgTypeSpec gLsaPrivilegeSetSpec[] =
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
+#endif
 
 LWMsgTypeSpec gLsaPrivsIPCEnumPrivilegesSidsReqSpec[] =
 {

@@ -4,7 +4,7 @@ make()
     ECHO_CLIENT_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
     if [ "$LW_DEVICE_PROFILE" = "photon" ]
     then
-        ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h gssapi_krb5.h"
+        ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h gssapi/gssapi_krb5.h"
     else
         ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h"
     fi
@@ -70,7 +70,7 @@ make()
             INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
             DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc $LIB_PTHREAD"
+            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
 
         mk_program \
             PROGRAM="echo_server" \
@@ -81,6 +81,6 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="lwbase lwbase_nothr dcerpc $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 $LIB_PTHREAD"
     fi
 }

@@ -142,7 +142,7 @@ void rpc_ss_ndr_unmar_cs_array
     idl_ulong_int cs_type_defn_index;
     idl_byte *cs_type_defn_ptr;
     idl_ulong_int routine_index;
-    idl_byte ln_type;           /* Data type of [length_is] item */
+
     idl_ulong_int ln_index;     /* Index in shadow of [length_is] item */
     idl_ulong_int sz_index;     /* Index in shadow of [size_is] item */
     void (**routine_ptr)();
@@ -167,11 +167,15 @@ void rpc_ss_ndr_unmar_cs_array
 
     if ( ! conformant )
     {
-      if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
-        rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
-                                        IDL_msp);
-      else
-        bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
+        {
+            rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
+                                            IDL_msp);
+        }
+        else
+        {
+            bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
         array_defn_ptr += IDL_FIXED_BOUND_PAIR_WIDTH;
         w_storage_len = bounds_list[0].upper - bounds_list[0].lower + 1;
         l_storage_len = w_storage_len;
@@ -193,7 +197,7 @@ void rpc_ss_ndr_unmar_cs_array
         idl_ulong_int lower;
         /* Skip over lower data limit entirely and upper data limit kind */
         array_defn_ptr += IDL_DATA_LIMIT_PAIR_WIDTH/2 + 1;
-        ln_type = *array_defn_ptr;
+
         IDL_GET_LONG_FROM_VECTOR(ln_index, array_defn_ptr);
         ln_index--;
         IDL_UNMAR_ULONG(&lower);     /* A-value */
@@ -730,7 +734,7 @@ void rpc_ss_alloc_out_cs_conf_array
     idl_byte array_type;        /* DT_CONF_ARRAY or DT_OPEN_ARRAY */
     idl_ulong_int array_defn_index;
     idl_byte *array_defn_ptr;
-    idl_ulong_int dimensionality;
+
     idl_ulong_int Z_value;
     idl_byte sz_type;           /* Data type of [size_is] item */
     idl_ulong_int szp_index;    /* Index in parameter list of [size_is] item */
@@ -744,7 +748,6 @@ void rpc_ss_alloc_out_cs_conf_array
                                             /* Discard full array definition */
     IDL_GET_LONG_FROM_VECTOR(array_defn_index,type_vec_ptr);
     array_defn_ptr = IDL_msp->IDL_type_vec + array_defn_index;
-    dimensionality = (idl_ulong_int)*array_defn_ptr;
     array_defn_ptr++;
 
     /* Skip over lower bound entirely and upper bound kind */

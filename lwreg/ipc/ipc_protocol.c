@@ -72,6 +72,7 @@
 
 /******************************************************************************/
 
+#if 0
 // This one is odd because Windows has decided that a security descriptor
 // (that's not a typo... descriptor) changes too much, so the nLength member
 // actually is the size of SECURITY_ATTRIBUTE... so this puts us in a bit of
@@ -100,6 +101,7 @@ static LWMsgTypeSpec gRegSecAttrSpec[] =
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
+#endif
 
 /******************************************************************************/
 

@@ -2,7 +2,6 @@
 
 export CWD=`pwd`
 
-export LW_BUILD_PHOTON=1
 export LW_FEATURE_LEVEL="auth"
 export LSA_RPC_SERVERS="yes"
 export LW_DEVICE_PROFILE="photon"

@@ -242,11 +242,14 @@ CTSpawnProcessWithEnvironment(
     int fd0[2] = {-1, -1};
     int fd1[2] = {-1, -1};
     int fd2[2] = {-1, -1};
+#if 0
     int maxfd = 0;
     struct rlimit rlm;
+#endif
 
     *ppProcInfo = 0;
 
+#if 0
     memset(&rlm, 0, sizeof(struct rlimit));
 
     if (getrlimit(RLIMIT_NOFILE, &rlm) < 0) {
@@ -255,6 +258,7 @@ CTSpawnProcessWithEnvironment(
     }
 
     maxfd = rlm.rlim_max;
+#endif
 
 
     if (dwFdIn >= 0)
@@ -288,9 +292,18 @@ CTSpawnProcessWithEnvironment(
 
     if (pid > 0) {
         /* parent */
-        if (fd0[0] >= 0) close(fd0[0]); fd0[0] = -1;
-        if (fd1[1] >= 0) close(fd1[1]); fd1[1] = -1;
-        if (fd2[1] >= 0) close(fd2[1]); fd2[1] = -1;
+        if (fd0[0] >= 0) {
+            close(fd0[0]);
+            fd0[0] = -1;
+        }
+        if (fd1[1] >= 0) {
+            close(fd1[1]);
+            fd1[1] = -1;
+        }
+        if (fd2[1] >= 0) {
+            close(fd2[1]);
+            fd2[1] = -1;
+        }
 
         ceError = CTAllocateMemory(sizeof(PROCINFO), (PVOID*)&pProcInfo);
         BAIL_ON_CENTERIS_ERROR(ceError);
@@ -308,29 +321,41 @@ CTSpawnProcessWithEnvironment(
     if (pid == 0) {
 
         /* child -- must exit/abort and never bail via goto */
-        if (fd0[1] >= 0) close(fd0[1]); fd0[1] = -1;
-        if (fd1[0] >= 0) close(fd1[0]); fd1[0] = -1;
-        if (fd2[0] >= 0) close(fd2[0]); fd2[0] = -1;
+        if (fd0[1] >= 0) {
+            close(fd0[1]);
+            fd0[1] = -1;
+        }
+        if (fd1[0] >= 0) {
+            close(fd1[0]);
+            fd1[0] = -1;
+        }
+        if (fd2[0] >= 0) {
+            close(fd2[0]);
+            fd2[0] = -1;
+        }
 
         if (fd0[0] != STDIN_FILENO) {
             if (dup2(fd0[0], STDIN_FILENO) != STDIN_FILENO) {
                 abort();
             }
-            close(fd0[0]); fd0[0] = -1;
+            close(fd0[0]);
+            fd0[0] = -1;
         }
 
         if (fd1[1] != STDOUT_FILENO) {
             if (dup2(fd1[1], STDOUT_FILENO) != STDOUT_FILENO) {
                 abort();
             }
-            close(fd1[1]); fd1[1] = -1;
+            close(fd1[1]);
+            fd1[1] = -1;
         }
 
         if (fd2[1] != STDERR_FILENO) {
             if (dup2(fd2[1], STDERR_FILENO) != STDERR_FILENO) {
                 abort();
             }
-            close(fd2[1]); fd2[1] = -1;
+            close(fd2[1]);
+            fd2[1] = -1;
         }
 
         for (iFd = STDERR_FILENO+1; iFd < 20; iFd++)
