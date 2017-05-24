@@ -314,4 +314,8 @@ configure()
         mk_define MINIMAL_LSASS 1
     fi
 
+    if [ "$LW_BUILD_ESX" = "1" ]; then
+        mk_define LW_BUILD_ESX
+    fi
+
 }

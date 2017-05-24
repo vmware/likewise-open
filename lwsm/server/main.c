@@ -118,6 +118,11 @@ LwSmNotify(
     int status
     );
 
+#ifdef LW_BUILD_ESX
+int FIPS_mode(void);
+int FIPS_mode_set(int ONOFF);
+#endif
+
 int
 main(
     int argc,
@@ -125,6 +130,20 @@ main(
     )
 {
     DWORD dwError = 0;
+
+#ifdef LW_BUILD_ESX
+    int mode = FIPS_mode(), r = 0;
+    /* Turning off FIPS mode */
+    if(mode == 1)
+    {
+      SM_LOG_INFO("Turning FIPS off. Current Mode is %d", mode);
+      r = FIPS_mode_set(0);
+      if(r != 1)
+       {
+          SM_LOG_ERROR("Failed to turn off FIPS");
+       }
+    }
+#endif
 
     /* Parse command line */
     dwError = LwSmParseArguments(argc, ppszArgv);

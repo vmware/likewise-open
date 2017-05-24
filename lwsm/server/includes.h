@@ -73,4 +73,6 @@
 #endif
 #include "server.h"
 
+#include <openssl/crypto.h>
+
 #endif
