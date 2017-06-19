@@ -66,6 +66,7 @@ LsaInitializeProvider(
     else
     {
         gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_NOT_JOINED;
+        dwError = 0;
     }
 
     if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)

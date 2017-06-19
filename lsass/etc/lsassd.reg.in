@@ -262,6 +262,10 @@
     default = "@providerdir@/liblsass_auth_provider_vmdir@MOD_EXT@"
     doc = ""
 }
+"BindProtocol" = {
+    default = "Kerberos"
+    doc = "Bind protocol for connecting to vmdir"
+}
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
 "Id" = {
