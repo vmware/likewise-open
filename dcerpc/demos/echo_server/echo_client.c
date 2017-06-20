@@ -26,6 +26,9 @@
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_ext.h>
 
+extern int FIPS_mode_set(int);
+
+
 /* Defines related to GSS authentication */
 
 #ifndef GSSAPI_MECH_SPNEGO
@@ -1319,15 +1322,28 @@ main(
     args * outargs = NULL;
     int params = 0;
     int i = 0;
+    char *envptr = NULL;
 
     argv0 = argv[0];
+
+    envptr = getenv("FIPS_MODE_SET");
+    if (envptr)
+    {
+        FIPS_mode_set(atoi(envptr));
+    }
+    else
+    {
+        FIPS_mode_set(1);
+    }
 
     /*
      * Process the cmd line args
      */
     status = parseArgs(argc, argv, &assocs, &params);
     if (status || assocs.cnt == 0 ||
-        (!assocs.progArgs[0].rpc_host && strcmp(assocs.progArgs[0].protocol, PROTOCOL_NCALRPC) != 0))
+        (!assocs.progArgs[0].rpc_host &&
+         (strcmp(assocs.progArgs[0].protocol, PROTOCOL_NCALRPC) != 0 &&
+          strcmp(assocs.progArgs[0].protocol, PROTOCOL_NP) != 0)))
     {
         fprintf(stderr, "parseArgs: failed %d\n", status);
         return 1;

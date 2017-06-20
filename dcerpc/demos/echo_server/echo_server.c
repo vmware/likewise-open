@@ -41,6 +41,8 @@ void sigpipe_handler(void);
 #endif
 #endif
 
+extern int FIPS_mode_set(int);
+
 /*
  *
  * A template DCE RPC server
@@ -127,11 +129,21 @@ int main(int argc, char *argv[])
     int c;
     int protocol_idx = 0;
     char * spn = NULL;
+    char *envptr = NULL;
+
+    envptr = getenv("FIPS_MODE_SET");
+    if (envptr)
+    {
+        FIPS_mode_set(atoi(envptr));
+    }
+    else
+    {
+        FIPS_mode_set(1);
+    }
 
     /*
      * Process the cmd line args
      */
-
     while ((c = getopt(argc, argv, "a:e:nutl")) != EOF)
     {
         switch (c)
@@ -320,6 +332,7 @@ int main(int argc, char *argv[])
     return(0);
 }
 
+#if 0
 #ifndef _WIN32
 static void
 display_access_token(
@@ -444,6 +457,7 @@ error:
     goto cleanup;
 }
 #endif
+#endif
 
 /*=========================================================================
  *
@@ -469,8 +483,8 @@ ReverseIt(
     unsigned32 dwProtectLevel = 0;
     unsigned32 rpc_status = rpc_s_ok;
     unsigned char *authPrinc = NULL;
-    PACCESS_TOKEN token = NULL;
 #if 0
+    PACCESS_TOKEN token = NULL;
     rpc_transport_info_handle_t transport_info = NULL;
     unsigned32 rpcstatus = 0;
     unsigned char* sesskey = NULL;
@@ -503,6 +517,7 @@ ReverseIt(
         rpc_string_free(&authPrinc, status);
     }
 
+#if 0
     rpc_binding_inq_access_token_caller(
             h,
             &token,
@@ -511,6 +526,7 @@ ReverseIt(
     {
         display_access_token(token);
     }
+#endif
 
 #if 0
     rpc_binding_inq_transport_info(h, &transport_info, &rpcstatus);

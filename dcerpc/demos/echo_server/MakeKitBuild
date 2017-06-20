@@ -48,7 +48,8 @@ make()
             INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
             DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
+
 
         mk_program \
             PROGRAM="echo_server" \
@@ -59,7 +60,7 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
     else
         mk_program \
             PROGRAM="echo_client" \
@@ -70,7 +71,7 @@ make()
             INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
             DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
 
         mk_program \
             PROGRAM="echo_server" \
@@ -81,6 +82,6 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
     fi
 }
