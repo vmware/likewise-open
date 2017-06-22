@@ -1,5 +1,7 @@
 #! /bin/bash
 
+umask 0022
+
 export CWD=`pwd`
 
 export LW_FEATURE_LEVEL="auth"
