@@ -3720,8 +3720,20 @@ LsaDmConnectDomain(
     if ( (!bUseGc && LsaDmIsDomainOffline(hDmState, pszDnsDomainOrForestName)) ||
          (bUseGc && LsaDmIsForestGcOffline(hDmState, pszDnsDomainOrForestName)))
     {
-        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
-        BAIL_ON_LSA_ERROR(dwError);
+        // Domains going offline could be intermittent due to network loss, and there is a good possibility
+        // to recover by detecting if the domain is reachable, before we report it as a domain offline
+        // failure
+        //
+        LSA_LOG_INFO("Transitioning domain '%s' to ONLINE state", LSA_SAFE_LOG_STRING(pszDnsDomainOrForestName));
+        dwError  = LsaDmDetectTransitionOnline(hDmState, pszDnsDomainOrForestName);
+
+        if (dwError)
+        {
+            LSA_LOG_INFO("Could not transition domain '%s' to ONLINE state. Error %u",
+                         LSA_SAFE_LOG_STRING(pszDnsDomainOrForestName), dwError);
+            dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
     if (IsSetFlag(dwConnectFlags, LSA_DM_CONNECT_DOMAIN_FLAG_AUTH))
