@@ -587,11 +587,6 @@ NtRegEnumValueA(
     	status = RtlSafeMultiplyULONG(&cTempData, *pcbData, sizeof(WCHAR));
     	BAIL_ON_NT_STATUS(status);
 
-    	if (cTempData > MAX_VALUE_LENGTH)
-    	{
-    		cTempData = MAX_VALUE_LENGTH;
-    	}
-
     	if (cTempData)
     	{
             status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData);
@@ -780,13 +775,8 @@ NtRegGetValueA(
     {
     	cTempData = (*pcbData)*sizeof(WCHAR);
 
-    	if (cTempData > MAX_VALUE_LENGTH)
-    	{
-    		cTempData = MAX_VALUE_LENGTH;
-    	}
-
-	    status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData*sizeof(WCHAR));
-	    BAIL_ON_NT_STATUS(status);
+	status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData*sizeof(WCHAR));
+	BAIL_ON_NT_STATUS(status);
     }
 
 	status = RegTransactGetValueW(
