@@ -538,10 +538,10 @@ cleanup:
     LWREG_SAFE_FREE_STRING(pszValue);
     LWREG_SAFE_FREE_STRING(regItem.regAttr.pDefaultValue);
     RegSafeFreeCurrentValueInfo(&pCurrValueInfo);
-    LWREG_SAFE_FREE_MEMORY(value);
+    if (dwValueLenMax && value)
+       memset(value, 0, dwValueLenMax);
 
-    if (dwValueLenMax)
-       memset(value, 0 , dwValueLenMax);
+    LWREG_SAFE_FREE_MEMORY(value);
 
     return dwError;
 
