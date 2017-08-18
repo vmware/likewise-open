@@ -113,6 +113,8 @@ SamDbSearchObject(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
+    SAMDB_DBG_CALL;
+
     SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbSearchObject_inlock(

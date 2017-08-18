@@ -1,0 +1,56 @@
+DSAPI Methods for vmdirdb provider:
+
+*VmdirDbOpen - 
+*VmdirDbBind -
+*VmdirDbAddObject - 
+ VmdirDbModifyObject - 
+*VmdirDbSetPassword - 
+ VmdirDbChangePassword - 
+ VmdirDbVerifyPassword - 
+ VmdirDbGetGroupMembers -
+ VmdirDbGetUserMemberships -
+ VmdirDbAddToGroup -
+ VmdirDbRemoveFromGroup -
+ VmdirDbDeleteObject -
+ VmdirDbSearchObject -
+ VmdirDbGetUserCount -
+ VmdirDbGetGroupCount -
+*VmdirDbClose -  
+
+Note: *Initially, most of these methods are stubbed out. Methods marked with a * will be implemented.
+
+DSAPI Plugin API Methods
+SamDbOpen
+SamDbBind
+SamDbAddObject
+SamDbModifyObject
+SamDbSetPassword
+SamDbChangePassword
+SamDbVerifyPassword
+SamDbGetGroupMembers
+SamDbGetUserMemberships
+SamDbAddToGroup
+SamDbRemoveFromGroup
+SamDbDeleteObject
+SamDbSearchObject
+SamDbGetUserCount
+SamDbGetGroupCount
+SamDbClose
+
+VmdirDbOpen
+VmdirDbBind
+VmdirDbAddObject
+VmdirDbModifyObject
+VmdirDbSetPassword
+VmdirDbChangePassword
+VmdirDbVerifyPassword
+VmdirDbGetGroupMembers
+VmdirDbGetUserMemberships
+VmdirDbAddToGroup
+VmdirDbRemoveFromGroup
+VmdirDbDeleteObject
+VmdirDbSearchObject
+VmdirDbGetUserCount
+VmdirDbGetGroupCount
+VmdirDbClose
+

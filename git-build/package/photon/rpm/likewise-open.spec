@@ -13,6 +13,7 @@ Requires(pre,preun): grep, coreutils >= 8.22, openldap >= 2.4, openssl >= 1.0.1,
 ##Prereq: grep, sh-utils
 Obsoletes:   likewise-open-libs, likewise-open-lsass, likewise-open-netlogon, likewise-open-lwio, likewise-open-eventlog, likewise-open-rpc, likewise-open-lwsm, likewise-open-lwreg, likewise-open-srvsvc
 
+%global __os_install_post %{nil}
 %if @PKG_RPM_COMPAT@
 %package compat
 Summary:        Likewise Open (compat libraries)

@@ -33,37 +33,35 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbbind.c
  *
  * Abstract:
  *
  *
  *      Likewise SAM Database Provider
  *
- *      Provider disconnect routines.
+ *      Provider binding and access check routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
  *          Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  *
  */
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
+DWORD
+VmdirDbBind(
+    HANDLE hDirectory,
+    PWSTR  pwszDistinguishedName,
+    PWSTR  pwszCredential,
+    ULONG  ulMethod
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    DWORD dwError = 0;
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
+    return dwError;
 }
 
 

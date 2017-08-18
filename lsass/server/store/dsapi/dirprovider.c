@@ -49,6 +49,10 @@
  */
 #include "includes.h"
 
+#if 0
+#define _USE_VMDIR_DB
+#endif
+
 DWORD
 DirectoryGetProvider(
     PDIRECTORY_PROVIDER* ppProvider
@@ -97,24 +101,36 @@ error:
     goto cleanup;
 }
 
+#ifdef _USE_VMDIR_DB /* TBD:Adam-Get from registry? */
+/* Query registry or add build switch for --enable-winjoin */
+#endif
 DWORD
 DirectoryGetProviderInfo(
     PDIRECTORY_PROVIDER_INFO* ppProviderInfo
     )
 {
     DWORD dwError = 0;
+#ifdef _USE_VMDIR_DB /* TBD:Adam-Get from registry? */
+    PSTR  szProviderPath = VMDIR_DB_PROVIDER_PATH;
+#else
     CHAR  szProviderPath[] = SAM_DB_PROVIDER_PATH;
+#endif
     PDIRECTORY_PROVIDER_INFO pProviderInfo = NULL;
+printf("DirectoryGetProviderInfo: szProviderPath=%s\n", szProviderPath);
 
     dwError = DirectoryAllocateMemory(
                     sizeof(DIRECTORY_PROVIDER_INFO),
                     (PVOID*)&pProviderInfo);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 
+#ifdef _USE_VMDIR_DB /* TBD:Adam-Get from registry? */
+    pProviderInfo->dirType = VMDIR_DB;
+#else
     pProviderInfo->dirType = LOCAL_SAM;
+#endif
 
     dwError = DirectoryAllocateString(
-                    &szProviderPath[0],
+                    szProviderPath,
                     &pProviderInfo->pszProviderPath);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 

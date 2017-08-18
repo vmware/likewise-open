@@ -33,14 +33,14 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbcontext.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      Provider disconnect routines.
+ *      Provider context initialisation routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -50,20 +50,45 @@
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
+
+DWORD
+VmdirDbBuildDirectoryContext(
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps,
+    DWORD                               dwNumObjectClassAttrMaps,
+    PVMDIR_DB_ATTR_LOOKUP                 pAttrLookup,
+    PVMDIR_DIRECTORY_CONTEXT*             ppDirContext
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    DWORD dwError = 0;
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
+    if (dwError)
     {
-        SamDbFreeDirectoryContext(pDirContext);
+        goto error;
     }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
+VOID
+VmdirDbFreeDirectoryContext(
+    PVMDIR_DIRECTORY_CONTEXT pDirContext
+    )
+{
+}
+
+
+VOID
+VmdirDbFreeDbContext(
+    PVMDIR_DB_CONTEXT pDbContext
+    )
+{
 }
 
 

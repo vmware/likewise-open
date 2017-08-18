@@ -312,6 +312,8 @@ SamDbAddObject(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
+    SAMDB_DBG_CALL;
+
     dwError = SamDbGetObjectClass(
                     modifications,
                     &objectClass);

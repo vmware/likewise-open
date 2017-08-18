@@ -33,38 +33,50 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbuser.h
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      Provider disconnect routines.
+ *      VMDIR User Specific Management Methods
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
+#ifndef __VMDIR_DB_USER_H__
+#define __VMDIR_DB_USER_H__
 
-#include "includes.h"
+DWORD
+VmdirDbSetPassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    );
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
-    )
-{
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+DWORD
+VmdirDbChangePassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszOldPassword,
+    PWSTR  pwszNewPassword
+    );
 
-    SAMDB_DBG_CALL;
+DWORD
+VmdirDbVerifyPassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    );
 
+DWORD
+VmdirDbGetUserCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumUsers
+    );
 
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
-}
+#endif /* __VMDIR_DB_USER_H__ */
 
 
 /*

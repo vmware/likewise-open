@@ -33,38 +33,132 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbgroup.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      Provider disconnect routines.
+ *      VMDIR Group Management
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
+
+DWORD
+VmdirDbGetGroupCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumGroups
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
-
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
+    DWORD dwError = 0;
+    return dwError;
 }
+
+DWORD
+VmdirDbGetGroupMembers(
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+
+    if (dwError)
+    {
+        goto error;
+    }
+
+cleanup:
+
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+VmdirDbGetUserMemberships(
+    HANDLE            hBindHandle,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+
+    if (dwError)
+    {
+        goto error;
+    }
+
+cleanup:
+
+
+    return dwError;
+
+error:
+
+
+    goto cleanup;
+}
+
+
+DWORD
+VmdirDbAddToGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntry
+    )
+{
+    DWORD dwError = 0;
+
+    if (dwError)
+    {
+        goto error;
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+VmdirDbRemoveFromGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntry
+    )
+{
+    DWORD dwError = 0;
+
+    if (dwError)
+    {
+        goto error;
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
 
 /*

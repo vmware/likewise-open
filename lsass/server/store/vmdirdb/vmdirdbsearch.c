@@ -33,14 +33,14 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbsearch.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      Provider disconnect routines.
+ *      VMDIR objects searching routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -50,21 +50,32 @@
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
+
+DWORD
+VmdirDbSearchObject(
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             wszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    DWORD dwError = 0;
 
-    SAMDB_DBG_CALL;
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+cleanup:
+    return dwError;
 
 
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
+error:
+    goto cleanup;
+
 }
+
 
 
 /*

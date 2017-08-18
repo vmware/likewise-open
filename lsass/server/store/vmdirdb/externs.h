@@ -28,43 +28,13 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        samdbclose.c
- *
- * Abstract:
- *
- *
- *      Likewise SAM Database Provider
- *
- *      Provider disconnect routines.
- *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *
- */
 
-#include "includes.h"
+#ifndef EXTERNS_H_
+#define EXTERNS_H_
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
-    )
-{
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+extern VMDIR_GLOBALS gVmdirGlobals;
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
-}
+#endif /* EXTERNS_H_ */
 
 
 /*

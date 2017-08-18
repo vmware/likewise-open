@@ -33,38 +33,48 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbadd.c
  *
  * Abstract:
  *
  *
  *      Likewise SAM Database Provider
  *
- *      Provider disconnect routines.
+ *      SAM objects creation routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
  *          Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  *
  */
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
+
+DWORD
+VmdirDbAddObject(
+    HANDLE        hBindHandle,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD modifications[]
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    DWORD dwError = 0;
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
+    if (dwError)
     {
-        SamDbFreeDirectoryContext(pDirContext);
+        goto error;
     }
+
+cleanup:
+
+   return dwError;
+
+error:
+
+    goto cleanup;
 }
+
 
 
 /*
