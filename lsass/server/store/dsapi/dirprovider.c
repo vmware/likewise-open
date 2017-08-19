@@ -49,9 +49,6 @@
  */
 #include "includes.h"
 
-#if 0
-#define _USE_VMDIR_DB
-#endif
 
 DWORD
 DirectoryGetProvider(
@@ -101,33 +98,58 @@ error:
     goto cleanup;
 }
 
-#ifdef _USE_VMDIR_DB /* TBD:Adam-Get from registry? */
-/* Query registry or add build switch for --enable-winjoin */
-#endif
+typedef enum
+{
+    DSAPI_SAMDB = 0,
+    DSAPI_VMDIRDB,
+} DSAPI_TYPE;
+
 DWORD
 DirectoryGetProviderInfo(
     PDIRECTORY_PROVIDER_INFO* ppProviderInfo
     )
 {
     DWORD dwError = 0;
-#ifdef _USE_VMDIR_DB /* TBD:Adam-Get from registry? */
-    PSTR  szProviderPath = VMDIR_DB_PROVIDER_PATH;
-#else
-    CHAR  szProviderPath[] = SAM_DB_PROVIDER_PATH;
-#endif
+    FILE *fp = fopen("/etc/likewise/dsapi.conf", "r");
+    CHAR strBuf[128];
+    PSTR pStrBuf = NULL;
+    DSAPI_TYPE eType = 0;
+    PSTR  szProviderPath = NULL;
     PDIRECTORY_PROVIDER_INFO pProviderInfo = NULL;
-printf("DirectoryGetProviderInfo: szProviderPath=%s\n", szProviderPath);
+
+    /* Determine which DSAPI plugin to use */
+    if (fp)
+    {
+        pStrBuf = fgets(strBuf, sizeof(strBuf)-1, fp);
+        if (pStrBuf)
+        {
+            if (strstr(pStrBuf, "vmdirdb"))
+            {
+                eType = DSAPI_VMDIRDB;
+            }
+        }
+        if (fp)
+        {
+            fclose(fp);
+        }
+    }
 
     dwError = DirectoryAllocateMemory(
                     sizeof(DIRECTORY_PROVIDER_INFO),
                     (PVOID*)&pProviderInfo);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 
-#ifdef _USE_VMDIR_DB /* TBD:Adam-Get from registry? */
-    pProviderInfo->dirType = VMDIR_DB;
-#else
-    pProviderInfo->dirType = LOCAL_SAM;
-#endif
+    if (eType == DSAPI_VMDIRDB)
+    {
+        szProviderPath = VMDIR_DB_PROVIDER_PATH;
+        pProviderInfo->dirType = VMDIR_DB;
+    }
+    else
+    {
+        szProviderPath = SAM_DB_PROVIDER_PATH;
+        pProviderInfo->dirType = LOCAL_SAM;
+    }
+printf("DirectoryGetProviderInfo: szProviderPath=%s\n", szProviderPath);
 
     dwError = DirectoryAllocateString(
                     szProviderPath,
