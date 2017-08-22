@@ -39,17 +39,17 @@ SamDbClose
 
 VmdirDbOpen
 VmdirDbBind
-VmdirDbAddObject
-VmdirDbModifyObject
-VmdirDbSetPassword
-VmdirDbChangePassword
+VmdirDbAddObject                    : ldap_add
+VmdirDbModifyObject                 : ldap_modify
+VmdirDbSetPassword                  : ldap_passwd
+VmdirDbChangePassword               : ldap_passwd
 VmdirDbVerifyPassword
 VmdirDbGetGroupMembers
 VmdirDbGetUserMemberships
 VmdirDbAddToGroup
 VmdirDbRemoveFromGroup
-VmdirDbDeleteObject
-VmdirDbSearchObject
+VmdirDbDeleteObject                 : ldap_delete
+VmdirDbSearchObject                 : ldap_search (ldap_search_ext)
 VmdirDbGetUserCount
 VmdirDbGetGroupCount
 VmdirDbClose
