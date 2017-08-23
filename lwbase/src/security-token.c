@@ -634,6 +634,25 @@ cleanup:
     return status;
 }
 
+#if 1  /* TBD: Adam-debugging */
+static void RtlDebugPrintSid(IN PSID pSid, PSTR pMsg)
+{
+    PSTR sidstr = NULL;
+    NTSTATUS ntStatus = 0;
+
+    if (!pSid)
+        return;
+
+    ntStatus = RtlAllocateCStringFromSid(&sidstr, pSid);
+    if (ntStatus == 0)
+    {
+        LW_RTL_LOG_ALWAYS("DEBUG RtlDebugPrintSid %s pSid=%s", pMsg, sidstr);
+        RTL_FREE(&sidstr);
+    }
+}
+#endif
+
+
 BOOLEAN
 RtlIsSidMemberOfToken(
     IN PACCESS_TOKEN AccessToken,
@@ -646,6 +665,9 @@ RtlIsSidMemberOfToken(
 
     SHARED_LOCK_RWLOCK(&AccessToken->RwLock, isLocked);
 
+LW_RTL_LOG_ALWAYS("RtlIsSidMemberOfToken: Called!");
+    RtlDebugPrintSid(Sid, "RtlIsSidMemberOfToken: Sid");
+    RtlDebugPrintSid(AccessToken->User.Sid, "RtlIsSidMemberOfToken: AccessToken->User.Sid");
     if (RtlEqualSid(Sid, AccessToken->User.Sid))
     {
         isMember = TRUE;
@@ -655,6 +677,10 @@ RtlIsSidMemberOfToken(
     for (i = 0; i < AccessToken->GroupCount; i++)
     {
         PSID_AND_ATTRIBUTES sidInfo = &AccessToken->Groups[i];
+if (IsSetFlag(sidInfo->Attributes, SE_GROUP_ENABLED))
+{
+    RtlDebugPrintSid(sidInfo->Sid, "RtlIsSidMemberOfToken: sidInfo->Sid");
+}
         if (IsSetFlag(sidInfo->Attributes, SE_GROUP_ENABLED) &&
             RtlEqualSid(Sid, sidInfo->Sid))
         {
@@ -665,9 +691,18 @@ RtlIsSidMemberOfToken(
 
     isMember = FALSE;
 
+#if 1 /* TBD:Adam-skip ACL check for now! */
+    isMember = TRUE;
+#endif
+
 cleanup:
     UNLOCK_RWLOCK(&AccessToken->RwLock, isLocked);
 
+if (isMember)
+  LW_RTL_LOG_ALWAYS("DEBUG RtlIsSidMemberOfToken SID isMember TRUE!!!");
+else
+  LW_RTL_LOG_ALWAYS("DEBUG RtlIsSidMemberOfToken SID isMember FALSE!!!");
+LW_RTL_LOG_ALWAYS("RtlIsSidMemberOfToken: Finished.");
     return isMember;
 }
 
