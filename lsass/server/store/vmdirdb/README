@@ -39,7 +39,7 @@ SamDbClose
 
 VmdirDbOpen
 VmdirDbBind
-VmdirDbAddObject                    : ldap_add
+VmdirDbAddObject                    : ldap_add / ldap_add_ext
 VmdirDbModifyObject                 : ldap_modify
 VmdirDbSetPassword                  : ldap_passwd
 VmdirDbChangePassword               : ldap_passwd
@@ -53,4 +53,73 @@ VmdirDbSearchObject                 : ldap_search (ldap_search_ext)
 VmdirDbGetUserCount
 VmdirDbGetGroupCount
 VmdirDbClose
+
+
+==============================================
+# Breakpoints regex
+grep '\.pfn' samdbinit.c | sed -e 's/.*= &//' -e 's/,//' -e 's/^/b /'
+grep '\.pfn' vmdirdbinit.c | sed -e 's/.*= &//' -e 's/,//' -e 's/^/b /'
+
+
+int ldap_add_ext(
+       LDAP *ld,
+       const char *dn,
+       LDAPMod **attrs,
+       LDAPControl **sctrls,
+       LDAPControl **cctrls,
+       int *msgidp );
+
+#if LDAP_DEPRECATED
+LDAP_F( int )
+ldap_add LDAP_P((       /* deprecated, use ldap_add_ext */
+        LDAP *ld,
+        LDAP_CONST char *dn,
+        LDAPMod **attrs ));
+
+
+
+
+b SamrSrvEnumDomains
+b SamrSrvLookupDomain
+
+b VmdirDbSearchObject
+b SamDbSearchObject
+
+
+
+
+b SamDbOpen
+b SamDbBind
+b SamDbAddObject
+b SamDbModifyObject
+b SamDbSetPassword
+b SamDbChangePassword
+b SamDbVerifyPassword
+b SamDbGetGroupMembers
+b SamDbGetUserMemberships
+b SamDbAddToGroup
+b SamDbRemoveFromGroup
+b SamDbDeleteObject
+b SamDbSearchObject
+b SamDbGetUserCount
+b SamDbGetGroupCount
+b SamDbClose
+
+
+b VmdirDbOpen
+b VmdirDbBind
+b VmdirDbAddObject
+b VmdirDbModifyObject
+b VmdirDbSetPassword
+b VmdirDbChangePassword
+b VmdirDbVerifyPassword
+b VmdirDbGetGroupMembers
+b VmdirDbGetUserMemberships
+b VmdirDbAddToGroup
+b VmdirDbRemoveFromGroup
+b VmdirDbDeleteObject
+b VmdirDbSearchObject
+b VmdirDbGetUserCount
+b VmdirDbGetGroupCount
+b VmdirDbClose
 
