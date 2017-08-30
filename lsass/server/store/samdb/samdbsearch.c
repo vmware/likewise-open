@@ -113,7 +113,11 @@ SamDbSearchObject(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    SAMDB_DBG_CALL;
+{
+    PSTR pszFilter = SamDbDebugWC16ToC(pwszFilter);
+    SAMDB_DBG_CALL("\n ------> pwszFilter=", pszFilter);
+    LW_SAFE_FREE_STRING(pszFilter);
+}
 
     SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 

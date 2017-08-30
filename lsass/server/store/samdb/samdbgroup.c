@@ -83,7 +83,7 @@ SamDbGetGroupCount(
     PDWORD pdwNumGroups
     )
 {
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     return SamDbGetObjectCount(
                 hBindHandle,
@@ -119,12 +119,14 @@ SamDbGetGroupMembers(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+
 
     dwError = LwWc16sToMbs(
                     pwszGroupDN,
                     &pszGroupDN);
     BAIL_ON_SAMDB_ERROR(dwError);
+
+    SAMDB_DBG_CALL("\n ------> pwszGroupDN=", pszGroupDN);
 
     SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
@@ -216,7 +218,7 @@ SamDbGetUserMemberships(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     dwError = LwWc16sToMbs(
                     pwszUserDN,
@@ -725,7 +727,11 @@ SamDbAddToGroup(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+{
+    PSTR pszGroupDN = SamDbDebugWC16ToC(pwszGroupDN);
+    SAMDB_DBG_CALL("\n ------> pwszGroupDN=", pszGroupDN);
+    LW_SAFE_FREE_STRING(pszGroupDN);
+}
 
     dwError = LwWc16sToMbs(
                     pwszGroupDN,
@@ -887,7 +893,7 @@ SamDbRemoveFromGroup(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     dwError = LwWc16sToMbs(
                     pwszGroupDN,

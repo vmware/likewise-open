@@ -71,7 +71,7 @@ SamDbDeleteObject(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     dwError = SamDbParseDN(
                     pwszObjectDN,

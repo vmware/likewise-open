@@ -55,6 +55,31 @@ VmdirDbGetGroupCount
 VmdirDbClose
 
 
+samdb Plugin types to vmdirdb (ldap) types translation
+                               objectClass = ->
+    SAMDB_OBJECT_CLASS_UNKNOWN         = 0,
+    SAMDB_OBJECT_CLASS_DOMAIN          = 1,  -> (???) fqdn->dn (dc=lightwave,dc=local)
+    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2,  -> Search base = "cn=builtin,dc=lightwave,dc=local"
+    SAMDB_OBJECT_CLASS_CONTAINER       = 3,  -> container
+    SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4,
+    SAMDB_OBJECT_CLASS_USER            = 5,  -> user
+    SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER = 6,
+
+logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.97.57  -w VMware123@"
+
+# List everything
+ldapsearch $logindata -b dc=lightwave,dc=local '(cn=*)' + - '*'  \
+
+#List SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN = 2:
+ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid \
+
+# List SAMDB_OBJECT_CLASS_CONTAINER = 3:
+ldapsearch $logindata "(&(objectClass=container)(cn=*))" cn  \
+
+# List SAMDB_OBJECT_CLASS_USER = 5:
+ldapsearch $logindata -b cn=lightwave,dc=local '(cn=*)' cn   \
+
+
 ==============================================
 # Breakpoints regex
 grep '\.pfn' samdbinit.c | sed -e 's/.*= &//' -e 's/,//' -e 's/^/b /'

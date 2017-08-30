@@ -58,7 +58,7 @@ SamDbOpen(
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
     dwError = SamDbBuildDirectoryContext(
                     gSamGlobals.pObjectClassAttrMaps,
                     gSamGlobals.dwNumObjectClassAttrMaps,

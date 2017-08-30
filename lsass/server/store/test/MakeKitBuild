@@ -2,8 +2,8 @@ make()
 {
     mk_program \
         PROGRAM="test_open" \
-        SOURCES="test_open.c" \
-        INCLUDEDIRS=". ../include ../../include ../../../include" \
+        SOURCES="test_open.c ../vmdirdb/vmdirdb_utils.c " \
+        INCLUDEDIRS=". .. ../include ../../include ../../../include" \
         HEADERDEPS="includes.h" \
-        LIBDEPS="uuid lwbase crypto dsapi"
+        LIBDEPS="uuid lwbase lwbase_nothr lwadvapi lwadvapi_nothr crypto dsapi"
 }

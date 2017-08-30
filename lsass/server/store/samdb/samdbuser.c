@@ -77,7 +77,13 @@ SamDbSetPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+
+{
+    PSTR pszUserDN = SamDbDebugWC16ToC(pwszUserDN);
+    SAMDB_DBG_CALL("\n ------> pwszUserDN=", pszUserDN);
+    LW_SAFE_FREE_STRING(pszUserDN);
+}
+
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
@@ -238,7 +244,7 @@ SamDbChangePassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
@@ -278,7 +284,7 @@ SamDbVerifyPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
@@ -450,7 +456,7 @@ SamDbGetUserCount(
     PDWORD pdwNumUsers
     )
 {
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
     return SamDbGetObjectCount(
                 hBindHandle,
