@@ -83,6 +83,17 @@ VmdirDbOpen(
     dwError = VmDirCreateBindInfo(&pBindInfo);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    /* TBD:Adam-Maybe need to lock mutex around this operation */
+    if (!gVmdirGlobals.pLdapMap)
+    {
+        dwError = VmDirAllocLdapQueryMap(
+            pBindInfo->pszSearchBase,
+            &gVmdirGlobals.pLdapMap);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+        dwError = VmDirAllocLdapAttributeMap(&gVmdirGlobals.pLdapAttrMap);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
 #if 0
 typedef struct _VMDIR_BIND_INFO
 {
@@ -98,7 +109,6 @@ typedef struct _VMDIR_BIND_INFO
 } VMDIR_BIND_INFO, *PVMDIR_BIND_INFO;
 
 #endif
-
     dwError = VmDirLdapInitialize(
                   pBindInfo->pszURI,
                   pBindInfo->pszUPN,

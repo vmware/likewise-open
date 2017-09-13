@@ -58,7 +58,7 @@ VmdirDbClose
 samdb Plugin types to vmdirdb (ldap) types translation
                                objectClass = ->
     SAMDB_OBJECT_CLASS_UNKNOWN         = 0,
-    SAMDB_OBJECT_CLASS_DOMAIN          = 1,  -> (???) fqdn->dn (dc=lightwave,dc=local)
+    SAMDB_OBJECT_CLASS_DOMAIN          = 1,  -> (???) ou=Domain Controllers,dc=lightwave,dc=local
     SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2,  -> Search base = "cn=builtin,dc=lightwave,dc=local"
     SAMDB_OBJECT_CLASS_CONTAINER       = 3,  -> container
     SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4,
@@ -68,7 +68,11 @@ samdb Plugin types to vmdirdb (ldap) types translation
 logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.97.57  -w VMware123@"
 
 # List everything
+#                     Base                     Filter  attributes
 ldapsearch $logindata -b dc=lightwave,dc=local '(cn=*)' + - '*'  \
+
+# List SAMDB_OBJECT_CLASS_DOMAIN        = 1:  -> (???) ou=Domain Controllers,dc=lightwave,dc=local
+ldapsearch $logindata -b "ou=Domain Controllers,dc=lightwave,dc=local" '(cn=*)' cn  objectSid \
 
 #List SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN = 2:
 ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid \
@@ -77,7 +81,7 @@ ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid
 ldapsearch $logindata "(&(objectClass=container)(cn=*))" cn  \
 
 # List SAMDB_OBJECT_CLASS_USER = 5:
-ldapsearch $logindata -b cn=lightwave,dc=local '(cn=*)' cn   \
+ldapsearch $logindata -b dc=lightwave,dc=local '(cn=*)' cn   \
 
 
 ==============================================
@@ -148,3 +152,26 @@ b VmdirDbGetUserCount
 b VmdirDbGetGroupCount
 b VmdirDbClose
 
+
+
+db) x/hs pDirectoryEntries[0].pAttributes [0].pwszName
+0x64b490:       u"CommonName"
+(gdb) x/hs pDirectoryEntries[0].pAttributes [0].pValues.data.pwszStringValue
+0x6637e0:       u"PHOTON-102-TEST"
+
+(gdb) x/hs pDirectoryEntries[0].pAttributes [1].pwszName
+0x663810:       u"ObjectSID"
+(gdb) x/hs pDirectoryEntries[0].pAttributes [1].pValues.data.pwszStringValue
+0x661210:       u"S-1-5-21-2863089035-1413825318-3321153934"
+
+
+(gdb) x/hs pDirectoryEntries[1].pAttributes [0].pwszName
+0x661270:       u"CommonName"
+(gdb) x/hs pDirectoryEntries[1].pAttributes [0].pValues.data.pwszStringValue
+0x661310:       u"BUILTIN"
+
+(gdb) x/hs pDirectoryEntries[1].pAttributes [1].pwszName
+0x663cd0:       u"ObjectSID"
+(gdb) x/hs pDirectoryEntries[1].pAttributes [1].pValues.data.pwszStringValue
+0x661350:       u"S-1-5-32"
+~                                 

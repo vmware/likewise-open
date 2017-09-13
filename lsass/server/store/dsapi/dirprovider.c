@@ -98,12 +98,6 @@ error:
     goto cleanup;
 }
 
-typedef enum
-{
-    DSAPI_SAMDB = 0,
-    DSAPI_VMDIRDB,
-} DSAPI_TYPE;
-
 DWORD
 DirectoryGetProviderInfo(
     PDIRECTORY_PROVIDER_INFO* ppProviderInfo
@@ -113,8 +107,7 @@ DirectoryGetProviderInfo(
     FILE *fp = fopen("/etc/likewise/dsapi.conf", "r");
     CHAR strBuf[128];
     PSTR pStrBuf = NULL;
-    DSAPI_TYPE eType = 0;
-    PSTR  szProviderPath = NULL;
+    PSTR  szProviderPath = SAM_DB_PROVIDER_PATH;
     PDIRECTORY_PROVIDER_INFO pProviderInfo = NULL;
 
     /* Determine which DSAPI plugin to use */
@@ -123,10 +116,8 @@ DirectoryGetProviderInfo(
         pStrBuf = fgets(strBuf, sizeof(strBuf)-1, fp);
         if (pStrBuf)
         {
-            if (strstr(pStrBuf, "vmdirdb"))
-            {
-                eType = DSAPI_VMDIRDB;
-            }
+            pStrBuf[strlen(pStrBuf)-1] = '\0';
+            szProviderPath = pStrBuf;
         }
         if (fp)
         {
@@ -139,16 +130,6 @@ DirectoryGetProviderInfo(
                     (PVOID*)&pProviderInfo);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 
-    if (eType == DSAPI_VMDIRDB)
-    {
-        szProviderPath = VMDIR_DB_PROVIDER_PATH;
-        pProviderInfo->dirType = VMDIR_DB;
-    }
-    else
-    {
-        szProviderPath = SAM_DB_PROVIDER_PATH;
-        pProviderInfo->dirType = LOCAL_SAM;
-    }
 printf("DirectoryGetProviderInfo: szProviderPath=%s\n", szProviderPath);
 
     dwError = DirectoryAllocateString(

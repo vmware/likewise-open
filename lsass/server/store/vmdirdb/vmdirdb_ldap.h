@@ -112,3 +112,46 @@ VOID
 VmDirLdapClose(
 	LDAP* pLd
 	);
+
+DWORD
+VmDirAllocLdapQueryMap(
+    PSTR pszSearchBase,
+    PVMDIRDB_LDAPQUERY_MAP *ppLdapMap
+    );
+
+/* Map SQL search string to LDAP search terms */
+DWORD
+VmDirGetFilterLdapQueryMap(
+    PSTR pszSql,
+    PSTR *ppszSearchBase, /* Do not free, this is an alias */
+    PSTR *ppszLdapFilter, /* Do not free, this is an alias */
+    DWORD *puScope
+    ); /* Do not free, this is an alias */
+
+/* Map SQL attribute(s) to LDAP attribute(s) */
+DWORD
+VmdirFindLdapAttributeList(
+    PWSTR *ppwszAttributes,
+    PSTR **pppszLdapAttributes
+    );
+
+DWORD
+VmDirFreeLdapQueryMap(
+    PVMDIRDB_LDAPQUERY_MAP *ppLdapMap
+    );
+
+
+DWORD
+VmDirAllocLdapAttributeMap(
+    PVMDIRDB_LDAPATTR_MAP *ppAttrMap
+    );
+
+DWORD
+VmdirFreeLdapAttributeMap(
+    PVMDIRDB_LDAPATTR_MAP *ppAttrMap
+    );
+
+DWORD
+VmdirFreeLdapAttributeList(
+    PSTR **pppszLdapAttributes
+    );
