@@ -155,3 +155,8 @@ DWORD
 VmdirFreeLdapAttributeList(
     PSTR **pppszLdapAttributes
     );
+
+DWORD
+VmDirFindLdapQueryMapEntry(
+    PSTR pszSqlQuery,
+    PVMDIRDB_LDAPQUERY_MAP_ENTRY *ppQueryMapEntry);
