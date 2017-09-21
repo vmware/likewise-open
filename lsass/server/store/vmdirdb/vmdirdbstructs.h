@@ -78,13 +78,28 @@ typedef DWORD (*VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC)(
     PDIRECTORY_ENTRY out
     );
 
+/* Printf-like function. Data parsed from the SQL filter
+   is passed in as arguments. LDAP filter syntax like the
+   following will use that data:
+   (&(ObjectClass=dcObject)(entryDn=%dn))
+*/
+typedef PSTR (*VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC)(
+    PSTR pszLdapFilterTemplate,
+    ...
+    );
+
 typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
 {
     PSTR pszSqlQuery;
     PSTR pszLdapQuery;
     PSTR pszLdapBase;
     PSTR *ppszLdapAttributes; /* optional */
-    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform; /* optional */
+ 
+    /* Optional: Construct ldap filter helper */
+    VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC pfnLdapFilterPrintf;  
+
+    /* Optional: DIRECTORY_ENTRY constructor helper function */
+    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform;
     ULONG uScope;
 } VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
 
