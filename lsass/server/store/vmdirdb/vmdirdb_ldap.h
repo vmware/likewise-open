@@ -131,9 +131,16 @@ VmDirGetFilterLdapQueryMap(
 /* Map SQL attribute(s) to LDAP attribute(s) */
 DWORD
 VmdirFindLdapAttributeList(
+    PSTR *ppszAttributes,
+    PSTR **pppszLdapAttributes,
+    PDWORD *ppdwLdapAttributeTypes);
+
+/* Map override attribute(s) to LDAP attribute(s) */
+DWORD
+VmdirFindLdapPwszAttributeList(
     PWSTR *ppwszAttributes,
-    PSTR **pppszLdapAttributes
-    );
+    PSTR **pppszLdapAttributes,
+    PDWORD *ppdwLdapAttributeTypes);
 
 DWORD
 VmDirFreeLdapQueryMap(

@@ -216,8 +216,8 @@ DirectoryGetEntryAttributeByName(
     for (i = 0; i < pEntry->ulNumAttributes; i++) {
         pAttribute = &(pEntry->pAttributes[i]);
 
-        if (wc16scmp(pAttribute->pwszName,
-                     pwszAttrName) == 0) {
+        if (wc16scasecmp(pAttribute->pwszName,
+                         pwszAttrName) == 0) {
             pAttrFound = pAttribute;
             break;
         }

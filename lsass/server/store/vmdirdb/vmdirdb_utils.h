@@ -7,8 +7,7 @@ VmDirGetDefaultSearchBase(
 DWORD
 VmDirAttributesFromWc16Attributes(
     PWSTR *wszAttributes,
-    PSTR **pppszAttributes,
-    DWORD *pdwAttrCount
+    PSTR **pppszAttributes
     );
 
 DWORD
@@ -19,8 +18,7 @@ VmDirAttributesFree(
 DWORD
 VmDirAttributesWc16FromCAttributes(
     PSTR *pszAttributes,
-    PWSTR **pppwszAttributes,
-    DWORD *pdwAttrCount
+    PWSTR **pppwszAttributes
     );
 
 DWORD
