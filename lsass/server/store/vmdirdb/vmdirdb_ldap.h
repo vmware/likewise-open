@@ -167,3 +167,15 @@ DWORD
 VmDirFindLdapQueryMapEntry(
     PSTR pszSqlQuery,
     PVMDIRDB_LDAPQUERY_MAP_ENTRY *ppQueryMapEntry);
+
+DWORD
+VmdirDbAllocateEntriesAndAttributes(
+    DWORD dwNumEntries,     /* Number of directory entries */
+    PDWORD pdwAttributesCount,
+    PDIRECTORY_ENTRY *ppDirectoryEntries);
+
+DWORD
+VmDirAttributeCopyEntry(
+    PDIRECTORY_ATTRIBUTE out,
+    PDIRECTORY_ATTRIBUTE in);
+

@@ -130,7 +130,7 @@ error:
     goto cleanup;
 }
 
-static DWORD
+DWORD
 VmdirDbAllocateEntriesAndAttributes(
     DWORD dwNumEntries,     /* Number of directory entries */
     PDWORD pdwAttributesCount,
@@ -229,7 +229,6 @@ VmdirDbAllocateEntriesAndAttributesValues(
 
             for (i=0; berLdapRetQuery[i]; i++)
             {
-                /* TBD:Adam-Deal with binary data types */
                 if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     ntStatus = LwRtlWC16StringAllocateFromCString(
@@ -242,6 +241,7 @@ VmdirDbAllocateEntriesAndAttributesValues(
                 }
                 else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
                 {
+                    /* Deal with binary data types */
                     dwError = LwAllocateMemory(sizeof(OCTET_STRING),
                                                (VOID*) &pBinaryData);
                     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
@@ -304,6 +304,7 @@ VmdirDbSearchObject(
     LDAPMessage *pRes = NULL;
     PDIRECTORY_ENTRY pDirectoryEntries = NULL;
     PDIRECTORY_ENTRY pTransformDirectoryEntries = NULL;
+                      
     DWORD dwNumEntries = 0;
     PVMDIRDB_LDAPQUERY_MAP_ENTRY pQueryMapEntry = NULL;
     VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform = NULL;
@@ -406,24 +407,29 @@ VmdirDbSearchObject(
 
     if (pfnTransform)
     {
+#if 1
+        dwError = pfnTransform(
+                      dwNumEntries,
+                      pDirectoryEntries,
+                      &pTransformDirectoryEntries);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+
+        /* TBD:Adam-Cleanup the entire pDirectoryEntries structure on some failure */
+        LW_SAFE_FREE_MEMORY(pDirectoryEntries);
+        pDirectoryEntries = pTransformDirectoryEntries;
+#else
         dwError = VmdirDbAllocateEntriesAndAttributes(
                       dwNumEntries,
                       pdwAttributesCount,
                       &pTransformDirectoryEntries);
         BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        dwError = pfnTransform(
-                      ppszLdapAttributes, /* TBD: not needed; transform function is query specific */
-                      dwNumEntries,
-                      pDirectoryEntries,
-                      pTransformDirectoryEntries);
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-
         /* TBD:Adam-Cleanup the entire pDirectoryEntries structure on some failure */
         LW_SAFE_FREE_MEMORY(pDirectoryEntries);
         pDirectoryEntries = pTransformDirectoryEntries;
-    }
+#endif
 
+    }
 
     *ppDirectoryEntries = pDirectoryEntries;
     *pdwNumEntries = dwNumEntries;
