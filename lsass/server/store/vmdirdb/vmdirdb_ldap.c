@@ -1470,6 +1470,56 @@ error:
     goto cleanup;
 }
 
+/*
+ * "DistinguishedName='CN=PHOTON--59U15NB$,dc=photon-102-test'"
+ */
+static PSTR
+pfnSqlToLdapDistinguishedNameXform(
+    PSTR pszLdapFilter,
+    ...)
+{
+    NTSTATUS ntStatus = 0;
+    PSTR pszModifiedFilter = NULL;
+    PSTR *ppszAttributes = NULL;
+    PSTR pszDomainNameIn = NULL;
+    PSTR pszPtr = NULL;
+
+    va_list ap;
+
+    va_start(ap, pszLdapFilter);
+    ppszAttributes = (PSTR *) va_arg(ap, char **);
+
+    pszDomainNameIn = ppszAttributes[0];
+    if (!pszDomainNameIn)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+    pszPtr = strchr(pszDomainNameIn, ',');
+    if (!pszPtr || pszPtr[0] != ',' || !pszPtr[1])
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszModifiedFilter,
+                   pszLdapFilter,
+                   &pszPtr[1]);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    
+
+cleanup:
+    va_end(ap);
+
+    return pszModifiedFilter;
+
+error:
+    LW_SAFE_FREE_MEMORY(pszModifiedFilter);
+    goto cleanup;
+}
+
+
 
 /* ====== LDAP response to DIRECTORY_ENTRY translation callback functions ====*/
 
@@ -1949,6 +1999,35 @@ VmDirAllocLdapQueryMap(
                   NULL, /* Attribute types */
                   pfnSqlToLdapsamAcctAndDomainXform, /* ldap transform callback */
                   NULL, /* DE transform callback */
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL, /* override attributes */
+                  NULL, /* Attribute types */
+                  pfnSqlToLdapsamAcctAndDomainXform, /* ldap transform callback */
+                  NULL, /* DE transform callback */
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "DistinguishedName='%s'",
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(dn=%s)",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL, /* override attributes */
+                  NULL, /* Attribute types */
+                  pfnSqlToLdapDistinguishedNameXform, /* ldap transform callback */
+                  NULL,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
