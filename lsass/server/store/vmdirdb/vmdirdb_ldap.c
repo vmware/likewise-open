@@ -1343,7 +1343,11 @@ error:
 
 /* ================== SQL to LDAP translation callback functions =============*/
 
-/* "ObjectClass=1 AND Domain='lightwave.local'" */
+/* 
+ * "ObjectClass=1 AND Domain='lightwave.local'"
+ *
+ * "(&(objectclass=dcObject)(entryDn=%s))"
+ */
 static PSTR
 pfnSqlToLdapEntryDnXform(
     PSTR pszLdapFilter,
@@ -1389,6 +1393,8 @@ error:
 /*
  * Handle filter of this form:
  * "(ObjectClass=1 OR ObjectClass=2) AND ObjectSID='S-1-5-21-100314066-221396614-742840509'"
+ *
+ * "(&(objectclass=dcObject)(objectSid=%s))",
  */
 static PSTR
 pfnSqlToLdapObjectSidXform(
@@ -1472,6 +1478,8 @@ error:
 
 /*
  * "DistinguishedName='CN=PHOTON--59U15NB$,dc=photon-102-test'"
+ * 
+ * "(dn=CN=PHOTON--59U15NB$)"
  */
 static PSTR
 pfnSqlToLdapDistinguishedNameXform(
@@ -1482,7 +1490,9 @@ pfnSqlToLdapDistinguishedNameXform(
     PSTR pszModifiedFilter = NULL;
     PSTR *ppszAttributes = NULL;
     PSTR pszDomainNameIn = NULL;
+    PSTR pszCommonName = NULL;
     PSTR pszPtr = NULL;
+    DWORD i = 0;
 
     va_list ap;
 
@@ -1495,19 +1505,50 @@ pfnSqlToLdapDistinguishedNameXform(
         ntStatus = STATUS_NOT_FOUND;
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
-    pszPtr = strchr(pszDomainNameIn, ',');
-    if (!pszPtr || pszPtr[0] != ',' || !pszPtr[1])
+
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszCommonName,
+                   "%s",
+                   ppszAttributes[0]);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    for (i=0; pszCommonName[i]; i++)
+    {
+        pszCommonName[i] = (char) tolower((int) pszCommonName[i]);
+    }
+
+    if (i < 3 ||
+        pszCommonName[0] != 'c' ||
+        pszCommonName[1] != 'n' ||
+        pszCommonName[2] != '=')
     {
         ntStatus = STATUS_NOT_FOUND;
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
 
+    pszPtr = strchr(pszCommonName, ',');
+    if (!pszPtr || pszPtr[0] != ',' || !pszPtr[1])
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+    pszPtr[0] = '\0';
+
+#if 1 /* TBD:Adam-zzz */
+#endif
+    /* Build the actual dn value; cn=xyz, */
+
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszCommonName,
+                   ",cn=users,%s",
+                   gVmdirGlobals.pszDomainDn);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
     ntStatus = LwRtlCStringAllocateAppendPrintf(
                    &pszModifiedFilter,
                    pszLdapFilter,
-                   &pszPtr[1]);
+                   pszCommonName);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-    
 
 cleanup:
     va_end(ap);
@@ -1516,6 +1557,7 @@ cleanup:
 
 error:
     LW_SAFE_FREE_MEMORY(pszModifiedFilter);
+    LW_SAFE_FREE_STRING(pszCommonName);
     goto cleanup;
 }
 
@@ -1527,6 +1569,8 @@ error:
 /*
  * SQL Filter: "ObjectClass=1 OR ObjectClass=2"
  * SQL Attributes: "entryDn" -> "CommonName"
+ *
+ * LDAP Filter: "(objectclass=dcObject)",
  */
 static DWORD
 pfnLdap2DirectoryEntryDnToCn(
@@ -1605,6 +1649,9 @@ pfnLdap2DirectoryEntryDnToCn(
     pOut[0].pAttributes[0].pValues[0].data.pwszStringValue = pwszDomainName;
     pOut[0].pAttributes[0].pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
 
+    /* Save domain name for later use */
+    gVmdirGlobals.pszDomainDn = pszDn;
+
     *ppOut = pOut;
 
 cleanup:
@@ -1613,6 +1660,7 @@ cleanup:
 error:
     LW_SAFE_FREE_MEMORY(pwszCommonName);
     LW_SAFE_FREE_MEMORY(pOut);
+    LW_SAFE_FREE_STRING(pszDn);
     goto cleanup;
 }
 
@@ -1945,7 +1993,6 @@ VmDirAllocLdapQueryMap(
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-/*zzz */
     dwError = VmDirAllocLdapQueryMapEntry(
                   "ObjectClass=1 AND Domain='%s'", /* "ObjectClass=1 AND Domain='lightwave.local'" */
                   NULL,                    /* SearchBasePrefix (optional) */
@@ -1988,21 +2035,6 @@ VmDirAllocLdapQueryMap(
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-
-    dwError = VmDirAllocLdapQueryMapEntry(
-                  "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",
-                  NULL,                    /* SearchBasePrefix (optional) */
-                  pszSearchBase,
-                  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))",
-                  LDAP_SCOPE_SUBTREE,
-                  NULL, /* override attributes */
-                  NULL, /* Attribute types */
-                  pfnSqlToLdapsamAcctAndDomainXform, /* ldap transform callback */
-                  NULL, /* DE transform callback */
-                  i++,
-                  pLdapMap);
-    BAIL_ON_VMDIRDB_ERROR(dwError);
-
 
     dwError = VmDirAllocLdapQueryMapEntry(
                   "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",

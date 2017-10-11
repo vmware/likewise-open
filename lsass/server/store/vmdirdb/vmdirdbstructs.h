@@ -148,6 +148,7 @@ typedef struct _VMDIR_GLOBALS
     VMDIRDB_BIND_PROTOCOL bindProtocol;
     PVMDIRDB_LDAPQUERY_MAP pLdapMap;
     PVMDIRDB_LDAPATTR_MAP pLdapAttrMap;
+    PSTR pszDomainDn;
 } VMDIR_GLOBALS, *PVMDIR_GLOBALS;
 
 typedef struct _VMDIR_DB_DOMAIN_INFO
