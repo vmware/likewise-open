@@ -1341,6 +1341,80 @@ error:
     goto cleanup;
 }
 
+static DWORD
+VmDirConstructMachineDN(
+    PSTR pszSqlDomainName,
+    PSTR pszLdapBase,  /* optional argument */
+    PSTR *ppszMachineAcctDN)
+{
+    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    PSTR pszDnPtr = NULL;
+    PSTR pszPtr = NULL;
+    DWORD i = 0;
+    
+    if (!pszSqlDomainName || !ppszMachineAcctDN)
+    {
+        dwError =  LwNtStatusToWin32Error(STATUS_NOT_FOUND);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszDnPtr,
+                   "%s",
+                   pszSqlDomainName);
+    dwError =  LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (i=0; pszDnPtr[i]; i++)
+    {
+        pszDnPtr[i] = (char) tolower((int) pszDnPtr[i]);
+    }
+
+    if (i < 3 ||
+        pszDnPtr[0] != 'c' ||
+        pszDnPtr[1] != 'n' ||
+        pszDnPtr[2] != '=')
+    {
+        dwError = LwNtStatusToWin32Error(STATUS_NOT_FOUND);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    pszPtr = strchr(pszDnPtr, ',');
+    if (!pszPtr || pszPtr[0] != ',' || !pszPtr[1])
+    {
+        dwError = LwNtStatusToWin32Error(STATUS_NOT_FOUND);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    pszPtr[0] = '\0';
+
+    /* Build the actual dn: value cn=xyz,cn=users, name component */
+    if (pszLdapBase)
+    {
+        ntStatus = LwRtlCStringAllocateAppendPrintf(
+                       &pszDnPtr,
+                       ",cn=users,%s",
+                       pszLdapBase);
+    }
+    else
+    {
+        ntStatus = LwRtlCStringAllocateAppendPrintf(
+                       &pszDnPtr,
+                       ",cn=users");
+    }
+    dwError =  LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    *ppszMachineAcctDN = pszDnPtr;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszDnPtr);
+    goto cleanup;
+}
+
 /* ================== SQL to LDAP translation callback functions =============*/
 
 /* 
@@ -1487,12 +1561,11 @@ pfnSqlToLdapDistinguishedNameXform(
     ...)
 {
     NTSTATUS ntStatus = 0;
-    PSTR pszModifiedFilter = NULL;
+    DWORD dwError = 0;
+    PSTR pszMachineAcctDn = NULL;
     PSTR *ppszAttributes = NULL;
+    PSTR pszModifiedFilter = NULL;
     PSTR pszDomainNameIn = NULL;
-    PSTR pszCommonName = NULL;
-    PSTR pszPtr = NULL;
-    DWORD i = 0;
 
     va_list ap;
 
@@ -1506,48 +1579,16 @@ pfnSqlToLdapDistinguishedNameXform(
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
 
-    ntStatus = LwRtlCStringAllocateAppendPrintf(
-                   &pszCommonName,
-                   "%s",
-                   ppszAttributes[0]);
-    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-
-    for (i=0; pszCommonName[i]; i++)
-    {
-        pszCommonName[i] = (char) tolower((int) pszCommonName[i]);
-    }
-
-    if (i < 3 ||
-        pszCommonName[0] != 'c' ||
-        pszCommonName[1] != 'n' ||
-        pszCommonName[2] != '=')
-    {
-        ntStatus = STATUS_NOT_FOUND;
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-    }
-
-    pszPtr = strchr(pszCommonName, ',');
-    if (!pszPtr || pszPtr[0] != ',' || !pszPtr[1])
-    {
-        ntStatus = STATUS_NOT_FOUND;
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-    }
-    pszPtr[0] = '\0';
-
-#if 1 /* TBD:Adam-zzz */
-#endif
-    /* Build the actual dn value; cn=xyz, */
-
-    ntStatus = LwRtlCStringAllocateAppendPrintf(
-                   &pszCommonName,
-                   ",cn=users,%s",
-                   gVmdirGlobals.pszDomainDn);
-    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    dwError = VmDirConstructMachineDN(
+                  pszDomainNameIn,
+                  gVmdirGlobals.pszDomainDn,
+                  &pszMachineAcctDn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     ntStatus = LwRtlCStringAllocateAppendPrintf(
                    &pszModifiedFilter,
                    pszLdapFilter,
-                   pszCommonName);
+                   pszMachineAcctDn);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
 cleanup:
@@ -1556,8 +1597,12 @@ cleanup:
     return pszModifiedFilter;
 
 error:
+#if 1
+    LW_SAFE_FREE_STRING(pszMachineAcctDn);
     LW_SAFE_FREE_MEMORY(pszModifiedFilter);
+#else
     LW_SAFE_FREE_STRING(pszCommonName);
+#endif
     goto cleanup;
 }
 
@@ -2054,7 +2099,7 @@ VmDirAllocLdapQueryMap(
                   "DistinguishedName='%s'",
                   NULL,                    /* SearchBasePrefix (optional) */
                   pszSearchBase,
-                  "(dn=%s)",
+                  "(entrydn=%s)",   /* must search entrydn vs dn */
                   LDAP_SCOPE_SUBTREE,
                   NULL, /* override attributes */
                   NULL, /* Attribute types */
