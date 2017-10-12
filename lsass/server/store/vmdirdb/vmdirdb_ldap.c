@@ -1341,10 +1341,9 @@ error:
     goto cleanup;
 }
 
-static DWORD
+DWORD
 VmDirConstructMachineDN(
     PSTR pszSqlDomainName,
-    PSTR pszLdapBase,  /* optional argument */
     PSTR *ppszMachineAcctDN)
 {
     NTSTATUS ntStatus = 0;
@@ -1389,19 +1388,10 @@ VmDirConstructMachineDN(
     pszPtr[0] = '\0';
 
     /* Build the actual dn: value cn=xyz,cn=users, name component */
-    if (pszLdapBase)
-    {
-        ntStatus = LwRtlCStringAllocateAppendPrintf(
-                       &pszDnPtr,
-                       ",cn=users,%s",
-                       pszLdapBase);
-    }
-    else
-    {
-        ntStatus = LwRtlCStringAllocateAppendPrintf(
-                       &pszDnPtr,
-                       ",cn=users");
-    }
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszDnPtr,
+                   ",cn=users,%s",
+                   gVmdirGlobals.pszDomainDn);
     dwError =  LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
@@ -1581,7 +1571,6 @@ pfnSqlToLdapDistinguishedNameXform(
 
     dwError = VmDirConstructMachineDN(
                   pszDomainNameIn,
-                  gVmdirGlobals.pszDomainDn,
                   &pszMachineAcctDn);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
