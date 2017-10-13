@@ -1405,6 +1405,52 @@ error:
     goto cleanup;
 }
 
+DWORD
+VmDirConstructMachineDNFromName(
+    PSTR pszName,
+    PSTR *ppszMachineAcctDN)
+{
+    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    PSTR pszDnPtr = NULL;
+    DWORD i = 0;
+    
+    if (!pszName || !ppszMachineAcctDN)
+    {
+        dwError =  LwNtStatusToWin32Error(STATUS_NOT_FOUND);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszDnPtr,
+                   "%s",
+                   pszName);
+    dwError =  LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (i=0; pszDnPtr[i]; i++)
+    {
+        pszDnPtr[i] = (char) tolower((int) pszDnPtr[i]);
+    }
+
+    /* Build the actual dn: value cn=xyz,cn=users, name component */
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszDnPtr,
+                   ",cn=users,%s",
+                   gVmdirGlobals.pszDomainDn);
+    dwError =  LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    *ppszMachineAcctDN = pszDnPtr;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszDnPtr);
+    goto cleanup;
+}
+
 /* ================== SQL to LDAP translation callback functions =============*/
 
 /* 
@@ -1501,37 +1547,45 @@ error:
  *  SAMDB_OBJECT_CLASS_USER            = 5
  *  SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4
  *
- *  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))"
+ *xxx  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))"
+ *
+ *  "(|(&(objectClass=user)(samAccountName=%s))(&(objectClass=local)(samAccountName=%s)))"
  */
 
 static PSTR
-pfnSqlToLdapsamAcctAndDomainXform(
+    pfnSqlToLdapsamAcctAndDomainXform(
     PSTR pszLdapFilter,
     ...)
 {
     NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
     PSTR pszModifiedFilter = NULL;
     PSTR *ppszAttributes = NULL;
+    PSTR pszMachineDn = NULL;
 
     va_list ap;
 
     va_start(ap, pszLdapFilter);
     ppszAttributes = (PSTR *) va_arg(ap, char **);
 
+    dwError = VmDirConstructMachineDNFromName(
+                  ppszAttributes[0],
+                  &pszMachineDn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
     if (ppszAttributes && ppszAttributes[0])
     {
         ntStatus = LwRtlCStringAllocateAppendPrintf(
                        &pszModifiedFilter,
                        pszLdapFilter,
-                       ppszAttributes[0],
-                       ppszAttributes[1],
-                       ppszAttributes[2],
-                       ppszAttributes[3]);
+                       pszMachineDn,
+                       pszMachineDn);
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
 
 cleanup:
     va_end(ap);
+    LW_SAFE_FREE_STRING(pszMachineDn);
 
     return pszModifiedFilter;
 
@@ -2074,7 +2128,7 @@ VmDirAllocLdapQueryMap(
                   "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",
                   NULL,                    /* SearchBasePrefix (optional) */
                   pszSearchBase,
-                  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))",
+                  "(|(&(objectClass=user)(samAccountName=cn=%s))(&(objectClass=local)(samAccountName=cn=%s)))",
                   LDAP_SCOPE_SUBTREE,
                   NULL, /* override attributes */
                   NULL, /* Attribute types */
@@ -2093,7 +2147,7 @@ VmDirAllocLdapQueryMap(
                   NULL, /* override attributes */
                   NULL, /* Attribute types */
                   pfnSqlToLdapDistinguishedNameXform, /* ldap transform callback */
-                  NULL,
+                  NULL, /* TBD:Adam-zzz!!! Must xform entryDn->DistinguishedName DE transform callback */
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
