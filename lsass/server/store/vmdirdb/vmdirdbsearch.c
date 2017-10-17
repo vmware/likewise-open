@@ -429,11 +429,20 @@ VmdirDbSearchObject(
                       dwNumEntries,
                       pDirectoryEntries,
                       &pTransformDirectoryEntries);
-        BAIL_ON_VMDIRDB_ERROR(dwError);
+        if (dwError == ERROR_INVALID_EVENT_COUNT || dwError == ERROR_INVALID_NAME)
+        {
+            /* Transform didn't match, use original pDirectoryEntries */
+            dwError = 0;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+        }
+        else
+        {
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        /* TBD:Adam-Cleanup the entire pDirectoryEntries structure; pTransformDirectoryEntries is a copy */ 
-        LW_SAFE_FREE_MEMORY(pDirectoryEntries);
-        pDirectoryEntries = pTransformDirectoryEntries;
+            /* TBD:Adam-Cleanup the entire pDirectoryEntries structure; pTransformDirectoryEntries is a copy */ 
+            LW_SAFE_FREE_MEMORY(pDirectoryEntries);
+            pDirectoryEntries = pTransformDirectoryEntries;
+        }
     }
 
     *ppDirectoryEntries = pDirectoryEntries;

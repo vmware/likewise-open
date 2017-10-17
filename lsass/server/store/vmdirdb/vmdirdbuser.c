@@ -43,25 +43,97 @@
  *      VMDIR User Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  *
  */
 
 #include "includes.h"
 
+#if 1 /* TBD:Adam-move to vmdirdbtable.h ?? */
+
+#ifndef ATTR_OBJECT_CLASS
+#define ATTR_OBJECT_CLASS                   "objectclass"
+#endif
+#ifndef ATTR_CN
+#define ATTR_CN                             "cn"
+#endif
+#ifndef ATTR_USER_PASSWORD
+#define ATTR_USER_PASSWORD "userPassword"
+#endif
+
+
+#endif  /* #if 1 TBD:Adam-move to vmdirdbtable.h ?? */
+
+
 DWORD
 VmdirDbSetPassword(
     HANDLE hBindHandle,
-    PWSTR  pwszUserDN,
+    PWSTR  pwszSqlUserDN,
     PWSTR  pwszPassword
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    int ldap_err = 0;
+    PSTR pszSqlUserDN = NULL;
+    PSTR pszUserDN = NULL;
+    PSTR pszPassword = NULL;
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    LDAP *pLd = NULL;
 
+    if (!hBindHandle || !pwszSqlUserDN || !pwszPassword)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hBindHandle;
+    pLd = pContext->dirContext.pLd;
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszSqlUserDN, pwszSqlUserDN);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszPassword, pwszPassword);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    dwError = VmDirConstructMachineDN(
+                  pszSqlUserDN,
+                  &pszUserDN);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-error:
+    {
+        struct berval bvalUserPassword = {(ber_len_t) strlen(pszPassword), pszPassword};
+
+        struct berval *bvalsUserPassword[] =  {
+            &bvalUserPassword, 0,
+        };
+        LDAPMod mod_del[] = {
+            { LDAP_MOD_REPLACE | LDAP_MOD_BVALUES, ATTR_USER_PASSWORD, {.modv_bvals = bvalsUserPassword}},
+        };
+        LDAPMod *ldapAttrs_del[] = { &mod_del[0], NULL };
+    
+        ldap_err = ldap_modify_ext_s(pLd,
+                                  pszUserDN,
+                                  ldapAttrs_del,
+                                  NULL,
+                                  NULL);
+        if (ldap_err)
+        {
+            dwError = LwMapLdapErrorToLwError(ldap_err);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszSqlUserDN);
+    LW_SAFE_FREE_STRING(pszPassword);
+    LW_SAFE_FREE_STRING(pszUserDN);
 
     return dwError;
+
+error:
+    goto cleanup;
+
 }
 
 

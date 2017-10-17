@@ -52,6 +52,7 @@
 #include "includes.h"
 
 
+#if 1 /* TBD:Adam-move to vmdirdbtable.h ?? */
 /*
  * Map DIRECTORY_MOD attribute array to LDAPMod array
  */
@@ -64,6 +65,15 @@
 #ifndef ATTR_CN
 #define ATTR_CN                             "cn"
 #endif
+#ifndef ATTR_ACCT_FLAGS
+#define ATTR_ACCT_FLAGS                     "userAccountControl"
+#endif
+#ifndef ATTR_USER_PASSWORD
+#define ATTR_USER_PASSWORD "userPassword"
+#endif
+
+
+#endif /* if 1 */
 
 
 #if 0
@@ -140,6 +150,7 @@ typedef struct ldapmod {
 #define mod_bvalues     mod_vals.modv_bvals
 } LDAPMod;
 #endif /* if 0 */
+
     for (i=0; i<dwModCount; i++)
     {
         for (j=0; pwszAttributes[j]; j++)
@@ -168,6 +179,46 @@ error:
 
 #endif
 
+
+DWORD
+VmdirDbFindModValue(
+    PDIRECTORY_MOD modifications,
+    PWSTR pwszAttrName,
+    PATTRIBUTE_VALUE *ppAttr)
+{
+    DWORD dwError = ERROR_NOT_FOUND;
+    DWORD i = 0;
+    DWORD bFound = 0;
+
+    if (!modifications || !pwszAttrName || !ppAttr)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    for (i=0; modifications[i].pwszAttrName; i++)
+    {
+        if (LwRtlWC16StringIsEqual(modifications[i].pwszAttrName,
+                                   pwszAttrName,
+                                   FALSE))
+        {
+            bFound = 1;
+            dwError = 0;
+            break;
+        }
+    }
+    if (bFound)
+    {
+        *ppAttr = modifications[i].pAttrValues;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 VmdirDbAddObject(
     HANDLE        hBindHandle,
@@ -182,6 +233,10 @@ VmdirDbAddObject(
     int ldap_err = 0;
     PSTR pszSqlDn = NULL;
     PSTR pszObjectDn = NULL;
+    CHAR szUserAccountControl[13] = {0};
+    ULONG userAccountControl = 0;
+    WCHAR wszAttrAccountFlags[] = VMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS;
+    PATTRIBUTE_VALUE pAttr = NULL;
 
     if (!hBindHandle || !pwszSqlDn)
     {
@@ -193,16 +248,24 @@ VmdirDbAddObject(
     pLd = pContext->dirContext.pLd;
 
     ntStatus = LwRtlCStringAllocateFromWC16String(&pszSqlDn, pwszSqlDn);
-    if (ntStatus)
-    {
-        dwError =  LwNtStatusToWin32Error(ntStatus);
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-    }
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
     dwError = VmDirConstructMachineDN(
                   pszSqlDn,
                   &pszObjectDn);
     BAIL_ON_VMDIRDB_ERROR(dwError);
+
+
+    /* Find "Account Flags" value */
+    dwError = VmdirDbFindModValue(
+                  modifications,
+                  wszAttrAccountFlags,
+                  &pAttr);
+    if (dwError == 0)
+    {
+        userAccountControl = pAttr->data.ulValue;
+    }
+    snprintf(szUserAccountControl, sizeof(szUserAccountControl), "%u", userAccountControl);
 
 #if 0
     /*
@@ -217,18 +280,22 @@ VmdirDbAddObject(
 {
     PSTR valsUser[] = {"user", NULL};
     PSTR valsObjectDn[] = {pszObjectDn, NULL};
-    LDAPMod mod[7] = {
+    PSTR valsUserAccountControl[] = {szUserAccountControl, NULL};
+    PSTR valsUserPassword[] = {"VMware123@", NULL}; /* TBD: Make random dummy password, will be changed later */
+    LDAPMod mod[] = {
                          { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsUser} },
                          { LDAP_MOD_ADD, ATTR_SAM_ACCOUNT_NAME, {valsObjectDn} },
                          { LDAP_MOD_ADD, ATTR_CN, {valsObjectDn} },
+                         { LDAP_MOD_ADD, ATTR_ACCT_FLAGS, {valsUserAccountControl} },
+                         { LDAP_MOD_ADD, ATTR_USER_PASSWORD, {valsUserPassword} },
 #if 0
                          { LDAP_MOD_ADD, ATTR_NETBIOS_NAME, "users" },
-                         { LDAP_MOD_ADD, ATTR_ACCT_FLAGS, "users" },
                          { LDAP_MOD_ADD, ATTR_HOME_DIR, "users" },
                          { LDAP_MOD_ADD, ATTR_LOGIN_SHELL, "users" },
 #endif
+                         { 0, 0, {0} },
                      };
-    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], NULL };
+    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], &mod[3], &mod[4], NULL };
 
     ldap_err = ldap_add_ext_s(pLd,
                               pszObjectDn,

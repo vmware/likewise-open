@@ -1738,7 +1738,10 @@ pfnLdap2DirectoryEntryDnToCn(
     pOut[0].pAttributes[0].pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
 
     /* Save domain name for later use */
-    gVmdirGlobals.pszDomainDn = pszDn;
+    if (!gVmdirGlobals.pszDomainDn)
+    {
+        gVmdirGlobals.pszDomainDn = pszDn;
+    }
 
     *ppOut = pOut;
 
@@ -1993,6 +1996,105 @@ error:
     LW_SAFE_FREE_MEMORY(pwszStr);
     goto cleanup;
 }
+
+
+/*
+ * Translate entryDN to DistinguishedName response for this filter:
+ * "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",
+ */
+static DWORD
+pfnLdap2DirectoryEntryDomainNameXform(
+    DWORD dwNumEntries,
+    PDIRECTORY_ENTRY in,
+    PDIRECTORY_ENTRY *ppOut)
+{
+    DWORD dwError = 0;
+    DWORD dwEntries = 0;
+    ULONG ulValue = 0;
+    PDWORD pdwAttributesCount = NULL;
+    PWSTR pwszName = NULL;
+    PSTR pszName = NULL;
+    PSTR pszValue = NULL;
+    NTSTATUS ntStatus = 0; 
+    WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
+    WCHAR wszAccountFlags[] = {'u','s','e','r','A','c','c','o','u','n','t','C','o','n','t','r','o','l',0};
+
+    PDIRECTORY_ENTRY pOut = NULL;
+
+    /* Memory has been allocated for this transform by the caller */
+    if (!in)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    else if (dwNumEntries > 1 || in[0].ulNumAttributes != 1)
+    {
+        dwError = ERROR_INVALID_EVENT_COUNT;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    /* Allocate attributes count array, then allocate return DIRECTORY_ENTRY */
+    dwError = LwAllocateMemory(
+                  sizeof(DWORD) * (dwNumEntries + 1),
+                  (VOID *) &pdwAttributesCount);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (dwEntries=0; dwEntries < dwNumEntries; dwEntries++)
+    {
+        pdwAttributesCount[dwEntries] = in[dwEntries].ulNumAttributes;
+    }
+    dwError = VmdirDbAllocateEntriesAndAttributes(
+                  dwNumEntries,
+                  pdwAttributesCount,
+                  &pOut);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    if (LwRtlWC16StringIsEqual(in[0].pAttributes[0].pwszName,
+                                wszEntryDn,
+                                FALSE))
+    {
+        pszName = "DistinguishedName";
+    }
+    else if (LwRtlWC16StringIsEqual(in[0].pAttributes[0].pwszName,
+                                wszAccountFlags,
+                                FALSE))
+    {
+        pszName = "AccountFlags";
+    }
+    else
+    {
+        dwError = ERROR_INVALID_NAME;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszName, pszName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    /* Change value type to INTEGER */
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                   &pszValue,
+                   in[0].pAttributes[0].pValues[0].data.pwszStringValue);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+
+    /* Replace output DIRECTORY_ENTRY values with the converted form */
+    pOut[0].pAttributes[0].pwszName = pwszName;
+    ulValue = strtoul(pszValue, NULL, 10);
+    pOut[0].pAttributes[0].pValues[0].data.ulValue = ulValue;
+    pOut[0].pAttributes[0].pValues[0].Type = DIRECTORY_ATTR_TYPE_INTEGER;
+
+    *ppOut = pOut;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pdwAttributesCount);
+    LW_SAFE_FREE_STRING(pszValue);
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszName);
+    goto cleanup;
+}
+
+
 #endif
 
 /* ===================  End of pfn translation layer functions ================== */
@@ -2133,7 +2235,7 @@ VmDirAllocLdapQueryMap(
                   NULL, /* override attributes */
                   NULL, /* Attribute types */
                   pfnSqlToLdapsamAcctAndDomainXform, /* ldap transform callback */
-                  NULL, /* DE transform callback */
+                  NULL,/* DIRECTORY_ENTRY transform callback */
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -2147,7 +2249,7 @@ VmDirAllocLdapQueryMap(
                   NULL, /* override attributes */
                   NULL, /* Attribute types */
                   pfnSqlToLdapDistinguishedNameXform, /* ldap transform callback */
-                  NULL, /* TBD:Adam-zzz!!! Must xform entryDn->DistinguishedName DE transform callback */
+                  pfnLdap2DirectoryEntryDomainNameXform, /* DE transform callback */
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -2288,7 +2390,7 @@ VmDirAllocLdapAttributeMap(
     WCHAR wszVMDIR_DB_DIR_ATTR_DESCRIPTION[] = VMDIR_DB_DIR_ATTR_DESCRIPTION;
     WCHAR wszVMDIR_DB_DIR_ATTR_COMMENT[] = VMDIR_DB_DIR_ATTR_COMMENT;
     WCHAR wszVMDIR_DB_DIR_ATTR_PASSWORD[] = VMDIR_DB_DIR_ATTR_PASSWORD;
-//    WCHAR wszVMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS[] = VMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS;
+    WCHAR wszVMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS[] = VMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS;
 //    WCHAR wszVMDIR_DB_DIR_ATTR_GECOS[] = VMDIR_DB_DIR_ATTR_GECOS;
 //    WCHAR wszVMDIR_DB_DIR_ATTR_HOME_DIR[] = VMDIR_DB_DIR_ATTR_HOME_DIR;
 //    WCHAR wszVMDIR_DB_DIR_ATTR_HOME_DRIVE[] = VMDIR_DB_DIR_ATTR_HOME_DRIVE;
@@ -2339,6 +2441,8 @@ VmDirAllocLdapAttributeMap(
 #define DIRECTORY_ATTR_TYPE_ANSI_STRING             7
 
 #endif
+
+    /* The order of dwAttributeTypes, szAttributes and wszAttributes MUST be the same!!! */
     DWORD dwAttributeTypes[] = {
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
@@ -2362,12 +2466,11 @@ VmDirAllocLdapAttributeMap(
         DIRECTORY_ATTR_TYPE_UNICODE_STRING, /* 20 */
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
     };
 
 
-        
-
-    /* The order of szAttributes and wszAttributes MUST be the same!!! */
+    /* The order of dwAttributeTypes, szAttributes and wszAttributes MUST be the same!!! */
     CHAR *szAttributes[] = {
         "cn",
         "entryDn", /* TBD:Adam-Kyoung says entryDn is real; dn is abstract */
@@ -2391,8 +2494,10 @@ VmDirAllocLdapAttributeMap(
         "vmwPasswordProhibitedPreviousCount", /* 20 */
         "vmwPasswordSpecialChars",
         "vmwRidSequenceNumber",
+        "userAccountControl",
     };
 
+    /* The order of dwAttributeTypes, szAttributes and wszAttributes MUST be the same!!! */
     WCHAR *wszAttributes[] = {
         wszVMDIR_DB_DIR_ATTR_COMMON_NAME,
         wszVMDIR_DB_DIR_ATTR_DISTINGUISHED_NAME,
@@ -2403,7 +2508,7 @@ VmDirAllocLdapAttributeMap(
         wszVMDIR_DB_DIR_ATTR_OBJECT_SID,
         wszVMDIR_DB_DIR_ATTR_UID,
         wszVMDIR_DB_DIR_ATTR_MEMBERS,
-        wszVMDIR_DB_DIR_ATTR_PARENT_DN,
+        wszVMDIR_DB_DIR_ATTR_PARENT_DN,           /* 10 */
         wszVMDIR_DB_DIR_ATTR_USER_PRINCIPAL_NAME,
         wszVMDIR_DB_DIR_ATTR_DESCRIPTION,
         wszVMDIR_DB_DIR_ATTR_COMMENT,
@@ -2413,9 +2518,10 @@ VmDirAllocLdapAttributeMap(
         wszVMDIR_DB_DIR_ATTR_MAX_PWD_AGE,
         wszVMDIR_DB_DIR_ATTR_LAST_LOGON,
         wszVMDIR_DB_DIR_ATTR_MIN_PWD_LENGTH,
-        wszVMDIR_DB_DIR_ATTR_PWD_HISTORY_LENGTH,
+        wszVMDIR_DB_DIR_ATTR_PWD_HISTORY_LENGTH,  /* 20 */
         wszVMDIR_DB_DIR_ATTR_PWD_PROPERTIES,
         wszVMDIR_DB_DIR_ATTR_SEQUENCE_NUMBER,
+        wszVMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS,
 
         wszVMDIR_DB_DIR_ATTR_EOL, /* This must be the last entry: End Of Line */
 
