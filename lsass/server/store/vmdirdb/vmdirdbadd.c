@@ -203,8 +203,10 @@ VmdirDbAddObject(
     PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
     LDAP *pLd = NULL;
     int ldap_err = 0;
+    PSTR pszPtr = NULL;
     PSTR pszSqlDn = NULL;
     PSTR pszObjectDn = NULL;
+    PSTR pszSamAccountName = NULL;
     CHAR szUserAccountControl[13] = {0};
     ULONG userAccountControl = 0;
     WCHAR wszAttrAccountFlags[] = VMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS;
@@ -239,6 +241,15 @@ VmdirDbAddObject(
     }
     snprintf(szUserAccountControl, sizeof(szUserAccountControl), "%u", userAccountControl);
 
+    ntStatus = LwRtlCStringDuplicate(&pszSamAccountName,
+                                     pszObjectDn);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    pszPtr = strstr(pszSamAccountName+3, ",dc");
+    if (pszPtr)
+    {
+        *pszPtr = '\0';
+    }
+
 #if 0
     /*
      * Map DIRECTORY_MOD -> LDAPMod values
@@ -250,24 +261,28 @@ VmdirDbAddObject(
 #endif
 
 {
-    PSTR valsUser[] = {"user", NULL};
-    PSTR valsObjectDn[] = {pszObjectDn, NULL};
+    PSTR valsComputer[] = {"computer", NULL};
+    PSTR valsSamAccountName[] = {pszSamAccountName+3, NULL};
+    PSTR valsCn[] = {pszObjectDn, NULL};
+    PSTR valsDistinguishedName[] = {pszObjectDn, NULL};
     PSTR valsUserAccountControl[] = {szUserAccountControl, NULL};
     PSTR valsUserPassword[] = {"VMware123@", NULL}; /* TBD: Make random dummy password, will be changed later */
     LDAPMod mod[] = {
-                         { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsUser} },
-                         { LDAP_MOD_ADD, ATTR_SAM_ACCOUNT_NAME, {valsObjectDn} },
-                         { LDAP_MOD_ADD, ATTR_CN, {valsObjectDn} },
+                         { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsComputer} },
+                         { LDAP_MOD_ADD, ATTR_SAM_ACCOUNT_NAME, {valsSamAccountName} },
+                         { LDAP_MOD_ADD, ATTR_CN, {valsCn} },
+                         { LDAP_MOD_ADD, ATTR_DISTINGUISHED_NAME, {valsDistinguishedName} },
                          { LDAP_MOD_ADD, ATTR_ACCT_FLAGS, {valsUserAccountControl} },
                          { LDAP_MOD_ADD, ATTR_USER_PASSWORD, {valsUserPassword} },
 #if 0
+
                          { LDAP_MOD_ADD, ATTR_NETBIOS_NAME, "users" },
                          { LDAP_MOD_ADD, ATTR_HOME_DIR, "users" },
                          { LDAP_MOD_ADD, ATTR_LOGIN_SHELL, "users" },
 #endif
                          { 0, 0, {0} },
                      };
-    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], &mod[3], &mod[4], NULL };
+    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], &mod[3], &mod[4], &mod[5], NULL };
 
     ldap_err = ldap_add_ext_s(pLd,
                               pszObjectDn,
