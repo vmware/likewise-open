@@ -33,19 +33,16 @@
  *
  * Module Name:
  *
- *        samdbopen.c
+ *        vmdirdbopen.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      Provider open functions
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *          Adam Bernstein (abernstein@vmware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 

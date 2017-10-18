@@ -33,18 +33,16 @@
  *
  * Module Name:
  *
- *        samdbdel.c
+ *        vmdirdbdel.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
- *      SAM objects deletion routines
+ *      vmdir objects deletion routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 

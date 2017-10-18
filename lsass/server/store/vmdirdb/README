@@ -295,3 +295,44 @@ b SamrSrvSetUserInfo2
 b SamrSrvConnect3
 b SamrSrvConnect4
 b SamrSrvConnect5
+
+# ALL Samr Client  RPC breakpoints
+#
+set breakpoint pending on
+b SamrConnect
+b SamrClose
+b SamrSetSecurity
+b SamrQuerySecurity
+b SamrLookupDomain
+b SamrEnumDomains
+b SamrOpenDomain
+b SamrQueryDomainInfo
+b SamrCreateUser
+b SamrEnumDomainUsers
+b SamrCreateDomAlias
+b SamrEnumDomainAliases
+b SamrGetAliasMembership
+b SamrLookupNames
+b SamrLookupRids
+b SamrOpenAlias
+b SamrQueryAliasInfo
+b SamrSetAliasInfo
+b SamrDeleteDomAlias
+b SamrAddAliasMember
+b SamrDeleteAliasMember
+b SamrGetMembersInAlias
+b SamrOpenUser
+b SamrDeleteUser
+b SamrQueryUserInfo
+b SamrSetUserInfo
+b SamrGetUserGroups
+b SamrQueryDisplayInfo
+b SamrGetUserPwInfo
+b SamrRemoveMemberFromForeignDomain
+b SamrCreateUser2
+b SamrChangePasswordUser2
+b SamrConnect2
+b SamrSetUserInfo2
+b SamrConnect3
+b SamrConnect4
+b SamrConnect5

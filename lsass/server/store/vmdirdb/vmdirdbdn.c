@@ -33,18 +33,19 @@
  *
  * Module Name:
  *
- *        samdbdn.c
+ *        vmdirdbdn.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      Distinguished Name handling
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
  *          Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  *
  */
 

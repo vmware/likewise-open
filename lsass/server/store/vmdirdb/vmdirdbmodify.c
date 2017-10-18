@@ -33,18 +33,16 @@
  *
  * Module Name:
  *
- *        samdbmodify.c
+ *        vmdirdbmodify.c
  *
  * Abstract:
  *
  *
- *      Likewise VMDIR Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      VMDIR objects modification routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 

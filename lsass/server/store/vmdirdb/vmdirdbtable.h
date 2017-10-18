@@ -1173,6 +1173,24 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
         VMDIR_DB_ATTR_FLAGS_NONE                                   \
     }
 
+#ifndef ATTR_OBJECT_CLASS
+#define ATTR_OBJECT_CLASS                   "objectclass"
+#endif
+#ifndef ATTR_CN
+#define ATTR_CN                             "cn"
+#endif
+#ifndef ATTR_USER_PASSWORD
+#define ATTR_USER_PASSWORD "userPassword"
+#endif
+#ifndef ATTR_SAM_ACCOUNT_NAME
+#define ATTR_SAM_ACCOUNT_NAME               "sAMAccountName"
+#endif
+#ifndef ATTR_ACCT_FLAGS
+#define ATTR_ACCT_FLAGS                     "userAccountControl"
+#endif
+
+
+
 #endif /* __VMDIR_DB_TABLE_H__ */
 
 

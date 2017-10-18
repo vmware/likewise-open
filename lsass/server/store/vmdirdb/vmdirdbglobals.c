@@ -33,19 +33,16 @@
  *
  * Module Name:
  *
- *        samdbglobals.c
+ *        vmdirdbglobals.c
  *
  * Abstract:
  *
  *
- *      Likewise VMDIR Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      Global variables
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *          Adam Bernstein (abernstein@vmware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 
