@@ -119,15 +119,6 @@ VmDirAllocLdapQueryMap(
     PVMDIRDB_LDAPQUERY_MAP *ppLdapMap
     );
 
-/* Map SQL search string to LDAP search terms */
-DWORD
-VmDirGetFilterLdapQueryMap(
-    PSTR pszSql,
-    PSTR *ppszSearchBase, /* Do not free, this is an alias */
-    PSTR *ppszLdapFilter, /* Do not free, this is an alias */
-    DWORD *puScope
-    ); /* Do not free, this is an alias */
-
 /* Map SQL attribute(s) to LDAP attribute(s) */
 DWORD
 VmdirFindLdapAttributeList(
@@ -184,3 +175,7 @@ VmDirConstructMachineDN(
     PSTR pszSqlDomainName,
     PSTR *ppszMachineAcctDN);
 
+DWORD
+VmDirConstructMachineUPN(
+    PSTR pszSqlDomainName,
+    PSTR *ppszMachineAcctUpn);

@@ -252,7 +252,6 @@ LsaQueryDnsDomainInfo(
     DWORD dwFlags = 0;
     PLWNET_DC_INFO pDcInfo = NULL;
 
-
     dwError = LsaSrvProviderGetMachineAccountInfoW(
                   LSA_PROVIDER_TAG_AD,
                   NULL,
@@ -260,27 +259,28 @@ LsaQueryDnsDomainInfo(
 #if 1 /* TBD: Adam-Integration with Lightwave to obtain this information */
     if (dwError)
     {
-        /* TBD: Adam-FIXME Create a "fake" structure for now to provide this information */ 
     /* Site GUID value */
+        /* TBD: Adam-FIXME Create a "fake" structure for now to provide this information */ 
         unsigned char site_guid[] = 
             "\x81\x2d\xe7\xdf\x97\x57\x4b\x40\x95\x63\x88\xe8\xce\x1c\x39\x8f";
 
     /* NetBIOS name */
+        /* TBD: Adam-FIXME Create a "fake" structure for now to provide this information */ 
         ntStatus = LwRtlUnicodeStringAllocateFromCString(
                        &pInfo->name,
                        "LIGHTWAVE");
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    /* DNS Domain Name */
-        ntStatus = LwRtlUnicodeStringAllocateFromCString(
+    /* DNS Domain of DC */
+        ntStatus = LwRtlUnicodeStringAllocateFromWC16String(
                        &pInfo->dns_domain,
-                       "photon-102-test.lightwave.local");
+                       pPolCtx->pwszLocalDomainName);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* DNS Forest name */
-        ntStatus = LwRtlUnicodeStringAllocateFromCString(
+        ntStatus = LwRtlUnicodeStringAllocateFromWC16String(
                        &pInfo->dns_forest,
-                       "photon-102-test.lightwave.local");
+                       pPolCtx->pwszLocalDomainName);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /*
@@ -288,13 +288,8 @@ LsaQueryDnsDomainInfo(
      * "DcInfo-DomainGUID" =
      *     "value"=hex:81,2d,e7,df,97,57,4b,40,95,63,88,e8,ce,1c,39,8f
      */
+        /* TBD: Adam-FIXME Create a "fake" structure for now to provide this information */ 
         memcpy(&pInfo->domain_guid, site_guid, sizeof(site_guid));
-
-        /*
-         * DomainSID value:
-         *     "value"="S-1-5-21-2243792929-3541245548-2823376848"
-         * Not populated!!!
-         */
 
     /* Squash failed LsaSrvProviderGetMachineAccountInfoW() error */
         dwError = 0;
