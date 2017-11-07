@@ -1,0 +1,34 @@
+make()
+{
+    NETLOGON_SOURCES="\
+        globals.c                        \
+	netlogon.c                       \
+	netlogon_cfg.c                   \
+	netlogon_srv.c                   \
+	netlogon_memory.c"
+
+    lw_dceidl \
+	IDL=../../../idl/netlogon.idl \
+	IDLFLAGS="-cstub_pref cli_ -sstub_pref srv_" \
+	INCLUDEDIRS=". ../../../include" \
+	HEADER="netlogon_h.h" \
+	SSTUB="netlogon_sstub.c" \
+	HEADERDEPS="lw/base.h"
+
+    mk_group \
+	GROUP=netlogon_stub \
+	SOURCES="netlogon_sstub.c" \
+	CPPFLAGS="-DDCERPC_STUB_BUILD" \
+	INCLUDEDIRS=". ../../../include" \
+	HEADERDEPS="dce/rpc.h" \
+	LIBDEPS="dcerpc"
+
+    mk_dlo \
+	DLO=libnetlogon_srv \
+	SOURCES="$NETLOGON_SOURCES" \
+	GROUPS="netlogon_stub" \
+	INCLUDEDIRS=". ../../include ../../api ../../../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwnet.h lwadvapi.h uuid/uuid.h openssl/md4.h" \
+	LIBDEPS="dsapi lsaserverapi lwnetclientapi lwadvapi crypto" \
+	DEPS="netlogon_h.h"
+}
