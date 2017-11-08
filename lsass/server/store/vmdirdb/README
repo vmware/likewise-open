@@ -69,7 +69,7 @@ samdb Plugin types to vmdirdb (ldap) types translation
 #
 # Authentication information
 #
-logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.97.121  -w VMware123@"
+logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.97.194  -w VMware123@"
 
 # List everything
 #                     Base                     Filter  attributes

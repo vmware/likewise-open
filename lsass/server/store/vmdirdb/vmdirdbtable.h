@@ -1222,6 +1222,10 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
 #ifndef ATTR_NAME_MEMBER
 #define ATTR_NAME_MEMBER                    "member"
 #endif
+#ifndef ATTR_NAME_MAX_PASSWORD_AGE
+#define ATTR_NAME_MAX_PASSWORD_AGE          "maxPwdAge"
+#endif
+
 
 #endif /* __VMDIR_DB_TABLE_H__ */
 
