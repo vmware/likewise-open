@@ -15,6 +15,9 @@
 #define VMDIR_BIND_PROTOCOL_KERBEROS_STR  "kerberos"
 #define VMDIR_BIND_PROTOCOL_SRP_STR       "srp"
 
+#define VMDIR_REG_KEY_CACHE_ENTRY_EXPIRY  "CacheEntryExpiry"
+#define VMDIR_CACHE_ENTRY_EXPIRY_DEFAULT_SECS   (4 * LSA_SECONDS_IN_HOUR)
+
 #define VMDIR_REG_KEY_BIND_INFO_ACCOUNT   "dcAccount"
 #define VMDIR_REG_KEY_BIND_INFO_BIND_DN   "dcAccountDN"
 #define VMDIR_REG_KEY_BIND_INFO_PASSWORD  "dcAccountPassword"
@@ -50,13 +53,13 @@
     } while (0)
 
 #define VMDIR_ACQUIRE_RWLOCK_SHARED(pRWLock, bLocked) \
-		VmDirRWLockAcquire(pRWLock, FALSE, &bLocked)
+    VmDirRWLockAcquire(pRWLock, FALSE, &bLocked)
 
 #define VMDIR_ACQUIRE_RWLOCK_EXCLUSIVE(pRWLock, bLocked) \
-		VmDirRWLockAcquire(pRWLock, TRUE, &bLocked)
+    VmDirRWLockAcquire(pRWLock, TRUE, &bLocked)
 
 #define VMDIR_RELEASE_RWLOCK(pRWLock, bLocked) \
-		VmDirRWLockRelease(pRWLock, &bLocked)
+    VmDirRWLockRelease(pRWLock, &bLocked)
 
 #define LOG_FUNC_ENTER LSA_LOG_INFO("Function enter (%s)", __FUNCTION__)
 #define LOG_FUNC_EXIT  LSA_LOG_INFO("Function exit  (%s)", __FUNCTION__)

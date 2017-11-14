@@ -266,6 +266,11 @@
     default = "Kerberos"
     doc = "Bind protocol for connecting to vmdir"
 }
+"CacheEntryExpiry" = {
+    default = dword:00003840
+    range = integer:0-86400
+    doc = "Duration for when object cache entries are marked stale"
+}
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
 "Id" = {

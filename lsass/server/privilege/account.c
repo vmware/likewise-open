@@ -720,6 +720,11 @@ error:
     {
         LsaSrvPrivsCloseAccount(&accountContext);
 
+        if (releaseAccessToken)
+        {
+            RtlReleaseAccessToken(&accessToken);
+        }
+
         *pAccountContext = NULL;
     }
 

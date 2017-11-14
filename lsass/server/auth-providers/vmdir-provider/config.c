@@ -51,7 +51,7 @@ VmDirGetBindProtocol(
     
     dwError = RegOpenServer(&hConnection);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = RegOpenKeyExA(
                     hConnection,
                     NULL,
@@ -60,7 +60,7 @@ VmDirGetBindProtocol(
                     KEY_READ,
                     &hKeyRoot);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = RegOpenKeyExA(
                     hConnection,
                     hKeyRoot,
@@ -69,14 +69,14 @@ VmDirGetBindProtocol(
                     KEY_READ,
                     &hKeyVmDirProvider);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = VmDirRegReadString(
                    hConnection,
                    hKeyVmDirProvider,
                    VMDIR_REG_KEY_BIND_PROTOCOL,
                    &pszBindProtocol);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     if (!strcasecmp(pszBindProtocol, VMDIR_BIND_PROTOCOL_KERBEROS_STR))
     {
         protocol = VMDIR_BIND_PROTOCOL_KERBEROS;
@@ -85,11 +85,11 @@ VmDirGetBindProtocol(
     {
         protocol = VMDIR_BIND_PROTOCOL_SRP;
     }
-    
+
 error:
-    
+
     *pBindProtocol = protocol; /* on error, return default protocol */
-    
+
     if (hKeyVmDirProvider)
     {
         RegCloseKey(hConnection, hKeyVmDirProvider);
@@ -102,7 +102,7 @@ error:
     {
         RegCloseServer(hConnection);
     }
-    
+
     LW_SAFE_FREE_STRING(pszBindProtocol);
 
     return ERROR_SUCCESS;
@@ -470,4 +470,63 @@ VmDirFreeBindInfo(
 
         LwFreeMemory(pBindInfo);
     }
+}
+
+DWORD
+VmDirGetCacheEntryExpiry(
+    DWORD *pdwCacheEntryExpiry
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hConnection = NULL;
+    HKEY   hKeyRoot = NULL;
+    HKEY   hKeyVmDirProvider = NULL;
+    DWORD  dwCacheEntryExpiry = VMDIR_CACHE_ENTRY_EXPIRY_DEFAULT_SECS;
+
+    dwError = RegOpenServer(&hConnection);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    NULL,
+                    HKEY_THIS_MACHINE,
+                    0,
+                    KEY_READ,
+                    &hKeyRoot);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = RegOpenKeyExA(
+                    hConnection,
+                    hKeyRoot,
+                    VMDIR_AUTH_PROVIDER_KEY,
+                    0,
+                    KEY_READ,
+                    &hKeyVmDirProvider);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirRegReadInt32(
+                   hConnection,
+                   hKeyVmDirProvider,
+                   VMDIR_REG_KEY_CACHE_ENTRY_EXPIRY,
+                   &dwCacheEntryExpiry);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+error:
+
+    *pdwCacheEntryExpiry = dwCacheEntryExpiry; /* on error, return default value */
+
+    if (hKeyVmDirProvider)
+    {
+        RegCloseKey(hConnection, hKeyVmDirProvider);
+    }
+    if (hKeyRoot)
+    {
+        RegCloseKey(hConnection, hKeyRoot);
+    }
+    if (hConnection)
+    {
+        RegCloseServer(hConnection);
+    }
+
+    return ERROR_SUCCESS;
 }
