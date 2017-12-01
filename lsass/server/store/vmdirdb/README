@@ -69,7 +69,8 @@ samdb Plugin types to vmdirdb (ldap) types translation
 #
 # Authentication information
 #
-logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.97.194  -w VMware123@"
+logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.96.62   -w VMware123@"
+logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.96.61  -w VMware123@"
 
 # List everything
 #                     Base                     Filter  attributes
@@ -86,6 +87,9 @@ ldapsearch $logindata "(&(objectClass=container)(cn=*))" cn  \
 
 # List SAMDB_OBJECT_CLASS_USER = 5:
 ldapsearch $logindata -b dc=lightwave,dc=local '(cn=*)' cn   \
+
+# List DSE Root entry
+ldapsearch $logindata -b "" -s base 'objectclass=*' - + '*' 
 
 
 ==============================================
@@ -336,3 +340,7 @@ b SamrSetUserInfo2
 b SamrConnect3
 b SamrConnect4
 b SamrConnect5
+
+
+tcpdump -v -s 0 -w /tmp/domainjoin-62-1.pcap -i any host 10.118.96.245 or host 10.118.96.62 and not port 22
+
