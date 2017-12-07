@@ -81,11 +81,11 @@ SamrSrvLookupNames(
     PWSTR pwszName = NULL;
     PDIRECTORY_ENTRY pEntries = NULL;
     PDIRECTORY_ENTRY pEntry = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     DWORD dwEntriesNum = 0;
     PWSTR pwszSid = NULL;
     PSID pSid = NULL;
+    PSID pOctetSid = NULL;
+    POCTET_STRING pOctetStringSid = NULL;
     DWORD dwObjectClass = 0;
     DWORD dwRid = 0;
     DWORD dwType = 0;
@@ -162,10 +162,7 @@ SamrSrvLookupNames(
         wszAttributes[0] = wszAttrObjectSid;
         wszAttributes[1] = wszAttrObjectClass;
         wszAttributes[2] = NULL;
-
         pEntry   = NULL;
-        pAttr    = NULL;
-        pAttrVal = NULL;
 
         dwError = DirectorySearch(hDirectory,
                                   pwszDn,
@@ -197,6 +194,24 @@ SamrSrvLookupNames(
                 BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
                 dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
+            }
+            else
+            {
+                /* Data is binary from LDAP store, not string */
+                dwError = DirectoryGetEntryAttrValueByName(
+                                                pEntry,
+                                                wszAttrObjectSid,
+                                                DIRECTORY_ATTR_TYPE_OCTET_STREAM,
+                                                &pOctetStringSid);
+                if (pOctetStringSid && dwError == 0)
+                {
+                    ntStatus = RtlDuplicateSid(
+                                    &pOctetSid,
+                                    (PSID) pOctetStringSid->pBytes);
+                    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+                    dwRid = pOctetSid->SubAuthority[pOctetSid->SubAuthorityCount - 1];
+                }
             }
 
             dwError = DirectoryGetEntryAttrValueByName(
@@ -261,6 +276,10 @@ SamrSrvLookupNames(
         if (pSid)
         {
             RTL_FREE(&pSid);
+        }
+        if (pOctetSid)
+        {
+            RTL_FREE(&pOctetSid);
         }
     }
 

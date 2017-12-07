@@ -231,6 +231,7 @@ VmdirDbAllocateEntriesAndAttributesValues(
                 BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
                 pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pwszName = pwszName;
 
+                /* DIRECTORY_ATTR_TYPE_UNICODE_STRING ~ PWSTR */
                 if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     ntStatus = LwRtlWC16StringAllocateFromCString(
@@ -255,7 +256,8 @@ VmdirDbAllocateEntriesAndAttributesValues(
                            berLdapRetQuery[i]->bv_len);
                     pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].data.llValue = llValue;
                 }
-                else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+                else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR ||
+                         pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_OCTET_STREAM)
                 {
                     /* Deal with binary data types */
                     dwError = LwAllocateMemory(sizeof(OCTET_STRING),
@@ -276,7 +278,6 @@ VmdirDbAllocateEntriesAndAttributesValues(
                         pBinaryData;
                 }
 
-                /* DIRECTORY_ATTR_TYPE_UNICODE_STRING ~ PWSTR */
                 pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].Type = pdwAttributeTypes[iAttr];
                 iAttrIndex++;
             }

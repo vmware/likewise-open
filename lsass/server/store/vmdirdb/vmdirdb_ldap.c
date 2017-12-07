@@ -134,38 +134,38 @@ VmDirLdapInitialize(
 	)
 {
     DWORD dwError = 0;
-    
+
     switch (gVmdirGlobals.bindProtocol)
     {
         case VMDIR_BIND_PROTOCOL_KERBEROS:
-            
+
             dwError = VmDirLdapInitializeWithKerberos(
                             pszURI,
                             pszUPN,
                             pszPassword,
                             pszCachePath,
                             ppLd);
-            
+
             break;
-            
+
         case VMDIR_BIND_PROTOCOL_SRP:
-            
+
             dwError = VmDirLdapInitializeWithSRP(
                             pszURI,
                             pszUPN,
                             pszPassword,
                             pszCachePath,
                             ppLd);
-            
+
             break;
-            
+
         default:
-            
+
             dwError = ERROR_INVALID_STATE;
-            
+
             break;
     }
-    
+
     return dwError;
 }
 
@@ -433,27 +433,27 @@ VmDirLdapInitializeWithKerberos(
     PSTR  pszUPN_local = NULL;
     LDAP* pLd = NULL;
     PSTR pszOldCachePath = NULL;
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_initialize(&pLd, pszURI));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_set_option(
                                   pLd,
                                   LDAP_OPT_X_SASL_NOCANON,
                                   LDAP_OPT_ON));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwKrb5SetThreadDefaultCachePath(
                     pszCachePath,
                     &pszOldCachePath);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_sasl_interactive_bind_s(
                                                pLd,
@@ -465,11 +465,11 @@ VmDirLdapInitializeWithKerberos(
                                                &VmDirSASLInteractionKerberos,
                                                NULL));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     *ppLd = pLd;
-    
+
 cleanup:
-    
+
     if (pszOldCachePath)
     {
         LwKrb5SetThreadDefaultCachePath(
@@ -477,20 +477,20 @@ cleanup:
                 NULL);
         LwFreeString(pszOldCachePath);
     }
-    
+
     LW_SAFE_FREE_STRING(pszUPN_local);
-    
+
     return dwError;
-    
+
 error:
-    
+
     *ppLd = NULL;
-    
+
     if (pLd)
     {
         VmDirLdapClose(pLd);
     }
-    
+
     goto cleanup;
 }
 
@@ -509,31 +509,31 @@ VmDirLdapInitializeWithSRP(
     VMDIR_SASL_INFO srpDefault = {0};
     PSTR  pszUPN_local = NULL;
     LDAP* pLd = NULL;
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_initialize(&pLd, pszURI));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_set_option(
                                   pLd,
                                   LDAP_OPT_X_SASL_NOCANON,
                                   LDAP_OPT_ON));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     dwError = LwAllocateString(pszUPN, &pszUPN_local);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     LwStrToLower(pszUPN_local);
-    
+
     srpDefault.pszAuthName = pszUPN_local;
-    
+
     srpDefault.pszPassword = pszPassword;
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_sasl_interactive_bind_s(
                                                pLd,
@@ -545,24 +545,24 @@ VmDirLdapInitializeWithSRP(
                                                &VmDirSASLInteractionSRP,
                                                &srpDefault));
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     *ppLd = pLd;
-    
+
 cleanup:
-    
+
     LW_SAFE_FREE_STRING(pszUPN_local);
-    
+
     return dwError;
-    
+
 error:
-    
+
     *ppLd = NULL;
-    
+
     if (pLd)
     {
         VmDirLdapClose(pLd);
     }
-    
+
     goto cleanup;
 }
 
@@ -590,7 +590,7 @@ VmDirSASLInteractionSRP(
 {
     sasl_interact_t* pInteract = pIn;
     PVMDIR_SASL_INFO pDef = pDefaults;
-    
+
     while( (pDef != NULL) && (pInteract->id != SASL_CB_LIST_END) )
     {
         switch( pInteract->id )
@@ -610,13 +610,13 @@ VmDirSASLInteractionSRP(
             default:
                 break;
         }
-        
+
         pInteract->result = (pInteract->defresult) ? pInteract->defresult : "";
         pInteract->len    = strlen( pInteract->result );
-        
+
         pInteract++;
     }
-    
+
     return LDAP_SUCCESS;
 }
 
@@ -1138,7 +1138,7 @@ error:
         for (i=0; ppszTmpLdapAttributes[i]; i++)
         {
             LW_SAFE_FREE_STRING(ppszTmpLdapAttributes[i]);
-        } 
+        }
         LW_SAFE_FREE_MEMORY(ppszTmpLdapAttributes);
     }
     goto cleanup;
@@ -1171,7 +1171,8 @@ VmDirAttributeCopyEntry(
         out->pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
         out->pValues[0].data.pwszStringValue = pwszValue;
     }
-    else if (in->pValues[0].Type == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+    else if (in->pValues[0].Type == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR ||
+             in->pValues[0].Type == DIRECTORY_ATTR_TYPE_OCTET_STREAM)
     {
         /* Deal with binary data types */
         dwError = LwAllocateMemory(sizeof(OCTET_STRING),
@@ -1189,8 +1190,7 @@ VmDirAttributeCopyEntry(
                pBinaryData->ulNumBytes);
 
         out->pValues[0].data.pOctetString = pBinaryData;
-        out->pValues[0].Type = DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR;
-        out->pValues[0].data.pOctetString = pBinaryData;
+        out->pValues[0].Type = in->pValues[0].Type;
     }
 
 cleanup:
@@ -1262,7 +1262,8 @@ VmDirAttributeCreateFromData(
         pAttrib->pValues[0].data.pwszStringValue = pwszValue;
         pAttrib->pValues[0].Type = dwAttributeType;
     }
-    else if (dwAttributeType == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+    else if (dwAttributeType == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR ||
+             dwAttributeType == DIRECTORY_ATTR_TYPE_OCTET_STREAM)
     {
         pOctetValue = (POCTET_STRING) pAttributeValue;
 
@@ -1326,7 +1327,7 @@ VmDirConstructMachineDN(
     PSTR pszDnPtr = NULL;
     PSTR pszPtr = NULL;
     DWORD i = 0;
-    
+
     if (!pszSqlDomainName || !ppszMachineAcctDN)
     {
         dwError =  LwNtStatusToWin32Error(STATUS_NOT_FOUND);
@@ -1439,7 +1440,7 @@ VmDirConstructMachineDNFromName(
     NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PSTR pszDnPtr = NULL;
-    
+
     if (!pszName || !ppszMachineAcctDN)
     {
         dwError =  LwNtStatusToWin32Error(STATUS_NOT_FOUND);
@@ -1473,7 +1474,7 @@ error:
 
 /* ================== SQL to LDAP translation callback functions =============*/
 
-/* 
+/*
  * "ObjectClass=1 AND Domain='lightwave.local'"
  *
  * "(&(objectclass=dcObject)(entryDn=%s))"
@@ -1518,7 +1519,7 @@ error:
     LW_SAFE_FREE_MEMORY(pszModifiedFilter);
     goto cleanup;
 }
-    
+
 
 /*
  * Handle filter of this form:
@@ -1607,7 +1608,7 @@ error:
 
 /*
  * "DistinguishedName='CN=PHOTON--59U15NB$,dc=photon-102-test'"
- * 
+ *
  * "(dn=CN=PHOTON--59U15NB$)"
  */
 static PSTR
@@ -1684,12 +1685,12 @@ pfnLdap2DirectoryEntryDnToCn(
     PSTR pszDn = NULL;
     PSTR pszDomainName = NULL;
     PWSTR pwszDomainName = NULL;
-    NTSTATUS ntStatus = 0; 
+    NTSTATUS ntStatus = 0;
     WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
     PDIRECTORY_ENTRY pOut = NULL;
 
     /* Memory has been allocated for this transform by the caller */
-    if (!in || dwNumEntries > 1 || 
+    if (!in || dwNumEntries > 1 ||
         in[0].ulNumAttributes != 1)
     {
         dwError = ERROR_INVALID_PARAMETER;
@@ -1729,7 +1730,7 @@ pfnLdap2DirectoryEntryDnToCn(
 
     /* Replace DN value with FQDN format */
     ntStatus = LwRtlCStringAllocateFromWC16String(
-                   &pszDn, 
+                   &pszDn,
                    in[0].pAttributes[0].pValues[0].data.pwszStringValue);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
@@ -1738,7 +1739,7 @@ pfnLdap2DirectoryEntryDnToCn(
 
     ntStatus = LwRtlWC16StringAllocateFromCString(&pwszCommonName, "CommonName");
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-   
+
     ntStatus = LwRtlWC16StringAllocateFromCString(&pwszDomainName, pszDomainName);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
@@ -1767,6 +1768,73 @@ error:
 }
 
 
+/* "ObjectClass=1 AND Domain='lightwave.local'" */
+static DWORD
+pfnLdap2DirectoryEntryObjectSIDBinToString(
+    DWORD dwNumEntries,
+    PDIRECTORY_ENTRY in,
+    PDIRECTORY_ENTRY *ppOut)
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    DWORD dwEntries = 0;
+    PDWORD pdwAttributesCount = NULL;
+    PWSTR pwszAttrName = NULL;
+    PWSTR pwszSid = NULL;
+    PDIRECTORY_ENTRY pOut = NULL;
+
+    /* Memory has been allocated for this transform by the caller */
+    if (!in || dwNumEntries > 1 ||
+        in[0].ulNumAttributes != 1)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    /* Allocate attributes count array, then allocate return DIRECTORY_ENTRY */
+    dwError = LwAllocateMemory(
+                  sizeof(DWORD) * (dwNumEntries + 1),
+                  (VOID *) &pdwAttributesCount);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (dwEntries=0; dwEntries < dwNumEntries; dwEntries++)
+    {
+        pdwAttributesCount[dwEntries] = in[dwEntries].ulNumAttributes;
+    }
+    dwError = VmdirDbAllocateEntriesAndAttributes(
+                  dwNumEntries,
+                  pdwAttributesCount,
+                  &pOut);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    ntStatus = LwRtlWC16StringDuplicate(
+                   &pwszAttrName,
+                   in[0].pAttributes[0].pwszName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+
+    /*
+     * Transform returned "OCTET_STREAM" to a return "UNICODE_STRING" value.
+     */
+    ntStatus = RtlAllocateWC16StringFromSid(
+                   &pwszSid,
+                   (PSID) in[0].pAttributes[0].pValues->data.pOctetString[0].pBytes);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    pOut[0].pAttributes[0].pValues->data.pwszStringValue = pwszSid;
+    pOut[0].pAttributes[0].pValues->Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    pOut[0].pAttributes[0].pwszName = pwszAttrName;
+    *ppOut = pOut;
+    pOut = NULL;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pdwAttributesCount);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 
 #if 1
 
@@ -1780,7 +1848,7 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
     PDIRECTORY_ENTRY in,
     PDIRECTORY_ENTRY *ppOut)
 {
-    NTSTATUS ntStatus = 0; 
+    NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     DWORD iEntry = 0; /* loop over dwNumEntries */
     DWORD dwEntries = 0;
@@ -1792,8 +1860,10 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
     PDIRECTORY_ATTRIBUTE pAttrib = NULL;
     WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
 #endif
+    WCHAR wszObjectSid[] = {'o','b','j','e','c','t','S','i','d',0};
     PWSTR pwszCommonName = NULL;
     PWSTR pwszDomainName = NULL;
+    PWSTR pwszSid = NULL;
     PSTR pszDn = NULL;
     PSTR pszDomainName = NULL;
     PDIRECTORY_ENTRY pOut = NULL;
@@ -1846,6 +1916,32 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
                       &pOut[iEntry].pAttributes[dwEntries],
                       &in[iEntry].pAttributes[dwEntries]);
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+
+    /* Convert objectSid from binary to string form */
+
+    /*
+     * TBD:Adam-In this implementation, objectSid should be first entry;
+     * TBD Really should loop through attributes to find objectSid
+     */
+    if (LwRtlWC16StringIsEqual(pOut[0].pAttributes[0].pwszName, wszObjectSid, FALSE))
+    {
+        /*
+         * Transform returned "OCTET_STREAM" to a return "UNICODE_STRING" value.
+         */
+        ntStatus = RtlAllocateWC16StringFromSid(
+                       &pwszSid,
+                       (PSID) pOut[0].pAttributes[0].pValues->data.pOctetString[0].pBytes);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        LW_SAFE_FREE_MEMORY(pOut[0].pAttributes[0].pValues->data.pOctetString[0].pBytes);
+        pOut[0].pAttributes[0].pValues->data.pwszStringValue = pwszSid;
+        pOut[0].pAttributes[0].pValues->Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    }
+    else
+    {
+        dwError = ERROR_INVALID_NAME;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     /* Add "stubbed in" data values needed for this lookup to work properly */
@@ -1970,7 +2066,7 @@ pfnLdap2DirectoryEntryDomainNameXform(
     PWSTR pwszName = NULL;
     PSTR pszName = NULL;
     PSTR pszValue = NULL;
-    NTSTATUS ntStatus = 0; 
+    NTSTATUS ntStatus = 0;
     WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
     WCHAR wszAccountFlags[] = {'u','s','e','r','A','c','c','o','u','n','t','C','o','n','t','r','o','l',0};
 
@@ -2100,7 +2196,7 @@ VmDirAllocLdapQueryMap(
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-   
+
     /* Initialize filters */
 
     /* LSAR filters */
@@ -2147,7 +2243,7 @@ VmDirAllocLdapQueryMap(
                   NULL,  /* attributes */
                   NULL, /* Attribute types */
                   pfnSqlToLdapEntryDnXform,
-                  NULL,/* DIRECTORY_ENTRY transform callback */
+                  pfnLdap2DirectoryEntryObjectSIDBinToString,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -2241,7 +2337,7 @@ VmDirFreeLdapQueryMap(
         LW_SAFE_FREE_MEMORY(pLdapMap->queryMap[dwIndex].pszLdapQuery);
         LW_SAFE_FREE_MEMORY(pLdapMap->queryMap[dwIndex].pszLdapBase);
     }
-    
+
 #if 0
     LW_SAFE_FREE_MEMORY(pLdapMap->pszSearchBase);
 #endif
@@ -2255,7 +2351,7 @@ error:
     goto cleanup;
 }
 
-   
+
 
 DWORD
 VmDirAllocLdapAttributeMap(
@@ -2344,7 +2440,7 @@ VmDirAllocLdapAttributeMap(
         DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_OCTET_STREAM,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING,
         DIRECTORY_ATTR_TYPE_UNICODE_STRING, /* 10 */
@@ -2481,7 +2577,7 @@ VmDirAllocLdapAttributeMap(
                       sizeof(VMDIRDB_LDAPATTR_MAP_ENTRY) * dwMaxEntries,
                                (VOID *) &pAttrMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     for (i=0; wszAttributes[i]; i++)
     {
         /* Wide character "SQL" attribute name */
@@ -2532,7 +2628,7 @@ VmdirFreeLdapAttributeMap(
         LW_SAFE_FREE_MEMORY(pAttrMap);
         *ppAttrMap = NULL;
     }
-    
+
 cleanup:
     return dwError;
 
@@ -2583,7 +2679,7 @@ VmDirSqlFilterMatchWithArgs(
         }
 
         /*
-         * Found %; Looking for '%s'. Verify previous char is ', 
+         * Found %; Looking for '%s'. Verify previous char is ',
          * and next is 's'.
          */
         else if (pszSqlFilter[aj] == '%' && aj == (quotePos+1) &&
@@ -2668,8 +2764,8 @@ VmDirFindLdapQueryMapEntry(
 
     for (i=0; i < pLdapMap->dwNumEntries; i++)
     {
-        /* 
-         * More complex match. Take into account pattern match terms which 
+        /*
+         * More complex match. Take into account pattern match terms which
          * are returned data. Example: "ObjectClass=1 AND Domain='%s'
          */
         dwError = VmDirSqlFilterMatchWithArgs(
@@ -2717,7 +2813,7 @@ error:
 }
 
 /*
- * Map PWSTR array of "SQL" attributes to PSTR array of "LDAP" 
+ * Map PWSTR array of "SQL" attributes to PSTR array of "LDAP"
  * attribute equivalents.
  */
 DWORD
@@ -2732,7 +2828,7 @@ VmdirFindLdapAttributeList(
     DWORD iFound = 0;
     PSTR *ppszLdapAttributes = NULL;
     PDWORD pdwLdapAttributeTypes = NULL;
-    
+
     PVMDIRDB_LDAPATTR_MAP pAttrMap = NULL;
 
     if (!ppszAttributes || !pppszLdapAttributes || !gVmdirGlobals.pLdapAttrMap)
@@ -2752,7 +2848,7 @@ VmdirFindLdapAttributeList(
     dwError = LwAllocateMemory((i+1) * sizeof(DWORD),
                                (VOID *) &pdwLdapAttributeTypes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     for (i=0; ppszAttributes[i]; i++)
     {
         for (j=0; j < pAttrMap->dwNumEntries; j++)
@@ -2771,7 +2867,7 @@ VmdirFindLdapAttributeList(
             }
         }
     }
-    
+
     *pppszLdapAttributes = ppszLdapAttributes;
     *ppdwLdapAttributeTypes = pdwLdapAttributeTypes;
     return dwError;
@@ -2798,7 +2894,7 @@ VmdirFindLdapPwszAttributeList(
     DWORD iFound = 0;
     PSTR *ppszLdapAttributes = NULL;
     PDWORD pdwLdapAttributeTypes = NULL;
-    
+
     PVMDIRDB_LDAPATTR_MAP pAttrMap = NULL;
 
     if (!ppwszAttributes || !pppszLdapAttributes || !gVmdirGlobals.pLdapAttrMap)
@@ -2818,7 +2914,7 @@ VmdirFindLdapPwszAttributeList(
     dwError = LwAllocateMemory((i+1) * sizeof(DWORD),
                                (VOID *) &pdwLdapAttributeTypes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    
+
     for (i=0; ppwszAttributes[i]; i++)
     {
         for (j=0; j < pAttrMap->dwNumEntries; j++)
@@ -2837,7 +2933,7 @@ VmdirFindLdapPwszAttributeList(
             }
         }
     }
-    
+
     *pppszLdapAttributes = ppszLdapAttributes;
     *ppdwLdapAttributeTypes = pdwLdapAttributeTypes;
     return dwError;
@@ -2875,7 +2971,7 @@ VmdirFreeLdapAttributeList(
     }
     LW_SAFE_FREE_MEMORY(ppszLdapAttributes);
     *ppszLdapAttributes = NULL;
-    
+
 
 cleanup:
     return dwError;

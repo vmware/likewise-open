@@ -16,6 +16,12 @@ typedef enum
 
 } VMDIR_ATTR_TYPE;
 
+typedef struct _VMDIR_DATA
+{
+    DWORD   dwDataLen;
+    PBYTE   pData;
+} VMDIR_DATA, *PVMDIR_DATA;
+
 typedef struct _VMDIR_ATTR
 {
     PCSTR           pszName;
@@ -30,7 +36,7 @@ typedef struct _VMDIR_ATTR
         PUINT64  pData_uint64;
         PSTR*    ppszData;
         PSTR**   pppszStrArray;
-        PBYTE*   ppData;
+        PVMDIR_DATA *ppData;
     } dataRef;
 
     size_t  size;

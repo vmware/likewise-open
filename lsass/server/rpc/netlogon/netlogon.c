@@ -473,11 +473,12 @@ NTSTATUS srv_NetrLogonSamLogonEx(
 
 
 
-	/* function 0x28 */
-WINERROR srv_DsrEnumerateDomainTrusts(
-        /* [in] */ handle_t IDL_handle,
-        /* [in] */ wchar16_t *server_name,
-        /* [in] */ UINT32 trust_flags,
+/* function 0x28 */
+WINERROR
+srv_DsrEnumerateDomainTrusts(
+        /* [in] */  handle_t IDL_handle,
+        /* [in] */  wchar16_t *server_name,
+        /* [in] */  UINT32 trust_flags,
         /* [out] */ NetrDomainTrustList *trusts
         )
 {
@@ -486,18 +487,12 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     DWORD dwDomainTrustCount = 1;
     DWORD dwNetBiosNameLen = 0;
     NetrDomainTrust *pDomainTrustArray = {0};
-#if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
     CHAR szNetBiosName[256] = {0}; /* MAX hostname length */
     PSTR pszDnsDomainName = NULL;
-#if 1
-    /* TBD:Adam-Endian issues with this Guid. This is how wireshark parses below value */
     PSTR pszDomainGuid = NULL;
-#else
-    PSTR pszDomainGuid = "3c448826-516c-467a-adb9-f95252680c8a";
-#endif
-
     PSTR pszDomainSid = NULL;
 
+#if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
     /* 0x1d */
     DWORD dwTrustFlags = NETR_TRUST_FLAG_NATIVE  | NETR_TRUST_FLAG_PRIMARY |
                          NETR_TRUST_FLAG_TREEROOT | NETR_TRUST_FLAG_IN_FOREST;
@@ -505,6 +500,7 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     DWORD dwTrustType = 0x02;
     DWORD dwTrustAttrs = 0x00;
 #endif
+
     PWSTR pwszNetBiosName = NULL;
     PWSTR pwszDnsDomainName = NULL;
     PSID pDomainSid = NULL;
@@ -525,11 +521,12 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     pszDomainSid = "S-1-5-21-100314066-221396614-742840509";
 #endif
 
-/* I am the DC, so return data returned from calling
+/*
+ * I am the DC, so return data returned from calling
  *  NetrLogonGetDomainInfo()
  *
- * "If the server is a domain controller (section 3.1.4.8), it MUST perform 
- *  behavior equivalent to locally invoking NetrLogonGetDomainInfo with 
+ * "If the server is a domain controller (section 3.1.4.8), it MUST perform
+ *  behavior equivalent to locally invoking NetrLogonGetDomainInfo with
  *  the previously described parameters."
  */
     status = LwRtlCStringAllocateFromWC16String(
@@ -575,8 +572,8 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     pDomainTrustArray[0].trust_flags = dwTrustFlags; /* TBD:Adam & [in] trust_flags ?? */
     pDomainTrustArray[0].parent_index = dwParentIndex;
     pDomainTrustArray[0].trust_type = dwTrustType;
-    pDomainTrustArray[0].trust_attrs = dwTrustAttrs; /* ??? */ 
- 
+    pDomainTrustArray[0].trust_attrs = dwTrustAttrs; /* TBD ??? */
+
     trusts->count = dwDomainTrustCount;
     trusts->array = pDomainTrustArray;
 
@@ -589,7 +586,7 @@ error:
     LW_SAFE_FREE_MEMORY(pwszDnsDomainName);
     LW_SAFE_FREE_MEMORY(pDomainSid);
     LW_SAFE_FREE_MEMORY(pDomainTrustArray);
-    
+
     goto cleanup;
 }
 

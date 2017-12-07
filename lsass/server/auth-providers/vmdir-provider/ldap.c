@@ -121,6 +121,15 @@ VmDirLdapGetStringArray(
     PDWORD       pdwCount
     );
 
+static
+DWORD
+VmDirLdapGetBinaryValue(
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PVMDIR_DATA  *ppucValue
+    );
+
 DWORD
 VmDirLdapInitialize(
     PCSTR            pszURI,
@@ -383,6 +392,15 @@ VmDirLdapGetValues(
                                 pAttr->pdwCount);
                 BAIL_ON_VMDIR_ERROR(dwError);
 
+                break;
+
+            case VMDIR_ATTR_TYPE_BINARY:
+                dwError = VmDirLdapGetBinaryValue(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.ppData);
+                BAIL_ON_VMDIR_ERROR(dwError);
                 break;
 
             default:
@@ -1044,5 +1062,53 @@ error:
         LwFreeStringArray(ppszStrArray, dwCount);
     }
 
+    goto cleanup;
+}
+
+
+static
+DWORD
+VmDirLdapGetBinaryValue(
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PVMDIR_DATA  *ppData
+    )
+{
+    DWORD dwError = 0;
+    struct berval **ppbv_val = NULL;
+    PVMDIR_DATA pData = NULL;
+    PBYTE pByte = NULL;
+
+    ppbv_val = ldap_get_values_len(pLd, pMessage, pszAttrName);
+    if (!ppbv_val)
+    {
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(sizeof(*pData) + ppbv_val[0]->bv_len,
+                               (PVOID*)&pData);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    pByte = ((PBYTE) pData) + sizeof(pData->dwDataLen);
+    memcpy(pByte, (PVOID) ppbv_val[0]->bv_val, ppbv_val[0]->bv_len);
+    pData->dwDataLen = ppbv_val[0]->bv_len;
+    pData->pData = pByte;
+
+    *ppData = pData;
+
+cleanup:
+
+    if (ppbv_val)
+    {
+        ldap_value_free_len(ppbv_val);
+    }
+
+    return dwError;
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pData);
     goto cleanup;
 }

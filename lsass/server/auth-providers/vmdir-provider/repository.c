@@ -159,6 +159,11 @@ VmDirCheckExpiredMemberships(
     IN BOOLEAN bCheckNullParentSid,
     OUT PBOOLEAN pbHaveExpired,
     OUT PBOOLEAN pbIsComplete
+
+VmDirFindBinarySidForDN(
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PCSTR              pszDN,
+    PSTR*              ppszSid
     );
 
 BOOLEAN
@@ -2097,6 +2102,10 @@ VmDirFindMembershipsNoCache(
         LW_SAFE_FREE_STRING(pszSid2);
 
         dwError = VmDirFindSidForDN(pDirContext, pszDN, &pszSid2);
+        if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
+        {
+            dwError = VmDirFindBinarySidForDN(pDirContext, pszDN, &pszSid2);
+        }
         BAIL_ON_VMDIR_ERROR(dwError);
 
         dwError = LwHashGetValue(
@@ -2153,6 +2162,14 @@ VmDirFindSidForDN(
             pszAttrName_object_sid,
             NULL
     };
+
+/*
+ * TBD:Adam-Better solution for string and binary SID is to
+ * change query type to VMDIR_ATTR_TYPE_BINARY, then treat
+ * the return data as either a string, looking for "S-1-"
+ * prefix, and if not found, then process as a binary SID.
+ * Do later, as the current solution works.
+ */
     VMDIR_ATTR values[] =
     {
         {
@@ -2210,6 +2227,82 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+VmDirFindBinarySidForDN(
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PCSTR              pszDN,
+    PSTR*              ppszSid
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSTR pszAttrName_object_sid = VMDIR_ATTR_NAME_OBJECTSID;
+    PVMDIR_DATA pSidData = NULL;
+    PSTR pszSid = NULL;
+
+    PSTR attrs[] =
+    {
+            pszAttrName_object_sid,
+            NULL
+    };
+    VMDIR_ATTR values[] =
+    {
+        {
+            .pszName   = pszAttrName_object_sid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
+            },
+            .size    = -1,
+            .pdwCount = NULL
+        }
+    };
+    PSTR pszFilter = "(objectclass=*)";
+    LDAPMessage* pSearchResult = NULL;
+
+    dwError = VmDirLdapQuerySingleObject(
+                    pDirContext->pLd,
+                    pszDN,
+                    LDAP_SCOPE_BASE,
+                    pszFilter,
+                    &attrs[0],
+                    &pSearchResult);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    dwError = VmDirLdapGetValues(
+                    pDirContext->pLd,
+                    pSearchResult,
+                    &values[0],
+                    sizeof(values)/sizeof(values[0]));
+    BAIL_ON_VMDIR_ERROR(dwError);
+
+    ntStatus = RtlAllocateCStringFromSid(
+                  &pszSid,
+                  (PSID) pSidData->pData);
+    BAIL_ON_VMDIR_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    *ppszSid = pszSid;
+
+cleanup:
+
+    if (pSearchResult)
+    {
+        VmDirLdapFreeMessage(pSearchResult);
+        pSearchResult = NULL;
+    }
+
+    return dwError;
+
+error:
+
+    *ppszSid = NULL;
+
+    goto cleanup;
+}
+
 DWORD
 VmDirRepositoryVerifyPassword(
     PVMDIR_DIR_CONTEXT pDirContext,
@@ -2219,7 +2312,7 @@ VmDirRepositoryVerifyPassword(
 {
     DWORD dwError = 0;
     LDAP* pLd = NULL;
-    
+
     dwError = VmDirLdapInitialize(
                     pDirContext->pBindInfo->pszURI,
                     pszUPN,
@@ -2227,22 +2320,22 @@ VmDirRepositoryVerifyPassword(
                     NULL, /* cache path */
                     &pLd);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
 cleanup:
-    
+
     if (pLd)
     {
         VmDirLdapClose(pLd);
     }
-    
+
     return dwError;
-    
+
 error:
-    
+
     // TODO : Differentiate error codes
-    
+
     dwError = LW_ERROR_PASSWORD_MISMATCH;
-    
+
     goto cleanup;
 }
 
