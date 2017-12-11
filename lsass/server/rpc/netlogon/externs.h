@@ -32,6 +32,7 @@
  * Abstract: Netlogon interface (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  */
 
 #ifndef _EXTERNS_H_
@@ -52,5 +53,11 @@ extern NETLOGON_SRV_CONFIG gNetlogonSrvConfig;
 extern PSECURITY_DESCRIPTOR_ABSOLUTE gpNetlogonSecDesc;
 
 extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
+
+extern PHANDLE ghDirectory;
+
+extern NETLOGON_GLOBALS gNetlogonGlobals;
+
+
 
 #endif /* _EXTERNS_H_ */

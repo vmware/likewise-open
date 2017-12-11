@@ -59,6 +59,7 @@
 
 
 
+#if 0
 #define DS_ATTR_RECORD_ID \
     {'O','b','j','e','c','t','R','e','c','o','r','d','I','d',0}
 #define DS_ATTR_DISTINGUISHED_NAME  \
@@ -176,6 +177,7 @@
 #define NETLOGON_BUILTIN_DOMAIN_NAME \
     {'B','U','I','L','T','I','N',0}
 
+#endif
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \

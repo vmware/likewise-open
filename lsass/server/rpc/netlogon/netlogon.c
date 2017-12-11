@@ -39,13 +39,14 @@
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        Samr rpc server stub functions
+ *        netlogon rpc server stub functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  *          Adam Bernstein (abernstein@vmware.com)
  */
 
 #include "includes.h"
+
 
 NTSTATUS srv_netr_Function00(
     /* [in] */ handle_t IDL_handle
@@ -482,6 +483,7 @@ srv_DsrEnumerateDomainTrusts(
         /* [out] */ NetrDomainTrustList *trusts
         )
 {
+    DWORD dwError = 0;
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszServerName = NULL;
     DWORD dwDomainTrustCount = 1;
@@ -490,7 +492,7 @@ srv_DsrEnumerateDomainTrusts(
     CHAR szNetBiosName[256] = {0}; /* MAX hostname length */
     PSTR pszDnsDomainName = NULL;
     PSTR pszDomainGuid = NULL;
-    PSTR pszDomainSid = NULL;
+    PSTR pszDomainDn = NULL;
 
 #if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
     /* 0x1d */
@@ -505,21 +507,60 @@ srv_DsrEnumerateDomainTrusts(
     PWSTR pwszDnsDomainName = NULL;
     PSID pDomainSid = NULL;
     uuid_t domainGuid;
+    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    LDAP *pLd = NULL;
+    PSTR ppszAttributes[] = { "objectSid", "objectGUID", NULL };
+    LDAPMessage *pObjectSid = NULL;
+    struct berval **bv_objectValue = NULL;
+
+    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) ghDirectory;
+    pLd = pContext->dirContext.pLd;
 
     gethostname(szNetBiosName, sizeof(szNetBiosName));
     dwNetBiosNameLen = (DWORD) strlen(szNetBiosName);
-    if (dwNetBiosNameLen > 16) /* TBD: Need to improve "Uniqueness test */
+
+#if 1 /* TBD:Adam- Need to improve netBIOS name uniqueness */
+    if (dwNetBiosNameLen > 16) 
     {
         szNetBiosName[15] = '$';
         szNetBiosName[16] = '\0';
     }
-
-#if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
-    /* TBD:Adam-Still need to get promoted domain name pszDnsDomainName/DomainGuid/DomainSid */
-    pszDnsDomainName = "lightwave.local";
-    pszDomainGuid = "2688443c-6c51-7a46-adb9-f95252680c8a";
-    pszDomainSid = "S-1-5-21-100314066-221396614-742840509";
 #endif
+
+    /* Obtain the domain name for this DC */
+    status = LwRtlCStringDuplicate(&pszDnsDomainName,
+                                    pContext->dirContext.pBindInfo->pszDomainFqdn);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    dwError = LwLdapConvertDomainToDN(pszDnsDomainName,
+                                      &pszDomainDn);
+    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
+
+    /* Get the domain objectSid */
+    dwError = NetlogonLdapQueryObjects(
+                  pLd,
+                  pszDomainDn,
+                  LDAP_SCOPE_BASE,
+                  "(objectClass=*)",
+                  ppszAttributes,
+                  -1,
+                  &pObjectSid);
+    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
+
+    bv_objectValue = ldap_get_values_len(pLd, pObjectSid, ppszAttributes[0]);
+    if (bv_objectValue && bv_objectValue[0])
+    {
+         pDomainSid = (PSID) bv_objectValue[0]->bv_val;
+    }
+
+#if 1 /* TBD:Adam this is a string now, but it is supposed to be a OCTECT_STRING */
+#endif
+    /* Get the domain objectGUID */
+    bv_objectValue = ldap_get_values_len(pLd, pObjectSid, ppszAttributes[1]);
+    if (bv_objectValue && bv_objectValue[0])
+    {
+         pszDomainGuid = (PSTR) bv_objectValue[0]->bv_val;
+    }
 
 /*
  * I am the DC, so return data returned from calling
@@ -545,11 +586,6 @@ srv_DsrEnumerateDomainTrusts(
     status = LwRtlWC16StringAllocateFromCString(
                  &pwszDnsDomainName,
                  pszDnsDomainName);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = RtlAllocateSidFromCString(
-                 &pDomainSid,
-                 pszDomainSid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     if (uuid_parse(pszDomainGuid, domainGuid))

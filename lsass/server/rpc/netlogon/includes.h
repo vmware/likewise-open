@@ -32,12 +32,14 @@
  * Abstract: Samr interface (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  */
 
 #include <config.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
@@ -55,6 +57,11 @@
 #include <openssl/rc4.h>
 #include <openssl/des.h>
 #include <uuid/uuid.h>
+#include <ldap.h>
+#include <lber.h>
+
+#include <sasl/sasl.h>
+#include <krb5/krb5.h>
 
 #include <lw/base.h>
 #include <lwsid.h>
@@ -62,6 +69,7 @@
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwkrb5.h>
+#include <lwldap.h>
 #include <lw/rpc/lsa.h>
 #include <lw/rpc/samr.h>
 #include <lw/rpc/netlogon.h>
@@ -85,6 +93,11 @@
 #include "netlogon.h"
 #include "netlogon_memory.h"
 #include "netlogon_h.h"
+#include "netlogonldapdefs.h"
+#include "netlogonldapstructs.h"
+#include "netlogonldap_config.h"
+#include "netlogonldap_ldap.h"
+#include "netlogonldap_utils.h"
 
 #include "externs.h"
 

@@ -42,6 +42,7 @@
  *        Netlogon memory allocation manager
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  */
 
 #ifndef _NETLOGONSRV_MEMORY_H_
@@ -59,70 +60,6 @@ void
 NetlogonSrvFreeMemory(
     void *pPtr
     );
-
-
-NTSTATUS
-NetlogonSrvAllocateSidFromWC16String(
-    PSID *ppSid,
-    PCWSTR pwszSidStr
-    );
-
-
-NTSTATUS
-NetlogonSrvDuplicateSid(
-    PSID *ppSidOut,
-    PSID pSidIn
-    );
-
-
-NTSTATUS
-NetlogonSrvGetFromUnicodeString(
-    PWSTR *ppwszOut,
-    UNICODE_STRING *pIn
-    );
-
-
-NTSTATUS
-NetlogonSrvGetFromUnicodeStringEx(
-    PWSTR *ppwszOut,
-    UNICODE_STRING *pIn
-    );
-
-
-NTSTATUS
-NetlogonSrvInitUnicodeString(
-    UNICODE_STRING *pOut,
-    PCWSTR pwszIn
-    );
-
-
-NTSTATUS
-NetlogonSrvInitUnicodeStringEx(
-    UNICODE_STRING *pOut,
-    PCWSTR pwszIn
-    );
-
-
-void
-NetlogonSrvFreeUnicodeString(
-    UNICODE_STRING *pStr
-    );
-
-
-void
-NetlogonSrvFreeUnicodeStringEx(
-    UNICODE_STRING *pStr
-    );
-
-
-#if 0
-NTSTATUS
-NetlogonSrvAllocateSecDescBuffer(
-    PNETLOGON_SECURITY_DESCRIPTOR_BUFFER *ppBuffer,
-    SECURITY_INFORMATION              SecInfo,
-    POCTET_STRING                     pBlob
-    );
-#endif
 
 
 #endif /* _NETLOGONSRV_MEMORY_H_ */

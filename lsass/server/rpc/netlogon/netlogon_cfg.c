@@ -42,6 +42,7 @@
  *        Netlogon rpc server configuration
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  */
 
 

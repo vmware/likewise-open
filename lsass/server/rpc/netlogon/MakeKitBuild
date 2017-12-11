@@ -5,7 +5,13 @@ make()
 	netlogon.c                       \
 	netlogon_cfg.c                   \
 	netlogon_srv.c                   \
-	netlogon_memory.c"
+	netlogon_memory.c                \
+	netlogonldap_config.c            \
+	netlogonldap_utils.c             \
+	netlogonldapopen.c               \
+	netlogonldapglobals.c            \
+	netlogonldap_ldap.c              \
+        "
 
     lw_dceidl \
 	IDL=../../../idl/netlogon.idl \
@@ -26,6 +32,7 @@ make()
     mk_dlo \
 	DLO=libnetlogon_srv \
 	SOURCES="$NETLOGON_SOURCES" \
+        CPPFLAGS="-DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
 	GROUPS="netlogon_stub" \
 	INCLUDEDIRS=". ../../include ../../api ../../../include" \
 	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwnet.h lwadvapi.h uuid/uuid.h openssl/md4.h" \
