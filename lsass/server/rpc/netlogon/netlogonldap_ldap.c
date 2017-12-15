@@ -90,37 +90,37 @@ NetlogonLdapInitialize(
 
 DWORD
 NetlogonLdapQueryObjects(
-	LDAP*         pLd,
-	PCSTR         pszBaseDN,
-	int           scope,
-	PCSTR         pszFilter,
-	char**        attrs,
-	int           sizeLimit,
-	LDAPMessage** ppMessage
-	)
+    LDAP*         pLd,
+    PCSTR         pszBaseDN,
+    int           scope,
+    PCSTR         pszFilter,
+    char**        attrs,
+    int           sizeLimit,
+    LDAPMessage** ppMessage
+    )
 {
-	DWORD dwError = 0;
+    DWORD dwError = 0;
+        int ldap_err = 0;
 
-	struct timeval waitTime = {0};
+    struct timeval waitTime = {0};
 
-	waitTime.tv_sec  = DEFAULT_LDAP_QUERY_TIMEOUT_SECS;
-	waitTime.tv_usec = 0;
+    waitTime.tv_sec  = DEFAULT_LDAP_QUERY_TIMEOUT_SECS;
+    waitTime.tv_usec = 0;
 
-	dwError = LwMapLdapErrorToLwError(
-				ldap_search_ext_s(
-					pLd,
-					pszBaseDN,
-					scope,
-					pszFilter,
-					attrs,
-					FALSE,     /* Attrs only      */
-					NULL,      /* Server controls */
-					NULL,      /* Client controls */
-					&waitTime,
-					sizeLimit, /* size limit      */
-					ppMessage));
+        ldap_err = ldap_search_ext_s(pLd,
+                                     pszBaseDN,
+                                     scope,
+                                     pszFilter,
+                                     attrs,
+                                     FALSE,     /* Attrs only      */
+                                     NULL,      /* Server controls */
+                                     NULL,      /* Client controls */
+                                     &waitTime,
+                                     sizeLimit, /* size limit      */
+                                     ppMessage);
 
-	return dwError;
+    dwError = LwMapLdapErrorToLwError(ldap_err);
+    return dwError;
 }
 
 

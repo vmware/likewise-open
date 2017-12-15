@@ -308,10 +308,14 @@ DirectoryGetEntryAttrValueByName(
     ULONG *pulValue = NULL;
     LONG64 *pllValue = NULL;
     PWSTR *ppwszValue = NULL;
+    WCHAR wszObjectSid[] = DIRECTORY_ATTR_OBJECT_SID;
     PSTR *ppszValue = NULL;
     POCTET_STRING *ppBlob = NULL;
     BOOLEAN bTypeIsCorrect = FALSE;
+    BOOLEAN bBinarySid = FALSE;
     BOOLEAN bUseResult = FALSE;
+    DIRECTORY_ATTR_TYPE AttrTypeSave = AttrType;
+    
 
     dwError = DirectoryGetEntryAttributeByName(pEntry,
                                                pwszAttrName,
@@ -324,6 +328,16 @@ DirectoryGetEntryAttrValueByName(
 
     if (!pAttrVal) {
         goto cleanup;
+    }
+
+    /* Deal with binary objectSid value */
+    if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_OCTET_STREAM &&
+        LwRtlWC16StringIsEqual(wszObjectSid,
+                               pAttr[0].pwszName,
+                               FALSE))
+    {
+        AttrType = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+        bBinarySid = TRUE;
     }
 
     bTypeIsCorrect = (pAttrVal->Type == AttrType);
@@ -371,6 +385,30 @@ DirectoryGetEntryAttrValueByName(
     }
 
     bUseResult = TRUE;
+
+    if (bBinarySid && AttrTypeSave == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+    {
+        NTSTATUS status = 0;
+        PWSTR pwszObjectSid = NULL;
+
+
+        /* Convert binary SID to string */
+        status = RtlAllocateWC16StringFromSid(
+                     &pwszObjectSid,
+                     (PSID) pAttrVal->data.pOctetString[0].pBytes);
+        if (status == 0)
+        {
+            if (pAttrVal->data.pOctetString)
+            {
+                DIRECTORY_FREE_MEMORY(pAttrVal->data.pOctetString->pBytes);
+                DirectoryFreeMemory(pAttrVal->data.pOctetString);
+            }
+            pAttrVal->data.pwszStringValue = pwszObjectSid;
+            pAttrVal->Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            ppwszValue = (PWSTR*)pValue;
+            *ppwszValue = pAttrVal->data.pwszStringValue;
+        }
+    }
 
 cleanup:
     if (!bUseResult)

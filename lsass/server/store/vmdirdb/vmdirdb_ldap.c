@@ -124,6 +124,44 @@ VmDirLdapGetStringArray(
 	PDWORD       pdwCount
 	);
 
+static
+PVOID 
+VmdirAttributeGetData(PATTRIBUTE_VALUE pAttr)
+{
+    PVOID pVal = NULL;
+
+    switch(pAttr->Type)
+    {
+        case DIRECTORY_ATTR_TYPE_BOOLEAN:
+            pVal = &pAttr->data.bBooleanValue;
+            break;
+
+        case DIRECTORY_ATTR_TYPE_INTEGER:
+            pVal = &pAttr->data.ulValue;
+            break;
+
+        case DIRECTORY_ATTR_TYPE_LARGE_INTEGER:
+            pVal = &pAttr->data.llValue;
+            break;
+
+        case DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR:
+        case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+            pVal = pAttr->data.pOctetString;
+            break;
+
+        case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
+            pVal = pAttr->data.pwszStringValue;
+            break;
+
+        case DIRECTORY_ATTR_TYPE_ANSI_STRING:
+            pVal = pAttr->data.pszStringValue;
+            break;
+
+        default:
+            break;
+    }
+    return pVal;
+}
 DWORD
 VmDirLdapInitialize(
 	PCSTR            pszURI,
@@ -1524,6 +1562,7 @@ error:
 /*
  * Handle filter of this form:
  * "(ObjectClass=1 OR ObjectClass=2) AND ObjectSID='S-1-5-21-100314066-221396614-742840509'"
+ * "(ObjectClass=5 AND ObjectSID='S-1-5-21-3257460770-88289183-1833122092-16778305')"
  *
  * "(&(objectclass=dcObject)(objectSid=%s))",
  */
@@ -1854,12 +1893,6 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
     DWORD dwEntries = 0;
     ULONG ulNumAttributes = 0;
     PDWORD pdwAttributesCount = NULL;
-#if 0 /*TBD: Adam */
-    DWORD i = 0;
-    DWORD iEntryDn = 0;
-    PDIRECTORY_ATTRIBUTE pAttrib = NULL;
-    WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
-#endif
     WCHAR wszObjectSid[] = {'o','b','j','e','c','t','S','i','d',0};
     PWSTR pwszCommonName = NULL;
     PWSTR pwszDomainName = NULL;
@@ -2048,6 +2081,102 @@ error:
     goto cleanup;
 }
 
+static DWORD
+pfnLdap2DirectoryEntryEntryDnToDistinguishedName(
+    DWORD dwNumEntries,
+    PDIRECTORY_ENTRY in,
+    PDIRECTORY_ENTRY *ppOut)
+{
+/* TBD:Adam 12/13-Finish implementing this filter */
+
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    DWORD i = 0;
+    DWORD dwEntries = 0;
+    PSTR pszName = NULL;
+    PWSTR pwszName = NULL;
+    PDWORD pdwAttributesCount = NULL;
+    PDIRECTORY_ENTRY pOut = NULL;
+
+    /* Memory has been allocated for this transform by the caller */
+    if (!in)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    else if (dwNumEntries > 1 || in[0].ulNumAttributes != 4)
+    {
+        dwError = ERROR_INVALID_EVENT_COUNT;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    /* Allocate attributes count array, then allocate return DIRECTORY_ENTRY */
+    dwError = LwAllocateMemory(
+                  sizeof(DWORD) * (dwNumEntries + 1),
+                  (VOID *) &pdwAttributesCount);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (dwEntries=0; dwEntries < dwNumEntries; dwEntries++)
+    {
+        pdwAttributesCount[dwEntries] = in[dwEntries].ulNumAttributes;
+    }
+    dwError = VmdirDbAllocateEntriesAndAttributes(
+                  dwNumEntries,
+                  pdwAttributesCount,
+                  &pOut);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (i=0; i<in[0].ulNumAttributes; i++)
+    {
+        ntStatus = LwRtlCStringAllocateFromWC16String(
+                       &pszName, 
+                      in[0].pAttributes[i].pwszName);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        dwError = VmDirAttributeCreateFromData(
+                      &pOut[0].pAttributes[i],
+                      pdwAttributesCount[0],
+                      pszName, 
+                      in[0].pAttributes[i].pValues[0].Type,
+                      VmdirAttributeGetData(&in[0].pAttributes[i].pValues[0]));
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+#if 1 /* TBD:Adam-Use more clever way to change name of map entry 0 and 3 */
+    /* Map [0] "entryDn" -> "DistinguishedName" */
+    pszName = "DistinguishedName";
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszName, pszName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    LW_SAFE_FREE_MEMORY(pOut[0].pAttributes[0].pwszName);
+    pOut[0].pAttributes[0].pwszName = pwszName;
+    pwszName = NULL;
+
+    /* Map [3] "ntSecurityDescriptor" -> "SecurityDescriptor" */
+    pszName = "SecurityDescriptor";
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszName, pszName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    LW_SAFE_FREE_MEMORY(pOut[0].pAttributes[3].pwszName);
+    pOut[0].pAttributes[3].pwszName = pwszName;
+    pwszName = NULL;
+#endif
+
+    *ppOut = pOut;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pdwAttributesCount);
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszName);
+    if (pOut)
+    {
+        DirectoryFreeEntries(pOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
 
 /*
  * Translate entryDN to DistinguishedName response for this filter:
@@ -2273,6 +2402,20 @@ VmDirAllocLdapQueryMap(
                   NULL, /* Attribute types */
                   pfnSqlToLdapObjectSidXform, /* ldap transform callback */
                   pfnLdap2DirectoryEntryObjectSIDDnToCn,
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "(ObjectClass=5 AND ObjectSID='%s')",
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(&(|(objectclass=dcObject)(objectClass=user)(objectClass=computer))(objectSid=%s))",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL, /* override attributes */
+                  NULL, /* Attribute types */
+                  pfnSqlToLdapObjectSidXform, /* ldap transform callback */
+                  pfnLdap2DirectoryEntryEntryDnToDistinguishedName, /* TBD:Adam 12/13-This filter is wrong */
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
