@@ -41,7 +41,7 @@ if [ \( -n "$force_debug" \) -o \( -n "$enable_winjoin" \) ]; then
 
 cat <<NNNN> .build_photon_opts
   force_debug="$force_debug"
-  enable_winjoin="--lwio-drivers=\"npfs pvfs srv rdr\""
+  enable_winjoin="--lwio-drivers=npfs pvfs srv rdr"
 NNNN
 
 elif [ -f ".build_photon_opts" ]; then
