@@ -24,7 +24,7 @@ while [ `echo "$1" | grep -c '^-'` -gt 0 ]; do
     force_debug="-g -O0"
     shift
   elif [ " $1" = " --enable-winjoin" ]; then
-    enable_winjoin=enable_winjoin="--lwio-drivers=\"npfs pvfs srv rdr\""
+    enable_winjoin=enable_winjoin="--lwio-drivers=npfs pvfs srv rdr"
     shift
   else
     usage "ERROR: unknown option $1"
@@ -43,6 +43,7 @@ cat <<NNNN> .build_photon_opts
   force_debug="$force_debug"
   enable_winjoin="--lwio-drivers=npfs pvfs srv rdr"
 NNNN
+  . ./.build_photon_opts
 
 elif [ -f ".build_photon_opts" ]; then
   echo "NOTICE: Using Overriding saved build options from '.build_photon_opts' file"
