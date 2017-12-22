@@ -46,6 +46,12 @@ interface echo {
 	[out, ref] error_status_t *	status
 	);
 
+
+  long int SendBuffer(
+	[in] handle_t            	h,
+	[in, size_is(len)] unsigned char *buf,
+	[in] long int len
+	);
 }
 
 

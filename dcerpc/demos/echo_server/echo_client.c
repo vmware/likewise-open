@@ -192,6 +192,7 @@ typedef struct _PROG_ARGS
     int do_threads;
     int num_threads;
     int silent;
+    char *cat_arg;
     args *inargs;
 } PROG_ARGS;
 
@@ -481,6 +482,16 @@ parseArgs(
         else if (strcmp("--silent", argv[i]) == 0)
         {
             args->silent++;
+            i++;
+        }
+        else if (strcmp("--cat", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--pwd-bad value missing");
+            }
+            args->cat_arg = strdup(argv[i]);
             i++;
         }
         else
@@ -1303,6 +1314,71 @@ do_rpc_call(
     return thread_arg.status;
 }
 
+size_t cat_data(
+    ASSOC_ARGS *assocs)
+{
+    unsigned32 status = 0;
+    rpc_binding_handle_t binding_handle = NULL;
+    long int sent_len = 0;
+    unsigned char buf[1024 * 64];
+    size_t read_len = 0;
+    size_t sent_total =  0;
+    FILE *fp = NULL;
+
+    status = create_binding_handle(&binding_handle,
+                                   echo_v1_0_c_ifspec,
+                                   &assocs->progArgs[0],
+                                   0);
+    switch (status)
+    {
+      case -1: printf ("Couldnt obtain RPC server binding. exiting.\n");
+        return 1;
+        break;
+      case -2: printf ("Couldn't set auth info %u. exiting.\n", status);
+        return 1;
+        break;
+    }
+
+    if (strcmp(assocs->progArgs[0].cat_arg, "-") == 0)
+    {
+        fp = stdin;
+    }
+    else
+    {
+        fp = fopen(assocs->progArgs[0].cat_arg, "rb");
+        if (!fp)
+        {
+            printf("Can't open file '%s'\n", assocs->progArgs[0].cat_arg);
+            return 1;
+        }
+    }
+
+    do
+    {
+        read_len = fread(buf, 1, sizeof(buf), fp);
+        if (read_len > 0)
+        {
+            sent_len = SendBuffer(binding_handle,
+                                  buf,
+                                  read_len);
+        }
+        if (read_len != 0 && sent_len != read_len)
+        {
+            printf("ERROR: failed to send complete data buffer!\n");
+            break;
+        }
+        sent_total += sent_len;
+    } while (!feof(fp));
+
+    rpc_binding_free(&binding_handle, &status);
+    if (fp != stdin)
+    {
+        fclose(fp);
+    }
+
+    return sent_total;
+}
+
 int
 main(
     int argc,
@@ -1347,6 +1423,15 @@ main(
     {
         fprintf(stderr, "parseArgs: failed %d\n", status);
         return 1;
+    }
+
+    /* Enter "stream data -> remote system" mode */
+    if (assocs.progArgs[0].cat_arg)
+    {
+        size_t total_len = 0;
+        total_len = cat_data(&assocs);
+        printf("cat_data: sent %ld bytes\n", total_len);
+        goto cleanup;
     }
 
     for (i=0; i< assocs.cnt; i++)
@@ -1476,3 +1561,5 @@ get_client_rpc_binding(
 
     return 1;
 }
+
+

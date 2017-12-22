@@ -465,6 +465,15 @@ error:
  *
  *=========================================================================*/
 
+idl_long_int SendBuffer(
+    rpc_binding_handle_t h,
+    unsigned char *buf,
+    idl_long_int len)
+{
+    return len;
+}
+
+
 idl_boolean
 ReverseIt(
     rpc_binding_handle_t h,
