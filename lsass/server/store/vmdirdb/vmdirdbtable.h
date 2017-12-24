@@ -1179,6 +1179,9 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
 #ifndef ATTR_CN
 #define ATTR_CN                             "cn"
 #endif
+#ifndef ATTR_DN
+#define ATTR_DN                             "dn"
+#endif
 #ifndef ATTR_USER_PASSWORD
 #define ATTR_USER_PASSWORD "userPassword"
 #endif
@@ -1188,6 +1191,10 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
 #ifndef ATTR_ACCT_FLAGS
 #define ATTR_ACCT_FLAGS                     "userAccountControl"
 #endif
+#ifndef ATTR_DISTINGUISHED_NAME
+#define ATTR_DISTINGUISHED_NAME             "distinguishedName"
+#endif
+
 
 
 
