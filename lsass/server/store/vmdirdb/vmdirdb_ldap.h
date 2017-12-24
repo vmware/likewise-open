@@ -179,3 +179,8 @@ VmDirAttributeCopyEntry(
     PDIRECTORY_ATTRIBUTE out,
     PDIRECTORY_ATTRIBUTE in);
 
+DWORD
+VmDirConstructMachineDN(
+    PSTR pszSqlDomainName,
+    PSTR *ppszMachineAcctDN);
+
