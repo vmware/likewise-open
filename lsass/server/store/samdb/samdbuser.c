@@ -77,6 +77,8 @@ SamDbSetPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
+    SAMDB_DBG_CALL;
+
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbSetPassword_inlock(
@@ -236,6 +238,8 @@ SamDbChangePassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
+    SAMDB_DBG_CALL;
+
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbVerifyPassword_inlock(
@@ -273,6 +277,8 @@ SamDbVerifyPassword(
     BOOLEAN bInLock = FALSE;
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_DBG_CALL;
 
     SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
@@ -444,6 +450,8 @@ SamDbGetUserCount(
     PDWORD pdwNumUsers
     )
 {
+    SAMDB_DBG_CALL;
+
     return SamDbGetObjectCount(
                 hBindHandle,
                 SAMDB_OBJECT_CLASS_USER,

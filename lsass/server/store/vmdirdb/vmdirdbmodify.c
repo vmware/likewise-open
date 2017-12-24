@@ -38,9 +38,9 @@
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      SAM objects modification routines
+ *      VMDIR objects modification routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -50,35 +50,36 @@
 
 #include "includes.h"
 
-typedef DWORD (*PFN_SAMDB_ATTRIBUTE_MODIFIER)(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
+#if 0
+typedef DWORD (*PFN_VMDIRDB_ATTRIBUTE_MODIFIER)(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
     PDIRECTORY_MOD                        pModifications,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
     );
 
-typedef struct _SAMDB_ATTRIBUTE_MODIFIER
+typedef struct _VMDIRDB_ATTRIBUTE_MODIFIER
 {
     PSTR                          pszDbColName;
-    PFN_SAMDB_ATTRIBUTE_MODIFIER  pfnAttrModifier;
+    PFN_VMDIRDB_ATTRIBUTE_MODIFIER  pfnAttrModifier;
 
-} SAMDB_ATTRIBUTE_MODIFIER, *PSAMDB_ATTRIBUTE_MODIFIER;
+} VMDIRDB_ATTRIBUTE_MODIFIER, *PVMDIRDB_ATTRIBUTE_MODIFIER;
 
-typedef struct _SAMDB_OBJECTCLASS_MODIFIER
+typedef struct _VMDIRDB_OBJECTCLASS_MODIFIER
 {
-    PSAMDB_ATTRIBUTE_MODIFIER   pModifiers;
+    PVMDIRDB_ATTRIBUTE_MODIFIER   pModifiers;
 
-} SAMDB_OBJECTCLASS_MODIFIER, *PSAMDB_OBJECTCLASS_MODIFIER;
+} VMDIRDB_OBJECTCLASS_MODIFIER, *PVMDIRDB_OBJECTCLASS_MODIFIER;
 
 
 static
 DWORD
-SamDbModifyDomainName(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
+VmdirDbModifyDomainName(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
     PDIRECTORY_MOD                        pModification,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -87,7 +88,7 @@ SamDbModifyDomainName(
 
 static
 DWORD
-SamDbModifyMachineDC(
+VmdirDbModifyMachineDC(
     PCSTR  pszDN,
     PCSTR  pszMachineName,
     PCSTR  pszNewMachineName,
@@ -97,10 +98,10 @@ SamDbModifyMachineDC(
 
 static
 DWORD
-SamDbModifyDomainSid(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDomainDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pDomainObjectClassMapInfo,
+VmdirDbModifyDomainSid(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDomainDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pDomainObjectClassMapInfo,
     PDIRECTORY_MOD                        pMods,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -109,10 +110,10 @@ SamDbModifyDomainSid(
 
 static
 DWORD
-SamDbModifyObjectSid(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
+VmdirDbModifyObjectSid(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
     PDIRECTORY_MOD                        pMods,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -121,168 +122,138 @@ SamDbModifyObjectSid(
 
 static
 DWORD
-SamDbModifyAttributes(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
+VmdirDbModifyAttributes(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
     PDIRECTORY_MOD                        pModification,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
     );
 
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbUnknownObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbUnknownObjectModifiers[] =
 {
     { NULL,                     NULL }
 };
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbDomainObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbDomainObjectModifiers[] =
 {
-    { SAM_DB_COL_DOMAIN,        SamDbModifyDomainName },
-    { SAM_DB_COL_OBJECT_SID,    SamDbModifyDomainSid },
-    { NULL,                     SamDbModifyAttributes }
+    { VMDIR_DB_COL_DOMAIN,        VmdirDbModifyDomainName },
+    { VMDIR_DB_COL_OBJECT_SID,    VmdirDbModifyDomainSid },
+    { NULL,                     VmdirDbModifyAttributes }
 };
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbBuiltinDomainObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbBuiltinDomainObjectModifiers[] =
 {
-    { SAM_DB_COL_OBJECT_SID,    SamDbModifyObjectSid },
-    { NULL,                     SamDbModifyAttributes }
+    { VMDIR_DB_COL_OBJECT_SID,    VmdirDbModifyObjectSid },
+    { NULL,                     VmdirDbModifyAttributes }
 };
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbContainerObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbContainerObjectModifiers[] =
 {
-    { SAM_DB_COL_OBJECT_SID,    SamDbModifyObjectSid },
-    { NULL,                     SamDbModifyAttributes }
+    { VMDIR_DB_COL_OBJECT_SID,    VmdirDbModifyObjectSid },
+    { NULL,                     VmdirDbModifyAttributes }
 };
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbLocalGroupObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbLocalGroupObjectModifiers[] =
 {
-    { SAM_DB_COL_OBJECT_SID,    SamDbModifyObjectSid },
-    { NULL,                     SamDbModifyAttributes }
+    { VMDIR_DB_COL_OBJECT_SID,    VmdirDbModifyObjectSid },
+    { NULL,                     VmdirDbModifyAttributes }
 };
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbUserObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbUserObjectModifiers[] =
 {
-    { SAM_DB_COL_OBJECT_SID,    SamDbModifyObjectSid },
-    { NULL,                     SamDbModifyAttributes }
+    { VMDIR_DB_COL_OBJECT_SID,    VmdirDbModifyObjectSid },
+    { NULL,                     VmdirDbModifyAttributes }
 };
 
-static SAMDB_ATTRIBUTE_MODIFIER gSamDbLocalGroupMemberObjectModifiers[] =
+static VMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbLocalGroupMemberObjectModifiers[] =
 {
-    { SAM_DB_COL_OBJECT_SID,    SamDbModifyObjectSid },
-    { NULL,                     SamDbModifyAttributes }
+    { VMDIR_DB_COL_OBJECT_SID,    VmdirDbModifyObjectSid },
+    { NULL,                     VmdirDbModifyAttributes }
 };
 
-static PSAMDB_ATTRIBUTE_MODIFIER gSamDbObjectClassModifiers[] =
+static PVMDIRDB_ATTRIBUTE_MODIFIER gVmdirDbObjectClassModifiers[] =
 {
-    /* SAMDB_OBJECT_CLASS_UNKNOWN */
-    &gSamDbUnknownObjectModifiers[0],
+    /* VMDIRDB_OBJECT_CLASS_UNKNOWN */
+    &gVmdirDbUnknownObjectModifiers[0],
 
-    /* SAMDB_OBJECT_CLASS_DOMAIN */
-    &gSamDbDomainObjectModifiers[0],
+    /* VMDIRDB_OBJECT_CLASS_DOMAIN */
+    &gVmdirDbDomainObjectModifiers[0],
 
-    /* SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN */
-    &gSamDbBuiltinDomainObjectModifiers[0],
+    /* VMDIRDB_OBJECT_CLASS_BUILTIN_DOMAIN */
+    &gVmdirDbBuiltinDomainObjectModifiers[0],
 
-    /* SAMDB_OBJECT_CLASS_CONTAINER */
-    &gSamDbContainerObjectModifiers[0],
+    /* VMDIRDB_OBJECT_CLASS_CONTAINER */
+    &gVmdirDbContainerObjectModifiers[0],
 
-    /* SAMDB_OBJECT_CLASS_LOCAL_GROUP */
-    &gSamDbLocalGroupObjectModifiers[0],
+    /* VMDIRDB_OBJECT_CLASS_LOCAL_GROUP */
+    &gVmdirDbLocalGroupObjectModifiers[0],
 
-    /* SAMDB_OBJECT_CLASS_USER */
-    &gSamDbUserObjectModifiers[0],
+    /* VMDIRDB_OBJECT_CLASS_USER */
+    &gVmdirDbUserObjectModifiers[0],
 
-    /* SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER */
-    &gSamDbLocalGroupMemberObjectModifiers[0]
+    /* VMDIRDB_OBJECT_CLASS_LOCALGRP_MEMBER */
+    &gVmdirDbLocalGroupMemberObjectModifiers[0]
 };
 
 
 static
 DWORD
-SamDbUpdateObjectInDatabase(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+VmdirDbUpdateObjectInDatabase(
+    PVMDIR_DIRECTORY_CONTEXT pDirectoryContext,
     PWSTR                  pwszObjectDN,
-    SAMDB_OBJECT_CLASS     objectClass,
+    VMDIRDB_OBJECT_CLASS     objectClass,
     DIRECTORY_MOD          modifications[]
     );
 
 static
 DWORD
-SamDbUpdateBuildObjectQuery(
-    PSAM_DIRECTORY_CONTEXT              pDirectoryContext,
-    PSAM_DB_DN                          pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
+VmdirDbUpdateBuildObjectQuery(
+    PVMDIR_DIRECTORY_CONTEXT              pDirectoryContext,
+    PVMDIR_DB_DN                          pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
     DIRECTORY_MOD                       modifications[],
     PSTR*                               ppszQuery,
-    PSAM_DB_COLUMN_VALUE*               ppColumnValueList
+    PVMDIR_DB_COLUMN_VALUE*               ppColumnValueList
     );
 
 static
 DWORD
-SamDbUpdateBuildColumnValueList(
-    PSAM_DIRECTORY_CONTEXT              pDirectoryContext,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
+VmdirDbUpdateBuildColumnValueList(
+    PVMDIR_DIRECTORY_CONTEXT              pDirectoryContext,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
     DIRECTORY_MOD                       modifications[],
-    PSAM_DB_COLUMN_VALUE*               ppColumnValueList
+    PVMDIR_DB_COLUMN_VALUE*               ppColumnValueList
     );
 
 static
 DWORD
-SamDbUpdateBindValues(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+VmdirDbUpdateBindValues(
+    PVMDIR_DIRECTORY_CONTEXT pDirectoryContext,
     PCSTR                  pszObjectDN,
-    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    PVMDIR_DB_COLUMN_VALUE   pColumnValueList,
     sqlite3_stmt*          pSqlStatement
     );
 
+#endif
+
+
+#if 1
 DWORD
-SamDbModifyObject(
+VmdirDbModifyObject(
     HANDLE hBindHandle,
     PWSTR  pwszObjectDN,
     DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
-    LONG64 llObjectRecordId = 0;
-    PSTR   pszObjectDN = NULL;
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
-    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    SAMDB_DBG_CALL;
-
-    dwError = LwWc16sToMbs(
-                    pwszObjectDN,
-                    &pszObjectDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbGetObjectRecordInfo(
-                    pDirectoryContext,
-                    pszObjectDN,
-                    &llObjectRecordId,
-                    &objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbSchemaModifyValidateDirMods(
-                    pDirectoryContext,
-                    objectClass,
-                    modifications);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbUpdateObjectInDatabase(
-                    pDirectoryContext,
-                    pwszObjectDN,
-                    objectClass,
-                    modifications);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbIncrementSequenceNumber(
-                    pDirectoryContext);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
 cleanup:
 
-    DIRECTORY_FREE_STRING(pszObjectDN);
 
    return dwError;
 
@@ -290,26 +261,29 @@ error:
 
     goto cleanup;
 }
+#endif /* if 1 */
 
+#if 0
 static
 DWORD
-SamDbUpdateObjectInDatabase(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+VmdirDbUpdateObjectInDatabase(
+    PVMDIR_DIRECTORY_CONTEXT pDirectoryContext,
     PWSTR                  pwszObjectDN,
-    SAMDB_OBJECT_CLASS     objectClass,
+    VMDIRDB_OBJECT_CLASS     objectClass,
     DIRECTORY_MOD          modifications[]
     )
 {
     DWORD dwError = 0;
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo = NULL;
-    PSAM_DB_DN pDN = NULL;
+    PVMDIR_DB_DN pDN = NULL;
+
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo = NULL;
     DWORD dwModCount = 0;
     DWORD iMod = 0;
     PDIRECTORY_MOD pMods = NULL;
     PDIRECTORY_MOD pModsApplied = NULL;
     DWORD dwNumModsApplied = 0;
     DWORD iModifier = 0;
-    PSAMDB_ATTRIBUTE_MODIFIER pModifiers = NULL;
+    PVMDIRDB_ATTRIBUTE_MODIFIER pModifiers = NULL;
     PWSTR pwszAttrName = NULL;
     DWORD iModApplied = 0;
     DWORD iModCurrent = 0;
@@ -318,135 +292,19 @@ SamDbUpdateObjectInDatabase(
     if (!pDirectoryContext || !pwszObjectDN || !*pwszObjectDN)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbParseDN(
+    dwError = VmdirDbParseDN(
                 pwszObjectDN,
                 &pDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbFindObjectClassMapInfo(
-                    objectClass,
-                    pDirectoryContext->pObjectClassAttrMaps,
-                    pDirectoryContext->dwNumObjectClassAttrMaps,
-                    &pObjectClassMapInfo);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    /*
-     * Allocate the same amount of space for pMods as calculated
-     * from modifications. pMods is going to be used as a working
-     * copy.
-     */
-    while (modifications[dwModCount].pwszAttrName)
-    {
-        dwModCount++;
-    }
-
-    dwError = DirectoryAllocateMemory(sizeof(pMods[0]) * (dwModCount + 1),
-                                      OUT_PPVOID(&pMods));
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    for (iMod = 0; iMod < dwModCount; iMod++)
-    {
-        pMods[iMod] = modifications[iMod];
-    }
-
-    /*
-     * Get modifier functions table for given object class
-     */
-    pModifiers = gSamDbObjectClassModifiers[objectClass];
-
-    for (iModifier = 0;
-         pModifiers[iModifier].pszDbColName != NULL;
-         iModifier++)
-    {
-        dwError = LwMbsToWc16s(pModifiers[iModifier].pszDbColName,
-                                &pwszAttrName);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        for (iMod = 0; iMod < dwModCount; iMod++)
-        {
-            if (wc16scasecmp(pMods[iMod].pwszAttrName, pwszAttrName))
-            {
-                continue;
-            }
-
-            dwError = pModifiers[iModifier].pfnAttrModifier(
-                                               pDirectoryContext,
-                                               pDN,
-                                               pObjectClassMapInfo,
-                                               pMods,
-                                               &pModsApplied,
-                                               &dwNumModsApplied);
-            BAIL_ON_SAMDB_ERROR(dwError);
-
-            /*
-             * Remove mods that have been applied from pMods, so they
-             * are no longer used if more than one modification is needed
-             * (i.e. there are other attributes to be changed)
-             */
-            if (dwNumModsApplied > 0)
-            {
-                for (iModApplied = 0;
-                     iModApplied < dwNumModsApplied;
-                     iModApplied++)
-                {
-                    /* Count until dwModCount + 1 to reach the null
-                       mod termination */
-                    for (iModCurrent = 0;
-                         iModCurrent < dwModCount + 1;
-                         iModCurrent++)
-                    {
-                        if (pModsApplied[iModApplied].pwszAttrName ==
-                            pMods[iModCurrent].pwszAttrName)
-                        {
-                            dwOffset++;
-                            dwModCount--;
-                        }
-
-                        if (dwOffset)
-                        {
-                            pMods[iModCurrent] = pMods[iModCurrent + dwOffset];
-                        }
-                    }
-
-                    dwOffset = 0;
-                }
-            }
-
-            DIRECTORY_FREE_MEMORY(pModsApplied);
-
-            pModsApplied     = NULL;
-            dwNumModsApplied = 0;
-        }
-
-        DIRECTORY_FREE_MEMORY(pwszAttrName);
-        pwszAttrName = NULL;
-    }
-
-    if (dwModCount > 0 &&
-        pMods[0].pwszAttrName != NULL &&
-        pModifiers[iModifier].pfnAttrModifier)
-    {
-        dwError = pModifiers[iModifier].pfnAttrModifier(
-                                           pDirectoryContext,
-                                           pDN,
-                                           pObjectClassMapInfo,
-                                           pMods,
-                                           &pModsApplied,
-                                           &dwNumModsApplied);
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
 cleanup:
-    DIRECTORY_FREE_MEMORY(pMods);
-    DIRECTORY_FREE_MEMORY(pwszAttrName);
-    DIRECTORY_FREE_MEMORY(pModsApplied);
 
     if (pDN)
     {
-        SamDbFreeDN(pDN);
+        VmdirDbFreeDN(pDN);
     }
 
     return dwError;
@@ -456,13 +314,15 @@ error:
     goto cleanup;
 }
 
+#endif /* if 0 */
 
+#if 0 /* TBD:Adam-is is used */
 static
 DWORD
-SamDbModifyDomainName(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDomainDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pDomainObjectClassMapInfo,
+VmdirDbModifyDomainName(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDomainDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pDomainObjectClassMapInfo,
     PDIRECTORY_MOD                        pMods,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -479,7 +339,7 @@ SamDbModifyDomainName(
     PSTR pszDomainQuery = NULL;
     BOOLEAN bTxStarted = FALSE;
     sqlite3_stmt* pSqlStatement = NULL;
-    PSAM_DB_COLUMN_VALUE pDomainColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pDomainColumnValueList = NULL;
     DWORD dwNumModified = 0;
     PDIRECTORY_MOD pModified = NULL;
     DWORD iModified = 0;
@@ -504,13 +364,13 @@ SamDbModifyDomainName(
     PDIRECTORY_ENTRY pAccountEntry = NULL;
     DWORD dwNumAccountEntries = 0;
     DWORD iEntry = 0;
-    PSAM_DB_DN pAccountDN = NULL;
+    PVMDIR_DB_DN pAccountDN = NULL;
     PWSTR pwszAccountDN = NULL;
     PSTR pszAccountDN = NULL;
     DWORD dwAccountObjectClass = 0;
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pAccountClassMapInfo = NULL;
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pAccountClassMapInfo = NULL;
     PSTR pszAccountQuery = NULL;
-    PSAM_DB_COLUMN_VALUE pAccountColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pAccountColumnValueList = NULL;
     DWORD dwAnyObjectFilterLen = 0;
     PWSTR pwszAnyObjectFilter = NULL;
     PDIRECTORY_ENTRY pObjectEntries = NULL;
@@ -525,19 +385,19 @@ SamDbModifyDomainName(
     PSTR pszNewObjectDN = NULL;
     PSTR pszParentDN = NULL;
     PSTR pszNewParentDN = NULL;
-    PSAM_DB_DN pObjectDN = NULL;
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo = NULL;
+    PVMDIR_DB_DN pObjectDN = NULL;
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo = NULL;
     PSTR pszObjectQuery = NULL;
-    PSAM_DB_COLUMN_VALUE pObjectColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pObjectColumnValueList = NULL;
 
-    WCHAR wszAttrRecordId[] = SAM_DB_DIR_ATTR_RECORD_ID;
-    WCHAR wszAttrObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    WCHAR wszAttrObjectDN[] = SAM_DB_DIR_ATTR_DISTINGUISHED_NAME;
-    WCHAR wszAttrParentDN[] = SAM_DB_DIR_ATTR_PARENT_DN;
-    WCHAR wszAttrDomainName[] = SAM_DB_DIR_ATTR_DOMAIN;
-    WCHAR wszAttrNetbiosName[] = SAM_DB_DIR_ATTR_NETBIOS_NAME;
-    WCHAR wszAttrCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
-    WCHAR wszAttrSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrRecordId[] = VMDIR_DB_DIR_ATTR_RECORD_ID;
+    WCHAR wszAttrObjectClass[] = VMDIR_DB_DIR_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectDN[] = VMDIR_DB_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrParentDN[] = VMDIR_DB_DIR_ATTR_PARENT_DN;
+    WCHAR wszAttrDomainName[] = VMDIR_DB_DIR_ATTR_DOMAIN;
+    WCHAR wszAttrNetbiosName[] = VMDIR_DB_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrCommonName[] = VMDIR_DB_DIR_ATTR_COMMON_NAME;
+    WCHAR wszAttrSamAccountName[] = VMDIR_DB_DIR_ATTR_VMDIR_ACCOUNT_NAME;
 
     PWSTR wszAttributes[] = {
         &wszAttrObjectClass[0],
@@ -551,7 +411,7 @@ SamDbModifyDomainName(
         ATTR_IDX_DOMAIN_NAME  = 0,
         ATTR_IDX_NETBIOS_NAME,
         ATTR_IDX_COMMON_NAME,
-        ATTR_IDX_SAM_ACCOUNT_NAME,
+        ATTR_IDX_VMDIR_ACCOUNT_NAME,
         ATTR_IDX_OBJECT_DN,
         ATTR_IDX_PARENT_DN,
         ATTR_IDX_SENTINEL
@@ -570,7 +430,7 @@ SamDbModifyDomainName(
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {   /* ATTR_IDX_SAM_ACCOUNT_NAME */
+        {   /* ATTR_IDX_VMDIR_ACCOUNT_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
@@ -609,7 +469,7 @@ SamDbModifyDomainName(
         DIR_MOD_FLAGS_REPLACE,
         &wszAttrSamAccountName[0],
         1,
-        &AttrValues[ATTR_IDX_SAM_ACCOUNT_NAME]
+        &AttrValues[ATTR_IDX_VMDIR_ACCOUNT_NAME]
     };
 
     DIRECTORY_MOD modObjectDN = {
@@ -628,7 +488,7 @@ SamDbModifyDomainName(
 
     DIRECTORY_MOD mods[ATTR_IDX_SENTINEL + 1];
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     /*
      * Get new domain name from the mods
@@ -640,7 +500,7 @@ SamDbModifyDomainName(
             pMods[iMod].ulOperationFlags != DIR_MOD_FLAGS_REPLACE)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         if (pwszNewDomainName == NULL &&
@@ -666,7 +526,7 @@ SamDbModifyDomainName(
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;
             }
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         iMod++;
@@ -703,7 +563,7 @@ SamDbModifyDomainName(
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;
             }
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
             if (wc16scasecmp(pwszCmpDomainName,
                              pwszNewDomainName))
@@ -713,7 +573,7 @@ SamDbModifyDomainName(
                  * is not the same as the others
                  */
                 dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_VMDIRDB_ERROR(dwError);
             }
 
             DIRECTORY_FREE_MEMORY(pwszCmpDomainName);
@@ -731,17 +591,17 @@ SamDbModifyDomainName(
                           sizeof(wszDomainFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszDomainFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszDomainFilter, dwDomainFilterLen, wszDomainFilterFmt,
                     &wszAttrObjectClass[0],
                     DIR_OBJECT_CLASS_DOMAIN) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszDomainFilter,
@@ -749,12 +609,12 @@ SamDbModifyDomainName(
                                 ulAttributesOnly,
                                 &pDomainEntries,
                                 &dwNumDomainEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumDomainEntries != 1)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     pDomainEntry = &(pDomainEntries[0]);
@@ -779,7 +639,7 @@ SamDbModifyDomainName(
     AttrValues[ATTR_IDX_DOMAIN_NAME].data.pwszStringValue  = pwszNewDomainName;
     AttrValues[ATTR_IDX_NETBIOS_NAME].data.pwszStringValue = pwszNewDomainName;
     AttrValues[ATTR_IDX_COMMON_NAME].data.pwszStringValue  = pwszNewDomainName;
-    AttrValues[ATTR_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue
+    AttrValues[ATTR_IDX_VMDIR_ACCOUNT_NAME].data.pwszStringValue
         = pwszNewDomainName;
 
     mods[iMod++] = modDomainName;
@@ -790,18 +650,18 @@ SamDbModifyDomainName(
     dwError = LwWc16sToMbs(
                    pDomainDN->pwszDN,
                    &pszDomainDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = SamDbUpdateBuildObjectQuery(
+    dwError = VmdirDbUpdateBuildObjectQuery(
                     pDirectoryContext,
                     pDomainDN,
                     pDomainObjectClassMapInfo,
                     mods,
                     &pszDomainQuery,
                     &pDomainColumnValueList);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
+    VMDIR_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -809,21 +669,21 @@ SamDbModifyDomainName(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
-    dwError = SamDbUpdateBindValues(
+    dwError = VmdirDbUpdateBindValues(
                     pDirectoryContext,
                     pszDomainDN,
                     pDomainColumnValueList,
                     pSqlStatement);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LW_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (pSqlStatement)
     {
@@ -849,7 +709,7 @@ SamDbModifyDomainName(
 
     dwError = DirectoryAllocateMemory(sizeof(pModified[0]) * dwNumModified,
                                       OUT_PPVOID(&pModified));
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     for (iMod = 0; pMods[iMod].pwszAttrName != NULL; iMod++)
     {
@@ -878,7 +738,7 @@ SamDbModifyDomainName(
                            sizeof(wszAccountFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwAccountFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszAccountFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszAccountFilter, dwAccountFilterLen, wszAccountFilterFmt,
                     &wszAttrDomainName[0],
@@ -889,10 +749,10 @@ SamDbModifyDomainName(
                     DIR_OBJECT_CLASS_LOCAL_GROUP) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszAccountFilter,
@@ -900,12 +760,12 @@ SamDbModifyDomainName(
                                 ulAttributesOnly,
                                 &pAccountEntries,
                                 &dwNumAccountEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumAccountEntries == 0)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     for (iEntry = 0; iEntry < dwNumAccountEntries; iEntry++)
@@ -937,29 +797,29 @@ SamDbModifyDomainName(
         mods[iMod++] = modDomainName;
         mods[iMod++] = modNetbiosName;
 
-        dwError = SamDbParseDN(pwszAccountDN,
+        dwError = VmdirDbParseDN(pwszAccountDN,
                                &pAccountDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = LwWc16sToMbs(pwszAccountDN,
                                 &pszAccountDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        dwError = SamDbFindObjectClassMapInfo(
+        dwError = VmdirDbFindObjectClassMapInfo(
                         dwAccountObjectClass,
                         pDirectoryContext->pObjectClassAttrMaps,
                         pDirectoryContext->dwNumObjectClassAttrMaps,
                         &pAccountClassMapInfo);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        dwError = SamDbUpdateBuildObjectQuery(
+        dwError = VmdirDbUpdateBuildObjectQuery(
                         pDirectoryContext,
                         pAccountDN,
                         pAccountClassMapInfo,
                         mods,
                         &pszAccountQuery,
                         &pAccountColumnValueList);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = sqlite3_prepare_v2(
                         pDirectoryContext->pDbContext->pDbHandle,
@@ -967,22 +827,22 @@ SamDbModifyDomainName(
                         -1,
                         &pSqlStatement,
                         NULL);
-        BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError,
+        BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError,
                                       pDirectoryContext->pDbContext->pDbHandle);
 
-        dwError = SamDbUpdateBindValues(
+        dwError = VmdirDbUpdateBindValues(
                         pDirectoryContext,
                         pszAccountDN,
                         pAccountColumnValueList,
                         pSqlStatement);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = sqlite3_step(pSqlStatement);
         if (dwError == SQLITE_DONE)
         {
             dwError = LW_ERROR_SUCCESS;
         }
-        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+        BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
         if (pSqlStatement)
         {
@@ -992,13 +852,13 @@ SamDbModifyDomainName(
 
         if (pAccountDN)
         {
-            SamDbFreeDN(pAccountDN);
+            VmdirDbFreeDN(pAccountDN);
             pAccountDN = NULL;
         }
 
         if (pAccountColumnValueList)
         {
-            SamDbFreeColumnValueList(pAccountColumnValueList);
+            VmdirDbFreeColumnValueList(pAccountColumnValueList);
             pAccountColumnValueList = NULL;
         }
 
@@ -1019,17 +879,17 @@ SamDbModifyDomainName(
                              sizeof(wszAnyObjectFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwAnyObjectFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszAnyObjectFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszAnyObjectFilter, dwAnyObjectFilterLen,
                     wszAnyObjectFilterFmt,
                     &wszAttrRecordId[0]) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszAnyObjectFilter,
@@ -1037,12 +897,12 @@ SamDbModifyDomainName(
                                 ulAttributesOnly,
                                 &pObjectEntries,
                                 &dwNumObjectEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumObjectEntries == 0)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     for (iEntry = 0; iEntry < dwNumObjectEntries; iEntry++)
@@ -1077,31 +937,31 @@ SamDbModifyDomainName(
 
         dwError = LwWc16sToMbs(pwszOldDomainName,
                                 &pszOldDomainName);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = LwWc16sToMbs(pwszNewDomainName,
                                 &pszNewDomainName);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = LwWc16sToMbs(pwszObjectDN, &pszObjectDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        dwError = SamDbModifyMachineDC(pszObjectDN,
+        dwError = VmdirDbModifyMachineDC(pszObjectDN,
                                        pszOldDomainName,
                                        pszNewDomainName,
                                        &pszNewObjectDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         if (pwszParentDN)
         {
             dwError = LwWc16sToMbs(pwszParentDN, &pszParentDN);
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
-            dwError = SamDbModifyMachineDC(pszParentDN,
+            dwError = VmdirDbModifyMachineDC(pszParentDN,
                                            pszOldDomainName,
                                            pszNewDomainName,
                                            &pszNewParentDN);
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         if (pszNewObjectDN || pszNewParentDN)
@@ -1121,25 +981,25 @@ SamDbModifyDomainName(
                 mods[iMod++] = modParentDN;
             }
 
-            dwError = SamDbParseDN(pwszObjectDN,
+            dwError = VmdirDbParseDN(pwszObjectDN,
                                    &pObjectDN);
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
-            dwError = SamDbFindObjectClassMapInfo(
+            dwError = VmdirDbFindObjectClassMapInfo(
                             dwObjectClass,
                             pDirectoryContext->pObjectClassAttrMaps,
                             pDirectoryContext->dwNumObjectClassAttrMaps,
                             &pObjectClassMapInfo);
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
-            dwError = SamDbUpdateBuildObjectQuery(
+            dwError = VmdirDbUpdateBuildObjectQuery(
                             pDirectoryContext,
                             pObjectDN,
                             pObjectClassMapInfo,
                             mods,
                             &pszObjectQuery,
                             &pObjectColumnValueList);
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
             dwError = sqlite3_prepare_v2(
                             pDirectoryContext->pDbContext->pDbHandle,
@@ -1147,22 +1007,22 @@ SamDbModifyDomainName(
                             -1,
                             &pSqlStatement,
                             NULL);
-            BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError,
+            BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError,
                                           pDirectoryContext->pDbContext->pDbHandle);
 
-            dwError = SamDbUpdateBindValues(
+            dwError = VmdirDbUpdateBindValues(
                             pDirectoryContext,
                             pszObjectDN,
                             pObjectColumnValueList,
                             pSqlStatement);
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
 
             dwError = sqlite3_step(pSqlStatement);
             if (dwError == SQLITE_DONE)
             {
                 dwError = LW_ERROR_SUCCESS;
             }
-            BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+            BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
             if (pSqlStatement)
             {
@@ -1172,13 +1032,13 @@ SamDbModifyDomainName(
 
             if (pObjectDN)
             {
-                SamDbFreeDN(pObjectDN);
+                VmdirDbFreeDN(pObjectDN);
                 pObjectDN = NULL;
             }
 
             if (pObjectColumnValueList)
             {
-                SamDbFreeColumnValueList(pObjectColumnValueList);
+                VmdirDbFreeColumnValueList(pObjectColumnValueList);
                 pObjectColumnValueList = NULL;
             }
 
@@ -1205,33 +1065,33 @@ SamDbModifyDomainName(
     *pdwNumModified = dwNumModified;
 
 cleanup:
-    SAM_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
+    VMDIR_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDomainColumnValueList)
     {
-        SamDbFreeColumnValueList(pDomainColumnValueList);
+        VmdirDbFreeColumnValueList(pDomainColumnValueList);
     }
 
     if (pAccountColumnValueList)
     {
-        SamDbFreeColumnValueList(pAccountColumnValueList);
+        VmdirDbFreeColumnValueList(pAccountColumnValueList);
     }
 
     if (pObjectColumnValueList)
     {
-        SamDbFreeColumnValueList(pObjectColumnValueList);
+        VmdirDbFreeColumnValueList(pObjectColumnValueList);
     }
 
     if (pAccountDN)
     {
-        SamDbFreeDN(pAccountDN);
+        VmdirDbFreeDN(pAccountDN);
     }
 
     if (pObjectDN)
     {
-        SamDbFreeDN(pObjectDN);
+        VmdirDbFreeDN(pObjectDN);
     }
 
     if (pSqlStatement)
@@ -1283,7 +1143,7 @@ error:
 
 static
 DWORD
-SamDbModifyMachineDC(
+VmdirDbModifyMachineDC(
     PCSTR  pszDN,
     PCSTR  pszMachineName,
     PCSTR  pszNewMachineName,
@@ -1300,7 +1160,7 @@ SamDbModifyMachineDC(
     DWORD dwPreTokenLen = 0;
 
     dwError = LwStrDupOrNull(pszDN, &pszObjectDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     LwStrStr(pszObjectDN, pszMachineName, &pszToken);
 
@@ -1317,7 +1177,7 @@ SamDbModifyMachineDC(
                                          pszPreToken,
                                          pszNewMachineName,
                                          pszPostToken);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     *ppszNewDN = pszNewObjectDN;
@@ -1338,10 +1198,10 @@ error:
 
 static
 DWORD
-SamDbModifyDomainSid(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDomainDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pDomainObjectClassMapInfo,
+VmdirDbModifyDomainSid(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDomainDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pDomainObjectClassMapInfo,
     PDIRECTORY_MOD                        pMods,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -1374,7 +1234,7 @@ SamDbModifyDomainSid(
     PSTR pszDomainQuery = NULL;
     DWORD dwNumModified = 0;
     PDIRECTORY_MOD pModified = NULL;
-    PSAM_DB_COLUMN_VALUE pDomainColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pDomainColumnValueList = NULL;
     HANDLE hDirectory = (HANDLE)pDirectoryContext;
     PWSTR pwszBase = NULL;
     ULONG ulScope = 0;
@@ -1392,16 +1252,16 @@ SamDbModifyDomainSid(
     PSID pNewAccountSid = NULL;
     DWORD dwRid = 0;
     PWSTR pwszNewAccountSid = NULL;
-    PSAM_DB_DN pAccountDN = NULL;
+    PVMDIR_DB_DN pAccountDN = NULL;
     PSTR pszAccountDN = NULL;
     DWORD dwAccountObjectClass = 0;
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pAccountClassMapInfo = NULL;
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pAccountClassMapInfo = NULL;
     PSTR pszAccountQuery = NULL;
-    PSAM_DB_COLUMN_VALUE pAccountColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pAccountColumnValueList = NULL;
 
-    WCHAR wszAttrObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    WCHAR wszAttrObjectDN[] = SAM_DB_DIR_ATTR_DISTINGUISHED_NAME;
-    WCHAR wszAttrObjectSid[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    WCHAR wszAttrObjectClass[] = VMDIR_DB_DIR_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectDN[] = VMDIR_DB_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectSid[] = VMDIR_DB_DIR_ATTR_OBJECT_SID;
     WCHAR wszAttrDomainName[] = DIRECTORY_ATTR_DOMAIN_NAME;
 
     PWSTR wszAttributes[] = {
@@ -1433,7 +1293,7 @@ SamDbModifyDomainSid(
 
     DIRECTORY_MOD mods[ATTR_IDX_SENTINEL + 1];
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     /*
      * Get new domain SID from the mods
@@ -1445,7 +1305,7 @@ SamDbModifyDomainSid(
             pMods[iMod].ulOperationFlags != DIR_MOD_FLAGS_REPLACE)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         if (pwszNewDomainSid == NULL &&
@@ -1468,7 +1328,7 @@ SamDbModifyDomainSid(
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;
             }
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         iMod++;
@@ -1497,17 +1357,17 @@ SamDbModifyDomainSid(
                           sizeof(wszDomainFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszDomainFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszDomainFilter, dwDomainFilterLen, wszDomainFilterFmt,
                     &wszAttrObjectClass[0],
                     DIR_OBJECT_CLASS_DOMAIN) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszDomainFilter,
@@ -1515,12 +1375,12 @@ SamDbModifyDomainSid(
                                 ulAttributesOnly,
                                 &pDomainEntries,
                                 &dwNumDomainEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumDomainEntries != 1)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     pDomainEntry = &(pDomainEntries[0]);
@@ -1543,8 +1403,8 @@ SamDbModifyDomainSid(
                                             pwszOldDomainSid);
     if (ntStatus != STATUS_SUCCESS)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     /*
@@ -1561,18 +1421,18 @@ SamDbModifyDomainSid(
     dwError = LwWc16sToMbs(
                    pDomainDN->pwszDN,
                    &pszDomainDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = SamDbUpdateBuildObjectQuery(
+    dwError = VmdirDbUpdateBuildObjectQuery(
                     pDirectoryContext,
                     pDomainDN,
                     pDomainObjectClassMapInfo,
                     mods,
                     &pszDomainQuery,
                     &pDomainColumnValueList);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
+    VMDIR_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -1580,21 +1440,21 @@ SamDbModifyDomainSid(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
-    dwError = SamDbUpdateBindValues(
+    dwError = VmdirDbUpdateBindValues(
                     pDirectoryContext,
                     pszDomainDN,
                     pDomainColumnValueList,
                     pSqlStatement);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LW_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (pSqlStatement)
     {
@@ -1617,7 +1477,7 @@ SamDbModifyDomainSid(
 
     dwError = DirectoryAllocateMemory(sizeof(pModified[0]) * dwNumModified,
                                       OUT_PPVOID(&pModified));
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     for (iMod = 0; pMods[iMod].pwszAttrName != NULL; iMod++)
     {
@@ -1643,7 +1503,7 @@ SamDbModifyDomainSid(
                            sizeof(wszAccountFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwAccountFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszAccountFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszAccountFilter, dwAccountFilterLen, wszAccountFilterFmt,
                     &wszAttrDomainName[0],
@@ -1654,10 +1514,10 @@ SamDbModifyDomainSid(
                     DIR_OBJECT_CLASS_LOCAL_GROUP) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszAccountFilter,
@@ -1665,12 +1525,12 @@ SamDbModifyDomainSid(
                                 ulAttributesOnly,
                                 &pAccountEntries,
                                 &dwNumAccountEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumAccountEntries == 0)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     for (iEntry = 0; iEntry < dwNumAccountEntries; iEntry++)
@@ -1700,30 +1560,30 @@ SamDbModifyDomainSid(
                                                 pwszAccountSid);
         if (ntStatus != STATUS_SUCCESS)
         {
-            dwError = LW_ERROR_SAM_DATABASE_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         /* ... and it has to be in the same domain as machine SID */
         if (!RtlIsPrefixSid(pOldDomainSid,
                             pOldAccountSid))
         {
-            dwError = LW_ERROR_SAM_DATABASE_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         dwSidLength = RtlLengthSid(pOldAccountSid);
         dwError = DirectoryAllocateMemory(dwSidLength,
                                           (PVOID*)&pNewAccountSid);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         ntStatus = RtlCopySid(dwSidLength,
                               pNewAccountSid,
                               pNewDomainSid);
         if (ntStatus)
         {
-            dwError = LW_ERROR_SAM_DATABASE_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         dwRid = pOldAccountSid->SubAuthority[
@@ -1733,16 +1593,16 @@ SamDbModifyDomainSid(
                                    dwRid);
         if (ntStatus)
         {
-            dwError = LW_ERROR_SAM_DATABASE_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         ntStatus = RtlAllocateWC16StringFromSid(&pwszNewAccountSid,
                                                 pNewAccountSid);
         if (ntStatus)
         {
-            dwError = LW_ERROR_SAM_DATABASE_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         memset(&mods[0], 0, sizeof(mods));
@@ -1750,29 +1610,29 @@ SamDbModifyDomainSid(
         AttrValues[ATTR_IDX_OBJECT_SID].data.pwszStringValue = pwszNewAccountSid;
         mods[0] = modObjectSid;
 
-        dwError = SamDbParseDN(pwszAccountDN,
+        dwError = VmdirDbParseDN(pwszAccountDN,
                                &pAccountDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = LwWc16sToMbs(pwszAccountDN,
                                 &pszAccountDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        dwError = SamDbFindObjectClassMapInfo(
+        dwError = VmdirDbFindObjectClassMapInfo(
                         dwAccountObjectClass,
                         pDirectoryContext->pObjectClassAttrMaps,
                         pDirectoryContext->dwNumObjectClassAttrMaps,
                         &pAccountClassMapInfo);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        dwError = SamDbUpdateBuildObjectQuery(
+        dwError = VmdirDbUpdateBuildObjectQuery(
                         pDirectoryContext,
                         pAccountDN,
                         pAccountClassMapInfo,
                         mods,
                         &pszAccountQuery,
                         &pAccountColumnValueList);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = sqlite3_prepare_v2(
                         pDirectoryContext->pDbContext->pDbHandle,
@@ -1780,22 +1640,22 @@ SamDbModifyDomainSid(
                         -1,
                         &pSqlStatement,
                         NULL);
-        BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError,
+        BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError,
                                       pDirectoryContext->pDbContext->pDbHandle);
 
-        dwError = SamDbUpdateBindValues(
+        dwError = VmdirDbUpdateBindValues(
                         pDirectoryContext,
                         pszAccountDN,
                         pAccountColumnValueList,
                         pSqlStatement);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         dwError = sqlite3_step(pSqlStatement);
         if (dwError == SQLITE_DONE)
         {
             dwError = LW_ERROR_SUCCESS;
         }
-        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+        BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
         if (pSqlStatement)
         {
@@ -1805,13 +1665,13 @@ SamDbModifyDomainSid(
 
         if (pAccountDN)
         {
-            SamDbFreeDN(pAccountDN);
+            VmdirDbFreeDN(pAccountDN);
             pAccountDN = NULL;
         }
 
         if (pAccountColumnValueList)
         {
-            SamDbFreeColumnValueList(pAccountColumnValueList);
+            VmdirDbFreeColumnValueList(pAccountColumnValueList);
             pAccountColumnValueList = NULL;
         }
 
@@ -1830,23 +1690,23 @@ SamDbModifyDomainSid(
     *pdwNumModified = dwNumModified;
 
 cleanup:
-    SAM_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
+    VMDIR_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDomainColumnValueList)
     {
-        SamDbFreeColumnValueList(pDomainColumnValueList);
+        VmdirDbFreeColumnValueList(pDomainColumnValueList);
     }
 
     if (pAccountColumnValueList)
     {
-        SamDbFreeColumnValueList(pAccountColumnValueList);
+        VmdirDbFreeColumnValueList(pAccountColumnValueList);
     }
 
     if (pAccountDN)
     {
-        SamDbFreeDN(pAccountDN);
+        VmdirDbFreeDN(pAccountDN);
     }
 
     if (pSqlStatement)
@@ -1888,10 +1748,10 @@ error:
 
 static
 DWORD
-SamDbModifyObjectSid(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
+VmdirDbModifyObjectSid(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
     PDIRECTORY_MOD                        pMods,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -1931,14 +1791,14 @@ SamDbModifyObjectSid(
     PWSTR pwszObjectDN = NULL;
     PSTR pszDN = NULL;
     PSTR pszQuery = NULL;
-    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pColumnValueList = NULL;
     DWORD iModified = 0;
     PDIRECTORY_MOD pModified = NULL;
     DWORD dwNumModified = 0;
 
-    WCHAR wszAttrObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    WCHAR wszAttrObjectDN[] = SAM_DB_DIR_ATTR_DISTINGUISHED_NAME;
-    WCHAR wszAttrObjectSid[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    WCHAR wszAttrObjectClass[] = VMDIR_DB_DIR_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectDN[] = VMDIR_DB_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectSid[] = VMDIR_DB_DIR_ATTR_OBJECT_SID;
 
     PWSTR wszAttributes[] = {
         &wszAttrObjectClass[0],
@@ -1970,14 +1830,14 @@ SamDbModifyObjectSid(
 
     dwObjectClass = pObjectClassMapInfo->objectClass;
 
-    if (!(dwObjectClass == SAMDB_OBJECT_CLASS_LOCAL_GROUP ||
-          dwObjectClass == SAMDB_OBJECT_CLASS_USER))
+    if (!(dwObjectClass == VMDIRDB_OBJECT_CLASS_LOCAL_GROUP ||
+          dwObjectClass == VMDIRDB_OBJECT_CLASS_USER))
     {
         dwError = EACCES;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     /*
      * Get new domain SID from the mods
@@ -1989,7 +1849,7 @@ SamDbModifyObjectSid(
             pMods[iMod].ulOperationFlags != DIR_MOD_FLAGS_REPLACE)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         if (pwszNewObjectSid == NULL &&
@@ -2012,7 +1872,7 @@ SamDbModifyObjectSid(
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;
             }
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
 
         iMod++;
@@ -2041,17 +1901,17 @@ SamDbModifyObjectSid(
                           sizeof(wszDomainFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszDomainFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszDomainFilter, dwDomainFilterLen, wszDomainFilterFmt,
                     &wszAttrObjectClass[0],
                     DIR_OBJECT_CLASS_DOMAIN) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszDomainFilter,
@@ -2059,12 +1919,12 @@ SamDbModifyObjectSid(
                                 ulAttributesOnly,
                                 &pDomainEntries,
                                 &dwNumDomainEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumDomainEntries != 1)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     pDomainEntry = &(pDomainEntries[0]);
@@ -2083,8 +1943,8 @@ SamDbModifyObjectSid(
                                             pwszDomainSid);
     if (ntStatus != STATUS_SUCCESS)
     {
-        dwError = LW_ERROR_SAM_DATABASE_ERROR;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        dwError = LW_ERROR_VMDIR_DATABASE_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     /*
@@ -2096,7 +1956,7 @@ SamDbModifyObjectSid(
 
     {
         dwError = LW_ERROR_INVALID_SID;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
     /*
@@ -2109,17 +1969,17 @@ SamDbModifyObjectSid(
                           sizeof(wszObjectSidFilterFmt[0])));
     dwError = DirectoryAllocateMemory(dwObjectFilterLen * sizeof(WCHAR),
                                       (PVOID*)&pwszObjectFilter);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (sw16printfw(pwszObjectFilter, dwObjectFilterLen, wszObjectSidFilterFmt,
                     &wszAttrObjectSid[0],
                     pwszNewObjectSid) < 0)
     {
         dwError = errno;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    dwError = SamDbSearchObject_inlock(hDirectory,
+    dwError = VmdirDbSearchObject_inlock(hDirectory,
                                 pwszBase,
                                 ulScope,
                                 pwszObjectFilter,
@@ -2127,7 +1987,7 @@ SamDbModifyObjectSid(
                                 ulAttributesOnly,
                                 &pEntries,
                                 &dwNumEntries);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (dwNumEntries)
     {
@@ -2156,14 +2016,14 @@ SamDbModifyObjectSid(
              */
             switch (dwObjectClass)
             {
-            case SAMDB_OBJECT_CLASS_LOCAL_GROUP:
+            case VMDIRDB_OBJECT_CLASS_LOCAL_GROUP:
                 dwError = LW_ERROR_GROUP_EXISTS;
                 break;
 
-            case SAMDB_OBJECT_CLASS_USER:
+            case VMDIRDB_OBJECT_CLASS_USER:
                 dwError = LW_ERROR_USER_EXISTS;
             }
-            BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
         }
     }
 
@@ -2177,18 +2037,18 @@ SamDbModifyObjectSid(
     dwError = LwWc16sToMbs(
                    pDN->pwszDN,
                    &pszDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = SamDbUpdateBuildObjectQuery(
+    dwError = VmdirDbUpdateBuildObjectQuery(
                     pDirectoryContext,
                     pDN,
                     pObjectClassMapInfo,
                     mods,
                     &pszQuery,
                     &pColumnValueList);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
+    VMDIR_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -2196,21 +2056,21 @@ SamDbModifyObjectSid(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
-    dwError = SamDbUpdateBindValues(
+    dwError = VmdirDbUpdateBindValues(
                     pDirectoryContext,
                     pszDN,
                     pColumnValueList,
                     pSqlStatement);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LW_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     /*
      * Prepare the applied mods to return to the caller
@@ -2227,7 +2087,7 @@ SamDbModifyObjectSid(
 
     dwError = DirectoryAllocateMemory(sizeof(pModified[0]) * dwNumModified,
                                       OUT_PPVOID(&pModified));
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     for (iMod = 0; pMods[iMod].pwszAttrName != NULL; iMod++)
     {
@@ -2243,9 +2103,9 @@ SamDbModifyObjectSid(
     *pdwNumModified = dwNumModified;
 
 cleanup:
-    SAM_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
+    VMDIR_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDomainEntries)
     {
@@ -2261,7 +2121,7 @@ cleanup:
 
     if (pColumnValueList)
     {
-        SamDbFreeColumnValueList(pColumnValueList);
+        VmdirDbFreeColumnValueList(pColumnValueList);
     }
 
     if (pSqlStatement)
@@ -2286,10 +2146,10 @@ error:
 
 static
 DWORD
-SamDbModifyAttributes(
-    PSAM_DIRECTORY_CONTEXT                pDirectoryContext,
-    PSAM_DB_DN                            pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
+VmdirDbModifyAttributes(
+    PVMDIR_DIRECTORY_CONTEXT                pDirectoryContext,
+    PVMDIR_DB_DN                            pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO   pObjectClassMapInfo,
     PDIRECTORY_MOD                        pMods,
     PDIRECTORY_MOD                       *ppModified,
     PDWORD                                pdwNumModified
@@ -2301,28 +2161,28 @@ SamDbModifyAttributes(
     PSTR pszQuery = NULL;
     BOOLEAN bTxStarted = FALSE;
     sqlite3_stmt* pSqlStatement = NULL;
-    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pColumnValueList = NULL;
     DWORD dwNumModified = 0;
     PDIRECTORY_MOD pModified = NULL;
     DWORD iMod = 0;
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = LwWc16sToMbs(
                 pDN->pwszDN,
                 &pszDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = SamDbUpdateBuildObjectQuery(
+    dwError = VmdirDbUpdateBuildObjectQuery(
                     pDirectoryContext,
                     pDN,
                     pObjectClassMapInfo,
                     pMods,
                     &pszQuery,
                     &pColumnValueList);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
+    VMDIR_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -2330,21 +2190,21 @@ SamDbModifyAttributes(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
-    dwError = SamDbUpdateBindValues(
+    dwError = VmdirDbUpdateBindValues(
                     pDirectoryContext,
                     pszDN,
                     pColumnValueList,
                     pSqlStatement);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LW_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     while (pMods[dwNumModified].pwszAttrName)
     {
@@ -2353,7 +2213,7 @@ SamDbModifyAttributes(
 
     dwError = DirectoryAllocateMemory(sizeof(pModified[0]) * dwNumModified,
                                       OUT_PPVOID(&pModified));
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     for (iMod = 0; iMod < dwNumModified; iMod++)
     {
@@ -2364,13 +2224,13 @@ SamDbModifyAttributes(
     *pdwNumModified = dwNumModified;
 
 cleanup:
-    SAM_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
+    VMDIR_DB_END_TRANSACTION(bTxStarted, dwError, pDirectoryContext);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
+    VMDIRDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pColumnValueList)
     {
-        SamDbFreeColumnValueList(pColumnValueList);
+        VmdirDbFreeColumnValueList(pColumnValueList);
     }
 
     if (pSqlStatement)
@@ -2388,22 +2248,22 @@ error:
 }
 
 
-#define SAMDB_UPDATE_OBJECT_QUERY_PREFIX    "UPDATE " SAM_DB_OBJECTS_TABLE
-#define SAMDB_UPDATE_OBJECT_QUERY_SET       " SET "
-#define SAMDB_UPDATE_OBJECT_QUERY_EQUALS    " = "
-#define SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR ","
-#define SAMDB_UPDATE_OBJECT_QUERY_WHERE     " WHERE "
-#define SAMDB_UPDATE_OBJECT_QUERY_SUFFIX    ";"
+#define VMDIRDB_UPDATE_OBJECT_QUERY_PREFIX    "UPDATE " VMDIR_DB_OBJECTS_TABLE
+#define VMDIRDB_UPDATE_OBJECT_QUERY_SET       " SET "
+#define VMDIRDB_UPDATE_OBJECT_QUERY_EQUALS    " = "
+#define VMDIRDB_UPDATE_OBJECT_FIELD_SEPARATOR ","
+#define VMDIRDB_UPDATE_OBJECT_QUERY_WHERE     " WHERE "
+#define VMDIRDB_UPDATE_OBJECT_QUERY_SUFFIX    ";"
 
 static
 DWORD
-SamDbUpdateBuildObjectQuery(
-    PSAM_DIRECTORY_CONTEXT              pDirectoryContext,
-    PSAM_DB_DN                          pDN,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
+VmdirDbUpdateBuildObjectQuery(
+    PVMDIR_DIRECTORY_CONTEXT              pDirectoryContext,
+    PVMDIR_DB_DN                          pDN,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
     DIRECTORY_MOD                       modifications[],
     PSTR*                               ppszQuery,
-    PSAM_DB_COLUMN_VALUE*               ppColumnValueList
+    PVMDIR_DB_COLUMN_VALUE*               ppColumnValueList
     )
 {
     DWORD dwError = 0;
@@ -2414,15 +2274,15 @@ SamDbUpdateBuildObjectQuery(
     DWORD dwQueryLen = 0;
     DWORD dwColNamesLen = 0;
     CHAR  szBuf[32];
-    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
-    PSAM_DB_COLUMN_VALUE pIter = NULL;
+    PVMDIR_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pIter = NULL;
 
-    dwError = SamDbUpdateBuildColumnValueList(
+    dwError = VmdirDbUpdateBuildColumnValueList(
                     pDirectoryContext,
                     pObjectClassMapInfo,
                     modifications,
                     &pColumnValueList);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     // We are building a query which will look like
     // UPDATE samdbobjects
@@ -2433,43 +2293,43 @@ SamDbUpdateBuildObjectQuery(
     {
         if (dwColNamesLen)
         {
-            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR) - 1;
+            dwColNamesLen += sizeof(VMDIRDB_UPDATE_OBJECT_FIELD_SEPARATOR) - 1;
         }
         else
         {
-            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET) - 1;
+            dwColNamesLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_SET) - 1;
         }
 
         dwColNamesLen += strlen(&pIter->pAttrMap->szDbColumnName[0]);
 
-        dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_EQUALS) - 1;
+        dwColNamesLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_EQUALS) - 1;
 
         sprintf(szBuf, "\?%u", ++iCol);
 
         dwColNamesLen += strlen(szBuf);
     }
 
-    dwQueryLen = sizeof(SAMDB_UPDATE_OBJECT_QUERY_PREFIX) - 1;
+    dwQueryLen = sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_PREFIX) - 1;
     dwQueryLen += dwColNamesLen;
-    dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_WHERE) - 1;
+    dwQueryLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_WHERE) - 1;
 
-    dwQueryLen += sizeof(SAM_DB_COL_DISTINGUISHED_NAME) - 1;
-    dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_EQUALS) - 1;
+    dwQueryLen += sizeof(VMDIR_DB_COL_DISTINGUISHED_NAME) - 1;
+    dwQueryLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_EQUALS) - 1;
     sprintf(szBuf, "\?%u", ++iCol);
     dwQueryLen += strlen(szBuf);
-    dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SUFFIX) - 1;
+    dwQueryLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_SUFFIX) - 1;
     dwQueryLen++;
 
     dwError = DirectoryAllocateMemory(
                     dwQueryLen,
                     (PVOID*)&pszQuery);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     pszQueryCursor = pszQuery;
     iCol = 0;
     dwColNamesLen = 0;
 
-    pszCursor = SAMDB_UPDATE_OBJECT_QUERY_PREFIX;
+    pszCursor = VMDIRDB_UPDATE_OBJECT_QUERY_PREFIX;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;
@@ -2479,21 +2339,21 @@ SamDbUpdateBuildObjectQuery(
     {
         if (dwColNamesLen)
         {
-            pszCursor = SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR;
+            pszCursor = VMDIRDB_UPDATE_OBJECT_FIELD_SEPARATOR;
             while (pszCursor && *pszCursor)
             {
                 *pszQueryCursor++ = *pszCursor++;
             }
-            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR)  - 1;
+            dwColNamesLen += sizeof(VMDIRDB_UPDATE_OBJECT_FIELD_SEPARATOR)  - 1;
         }
         else
         {
-            pszCursor = SAMDB_UPDATE_OBJECT_QUERY_SET;
+            pszCursor = VMDIRDB_UPDATE_OBJECT_QUERY_SET;
             while (pszCursor && *pszCursor)
             {
                 *pszQueryCursor++ = *pszCursor++;
             }
-            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET)  - 1;
+            dwColNamesLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_SET)  - 1;
         }
 
         pszCursor = &pIter->pAttrMap->szDbColumnName[0];
@@ -2503,12 +2363,12 @@ SamDbUpdateBuildObjectQuery(
             dwColNamesLen++;
         }
 
-        pszCursor = SAMDB_UPDATE_OBJECT_QUERY_EQUALS;
+        pszCursor = VMDIRDB_UPDATE_OBJECT_QUERY_EQUALS;
         while (pszCursor && *pszCursor)
         {
             *pszQueryCursor++ = *pszCursor++;
         }
-        dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_EQUALS)  - 1;
+        dwColNamesLen += sizeof(VMDIRDB_UPDATE_OBJECT_QUERY_EQUALS)  - 1;
 
         sprintf(szBuf, "\?%u", ++iCol);
         pszCursor = &szBuf[0];
@@ -2519,21 +2379,21 @@ SamDbUpdateBuildObjectQuery(
         }
     }
 
-    pszCursor = SAMDB_UPDATE_OBJECT_QUERY_WHERE;
+    pszCursor = VMDIRDB_UPDATE_OBJECT_QUERY_WHERE;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;
         dwColNamesLen++;
     }
 
-    pszCursor = SAM_DB_COL_DISTINGUISHED_NAME;
+    pszCursor = VMDIR_DB_COL_DISTINGUISHED_NAME;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;
         dwColNamesLen++;
     }
 
-    pszCursor = SAMDB_UPDATE_OBJECT_QUERY_EQUALS;
+    pszCursor = VMDIRDB_UPDATE_OBJECT_QUERY_EQUALS;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;
@@ -2548,7 +2408,7 @@ SamDbUpdateBuildObjectQuery(
         dwColNamesLen++;
     }
 
-    pszCursor = SAMDB_UPDATE_OBJECT_QUERY_SUFFIX;
+    pszCursor = VMDIRDB_UPDATE_OBJECT_QUERY_SUFFIX;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;
@@ -2570,7 +2430,7 @@ error:
 
     if (pColumnValueList)
     {
-        SamDbFreeColumnValueList(pColumnValueList);
+        VmdirDbFreeColumnValueList(pColumnValueList);
     }
 
     goto cleanup;
@@ -2578,16 +2438,16 @@ error:
 
 static
 DWORD
-SamDbUpdateBuildColumnValueList(
-    PSAM_DIRECTORY_CONTEXT              pDirectoryContext,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
+VmdirDbUpdateBuildColumnValueList(
+    PVMDIR_DIRECTORY_CONTEXT              pDirectoryContext,
+    PVMDIRDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassMapInfo,
     DIRECTORY_MOD                       modifications[],
-    PSAM_DB_COLUMN_VALUE*               ppColumnValueList
+    PVMDIR_DB_COLUMN_VALUE*               ppColumnValueList
     )
 {
     DWORD dwError = 0;
-    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
-    PSAM_DB_COLUMN_VALUE pColumnValue = NULL;
+    PVMDIR_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PVMDIR_DB_COLUMN_VALUE pColumnValue = NULL;
     DWORD dwNumMods = 0;
     DWORD iMap = 0;
 
@@ -2598,21 +2458,21 @@ SamDbUpdateBuildColumnValueList(
            modifications[dwNumMods].pAttrValues)
     {
         dwError = DirectoryAllocateMemory(
-                        sizeof(SAM_DB_COLUMN_VALUE),
+                        sizeof(VMDIR_DB_COLUMN_VALUE),
                         (PVOID*)&pColumnValue);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         pColumnValue->pDirMod = &modifications[dwNumMods];
 
-        dwError = SamDbAttributeLookupByName(
+        dwError = VmdirDbAttributeLookupByName(
                         pDirectoryContext->pAttrLookup,
                         pColumnValue->pDirMod->pwszAttrName,
                         &pColumnValue->pAttrMap);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         for (iMap = 0; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
         {
-            PSAMDB_ATTRIBUTE_MAP_INFO pMapInfo = NULL;
+            PVMDIRDB_ATTRIBUTE_MAP_INFO pMapInfo = NULL;
 
             pMapInfo = &pObjectClassMapInfo->pAttributeMaps[iMap];
 
@@ -2633,7 +2493,7 @@ SamDbUpdateBuildColumnValueList(
         dwNumMods++;
     }
 
-    *ppColumnValueList = SamDbReverseColumnValueList(pColumnValueList);
+    *ppColumnValueList = VmdirDbReverseColumnValueList(pColumnValueList);
 
 cleanup:
 
@@ -2645,11 +2505,11 @@ error:
 
     if (pColumnValueList)
     {
-        SamDbFreeColumnValueList(pColumnValueList);
+        VmdirDbFreeColumnValueList(pColumnValueList);
     }
     if (pColumnValue)
     {
-        SamDbFreeColumnValueList(pColumnValue);
+        VmdirDbFreeColumnValueList(pColumnValue);
     }
 
     goto cleanup;
@@ -2657,15 +2517,15 @@ error:
 
 static
 DWORD
-SamDbUpdateBindValues(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+VmdirDbUpdateBindValues(
+    PVMDIR_DIRECTORY_CONTEXT pDirectoryContext,
     PCSTR                  pszObjectDN,
-    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    PVMDIR_DB_COLUMN_VALUE   pColumnValueList,
     sqlite3_stmt*          pSqlStatement
     )
 {
     DWORD dwError = 0;
-    PSAM_DB_COLUMN_VALUE pIter = pColumnValueList;
+    PVMDIR_DB_COLUMN_VALUE pIter = pColumnValueList;
     DWORD iParam = 0;
     PSTR pszValue = NULL;
     PWSTR pwszValue = NULL;
@@ -2686,11 +2546,11 @@ SamDbUpdateBindValues(
                 dwError = LW_ERROR_INVALID_PARAMETER;
             }
         }
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
 
         switch (pIter->pAttrMap->attributeType)
         {
-            case SAMDB_ATTR_TYPE_TEXT:
+            case VMDIRDB_ATTR_TYPE_TEXT:
             {
                 PATTRIBUTE_VALUE pAttrValue = NULL;
 
@@ -2717,7 +2577,7 @@ SamDbUpdateBindValues(
                 if (pwszValue)
                 {
                     dwError = LwWc16sToMbs(pwszValue, &pszValue);
-                    BAIL_ON_SAMDB_ERROR(dwError);
+                    BAIL_ON_VMDIRDB_ERROR(dwError);
                 }
 
                 if (pszValue)
@@ -2733,7 +2593,7 @@ SamDbUpdateBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+                BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 /* If both pointers are set then it means pszValue was
                    allocated from pwszValue */
@@ -2747,9 +2607,9 @@ SamDbUpdateBindValues(
                 break;
             }
 
-            case SAMDB_ATTR_TYPE_INT32:
-            case SAMDB_ATTR_TYPE_BOOLEAN:
-            case SAMDB_ATTR_TYPE_DATETIME:
+            case VMDIRDB_ATTR_TYPE_INT32:
+            case VMDIRDB_ATTR_TYPE_BOOLEAN:
+            case VMDIRDB_ATTR_TYPE_DATETIME:
 
                 if (pIter->pAttrValues)
                 {
@@ -2766,11 +2626,11 @@ SamDbUpdateBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
-                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+                BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
-            case SAMDB_ATTR_TYPE_INT64:
+            case VMDIRDB_ATTR_TYPE_INT64:
 
                 if (pIter->pAttrValues)
                 {
@@ -2787,12 +2647,12 @@ SamDbUpdateBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
-                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+                BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
-            case SAMDB_ATTR_TYPE_BLOB:
-            case SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR:
+            case VMDIRDB_ATTR_TYPE_BLOB:
+            case VMDIRDB_ATTR_TYPE_SECURITY_DESCRIPTOR:
             {
                 POCTET_STRING pOctetString = NULL;
 
@@ -2819,7 +2679,7 @@ SamDbUpdateBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+                BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -2827,7 +2687,7 @@ SamDbUpdateBindValues(
             default:
 
                 dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_VMDIRDB_ERROR(dwError);
         }
     }
 
@@ -2837,7 +2697,7 @@ SamDbUpdateBindValues(
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+    BAIL_ON_VMDIRDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
     /* If both pointers are set then it means pszValue was
@@ -2854,6 +2714,7 @@ error:
     goto cleanup;
 }
 
+#endif
 
 /*
 local variables:

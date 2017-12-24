@@ -33,38 +33,60 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbgroup.h
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      Provider disconnect routines.
+ *      VMDIR Group Specific Management Methods
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
+#ifndef __VMDIR_DB_GROUP_H__
+#define __VMDIR_DB_GROUP_H__
 
-#include "includes.h"
+DWORD
+VmdirDbGetGroupCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumGroups
+    );
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
-    )
-{
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+DWORD
+VmdirDbGetGroupMembers(
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
 
-    SAMDB_DBG_CALL;
+DWORD
+VmdirDbGetUserMemberships(
+    HANDLE            hBindHandle,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
 
+DWORD
+VmdirDbAddToGroup(
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntries
+    );
 
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
-}
+DWORD
+VmdirDbRemoveFromGroup(
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntries
+    );
+
+#endif /* __VMDIR_DB_GROUP_H__ */
 
 
 /*

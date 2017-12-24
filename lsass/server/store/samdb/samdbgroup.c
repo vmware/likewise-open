@@ -83,6 +83,8 @@ SamDbGetGroupCount(
     PDWORD pdwNumGroups
     )
 {
+    SAMDB_DBG_CALL;
+
     return SamDbGetObjectCount(
                 hBindHandle,
                 SAMDB_OBJECT_CLASS_LOCAL_GROUP,
@@ -116,6 +118,8 @@ SamDbGetGroupMembers(
     BOOLEAN bInLock = FALSE;
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_DBG_CALL;
 
     dwError = LwWc16sToMbs(
                     pwszGroupDN,
@@ -211,6 +215,8 @@ SamDbGetUserMemberships(
     BOOLEAN bInLock = FALSE;
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_DBG_CALL;
 
     dwError = LwWc16sToMbs(
                     pwszUserDN,
@@ -719,6 +725,8 @@ SamDbAddToGroup(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
+    SAMDB_DBG_CALL;
+
     dwError = LwWc16sToMbs(
                     pwszGroupDN,
                     &pszGroupDN);
@@ -878,6 +886,8 @@ SamDbRemoveFromGroup(
     BOOLEAN bInLock = FALSE;
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_DBG_CALL;
 
     dwError = LwWc16sToMbs(
                     pwszGroupDN,

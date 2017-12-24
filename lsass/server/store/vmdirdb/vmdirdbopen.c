@@ -33,38 +33,102 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbopen.c
  *
  * Abstract:
  *
  *
  *      Likewise SAM Database Provider
  *
- *      Provider disconnect routines.
+ *      Provider open functions
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
  *          Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  *
  */
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
+DWORD
+VmdirDbOpen(
+    PHANDLE phDirectory
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    DWORD dwError = 0;
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
+    LDAP             *pLd = NULL;
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
+    if (!phDirectory)
     {
-        SamDbFreeDirectoryContext(pDirContext);
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
+
+    dwError = LwAllocateMemory(
+                    sizeof(VMDIR_AUTH_PROVIDER_CONTEXT),
+                    (PVOID*)&pContext);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+ 
+    pthread_mutex_init(&pContext->mutex, NULL);
+    pContext->pMutex = &pContext->mutex;
+
+    /* 
+     * Call VmDirCreateBindInfo()
+     * Call VmDirLdapInitialize()
+     * Wrap up this information in the phDirectory and return to caller.
+     */
+    dwError = VmDirCreateBindInfo(&pBindInfo);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+#if 0
+typedef struct _VMDIR_BIND_INFO
+{
+    LONG refCount;
+
+    PSTR pszURI;
+    PSTR pszUPN;
+    PSTR pszPassword;
+    PSTR pszDomainFqdn;
+    PSTR pszDomainShort;
+    PSTR pszSearchBase;
+
+} VMDIR_BIND_INFO, *PVMDIR_BIND_INFO;
+
+#endif
+
+    dwError = VmDirLdapInitialize(
+                  pBindInfo->pszURI,
+                  pBindInfo->pszUPN,
+                  pBindInfo->pszPassword,
+                  VMDIR_KRB5_CC_NAME,
+                  &pLd);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    pContext->dirContext.pBindInfo = pBindInfo;
+    pBindInfo = NULL;
+    
+    pContext->dirContext.pLd = pLd;
+    pLd = NULL;
+
+    *phDirectory = pContext;
+
+cleanup:
+
+    return dwError;
+
+error:
+    VmDirReleaseBindInfo(pBindInfo);
+    if (pLd)
+    {
+        VmDirLdapClose(pLd);
+    }
+
+    goto cleanup;
 }
+
 
 
 /*

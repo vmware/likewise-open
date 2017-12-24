@@ -1,0 +1,28 @@
+make()
+{
+    VMDIRDB_SOURCES="\
+        vmdirdb_ldap.c      \
+        vmdirdb_config.c    \
+        vmdirdb_utils.c     \
+        vmdirdbadd.c        \
+        vmdirdbbind.c       \
+        vmdirdbclose.c      \
+        vmdirdbdel.c        \
+        vmdirdbdn.c         \
+        vmdirdbglobals.c    \
+        vmdirdbgroup.c      \
+        vmdirdbinit.c       \
+        vmdirdbmodify.c     \
+        vmdirdbopen.c       \
+        vmdirdbsearch.c     \
+        vmdirdbuser.c"
+
+    mk_dlo \
+	DLO=libvmdirdb \
+	SOURCES="$VMDIRDB_SOURCES" \
+        CPPFLAGS="-DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
+	INCLUDEDIRS=". ../include ../../include ../../../include" \
+	HEADERDEPS="openssl/md4.h uuid/uuid.h lw/base.h lwio/lwio.h lwadvapi.h" \
+	LIBDEPS="uuid lwbase crypto dsapi" \
+        SYMFILE="vmdirdb.sym"
+}

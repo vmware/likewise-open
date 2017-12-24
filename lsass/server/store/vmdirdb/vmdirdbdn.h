@@ -33,14 +33,14 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbdn.h
  *
  * Abstract:
  *
  *
  *      Likewise SAM Database Provider
  *
- *      Provider disconnect routines.
+ *      Distinguished Name handling
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -48,23 +48,29 @@
  *
  */
 
-#include "includes.h"
+#ifndef __VMDIRDBDN_H__
+#define __VMDIRDBDN_H__
+
+DWORD
+VmdirDbParseDN(
+    PWSTR       pwszObjectDN,
+    PVMDIR_DB_DN* ppDN
+    );
+
+DWORD
+VmdirDbGetDNComponents(
+    PVMDIR_DB_DN pDN,
+    PWSTR*     ppwszObjectName,
+    PWSTR*     ppwszParentDN,
+    PWSTR*     ppwszDomainName
+    );
 
 VOID
-SamDbClose(
-    HANDLE hDirectory
-    )
-{
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+VmdirDbFreeDN(
+    PVMDIR_DB_DN pDN
+    );
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
-}
+#endif /* __VMDIRDBDN_H__ */
 
 
 /*

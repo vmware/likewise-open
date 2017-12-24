@@ -38,7 +38,7 @@
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
  *      Provider disconnect routines.
  *
@@ -51,19 +51,10 @@
 #include "includes.h"
 
 VOID
-SamDbClose(
+VmdirDbClose(
     HANDLE hDirectory
     )
 {
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
-
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
-    {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
 }
 
 

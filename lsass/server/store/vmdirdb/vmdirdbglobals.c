@@ -33,38 +33,32 @@
  *
  * Module Name:
  *
- *        samdbclose.c
+ *        samdbglobals.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      Likewise VMDIR Database Provider
  *
- *      Provider disconnect routines.
+ *      Global variables
  *
  * Authors: Krishna Ganugapati (krishnag@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
  *          Rafal Szczesniak (rafal@likewise.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  *
  */
 
 #include "includes.h"
 
-VOID
-SamDbClose(
-    HANDLE hDirectory
-    )
-{
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    SAMDB_DBG_CALL;
-
-
-    if (pDirContext)
+VMDIR_GLOBALS gVmdirGlobals =
     {
-        SamDbFreeDirectoryContext(pDirContext);
-    }
-}
+        .mutex                     = PTHREAD_MUTEX_INITIALIZER,
+        .pszProviderName           = NULL,
+        .providerFunctionTable     = {NULL},
+        .bindProtocol              = VMDIR_BIND_PROTOCOL_UNSET
+    };
 
 
 /*

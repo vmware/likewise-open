@@ -32,14 +32,22 @@
 #include "lsasystem.h"
 
 #include <openssl/md4.h>
-#include <sqlite3.h>
 #include <uuid/uuid.h>
+#include <ldap.h>
+#include <lber.h>
+
+#include <sasl/sasl.h>
+#include <krb5/krb5.h>
 
 #include <lw/base.h>
 #include <lw/security-types.h>
 #include <lwsid.h>
 #include <lwio/lwio.h>
+#include <reg/lwreg.h>
+#include <reg/regutil.h>
 #include <lw/rpc/samr.h>
+#include <lwkrb5.h>
+
 
 #include "lsa/lsa.h"
 
@@ -53,23 +61,17 @@
 #include "directory.h"
 #include "dsprovider.h"
 
-#include "samdbdefs.h"
-#include "samdbtable.h"
-#include "samdbstructs.h"
-#include "samdb.h"
-#include "samdbdn.h"
-#include "samdbmisc.h"
-#include "samdbcontext.h"
-#include "samdbcounter.h"
-#include "samdbtrans.h"
-#include "samdbschema.h"
-#include "samdbuser.h"
-#include "samdbgroup.h"
-#include "samdbattrlookup.h"
-#include "samdbsecurity.h"
-#if 1 /* TBD:Adam */
-#include "samdbdbg.h"
-#endif
+#include "vmdirdbdefs.h"
+#include "vmdirdbtable.h"
+#include "vmdirdbstructs.h"
+#include "vmdirdb_config.h"
+#include "vmdirdb_ldap.h"
+#include "vmdirdb_utils.h"
+#include "vmdirdb.h"
+#include "vmdirdbdn.h"
+#include "vmdirdbcontext.h"
+#include "vmdirdbgroup.h"
+#include "vmdirdbuser.h"
 
 #include "externs.h"
 

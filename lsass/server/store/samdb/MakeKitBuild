@@ -19,6 +19,7 @@ make()
         samdbsearch.c     \
         samdbtrans.c      \
         samdbuser.c       \
+        samdbdbg.c        \
         samdbsecurity.c"
 
     mk_dlo \

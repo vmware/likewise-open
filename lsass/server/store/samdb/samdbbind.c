@@ -60,6 +60,7 @@ SamDbBind(
 {
     DWORD dwError = 0;
 
+    SAMDB_DBG_CALL;
     return dwError;
 }
 
