@@ -267,13 +267,26 @@ VmdirDbAddObject(
     PSTR valsDistinguishedName[] = {pszObjectDn, NULL};
     PSTR valsUserAccountControl[] = {szUserAccountControl, NULL};
     PSTR valsUserPassword[] = {"VMware123@", NULL}; /* TBD: Make random dummy password, will be changed later */
+    PSTR valsdNSHostName[] = {" ", NULL};
+    PSTR valsservicePrincipalName[] = {"h1/M@D", "h2/M@D", NULL};
+    PSTR valsDescription[] = {" ", NULL};
+    PSTR valsOsName[] = {" ", NULL};
+    PSTR valsOsVersion[] = {" ", NULL};
+    PSTR valsOsServicePack[] = {" ", NULL};
     LDAPMod mod[] = {
-                         { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsComputer} },
+              /* 0  */   { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsComputer} },
                          { LDAP_MOD_ADD, ATTR_SAM_ACCOUNT_NAME, {valsSamAccountName} },
                          { LDAP_MOD_ADD, ATTR_CN, {valsCn} },
                          { LDAP_MOD_ADD, ATTR_DISTINGUISHED_NAME, {valsDistinguishedName} },
                          { LDAP_MOD_ADD, ATTR_ACCT_FLAGS, {valsUserAccountControl} },
-                         { LDAP_MOD_ADD, ATTR_USER_PASSWORD, {valsUserPassword} },
+              /* 5  */   { LDAP_MOD_ADD, ATTR_USER_PASSWORD, {valsUserPassword} },
+                         { LDAP_MOD_ADD, ATTR_DNS_HOSTNAME, {valsdNSHostName} },
+                         { LDAP_MOD_ADD, ATTR_SERVICE_PRINCIPAL_NAME, {valsservicePrincipalName} },
+                         { LDAP_MOD_ADD, ATTR_DESCRIPTION, {valsDescription} },
+                         { LDAP_MOD_ADD, ATTR_OS_NAME, {valsOsName} },
+              /* 10 */   { LDAP_MOD_ADD, ATTR_OS_VERSION, {valsOsVersion} },
+                         { LDAP_MOD_ADD, ATTR_OS_SERVICE_PACK, {valsOsServicePack} },
+
 #if 0
 
                          { LDAP_MOD_ADD, ATTR_NETBIOS_NAME, "users" },
@@ -282,7 +295,10 @@ VmdirDbAddObject(
 #endif
                          { 0, 0, {0} },
                      };
-    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], &mod[3], &mod[4], &mod[5], NULL };
+    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], &mod[3], &mod[4], &mod[5], 
+                             &mod[6], &mod[7],  &mod[8], &mod[9], &mod[10], &mod[11], 
+                             NULL
+                           };
 
     ldap_err = ldap_add_ext_s(pLd,
                               pszObjectDn,

@@ -1194,9 +1194,24 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
 #ifndef ATTR_DISTINGUISHED_NAME
 #define ATTR_DISTINGUISHED_NAME             "distinguishedName"
 #endif
-
-
-
+#ifndef ATTR_DNS_HOSTNAME
+#define ATTR_DNS_HOSTNAME                   "dNSHostName"
+#endif
+#ifndef ATTR_SERVICE_PRINCIPAL_NAME
+#define ATTR_SERVICE_PRINCIPAL_NAME         "servicePrincipalName"
+#endif
+#ifndef ATTR_DESCRIPTION
+#define ATTR_DESCRIPTION                    "description"
+#endif
+#ifndef ATTR_OS_NAME
+#define ATTR_OS_NAME                        "operatingSystem"
+#endif
+#ifndef ATTR_OS_VERSION
+#define ATTR_OS_VERSION                     "operatingSystemVersion"
+#endif
+#ifndef ATTR_OS_SERVICE_PACK
+#define ATTR_OS_SERVICE_PACK                "operatingSystemServicePack"
+#endif
 
 #endif /* __VMDIR_DB_TABLE_H__ */
 

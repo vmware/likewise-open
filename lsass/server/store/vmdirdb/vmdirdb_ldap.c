@@ -1390,7 +1390,7 @@ VmDirConstructMachineDN(
     /* Build the actual dn: value cn=xyz,cn=users, name component */
     ntStatus = LwRtlCStringAllocateAppendPrintf(
                    &pszDnPtr,
-                   ",cn=users,%s",
+                   ",%s",
                    gVmdirGlobals.pszDomainDn);
     dwError =  LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1436,7 +1436,7 @@ VmDirConstructMachineDNFromName(
     /* Build the actual dn: value cn=xyz,cn=users, name component */
     ntStatus = LwRtlCStringAllocateAppendPrintf(
                    &pszDnPtr,
-                   ",cn=users,%s",
+                   ",%s",
                    gVmdirGlobals.pszDomainDn);
     dwError =  LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1549,7 +1549,7 @@ error:
  *
  *xxx  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))"
  *
- *  "(|(&(objectClass=user)(samAccountName=%s))(&(objectClass=local)(samAccountName=%s)))"
+ *  "(|(&(objectClass=user)(samAccountName=%s))(&(objectClass=computer)(samAccountName=%s)))"
  */
 
 static PSTR
@@ -1558,34 +1558,25 @@ static PSTR
     ...)
 {
     NTSTATUS ntStatus = 0;
-    DWORD dwError = 0;
     PSTR pszModifiedFilter = NULL;
     PSTR *ppszAttributes = NULL;
-    PSTR pszMachineDn = NULL;
-
     va_list ap;
 
     va_start(ap, pszLdapFilter);
     ppszAttributes = (PSTR *) va_arg(ap, char **);
-
-    dwError = VmDirConstructMachineDNFromName(
-                  ppszAttributes[0],
-                  &pszMachineDn);
-    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     if (ppszAttributes && ppszAttributes[0])
     {
         ntStatus = LwRtlCStringAllocateAppendPrintf(
                        &pszModifiedFilter,
                        pszLdapFilter,
-                       pszMachineDn,
-                       pszMachineDn);
+                       ppszAttributes[0],
+                       ppszAttributes[0]);
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
 
 cleanup:
     va_end(ap);
-    LW_SAFE_FREE_STRING(pszMachineDn);
 
     return pszModifiedFilter;
 
@@ -2230,7 +2221,7 @@ VmDirAllocLdapQueryMap(
                   "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",
                   NULL,                    /* SearchBasePrefix (optional) */
                   pszSearchBase,
-                  "(|(&(objectClass=user)(samAccountName=cn=%s))(&(objectClass=local)(samAccountName=cn=%s)))",
+                  "(|(&(objectClass=user)(samAccountName=%s))(&(objectClass=computer)(samAccountName=%s)))",
                   LDAP_SCOPE_SUBTREE,
                   NULL, /* override attributes */
                   NULL, /* Attribute types */
