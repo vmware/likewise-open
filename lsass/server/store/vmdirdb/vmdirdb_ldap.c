@@ -1169,6 +1169,178 @@ error:
     goto cleanup;
 }
 
+DWORD
+VmDirAttributeCopyEntry(
+    PDIRECTORY_ATTRIBUTE out,
+    PDIRECTORY_ATTRIBUTE in)
+{
+    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    PWSTR pwszValue = NULL;
+    POCTET_STRING pBinaryData = NULL;
+
+
+    /* Copy attribute name */
+    ntStatus = LwRtlWC16StringDuplicate(&out->pwszName, in->pwszName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+
+    /* Copy attribute value, according to its tagged data type */
+    if (in->pValues[0].Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+    {
+        ntStatus = LwRtlWC16StringDuplicate(
+                       &pwszValue,
+                       in->pValues[0].data.pwszStringValue);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        out->pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        out->pValues[0].data.pwszStringValue = pwszValue;
+    }
+    else if (in->pValues[0].Type == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+    {
+        /* Deal with binary data types */
+        dwError = LwAllocateMemory(sizeof(OCTET_STRING),
+                                   (VOID*) &pBinaryData);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        pBinaryData->ulNumBytes = in->pValues[0].data.pOctetString->ulNumBytes,
+        dwError = LwAllocateMemory(
+                      sizeof(UCHAR) * pBinaryData->ulNumBytes,
+                      (VOID*) &pBinaryData->pBytes);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        memcpy(pBinaryData->pBytes,
+               in->pValues[0].data.pOctetString->pBytes,
+               pBinaryData->ulNumBytes);
+
+        out->pValues[0].data.pOctetString = pBinaryData;
+        out->pValues[0].Type = DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR;
+        out->pValues[0].data.pOctetString = pBinaryData;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszValue);
+    if (pBinaryData)
+    {
+        LW_SAFE_FREE_MEMORY(pBinaryData->pBytes);
+        LW_SAFE_FREE_MEMORY(pBinaryData);
+    }
+    goto cleanup;
+}
+
+/*
+ * Search attribute list for specified entry. If not present, create a new entry at the
+ * end if the current list.
+ */
+DWORD
+VmDirAttributeCreateFromData(
+    PDIRECTORY_ATTRIBUTE pAttributes,
+    DWORD dwNumAttributes,
+    PSTR pszAttributeName,
+    DWORD dwAttributeType,
+    VOID *pAttributeValue)
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    NTSTATUS ntStatus = 0;
+    PWSTR pwszAttributeName = NULL;
+    PWSTR pwszValue = NULL;
+    POCTET_STRING pOctetValue = NULL;
+    POCTET_STRING pBinaryData = NULL;
+    ULONG uLongValue = 0;
+    LONG64 lLongValue64 = 0;
+    PDIRECTORY_ATTRIBUTE pAttrib = NULL;
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszAttributeName, pszAttributeName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    /*
+     * Determine if attribute name already exists. Fail if it does. Otherwise
+     * retain pointer to first empty slot in attribute table
+     */
+    for (i=0; i<dwNumAttributes; i++)
+    {
+        if (!pAttributes[i].pwszName)
+        {
+            /* The last attribute, and retain a pointer to that array slot */
+            pAttrib = &pAttributes[i];
+            break;
+        }
+        if (wc16scasecmp(pAttributes[i].pwszName, pwszAttributeName) == 0)
+        {
+            /* Bail if presented attribute already exists in array */
+            dwError = LW_STATUS_OBJECTID_EXISTS;
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+        }
+    }
+
+    /* Set data value for provided attribute */
+    if (dwAttributeType == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+    {
+        ntStatus = LwRtlWC16StringDuplicate(
+                       &pwszValue,
+                       (PWSTR) pAttributeValue);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+        pAttrib->pValues[0].data.pwszStringValue = pwszValue;
+        pAttrib->pValues[0].Type = dwAttributeType;
+    }
+    else if (dwAttributeType == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+    {
+        pOctetValue = (POCTET_STRING) pAttributeValue;
+
+        /* Deal with binary data types */
+        dwError = LwAllocateMemory(sizeof(OCTET_STRING),
+                                   (VOID*) &pBinaryData);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        pBinaryData->ulNumBytes = pOctetValue->ulNumBytes,
+        dwError = LwAllocateMemory(
+                      sizeof(UCHAR) * pBinaryData->ulNumBytes,
+                      (VOID*) &pBinaryData->pBytes);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+        memcpy(pBinaryData->pBytes,
+               pOctetValue->pBytes,
+               pBinaryData->ulNumBytes);
+
+        pAttrib->pValues[0].Type = dwAttributeType;
+        pAttrib->pValues[0].data.pOctetString = pBinaryData;
+    }
+    else if (dwAttributeType == DIRECTORY_ATTR_TYPE_INTEGER)
+    {
+        memcpy(&uLongValue, pAttributeValue, sizeof(uLongValue));
+        pAttrib->pValues[0].Type = dwAttributeType;
+        pAttrib->pValues[0].data.ulValue = uLongValue;
+    }
+    else if (dwAttributeType == DIRECTORY_ATTR_TYPE_LARGE_INTEGER)
+    {
+        memcpy(&lLongValue64, pAttributeValue, sizeof(lLongValue64));
+        pAttrib->pValues[0].Type = dwAttributeType;
+        pAttrib->pValues[0].data.llValue = lLongValue64;
+    }
+    else
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    pAttrib->pwszName = pwszAttributeName;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszAttributeName);
+    if (pBinaryData)
+    {
+        LW_SAFE_FREE_MEMORY(pBinaryData->pBytes);
+        LW_SAFE_FREE_MEMORY(pBinaryData);
+    }
+    goto cleanup;
+}
+
 /* ================== SQL to LDAP translation callback functions =============*/
 
 /* "ObjectClass=1 AND Domain='lightwave.local'" */
@@ -1248,68 +1420,6 @@ cleanup:
 
 error:
     LW_SAFE_FREE_MEMORY(pszModifiedFilter);
-    goto cleanup;
-}
-
-DWORD
-VmDirAttributeCopyEntry(
-    PDIRECTORY_ATTRIBUTE out,
-    PDIRECTORY_ATTRIBUTE in)
-{
-    NTSTATUS ntStatus = 0;
-    DWORD dwError = 0;
-    PWSTR pwszValue = NULL;
-    POCTET_STRING pBinaryData = NULL;
-
-
-    /* Copy attribute name */
-    ntStatus = LwRtlWC16StringDuplicate(&out->pwszName, in->pwszName);
-    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-
-
-    /* Copy attribute value, according to its tagged data type */
-    if (in->pValues[0].Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
-    {
-        ntStatus = LwRtlWC16StringDuplicate(
-                       &pwszValue,
-                       in->pValues[0].data.pwszStringValue);
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-
-        out->pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        out->pValues[0].data.pwszStringValue = pwszValue;
-    }
-    else if (in->pValues[0].Type == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
-    {
-        /* Deal with binary data types */
-        dwError = LwAllocateMemory(sizeof(OCTET_STRING),
-                                   (VOID*) &pBinaryData);
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-
-        pBinaryData->ulNumBytes = in->pValues[0].data.pOctetString->ulNumBytes,
-        dwError = LwAllocateMemory(
-                      sizeof(UCHAR) * pBinaryData->ulNumBytes,
-                      (VOID*) &pBinaryData->pBytes);
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-
-        memcpy(pBinaryData->pBytes,
-               in->pValues[0].data.pOctetString->pBytes,
-               pBinaryData->ulNumBytes);
-
-        out->pValues[0].data.pOctetString = pBinaryData;
-        out->pValues[0].Type = DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR;
-        out->pValues[0].data.pOctetString = pBinaryData;
-    }
-
-cleanup:
-    return dwError;
-
-error:
-    LW_SAFE_FREE_MEMORY(pwszValue);
-    if (pBinaryData)
-    {
-        LW_SAFE_FREE_MEMORY(pBinaryData->pBytes);
-        LW_SAFE_FREE_MEMORY(pBinaryData);
-    }
     goto cleanup;
 }
 
@@ -1413,6 +1523,7 @@ error:
 
 
 #if 1
+
 /*
  * Translate entryDN to CommonName Response for this filter:
  * "(ObjectClass=1 OR ObjectClass=2) AND ObjectSID='%s'"
@@ -1425,18 +1536,26 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
 {
     NTSTATUS ntStatus = 0; 
     DWORD dwError = 0;
-    DWORD i = 0;
-    DWORD iEntryDn = 0;
     DWORD iEntry = 0; /* loop over dwNumEntries */
     DWORD dwEntries = 0;
+    ULONG ulNumAttributes = 0;
     PDWORD pdwAttributesCount = NULL;
+#if 0 /*TBD: Adam */
+    DWORD i = 0;
+    DWORD iEntryDn = 0;
     PDIRECTORY_ATTRIBUTE pAttrib = NULL;
     WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
+#endif
     PWSTR pwszCommonName = NULL;
     PWSTR pwszDomainName = NULL;
     PSTR pszDn = NULL;
     PSTR pszDomainName = NULL;
     PDIRECTORY_ENTRY pOut = NULL;
+    CHAR szHostName[128] = {0};
+    PSTR pszDcHostName = NULL;
+    PWSTR pwszStr = NULL;
+    ULONG ulValue = 0;
+    ULONG64 ulValue64 = 0;
 
     /* Memory has been allocated for this transform by the caller */
     if (!in || dwNumEntries > 1)
@@ -1451,18 +1570,42 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
                   (VOID *) &pdwAttributesCount);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    for (dwEntries=0; dwEntries < dwNumEntries; dwEntries++)
-    {
-        pdwAttributesCount[dwEntries] = in[dwEntries].ulNumAttributes;
-    }
+    /* TBD: Make this a for loop */
+    ulNumAttributes = in[dwEntries].ulNumAttributes;
+
+    /*
+     * Increase the total attribute count, as 8 "fake" values are added.
+     */
+    pdwAttributesCount[0] = ulNumAttributes + 8;
+
     dwError = VmdirDbAllocateEntriesAndAttributes(
                   dwNumEntries,
                   pdwAttributesCount,
                   &pOut);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    /* The "CommonName" */
+    gethostname(szHostName, sizeof(szHostName)-1);
+
+    /* The "DistinguishedName"; just dc= + hostname */
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszDcHostName,
+                   "dc=%s",
+                   szHostName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+
+#if 1
+    for (dwEntries=0; dwEntries < ulNumAttributes; dwEntries++)
+    {
+        dwError = VmDirAttributeCopyEntry(
+                      &pOut[iEntry].pAttributes[dwEntries],
+                      &in[iEntry].pAttributes[dwEntries]);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+#else /*TBD:Adam-Leave "entryDn" alone. Add missing CommonName and DistinguishedName attributes later */
     /* Find entryDn value in attributes array */
-    for (i=0;  i<pdwAttributesCount[iEntry]; i++)
+    for (i=0; i<pdwAttributesCount[iEntry]; i++)
     {
         if (wc16scasecmp(in->pAttributes[i].pwszName, wszEntryDn) == 0)
         {
@@ -1471,7 +1614,6 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
             break;
         }
     }
-
     if (pAttrib)
     {
         /* Replace DN value with FQDN format */
@@ -1491,14 +1633,20 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
 
-    for (dwEntries=0; dwEntries < pdwAttributesCount[iEntry]; dwEntries++)
+    /*
+     * Copy existing attributes first. Patch "entryDn value with "CommonName"
+     */ 
+    for (dwEntries=0; dwEntries < in[dwEntries].ulNumAttributes; dwEntries++)
     {
         if (dwEntries == iEntryDn)
         {
             /* Replace value field with proper formatted name */
-            pOut[iEntry].pAttributes[dwEntries].pwszName = pwszCommonName;
-            pOut[iEntry].pAttributes[dwEntries].pValues[0].data.pwszStringValue = pwszDomainName;
-            pOut[iEntry].pAttributes[dwEntries].pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            dwError = VmDirAttributeCreateFromData(
+                &pOut[iEntry].pAttributes[dwEntries],
+                pdwAttributesCount[0],
+                "CommonName",
+                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                (void *) pwszDomainName);
         }
         else
         {
@@ -1508,18 +1656,109 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
             BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
         }
     }
+#endif
+
+    /* Add "stubbed in" data values needed for this lookup to work properly */
+
+    /* "CommonName, i.e. hostname */
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszStr, szHostName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "CommonName",
+                  DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                  (VOID *) pwszStr);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+    LW_SAFE_FREE_MEMORY(pwszStr);
+
+    /* "DistinguishedName, i.e. DC="hostname" */
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszStr, pszDcHostName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "DistinguishedName",
+                  DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                  (VOID *) pwszStr);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+    LW_SAFE_FREE_MEMORY(pwszStr);
+
+    /* MinPwdAge = 0 in samdb */
+    ulValue64 = 0;
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "MinPwdAge",
+                  DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                  (VOID *) &ulValue64);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    /* MaxPwdAge = 24192000000000 in samdb */
+    ulValue64 = 24192000000000LL;
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "MaxPwdAge",
+                  DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                  (VOID *) &ulValue64);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    /* MinPwdLength = 0 in samdb */
+    ulValue = 0;
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "MinPwdLength",
+                  DIRECTORY_ATTR_TYPE_INTEGER,
+                  (VOID *) &ulValue);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    /* PwdPromptTime = 12096000000000 in samdb */
+    ulValue64 = 12096000000000LL;
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "PwdPromptTime",
+                  DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                  (VOID *) &ulValue64);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    /* PwdProperties = 0 in samdb */
+    ulValue = 0;
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "PwdProperties",
+                  DIRECTORY_ATTR_TYPE_INTEGER,
+                  (VOID *) &ulValue);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    /* SequenceNumber = 31 in samdb */
+    ulValue64 = 0;
+    dwError = VmDirAttributeCreateFromData(
+                  pOut[iEntry].pAttributes,
+                  pdwAttributesCount[0],
+                  "SequenceNumber",
+                  DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                  (VOID *) &ulValue64);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     *ppOut = pOut;
 
 cleanup:
     LW_SAFE_FREE_STRING(pszDn);
     LW_SAFE_FREE_STRING(pszDomainName);
+    LW_SAFE_FREE_STRING(pszDcHostName);
 
     return dwError;
 
 error:
     LW_SAFE_FREE_MEMORY(pwszCommonName);
     LW_SAFE_FREE_MEMORY(pwszDomainName);
+    LW_SAFE_FREE_MEMORY(pwszStr);
     goto cleanup;
 }
 #endif
