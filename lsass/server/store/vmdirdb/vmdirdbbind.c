@@ -33,19 +33,16 @@
  *
  * Module Name:
  *
- *        samdbbind.c
+ *        vmdirdbbind.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
- *      Provider binding and access check routines
+ *      Provider binding and access check routines to vmdird
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *          Adam Bernstein (abernstein@vmware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 

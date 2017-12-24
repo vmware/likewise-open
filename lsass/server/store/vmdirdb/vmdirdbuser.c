@@ -33,37 +33,20 @@
  *
  * Module Name:
  *
- *        samdbuser.c
+ *        vmdirdbuser.c
  *
  * Abstract:
  *
  *
- *      Likewise VMDIR Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      VMDIR User Specific Management Methods
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Adam Bernstein (abernstein@vmware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 
 #include "includes.h"
-
-#if 1 /* TBD:Adam-move to vmdirdbtable.h ?? */
-
-#ifndef ATTR_OBJECT_CLASS
-#define ATTR_OBJECT_CLASS                   "objectclass"
-#endif
-#ifndef ATTR_CN
-#define ATTR_CN                             "cn"
-#endif
-#ifndef ATTR_USER_PASSWORD
-#define ATTR_USER_PASSWORD "userPassword"
-#endif
-
-
-#endif  /* #if 1 TBD:Adam-move to vmdirdbtable.h ?? */
-
 
 DWORD
 VmdirDbSetPassword(

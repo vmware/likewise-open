@@ -38,14 +38,11 @@
  * Abstract:
  *
  *
- *      Likewise vmdir Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      Database initialisation routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *          Adam Bernstein (abernstein@vmware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 

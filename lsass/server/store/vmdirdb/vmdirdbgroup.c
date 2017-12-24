@@ -33,16 +33,16 @@
  *
  * Module Name:
  *
- *        samdbgroup.c
+ *        vmdirdbgroup.c
  *
  * Abstract:
  *
  *
- *      Likewise VMDIR Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      VMDIR Group Management
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 

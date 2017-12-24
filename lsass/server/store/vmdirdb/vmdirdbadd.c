@@ -33,47 +33,19 @@
  *
  * Module Name:
  *
- *        samdbadd.c
+ *        vmdirdbadd.c
  *
  * Abstract:
  *
  *
- *      Likewise SAM Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
- *      SAM objects creation routines
+ *      vmdir objects creation routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *          Adam Bernstein (abernstein@vmware.com)
- *
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  */
 
 #include "includes.h"
-
-
-#if 1 /* TBD:Adam-move to vmdirdbtable.h ?? */
-/*
- * Map DIRECTORY_MOD attribute array to LDAPMod array
- */
-#ifndef ATTR_OBJECT_CLASS
-#define ATTR_OBJECT_CLASS                   "objectclass"
-#endif
-#ifndef ATTR_SAM_ACCOUNT_NAME
-#define ATTR_SAM_ACCOUNT_NAME               "sAMAccountName"
-#endif
-#ifndef ATTR_CN
-#define ATTR_CN                             "cn"
-#endif
-#ifndef ATTR_ACCT_FLAGS
-#define ATTR_ACCT_FLAGS                     "userAccountControl"
-#endif
-#ifndef ATTR_USER_PASSWORD
-#define ATTR_USER_PASSWORD "userPassword"
-#endif
-
-
-#endif /* if 1 */
 
 
 #if 0

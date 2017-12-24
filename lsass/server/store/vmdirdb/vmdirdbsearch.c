@@ -33,12 +33,11 @@
  *
  * Module Name:
  *
- *        samdbsearch.c
+ *        vmdirdbsearch.c
  *
  * Abstract:
  *
- *
- *      Likewise VMDIR Database Provider
+ *      VMware vmdir LDAP Database Provider
  *
  *      VMDIR objects searching routines
  *
