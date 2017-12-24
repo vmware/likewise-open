@@ -1072,6 +1072,7 @@ VmDirAllocLdapQueryMapEntry(
     PSTR pszLdapFilter,
     ULONG uScope,
     PSTR *ppszLdapAttributes, /* optional */
+    VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC pfnLdapFilterPrintf,  /* optional */
     VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform, /* optional */
     DWORD dwIndex,
     PVMDIRDB_LDAPQUERY_MAP pLdapMap)
@@ -1117,6 +1118,7 @@ VmDirAllocLdapQueryMapEntry(
                   (VOID *) &pLdapMap->queryMap[dwIndex].pszLdapBase);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    pLdapMap->queryMap[dwIndex].pfnLdapFilterPrintf = pfnLdapFilterPrintf;
     pLdapMap->queryMap[dwIndex].pfnTransform = pfnTransform;
     if (ppszLdapAttributes)
     {
@@ -1154,11 +1156,90 @@ error:
     goto cleanup;
 }
 
+static PSTR
+pfnSqlToLdapEntryDnXform(
+    PSTR pszLdapFilter,
+    ...)
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSTR *ppszAttributes = NULL;
+    PSTR pszModifiedFilter = NULL;
+    PSTR pszDomainDn = NULL;
+    va_list ap;
+
+    va_start(ap, pszLdapFilter);
+
+    /* Function type passes list to attribute string array */
+    ppszAttributes = (PSTR *) va_arg(ap, char **);
+    if (ppszAttributes && ppszAttributes[0])
+    {
+        dwError = LwLdapConvertDomainToDN(ppszAttributes[0],
+                                          &pszDomainDn);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+
+        ntStatus = LwRtlCStringAllocateAppendPrintf(
+                       &pszModifiedFilter,
+                       pszLdapFilter,
+                       pszDomainDn);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+
+    /* TBD: Implement logic to patch %s field with ppszAttribute value */
+
+
+cleanup:
+    va_end(ap);
+    return pszModifiedFilter;
+
+error:
+    LW_SAFE_FREE_MEMORY(pszModifiedFilter);
+    goto cleanup;
+}
+    
+
+/*
+ * Handle filter of this form:
+ * "(ObjectClass=1 OR ObjectClass=2) AND ObjectSID='S-1-5-21-100314066-221396614-742840509'"
+ */
+static PSTR
+pfnSqlToLdapObjectSidXform(
+    PSTR pszLdapFilter,
+    ...)
+{
+    NTSTATUS ntStatus = 0;
+    PSTR pszModifiedFilter = NULL;
+    PSTR *ppszAttributes = NULL;
+
+    va_list ap;
+
+    va_start(ap, pszLdapFilter);
+    ppszAttributes = (PSTR *) va_arg(ap, char **);
+
+    if (ppszAttributes && ppszAttributes[0])
+    {
+        ntStatus = LwRtlCStringAllocateAppendPrintf(
+                       &pszModifiedFilter,
+                       pszLdapFilter,
+                       ppszAttributes[0]);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+
+cleanup:
+    va_end(ap);
+
+    return pszModifiedFilter;
+
+error:
+    LW_SAFE_FREE_MEMORY(pszModifiedFilter);
+    goto cleanup;
+}
+
 /* SQL Filter: "ObjectClass=1 OR ObjectClass=2"
    SQL Attributes: CommonName
  */
-DWORD
-VmdirDbXformEntryDnToCN(
+static DWORD
+pfnTransformEntryDnToCN(
     PSTR *ppszLdapAttributes, /* Original Attributes */
     DWORD dwNumEntries,
     PDIRECTORY_ENTRY in,
@@ -1268,6 +1349,7 @@ VmDirAllocLdapQueryMap(
                   LDAP_SCOPE_SUBTREE,
                   NULL,
                   NULL,
+                  NULL,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1288,6 +1370,7 @@ VmDirAllocLdapQueryMap(
                   LDAP_SCOPE_SUBTREE,
                   pszOptionalAttributes,
                   NULL,
+                  NULL,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1299,20 +1382,22 @@ VmDirAllocLdapQueryMap(
                   "(objectclass=dcObject)",
                   LDAP_SCOPE_SUBTREE,
                   pszOptionalAttributes,
-                  VmdirDbXformEntryDnToCN,
+                  NULL, /* filter transform callback */
+                  pfnTransformEntryDnToCN,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
 /*zzz */
     dwError = VmDirAllocLdapQueryMapEntry(
-                  "ObjectClass=1 AND Domain='$1'", /* "ObjectClass=1 AND Domain='lightwave.local'" */
+                  "ObjectClass=1 AND Domain='%s'", /* "ObjectClass=1 AND Domain='lightwave.local'" */
                   NULL,                    /* SearchBasePrefix (optional) */
                   pszSearchBase,
-                  "(&(objectclass=dcObject)(entryDn=$1))",
+                  "(&(objectclass=dcObject)(entryDn=%s))",
                   LDAP_SCOPE_SUBTREE,
-                  NULL,
-                  NULL,
+                  NULL,  /* attributes */
+                  pfnSqlToLdapEntryDnXform,
+                  NULL,/* DIRECTORY_ENTRY transform callback */
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1326,6 +1411,20 @@ VmDirAllocLdapQueryMap(
                   LDAP_SCOPE_SUBTREE,
                   NULL,
                   NULL,
+                  NULL,
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "(ObjectClass=1 OR ObjectClass=2) AND ObjectSID='%s'",
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(&(objectclass=dcObject)(objectSid=%s))",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL, /* override attributes */
+                  pfnSqlToLdapObjectSidXform, /* ldap transform callback */
+                  NULL, /* directory entry transform callback */
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1678,6 +1777,111 @@ error:
     goto cleanup;
 }
 
+
+/* Assume the sequence '%s' is an argument in the SQL filter */
+static DWORD
+VmDirSqlFilterMatchWithArgs(
+    PSTR pszSqlStatement,
+    PSTR pszSqlFilter,
+    DWORD *pbFound,
+    PSTR **pppszArgs)
+{
+    DWORD dwError = 0;
+    DWORD ai = 0;
+    DWORD aj = 0;
+    DWORD ak = 0;
+    DWORD argIdx = 0;
+    int lc1 = 0;
+    int lc2 = 0;
+    int quotePos = 0;
+    PSTR *ppszArgs = NULL;
+    PSTR pszArg = NULL;
+    DWORD dwNumArgs = 10;
+    DWORD dwLenArg = 0;
+    DWORD bFound = 0;
+
+    /* Allocate ppszArgs */
+    dwError = LwAllocateMemory(sizeof(PSTR) * dwNumArgs,
+                               (VOID *) &ppszArgs);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    /* Pattern search, looking for '%s' value(s) */
+    for (ai=0, aj=0; pszSqlStatement[ai] && pszSqlFilter[aj]; ai++)
+    {
+        lc1 = tolower(pszSqlStatement[ai]);
+        lc2 = tolower(pszSqlFilter[aj]);
+        if (lc1 == lc2)
+        {
+            if (lc1 == '\'')
+            {
+                quotePos = ai;
+            }
+            aj++;
+        }
+
+        /*
+         * Found %; Looking for '%s'. Verify previous char is ', 
+         * and next is 's'.
+         */
+        else if (pszSqlFilter[aj] == '%' && aj == (quotePos+1) && pszSqlFilter[aj+1] && pszSqlFilter[aj+1] == 's' &&
+                 pszSqlFilter[aj+2] && pszSqlFilter[aj+2] == '\'')
+        {
+            aj += 3; /* Skip over %s' in sqlFilter */
+
+            /* Allocate space for argument from sqlStatement */
+            dwLenArg = strlen(&pszSqlStatement[ai]);
+            dwError = LwAllocateMemory(sizeof(CHAR) * dwLenArg,
+                                   (VOID *) &pszArg);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+
+            for (ak=0;
+                 pszSqlStatement[ak + ai] && pszSqlStatement[ak + ai] != '\'';
+                 ak++)
+            {
+                pszArg[ak] = pszSqlStatement[ak+ai];
+            }
+
+            /* Found start of an argument. All stuff until next ' is the argument */
+            ppszArgs[argIdx++] = pszArg;
+            ai += ak;
+
+            if (argIdx >= dwNumArgs)
+            {
+                dwError = ERROR_INVALID_PARAMETER;
+                BAIL_ON_VMDIRDB_ERROR(dwError);
+            }
+        }
+        else
+        {
+            /* no match; fail */
+            break;
+        }
+    }
+
+    if (!pszSqlStatement[ai] && !pszSqlFilter[aj])
+    {
+        bFound = 1;
+        *pbFound = bFound;
+        *pppszArgs = ppszArgs;
+    }
+
+
+cleanup:
+    return dwError;
+
+error:
+    if (ppszArgs)
+    {
+        for (ai=0; ai<argIdx; ai++)
+        {
+            LW_SAFE_FREE_MEMORY(ppszArgs[ai]);
+        }
+        LW_SAFE_FREE_MEMORY(ppszArgs);
+    }
+    goto cleanup;
+
+}
+
 DWORD
 VmDirFindLdapQueryMapEntry(
     PSTR pszSqlQuery,
@@ -1685,6 +1889,12 @@ VmDirFindLdapQueryMapEntry(
 {
     DWORD dwError = 0;
     DWORD i = 0;
+    DWORD bFound = 0;
+#if 0 /* delete if unused */
+    PSTR pszFound = NULL;
+#endif
+    PSTR *ppszSqlArgs = NULL;
+    PSTR pszPatchLdapFilter = NULL;
     PVMDIRDB_LDAPQUERY_MAP pLdapMap = NULL;
     PVMDIRDB_LDAPQUERY_MAP_ENTRY pQueryMapEntry = NULL;
 
@@ -1697,11 +1907,61 @@ VmDirFindLdapQueryMapEntry(
 
     for (i=0; i < pLdapMap->dwNumEntries; i++)
     {
+#if 1
+        /* 
+         * More complex match. Take into account pattern match terms which 
+         * are returned data. Example: "ObjectClass=1 AND Domain='%s'
+         */
+        dwError = VmDirSqlFilterMatchWithArgs(
+                       pszSqlQuery,
+                       pLdapMap->queryMap[i].pszSqlQuery,
+                       &bFound,
+                       &ppszSqlArgs);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+        if (bFound)
+        {
+            pQueryMapEntry = &pLdapMap->queryMap[i];
+
+            /* Patch LDAP filter with variable argument data from SQL search */
+            if (pLdapMap->queryMap[i].pfnLdapFilterPrintf)
+            {
+                pszPatchLdapFilter = pLdapMap->queryMap[i].pfnLdapFilterPrintf(
+                                         pLdapMap->queryMap[i].pszLdapQuery,
+                                         ppszSqlArgs);
+                if (pszPatchLdapFilter)
+                {
+                    LW_SAFE_FREE_MEMORY(pQueryMapEntry->pszLdapQuery);
+                    pQueryMapEntry->pszLdapQuery = pszPatchLdapFilter;
+                }
+            }
+            break;
+        }
+
+#if 0 /* less complex search filter; delete if above works */
+        /* Initially, simple match for filter equality */
+        pszFound = LwCaselessStringSearch(
+                       pLdapMap->queryMap[i].pszSqlQuery,
+                       pszSqlQuery);
+        if (pszFound)
+        {
+            /* Lengths match then not a substring match */
+            if (strlen(pLdapMap->queryMap[i].pszSqlQuery) == strlen(pszSqlQuery))
+            {
+                pQueryMapEntry = &pLdapMap->queryMap[i];
+                break;
+            }
+            /* More complex filter search */
+           
+        }
+#endif /* if 0 */
+
+#else
         if (LwRtlCStringIsEqual(pszSqlQuery, pLdapMap->queryMap[i].pszSqlQuery, FALSE))
         {
             pQueryMapEntry = &pLdapMap->queryMap[i];
             break;
         }
+#endif /* if 1 */
     }
 
     if (!pQueryMapEntry)
