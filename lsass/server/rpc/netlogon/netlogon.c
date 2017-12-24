@@ -484,18 +484,19 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszServerName = NULL;
     DWORD dwDomainTrustCount = 1;
+    DWORD dwNetBiosNameLen = 0;
     NetrDomainTrust *pDomainTrustArray = {0};
 #if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
-    PSTR pszNetBiosName = "photon-102-test";
-    PSTR pszDnsDomainName = "lightwave.local";
+    CHAR szNetBiosName[256] = {0}; /* MAX hostname length */
+    PSTR pszDnsDomainName = NULL;
 #if 1
     /* TBD:Adam-Endian issues with this Guid. This is how wireshark parses below value */
-    PSTR pszDomainGuid = "2688443c-6c51-7a46-adb9-f95252680c8a";
+    PSTR pszDomainGuid = NULL;
 #else
     PSTR pszDomainGuid = "3c448826-516c-467a-adb9-f95252680c8a";
 #endif
 
-    PSTR pszDomainSid = "S-1-5-21-100314066-221396614-742840509";
+    PSTR pszDomainSid = NULL;
 
     /* 0x1d */
     DWORD dwTrustFlags = NETR_TRUST_FLAG_NATIVE  | NETR_TRUST_FLAG_PRIMARY |
@@ -508,6 +509,21 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     PWSTR pwszDnsDomainName = NULL;
     PSID pDomainSid = NULL;
     uuid_t domainGuid;
+
+    gethostname(szNetBiosName, sizeof(szNetBiosName));
+    dwNetBiosNameLen = (DWORD) strlen(szNetBiosName);
+    if (dwNetBiosNameLen > 16) /* TBD: Need to improve "Uniqueness test */
+    {
+        szNetBiosName[15] = '$';
+        szNetBiosName[16] = '\0';
+    }
+
+#if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
+    /* TBD:Adam-Still need to get promoted domain name pszDnsDomainName/DomainGuid/DomainSid */
+    pszDnsDomainName = "lightwave.local";
+    pszDomainGuid = "2688443c-6c51-7a46-adb9-f95252680c8a";
+    pszDomainSid = "S-1-5-21-100314066-221396614-742840509";
+#endif
 
 /* I am the DC, so return data returned from calling
  *  NetrLogonGetDomainInfo()
@@ -526,7 +542,7 @@ WINERROR srv_DsrEnumerateDomainTrusts(
 
     status = LwRtlWC16StringAllocateFromCString(
                  &pwszNetBiosName,
-                 pszNetBiosName);
+                 szNetBiosName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwRtlWC16StringAllocateFromCString(

@@ -24,7 +24,7 @@ while [ `echo "$1" | grep -c '^-'` -gt 0 ]; do
     force_debug="-g -O0"
     shift
   elif [ " $1" = " --enable-winjoin" ]; then
-    enable_winjoin="--lwio-drivers=npfs pvfs srv rdr"
+    enable_winjoin=enable_winjoin="--lwio-drivers=\"npfs pvfs srv rdr\""
     shift
   else
     usage "ERROR: unknown option $1"
@@ -32,19 +32,27 @@ while [ `echo "$1" | grep -c '^-'` -gt 0 ]; do
 done
 
 
+IFS=%
 if [ \( -n "$force_debug" \) -o \( -n "$enable_winjoin" \) ]; then
   if [ -f ".build_photon_opts" ]; then
     echo "NOTICE: Overriding saved build options from '.build_photon_opts' file"
     rm -f .build_photon_opts
   fi
-  echo "force_debug=\"$force_debug\""       >> .build_photon_opts
-  echo "enable_winjoin=\"$enable_winjoin\"" >> .build_photon_opts
+
+cat <<NNNN> .build_photon_opts
+  force_debug="$force_debug"
+  enable_winjoin="--lwio-drivers=\"npfs pvfs srv rdr\""
+NNNN
+
 elif [ -f ".build_photon_opts" ]; then
   echo "NOTICE: Using Overriding saved build options from '.build_photon_opts' file"
-  . "./.build_photon_opts"
+  . ./.build_photon_opts
   echo force_debug=$force_debug
-  echo enable_winjoin=$enable_winjoin
+  echo enable_winjoin="$enable_winjoin"
+  sleep 5
 fi
+
+
 
 export CFLAGS="$force_debug -Wno-error=unused-but-set-variable -Wno-error=implicit-function-declaration -Wno-error=sizeof-pointer-memaccess -Wno-error=unused-local-typedefs -Wno-error=pointer-sign -Wno-error=address"
 ../configure $DEBUG \
