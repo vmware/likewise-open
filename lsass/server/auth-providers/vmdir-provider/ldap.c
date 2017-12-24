@@ -1078,7 +1078,6 @@ VmDirLdapGetBinaryValue(
     DWORD dwError = 0;
     struct berval **ppbv_val = NULL;
     PVMDIR_DATA pData = NULL;
-    PBYTE pByte = NULL;
 
     ppbv_val = ldap_get_values_len(pLd, pMessage, pszAttrName);
     if (!ppbv_val)
@@ -1091,10 +1090,9 @@ VmDirLdapGetBinaryValue(
                                (PVOID*)&pData);
     BAIL_ON_VMDIR_ERROR(dwError);
 
-    pByte = ((PBYTE) pData) + sizeof(pData->dwDataLen);
-    memcpy(pByte, (PVOID) ppbv_val[0]->bv_val, ppbv_val[0]->bv_len);
+    pData->pData = ((PBYTE) &pData->pData) + sizeof(pData->pData);
+    memcpy(pData->pData, (PVOID) ppbv_val[0]->bv_val, ppbv_val[0]->bv_len);
     pData->dwDataLen = ppbv_val[0]->bv_len;
-    pData->pData = pByte;
 
     *ppData = pData;
 

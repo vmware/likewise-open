@@ -166,6 +166,99 @@ VmDirFindBinarySidForDN(
     PSTR*              ppszSid
     );
 
+static
+DWORD
+VmDirFindUserByIdNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    uid_t                 uid,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirFindUserBySIDNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    PCSTR                 pszSID,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirFindUserByNameNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    PCSTR                 pszLoginId,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirFindGroupByNameNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    PCSTR                 pszGroupName,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirFindMembershipsNoCache(
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PCSTR              pszSid,
+    PLW_HASH_TABLE     pGroupHash
+    );
+
+static
+DWORD
+VmDirFindGroupByIdNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    gid_t                 gid,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirFindGroupBySIDNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    PCSTR                 pszSID,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirFindObjectBySIDNoCache(
+    PVMDIR_DIR_CONTEXT    pDirContext,
+    PCSTR                 pszSID,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
+static
+DWORD
+VmDirCacheCheckExpiredObject(
+    PVMDIR_DIR_CONTEXT pDirContext,
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
+    );
+
+static
+DWORD
+VmDirCacheMembershipFromRelatedObjects(
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid,
+    IN int iPrimaryGroupIndex,
+    IN BOOLEAN bIsParent,
+    IN size_t sCount,
+    IN PLSA_SECURITY_OBJECT* ppRelatedObjects
+    );
+
+static
+DWORD
+VmDirCheckExpiredMemberships(
+    IN PVMDIR_DIR_CONTEXT pDirContext,
+    IN size_t sCount,
+    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
+    IN BOOLEAN bCheckNullParentSid,
+    OUT PBOOLEAN pbHaveExpired,
+    OUT PBOOLEAN pbIsComplete
+    );
+
 BOOLEAN
 VmDirMatchesDomain(
     PCSTR pszDomain
@@ -2606,6 +2699,8 @@ VmDirFindGroupObject(
     PSTR  pszSamAcctName = NULL;
     PSTR  pszDN          = NULL;
     PSTR  pszObjectSid   = NULL;
+    PVMDIR_DATA pSidData = NULL;
+    NTSTATUS ntStatus    = 0;
     VMDIR_ATTR values[]  =
     {
         {
@@ -2637,7 +2732,17 @@ VmDirFindGroupObject(
                 .ppszData = &pszObjectSid
             },
             .size    = -1
-        }
+        },
+        {
+            .pszName   = pszAttrName_objectsid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
+            },
+            .size    = -1
+        },
     };
     LDAPMessage* pLdapResult = NULL;
     PLSA_SECURITY_OBJECT pObject  = NULL;
@@ -2650,16 +2755,25 @@ VmDirFindGroupObject(
                     pDirContext->pBindInfo->pszSearchBase,
                     LDAP_SCOPE_SUBTREE,
                     pszFilter,
-                    &attrs[0],
+                    attrs,
                     &pLdapResult);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = VmDirLdapGetValues(
                     pDirContext->pLd,
                     pLdapResult,
-                    &values[0],
+                    values,
                     sizeof(values)/sizeof(values[0]));
     BAIL_ON_VMDIR_ERROR(dwError);
+
+    if (pSidData->pData)
+    {
+        /* Convert PSID to pszObjectSid */
+        ntStatus = RtlAllocateCStringFromSid(
+                      &pszObjectSid,
+                      (PSID) pSidData->pData);
+        BAIL_ON_VMDIR_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
 
     dwError = VmDirBuildGroupObject(
                     pDirContext,

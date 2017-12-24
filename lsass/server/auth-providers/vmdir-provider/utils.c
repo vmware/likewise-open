@@ -310,8 +310,10 @@ VmDirGetRID(
 {
     DWORD dwError = 0;
     PCSTR pszDash = NULL;
+    PCSTR  p = pszObjectSid;
     PSTR pszEnd = NULL;
     DWORD dwDashes = 0;
+    DWORD dwLastDash = 0;
     DWORD dwMachId = 0;
     DWORD i = 0;
     DWORD dwRID = 0;
@@ -319,16 +321,19 @@ VmDirGetRID(
     DWORD dwRetUID = 0;
 
     /*
-     * Old Format:
+     * Old Format, 8 dashes:
      *   S-1-7-21-1604805504-317578674-977968053-259541063-16778241
      *   16778241 is the "RID" which is |-8bits-|-24-bits-|
      *                                   MachId   RID
-     * New Format:
+     * New Format, 9 dashes:
      *   S-1-7-21-3080227618-571495328-3360055706-2260875924-1-1025
-     *
      *      .... -1-1025
      *      1:    machine ID
      *      1025: RID
+     *
+     * Active Directory Format, 7 dashes:
+     *   S-1-5-21-3560509133-2113184660-2722472689-545
+     *
      * Problem: Old code assumed the 8/24 "RID" format was the UNIX uid.
      * This implementation takes the ...-MachID-RID format, and converts this
      * to the old RID format.
@@ -340,6 +345,7 @@ VmDirGetRID(
         if (pszObjectSid[i] == '-')
         {
             dwDashes++;
+            dwLastDash = i + 1;
             if (dwDashes == 8)
             {
                 dwMachId = i + 1;
@@ -358,7 +364,7 @@ VmDirGetRID(
             BAIL_ON_VMDIR_ERROR(dwError);
         }
     }
-    else
+    else if (dwDashes == 9)
     {
         /* pszDash should be pointing at "M-RID" string */
         dwMachID = strtoul(pszDash, &pszEnd, 0);
@@ -384,6 +390,20 @@ VmDirGetRID(
         }
 
         dwRetUID = dwMachID << 24 | (dwRID & 0x00FFFFFF);
+    }
+    else if (p[0] == 'S' && p[1] == '-' && p[2] == '1' &&
+             p[3] == '-' && p[4] == '5' && p[5] == '-' && 
+             p[6] == '2' && p[7] == '1' && p[8] == '-' &&
+             dwDashes == 7)
+    {
+        /* S-1-5-21 SID format. Field after last '-' is the RID */
+        pszDash = &pszObjectSid[dwLastDash]; 
+        dwRetUID = strtoul(pszDash, &pszEnd, 0);
+        if (!pszEnd || pszEnd == pszDash || *pszEnd)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
     }
     *pdwRID = dwRetUID;
 
