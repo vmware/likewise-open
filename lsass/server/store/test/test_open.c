@@ -79,17 +79,23 @@ DWORD test3(HANDLE hDirectory)
     DWORD dwNumEntries = 0;
     PDIRECTORY_ENTRY  pDirectoryEntries = NULL;
     PWSTR *wszBase = NULL;
+    PWSTR *wszBaseAlloc = NULL;
     PWSTR *wszFilter = NULL;
     PWSTR *wszAttributes = NULL;
+#if 1
+    PSTR ppszFilter[] = {"ObjectClass=1 OR ObjectClass=2",  0};
+    PSTR pszAttributes[] = {"CommonName", "ObjectSid", 0};
+#else
     PSTR ppszBase[] = {"cn=builtin,dc=lightwave,dc=local", 0};
     PSTR ppszFilter[] = {"(cn=*)", 0};
     PSTR pszAttributes[] = {"cn", 0};
 
-    /* ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid  */
-
-
-    dwError = VmDirAttributesWc16FromCAttributes(ppszBase, &wszBase, &dwNumEntries);
+    dwError = VmDirAttributesWc16FromCAttributes(ppszBase, &wszBaseAlloc, &dwNumEntries);
     BAIL_ON_VMDIRDB_ERROR(dwError);
+    wszBase = wszBaseAlloc;
+#endif
+
+    /* ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid  */
 
     dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes, &dwNumAttributes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -99,7 +105,7 @@ DWORD test3(HANDLE hDirectory)
 
     dwError = DirectorySearch(
                   hDirectory,
-                  wszBase[0],               /* pwszBase */
+                  wszBase ? wszBase[0] : NULL, /* pwszBase */
                   0,                        /* ulScope */
                   wszFilter[0],             /* Filter term is first PWSTR of array */
                   wszAttributes,
@@ -108,6 +114,7 @@ DWORD test3(HANDLE hDirectory)
                   &dwNumEntries);
 
 error:
+    VmDirAttributesWC16Free(&wszBaseAlloc);
     VmDirAttributesWC16Free(&wszFilter);
     VmDirAttributesWC16Free(&wszAttributes);
 

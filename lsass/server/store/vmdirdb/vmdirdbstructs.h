@@ -71,6 +71,34 @@ typedef struct _VMDIR_DB_ATTR_LOOKUP
 
 } VMDIR_DB_ATTR_LOOKUP, *PVMDIR_DB_ATTR_LOOKUP;
 
+typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
+{
+    PSTR pszSqlQuery;
+    PSTR pszLdapQuery;
+    PSTR pszLdapBase;
+    ULONG uScope;
+} VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
+
+typedef struct _VMDIRDB_LDAPQUERY_MAP
+{
+    DWORD dwNumEntries;
+    DWORD dwMaxEntries;
+    VMDIRDB_LDAPQUERY_MAP_ENTRY queryMap[];
+} VMDIRDB_LDAPQUERY_MAP, *PVMDIRDB_LDAPQUERY_MAP;
+
+typedef struct _VMDIRDB_LDAPATTR_MAP_ENTRY
+{
+    PWSTR pwszAttribute;
+    PSTR pszAttribute;
+} VMDIRDB_LDAPATTR_MAP_ENTRY, *PVMDIRDB_LDAPATTR_MAP_ENTRY;
+
+typedef struct _VMDIRDB_LDAPATTR_MAP
+{
+    DWORD dwNumEntries;
+    DWORD dwMaxEntries;
+    VMDIRDB_LDAPATTR_MAP_ENTRY attrMap[];
+} VMDIRDB_LDAPATTR_MAP, *PVMDIRDB_LDAPATTR_MAP;
+
 typedef struct _VMDIR_DIRECTORY_CONTEXT
 {
     PWSTR    pwszDistinguishedName;
@@ -93,6 +121,8 @@ typedef struct _VMDIR_GLOBALS
     PSTR            pszProviderName;
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerFunctionTable;
     VMDIRDB_BIND_PROTOCOL bindProtocol;
+    PVMDIRDB_LDAPQUERY_MAP pLdapMap;
+    PVMDIRDB_LDAPATTR_MAP pLdapAttrMap;
 } VMDIR_GLOBALS, *PVMDIR_GLOBALS;
 
 typedef struct _VMDIR_DB_DOMAIN_INFO
