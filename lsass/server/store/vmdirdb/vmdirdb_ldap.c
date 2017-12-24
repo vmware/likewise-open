@@ -4,6 +4,9 @@
 
 #include "includes.h"
 
+#if 0
+#define wszVMDIR_DB_DIR_ATTR_EOL NULL
+#endif
 static
 DWORD
 VmDirLdapInitializeWithKerberos(
@@ -1042,34 +1045,6 @@ error:
 	goto cleanup;
 }
 
-#if 0 /* TBD:Adam-Reference */
-
-typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
-{
-    PSTR pszSqlQuery;
-    PSTR pszLdapQuery;
-    PSTR pszLdapBase;
-    PSTR *ppszLdapAttributes; /* optional */
-    PDWORD *pdwLdapAttributesType; /* optional */
-
-    /* Optional: Construct ldap filter helper */
-    VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC pfnLdapFilterPrintf;
-
-    /* Optional: DIRECTORY_ENTRY constructor helper function */
-    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform;
-    ULONG uScope;
-} VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
-
-typedef struct _VMDIRDB_LDAPQUERY_MAP
-{
-    DWORD dwNumEntries;
-    DWORD dwMaxEntries;
-    VMDIRDB_LDAPQUERY_MAP_ENTRY queryMap[];
-} VMDIRDB_LDAPQUERY_MAP, *PVMDIRDB_LDAPQUERY_MAP;
-
-    PSTR ppszBase[] = {"cn=builtin,dc=lightwave,dc=local", 0};
-#endif /* if 0 */
-
 static DWORD
 VmDirAllocLdapQueryMapEntry(
     PSTR pszSql,
@@ -1366,13 +1341,11 @@ VmDirConstructMachineDN(
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
     for (i=0; pszDnPtr[i]; i++)
-    {
-        pszDnPtr[i] = (char) tolower((int) pszDnPtr[i]);
-    }
+        ;
 
     if (i < 3 ||
-        pszDnPtr[0] != 'c' ||
-        pszDnPtr[1] != 'n' ||
+        (char) tolower((int) pszDnPtr[0]) != 'c' ||
+        (char) tolower((int) pszDnPtr[1]) != 'n' ||
         pszDnPtr[2] != '=')
     {
         dwError = LwNtStatusToWin32Error(STATUS_NOT_FOUND);
@@ -1406,6 +1379,59 @@ error:
 }
 
 DWORD
+VmDirConstructMachineUPN(
+    PSTR pszSqlDomainName,
+    PSTR *ppszMachineAcctUpn)
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSTR pszObjectDn = NULL;
+    PSTR pszAcctUpn = NULL;
+    PSTR pszAcctDomain = NULL;
+    PSTR pszPtr = NULL;
+
+    dwError = VmDirConstructMachineDN(
+                  pszSqlDomainName,
+                  &pszObjectDn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = LwLdapConvertDNToDomain(pszObjectDn, &pszAcctDomain);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (pszPtr = pszAcctDomain; *pszPtr; pszPtr++)
+    {
+        *pszPtr = (char) toupper((int) *pszPtr);
+    }
+
+    pszPtr = strstr(pszObjectDn+3, ",dc");
+    if (pszPtr)
+    {
+        *pszPtr = '\0';
+    }
+
+    /* + 3 to skip "cn=" prefix */
+    ntStatus = LwRtlCStringDuplicate(&pszAcctUpn, pszObjectDn+3);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    ntStatus = LwRtlCStringAllocateAppendPrintf(
+                   &pszAcctUpn,
+                   "@%s",
+                   pszAcctDomain);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    *ppszMachineAcctUpn = pszAcctUpn;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszObjectDn);
+    LW_SAFE_FREE_STRING(pszAcctDomain);
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszAcctUpn);
+    goto cleanup;
+}
+
+DWORD
 VmDirConstructMachineDNFromName(
     PSTR pszName,
     PSTR *ppszMachineAcctDN)
@@ -1413,7 +1439,6 @@ VmDirConstructMachineDNFromName(
     NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PSTR pszDnPtr = NULL;
-    DWORD i = 0;
     
     if (!pszName || !ppszMachineAcctDN)
     {
@@ -1427,11 +1452,6 @@ VmDirConstructMachineDNFromName(
                    pszName);
     dwError =  LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-
-    for (i=0; pszDnPtr[i]; i++)
-    {
-        pszDnPtr[i] = (char) tolower((int) pszDnPtr[i]);
-    }
 
     /* Build the actual dn: value cn=xyz,cn=users, name component */
     ntStatus = LwRtlCStringAllocateAppendPrintf(
@@ -1820,8 +1840,6 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
                    szHostName);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
-
-#if 1
     for (dwEntries=0; dwEntries < ulNumAttributes; dwEntries++)
     {
         dwError = VmDirAttributeCopyEntry(
@@ -1829,60 +1847,6 @@ pfnLdap2DirectoryEntryObjectSIDDnToCn(
                       &in[iEntry].pAttributes[dwEntries]);
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
     }
-#else /*TBD:Adam-Leave "entryDn" alone. Add missing CommonName and DistinguishedName attributes later */
-    /* Find entryDn value in attributes array */
-    for (i=0; i<pdwAttributesCount[iEntry]; i++)
-    {
-        if (wc16scasecmp(in->pAttributes[i].pwszName, wszEntryDn) == 0)
-        {
-            pAttrib = &in->pAttributes[i];
-            iEntryDn = i; /* Save for later */
-            break;
-        }
-    }
-    if (pAttrib)
-    {
-        /* Replace DN value with FQDN format */
-        ntStatus = LwRtlCStringAllocateFromWC16String(
-                       &pszDn, 
-                       pAttrib->pValues[0].data.pwszStringValue);
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-    
-        dwError = LwLdapConvertDNToDomain(pszDn, &pszDomainName);
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-    
-        /* Mutate "entryDn" to "CommonName" */
-        ntStatus = LwRtlWC16StringAllocateFromCString(&pwszCommonName, "CommonName");
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-       
-        ntStatus = LwRtlWC16StringAllocateFromCString(&pwszDomainName, pszDomainName);
-        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-    }
-
-    /*
-     * Copy existing attributes first. Patch "entryDn value with "CommonName"
-     */ 
-    for (dwEntries=0; dwEntries < in[dwEntries].ulNumAttributes; dwEntries++)
-    {
-        if (dwEntries == iEntryDn)
-        {
-            /* Replace value field with proper formatted name */
-            dwError = VmDirAttributeCreateFromData(
-                &pOut[iEntry].pAttributes[dwEntries],
-                pdwAttributesCount[0],
-                "CommonName",
-                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                (void *) pwszDomainName);
-        }
-        else
-        {
-            dwError = VmDirAttributeCopyEntry(
-                          &pOut[iEntry].pAttributes[dwEntries],
-                          &in[iEntry].pAttributes[dwEntries]);
-            BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-        }
-    }
-#endif
 
     /* Add "stubbed in" data values needed for this lookup to work properly */
 
@@ -2256,49 +2220,6 @@ error:
     goto cleanup;
 }
 
-
-#if 0 /* Replaced by VmDirFindLdapQueryMapEntry */
-DWORD
-VmDirGetFilterLdapQueryMap(
-    PSTR pszSql,
-    PSTR *ppszSearchBase, /* Do not free, this is an alias */
-    PSTR *ppszLdapFilter, /* Do not free, this is an alias */
-    DWORD *puScope) /* Do not free, this is an alias */
-{
-    DWORD dwError = 0;
-    DWORD dwIndex = 0;
-    DWORD bFound = 0;
-    PVMDIRDB_LDAPQUERY_MAP pLdapMap = gVmdirGlobals.pLdapMap;
-
-    /* This will probably have to be a "fuzzy" search */
-    for (dwIndex = 0; dwIndex < pLdapMap->dwNumEntries; dwIndex++)
-    {
-        if (!strcasecmp(pszSql, pLdapMap->queryMap[dwIndex].pszSqlQuery))
-        {
-            bFound = 1;
-            break;
-        }
-    }
-    if (bFound)
-    {
-        *ppszSearchBase = pLdapMap->queryMap[dwIndex].pszLdapBase;
-        *ppszLdapFilter = pLdapMap->queryMap[dwIndex].pszLdapQuery;
-        *puScope = pLdapMap->queryMap[dwIndex].uScope;
-    }
-    else
-    {
-        dwError = LW_ERROR_LDAP_FILTER_ERROR;
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-    }
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-#endif
-
 DWORD
 VmDirFreeLdapQueryMap(
     PVMDIRDB_LDAPQUERY_MAP *ppLdapMap)
@@ -2334,24 +2255,6 @@ error:
     goto cleanup;
 }
 
-#if 0
-typedef struct _VMDIRDB_LDAPATTR_MAP_ENTRY
-{
-    PWSTR pwszAttribute;
-    PSTR pszAttribute;
-    DWORD dwType;
-} VMDIRDB_LDAPATTR_MAP_ENTRY, *PVMDIRDB_LDAPATTR_MAP_ENTRY;
-
-
-typedef struct _VMDIRDB_LDAPATTR_MAP
-{
-    DWORD dwNumEntries;
-    DWORD dwMaxEntries;
-    VMDIRDB_LDAPATTR_MAP_ENTRY attrMap[];
-} VMDIRDB_LDAPATTR_MAP, *PVMDIRDB_LDAPATTR_MAP;
-#endif
-
-#define wszVMDIR_DB_DIR_ATTR_EOL NULL
    
 
 DWORD
@@ -2668,8 +2571,8 @@ VmDirSqlFilterMatchWithArgs(
     /* Pattern search, looking for '%s' value(s) */
     for (ai=0, aj=0; pszSqlStatement[ai] && pszSqlFilter[aj]; ai++)
     {
-        lc1 = tolower(pszSqlStatement[ai]);
-        lc2 = tolower(pszSqlFilter[aj]);
+        lc1 = tolower((int) pszSqlStatement[ai]);
+        lc2 = tolower((int) pszSqlFilter[aj]);
         if (lc1 == lc2)
         {
             if (lc1 == '\'')
@@ -2751,9 +2654,6 @@ VmDirFindLdapQueryMapEntry(
     DWORD dwError = 0;
     DWORD i = 0;
     DWORD bFound = 0;
-#if 0 /* delete if unused */
-    PSTR pszFound = NULL;
-#endif
     PSTR *ppszSqlArgs = NULL;
     PSTR pszPatchLdapFilter = NULL;
     PVMDIRDB_LDAPQUERY_MAP pLdapMap = NULL;
@@ -2768,7 +2668,6 @@ VmDirFindLdapQueryMapEntry(
 
     for (i=0; i < pLdapMap->dwNumEntries; i++)
     {
-#if 1
         /* 
          * More complex match. Take into account pattern match terms which 
          * are returned data. Example: "ObjectClass=1 AND Domain='%s'
@@ -2797,32 +2696,6 @@ VmDirFindLdapQueryMapEntry(
             }
             break;
         }
-
-#if 0 /* less complex search filter; delete if above works */
-        /* Initially, simple match for filter equality */
-        pszFound = LwCaselessStringSearch(
-                       pLdapMap->queryMap[i].pszSqlQuery,
-                       pszSqlQuery);
-        if (pszFound)
-        {
-            /* Lengths match then not a substring match */
-            if (strlen(pLdapMap->queryMap[i].pszSqlQuery) == strlen(pszSqlQuery))
-            {
-                pQueryMapEntry = &pLdapMap->queryMap[i];
-                break;
-            }
-            /* More complex filter search */
-           
-        }
-#endif /* if 0 */
-
-#else
-        if (LwRtlCStringIsEqual(pszSqlQuery, pLdapMap->queryMap[i].pszSqlQuery, FALSE))
-        {
-            pQueryMapEntry = &pLdapMap->queryMap[i];
-            break;
-        }
-#endif /* if 1 */
     }
 
     if (!pQueryMapEntry)
@@ -2847,15 +2720,6 @@ error:
  * Map PWSTR array of "SQL" attributes to PSTR array of "LDAP" 
  * attribute equivalents.
  */
-#if 0
-typedef struct _VMDIRDB_LDAPATTR_MAP_ENTRY
-{
-    PWSTR pwszAttribute;
-    PSTR pszAttribute;
-    DWORD dwType;
-} VMDIRDB_LDAPATTR_MAP_ENTRY, *PVMDIRDB_LDAPATTR_MAP_ENTRY;
-
-#endif
 DWORD
 VmdirFindLdapAttributeList(
     PSTR *ppszAttributes,

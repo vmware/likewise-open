@@ -1173,6 +1173,10 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
         VMDIR_DB_ATTR_FLAGS_NONE                                   \
     }
 
+#ifndef wszVMDIR_DB_DIR_ATTR_EOL
+#define wszVMDIR_DB_DIR_ATTR_EOL NULL
+#endif
+
 #ifndef ATTR_OBJECT_CLASS
 #define ATTR_OBJECT_CLASS                   "objectclass"
 #endif
@@ -1211,6 +1215,12 @@ typedef struct _VMDIRDB_ATTRIBUTE_MAP_INFO
 #endif
 #ifndef ATTR_OS_SERVICE_PACK
 #define ATTR_OS_SERVICE_PACK                "operatingSystemServicePack"
+#endif
+#ifndef ATTR_KRB_UPN
+#define ATTR_KRB_UPN                        "userPrincipalName"
+#endif
+#ifndef ATTR_NAME_MEMBER
+#define ATTR_NAME_MEMBER                    "member"
 #endif
 
 #endif /* __VMDIR_DB_TABLE_H__ */

@@ -207,10 +207,12 @@ VmdirDbAddObject(
     PSTR pszSqlDn = NULL;
     PSTR pszObjectDn = NULL;
     PSTR pszSamAccountName = NULL;
+    PSTR pszAcctUpn = NULL;
     CHAR szUserAccountControl[13] = {0};
     ULONG userAccountControl = 0;
     WCHAR wszAttrAccountFlags[] = VMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS;
     PATTRIBUTE_VALUE pAttr = NULL;
+    PSTR pszDcClientsGroupDn = NULL;
 
     if (!hBindHandle || !pwszSqlDn)
     {
@@ -241,23 +243,34 @@ VmdirDbAddObject(
     }
     snprintf(szUserAccountControl, sizeof(szUserAccountControl), "%u", userAccountControl);
 
+    /* Construct the sAMAccountName */
     ntStatus = LwRtlCStringDuplicate(&pszSamAccountName,
                                      pszObjectDn);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
     pszPtr = strstr(pszSamAccountName+3, ",dc");
     if (pszPtr)
     {
         *pszPtr = '\0';
     }
 
+    /* Construct the Kerberos UPN */
+    dwError = VmDirConstructMachineUPN(
+                  pszSqlDn,
+                  &pszAcctUpn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+
 #if 0
     /*
      * Map DIRECTORY_MOD -> LDAPMod values
+     * TBD:Adam-Map "modifications" array to LDAP attributes as below */
      */
     dwError = VmdirDbMapDirectoryModToLdapModArray(
                   pszObjectDn,
                   modifications,
                   pLdapAttributes);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 #endif
 
 {
@@ -273,6 +286,17 @@ VmdirDbAddObject(
     PSTR valsOsName[] = {" ", NULL};
     PSTR valsOsVersion[] = {" ", NULL};
     PSTR valsOsServicePack[] = {" ", NULL};
+    PSTR valsAcctUpn[] = {pszAcctUpn, NULL};
+
+    /* Used to add Machine Account to the "DCAdmins" group */
+    LDAPMod modgrp[] = {
+                         {LDAP_MOD_ADD, ATTR_NAME_MEMBER, {valsDistinguishedName} },
+                         { 0, 0, {0} },
+                       };
+    LDAPMod *ldapMods[] = { &modgrp[0],
+                            NULL,
+                          };
+
     LDAPMod mod[] = {
               /* 0  */   { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsComputer} },
                          { LDAP_MOD_ADD, ATTR_SAM_ACCOUNT_NAME, {valsSamAccountName} },
@@ -286,6 +310,7 @@ VmdirDbAddObject(
                          { LDAP_MOD_ADD, ATTR_OS_NAME, {valsOsName} },
               /* 10 */   { LDAP_MOD_ADD, ATTR_OS_VERSION, {valsOsVersion} },
                          { LDAP_MOD_ADD, ATTR_OS_SERVICE_PACK, {valsOsServicePack} },
+                         { LDAP_MOD_ADD, ATTR_KRB_UPN, {valsAcctUpn} },
 
 #if 0
 
@@ -295,26 +320,48 @@ VmdirDbAddObject(
 #endif
                          { 0, 0, {0} },
                      };
-    LDAPMod *ldapAttrs[] = { &mod[0], &mod[1],  &mod[2], &mod[3], &mod[4], &mod[5], 
-                             &mod[6], &mod[7],  &mod[8], &mod[9], &mod[10], &mod[11], 
+    LDAPMod *ldapAttrs[] = { &mod[0],  &mod[1],  &mod[2],  &mod[3],  &mod[4],  &mod[5], 
+                             &mod[6],  &mod[7],  &mod[8],  &mod[9],  &mod[10], &mod[11], 
+                             &mod[12],
                              NULL
                            };
 
+    /* Create the Machine Account for the joining Domain */
     ldap_err = ldap_add_ext_s(pLd,
                               pszObjectDn,
                               ldapAttrs,
                               NULL, 
                               NULL);
-}
     if (ldap_err)
     {
         dwError = LwMapLdapErrorToLwError(ldap_err);
         BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
+    /* Add the Machine Account to the DCClients group */
+    dwError = LwAllocateStringPrintf(
+                    &pszDcClientsGroupDn,
+                    "%s,%s",
+                    "cn=DCClients,cn=Builtin",
+                    gVmdirGlobals.pszDomainDn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    ldap_err = ldap_modify_ext_s(pLd,
+                                 pszDcClientsGroupDn,
+                                 ldapMods,
+                                 NULL,
+                                 NULL);
+    if (ldap_err)
+    {
+        dwError = LwMapLdapErrorToLwError(ldap_err);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+}
+
 cleanup:
    LW_SAFE_FREE_STRING(pszSqlDn);
    LW_SAFE_FREE_STRING(pszObjectDn);
+   LW_SAFE_FREE_STRING(pszAcctUpn);
 
    return dwError;
 
