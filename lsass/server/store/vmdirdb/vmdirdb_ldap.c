@@ -1424,6 +1424,52 @@ error:
 }
 
 
+/*
+ * "(ObjectClass=5 AND SamAccountName='PHOTON--59U15NB$' AND Domain='photon-102-test') OR
+ *  (ObjectClass=4 AND SamAccountName='PHOTON--59U15NB$' AND Domain='photon-102-test')"
+ *
+ *  SAMDB_OBJECT_CLASS_USER            = 5
+ *  SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4
+ *
+ *  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))"
+ */
+
+static PSTR
+pfnSqlToLdapsamAcctAndDomainXform(
+    PSTR pszLdapFilter,
+    ...)
+{
+    NTSTATUS ntStatus = 0;
+    PSTR pszModifiedFilter = NULL;
+    PSTR *ppszAttributes = NULL;
+
+    va_list ap;
+
+    va_start(ap, pszLdapFilter);
+    ppszAttributes = (PSTR *) va_arg(ap, char **);
+
+    if (ppszAttributes && ppszAttributes[0])
+    {
+        ntStatus = LwRtlCStringAllocateAppendPrintf(
+                       &pszModifiedFilter,
+                       pszLdapFilter,
+                       ppszAttributes[0],
+                       ppszAttributes[1],
+                       ppszAttributes[2],
+                       ppszAttributes[3]);
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+
+cleanup:
+    va_end(ap);
+
+    return pszModifiedFilter;
+
+error:
+    LW_SAFE_FREE_MEMORY(pszModifiedFilter);
+    goto cleanup;
+}
+
 
 /* ====== LDAP response to DIRECTORY_ENTRY translation callback functions ====*/
 
@@ -1893,6 +1939,19 @@ VmDirAllocLdapQueryMap(
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "(ObjectClass=5 AND SamAccountName='%s' AND Domain='%s') OR (ObjectClass=4 AND SamAccountName='%s' AND Domain='%s')",
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(|(&(objectClass=user)(samAccountName=%s)(domain=%s))(&(objectClass=local)(samAccountName=%s)(domain=%s)))",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL, /* override attributes */
+                  NULL, /* Attribute types */
+                  pfnSqlToLdapsamAcctAndDomainXform, /* ldap transform callback */
+                  NULL, /* DE transform callback */
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
 
     pLdapMap->dwNumEntries = i;
     *ppLdapMap = pLdapMap;
@@ -2319,7 +2378,7 @@ VmDirSqlFilterMatchWithArgs(
         {
             if (lc1 == '\'')
             {
-                quotePos = ai;
+                quotePos = aj;
             }
             aj++;
         }
@@ -2328,7 +2387,8 @@ VmDirSqlFilterMatchWithArgs(
          * Found %; Looking for '%s'. Verify previous char is ', 
          * and next is 's'.
          */
-        else if (pszSqlFilter[aj] == '%' && aj == (quotePos+1) && pszSqlFilter[aj+1] && pszSqlFilter[aj+1] == 's' &&
+        else if (pszSqlFilter[aj] == '%' && aj == (quotePos+1) &&
+                 pszSqlFilter[aj+1] && pszSqlFilter[aj+1] == 's' &&
                  pszSqlFilter[aj+2] && pszSqlFilter[aj+2] == '\'')
         {
             aj += 3; /* Skip over %s' in sqlFilter */
