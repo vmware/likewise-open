@@ -1043,18 +1043,23 @@ error:
 }
 
 #if 0 /* TBD:Adam-Reference */
+
 typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
 {
     PSTR pszSqlQuery;
     PSTR pszLdapQuery;
+    PSTR pszLdapBase;
+    PSTR *ppszLdapAttributes; /* optional */
+    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform; /* optional */
     ULONG uScope;
 } VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
 
 typedef struct _VMDIRDB_LDAPQUERY_MAP
 {
     DWORD dwNumEntries;
+    DWORD dwMaxEntries;
     VMDIRDB_LDAPQUERY_MAP_ENTRY queryMap[];
-} VMDIRDB_LDAPQUERY_MAP;
+} VMDIRDB_LDAPQUERY_MAP, *PVMDIRDB_LDAPQUERY_MAP;
 
     PSTR ppszBase[] = {"cn=builtin,dc=lightwave,dc=local", 0};
 #endif /* if 0 */
@@ -1066,12 +1071,16 @@ VmDirAllocLdapQueryMapEntry(
     PSTR pszLdapBase,
     PSTR pszLdapFilter,
     ULONG uScope,
+    PSTR *ppszLdapAttributes, /* optional */
+    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform, /* optional */
     DWORD dwIndex,
     PVMDIRDB_LDAPQUERY_MAP pLdapMap)
 {
     DWORD dwError = 0;
+    DWORD i = 0;
     PSTR pszBaseDn = NULL;
     PSTR pszBaseDnAlloc = NULL;
+    PSTR *ppszTmpLdapAttributes = NULL;
 
     if (!pLdapMap || dwIndex > pLdapMap->dwMaxEntries)
     {
@@ -1108,6 +1117,24 @@ VmDirAllocLdapQueryMapEntry(
                   (VOID *) &pLdapMap->queryMap[dwIndex].pszLdapBase);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    pLdapMap->queryMap[dwIndex].pfnTransform = pfnTransform;
+    if (ppszLdapAttributes)
+    {
+        for (i=0; ppszLdapAttributes[i]; i++)
+            ;
+        dwError = LwAllocateMemory(sizeof(PSTR) * (i + 1),
+                      (VOID *) &ppszTmpLdapAttributes);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+        for (i=0; ppszLdapAttributes[i]; i++)
+        {
+            dwError = LwAllocateString(ppszLdapAttributes[i],
+                          (VOID *) &ppszTmpLdapAttributes[i]);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+            
+        }
+        pLdapMap->queryMap[dwIndex].ppszLdapAttributes = ppszTmpLdapAttributes;
+    }
+
 cleanup:
     LW_SAFE_FREE_STRING(pszBaseDnAlloc);
     return dwError;
@@ -1116,8 +1143,90 @@ error:
     LW_SAFE_FREE_MEMORY(pLdapMap->queryMap[dwIndex].pszSqlQuery);
     LW_SAFE_FREE_MEMORY(pLdapMap->queryMap[dwIndex].pszLdapQuery);
     LW_SAFE_FREE_MEMORY(pLdapMap->queryMap[dwIndex].pszLdapBase);
+    if (ppszTmpLdapAttributes)
+    {
+        for (i=0; ppszTmpLdapAttributes[i]; i++)
+        {
+            LW_SAFE_FREE_STRING(ppszTmpLdapAttributes[i]);
+        } 
+        LW_SAFE_FREE_MEMORY(ppszTmpLdapAttributes);
+    }
     goto cleanup;
 }
+
+/* SQL Filter: "ObjectClass=1 OR ObjectClass=2"
+   SQL Attributes: CommonName
+ */
+DWORD
+VmdirDbXformEntryDnToCN(
+    PSTR *ppszLdapAttributes, /* Original Attributes */
+    DWORD dwNumEntries,
+    PDIRECTORY_ENTRY in,
+    PDIRECTORY_ENTRY out)
+{
+    DWORD dwError = 0;
+    PWSTR pwszCommonName = NULL;
+    PSTR pszDn = NULL;
+    PSTR pszDomainName = NULL;
+    PWSTR pwszDomainName = NULL;
+    NTSTATUS ntStatus = 0; 
+    WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
+
+
+    /* Memory has been allocated for this transform by the caller */
+    if (!ppszLdapAttributes || !in || !out || dwNumEntries > 1 || 
+        in[0].ulNumAttributes != 1)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    if (!LwRtlWC16StringIsEqual(in[0].pAttributes[0].pwszName,
+                                wszEntryDn,
+                                FALSE))
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    /* Replace "entryDn" with "CommonName" */
+    if (!LwRtlWC16StringIsEqual(in[0].pAttributes[0].pwszName, wszEntryDn, FALSE))
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    /* Replace DN value with FQDN format */
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                   &pszDn, 
+                   in[0].pAttributes[0].pValues[0].data.pwszStringValue);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    dwError = LwLdapConvertDNToDomain(pszDn, &pszDomainName);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszCommonName, "CommonName");
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+   
+    ntStatus = LwRtlWC16StringAllocateFromCString(&pwszDomainName, pszDomainName);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    /* Replace output DIRECTORY_ENTRY values with the converted form */
+    LW_SAFE_FREE_MEMORY(out[0].pAttributes[0].pwszName);
+    out[0].pAttributes[0].pwszName = pwszCommonName;
+
+    LW_SAFE_FREE_MEMORY(out[0].pAttributes[0].pValues[0].data.pwszStringValue);
+    out[0].pAttributes[0].pValues[0].data.pwszStringValue = pwszDomainName;
+    out[0].pAttributes[0].pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszCommonName);
+    goto cleanup;
+}
+
 
 DWORD
 VmDirAllocLdapQueryMap(
@@ -1141,15 +1250,24 @@ VmDirAllocLdapQueryMap(
                   pszSearchBase,
                   (VOID *) &pLdapMap->pszSearchBase);
     BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    SAMDB_OBJECT_CLASS_DOMAIN          = 1
+    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2
+    SAMDB_OBJECT_CLASS_CONTAINER       = 3
+    SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4
+    SAMDB_OBJECT_CLASS_USER            = 5
+    SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER = 6
 #endif
 
     /* Initialize map entries */
     dwError = VmDirAllocLdapQueryMapEntry(
                   "ObjectClass = 5",
-                  NULL,                  /* SearchBasePrefix (optional) */
+                  NULL,                    /* SearchBasePrefix (optional) */
                   pszSearchBase,
                   "(cn=*)",
                   LDAP_SCOPE_SUBTREE,
+                  NULL,
+                  NULL,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1159,15 +1277,59 @@ VmDirAllocLdapQueryMap(
     /* LSAR filters */
 
     /* SAMR filters */
+    /* Domain Object: cn or objectSid query */
+{
+    PSTR pszOptionalAttributes[] = {"cn", "entryDn", 0};
     dwError = VmDirAllocLdapQueryMapEntry(
-                  "ObjectClass=1 OR ObjectClass=2",
-                  "cn=builtin",          /* SearchBasePrefix (optional) */
+                  "ObjectClass = 1",
+                  NULL,                    /* SearchBasePrefix (optional) */
                   pszSearchBase,
-                  "(cn=*)",
+                  "(objectclass=dcObject)",
                   LDAP_SCOPE_SUBTREE,
+                  pszOptionalAttributes,
+                  NULL,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "ObjectClass=1 OR ObjectClass=2",
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(objectclass=dcObject)",
+                  LDAP_SCOPE_SUBTREE,
+                  pszOptionalAttributes,
+                  VmdirDbXformEntryDnToCN,
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+/*zzz */
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "ObjectClass=1 AND Domain='$1'", /* "ObjectClass=1 AND Domain='lightwave.local'" */
+                  NULL,                    /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(&(objectclass=dcObject)(entryDn=$1))",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL,
+                  NULL,
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+}
+
+    dwError = VmDirAllocLdapQueryMapEntry(
+                  "ObjectClass=2 AND Domain='Builtin'",
+                  "cn=builtin",            /* SearchBasePrefix (optional) */
+                  pszSearchBase,
+                  "(cn=*)",
+                  LDAP_SCOPE_SUBTREE,
+                  NULL,
+                  NULL,
+                  i++,
+                  pLdapMap);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
 
     pLdapMap->dwNumEntries = i;
     *ppLdapMap = pLdapMap;
@@ -1181,6 +1343,7 @@ error:
 }
 
 
+#if 0 /* Replaced by VmDirFindLdapQueryMapEntry */
 DWORD
 VmDirGetFilterLdapQueryMap(
     PSTR pszSql,
@@ -1210,7 +1373,7 @@ VmDirGetFilterLdapQueryMap(
     }
     else
     {
-        dwError = ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_LDAP_FILTER_ERROR;
         BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
@@ -1220,6 +1383,7 @@ cleanup:
 error:
     goto cleanup;
 }
+#endif
 
 DWORD
 VmDirFreeLdapQueryMap(
@@ -1293,6 +1457,54 @@ VmDirAllocLdapAttributeMap(
     WCHAR wszVMDIR_DB_DIR_ATTR_UID[] = VMDIR_DB_DIR_ATTR_UID;
     WCHAR wszVMDIR_DB_DIR_ATTR_MEMBERS[] = VMDIR_DB_DIR_ATTR_MEMBERS;
 
+//    WCHAR wszVMDIR_DB_DIR_ATTR_RECORD_ID[] = VMDIR_DB_DIR_ATTR_RECORD_ID;
+    WCHAR wszVMDIR_DB_DIR_ATTR_PARENT_DN[] = VMDIR_DB_DIR_ATTR_PARENT_DN;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_DOMAIN[] = VMDIR_DB_DIR_ATTR_DOMAIN;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_NETBIOS_NAME[] = VMDIR_DB_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszVMDIR_DB_DIR_ATTR_USER_PRINCIPAL_NAME[] = VMDIR_DB_DIR_ATTR_USER_PRINCIPAL_NAME;
+    WCHAR wszVMDIR_DB_DIR_ATTR_DESCRIPTION[] = VMDIR_DB_DIR_ATTR_DESCRIPTION;
+    WCHAR wszVMDIR_DB_DIR_ATTR_COMMENT[] = VMDIR_DB_DIR_ATTR_COMMENT;
+    WCHAR wszVMDIR_DB_DIR_ATTR_PASSWORD[] = VMDIR_DB_DIR_ATTR_PASSWORD;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS[] = VMDIR_DB_DIR_ATTR_ACCOUNT_FLAGS;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_GECOS[] = VMDIR_DB_DIR_ATTR_GECOS;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_HOME_DIR[] = VMDIR_DB_DIR_ATTR_HOME_DIR;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_HOME_DRIVE[] = VMDIR_DB_DIR_ATTR_HOME_DRIVE;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOGON_SCRIPT[] = VMDIR_DB_DIR_ATTR_LOGON_SCRIPT;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_PROFILE_PATH[] = VMDIR_DB_DIR_ATTR_PROFILE_PATH;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_WORKSTATIONS[] = VMDIR_DB_DIR_ATTR_WORKSTATIONS;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_PARAMETERS[] = VMDIR_DB_DIR_ATTR_PARAMETERS;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_SHELL[] = VMDIR_DB_DIR_ATTR_SHELL;
+    WCHAR wszVMDIR_DB_DIR_ATTR_PASSWORD_LAST_SET[] = VMDIR_DB_DIR_ATTR_PASSWORD_LAST_SET;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE[] = VMDIR_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_FORCE_PASSWORD_CHANGE[] = VMDIR_DB_DIR_ATTR_FORCE_PASSWORD_CHANGE;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_FULL_NAME[] = VMDIR_DB_DIR_ATTR_FULL_NAME;
+    WCHAR wszVMDIR_DB_DIR_ATTR_ACCOUNT_EXPIRY[] = VMDIR_DB_DIR_ATTR_ACCOUNT_EXPIRY;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LM_HASH[] = VMDIR_DB_DIR_ATTR_LM_HASH;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_NT_HASH[] = VMDIR_DB_DIR_ATTR_NT_HASH;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_PRIMARY_GROUP[] = VMDIR_DB_DIR_ATTR_PRIMARY_GROUP;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_GID[] = VMDIR_DB_DIR_ATTR_GID;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_COUNTRY_CODE[] = VMDIR_DB_DIR_ATTR_COUNTRY_CODE;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_CODE_PAGE[] = VMDIR_DB_DIR_ATTR_CODE_PAGE;
+      WCHAR wszVMDIR_DB_DIR_ATTR_MAX_PWD_AGE[] = VMDIR_DB_DIR_ATTR_MAX_PWD_AGE;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_MIN_PWD_AGE[] = VMDIR_DB_DIR_ATTR_MIN_PWD_AGE;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_PWD_PROMPT_TIME[] = VMDIR_DB_DIR_ATTR_PWD_PROMPT_TIME;
+    WCHAR wszVMDIR_DB_DIR_ATTR_LAST_LOGON[] = VMDIR_DB_DIR_ATTR_LAST_LOGON;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LAST_LOGOFF[] = VMDIR_DB_DIR_ATTR_LAST_LOGOFF;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOCKOUT_TIME[] = VMDIR_DB_DIR_ATTR_LOCKOUT_TIME;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOGON_COUNT[] = VMDIR_DB_DIR_ATTR_LOGON_COUNT;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_BAD_PASSWORD_COUNT[] = VMDIR_DB_DIR_ATTR_BAD_PASSWORD_COUNT;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOGON_HOURS[] = VMDIR_DB_DIR_ATTR_LOGON_HOURS;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_ROLE[] = VMDIR_DB_DIR_ATTR_ROLE;
+    WCHAR wszVMDIR_DB_DIR_ATTR_MIN_PWD_LENGTH[] = VMDIR_DB_DIR_ATTR_MIN_PWD_LENGTH;
+    WCHAR wszVMDIR_DB_DIR_ATTR_PWD_HISTORY_LENGTH[] = VMDIR_DB_DIR_ATTR_PWD_HISTORY_LENGTH;
+    WCHAR wszVMDIR_DB_DIR_ATTR_PWD_PROPERTIES[] = VMDIR_DB_DIR_ATTR_PWD_PROPERTIES;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_FORCE_LOGOFF_TIME[] = VMDIR_DB_DIR_ATTR_FORCE_LOGOFF_TIME;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_PRIMARY_DOMAIN[] = VMDIR_DB_DIR_ATTR_PRIMARY_DOMAIN;
+    WCHAR wszVMDIR_DB_DIR_ATTR_SEQUENCE_NUMBER[] = VMDIR_DB_DIR_ATTR_SEQUENCE_NUMBER;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOCKOUT_DURATION[] = VMDIR_DB_DIR_ATTR_LOCKOUT_DURATION;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOCKOUT_WINDOW[] = VMDIR_DB_DIR_ATTR_LOCKOUT_WINDOW;
+//    WCHAR wszVMDIR_DB_DIR_ATTR_LOCKOUT_THRESHOLD[] = VMDIR_DB_DIR_ATTR_LOCKOUT_THRESHOLD;
+
     /* The order of szAttributes and wszAttributes MUST be the same!!! */
     CHAR *szAttributes[] = {
         "cn",
@@ -1302,8 +1514,21 @@ VmDirAllocLdapAttributeMap(
         "objectClass",
         "createTimeStamp",
         "objectSid",
-        "uid", /* not stored in vmdird?? */
-        "objectSid",
+        "uid",
+        "member",
+        "parentid",
+        "userPrincipalName",
+        "description",
+        "comment",
+        "userPassword",
+        "pwdLastSet",
+        "vmwPasswordLifetimeDays",
+        "pwdLastSet",
+        "lastLogonTimestamp",
+        "vmwPasswordMinLength",
+        "vmwPasswordProhibitedPreviousCount",
+        "vmwPasswordSpecialChars",
+        "vmwRidSequenceNumber",
     };
 
     WCHAR *wszAttributes[] = {
@@ -1316,7 +1541,21 @@ VmDirAllocLdapAttributeMap(
         wszVMDIR_DB_DIR_ATTR_OBJECT_SID,
         wszVMDIR_DB_DIR_ATTR_UID,
         wszVMDIR_DB_DIR_ATTR_MEMBERS,
-        wszVMDIR_DB_DIR_ATTR_EOL,
+        wszVMDIR_DB_DIR_ATTR_PARENT_DN,
+        wszVMDIR_DB_DIR_ATTR_USER_PRINCIPAL_NAME,
+        wszVMDIR_DB_DIR_ATTR_DESCRIPTION,
+        wszVMDIR_DB_DIR_ATTR_COMMENT,
+        wszVMDIR_DB_DIR_ATTR_PASSWORD,
+        wszVMDIR_DB_DIR_ATTR_PASSWORD_LAST_SET,
+        wszVMDIR_DB_DIR_ATTR_ACCOUNT_EXPIRY,
+        wszVMDIR_DB_DIR_ATTR_MAX_PWD_AGE,
+        wszVMDIR_DB_DIR_ATTR_LAST_LOGON,
+        wszVMDIR_DB_DIR_ATTR_MIN_PWD_LENGTH,
+        wszVMDIR_DB_DIR_ATTR_PWD_HISTORY_LENGTH,
+        wszVMDIR_DB_DIR_ATTR_PWD_PROPERTIES,
+        wszVMDIR_DB_DIR_ATTR_SEQUENCE_NUMBER,
+
+        wszVMDIR_DB_DIR_ATTR_EOL, /* This must be the last entry: End Of Line */
 
 #if 0 /* Maybe need to map these attributes. Use above pattern */
         { VMDIR_DB_DIR_ATTR_RECORD_ID },
@@ -1439,6 +1678,49 @@ error:
     goto cleanup;
 }
 
+DWORD
+VmDirFindLdapQueryMapEntry(
+    PSTR pszSqlQuery,
+    PVMDIRDB_LDAPQUERY_MAP_ENTRY *ppQueryMapEntry)
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    PVMDIRDB_LDAPQUERY_MAP pLdapMap = NULL;
+    PVMDIRDB_LDAPQUERY_MAP_ENTRY pQueryMapEntry = NULL;
+
+    if (!pszSqlQuery || !gVmdirGlobals.pLdapMap)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    pLdapMap = gVmdirGlobals.pLdapMap;
+
+    for (i=0; i < pLdapMap->dwNumEntries; i++)
+    {
+        if (LwRtlCStringIsEqual(pszSqlQuery, pLdapMap->queryMap[i].pszSqlQuery, FALSE))
+        {
+            pQueryMapEntry = &pLdapMap->queryMap[i];
+            break;
+        }
+    }
+
+    if (!pQueryMapEntry)
+    {
+        /* No filter translation found; error out */
+
+        dwError = LW_ERROR_LDAP_FILTER_ERROR;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    *ppQueryMapEntry = pQueryMapEntry;
+    return dwError;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 /*
  * Map PWSTR array of "SQL" attributes to PSTR array of "LDAP" 

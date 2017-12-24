@@ -71,11 +71,20 @@ typedef struct _VMDIR_DB_ATTR_LOOKUP
 
 } VMDIR_DB_ATTR_LOOKUP, *PVMDIR_DB_ATTR_LOOKUP;
 
+typedef DWORD (*VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC)(
+    PSTR *ppszLdapAttributes,
+    DWORD dwNumEntries,
+    PDIRECTORY_ENTRY in,
+    PDIRECTORY_ENTRY out
+    );
+
 typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
 {
     PSTR pszSqlQuery;
     PSTR pszLdapQuery;
     PSTR pszLdapBase;
+    PSTR *ppszLdapAttributes; /* optional */
+    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform; /* optional */
     ULONG uScope;
 } VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
 

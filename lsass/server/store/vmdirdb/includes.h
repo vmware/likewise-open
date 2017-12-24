@@ -47,6 +47,7 @@
 #include <reg/regutil.h>
 #include <lw/rpc/samr.h>
 #include <lwkrb5.h>
+#include <lwldap.h>
 
 
 #include "lsa/lsa.h"

@@ -84,7 +84,7 @@ DWORD test3(HANDLE hDirectory)
     PWSTR *wszAttributes = NULL;
 #if 1
     PSTR ppszFilter[] = {"ObjectClass=1 OR ObjectClass=2",  0};
-    PSTR pszAttributes[] = {"CommonName", "ObjectSid", 0};
+    PSTR pszAttributes[] = {"CommonName", 0};
 #else
     PSTR ppszBase[] = {"cn=builtin,dc=lightwave,dc=local", 0};
     PSTR ppszFilter[] = {"(cn=*)", 0};

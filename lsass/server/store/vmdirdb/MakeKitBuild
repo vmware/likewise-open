@@ -23,7 +23,7 @@ make()
 	SOURCES="$VMDIRDB_SOURCES" \
         CPPFLAGS="-DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
 	INCLUDEDIRS=". ../include ../../include ../../../include" \
-	HEADERDEPS="openssl/md4.h uuid/uuid.h lw/base.h lwio/lwio.h lwadvapi.h" \
+	HEADERDEPS="openssl/md4.h uuid/uuid.h lw/base.h lwio/lwio.h lwadvapi.h lwldap.h" \
 	LIBDEPS="uuid regclient lwbase crypto dsapi" \
         SYMFILE="vmdirdb.sym"
 }

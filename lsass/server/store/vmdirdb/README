@@ -60,19 +60,23 @@ samdb Plugin types to vmdirdb (ldap) types translation
     SAMDB_OBJECT_CLASS_UNKNOWN         = 0,
     SAMDB_OBJECT_CLASS_DOMAIN          = 1,  -> (???) ou=Domain Controllers,dc=lightwave,dc=local
     SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2,  -> Search base = "cn=builtin,dc=lightwave,dc=local"
+    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2,  -> Search base = "cn=builtin,dc=lightwave,dc=local"
     SAMDB_OBJECT_CLASS_CONTAINER       = 3,  -> container
     SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4,
     SAMDB_OBJECT_CLASS_USER            = 5,  -> user
     SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER = 6,
 
+#
+# Authentication information
+#
 logindata="-D "CN=Administrator,CN=Users,DC=lightwave,DC=local" -H ldap://10.118.97.57  -w VMware123@"
 
 # List everything
 #                     Base                     Filter  attributes
 ldapsearch $logindata -b dc=lightwave,dc=local '(cn=*)' + - '*'  \
 
-# List SAMDB_OBJECT_CLASS_DOMAIN        = 1:  -> (???) ou=Domain Controllers,dc=lightwave,dc=local
-ldapsearch $logindata -b "ou=Domain Controllers,dc=lightwave,dc=local" '(cn=*)' cn  objectSid \
+# List SAMDB_OBJECT_CLASS_DOMAIN        = 1:  -> 
+ldapsearch $logindata -b "dc=lightwave,dc=local" '(objectclass=dcObject)' cn objectSid
 
 #List SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN = 2:
 ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid \
@@ -106,6 +110,84 @@ ldap_add LDAP_P((       /* deprecated, use ldap_add_ext */
         LDAPMod **attrs ));
 
 
+# Search 1
+Query:
+0x7f05b000f670:	u"ObjectClass=1 OR ObjectClass=2"
+0x7f05cdc94630:	u"CommonName"
+
+
+Reply:
+(gdb) x/hs (ppDirectoryEntries )[0].pAttributes .pwszName
+0x7f1a6000f360:	u"CommonName"
+(gdb) x/hs (ppDirectoryEntries )[0].pAttributes .pValues [0].data.pwszStringValue 
+0x7f1a60013950:	u"PHOTON-102-TEST"
+
+# Search 2
+Query:
+0x7f05b000ac00:	u"ObjectClass=1 AND Domain='PHOTON-102-TEST'"
+0x7f05cdc94650:	u"ObjectSID"
+
+Reply:
+(gdb) x/hs  ppDirectoryEntries [0].pAttributes .pwszName
+0x7f05b000aba0:	u"ObjectSID"
+(gdb) x/hs  ppDirectoryEntries [0].pAttributes .pValues [0].data.pwszStringValue 
+0x7f05b0000b10:	u"S-1-5-21-2863089035-1413825318-3321153934"
+
+# Search 3
+Query:
+0x7f11bc00aba0:	u"(ObjectClass=1 OR ObjectClass=2) AND ObjectSID='S-1-5-21-2863089035-1413825318-3321153934'"
+0x7f11d8b9e5e0:	u"CommonName"
+0x7f11d8b9e600:	u"ObjectSID"
+0x7f11d8b9e5b0:	u"DistinguishedName"
+0x7f11d8b9e590:	u"MinPwdAge"
+0x7f11d8b9e570:	u"MaxPwdAge"
+0x7f11d8b9e550:	u"MinPwdLength"
+0x7f11d8b9e530:	u"PwdPromptTime"
+0x7f11d8b9e510:	u"PwdProperties"
+0x7f11d8b9e4f0:	u"SequenceNumber"
+0x7f11d8b9e4c0:	u"SecurityDescriptor"
+
+Reply:
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [0].pwszName 
+0x7f05b0017f00:	u"CommonName"
+0x7f1a6000f5f0:	u"PHOTON-102-TEST"
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [1].pwszName 
+0x7f05b000a0d0:	u"ObjectSID"
+0x7f1a6000f7f0:	u"S-1-5-21-2863089035-1413825318-3321153934"
+
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [2].pwszName 
+0x7f05b000f5f0:	u"DistinguishedName"
+0x7f1a6000fa70:	u"DC=PHOTON-102-TEST"
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [3].pwszName 
+0x7f05b0000b50:	u"MinPwdAge"
+Type=3
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [4].pwszName 
+0x7f05b0011f30:	u"MaxPwdAge"
+Type=3
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [5].pwszName 
+0x7f05b000f890:	u"MinPwdLength"
+Type=2
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [6].pwszName 
+0x7f05b000f490:	u"PwdPromptTime"
+Type=3
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [7].pwszName 
+0x7f05b000a6e0:	u"PwdProperties"
+Type=2
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [8].pwszName 
+0x7f05b0017eb0:	u"SequenceNumber"
+Type=3
+
+(gdb) x/hs ppDirectoryEntries [0].pAttributes [9].pwszName 
+0x7f05b0011fa0:	u"SecurityDescriptor"
+Type=4
 
 
 b SamrSrvEnumDomains
@@ -117,6 +199,7 @@ b SamDbSearchObject
 
 
 
+set breakpoint pending on
 b SamDbOpen
 b SamDbBind
 b SamDbAddObject
@@ -135,6 +218,7 @@ b SamDbGetGroupCount
 b SamDbClose
 
 
+set breakpoint pending on
 b VmdirDbOpen
 b VmdirDbBind
 b VmdirDbAddObject
@@ -152,26 +236,62 @@ b VmdirDbGetUserCount
 b VmdirDbGetGroupCount
 b VmdirDbClose
 
+set breakpoint pending on
+b DirectoryAddObject
+b DirectoryAddToGroup
+b DirectoryBind
+b DirectoryChangePassword
+b DirectoryClose
+b DirectoryDeleteObject
+b DirectoryGetGroupCount
+b DirectoryGetGroupMembers
+b DirectoryGetMemberships
+b DirectoryGetUserCount
+b DirectoryModifyObject
+b DirectoryOpen
+b DirectoryRemoveFromGroup
+b DirectorySearch
+b DirectorySetPassword
+b DirectoryVerifyPassword
 
 
-db) x/hs pDirectoryEntries[0].pAttributes [0].pwszName
-0x64b490:       u"CommonName"
-(gdb) x/hs pDirectoryEntries[0].pAttributes [0].pValues.data.pwszStringValue
-0x6637e0:       u"PHOTON-102-TEST"
-
-(gdb) x/hs pDirectoryEntries[0].pAttributes [1].pwszName
-0x663810:       u"ObjectSID"
-(gdb) x/hs pDirectoryEntries[0].pAttributes [1].pValues.data.pwszStringValue
-0x661210:       u"S-1-5-21-2863089035-1413825318-3321153934"
-
-
-(gdb) x/hs pDirectoryEntries[1].pAttributes [0].pwszName
-0x661270:       u"CommonName"
-(gdb) x/hs pDirectoryEntries[1].pAttributes [0].pValues.data.pwszStringValue
-0x661310:       u"BUILTIN"
-
-(gdb) x/hs pDirectoryEntries[1].pAttributes [1].pwszName
-0x663cd0:       u"ObjectSID"
-(gdb) x/hs pDirectoryEntries[1].pAttributes [1].pValues.data.pwszStringValue
-0x661350:       u"S-1-5-32"
-~                                 
+# ALL SamrSrv RPC server breakpoints
+#
+set breakpoint pending on
+b SamrSrvConnect
+b SamrSrvClose
+b SamrSrvSetSecurity
+b SamrSrvQuerySecurity
+b SamrSrvLookupDomain
+b SamrSrvEnumDomains
+b SamrSrvOpenDomain
+b SamrSrvQueryDomainInfo
+b SamrSrvCreateUser
+b SamrSrvEnumDomainUsers
+b SamrSrvCreateDomAlias
+b SamrSrvEnumDomainAliases
+b SamrSrvGetAliasMembership
+b SamrSrvLookupNames
+b SamrSrvLookupRids
+b SamrSrvOpenAlias
+b SamrSrvQueryAliasInfo
+b SamrSrvSetAliasInfo
+b SamrSrvDeleteDomAlias
+b SamrSrvAddAliasMember
+b SamrSrvDeleteAliasMember
+b SamrSrvGetMembersInAlias
+b SamrSrvOpenUser
+b SamrSrvDeleteUser
+b SamrSrvQueryUserInfo
+b SamrSrvSetUserInfo
+b SamrSrvGetUserGroups
+b SamrSrvQueryDisplayInfo
+b SamrSrvGetUserPwInfo
+b SamrSrvRemoveMemberFromForeignDomain
+b SamrSrvCreateUser2
+b SamrSrvChangePasswordUser2
+b SamrSrvConnect2
+b SamrSrvSetUserInfo2
+b SamrSrvConnect3
+b SamrSrvConnect4
+b SamrSrvConnect5
