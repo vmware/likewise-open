@@ -3,7 +3,6 @@
 DWORD test1(HANDLE hDirectory)
 {
     DWORD dwError = 0;
-    DWORD dwNumAttributes = 0;
     DWORD dwNumEntries = 0;
     PDIRECTORY_ENTRY  pDirectoryEntries = NULL;
     PWSTR *wszFilter = NULL;
@@ -11,10 +10,10 @@ DWORD test1(HANDLE hDirectory)
     PSTR ppszFilter[] = {"ObjectClass=1 OR ObjectClass=2", 0};
     PSTR pszAttributes[] = {"CommonName", 0};
 
-    dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes, &dwNumAttributes);
+    dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = VmDirAttributesWc16FromCAttributes(ppszFilter, &wszFilter, &dwNumEntries);
+    dwError = VmDirAttributesWc16FromCAttributes(ppszFilter, &wszFilter);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = DirectorySearch(
@@ -38,7 +37,6 @@ error:
 DWORD test2(HANDLE hDirectory)
 {
     DWORD dwError = 0;
-    DWORD dwNumAttributes = 0;
     DWORD dwNumEntries = 0;
     PDIRECTORY_ENTRY  pDirectoryEntries = NULL;
     PWSTR *wszFilter = NULL;
@@ -46,10 +44,10 @@ DWORD test2(HANDLE hDirectory)
     PSTR ppszFilter[] = {"ObjectClass=1", 0};
     PSTR pszAttributes[] = {"CommonName", 0};
 
-    dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes, &dwNumAttributes);
+    dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = VmDirAttributesWc16FromCAttributes(ppszFilter, &wszFilter, &dwNumEntries);
+    dwError = VmDirAttributesWc16FromCAttributes(ppszFilter, &wszFilter);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = DirectorySearch(
@@ -75,7 +73,6 @@ error:
 DWORD test3(HANDLE hDirectory)
 {
     DWORD dwError = 0;
-    DWORD dwNumAttributes = 0;
     DWORD dwNumEntries = 0;
     PDIRECTORY_ENTRY  pDirectoryEntries = NULL;
     PWSTR *wszBase = NULL;
@@ -90,17 +87,17 @@ DWORD test3(HANDLE hDirectory)
     PSTR ppszFilter[] = {"(cn=*)", 0};
     PSTR pszAttributes[] = {"cn", 0};
 
-    dwError = VmDirAttributesWc16FromCAttributes(ppszBase, &wszBaseAlloc, &dwNumEntries);
+    dwError = VmDirAttributesWc16FromCAttributes(ppszBase, &wszBaseAlloc);
     BAIL_ON_VMDIRDB_ERROR(dwError);
     wszBase = wszBaseAlloc;
 #endif
 
     /* ldapsearch $logindata -b cn=builtin,dc=lightwave,dc=local '(cn=*)' cn  objectSid  */
 
-    dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes, &dwNumAttributes);
+    dwError = VmDirAttributesWc16FromCAttributes(pszAttributes, &wszAttributes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-    dwError = VmDirAttributesWc16FromCAttributes(ppszFilter, &wszFilter, &dwNumEntries);
+    dwError = VmDirAttributesWc16FromCAttributes(ppszFilter, &wszFilter);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = DirectorySearch(

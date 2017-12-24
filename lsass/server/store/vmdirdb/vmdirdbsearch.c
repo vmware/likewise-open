@@ -42,10 +42,7 @@
  *
  *      VMDIR objects searching routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewise.com)
- *          Sriram Nambakam (snambakam@likewise.com)
- *          Rafal Szczesniak (rafal@likewise.com)
- *          Adam Bernstein (abernstein@vmware.com)
+ * Authors: Adam Bernstein (abernstein@vmware.com)
  *
  */
 
@@ -59,67 +56,6 @@ typedef struct _DIRECTORY_ATTRIBUTE_VALUE_COUNT
     DWORD iAttributes;
 } DIRECTORY_ATTRIBUTE_VALUE_COUNT, *PDIRECTORY_ATTRIBUTE_VALUE_COUNT;
 
-
-#if 0
-static DWORD
-VmdirDbCountTotalAttributes(
-    LDAP *pLd,
-    LDAPMessage *pRes,
-    DWORD *pdwNumEntries,
-    PSTR *ppszAttributes,
-    DWORD *pdwAttrCount)
-{
-    DWORD dwError = 0;
-    int iNumEntries = 0;
-    LDAPMessage *pResNext = NULL;
-    DWORD iAttr = 0;
-    PSTR *ppszLdapRetQuery = NULL;
-    DWORD dwAttrCount = 0;
-    DWORD dwValueCount = 0;
-
-    if (!pLd || !pRes || !ppszAttributes || !pdwAttrCount)
-    {
-        dwError = ERROR_INVALID_PARAMETER;
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-    }
-
-    iNumEntries = ldap_count_entries(pLd, pRes);
-    if (iNumEntries <= 0)
-    {
-        dwError = ERROR_INVALID_PARAMETER;
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-    }
-
-    for (iAttr = 0; ppszAttributes[iAttr]; iAttr++)
-    {
-        pResNext = ldap_first_message(pLd, pRes);
-        while (pResNext)
-        {
-            ppszLdapRetQuery = ldap_get_values(pLd, pResNext, ppszAttributes[iAttr]);
-            if (ppszLdapRetQuery)
-            {
-                dwValueCount = ldap_count_values(ppszLdapRetQuery);
-                if (dwValueCount > 0)
-                {
-                    dwAttrCount += dwValueCount;
-                }
-            }
-
-            pResNext = ldap_next_message(pLd, pResNext);
-        }
-    }
-    *pdwAttrCount = dwAttrCount;
-    *pdwNumEntries = iNumEntries;
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-#endif /* if 0 Not used */
-    
-
 static DWORD
 VmdirDbCountEntriesAndAttributes(
     LDAP *pLd,
@@ -132,12 +68,12 @@ VmdirDbCountEntriesAndAttributes(
     DWORD iAttr = 0;
     DWORD iValue = 0;
     DWORD iCount = 0;
-    PSTR *ppszLdapRetQuery = NULL;
     DWORD dwNumEntries = 0;
     DWORD dwNumMessages = 0;
     DWORD dwAttributeCount = 0;
     PDWORD pdwAttributes = NULL;
     LDAPMessage *pResNext = NULL;
+    struct berval **berLdapRetQuery = NULL;
 
     if (!pLd || !pRes || !ppszAttributes || !ppdwAttributes)
     {
@@ -164,10 +100,10 @@ VmdirDbCountEntriesAndAttributes(
     {
         for (iAttr = 0, dwAttributeCount = 0; ppszAttributes[iAttr]; iAttr++)
         {
-            ppszLdapRetQuery = ldap_get_values(pLd, pResNext, ppszAttributes[iAttr]);
-            if (ppszLdapRetQuery)
+            berLdapRetQuery = ldap_get_values_len(pLd, pResNext, ppszAttributes[iAttr]);
+            if (berLdapRetQuery)
             {
-                iValue = ldap_count_values(ppszLdapRetQuery);
+                iValue = ldap_count_values_len(berLdapRetQuery);
                 if (iValue > 0)
                 {
                     dwAttributeCount += iValue;
@@ -184,6 +120,10 @@ VmdirDbCountEntriesAndAttributes(
     *pdwNumEntries = dwNumEntries;
 
 cleanup:
+    if (berLdapRetQuery)
+    {
+        ldap_value_free_len(berLdapRetQuery);
+    }
     return dwError;
 
 error:
@@ -249,11 +189,11 @@ VmdirDbAllocateEntriesAndAttributesValues(
     LDAP *pLd,
     LDAPMessage *pRes,
     PSTR *ppszAttributes,
+    PDWORD pdwAttributeTypes,
     PDIRECTORY_ENTRY pDirectoryEntries)
 {
     DWORD dwError = 0;
     LDAPMessage *pResNext = NULL;
-    PSTR *ppszLdapRetQuery = NULL;
     DWORD iEntry = 0;
     DWORD iAttr = 0;
     DWORD iAttrIndex = 0;
@@ -261,6 +201,8 @@ VmdirDbAllocateEntriesAndAttributesValues(
     PWSTR pwszName = NULL;
     PWSTR pwszValue = NULL;
     NTSTATUS ntStatus = 0;
+    struct berval **berLdapRetQuery = NULL;
+    POCTET_STRING pBinaryData = NULL;
 
     if (!pLd || !pRes || !ppszAttributes || !pDirectoryEntries)
     {
@@ -273,8 +215,8 @@ VmdirDbAllocateEntriesAndAttributesValues(
     {
         for (iAttr = 0; ppszAttributes[iAttr]; iAttr++)
         {
-            ppszLdapRetQuery = ldap_get_values(pLd, pResNext, ppszAttributes[iAttr]);
-            if (!ppszLdapRetQuery)
+            berLdapRetQuery = ldap_get_values_len(pLd, pResNext, ppszAttributes[iAttr]);
+            if (!berLdapRetQuery)
             {
                 continue; /* for (iAttr) loop */
             }
@@ -285,17 +227,41 @@ VmdirDbAllocateEntriesAndAttributesValues(
             BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
             pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pwszName = pwszName;
 
-            for (i=0; ppszLdapRetQuery[i]; i++)
+            for (i=0; berLdapRetQuery[i]; i++)
             {
-                ntStatus = LwRtlWC16StringAllocateFromCString(
-                               &pwszValue,
-                               ppszLdapRetQuery[i]);
-                BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+                /* TBD:Adam-Deal with binary data types */
+                if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    ntStatus = LwRtlWC16StringAllocateFromCString(
+                                   &pwszValue,
+                                   berLdapRetQuery[i]->bv_val);
+                    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].data.pwszStringValue =
+                        pwszValue;
+                }
+                else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+                {
+                    dwError = LwAllocateMemory(sizeof(OCTET_STRING),
+                                               (VOID*) &pBinaryData);
+                    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+                    dwError = LwAllocateMemory(
+                                  sizeof(UCHAR) * berLdapRetQuery[i]->bv_len,
+                                  (VOID*) &pBinaryData->pBytes);
+                    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+                    memcpy(pBinaryData->pBytes,
+                           berLdapRetQuery[i]->bv_val,
+                           berLdapRetQuery[i]->bv_len);
+                    pBinaryData->ulNumBytes = berLdapRetQuery[i]->bv_len;
+
+                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].data.pOctetString =
+                        pBinaryData;
+                }
 
                 /* DIRECTORY_ATTR_TYPE_UNICODE_STRING ~ PWSTR */
-                pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].Type = 
-                    DIRECTORY_ATTR_TYPE_UNICODE_STRING; 
-                pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].data.pwszStringValue = pwszValue;
+                pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].Type = pdwAttributeTypes[iAttr];
                 iAttrIndex++;
             }
         }
@@ -310,35 +276,6 @@ error:
     goto cleanup;
 }
 
-#if 0
-static DWORD
-VmDirCountAllAttributes(
-    LDAP *pLd,
-    LDAPMessage *pRes,
-    PDWORD pNumAttributes)
-{
-    DWORD dwError = 0;
-    LDAPMessage *pResNext = NULL;
-    PSTR pszAttr = NULL;
-    BerElement *berPtr = NULL;
-    DWORD numAttributes = 0;
-
-    pResNext = ldap_first_message(pLd, pRes);
-    while (pResNext)
-    {
-        pszAttr = ldap_first_attribute(pLd, pResNext, &berPtr);
-        while (pszAttr)
-        {
-            numAttributes++;
-            pszAttr = ldap_next_attribute(pLd, pResNext, berPtr);
-            if (!pszAttr) pszAttr = NULL;
-        }
-        pResNext = ldap_next_message(pLd, pResNext);
-    }
-    *pNumAttributes = numAttributes;
-    return dwError;
-}
-#endif
 
 DWORD
 VmdirDbSearchObject(
@@ -370,10 +307,8 @@ VmdirDbSearchObject(
     DWORD dwNumEntries = 0;
     PVMDIRDB_LDAPQUERY_MAP_ENTRY pQueryMapEntry = NULL;
     VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform = NULL;
-#if 0 /* not used */
-DWORD dwNumAttributes = 0;
-#endif
     PDWORD pdwAttributesCount = NULL;
+    PDWORD pdwLdapAttributeTypes = NULL;
 
     if (!hDirectory || !wszAttributes || !ppDirectoryEntries || !pdwNumEntries)
     {
@@ -394,29 +329,6 @@ DWORD dwNumAttributes = 0;
         }
     }
 
-#if 1
-
-#if 0 /* TBD:Adam-Reference */
-
-typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
-{
-    PSTR pszSqlQuery;
-    PSTR pszLdapQuery;
-    PSTR pszLdapBase;
-    PSTR *ppszLdapAttributes; /* optional */
-    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform; /* optional */
-    ULONG uScope;
-} VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
-
-typedef struct _VMDIRDB_LDAPQUERY_MAP
-{
-    DWORD dwNumEntries;
-    DWORD dwMaxEntries;
-    VMDIRDB_LDAPQUERY_MAP_ENTRY queryMap[];
-} VMDIRDB_LDAPQUERY_MAP, *PVMDIRDB_LDAPQUERY_MAP;
-
-    PSTR ppszBase[] = {"cn=builtin,dc=lightwave,dc=local", 0};
-#endif /* if 0 */
 
     dwError = VmDirFindLdapQueryMapEntry(
                   pszFilter,
@@ -428,26 +340,28 @@ typedef struct _VMDIRDB_LDAPQUERY_MAP
     ppszLdapAttributes = pQueryMapEntry->ppszLdapAttributes;
     pfnTransform = pQueryMapEntry->pfnTransform;
 
-#else
-    /* Map input SQL query filter to LDAP search filter */
-    dwError = VmDirGetFilterLdapQueryMap(
-                  pszFilter,
-                  &pszLdapBase,
-                  &pszLdapFilter,
-                  &uLdapScope);
-    BAIL_ON_VMDIRDB_ERROR(dwError);
-    ulAttributesOnly = uLdapScope;
-#endif
-
     if (!ppszLdapAttributes)
     {
-        /* Map ppszLdapAttributes to LDAP attributes array */
-        dwError = VmdirFindLdapAttributeList(
+
+        /* Map SQL wszAttributes to LDAP attributes array */
+        dwError = VmdirFindLdapPwszAttributeList(
                       wszAttributes,
-                      &ppszLdapAttributesAlloc);
+                      &ppszLdapAttributesAlloc,
+                      &pdwLdapAttributeTypes);
         BAIL_ON_VMDIRDB_ERROR(dwError);
         ppszLdapAttributes = ppszLdapAttributesAlloc;
     }
+#if 1 /* TBD:Adam-"entryDn" search failure in this case is causing problems */
+    else
+    {
+        /* Map overrite ppszLdapAttributes to LDAP attributes array */
+        dwError = VmdirFindLdapAttributeList(
+                      ppszLdapAttributes,
+                      &ppszLdapAttributesAlloc,
+                      &pdwLdapAttributeTypes);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+#endif
 
     ldap_err = ldap_search_ext_s(pLd,
                                  pszLdapBase,
@@ -486,6 +400,7 @@ typedef struct _VMDIRDB_LDAPQUERY_MAP
                   pLd,
                   pRes,
                   ppszLdapAttributes,
+                  pdwLdapAttributeTypes,
                   pDirectoryEntries);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 

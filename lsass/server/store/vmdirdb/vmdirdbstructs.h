@@ -94,6 +94,7 @@ typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
     PSTR pszLdapQuery;
     PSTR pszLdapBase;
     PSTR *ppszLdapAttributes; /* optional */
+    PDWORD pdwLdapAttributesType; /* optional */
  
     /* Optional: Construct ldap filter helper */
     VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC pfnLdapFilterPrintf;  
@@ -114,6 +115,7 @@ typedef struct _VMDIRDB_LDAPATTR_MAP_ENTRY
 {
     PWSTR pwszAttribute;
     PSTR pszAttribute;
+    DWORD dwType;
 } VMDIRDB_LDAPATTR_MAP_ENTRY, *PVMDIRDB_LDAPATTR_MAP_ENTRY;
 
 typedef struct _VMDIRDB_LDAPATTR_MAP

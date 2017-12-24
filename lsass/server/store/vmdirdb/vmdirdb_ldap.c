@@ -1050,7 +1050,13 @@ typedef struct _VMDIRDB_LDAPQUERY_MAP_ENTRY
     PSTR pszLdapQuery;
     PSTR pszLdapBase;
     PSTR *ppszLdapAttributes; /* optional */
-    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform; /* optional */
+    PDWORD *pdwLdapAttributesType; /* optional */
+
+    /* Optional: Construct ldap filter helper */
+    VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC pfnLdapFilterPrintf;
+
+    /* Optional: DIRECTORY_ENTRY constructor helper function */
+    VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform;
     ULONG uScope;
 } VMDIRDB_LDAPQUERY_MAP_ENTRY, *PVMDIRDB_LDAPQUERY_MAP_ENTRY;
 
@@ -1072,6 +1078,7 @@ VmDirAllocLdapQueryMapEntry(
     PSTR pszLdapFilter,
     ULONG uScope,
     PSTR *ppszLdapAttributes, /* optional */
+    PDWORD pdwLdapAttributesType, /* optional */
     VMDIR_LDAPQUERY_FILTER_FORMAT_FUNC pfnLdapFilterPrintf,  /* optional */
     VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC pfnTransform, /* optional */
     DWORD dwIndex,
@@ -1082,6 +1089,7 @@ VmDirAllocLdapQueryMapEntry(
     PSTR pszBaseDn = NULL;
     PSTR pszBaseDnAlloc = NULL;
     PSTR *ppszTmpLdapAttributes = NULL;
+    PDWORD pdwTmpLdapAttributesType = NULL;
 
     if (!pLdapMap || dwIndex > pLdapMap->dwMaxEntries)
     {
@@ -1127,14 +1135,19 @@ VmDirAllocLdapQueryMapEntry(
         dwError = LwAllocateMemory(sizeof(PSTR) * (i + 1),
                       (VOID *) &ppszTmpLdapAttributes);
         BAIL_ON_VMDIRDB_ERROR(dwError);
+        dwError = LwAllocateMemory(sizeof(DWORD) * (i + 1),
+                      (VOID *) &pdwTmpLdapAttributesType);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+
         for (i=0; ppszLdapAttributes[i]; i++)
         {
             dwError = LwAllocateString(ppszLdapAttributes[i],
                           (VOID *) &ppszTmpLdapAttributes[i]);
             BAIL_ON_VMDIRDB_ERROR(dwError);
-            
+            pdwTmpLdapAttributesType[i] = pdwLdapAttributesType[i];
         }
         pLdapMap->queryMap[dwIndex].ppszLdapAttributes = ppszTmpLdapAttributes;
+        pLdapMap->queryMap[dwIndex].pdwLdapAttributesType = pdwTmpLdapAttributesType;
     }
 
 cleanup:
@@ -1252,6 +1265,7 @@ pfnTransformEntryDnToCN(
     PWSTR pwszDomainName = NULL;
     NTSTATUS ntStatus = 0; 
     WCHAR wszEntryDn[] = {'e','n','t','r','y','D','n',0};
+    DWORD i = 0;
 
 
     /* Memory has been allocated for this transform by the caller */
@@ -1292,13 +1306,20 @@ pfnTransformEntryDnToCN(
     ntStatus = LwRtlWC16StringAllocateFromCString(&pwszDomainName, pszDomainName);
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
-    /* Replace output DIRECTORY_ENTRY values with the converted form */
-    LW_SAFE_FREE_MEMORY(out[0].pAttributes[0].pwszName);
-    out[0].pAttributes[0].pwszName = pwszCommonName;
+    for (i=0; i<out[0].ulNumAttributes; i++)
+    {
+        if (wc16scmp(out[0].pAttributes[i].pwszName, wszEntryDn))
+        {
+            /* Replace output DIRECTORY_ENTRY values with the converted form */
+            LW_SAFE_FREE_MEMORY(out[0].pAttributes[i].pwszName);
+            out[0].pAttributes[i].pwszName = pwszCommonName;
 
-    LW_SAFE_FREE_MEMORY(out[0].pAttributes[0].pValues[0].data.pwszStringValue);
-    out[0].pAttributes[0].pValues[0].data.pwszStringValue = pwszDomainName;
-    out[0].pAttributes[0].pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            LW_SAFE_FREE_MEMORY(out[0].pAttributes[i].pValues[0].data.pwszStringValue);
+            out[0].pAttributes[i].pValues[0].data.pwszStringValue = pwszDomainName;
+            out[0].pAttributes[i].pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            break;
+        }
+    }
 
 cleanup:
     return dwError;
@@ -1350,6 +1371,7 @@ VmDirAllocLdapQueryMap(
                   NULL,
                   NULL,
                   NULL,
+                  NULL,
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1362,6 +1384,7 @@ VmDirAllocLdapQueryMap(
     /* Domain Object: cn or objectSid query */
 {
     PSTR pszOptionalAttributes[] = {"cn", "entryDn", 0};
+    DWORD dwOptionalAttributesType[] = { 6, 6, 0 };
     dwError = VmDirAllocLdapQueryMapEntry(
                   "ObjectClass = 1",
                   NULL,                    /* SearchBasePrefix (optional) */
@@ -1369,6 +1392,7 @@ VmDirAllocLdapQueryMap(
                   "(objectclass=dcObject)",
                   LDAP_SCOPE_SUBTREE,
                   pszOptionalAttributes,
+                  dwOptionalAttributesType,
                   NULL,
                   NULL,
                   i++,
@@ -1382,6 +1406,7 @@ VmDirAllocLdapQueryMap(
                   "(objectclass=dcObject)",
                   LDAP_SCOPE_SUBTREE,
                   pszOptionalAttributes,
+                  dwOptionalAttributesType,
                   NULL, /* filter transform callback */
                   pfnTransformEntryDnToCN,
                   i++,
@@ -1396,6 +1421,7 @@ VmDirAllocLdapQueryMap(
                   "(&(objectclass=dcObject)(entryDn=%s))",
                   LDAP_SCOPE_SUBTREE,
                   NULL,  /* attributes */
+                  NULL, /* Attribute types */
                   pfnSqlToLdapEntryDnXform,
                   NULL,/* DIRECTORY_ENTRY transform callback */
                   i++,
@@ -1410,6 +1436,7 @@ VmDirAllocLdapQueryMap(
                   "(cn=*)",
                   LDAP_SCOPE_SUBTREE,
                   NULL,
+                  NULL, /* Attribute types */
                   NULL,
                   NULL,
                   i++,
@@ -1423,8 +1450,13 @@ VmDirAllocLdapQueryMap(
                   "(&(objectclass=dcObject)(objectSid=%s))",
                   LDAP_SCOPE_SUBTREE,
                   NULL, /* override attributes */
+                  NULL, /* Attribute types */
                   pfnSqlToLdapObjectSidXform, /* ldap transform callback */
-                  NULL, /* directory entry transform callback */
+#if 1
+                  NULL,
+#else
+                  pfnTransformEntryDnToCN, /* TBD:Adam-zzz directory entry transform callback */
+#endif
                   i++,
                   pLdapMap);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1524,7 +1556,9 @@ typedef struct _VMDIRDB_LDAPATTR_MAP_ENTRY
 {
     PWSTR pwszAttribute;
     PSTR pszAttribute;
+    DWORD dwType;
 } VMDIRDB_LDAPATTR_MAP_ENTRY, *PVMDIRDB_LDAPATTR_MAP_ENTRY;
+
 
 typedef struct _VMDIRDB_LDAPATTR_MAP
 {
@@ -1604,10 +1638,49 @@ VmDirAllocLdapAttributeMap(
 //    WCHAR wszVMDIR_DB_DIR_ATTR_LOCKOUT_WINDOW[] = VMDIR_DB_DIR_ATTR_LOCKOUT_WINDOW;
 //    WCHAR wszVMDIR_DB_DIR_ATTR_LOCKOUT_THRESHOLD[] = VMDIR_DB_DIR_ATTR_LOCKOUT_THRESHOLD;
 
+
+#if 0
+#define DIRECTORY_ATTR_TYPE_BOOLEAN                 1
+#define DIRECTORY_ATTR_TYPE_INTEGER                 2
+#define DIRECTORY_ATTR_TYPE_LARGE_INTEGER           3
+#define DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR  4
+#define DIRECTORY_ATTR_TYPE_OCTET_STREAM            5
+#define DIRECTORY_ATTR_TYPE_UNICODE_STRING          6
+#define DIRECTORY_ATTR_TYPE_ANSI_STRING             7
+
+#endif
+    DWORD dwAttributeTypes[] = {
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING, /* 10 */
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING, /* 20 */
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+    };
+
+
+        
+
     /* The order of szAttributes and wszAttributes MUST be the same!!! */
     CHAR *szAttributes[] = {
         "cn",
-        "dn",
+        "entryDn", /* TBD:Adam-Kyoung says entryDn is real; dn is abstract */
         "sAMAccountName",
         "nTSecurityDescriptor",
         "objectClass",
@@ -1615,7 +1688,7 @@ VmDirAllocLdapAttributeMap(
         "objectSid",
         "uid",
         "member",
-        "parentid",
+        "parentid",                         /* 10 */
         "userPrincipalName",
         "description",
         "comment",
@@ -1625,7 +1698,7 @@ VmDirAllocLdapAttributeMap(
         "pwdLastSet",
         "lastLogonTimestamp",
         "vmwPasswordMinLength",
-        "vmwPasswordProhibitedPreviousCount",
+        "vmwPasswordProhibitedPreviousCount", /* 20 */
         "vmwPasswordSpecialChars",
         "vmwRidSequenceNumber",
     };
@@ -1730,7 +1803,7 @@ VmDirAllocLdapAttributeMap(
         dwError = LwAllocateString(szAttributes[i],
                                    (VOID *) &pAttrMap->attrMap[i].pszAttribute);
         BAIL_ON_VMDIRDB_ERROR(dwError);
-
+        pAttrMap->attrMap[i].dwType = dwAttributeTypes[i];
     }
     pAttrMap->dwNumEntries = i;
     pAttrMap->dwMaxEntries = i;
@@ -1986,16 +2059,94 @@ error:
  * Map PWSTR array of "SQL" attributes to PSTR array of "LDAP" 
  * attribute equivalents.
  */
+#if 0
+typedef struct _VMDIRDB_LDAPATTR_MAP_ENTRY
+{
+    PWSTR pwszAttribute;
+    PSTR pszAttribute;
+    DWORD dwType;
+} VMDIRDB_LDAPATTR_MAP_ENTRY, *PVMDIRDB_LDAPATTR_MAP_ENTRY;
+
+#endif
 DWORD
 VmdirFindLdapAttributeList(
-    PWSTR *ppwszAttributes,
-    PSTR **pppszLdapAttributes)
+    PSTR *ppszAttributes,
+    PSTR **pppszLdapAttributes,
+    PDWORD *ppdwLdapAttributeTypes)
 {
     DWORD dwError = 0;
-    PSTR *ppszLdapAttributes = NULL;
     DWORD i = 0;
     DWORD j = 0;
     DWORD iFound = 0;
+    PSTR *ppszLdapAttributes = NULL;
+    PDWORD pdwLdapAttributeTypes = NULL;
+    
+    PVMDIRDB_LDAPATTR_MAP pAttrMap = NULL;
+
+    if (!ppszAttributes || !pppszLdapAttributes || !gVmdirGlobals.pLdapAttrMap)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+    pAttrMap = gVmdirGlobals.pLdapAttrMap;
+
+    for (i=0; ppszAttributes[i]; i++)
+        ;
+
+    dwError = LwAllocateMemory((i+1) * sizeof(PSTR),
+                               (VOID *) &ppszLdapAttributes);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = LwAllocateMemory((i+1) * sizeof(DWORD),
+                               (VOID *) &pdwLdapAttributeTypes);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+    
+    for (i=0; ppszAttributes[i]; i++)
+    {
+        for (j=0; j < pAttrMap->dwNumEntries; j++)
+        {
+            if (LwRtlCStringIsEqual(ppszAttributes[i],
+                                       (pAttrMap->attrMap[j].pszAttribute),
+                                        FALSE))
+            {
+                dwError = LwAllocateString(
+                              pAttrMap->attrMap[j].pszAttribute,
+                              (VOID *) &ppszLdapAttributes[iFound]);
+                BAIL_ON_VMDIRDB_ERROR(dwError);
+                pdwLdapAttributeTypes[iFound] = pAttrMap->attrMap[j].dwType;
+                iFound++;
+                break;
+            }
+        }
+    }
+    
+    *pppszLdapAttributes = ppszLdapAttributes;
+    *ppdwLdapAttributeTypes = pdwLdapAttributeTypes;
+    return dwError;
+
+cleanup:
+    return dwError;
+
+error:
+#if 0 /* TBD: Write cleanup function for pRetAttrMapEntries */
+    VmdirFreeLdapAttributeList(&ppszLdapAttributes);
+#endif
+    goto cleanup;
+}
+
+DWORD
+VmdirFindLdapPwszAttributeList(
+    PWSTR *ppwszAttributes,
+    PSTR **pppszLdapAttributes,
+    PDWORD *ppdwLdapAttributeTypes)
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    DWORD j = 0;
+    DWORD iFound = 0;
+    PSTR *ppszLdapAttributes = NULL;
+    PDWORD pdwLdapAttributeTypes = NULL;
+    
     PVMDIRDB_LDAPATTR_MAP pAttrMap = NULL;
 
     if (!ppwszAttributes || !pppszLdapAttributes || !gVmdirGlobals.pLdapAttrMap)
@@ -2011,6 +2162,10 @@ VmdirFindLdapAttributeList(
     dwError = LwAllocateMemory((i+1) * sizeof(PSTR),
                                (VOID *) &ppszLdapAttributes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = LwAllocateMemory((i+1) * sizeof(DWORD),
+                               (VOID *) &pdwLdapAttributeTypes);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
     
     for (i=0; ppwszAttributes[i]; i++)
     {
@@ -2024,18 +2179,24 @@ VmdirFindLdapAttributeList(
                               pAttrMap->attrMap[j].pszAttribute,
                               (VOID *) &ppszLdapAttributes[iFound]);
                 BAIL_ON_VMDIRDB_ERROR(dwError);
+                pdwLdapAttributeTypes[iFound] = pAttrMap->attrMap[j].dwType;
                 iFound++;
+                break;
             }
         }
     }
+    
     *pppszLdapAttributes = ppszLdapAttributes;
+    *ppdwLdapAttributeTypes = pdwLdapAttributeTypes;
     return dwError;
 
 cleanup:
     return dwError;
 
 error:
+#if 0 /* TBD: Write cleanup function for pRetAttrMapEntries */
     VmdirFreeLdapAttributeList(&ppszLdapAttributes);
+#endif
     goto cleanup;
 }
 

@@ -54,8 +54,7 @@ error:
 DWORD
 VmDirAttributesFromWc16Attributes(
     PWSTR *wszAttributes,
-    PSTR **pppszAttributes,
-    DWORD *pdwAttrCount)
+    PSTR **pppszAttributes)
 {
     NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
@@ -88,10 +87,11 @@ VmDirAttributesFromWc16Attributes(
     }
 
     *pppszAttributes = ppszRetAttributes;
-    *pdwAttrCount = dwAttrCount;
-    ppszRetAttributes = NULL;
 
 cleanup:
+    return dwError;
+
+error:
     if (ppszRetAttributes)
     {
         for (i=0; ppszRetAttributes[i]; i++)
@@ -100,9 +100,6 @@ cleanup:
         }
         LW_SAFE_FREE_MEMORY(ppszRetAttributes);
     }
-    return dwError;
-
-error:
     goto cleanup;
 }
 
@@ -139,8 +136,7 @@ error:
 DWORD
 VmDirAttributesWc16FromCAttributes(
     PSTR *pszAttributes,
-    PWSTR **pppwszAttributes,
-    DWORD *pdwAttrCount)
+    PWSTR **pppwszAttributes)
 {
     NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
@@ -172,7 +168,6 @@ VmDirAttributesWc16FromCAttributes(
     }
 
     *pppwszAttributes = ppwszRetAttributes;
-    *pdwAttrCount = dwAttrCount;
     ppwszRetAttributes = NULL;
 
 cleanup:
