@@ -16,8 +16,7 @@ make()
         vmdirdbmodify.c \
         vmdirdbopen.c \
         vmdirdbsearch.c \
-        vmdirdbuser.c \
-        vmdiropen.c"
+        vmdirdbuser.c"
 
     mk_dlo \
 	DLO=libvmdirdb \
