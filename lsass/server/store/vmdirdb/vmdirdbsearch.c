@@ -86,7 +86,8 @@ VmdirDbCountEntriesAndAttributes(
     dwNumMessages = ldap_count_messages(pLd, pRes);
     if (dwNumEntries <= 0 || dwNumMessages <= 0)
     {
-        dwError = ERROR_INVALID_PARAMETER;
+        /* Return this for an empty return LDAP search */
+        dwError = LW_STATUS_OBJECT_NAME_NOT_FOUND;
         BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
@@ -352,7 +353,6 @@ VmdirDbSearchObject(
         BAIL_ON_VMDIRDB_ERROR(dwError);
         ppszLdapAttributes = ppszLdapAttributesAlloc;
     }
-#if 1 /* TBD:Adam-"entryDn" search failure in this case is causing problems */
     else
     {
         /* Map overrite ppszLdapAttributes to LDAP attributes array */
@@ -362,7 +362,6 @@ VmdirDbSearchObject(
                       &pdwLdapAttributeTypes);
         BAIL_ON_VMDIRDB_ERROR(dwError);
     }
-#endif
 
     ldap_err = ldap_search_ext_s(pLd,
                                  pszLdapBase,
@@ -388,6 +387,12 @@ VmdirDbSearchObject(
                   ppszLdapAttributes,
                   &dwNumEntries,   /* Number of directory entries */
                   &pdwAttributesCount);
+    if (dwError == LW_STATUS_OBJECT_NAME_NOT_FOUND)
+    {
+        /* Bail here with 0 return values and an empty pEntry value */
+        dwError = 0;
+        goto cleanup;
+    }
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
     dwError = VmdirDbAllocateEntriesAndAttributes(
@@ -407,7 +412,6 @@ VmdirDbSearchObject(
 
     if (pfnTransform)
     {
-#if 1
         dwError = pfnTransform(
                       dwNumEntries,
                       pDirectoryEntries,
@@ -417,18 +421,6 @@ VmdirDbSearchObject(
         /* TBD:Adam-Cleanup the entire pDirectoryEntries structure on some failure */
         LW_SAFE_FREE_MEMORY(pDirectoryEntries);
         pDirectoryEntries = pTransformDirectoryEntries;
-#else
-        dwError = VmdirDbAllocateEntriesAndAttributes(
-                      dwNumEntries,
-                      pdwAttributesCount,
-                      &pTransformDirectoryEntries);
-        BAIL_ON_VMDIRDB_ERROR(dwError);
-
-        /* TBD:Adam-Cleanup the entire pDirectoryEntries structure on some failure */
-        LW_SAFE_FREE_MEMORY(pDirectoryEntries);
-        pDirectoryEntries = pTransformDirectoryEntries;
-#endif
-
     }
 
     *ppDirectoryEntries = pDirectoryEntries;
