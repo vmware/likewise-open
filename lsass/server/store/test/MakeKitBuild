@@ -1,0 +1,9 @@
+make()
+{
+    mk_program \
+        PROGRAM="test_open" \
+        SOURCES="test_open.c" \
+        INCLUDEDIRS=". ../include ../../include ../../../include" \
+        HEADERDEPS="includes.h" \
+        LIBDEPS="uuid lwbase crypto dsapi"
+}
