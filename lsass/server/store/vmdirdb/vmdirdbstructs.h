@@ -72,10 +72,9 @@ typedef struct _VMDIR_DB_ATTR_LOOKUP
 } VMDIR_DB_ATTR_LOOKUP, *PVMDIR_DB_ATTR_LOOKUP;
 
 typedef DWORD (*VMDIRDB_LDAPQUERY_MAP_ENTRY_TRANSFORM_FUNC)(
-    PSTR *ppszLdapAttributes,
     DWORD dwNumEntries,
     PDIRECTORY_ENTRY in,
-    PDIRECTORY_ENTRY out
+    PDIRECTORY_ENTRY *out /* Allocated by transform function */
     );
 
 /* Printf-like function. Data parsed from the SQL filter
