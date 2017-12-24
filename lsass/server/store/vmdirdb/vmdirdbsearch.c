@@ -203,6 +203,8 @@ VmdirDbAllocateEntriesAndAttributesValues(
     PWSTR pwszValue = NULL;
     NTSTATUS ntStatus = 0;
     struct berval **berLdapRetQuery = NULL;
+    ULONG ulValue = 0;
+    LONG64 llValue = 0;
     POCTET_STRING pBinaryData = NULL;
 
     if (!pLd || !pRes || !ppszAttributes || !pDirectoryEntries)
@@ -222,14 +224,14 @@ VmdirDbAllocateEntriesAndAttributesValues(
                 continue; /* for (iAttr) loop */
             }
 
-            ntStatus = LwRtlWC16StringAllocateFromCString(
-                           &pwszName,
-                           ppszAttributes[iAttr]);
-            BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
-            pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pwszName = pwszName;
-
             for (i=0; berLdapRetQuery[i]; i++)
             {
+                ntStatus = LwRtlWC16StringAllocateFromCString(
+                               &pwszName,
+                               ppszAttributes[iAttr]);
+                BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+                pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pwszName = pwszName;
+
                 if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     ntStatus = LwRtlWC16StringAllocateFromCString(
@@ -237,8 +239,22 @@ VmdirDbAllocateEntriesAndAttributesValues(
                                    berLdapRetQuery[i]->bv_val);
                     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
-                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].data.pwszStringValue =
+                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].data.pwszStringValue =
                         pwszValue;
+                }
+                else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_INTEGER)
+                {
+                    memcpy(&ulValue,
+                           berLdapRetQuery[i]->bv_val,
+                           berLdapRetQuery[i]->bv_len);
+                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].data.ulValue = ulValue;
+                }
+                else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_LARGE_INTEGER)
+                {
+                    memcpy(&llValue,
+                           berLdapRetQuery[i]->bv_val,
+                           berLdapRetQuery[i]->bv_len);
+                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].data.llValue = llValue;
                 }
                 else if (pdwAttributeTypes[iAttr] == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
                 {
@@ -257,12 +273,12 @@ VmdirDbAllocateEntriesAndAttributesValues(
                            berLdapRetQuery[i]->bv_len);
                     pBinaryData->ulNumBytes = berLdapRetQuery[i]->bv_len;
 
-                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].data.pOctetString =
+                    pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].data.pOctetString =
                         pBinaryData;
                 }
 
                 /* DIRECTORY_ATTR_TYPE_UNICODE_STRING ~ PWSTR */
-                pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[i].Type = pdwAttributeTypes[iAttr];
+                pDirectoryEntries[iEntry].pAttributes[iAttrIndex].pValues[0].Type = pdwAttributeTypes[iAttr];
                 iAttrIndex++;
             }
         }
@@ -331,20 +347,18 @@ VmdirDbSearchObject(
         }
     }
 
-
     dwError = VmDirFindLdapQueryMapEntry(
                   pszFilter,
                   &pQueryMapEntry);
     BAIL_ON_VMDIRDB_ERROR(dwError);
-    pszLdapBase = pQueryMapEntry->pszLdapBase;
-    pszLdapFilter = pQueryMapEntry->pszLdapQuery;
-    uLdapScope = pQueryMapEntry->uScope;
+    pszLdapBase        = pQueryMapEntry->pszLdapBase;
+    pszLdapFilter      = pQueryMapEntry->pszLdapQuery;
+    uLdapScope         = pQueryMapEntry->uScope;
     ppszLdapAttributes = pQueryMapEntry->ppszLdapAttributes;
-    pfnTransform = pQueryMapEntry->pfnTransform;
+    pfnTransform       = pQueryMapEntry->pfnTransform;
 
     if (!ppszLdapAttributes)
     {
-
         /* Map SQL wszAttributes to LDAP attributes array */
         dwError = VmdirFindLdapPwszAttributeList(
                       wszAttributes,
@@ -380,7 +394,6 @@ VmdirDbSearchObject(
         BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
-    /* TBD:Adam-Loop through each entry and allocate the number of attribute structures */
     dwError = VmdirDbCountEntriesAndAttributes(
                   pLd,
                   pRes,
@@ -418,7 +431,7 @@ VmdirDbSearchObject(
                       &pTransformDirectoryEntries);
         BAIL_ON_VMDIRDB_ERROR(dwError);
 
-        /* TBD:Adam-Cleanup the entire pDirectoryEntries structure on some failure */
+        /* TBD:Adam-Cleanup the entire pDirectoryEntries structure; pTransformDirectoryEntries is a copy */ 
         LW_SAFE_FREE_MEMORY(pDirectoryEntries);
         pDirectoryEntries = pTransformDirectoryEntries;
     }
