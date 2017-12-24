@@ -78,6 +78,7 @@ DirectoryOpen(
     InterlockedIncrement(&pProvider->refCount);
 
     pContext->pProvider = pProvider;
+    pProvider = NULL;
 
     *phDirectory = (HANDLE)pContext;
 
