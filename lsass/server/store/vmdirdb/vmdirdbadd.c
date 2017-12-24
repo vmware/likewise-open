@@ -88,41 +88,6 @@ VmdirDbMapDirectoryModToLdapModArray(
                                (VOID *) &pLdapAttributes);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-#if 0
-typedef struct _DIRECTORY_MOD
-{
-    DIR_MOD_FLAGS    ulOperationFlags;
-    PWSTR            pwszAttrName;
-    ULONG            ulNumValues;
-    PATTRIBUTE_VALUE pAttrValues;
-
-} DIRECTORY_MOD, *PDIRECTORY_MOD;
-
-/* for modifications */
-typedef struct ldapmod {
-        int             mod_op;
-
-#define LDAP_MOD_OP                     (0x0007)
-#define LDAP_MOD_ADD            (0x0000)
-#define LDAP_MOD_DELETE         (0x0001)
-#define LDAP_MOD_REPLACE        (0x0002)
-#define LDAP_MOD_INCREMENT      (0x0003) /* OpenLDAP extension */
-#define LDAP_MOD_BVALUES        (0x0080)
-/* IMPORTANT: do not use code 0x1000 (or above),
- * it is used internally by the backends!
- * (see ldap/servers/slapd/slap.h)
- */
-
-        char            *mod_type;
-        union mod_vals_u {
-                char            **modv_strvals;
-                struct berval   **modv_bvals;
-        } mod_vals;
-#define mod_values      mod_vals.modv_strvals
-#define mod_bvalues     mod_vals.modv_bvals
-} LDAPMod;
-#endif /* if 0 */
-
     for (i=0; i<dwModCount; i++)
     {
         for (j=0; pwszAttributes[j]; j++)
@@ -274,7 +239,7 @@ VmdirDbAddObject(
 #endif
 
 {
-    PSTR valsComputer[] = {"computer", NULL};
+    PSTR valsComputer[] = {"computer", "samDomain", NULL};
     PSTR valsSamAccountName[] = {pszSamAccountName+3, NULL};
     PSTR valsCn[] = {pszObjectDn, NULL};
     PSTR valsDistinguishedName[] = {pszObjectDn, NULL};
@@ -287,15 +252,18 @@ VmdirDbAddObject(
     PSTR valsOsVersion[] = {" ", NULL};
     PSTR valsOsServicePack[] = {" ", NULL};
     PSTR valsAcctUpn[] = {pszAcctUpn, NULL};
+    PSTR valsMaxPwdAge[] = {"-36288000000000", NULL};
 
-    /* Used to add Machine Account to the "DCAdmins" group */
+    /* Used to add Machine Account to the "DCUsers" group */
     LDAPMod modgrp[] = {
                          {LDAP_MOD_ADD, ATTR_NAME_MEMBER, {valsDistinguishedName} },
                          { 0, 0, {0} },
                        };
+
     LDAPMod *ldapMods[] = { &modgrp[0],
                             NULL,
                           };
+
 
     LDAPMod mod[] = {
               /* 0  */   { LDAP_MOD_ADD, ATTR_OBJECT_CLASS, {valsComputer} },
@@ -311,6 +279,7 @@ VmdirDbAddObject(
               /* 10 */   { LDAP_MOD_ADD, ATTR_OS_VERSION, {valsOsVersion} },
                          { LDAP_MOD_ADD, ATTR_OS_SERVICE_PACK, {valsOsServicePack} },
                          { LDAP_MOD_ADD, ATTR_KRB_UPN, {valsAcctUpn} },
+                         { LDAP_MOD_ADD, ATTR_NAME_MAX_PASSWORD_AGE, {valsMaxPwdAge} },
 
 #if 0
 
@@ -322,7 +291,7 @@ VmdirDbAddObject(
                      };
     LDAPMod *ldapAttrs[] = { &mod[0],  &mod[1],  &mod[2],  &mod[3],  &mod[4],  &mod[5], 
                              &mod[6],  &mod[7],  &mod[8],  &mod[9],  &mod[10], &mod[11], 
-                             &mod[12],
+                             &mod[12], &mod[13],
                              NULL
                            };
 

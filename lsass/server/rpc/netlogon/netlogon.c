@@ -488,8 +488,21 @@ WINERROR srv_DsrEnumerateDomainTrusts(
 #if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
     PSTR pszNetBiosName = "photon-102-test";
     PSTR pszDnsDomainName = "lightwave.local";
+#if 1
+    /* TBD:Adam-Endian issues with this Guid. This is how wireshark parses below value */
+    PSTR pszDomainGuid = "2688443c-6c51-7a46-adb9-f95252680c8a";
+#else
     PSTR pszDomainGuid = "3c448826-516c-467a-adb9-f95252680c8a";
+#endif
+
     PSTR pszDomainSid = "S-1-5-21-100314066-221396614-742840509";
+
+    /* 0x1d */
+    DWORD dwTrustFlags = NETR_TRUST_FLAG_NATIVE  | NETR_TRUST_FLAG_PRIMARY |
+                         NETR_TRUST_FLAG_TREEROOT | NETR_TRUST_FLAG_IN_FOREST;
+    DWORD dwParentIndex = 0x00;
+    DWORD dwTrustType = 0x02;
+    DWORD dwTrustAttrs = 0x00;
 #endif
     PWSTR pwszNetBiosName = NULL;
     PWSTR pwszDnsDomainName = NULL;
@@ -543,10 +556,10 @@ WINERROR srv_DsrEnumerateDomainTrusts(
     pDomainTrustArray[0].dns_name = pwszDnsDomainName;
     pDomainTrustArray[0].sid = pDomainSid;
     memcpy(&pDomainTrustArray[0].guid, &domainGuid, sizeof(domainGuid));
-    pDomainTrustArray[0].trust_flags = NETR_TRUST_FLAG_PRIMARY; /* TBD:Adam & [in] trust_flags ?? */
-    pDomainTrustArray[0].parent_index = 0; /* ??? */ 
-    pDomainTrustArray[0].trust_type = 0; /* ??? */ 
-    pDomainTrustArray[0].trust_attrs = 0; /* ??? */ 
+    pDomainTrustArray[0].trust_flags = dwTrustFlags; /* TBD:Adam & [in] trust_flags ?? */
+    pDomainTrustArray[0].parent_index = dwParentIndex;
+    pDomainTrustArray[0].trust_type = dwTrustType;
+    pDomainTrustArray[0].trust_attrs = dwTrustAttrs; /* ??? */ 
  
     trusts->count = dwDomainTrustCount;
     trusts->array = pDomainTrustArray;
