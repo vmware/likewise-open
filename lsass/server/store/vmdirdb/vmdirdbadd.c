@@ -60,18 +60,50 @@ VmdirDbAddObject(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    LDAP *pLd = NULL;
+    int ldap_err = 0;
+    PSTR pszObjectDN = NULL;
+    LDAPMod *ldapAttrs[5] = {0};
 
-    if (dwError)
+
+    if (!hBindHandle || !pwszObjectDN)
     {
-        goto error;
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hBindHandle;
+    pLd = pContext->dirContext.pLd;
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszObjectDN, pwszObjectDN);
+    if (ntStatus)
+    {
+        dwError =  LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    /*
+     * Map DIRECTORY_MOD -> LDAPMod values
+     */
+
+    ldap_err = ldap_add_ext_s(pLd,
+                              pszObjectDN,
+                              ldapAttrs,
+                              NULL, 
+                              NULL);
+    if (ldap_err)
+    {
+        dwError = LwMapLdapErrorToLwError(ldap_err);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
     }
 
 cleanup:
-
+   LW_SAFE_FREE_STRING(pszObjectDN);
    return dwError;
 
 error:
-
     goto cleanup;
 }
 

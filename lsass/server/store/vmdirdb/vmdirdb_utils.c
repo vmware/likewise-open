@@ -51,4 +51,58 @@ error:
         goto cleanup;
 }
 
+DWORD
+VmDirAttributesFromWc16Attributes(
+    PWSTR *wszAttributes,
+    PSTR **pppszAttributes,
+    DWORD *pdwAttrCount)
+{
+    NTSTATUS ntStatus = 0;
+    DWORD dwError = 0;
+    DWORD i = 0;
+    DWORD dwAttrCount = 0;
+    PSTR pszAttr = NULL;
+    PSTR *ppszRetAttributes = NULL;
+
+    
+    /* Count the number of attributes to convert */
+    for (i=0; wszAttributes[i]; i++)
+        ;
+    dwAttrCount = i;
+
+    /* Allocate NULL-terminated return array  */
+    dwError = LwAllocateMemory((dwAttrCount+1) * sizeof(PSTR),
+                               (PVOID*)&ppszRetAttributes);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+
+    for (i=0; i<dwAttrCount; i++)
+    {
+        ntStatus = LwRtlCStringAllocateFromWC16String(&pszAttr, wszAttributes[i]);
+        if (ntStatus)
+        {
+            dwError =  LwNtStatusToWin32Error(ntStatus);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+        }
+        ppszRetAttributes[i] = pszAttr;
+    }
+
+    *pppszAttributes = ppszRetAttributes;
+    *pdwAttrCount = dwAttrCount;
+    ppszRetAttributes = NULL;
+
+cleanup:
+    if (ppszRetAttributes)
+    {
+        for (i=0; ppszRetAttributes[i]; i++)
+        {
+            LW_SAFE_FREE_STRING(ppszRetAttributes[i]);
+        }
+        LW_SAFE_FREE_MEMORY(ppszRetAttributes);
+    }
+    return dwError;
+
+error:
+    goto cleanup;
+}
 

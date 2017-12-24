@@ -59,17 +59,93 @@ VmdirDbSearchObject(
     PWSTR             pwszFilter,
     PWSTR             wszAttributes[],
     ULONG             ulAttributesOnly,
-    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDIRECTORY_ENTRY  *ppDirectoryEntries,
     PDWORD            pdwNumEntries
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    DWORD i = 0;
+    DWORD dwAttrCount = 0;
+    PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    LDAP *pLd = NULL;
+    int ldap_err = 0;
+    PSTR pszBase = NULL;
+    PSTR pszBaseAlloc = NULL;
+    PSTR pszFilter = NULL;
+    PSTR *ppszAttributes = NULL;
+/*    struct timeval timeout = {0}; */
+    LDAPMessage *pRes = NULL;
 
+
+    if (!hDirectory || !wszAttributes || !ppDirectoryEntries || !pdwNumEntries)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
+
+    pContext = (PVMDIR_AUTH_PROVIDER_CONTEXT) hDirectory;
+    pLd = pContext->dirContext.pLd;
+
+    if (pwszBase)
+    {
+        ntStatus = LwRtlCStringAllocateFromWC16String(&pszBaseAlloc, pwszBase);
+        if (ntStatus)
+        {
+            dwError =  LwNtStatusToWin32Error(ntStatus);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+        }
+        pszBase = pszBaseAlloc;
+    }
+    else
+    {
+        pszBase = pContext->dirContext.pBindInfo->pszSearchBase;
+    }
+
+    if (pwszFilter)
+    {
+        ntStatus = LwRtlCStringAllocateFromWC16String(&pszFilter, pwszFilter);
+        if (ntStatus)
+        {
+            dwError =  LwNtStatusToWin32Error(ntStatus);
+            BAIL_ON_VMDIRDB_ERROR(dwError);
+        }
+    }
+
+    dwError = VmDirAttributesFromWc16Attributes(wszAttributes, 
+                                                &ppszAttributes,
+                                                &dwAttrCount);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
-cleanup:
-    return dwError;
+    ldap_err = ldap_search_ext_s(pLd,
+                                 pszBase,
+                                 ulScope,
+                                 pszFilter,
+                                 ppszAttributes,
+                                 ulAttributesOnly,
+                                 NULL, /* serverctrls */
+                                 NULL, /* serverctrls */
+                                 NULL, /* timeout */
+                                 0,    /* sizelimit */
+                                 &pRes);
+    if (ldap_err)
+    {
+        dwError = LwMapLdapErrorToLwError(ldap_err);
+        BAIL_ON_VMDIRDB_ERROR(dwError);
+    }
 
+cleanup:
+    if (ppszAttributes)
+    {
+        for (i=0; ppszAttributes[i]; i++)
+        {
+            LW_SAFE_FREE_STRING(ppszAttributes[i]); 
+        }
+        LW_SAFE_FREE_MEMORY(ppszAttributes); 
+    }
+    LW_SAFE_FREE_STRING(pszBaseAlloc);
+    LW_SAFE_FREE_STRING(pszFilter);
+    return dwError;
 
 error:
     goto cleanup;
