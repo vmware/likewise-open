@@ -65,7 +65,6 @@ VmdirDbSearchObject(
 {
     DWORD dwError = 0;
     NTSTATUS ntStatus = 0;
-    DWORD i = 0;
     DWORD dwAttrCount = 0;
     PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
     LDAP *pLd = NULL;
@@ -135,14 +134,7 @@ VmdirDbSearchObject(
     }
 
 cleanup:
-    if (ppszAttributes)
-    {
-        for (i=0; ppszAttributes[i]; i++)
-        {
-            LW_SAFE_FREE_STRING(ppszAttributes[i]); 
-        }
-        LW_SAFE_FREE_MEMORY(ppszAttributes); 
-    }
+    VmDirAttributesFree(&ppszAttributes);
     LW_SAFE_FREE_STRING(pszBaseAlloc);
     LW_SAFE_FREE_STRING(pszFilter);
     return dwError;

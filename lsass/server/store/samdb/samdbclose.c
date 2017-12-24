@@ -57,7 +57,7 @@ SamDbClose(
 {
     PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    SAMDB_DBG_CALL;
+    SAMDB_DBG_CALL(0, 0);
 
 
     if (pDirContext)

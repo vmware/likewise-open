@@ -312,7 +312,12 @@ SamDbAddObject(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    SAMDB_DBG_CALL;
+
+{
+    PSTR pszObjectDN = SamDbDebugWC16ToC(pwszObjectDN);
+    SAMDB_DBG_CALL("\n ------> pwszObjectDN=", pszObjectDN);
+    LW_SAFE_FREE_STRING(pszObjectDN);
+}
 
     dwError = SamDbGetObjectClass(
                     modifications,
