@@ -70,96 +70,6 @@ VmDirBuildGroupObject(
 
 static
 DWORD
-VmDirFindUserByIdNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    uid_t                 uid,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirFindUserBySIDNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    PCSTR                 pszSID,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirFindUserByNameNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    PCSTR                 pszLoginId,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirFindGroupByNameNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    PCSTR                 pszGroupName,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirFindMembershipsNoCache(
-    PVMDIR_DIR_CONTEXT pDirContext,
-    PCSTR              pszSid,
-    PLW_HASH_TABLE     pGroupHash
-    );
-
-static
-DWORD
-VmDirFindGroupByIdNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    gid_t                 gid,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirFindGroupBySIDNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    PCSTR                 pszSID,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirFindObjectBySIDNoCache(
-    PVMDIR_DIR_CONTEXT    pDirContext,
-    PCSTR                 pszSID,
-    PLSA_SECURITY_OBJECT* ppObject
-    );
-
-static
-DWORD
-VmDirCacheCheckExpiredObject(
-    PVMDIR_DIR_CONTEXT pDirContext,
-    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
-    );
-
-static
-DWORD
-VmDirCacheMembershipFromRelatedObjects(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN int iPrimaryGroupIndex,
-    IN BOOLEAN bIsParent,
-    IN size_t sCount,
-    IN PLSA_SECURITY_OBJECT* ppRelatedObjects
-    );
-
-static
-DWORD
-VmDirCheckExpiredMemberships(
-    IN PVMDIR_DIR_CONTEXT pDirContext,
-    IN size_t sCount,
-    IN PLSA_GROUP_MEMBERSHIP* ppMemberships,
-    IN BOOLEAN bCheckNullParentSid,
-    OUT PBOOLEAN pbHaveExpired,
-    OUT PBOOLEAN pbIsComplete
-
 VmDirFindBinarySidForDN(
     PVMDIR_DIR_CONTEXT pDirContext,
     PCSTR              pszDN,
@@ -2355,6 +2265,9 @@ VmDirFindBinarySidForDN(
     };
     PSTR pszFilter = "(objectclass=*)";
     LDAPMessage* pSearchResult = NULL;
+
+    dwError = VmDirLdapBind(pDirContext);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = VmDirLdapQuerySingleObject(
                     pDirContext->pLd,

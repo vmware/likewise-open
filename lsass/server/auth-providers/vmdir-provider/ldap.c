@@ -124,11 +124,11 @@ VmDirLdapGetStringArray(
 static
 DWORD
 VmDirLdapGetBinaryValue(
-    LDAP*        pLd,
-    LDAPMessage* pMessage,
-    PCSTR        pszAttrName,
-    PVMDIR_DATA  *ppucValue
-    );
+	LDAP*        pLd,
+	LDAPMessage* pMessage,
+	PCSTR        pszAttrName,
+	PVMDIR_DATA  *ppucValue
+	);
 
 DWORD
 VmDirLdapInitialize(
@@ -272,145 +272,145 @@ VmDirLdapGetValues(
     DWORD        dwNumValues
     )
 {
-    DWORD dwError = 0;
-    DWORD iValue = 0;
+	DWORD dwError = 0;
+	DWORD iValue = 0;
 
-    for (; iValue < dwNumValues; iValue++)
-    {
-        PVMDIR_ATTR pAttr = &pValueArray[iValue];
+	for (; iValue < dwNumValues; iValue++)
+	{
+		PVMDIR_ATTR pAttr = &pValueArray[iValue];
 
-        switch (pAttr->type)
-        {
-            case VMDIR_ATTR_TYPE_DN:
+		switch (pAttr->type)
+		{
+			case VMDIR_ATTR_TYPE_DN:
 
-                dwError = VmDirLdapGetDN(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.ppszData,
-                                pAttr->bOptional);
+				dwError = VmDirLdapGetDN(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.ppszData,
+								pAttr->bOptional);
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_STRING:
+			case VMDIR_ATTR_TYPE_STRING:
 
-                if (pAttr->bOptional)
-                {
-                    dwError = VmDirLdapGetOptionalStringValue(
-                                    pLd,
-                                    pMessage,
-                                    pAttr->pszName,
-                                    pAttr->dataRef.ppszData);
-                }
-                else
-                {
-                    dwError = VmDirLdapGetStringValue(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.ppszData);
-                }
+				if (pAttr->bOptional)
+				{
+					dwError = VmDirLdapGetOptionalStringValue(
+									pLd,
+									pMessage,
+									pAttr->pszName,
+									pAttr->dataRef.ppszData);
+				}
+				else
+				{
+					dwError = VmDirLdapGetStringValue(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.ppszData);
+				}
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_INT32:
+			case VMDIR_ATTR_TYPE_INT32:
 
-                if (pAttr->size < sizeof(INT32))
-                {
-                    dwError = ERROR_INVALID_PARAMETER;
-                    BAIL_ON_VMDIR_ERROR(dwError);
-                }
+				if (pAttr->size < sizeof(INT32))
+				{
+					dwError = ERROR_INVALID_PARAMETER;
+					BAIL_ON_VMDIR_ERROR(dwError);
+				}
 
-                dwError = VmDirLdapGetInt32Value(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.pData_int32,
-                                pAttr->bOptional);
+				dwError = VmDirLdapGetInt32Value(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.pData_int32,
+								pAttr->bOptional);
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_UINT32:
+			case VMDIR_ATTR_TYPE_UINT32:
 
-                if (pAttr->size < sizeof(UINT32))
-                {
-                    dwError = ERROR_INVALID_PARAMETER;
-                    BAIL_ON_VMDIR_ERROR(dwError);
-                }
+				if (pAttr->size < sizeof(UINT32))
+				{
+					dwError = ERROR_INVALID_PARAMETER;
+					BAIL_ON_VMDIR_ERROR(dwError);
+				}
 
-                dwError = VmDirLdapGetUint32Value(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.pData_uint32,
-                                pAttr->bOptional);
+				dwError = VmDirLdapGetUint32Value(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.pData_uint32,
+								pAttr->bOptional);
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_INT64:
+			case VMDIR_ATTR_TYPE_INT64:
 
-                if (pAttr->size < sizeof(INT64))
-                {
-                    dwError = ERROR_INVALID_PARAMETER;
-                    BAIL_ON_VMDIR_ERROR(dwError);
-                }
+				if (pAttr->size < sizeof(INT64))
+				{
+					dwError = ERROR_INVALID_PARAMETER;
+					BAIL_ON_VMDIR_ERROR(dwError);
+				}
 
-                dwError = VmDirLdapGetInt64Value(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.pData_int64,
-                                pAttr->bOptional);
+				dwError = VmDirLdapGetInt64Value(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.pData_int64,
+								pAttr->bOptional);
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_UINT64:
+			case VMDIR_ATTR_TYPE_UINT64:
 
-                if (pAttr->size < sizeof(UINT64))
-                {
-                    dwError = ERROR_INVALID_PARAMETER;
-                    BAIL_ON_VMDIR_ERROR(dwError);
-                }
+				if (pAttr->size < sizeof(UINT64))
+				{
+					dwError = ERROR_INVALID_PARAMETER;
+					BAIL_ON_VMDIR_ERROR(dwError);
+				}
 
-                dwError = VmDirLdapGetUint64Value(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.pData_uint64,
-                                pAttr->bOptional);
+				dwError = VmDirLdapGetUint64Value(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.pData_uint64,
+								pAttr->bOptional);
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_MULTI_STRING:
+			case VMDIR_ATTR_TYPE_MULTI_STRING:
 
-                dwError = VmDirLdapGetStringArray(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->bOptional,
-                                pAttr->dataRef.pppszStrArray,
-                                pAttr->pdwCount);
-                BAIL_ON_VMDIR_ERROR(dwError);
+				dwError = VmDirLdapGetStringArray(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->bOptional,
+								pAttr->dataRef.pppszStrArray,
+								pAttr->pdwCount);
+				BAIL_ON_VMDIR_ERROR(dwError);
 
-                break;
+				break;
 
-            case VMDIR_ATTR_TYPE_BINARY:
-                dwError = VmDirLdapGetBinaryValue(
-                                pLd,
-                                pMessage,
-                                pAttr->pszName,
-                                pAttr->dataRef.ppData);
-                BAIL_ON_VMDIR_ERROR(dwError);
-                break;
+			case VMDIR_ATTR_TYPE_BINARY:
+				dwError = VmDirLdapGetBinaryValue(
+								pLd,
+								pMessage,
+								pAttr->pszName,
+								pAttr->dataRef.ppData);
+				BAIL_ON_VMDIR_ERROR(dwError);
+				break;
 
-            default:
+			default:
 
-                dwError = ERROR_INVALID_PARAMETER;
-                BAIL_ON_VMDIR_ERROR(dwError);
+				dwError = ERROR_INVALID_PARAMETER;
+				BAIL_ON_VMDIR_ERROR(dwError);
 
-                break;
-        }
-    }
+				break;
+		}
+	}
 
 error:
 

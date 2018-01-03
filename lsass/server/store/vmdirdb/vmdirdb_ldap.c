@@ -125,7 +125,7 @@ VmDirLdapGetStringArray(
 	);
 
 static
-PVOID 
+PVOID
 VmdirAttributeGetData(PATTRIBUTE_VALUE pAttr)
 {
     PVOID pVal = NULL;
@@ -2129,14 +2129,14 @@ pfnLdap2DirectoryEntryEntryDnToDistinguishedName(
     for (i=0; i<in[0].ulNumAttributes; i++)
     {
         ntStatus = LwRtlCStringAllocateFromWC16String(
-                       &pszName, 
+                       &pszName,
                       in[0].pAttributes[i].pwszName);
         BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
         dwError = VmDirAttributeCreateFromData(
                       &pOut[0].pAttributes[i],
                       pdwAttributesCount[0],
-                      pszName, 
+                      pszName,
                       in[0].pAttributes[i].pValues[0].Type,
                       VmdirAttributeGetData(&in[0].pAttributes[i].pValues[0]));
         BAIL_ON_VMDIRDB_ERROR(dwError);

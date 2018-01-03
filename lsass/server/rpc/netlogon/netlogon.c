@@ -520,7 +520,7 @@ srv_DsrEnumerateDomainTrusts(
     dwNetBiosNameLen = (DWORD) strlen(szNetBiosName);
 
 #if 1 /* TBD:Adam- Need to improve netBIOS name uniqueness */
-    if (dwNetBiosNameLen > 16) 
+    if (dwNetBiosNameLen > 16)
     {
         szNetBiosName[15] = '$';
         szNetBiosName[16] = '\0';
