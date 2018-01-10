@@ -70,10 +70,10 @@ VmDirBuildGroupObject(
 
 static
 DWORD
-VmDirFindBinarySidForDN(
-    PVMDIR_DIR_CONTEXT pDirContext,
-    PCSTR              pszDN,
-    PSTR*              ppszSid
+VmDirAllocCStringSidFromStringOrPsid(
+    PSTR pszSid,
+    PVMDIR_DATA pSidData,
+    PSTR *ppszSid
     );
 
 static
@@ -927,6 +927,48 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+VmDirAllocCStringSidFromStringOrPsid(
+    PSTR pszSid,
+    PVMDIR_DATA pSidData,
+    PSTR *ppszSid
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSTR pszRetSid = NULL;
+
+    if (pszSid)
+    {
+        ntStatus = LwRtlCStringDuplicate(
+                       &pszRetSid,
+                       pszSid);
+        BAIL_ON_VMDIR_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+    else if (pSidData)
+    {
+        ntStatus = RtlAllocateCStringFromSid(
+                      &pszRetSid,
+                      (PSID) pSidData->pData);
+        BAIL_ON_VMDIR_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+    else
+    {
+        dwError = ERROR_INVALID_SID;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
+
+    *ppszSid = pszRetSid;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszRetSid);
+    goto cleanup;
+}
+
 DWORD
 VmDirFindDomainSID(
     PVMDIR_DIR_CONTEXT pDirContext,
@@ -934,13 +976,15 @@ VmDirFindDomainSID(
     )
 {
     DWORD dwError = 0;
-    PSTR  pszAttrName_objectsid    = VMDIR_ATTR_NAME_OBJECTSID;
+    PSTR  pszAttrName_objectsid = VMDIR_ATTR_NAME_OBJECTSID;
+    PVMDIR_DATA pSidData = NULL;
     PSTR  attrs[] =
     {
         pszAttrName_objectsid,
         NULL
     };
     PSTR  pszDomainSID = NULL;
+    PSTR  pszDomainSIDValue = NULL;
     VMDIR_ATTR values[]  =
     {
         {
@@ -949,10 +993,20 @@ VmDirFindDomainSID(
             .bOptional = FALSE,
             .dataRef =
                {
-                   .ppszData = &pszDomainSID
+                   .ppszData = &pszDomainSIDValue
                },
                .size    = -1
-        }
+        },
+        {
+            .pszName   = pszAttrName_objectsid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
+            },
+            .size    = -1
+        },
     };
     PCSTR pszFilter = "(objectclass=*)";
     LDAPMessage* pLdapResult = NULL;
@@ -976,10 +1030,18 @@ VmDirFindDomainSID(
                       sizeof(values)/sizeof(values[0]));
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    dwError = VmDirAllocCStringSidFromStringOrPsid(
+                  pszDomainSIDValue,
+                  pSidData,
+                  &pszDomainSID);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
     *ppszDomainSID = pszDomainSID;
 
 cleanup:
 
+    LW_SAFE_FREE_MEMORY(pszDomainSIDValue);
+    LW_SAFE_FREE_MEMORY(pSidData);
     if (pLdapResult)
     {
         VmDirLdapFreeMessage(pLdapResult);
@@ -1233,6 +1295,7 @@ VmDirRepositoryEnumUsers(
     PSTR  pszAttrName_first_name   = VMDIR_ATTR_NAME_FIRST_NAME;
     PSTR  pszAttrName_last_name    = VMDIR_ATTR_NAME_LAST_NAME;
     PSTR  pszAttrName_usn_changed  = VMDIR_ATTR_NAME_USN_CHANGED;
+    PVMDIR_DATA pSidData           = NULL;
     PSTR  attrs[] =
     {
         pszAttrName_account,
@@ -1247,6 +1310,7 @@ VmDirRepositoryEnumUsers(
     PSTR   pszSamAcctName = NULL;
     PSTR   pszDN          = NULL;
     PSTR   pszObjectSid   = NULL;
+    PSTR   pszObjectSidValue = NULL;
     PSTR   pszUPN         = NULL;
     PSTR   pszFirstname   = NULL;
     PSTR   pszLastname    = NULL;
@@ -1280,7 +1344,17 @@ VmDirRepositoryEnumUsers(
             .bOptional = FALSE,
             .dataRef =
             {
-                .ppszData = &pszObjectSid
+                .ppszData = &pszObjectSidValue
+            },
+            .size    = -1
+        },
+        {
+            .pszName   = pszAttrName_objectsid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
             },
             .size    = -1
         },
@@ -1414,6 +1488,7 @@ VmDirRepositoryEnumUsers(
         LW_SAFE_FREE_MEMORY(pszSamAcctName);
         LW_SAFE_FREE_MEMORY(pszDN);
         LW_SAFE_FREE_MEMORY(pszObjectSid);
+        LW_SAFE_FREE_MEMORY(pszObjectSidValue);
         LW_SAFE_FREE_MEMORY(pszFirstname);
         LW_SAFE_FREE_MEMORY(pszLastname);
         LW_SAFE_FREE_MEMORY(pszUPN);
@@ -1423,6 +1498,12 @@ VmDirRepositoryEnumUsers(
                         pEntry,
                         &values[0],
                         sizeof(values)/sizeof(values[0]));
+        BAIL_ON_VMDIR_ERROR(dwError);
+
+        dwError = VmDirAllocCStringSidFromStringOrPsid(
+                        pszObjectSidValue,
+                        pSidData,
+                        &pszObjectSid);
         BAIL_ON_VMDIR_ERROR(dwError);
 
         dwError = VmDirBuildUserObject(
@@ -1456,6 +1537,8 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pszSamAcctName);
     LW_SAFE_FREE_MEMORY(pszDN);
     LW_SAFE_FREE_MEMORY(pszObjectSid);
+    LW_SAFE_FREE_MEMORY(pszObjectSidValue);
+    LW_SAFE_FREE_MEMORY(pSidData);
     LW_SAFE_FREE_MEMORY(pszFirstname);
     LW_SAFE_FREE_MEMORY(pszLastname);
     LW_SAFE_FREE_MEMORY(pszUPN);
@@ -1500,6 +1583,8 @@ VmDirRepositoryEnumGroups(
     PSTR   pszSamAcctName = NULL;
     PSTR   pszDN          = NULL;
     PSTR   pszObjectSid   = NULL;
+    PSTR   pszObjectSidValue = NULL;
+    PVMDIR_DATA pSidData = NULL;
     LONG64 llUSNChanged = 0;
     VMDIR_ATTR values[]  =
     {
@@ -1530,6 +1615,16 @@ VmDirRepositoryEnumGroups(
             .dataRef =
             {
                 .ppszData = &pszObjectSid
+            },
+            .size    = -1
+        },
+        {
+            .pszName   = pszAttrName_objectsid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
             },
             .size    = -1
         },
@@ -1638,6 +1733,12 @@ VmDirRepositoryEnumGroups(
                         &ppObjects[iObject]);
         BAIL_ON_VMDIR_ERROR(dwError);
 
+        dwError = VmDirAllocCStringSidFromStringOrPsid(
+                      pszObjectSid,
+                      pSidData,
+                      &pszObjectSid);
+        BAIL_ON_VMDIR_ERROR(dwError);
+
         dwError = VMCacheStoreObjectEntry(
                       gVmDirAuthProviderGlobals.hDb,
                       ppObjects[iObject]);
@@ -1657,6 +1758,8 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pszSamAcctName);
     LW_SAFE_FREE_MEMORY(pszDN);
     LW_SAFE_FREE_MEMORY(pszObjectSid);
+    LW_SAFE_FREE_MEMORY(pszObjectSidValue);
+    LW_SAFE_FREE_MEMORY(pSidData);
     LW_SAFE_FREE_MEMORY(pszFilter);
 
     return dwError;
@@ -2105,10 +2208,6 @@ VmDirFindMembershipsNoCache(
         LW_SAFE_FREE_STRING(pszSid2);
 
         dwError = VmDirFindSidForDN(pDirContext, pszDN, &pszSid2);
-        if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
-        {
-            dwError = VmDirFindBinarySidForDN(pDirContext, pszDN, &pszSid2);
-        }
         BAIL_ON_VMDIR_ERROR(dwError);
 
         dwError = LwHashGetValue(
@@ -2159,20 +2258,15 @@ VmDirFindSidForDN(
 {
     DWORD dwError = 0;
     PSTR pszAttrName_object_sid = VMDIR_ATTR_NAME_OBJECTSID;
+    PSTR pszSidValue = NULL;
     PSTR pszSid = NULL;
+    PVMDIR_DATA pSidData = NULL;
     PSTR attrs[] =
     {
             pszAttrName_object_sid,
             NULL
     };
 
-/*
- * TBD:Adam-Better solution for string and binary SID is to
- * change query type to VMDIR_ATTR_TYPE_BINARY, then treat
- * the return data as either a string, looking for "S-1-"
- * prefix, and if not found, then process as a binary SID.
- * Do later, as the current solution works.
- */
     VMDIR_ATTR values[] =
     {
         {
@@ -2181,11 +2275,21 @@ VmDirFindSidForDN(
             .bOptional = FALSE,
             .dataRef =
             {
-                .ppszData = &pszSid
+                .ppszData = &pszSidValue
             },
             .size    = -1,
             .pdwCount = NULL
-        }
+        },
+        {
+            .pszName   = pszAttrName_object_sid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
+            },
+            .size    = -1
+        },
     };
     PSTR pszFilter = "(objectclass=*)";
     LDAPMessage* pSearchResult = NULL;
@@ -2209,10 +2313,18 @@ VmDirFindSidForDN(
                     sizeof(values)/sizeof(values[0]));
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    dwError = VmDirAllocCStringSidFromStringOrPsid(
+                  pszSidValue,
+                  pSidData,
+                  &pszSid);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
     *ppszSid = pszSid;
 
 cleanup:
 
+    LW_SAFE_FREE_STRING(pszSidValue);
+    LW_SAFE_FREE_MEMORY(pSidData);
     if (pSearchResult)
     {
         VmDirLdapFreeMessage(pSearchResult);
@@ -2226,85 +2338,6 @@ error:
     *ppszSid = NULL;
 
     LW_SAFE_FREE_STRING(pszSid);
-
-    goto cleanup;
-}
-
-static
-DWORD
-VmDirFindBinarySidForDN(
-    PVMDIR_DIR_CONTEXT pDirContext,
-    PCSTR              pszDN,
-    PSTR*              ppszSid
-    )
-{
-    DWORD dwError = 0;
-    NTSTATUS ntStatus = 0;
-    PSTR pszAttrName_object_sid = VMDIR_ATTR_NAME_OBJECTSID;
-    PVMDIR_DATA pSidData = NULL;
-    PSTR pszSid = NULL;
-
-    PSTR attrs[] =
-    {
-            pszAttrName_object_sid,
-            NULL
-    };
-    VMDIR_ATTR values[] =
-    {
-        {
-            .pszName   = pszAttrName_object_sid,
-            .type      = VMDIR_ATTR_TYPE_BINARY,
-            .bOptional = FALSE,
-            .dataRef =
-            {
-                .ppData = &pSidData,
-            },
-            .size    = -1,
-            .pdwCount = NULL
-        }
-    };
-    PSTR pszFilter = "(objectclass=*)";
-    LDAPMessage* pSearchResult = NULL;
-
-    dwError = VmDirLdapBind(pDirContext);
-    BAIL_ON_VMDIR_ERROR(dwError);
-
-    dwError = VmDirLdapQuerySingleObject(
-                    pDirContext->pLd,
-                    pszDN,
-                    LDAP_SCOPE_BASE,
-                    pszFilter,
-                    &attrs[0],
-                    &pSearchResult);
-    BAIL_ON_VMDIR_ERROR(dwError);
-
-    dwError = VmDirLdapGetValues(
-                    pDirContext->pLd,
-                    pSearchResult,
-                    &values[0],
-                    sizeof(values)/sizeof(values[0]));
-    BAIL_ON_VMDIR_ERROR(dwError);
-
-    ntStatus = RtlAllocateCStringFromSid(
-                  &pszSid,
-                  (PSID) pSidData->pData);
-    BAIL_ON_VMDIR_ERROR(LwNtStatusToWin32Error(ntStatus));
-
-    *ppszSid = pszSid;
-
-cleanup:
-
-    if (pSearchResult)
-    {
-        VmDirLdapFreeMessage(pSearchResult);
-        pSearchResult = NULL;
-    }
-
-    return dwError;
-
-error:
-
-    *ppszSid = NULL;
 
     goto cleanup;
 }
@@ -2452,6 +2485,7 @@ VmDirFindUserObject(
     PSTR  pszFirstname   = NULL;
     PSTR  pszLastname    = NULL;
     DWORD dwUserAccountControl = 0;
+    PVMDIR_DATA pSidData = NULL;
     VMDIR_ATTR values[]  =
     {
         {
@@ -2481,6 +2515,16 @@ VmDirFindUserObject(
             .dataRef =
             {
                 .ppszData = &pszObjectSid
+            },
+            .size    = -1
+        },
+        {
+            .pszName   = pszAttrName_objectsid,
+            .type      = VMDIR_ATTR_TYPE_BINARY,
+            .bOptional = FALSE,
+            .dataRef =
+            {
+                .ppData = &pSidData,
             },
             .size    = -1
         },
@@ -2612,8 +2656,8 @@ VmDirFindGroupObject(
     PSTR  pszSamAcctName = NULL;
     PSTR  pszDN          = NULL;
     PSTR  pszObjectSid   = NULL;
+    PSTR  pszObjectSidValue = NULL;
     PVMDIR_DATA pSidData = NULL;
-    NTSTATUS ntStatus    = 0;
     VMDIR_ATTR values[]  =
     {
         {
@@ -2642,7 +2686,7 @@ VmDirFindGroupObject(
             .bOptional = FALSE,
             .dataRef =
             {
-                .ppszData = &pszObjectSid
+                .ppszData = &pszObjectSidValue
             },
             .size    = -1
         },
@@ -2679,14 +2723,11 @@ VmDirFindGroupObject(
                     sizeof(values)/sizeof(values[0]));
     BAIL_ON_VMDIR_ERROR(dwError);
 
-    if (pSidData->pData)
-    {
-        /* Convert PSID to pszObjectSid */
-        ntStatus = RtlAllocateCStringFromSid(
-                      &pszObjectSid,
-                      (PSID) pSidData->pData);
-        BAIL_ON_VMDIR_ERROR(LwNtStatusToWin32Error(ntStatus));
-    }
+    dwError = VmDirAllocCStringSidFromStringOrPsid(
+                  pszObjectSidValue,
+                  pSidData,
+                  &pszObjectSid);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
     dwError = VmDirBuildGroupObject(
                     pDirContext,
@@ -2708,6 +2749,8 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pszSamAcctName);
     LW_SAFE_FREE_MEMORY(pszDN);
     LW_SAFE_FREE_MEMORY(pszObjectSid);
+    LW_SAFE_FREE_MEMORY(pszObjectSidValue);
+    LW_SAFE_FREE_MEMORY(pSidData);
 
     return dwError;
 
