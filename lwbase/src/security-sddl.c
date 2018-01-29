@@ -839,7 +839,6 @@ RtlpGetSddlSidStringFromSid(
 {
     NTSTATUS status = 0;
     PSTR pszSddlSidString = NULL;
-    ULONG ulRid = 0;
     PSTR pszSid = NULL;
     // Do not free
     PCSTR pszSddlSid = NULL;
@@ -862,11 +861,8 @@ RtlpGetSddlSidStringFromSid(
     }
     else
     {
-        status = RtlGetRidSid(&ulRid,
-                              pSid);
-        GOTO_CLEANUP_ON_STATUS(status);
+        pszSddlSid = RtlpSidStringToSddl(pszSid);
 
-        pszSddlSid = RtlpRidToSddl(ulRid);
         // Exclude SDDL_EVERYONE and SDDL_CREATOR_OWNER
         // As it is handled above
         if (pszSddlSid == NULL ||
