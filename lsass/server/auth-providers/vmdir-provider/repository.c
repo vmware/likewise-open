@@ -2128,8 +2128,7 @@ error:
 
     if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE && pUserInfo )
     {
-        LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %u)",
-                      pUserInfo->pszNetbiosDomainName,
+        LSA_LOG_ERROR("Failed to find memberships for user '%s' (error = %u)",
                       pUserInfo->pszSamAccountName,
                       dwError);
     }
