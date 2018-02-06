@@ -540,7 +540,7 @@ srv_DsrEnumerateDomainTrusts(
     dwError = NetlogonLdapQueryObjects(
                   pLd,
                   pszDomainDn,
-                  LDAP_SCOPE_BASE,
+                  LDAP_SCOPE_SUBTREE,
                   "(objectClass=*)",
                   ppszAttributes,
                   -1,
