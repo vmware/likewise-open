@@ -487,9 +487,10 @@ srv_DsrEnumerateDomainTrusts(
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszServerName = NULL;
     DWORD dwDomainTrustCount = 1;
-    DWORD dwNetBiosNameLen = 0;
+    DWORD i = 0;
     NetrDomainTrust *pDomainTrustArray = {0};
-    CHAR szNetBiosName[256] = {0}; /* MAX hostname length */
+    CHAR szHostFqdn[256] = {0}; /* MAX hostname length */
+    CHAR szNetBiosName[32] = {0}; /* NetBIOS formatted name */
     PSTR pszDnsDomainName = NULL;
     PSTR pszDomainGuid = NULL;
     PSTR pszDomainDn = NULL;
@@ -516,16 +517,15 @@ srv_DsrEnumerateDomainTrusts(
     pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) ghDirectory;
     pLd = pContext->dirContext.pLd;
 
-    gethostname(szNetBiosName, sizeof(szNetBiosName));
-    dwNetBiosNameLen = (DWORD) strlen(szNetBiosName);
+    gethostname(szHostFqdn, sizeof(szHostFqdn));
 
-#if 1 /* TBD:Adam- Need to improve netBIOS name uniqueness */
-    if (dwNetBiosNameLen > 16)
+
+    /* NetBios Hostname */
+    for (i=0; szHostFqdn[i] && i<15 && szHostFqdn[i] != '.'; i++)
     {
-        szNetBiosName[15] = '$';
-        szNetBiosName[16] = '\0';
+        szNetBiosName[i] = (CHAR) toupper((int) szHostFqdn[i]);
     }
-#endif
+    szNetBiosName[i] = '\0';
 
     /* Obtain the domain name for this DC */
     status = LwRtlCStringDuplicate(&pszDnsDomainName,
@@ -553,8 +553,6 @@ srv_DsrEnumerateDomainTrusts(
          pDomainSid = (PSID) bv_objectValue[0]->bv_val;
     }
 
-#if 1 /* TBD:Adam this is a string now, but it is supposed to be a OCTECT_STRING */
-#endif
     /* Get the domain objectGUID */
     bv_objectValue = ldap_get_values_len(pLd, pObjectSid, ppszAttributes[1]);
     if (bv_objectValue && bv_objectValue[0])
@@ -562,14 +560,14 @@ srv_DsrEnumerateDomainTrusts(
          pszDomainGuid = (PSTR) bv_objectValue[0]->bv_val;
     }
 
-/*
- * I am the DC, so return data returned from calling
- *  NetrLogonGetDomainInfo()
- *
- * "If the server is a domain controller (section 3.1.4.8), it MUST perform
- *  behavior equivalent to locally invoking NetrLogonGetDomainInfo with
- *  the previously described parameters."
- */
+    /*
+     * I am the DC, so return data returned from calling
+     *  NetrLogonGetDomainInfo()
+     *
+     * "If the server is a domain controller (section 3.1.4.8), it MUST perform
+     *  behavior equivalent to locally invoking NetrLogonGetDomainInfo with
+     *  the previously described parameters."
+     */
     status = LwRtlCStringAllocateFromWC16String(
                  &pszServerName,
                  server_name);
@@ -588,6 +586,7 @@ srv_DsrEnumerateDomainTrusts(
                  pszDnsDomainName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    /* Convert DomainGuid to binary form */
     if (uuid_parse(pszDomainGuid, domainGuid))
     {
         status = STATUS_NO_GUID_TRANSLATION;
@@ -600,15 +599,14 @@ srv_DsrEnumerateDomainTrusts(
                  sizeof(NetrDomainTrust) * dwDomainTrustCount);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-
     pDomainTrustArray[0].netbios_name = pwszNetBiosName;
     pDomainTrustArray[0].dns_name = pwszDnsDomainName;
-    pDomainTrustArray[0].sid = pDomainSid;
-    memcpy(&pDomainTrustArray[0].guid, &domainGuid, sizeof(domainGuid));
-    pDomainTrustArray[0].trust_flags = dwTrustFlags; /* TBD:Adam & [in] trust_flags ?? */
+    pDomainTrustArray[0].trust_flags = dwTrustFlags;
     pDomainTrustArray[0].parent_index = dwParentIndex;
     pDomainTrustArray[0].trust_type = dwTrustType;
-    pDomainTrustArray[0].trust_attrs = dwTrustAttrs; /* TBD ??? */
+    pDomainTrustArray[0].trust_attrs = dwTrustAttrs; /* TBD:Adam ??? */
+    pDomainTrustArray[0].sid = pDomainSid;
+    memcpy(&pDomainTrustArray[0].guid, &domainGuid, sizeof(domainGuid));
 
     trusts->count = dwDomainTrustCount;
     trusts->array = pDomainTrustArray;
