@@ -3,7 +3,7 @@
 Name: 		@PKG_RPM_NAME@
 Summary: 	Likewise Open
 Version: 	@PKG_RPM_VERSION@
-Release: 	@PKG_RPM_RELEASE@
+Release: 	@PKG_RPM_RELEASE@@PKG_DIST@
 License: 	GPL 2.0,LGPL 2.1
 URL: 		http://www.vmware.com/
 Group: 		Development/Libraries
