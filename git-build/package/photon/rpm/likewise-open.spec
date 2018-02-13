@@ -23,7 +23,7 @@ Requires:       @PKG_RPM_NAME@
 %package devel
 Summary:        Likewise Open (development)
 Group:          Development/Libraries
-Requires:       @PKG_RPM_NAME@
+Requires:       @PKG_RPM_NAME@ = %{version}-%{release}
 
 %description
 Likewise Open 6.1 LWIS
