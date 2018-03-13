@@ -47,7 +47,6 @@ typedef struct _VMDIR_BIND_INFO
 
     PSTR pszURI;
     PSTR pszUPN;
-    PSTR pszPassword;
     PSTR pszDomainFqdn;
     PSTR pszDomainShort;
     PSTR pszSearchBase;
