@@ -176,6 +176,12 @@ VmDirConstructMachineDN(
     PSTR *ppszMachineAcctDN);
 
 DWORD
+VmDirConstructServicePrincipalName(
+    PSTR pszSqlDomainName,
+    PSTR pszServiceName,
+    PSTR *ppszAcctSpn);
+
+DWORD
 VmDirConstructMachineUPN(
     PSTR pszSqlDomainName,
     PSTR *ppszMachineAcctUpn);

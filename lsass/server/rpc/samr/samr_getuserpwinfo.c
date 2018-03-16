@@ -82,8 +82,14 @@ SamrSrvGetUserPwInfo(
      * This is in fact returning domain- not user-specific
      * settings
      */
+#if 1 /*TBD:Adam-Use hard-coded values for now */
+#define SAMR_DOMAIN_PASSWORD_COMPLEX 0x00000001
+    pInfo->min_password_length = 8;
+    pInfo->password_properties = SAMR_DOMAIN_PASSWORD_COMPLEX;
+#else
     pInfo->min_password_length = pDomCtx->dwMinPasswordLen;
     pInfo->password_properties = pDomCtx->dwPasswordProperties;
+#endif
 
 cleanup:
     return ntStatus;

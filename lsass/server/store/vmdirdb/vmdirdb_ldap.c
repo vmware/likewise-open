@@ -1418,6 +1418,90 @@ error:
 }
 
 DWORD
+VmDirConstructServicePrincipalName(
+    PSTR pszSqlDomainName,
+    PSTR pszServiceName,
+    PSTR *ppszAcctSpn)
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSTR pszObjectDn = NULL;
+    PSTR pszAcctHost = NULL;
+    PSTR pszAcctDomain = NULL;
+    PSTR pszAcctDomainLc = NULL;
+    PSTR pszAcctSpn = NULL;
+    PSTR pszPtr = NULL;
+
+    dwError = VmDirConstructMachineDN(
+                  pszSqlDomainName,
+                  &pszObjectDn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = LwLdapConvertDNToDomain(pszObjectDn, &pszAcctDomain);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (pszPtr = pszAcctDomain; *pszPtr; pszPtr++)
+    {
+        *pszPtr = (char) toupper((int) *pszPtr);
+    }
+
+    dwError = LwLdapConvertDNToDomain(pszObjectDn, &pszAcctDomainLc);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (pszPtr = pszAcctDomainLc; *pszPtr; pszPtr++)
+    {
+        *pszPtr = (char) tolower((int) *pszPtr);
+    }
+
+    pszPtr = strstr(pszObjectDn+3, ",dc");
+    if (pszPtr)
+    {
+        *pszPtr = '\0';
+    }
+
+    /* + 3 to skip "cn=" prefix */
+    ntStatus = LwRtlCStringDuplicate(&pszAcctHost, pszObjectDn+3);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    /* Eliminate the trailing $ from the hostname */
+    pszPtr = strstr(pszAcctHost, "$");
+    if (pszPtr)
+    {
+        *pszPtr = '\0';
+    }
+
+    /* Lower case the hostname */
+    for (pszPtr = pszAcctHost; *pszPtr; pszPtr++)
+    {
+        *pszPtr = (char) tolower((int) *pszPtr);
+    }
+
+    /* Build SPN of the form service/host_fqdn@DOMAIN_FQDN */
+    ntStatus = LwRtlCStringAllocatePrintf(
+                   &pszAcctSpn,
+                   "%s/%s.%s@%s",
+                   pszServiceName,
+                   pszAcctHost,
+                   pszAcctDomainLc,
+                   pszAcctDomain);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    *ppszAcctSpn = pszAcctSpn;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszObjectDn);
+    LW_SAFE_FREE_STRING(pszAcctDomain);
+    LW_SAFE_FREE_STRING(pszAcctDomainLc);
+    LW_SAFE_FREE_STRING(pszAcctHost);
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszAcctSpn);
+    goto cleanup;
+}
+
+
+DWORD
 VmDirConstructMachineUPN(
     PSTR pszSqlDomainName,
     PSTR *ppszMachineAcctUpn)
