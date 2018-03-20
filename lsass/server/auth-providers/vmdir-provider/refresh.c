@@ -203,6 +203,7 @@ VmDirMachineAccountRefreshRoutine(
     struct timespec ts = {0};
     DWORD dwExpiryTime = 0;
     PVMDIR_BIND_INFO pBindInfo = NULL;
+    PSTR pszPassword = NULL;
     VMDIR_REFRESH_STATE state = VMDIR_REFRESH_STATE_UNSET;
 
     VmDirSetRefreshState(pRefreshContext, VMDIR_REFRESH_STATE_CONFIGURING);
@@ -265,13 +266,23 @@ VmDirMachineAccountRefreshRoutine(
 
             case VMDIR_REFRESH_STATE_REFRESHING:
 
+                dwError = VmDirCreateBindInfoPassword(&pszPassword);
+                if (dwError)
+                {
+                    VmDirSetRefreshState(pRefreshContext, VMDIR_REFRESH_STATE_SLEEPING);
+                    break;
+                }
+
                 pthread_rwlock_wrlock(&pRefreshContext->rwlock);
                 dwError = LwKrb5InitializeCredentials(
                               pBindInfo->pszUPN,
-                              pBindInfo->pszPassword,
+                              pszPassword,
                               VMDIR_KRB5_CC_NAME,
                               &dwEndTime);
                 pthread_rwlock_unlock(&pRefreshContext->rwlock);
+
+                LW_SECURE_FREE_STRING(pszPassword);
+
                 if (dwError == 0)
                 {
                     /* refresh TGT again 30 minutes before expiration */

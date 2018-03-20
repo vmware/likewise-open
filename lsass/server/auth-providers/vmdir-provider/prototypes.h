@@ -14,6 +14,11 @@ VmDirCreateBindInfo(
     PVMDIR_BIND_INFO* ppBindInfo
     );
 
+DWORD
+VmDirCreateBindInfoPassword(
+    PSTR *ppszPassword
+    );
+
 PVMDIR_BIND_INFO
 VmDirAcquireBindInfo(
     PVMDIR_BIND_INFO pBindInfo

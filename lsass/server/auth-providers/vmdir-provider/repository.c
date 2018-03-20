@@ -3221,6 +3221,7 @@ VmDirLdapBind(
 {
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
+    PSTR pszPassword = NULL;
 
     if (!pDirContext->pLd)
     {
@@ -3229,6 +3230,9 @@ VmDirLdapBind(
             dwError = VmDirGetBindInfo(&pDirContext->pBindInfo);
             BAIL_ON_VMDIR_ERROR(dwError);
         }
+
+        dwError = VmDirCreateBindInfoPassword(&pszPassword);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
         if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
         {
@@ -3241,16 +3245,20 @@ VmDirLdapBind(
         dwError = VmDirLdapInitialize(
                       pDirContext->pBindInfo->pszURI,
                       pDirContext->pBindInfo->pszUPN,
-                      pDirContext->pBindInfo->pszPassword,
+                      pszPassword,
                       VMDIR_KRB5_CC_NAME,
                       &pDirContext->pLd);
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
 cleanup:
+
+    LW_SECURE_FREE_STRING(pszPassword);
+
     VMDIR_RELEASE_RWLOCK(
         &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
         bInLock);
+
     return dwError;
 
 error:
