@@ -29,33 +29,75 @@
  */
 
 /*
- * Abstract: Netlogon interface (rpc server library)
+ * Abstract: Drsuapi rpc server management functions (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- *          Adam Bernstein (abernstein@vmware.com)
  */
 
-#include "includes.h"
+#ifndef _DRSUAPI_SRV_H_
+#define _DRSUAPI_SRV_H_
 
-/* Library initialisation guard */
-pthread_mutex_t gNetlogonSrvDataMutex = PTHREAD_MUTEX_INITIALIZER;
 
-int bNetlogonSrvInitialised = 0;
+typedef struct drsuapi_rpc_context {
+} DrsuapiRpcContext, DRSUAPI_RPC_CONTEXT, *PDRSUAPI_RPC_CONTEXT;
 
-PCSTR gpszNetlogonRpcSrvName = "netlogon";
-LSA_RPCSRV_FUNCTION_TABLE gNetlogonRpcFuncTable = {
-    &NetlogonRpcStartServer,
-    &NetlogonRpcStopServer
-};
 
-rpc_binding_vector_p_t gpNetlogonSrvBinding = NULL;
+#if 0 /* TBD:Adam-Needed ??? */
+DWORD
+DrsuapiRpcRegisterRpcInterface(
+    rpc_binding_vector_p_t pSrvBinding
+    );
 
-NETLOGON_SRV_CONFIG gNetlogonSrvConfig;
 
-/* netlogon server security descriptor */
-PSECURITY_DESCRIPTOR_ABSOLUTE gpNetlogonSecDesc = NULL;
+DWORD
+DrsuapiRpcUnregisterRpcInterface(
+    rpc_binding_vector_p_t pSrvBinding
+    );
 
-PHANDLE ghDirectory;
+
+DWORD
+DrsuapiRpcStartWorker(
+    void
+    );
+#endif
+
+
+DWORD
+DrsuapiRpcStartServer(
+    void
+    );
+
+
+DWORD
+DrsuapiRpcStopServer(
+    void
+    );
+
+
+DWORD
+DrsuapiInitializeRpcSrv(
+    PSTR* ppszRpcSrvName,
+    PLSA_RPCSRV_FUNCTION_TABLE* ppFnTable
+    );
+
+
+DWORD
+DrsuapiShutdownRpcSrv(
+    PCSTR pszProviderName,
+    PLSA_RPCSRV_FUNCTION_TABLE pFnTable
+    );
+
+
+#if 0 /*TBD:Adam-In  drsuapi_cfg.h */
+DWORD
+DrsuapiSrvConfigGetLpcSocketPath(
+    PSTR *ppszLpcSocketPath
+    );
+#endif
+
+
+#endif /* _DRSUAPI_SRV_H_ */
+
 
 /*
 local variables:
@@ -65,4 +107,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

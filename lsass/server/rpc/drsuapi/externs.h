@@ -29,40 +29,37 @@
  */
 
 /*
- * Abstract: Netlogon interface (rpc server library)
+ * Abstract: Drsuapi interface (rpc server library)
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  *          Adam Bernstein (abernstein@vmware.com)
  */
 
-#include "includes.h"
+#ifndef _EXTERNS_H_
+#define _EXTERNS_H_
 
 /* Library initialisation guard */
-pthread_mutex_t gNetlogonSrvDataMutex = PTHREAD_MUTEX_INITIALIZER;
+extern pthread_mutex_t gDrsuapiSrvDataMutex;
 
-int bNetlogonSrvInitialised = 0;
+extern int bDrsuapiSrvInitialised;
 
-PCSTR gpszNetlogonRpcSrvName = "netlogon";
-LSA_RPCSRV_FUNCTION_TABLE gNetlogonRpcFuncTable = {
-    &NetlogonRpcStartServer,
-    &NetlogonRpcStopServer
-};
+extern PCSTR gpszDrsuapiRpcSrvName;
+extern LSA_RPCSRV_FUNCTION_TABLE gDrsuapiRpcFuncTable;
 
-rpc_binding_vector_p_t gpNetlogonSrvBinding = NULL;
+extern rpc_binding_vector_p_t gpDrsuapiSrvBinding;
 
-NETLOGON_SRV_CONFIG gNetlogonSrvConfig;
+extern DRSUAPI_SRV_CONFIG gDrsuapiSrvConfig;
 
-/* netlogon server security descriptor */
-PSECURITY_DESCRIPTOR_ABSOLUTE gpNetlogonSecDesc = NULL;
+extern PSECURITY_DESCRIPTOR_ABSOLUTE gpDrsuapiSecDesc;
 
-PHANDLE ghDirectory;
+extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+extern PHANDLE ghDirectory;
 
+#if 0
+extern DRSUAPI_GLOBALS gDrsuapiGlobals;
+#endif
+
+
+
+#endif /* _EXTERNS_H_ */

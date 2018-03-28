@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,33 +29,46 @@
  */
 
 /*
- * Abstract: Netlogon interface (rpc server library)
+ * Abstract: drsuapi interface (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  *          Adam Bernstein (abernstein@vmware.com)
  */
 
-#include "includes.h"
+#include <config.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <ctype.h>
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
+#include <pthread.h>
+#include <wchar.h>
 
-/* Library initialisation guard */
-pthread_mutex_t gNetlogonSrvDataMutex = PTHREAD_MUTEX_INITIALIZER;
+#include <dce/rpc.h>
+#include <dce/smb.h>
+#include <dce/lrpc.h>
+#include <dce/dcethread.h>
 
-int bNetlogonSrvInitialised = 0;
+#include <lw/types.h>
+#include <lw/base.h>
+#include <lw/security-types.h>
 
-PCSTR gpszNetlogonRpcSrvName = "netlogon";
-LSA_RPCSRV_FUNCTION_TABLE gNetlogonRpcFuncTable = {
-    &NetlogonRpcStartServer,
-    &NetlogonRpcStopServer
-};
+#include <rpcctl-register.h>
+#include <lsarpcsrv.h>
+#include <lsasrvutils.h>
+#include <lsautils.h>
 
-rpc_binding_vector_p_t gpNetlogonSrvBinding = NULL;
+#include "drsuapi_cfg.h"
+#include "drsuapi_srv.h"
+#include "drsuapidefs.h"
+#include "drsuapi_memory.h"
 
-NETLOGON_SRV_CONFIG gNetlogonSrvConfig;
+#define RPC_FILETIME_T
+#include <drsuapi_h.h>
 
-/* netlogon server security descriptor */
-PSECURITY_DESCRIPTOR_ABSOLUTE gpNetlogonSecDesc = NULL;
-
-PHANDLE ghDirectory;
+#include "externs.h"
 
 /*
 local variables:

@@ -181,6 +181,7 @@ VmdirDbAddObject(
     PSTR pszHostSpn = NULL;
     PSTR pszLdapSpn = NULL;
     PSTR pszCifsSpn = NULL;
+    PSTR pszRpcSpnUc = NULL;
 
     if (!hBindHandle || !pwszSqlDn)
     {
@@ -246,6 +247,12 @@ VmdirDbAddObject(
                   &pszCifsSpn);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    dwError = VmDirConstructServicePrincipalName(
+                  pszSqlDn,
+                  "RPC",
+                  &pszRpcSpnUc);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
 
 #if 0
     /*
@@ -267,7 +274,8 @@ VmdirDbAddObject(
     PSTR valsUserAccountControl[] = {szUserAccountControl, NULL};
     PSTR valsUserPassword[] = {"VMware123@", NULL}; /* TBD: Make random dummy password, will be changed later */
     PSTR valsdNSHostName[] = {" ", NULL};
-    PSTR valsservicePrincipalName[] = { pszHostSpn, pszLdapSpn, pszCifsSpn, NULL};
+    PSTR valsservicePrincipalName[] = { pszHostSpn, pszLdapSpn, pszCifsSpn,
+                                        pszRpcSpnUc, NULL};
     PSTR valsDescription[] = {" ", NULL};
     PSTR valsOsName[] = {" ", NULL};
     PSTR valsOsVersion[] = {" ", NULL};
@@ -355,6 +363,7 @@ cleanup:
    LW_SAFE_FREE_STRING(pszHostSpn);
    LW_SAFE_FREE_STRING(pszLdapSpn);
    LW_SAFE_FREE_STRING(pszCifsSpn);
+   LW_SAFE_FREE_STRING(pszRpcSpnUc);
 
    return dwError;
 

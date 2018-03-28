@@ -1,0 +1,36 @@
+make()
+{
+    DRSUAPI_SOURCES="\
+        globals.c     \
+        drsuapi_cfg.c \
+        drsuapi.c     \
+        drsuapi_srv.c \
+        drsuapi_memory.c \
+        "
+
+    lw_dceidl \
+	IDL=../../../idl/drsuapi.idl \
+	IDLFLAGS="-cstub_pref cli_ -sstub_pref srv_" \
+	INCLUDEDIRS=". ../../../include" \
+	HEADER="drsuapi_h.h" \
+	SSTUB="drsuapi_sstub.c" \
+	HEADERDEPS="lw/base.h"
+
+    mk_group \
+	GROUP=drsuapi_stub \
+	SOURCES="drsuapi_sstub.c" \
+	CPPFLAGS="-DDCERPC_STUB_BUILD" \
+	INCLUDEDIRS=". ../../../include" \
+	HEADERDEPS="dce/rpc.h" \
+	LIBDEPS="dcerpc"
+
+    mk_dlo \
+	DLO=libdrsuapi_srv \
+	SOURCES="$DRSUAPI_SOURCES" \
+        CPPFLAGS="-DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1 -DDCERPC_STUB_BUILD=1" \
+	GROUPS="drsuapi_stub" \
+	INCLUDEDIRS=". ../../include ../../api ../../../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwnet.h lwadvapi.h" \
+	LIBDEPS="dsapi lsaserverapi lwnetclientapi lwadvapi crypto" \
+	DEPS="drsuapi_h.h"
+}

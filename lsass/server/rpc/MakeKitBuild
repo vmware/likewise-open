@@ -1,1 +1,1 @@
-SUBDIRS="samr lsa dssetup wkssvc netlogon"
+SUBDIRS="samr lsa dssetup wkssvc netlogon drsuapi"

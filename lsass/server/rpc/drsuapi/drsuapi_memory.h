@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,40 +29,48 @@
  */
 
 /*
- * Abstract: Netlogon interface (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        drsuapi_memory.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        Drsuapi memory allocation manager
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  *          Adam Bernstein (abernstein@vmware.com)
  */
 
-#include "includes.h"
+#ifndef _DRSUAPISRV_MEMORY_H_
+#define _DRSUAPISRV_MEMORY_H_
 
-/* Library initialisation guard */
-pthread_mutex_t gNetlogonSrvDataMutex = PTHREAD_MUTEX_INITIALIZER;
 
-int bNetlogonSrvInitialised = 0;
+NTSTATUS
+DrsuapiSrvAllocateMemory(
+    void **ppOut,
+    DWORD dwSize
+    );
 
-PCSTR gpszNetlogonRpcSrvName = "netlogon";
-LSA_RPCSRV_FUNCTION_TABLE gNetlogonRpcFuncTable = {
-    &NetlogonRpcStartServer,
-    &NetlogonRpcStopServer
-};
 
-rpc_binding_vector_p_t gpNetlogonSrvBinding = NULL;
+void
+DrsuapiSrvFreeMemory(
+    void *pPtr
+    );
 
-NETLOGON_SRV_CONFIG gNetlogonSrvConfig;
+NTSTATUS
+DrsuapiSrvWC16StringDuplicate(
+    OUT PWSTR* ppwszNewString,
+    IN PCWSTR pwszOriginalString
+    );
 
-/* netlogon server security descriptor */
-PSECURITY_DESCRIPTOR_ABSOLUTE gpNetlogonSecDesc = NULL;
+NTSTATUS
+DrsuapiSrvWC16StringAllocateFromCString(
+    OUT PWSTR* ppwszNewString,
+    IN PCSTR pszOriginalString
+    );
 
-PHANDLE ghDirectory;
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
-
+#endif /* _DRSUAPISRV_MEMORY_H_ */
