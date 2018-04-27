@@ -110,6 +110,315 @@ SrvFreeIOCTLState_SMB_V2(
     PSRV_IOCTL_STATE_SMB_V2 pIOCTLState
     );
 
+static
+NTSTATUS
+_SrvMarshalIOCTLReferralPayload(
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA pReferrals,
+    PBYTE *ppData,
+    ULONG *pulDataLen)
+{
+    NTSTATUS ntStatus = 0;
+    ULONG ulDataLen = 0;
+    ULONG i = 0;
+    ULONG stringLen = 0;
+    PBYTE pData = NULL;
+    PBYTE p = NULL;
+    PBYTE *ppDomainOffset = NULL;
+    UINT16 ui16Zero = 0;
+    UINT16 ui16Val = 0;
+    UINT32 ui32TTL = 0;
+    UINT16 ui16Flags = 0;
+    UINT16 ui16Type = 0;
+    UINT16 offsetValue = 0;
+    BYTE pad16buf[16] = {0};
+    PWSTR pwszReferralName = NULL;
+
+    /* Count length of all referral strings; +1 for null terminator */
+    for (i=0; i<pReferrals->numReferrals; i++)
+    {
+        stringLen += (ULONG) LwRtlCStringNumChars(
+                                 pReferrals->pEntry[i].pszDomainName) + 1;
+    }
+
+    ulDataLen = SMB2_IOCTL_REFERRAL_PREFIX_SIZE +
+                    (SMB2_IOCTL_REFERRAL_HEADER_SIZE * i) +
+                    (stringLen * sizeof(WCHAR));
+
+    ntStatus = SrvAllocateMemory(
+                   ulDataLen * sizeof(BYTE),
+                   (PVOID*) &pData);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvAllocateMemory(
+                   i * sizeof(PBYTE),
+                   (PVOID*) &ppDomainOffset);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Marshal the prefix data, all data is little-endian */
+    p = pData;
+
+    /* Path Consumed */
+    memcpy(p, &ui16Zero, sizeof(ui16Zero)), p += sizeof ui16Zero;
+
+    /* Num Referrals */
+    ui16Val = i;
+    memcpy(p, &ui16Val, sizeof(ui16Val)), p += sizeof ui16Val;
+
+    /* Flags */
+    ui16Val = (UINT16) pReferrals->flags;
+    memcpy(p, &ui16Val, sizeof(ui16Val)), p += sizeof ui16Val;
+
+    /* Padding */
+    memcpy(p, &ui16Zero, sizeof(ui16Zero)), p += sizeof ui16Zero;
+
+    /* Marshall each referral header entry; 34 bytes long */
+    for (i=0; i<pReferrals->numReferrals; i++)
+    {
+        ui32TTL = pReferrals->pEntry[i].TTL;
+        ui16Flags = (UINT16) pReferrals->pEntry[i].flags;
+        ui16Type = (UINT16) pReferrals->pEntry[i].serverType;
+
+        /* Version = 3 */
+        ui16Val = 3;
+        memcpy(p, &ui16Val, sizeof(ui16Val)), p += sizeof(ui16Val);
+
+        /* Entry length = 34 */
+        ui16Val = SMB2_IOCTL_REFERRAL_HEADER_SIZE;
+        memcpy(p, &ui16Val, sizeof(ui16Val)), p += sizeof(ui16Val);
+
+        /* Server type */
+        memcpy(p, &ui16Type, sizeof(ui16Type)), p += sizeof(ui16Type);
+
+        /* Referrer Flags */
+        memcpy(p, &ui16Flags, sizeof(ui16Flags)), p += sizeof(ui16Flags);
+
+        /* Referrer Time To Live */
+        memcpy(p, &ui32TTL, sizeof(ui32TTL)), p += sizeof(ui32TTL);
+
+        /* Domain Offset; back fill later */
+        ppDomainOffset[i] = p, p += sizeof(UINT16);
+
+        /* Number of expanded names */
+        ui16Val = 0;
+        memcpy(p, &ui16Val, sizeof(ui16Val)), p += sizeof(ui16Val);
+
+        /* Expanded names */
+        memcpy(p, &ui16Val, sizeof(ui16Val)), p += sizeof(ui16Val);
+
+        /* Pad buffer "Unknown Data" */
+        memcpy(p, pad16buf, sizeof(pad16buf)), p += sizeof(pad16buf);
+    }
+
+    for (i=0; i<pReferrals->numReferrals; i++)
+    {
+        /* First, fill in Domain Offset value */
+        offsetValue = (UINT16) ((p - ppDomainOffset[i]) + 12);
+        memcpy(ppDomainOffset[i], &offsetValue, sizeof(offsetValue));
+
+        /* Populate this referral string value, WC16 including \0 */
+        SRV_SAFE_FREE_MEMORY(pwszReferralName);
+        ntStatus = LwRtlWC16StringAllocateFromCString(
+                       &pwszReferralName,
+                       pReferrals->pEntry[i].pszDomainName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Length of string, in bytes, including \0 terminator */
+        stringLen = (LwRtlWC16StringNumChars(pwszReferralName) + 1) *
+                        sizeof (pwszReferralName[0]);
+        memcpy(p, (PVOID) pwszReferralName, stringLen);
+        p += stringLen;
+    }
+
+    *ppData = pData;
+    *pulDataLen = p - pData;
+
+cleanup:
+    SRV_SAFE_FREE_MEMORY(ppDomainOffset);
+    SRV_SAFE_FREE_MEMORY(pwszReferralName);
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SrvBuildIOCTLReferralResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext,
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
+    PBYTE pRequestData,
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA pInReferrals)
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_IOCTL_STATE_SMB_V2    pIOCTLState   = NULL;
+    PLWIO_SRV_FILE_2           pFile         = NULL;
+    ULONG                      ulFunctionCode = 0;
+    PBYTE sMBRespBuf = NULL;
+    ULONG  ulSMBRespBufLen = 0;
+
+    ntStatus = _SrvMarshalIOCTLReferralPayload(
+                   pInReferrals,
+                   &sMBRespBuf,
+                   &ulSMBRespBufLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pCtxSmb2->hState;
+    ulFunctionCode = pRequestHeader->ulFunctionCode;
+
+    if (pIOCTLState || ulFunctionCode != IO_FSCTL_GET_DFS_REFERRALS)
+    {
+        /* Cannot process this as a referral request */
+        ntStatus = STATUS_DS_ATTRIBUTE_TYPE_UNDEFINED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvBuildIOCTLState_SMB_V2(
+                    pConnection,
+                    pRequestHeader,
+                    pRequestData,
+                    pFile,
+                    &pIOCTLState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCtxSmb2->hState = pIOCTLState;
+    InterlockedIncrement(&pIOCTLState->refCount);
+    pCtxSmb2->pfnStateRelease = &SrvReleaseIOCTLStateHandle_SMB_V2;
+
+    pIOCTLState->ulResponseBufferLen = ulSMBRespBufLen;
+    pIOCTLState->pResponseBuffer = sMBRespBuf;
+
+    /* Referral reply is appended to the pExecContext response buffer */
+    ntStatus = SrvBuildIOCTLResponse_SMB_V2(pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    return ntStatus;
+
+error:
+    goto cleanup;
+
+}
+
+static
+VOID
+SrvFreeIOCTLReferralData_SMB_V2(
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA pReferrals)
+{
+    ULONG i = 0;
+
+    if (!pReferrals)
+    {
+        goto cleanup;
+    }
+    if (!pReferrals->pEntry)
+    {
+        goto cleanup;
+    }
+
+    for (i=0; i<pReferrals->numReferrals; i++)
+    {
+        SRV_SAFE_FREE_MEMORY(pReferrals->pEntry[i].pszDomainName);
+    }
+    SRV_SAFE_FREE_MEMORY(pReferrals->pEntry);
+
+cleanup:
+    SRV_SAFE_FREE_MEMORY(pReferrals);
+
+    return;
+}
+
+
+static
+NTSTATUS
+SrvGetIOCTLReferralData_SMB_V2(
+    ULONG TTL,
+    PSTR *pszReferrals,
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA *ppReferrals)
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA_ENTRY pReferralEntries = NULL;
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA pReferrals = NULL;
+    ULONG i = 0;
+    ULONG cnt = 0;
+
+    for (i=0; pszReferrals[i]; i++)
+        ;
+    cnt = i;
+
+    ntStatus = SrvAllocateMemory(
+                     i * sizeof(SRV_FSCTL_REFERRAL_RESPONSE_DATA_ENTRY),
+                    (PVOID*) &pReferralEntries);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_FSCTL_REFERRAL_RESPONSE_DATA),
+                    (PVOID*) &pReferrals);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (i=0; pszReferrals[i]; i++)
+    {
+        pReferralEntries[i].TTL = TTL;
+        pReferralEntries[i].flags = SMB2_IOCTL_FLAG_NAME_LIST_REFERRAL;
+        pReferralEntries[i].pszDomainName = pszReferrals[i];
+    }
+
+    pReferrals->flags = 0;
+    pReferrals->numReferrals = i;
+    pReferrals->pEntry = pReferralEntries;
+
+    *ppReferrals = pReferrals;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pReferralEntries)
+    {
+        for (i=0; i<cnt; i++)
+        {
+            SRV_SAFE_FREE_MEMORY(pReferralEntries[i].pszDomainName);
+        }
+    }
+    SRV_SAFE_FREE_MEMORY(pReferralEntries);
+    SRV_SAFE_FREE_MEMORY(pReferrals);
+    goto cleanup;
+}
+
+/* TBD:Adam-Stub function to get referral data from directory */
+static
+NTSTATUS
+SrvGetLdap_IOCTLReferralData_SMB_V2(
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA *ppReferrals)
+{
+    NTSTATUS ntStatus = 0;
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA pReferrals = 0;
+
+    /* TBD:Adam-Get this data from vmdir */
+    PSTR pszReferralsArray[] = { "\\LIGHTWAVE",
+                                 "\\lightwave.local",
+                                 NULL,
+                               };
+
+    ntStatus = SrvGetIOCTLReferralData_SMB_V2(
+                   600,
+                   pszReferralsArray,
+                   &pReferrals);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppReferrals = pReferrals;
+
+cleanup:
+    return ntStatus;
+
+error:
+    SrvFreeIOCTLReferralData_SMB_V2(pReferrals);
+    goto cleanup;
+}
+
 NTSTATUS
 SrvProcessIOCTL_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
@@ -124,6 +433,8 @@ SrvProcessIOCTL_SMB_V2(
     PLWIO_SRV_TREE_2           pTree         = NULL;
     PLWIO_SRV_FILE_2           pFile         = NULL;
     BOOLEAN                    bInLock       = FALSE;
+    ULONG                      ulFunctionCode = 0;
+    PSRV_FSCTL_REFERRAL_RESPONSE_DATA pReferrals = NULL;
 
     pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -191,12 +502,25 @@ SrvProcessIOCTL_SMB_V2(
             pRequestHeader->ulOutOffset,
             pRequestHeader->ulMaxOutLength);
 
+        ulFunctionCode = pRequestHeader->ulFunctionCode;
         switch (pRequestHeader->ulFunctionCode)
         {
             case IO_FSCTL_GET_DFS_REFERRALS:
+                if (!pIOCTLState &&
+                    ulFunctionCode == IO_FSCTL_GET_DFS_REFERRALS)
+                {
+                    ntStatus = SrvGetLdap_IOCTLReferralData_SMB_V2(
+                                  &pReferrals);
+                    BAIL_ON_NT_STATUS(ntStatus);
 
-                ntStatus = STATUS_FS_DRIVER_REQUIRED;
-
+                    ntStatus = SrvBuildIOCTLReferralResponse_SMB_V2(
+                                   pExecContext,
+                                   pRequestHeader,
+                                   pData,
+                                   pReferrals);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                    goto cleanup;
+                }
                 break;
 
             case IO_FSCTL_PIPE_WAIT:
@@ -327,6 +651,7 @@ SrvBuildIOCTLState_SMB_V2(
     NTSTATUS                ntStatus    = STATUS_SUCCESS;
     PSRV_IOCTL_STATE_SMB_V2 pIOCTLState = NULL;
 
+
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_IOCTL_STATE_SMB_V2),
                     (PVOID*)&pIOCTLState);
@@ -339,7 +664,10 @@ SrvBuildIOCTLState_SMB_V2(
 
     pIOCTLState->pConnection = SrvConnectionAcquire(pConnection);
 
-    pIOCTLState->pFile = SrvFile2Acquire(pFile);
+    if (pFile)
+    {
+        pIOCTLState->pFile = SrvFile2Acquire(pFile);
+    }
 
     pIOCTLState->pRequestHeader = pRequestHeader;
     pIOCTLState->pData          = pData;
@@ -574,7 +902,7 @@ SrvExecuteIOCTLAsyncCB_SMB_V2(
     PVOID pContext
     )
 {
-    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    // NTSTATUS                   ntStatus         = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
     PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
     PSRV_IOCTL_STATE_SMB_V2    pIOCTLState      = NULL;
@@ -594,7 +922,8 @@ SrvExecuteIOCTLAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pIOCTLState->mutex);
 
-    ntStatus = SrvProtocolExecute(pExecContext);
+    SrvProtocolExecute(pExecContext);
+    // ntStatus = SrvProtocolExecute(pExecContext);
     // (!NT_SUCCESS(ntStatus)) - Error has already been logged
 
     SrvReleaseExecContext(pExecContext);
