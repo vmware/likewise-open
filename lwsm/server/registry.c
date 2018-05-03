@@ -200,6 +200,10 @@ LwSmRegistryReadServiceInfo(
         {'E', 'n', 'v', 'i', 'r', 'o', 'n', 'm', 'e', 'n', 't', 0};
     static const WCHAR wszAutostart[] =
         {'A', 'u', 't', 'o', 's', 't', 'a', 'r', 't', 0};
+    static const WCHAR wszUser[] =
+        {'U', 's', 'e', 'r', 0};
+    static const WCHAR wszGroup[] =
+        {'G', 'r', 'o', 'u', 'p', 0};
 
     dwError = LwWc16sToMbs(pwszName, &pszName);
     BAIL_ON_ERROR(dwError);
@@ -243,12 +247,36 @@ LwSmRegistryReadServiceInfo(
         &pInfo->pwszDescription);
     BAIL_ON_ERROR(dwError);
 
-   dwError = LwSmRegistryReadString(
+    dwError = LwSmRegistryReadString(
         hReg,
         pRootKey,
         pwszParentKey,
         wszPath,
         &pInfo->pwszPath);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmRegistryReadString(
+        hReg,
+        pRootKey,
+        pwszParentKey,
+        wszUser,
+        &pInfo->pwszUser);
+    if (dwError == LWREG_ERROR_NO_SUCH_KEY_OR_VALUE)
+    {
+        dwError = 0;
+    }
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmRegistryReadString(
+        hReg,
+        pRootKey,
+        pwszParentKey,
+        wszGroup,
+        &pInfo->pwszGroup);
+    if (dwError == LWREG_ERROR_NO_SUCH_KEY_OR_VALUE)
+    {
+        dwError = 0;
+    }
     BAIL_ON_ERROR(dwError);
 
     dwError = LwSmRegistryReadStringList(

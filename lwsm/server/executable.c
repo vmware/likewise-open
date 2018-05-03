@@ -58,6 +58,8 @@ typedef struct _SM_EXECUTABLE
     PLW_TASK pTask;
     LW_SERVICE_STATE state;
     pid_t pid;
+    uid_t uid;
+    gid_t gid;
     int notifyFd;
     LW_SERVICE_TYPE type;
     PWSTR pwszPath;
@@ -234,6 +236,101 @@ error:
 
 static
 DWORD
+LwSmUserToUid(
+    PCSTR pszUser,
+    uid_t *pUid)
+{
+    DWORD dwError = 0;
+    struct passwd pwd = {0};
+    struct passwd *pwd_result = NULL;
+    char *buf = NULL;
+    size_t buflen = 0;
+    int sts = 0;
+    long l = 0;
+
+    l = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (l < 0)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+    buflen = l;
+
+    dwError = LwAllocateMemory(
+                    buflen,
+                    (PVOID*)&buf);
+    BAIL_ON_ERROR(dwError);
+
+    sts = getpwnam_r(pszUser,
+                     &pwd,
+                     buf,
+                     buflen,
+                     &pwd_result);
+    if (sts < 0)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    *pUid = pwd.pw_uid;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(buf);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LwSmGroupToGid(
+    PCSTR pszGroup,
+    gid_t *pGid)
+{
+    DWORD dwError = 0;
+    struct group grp = {0};
+    struct group *grp_result = NULL;
+    char *buf = NULL;
+    size_t buflen = 0;
+    int sts = 0;
+    long l = 0;
+
+    l = sysconf(_SC_GETGR_R_SIZE_MAX);
+    if (l < 0)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+    buflen = l;
+
+    dwError = LwAllocateMemory(
+                    buflen,
+                    (PVOID*)&buf);
+    BAIL_ON_ERROR(dwError);
+
+    sts = getgrnam_r(pszGroup,
+                     &grp,
+                     buf,
+                     buflen,
+                     &grp_result);
+    if (sts < 0)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_ERROR(dwError);
+    }
+
+    *pGid = grp.gr_gid;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
 LwSmExecProgram(
     PSM_EXECUTABLE pExec,
     int* pNotifyPipe
@@ -327,6 +424,24 @@ LwSmExecProgram(
     if (pNotifyPipe)
     {
        ppszEnv[environLen + envLen] = "LIKEWISE_SM_NOTIFY=3";
+    }
+
+    if (pExec->gid != 0)
+    {
+        if (setgid(pExec->gid) < 0)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_ERROR(dwError);
+        }
+    }
+
+    if (pExec->uid != 0)
+    {
+        if (setuid(pExec->uid) < 0)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_ERROR(dwError);
+        }
     }
 
     if (execve(pszPath, ppszArgs, ppszEnv) < 0)
@@ -472,6 +587,8 @@ LwSmExecutableConstruct(
     DWORD dwError = 0;
     PSM_EXECUTABLE pExec = NULL;
     BOOLEAN bLocked = FALSE;
+    PSTR pszUser = NULL;
+    PSTR pszGroup = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pExec), OUT_PPVOID(&pExec));
     BAIL_ON_ERROR(dwError);
@@ -492,6 +609,24 @@ LwSmExecutableConstruct(
     pExec->state = LW_SERVICE_STATE_STOPPED;
     pExec->pObject = pObject;
 
+    if (pInfo->pwszUser)
+    {
+        dwError = LwWc16sToMbs(pInfo->pwszUser, &pszUser);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmUserToUid(pszUser, &pExec->uid);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    if (pInfo->pwszGroup)
+    {
+        dwError = LwWc16sToMbs(pInfo->pwszGroup, &pszGroup);
+        BAIL_ON_ERROR(dwError);
+
+        dwError = LwSmGroupToGid(pszGroup, &pExec->gid);
+        BAIL_ON_ERROR(dwError);
+    }
+
     *ppData = pExec;
 
     LOCK(bLocked, &gProcTable.lock);
@@ -499,6 +634,9 @@ LwSmExecutableConstruct(
 cleanup:
 
     UNLOCK(bLocked, &gProcTable.lock);
+
+    LW_SAFE_FREE_MEMORY(pszUser);
+    LW_SAFE_FREE_MEMORY(pszGroup);
 
     return dwError;
 

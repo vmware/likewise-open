@@ -973,6 +973,24 @@ LwSmInfo(
     printf("Path: %s\n", pszTemp);
     LW_SAFE_FREE_MEMORY(pszTemp);
 
+    if (pInfo->pwszUser)
+    {
+        dwError = LwWc16sToMbs(pInfo->pwszUser, &pszTemp);
+        BAIL_ON_ERROR(dwError);
+
+        printf("User: %s\n", pszTemp);
+        LW_SAFE_FREE_MEMORY(pszTemp);
+    }
+
+    if (pInfo->pwszGroup)
+    {
+        dwError = LwWc16sToMbs(pInfo->pwszGroup, &pszTemp);
+        BAIL_ON_ERROR(dwError);
+
+        printf("Group: %s\n", pszTemp);
+        LW_SAFE_FREE_MEMORY(pszTemp);
+    }
+
     printf("Arguments:");
 
     for (i = 0; pInfo->ppwszArgs[i]; i++)
