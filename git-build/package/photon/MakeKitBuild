@@ -31,7 +31,7 @@ configure()
     then
         mk_export PKG_RPM_NAME="likewise-open"
         mk_export PKG_RPM_VERSION="${LW_VERSION}"
-        mk_export PKG_RPM_RELEASE="8"
+        mk_export PKG_RPM_RELEASE="9"
         mk_export PKG_DIST="${DIST}"
 
         PKG_RPM_COMPAT="0"
