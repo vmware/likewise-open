@@ -5,12 +5,11 @@ After=syslog.target network.target network-online.target haveged.service
 Requires=haveged.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=true
+Type=forking
 ExecStart=PREFIX_DIR/sbin/lwsmd --start-as-daemon --syslog
 ExecStartPost=PREFIX_DIR/bin/lwsm autostart
 ExecStop=PREFIX_DIR/bin/lwsm shutdown
-KillMode=none
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
