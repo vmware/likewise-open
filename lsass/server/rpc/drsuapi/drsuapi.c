@@ -428,7 +428,9 @@ DRSMakeCrackNamesResult(
 
             ntStatus = DrsuapiSrvWC16StringAllocateFromCString(
                            &pwszRpDomain,
-                           pszRpDomain);
+                           //pszRpDomain); /* TBD:Adam-"domain\\"
+                           "lightwave\\\\");
+                           
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 /* TBD: Bad to return NULL pointer; seeing crash */
@@ -443,19 +445,20 @@ memset(pwszRpName, 0, 4);
                  formatDesired == DS_FQDN_1779_NAME &&
                  LwRtlCStringCompare(
                      pszRpDomain,
-                     "lightwaveADAM-WIN2K8R2-D$",
+                     "lightwave\\\\ADAM-WIN2K8R2-D$",
                      FALSE) == 0)
         {
             ntStatus = DrsuapiSrvWC16StringAllocateFromCString(
                            &pwszRpName,
-                           "cn=ADAM-WIN2K8R2-D,dc=lightwave,dc=local");
+                           "cn=ADAM-WIN2K8R2-D,cn=Computers,dc=lightwave,dc=local");
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-/* TBD: Bad to return NULL pointer; seeing crash */
-pwszRpDomain = rpc_ss_allocate(4);
-memset(pwszRpDomain, 0, 4);
+            /* TBD:Adam Bad to return NULL pointer; seeing crash */
+            pwszRpDomain = rpc_ss_allocate(4);
+            memset(pwszRpDomain, 0, 4);
 
-            pRetNameResultArray[cnamesCount].status = 0; /* TBD:Adam-always return success for now */
+            /* TBD:Adam-always return success for now */
+            pRetNameResultArray[cnamesCount].status = 0; 
             pRetNameResultArray[cnamesCount].pName = pwszRpName;
             pRetNameResultArray[cnamesCount].pDomain = pwszRpDomain;
         }
@@ -463,7 +466,6 @@ memset(pwszRpDomain, 0, 4);
     pRetNameResult->cItems = cnamesMax;
 
     *pdwOutVersion = dwInVersion;
-    // *pmsgOut = *pRetCrackReply;
     pmsgOut->V1.pResult = pRetNameResult;
 
 cleanup:

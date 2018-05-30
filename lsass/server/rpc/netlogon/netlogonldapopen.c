@@ -110,6 +110,26 @@ error:
     goto cleanup;
 }
 
+VOID
+NetlogonLdapRelease(
+    PHANDLE phDirectory)
+{
+    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) phDirectory;
+
+    if (!phDirectory)
+    {
+        return;
+    }
+
+    pthread_mutex_destroy(pContext->pMutex);
+    NetlogonReleaseBindInfo(pContext->dirContext.pBindInfo);
+    if (pContext->dirContext.pLd)
+    {
+        ldap_unbind_ext(pContext->dirContext.pLd, NULL, NULL);
+    }
+    LW_SAFE_FREE_MEMORY(pContext);
+}
 
 
 /*

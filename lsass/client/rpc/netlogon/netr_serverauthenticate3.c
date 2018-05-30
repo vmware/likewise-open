@@ -64,6 +64,7 @@ NetrServerAuthenticate3(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
     NetrCred Creds;
+    NetrCred NetrSrvCreds;
     PWSTR pwszServerName = NULL;
     PWSTR pwszAccountName = NULL;
     PWSTR pwszComputerName = NULL;
@@ -71,6 +72,7 @@ NetrServerAuthenticate3(
     UINT32 Rid = 0;
 
     memset(&Creds, 0, sizeof(Creds));
+    memset(&NetrSrvCreds, 0, sizeof(NetrSrvCreds));
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
@@ -101,11 +103,12 @@ NetrServerAuthenticate3(
                                                       SchannelType,
                                                       pwszComputerName,
                                                       &Creds,
+                                                      &NetrSrvCreds,
                                                       &Flags,
                                                       &Rid));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(SrvCreds, Creds.data, sizeof(Creds.data));
+    memcpy(SrvCreds, NetrSrvCreds.data, sizeof(NetrSrvCreds.data));
 
     *pNegFlags = Flags;
     *pRid      = Rid;

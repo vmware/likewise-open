@@ -54,8 +54,11 @@
 #include <wc16printf.h>
 #include <openssl/md4.h>
 #include <openssl/md5.h>
-#include <openssl/rc4.h>
-#include <openssl/des.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
 #include <uuid/uuid.h>
 #include <ldap.h>
 #include <lber.h>

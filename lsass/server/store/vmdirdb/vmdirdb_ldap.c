@@ -1382,6 +1382,7 @@ VmDirConstructMachineDN(
     for (i=0; pszDnPtr[i]; i++)
         ;
 
+    /* Verify has CN= prefix */
     if (i < 3 ||
         (char) tolower((int) pszDnPtr[0]) != 'c' ||
         (char) tolower((int) pszDnPtr[1]) != 'n' ||
@@ -1399,10 +1400,24 @@ VmDirConstructMachineDN(
     }
     pszPtr[0] = '\0';
 
-    /* Build the actual dn: value cn=xyz,cn=users, name component */
+    /* Verify has '$' suffix before next name component; is computer account */
+    pszPtr = &pszDnPtr[strlen(pszDnPtr)-1];
+    if (*pszPtr == '$')
+    {
+        /* Remove '$', as this is not in the DN for a computer account */
+        *pszPtr = '\0';
+    }
+    else
+    {
+        /* This is not a computer account; fail */
+        ntStatus = STATUS_INVALID_ACCOUNT_NAME;
+        BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+    }
+
+    /* Build the actual dn: CN=HOST,CN=Computers,dc=example,dc=com */
     ntStatus = LwRtlCStringAllocateAppendPrintf(
                    &pszDnPtr,
-                   ",%s",
+                   ",CN=Computers,%s",
                    gVmdirGlobals.pszDomainDn);
     dwError =  LwNtStatusToWin32Error(ntStatus);
     BAIL_ON_VMDIRDB_ERROR(dwError);
@@ -1484,6 +1499,115 @@ VmDirConstructServicePrincipalName(
                    pszAcctHost,
                    pszAcctDomainLc,
                    pszAcctDomain);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    *ppszAcctSpn = pszAcctSpn;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszObjectDn);
+    LW_SAFE_FREE_STRING(pszAcctDomain);
+    LW_SAFE_FREE_STRING(pszAcctDomainLc);
+    LW_SAFE_FREE_STRING(pszAcctHost);
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszAcctSpn);
+    goto cleanup;
+}
+
+DWORD
+VmDirConstructServicePrincipalNameEx(
+    PSTR pszSqlDomainName,
+    PSTR pszServiceName,
+    BOOLEAN bUpperCaseHost,
+    BOOLEAN bShortHost,
+    PSTR *ppszAcctSpn)
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSTR pszObjectDn = NULL;
+    PSTR pszAcctHost = NULL;
+    PSTR pszAcctDomain = NULL;
+    PSTR pszAcctDomainLc = NULL;
+    PSTR pszAcctSpn = NULL;
+    PSTR pszPtr = NULL;
+
+    dwError = VmDirConstructMachineDN(
+                  pszSqlDomainName,
+                  &pszObjectDn);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = LwLdapConvertDNToDomain(pszObjectDn, &pszAcctDomain);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (pszPtr = pszAcctDomain; *pszPtr; pszPtr++)
+    {
+        *pszPtr = (char) toupper((int) *pszPtr);
+    }
+
+    dwError = LwLdapConvertDNToDomain(pszObjectDn, &pszAcctDomainLc);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    for (pszPtr = pszAcctDomainLc; *pszPtr; pszPtr++)
+    {
+        *pszPtr = (char) tolower((int) *pszPtr);
+    }
+
+    pszPtr = strstr(pszObjectDn+3, ",dc");
+    if (pszPtr)
+    {
+        *pszPtr = '\0';
+    }
+
+    /* + 3 to skip "cn=" prefix */
+    ntStatus = LwRtlCStringDuplicate(&pszAcctHost, pszObjectDn+3);
+    BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
+
+    /* Eliminate the trailing $ from the hostname */
+    pszPtr = strstr(pszAcctHost, "$");
+    if (pszPtr)
+    {
+        *pszPtr = '\0';
+    }
+
+    /* Adjust case the hostname */
+    if (bUpperCaseHost)
+    {
+        for (pszPtr = pszAcctHost; *pszPtr; pszPtr++)
+        {
+            *pszPtr = (char) toupper((int) *pszPtr);
+        }
+    }
+    else
+    {
+        for (pszPtr = pszAcctHost; *pszPtr; pszPtr++)
+        {
+            *pszPtr = (char) tolower((int) *pszPtr);
+        }
+    }
+
+    if (bShortHost)
+    {
+        /* Build SPN of the form service/host_fqdn@DOMAIN_FQDN */
+        ntStatus = LwRtlCStringAllocatePrintf(
+                       &pszAcctSpn,
+                       "%s/%s@%s",
+                       pszServiceName,
+                       pszAcctHost,
+                       pszAcctDomain);
+    }
+    else
+    {
+        /* Build SPN of the form service/host_fqdn@DOMAIN_FQDN */
+        ntStatus = LwRtlCStringAllocatePrintf(
+                       &pszAcctSpn,
+                       "%s/%s.%s@%s",
+                       pszServiceName,
+                       pszAcctHost,
+                       pszAcctDomainLc,
+                       pszAcctDomain);
+    }
+    /* Build SPN of the form service/host_fqdn@DOMAIN_FQDN */
     BAIL_ON_VMDIRDB_ERROR(LwNtStatusToWin32Error(ntStatus));
 
     *ppszAcctSpn = pszAcctSpn;

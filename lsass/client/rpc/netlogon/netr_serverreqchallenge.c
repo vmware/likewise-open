@@ -59,10 +59,12 @@ NetrServerReqChallenge(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
     NetrCred Creds;
+    NetrCred SvrCreds;
     PWSTR pwszServerName = NULL;
     PWSTR pwszComputerName = NULL;
 
     memset(&Creds, 0, sizeof(Creds));
+    memset(&SvrCreds, 0, sizeof(SvrCreds));
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
@@ -83,13 +85,15 @@ NetrServerReqChallenge(
     DCERPC_CALL(ntStatus, cli_NetrServerReqChallenge(hBinding,
                                                      pwszServerName,
                                                      pwszComputerName,
-                                                     &Creds));
+                                                     &Creds,
+                                                     &SvrCreds));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(SrvChal, Creds.data, sizeof(Creds.data));
+    memcpy(SrvChal, SvrCreds.data, sizeof(SvrCreds.data));
 
 cleanup:
     memset(&Creds, 0, sizeof(Creds));
+    memset(&SvrCreds, 0, sizeof(SvrCreds));
 
     LW_SAFE_FREE_MEMORY(pwszServerName);
     LW_SAFE_FREE_MEMORY(pwszComputerName);

@@ -160,6 +160,8 @@
     {'L','M','H','a','s','h',0}
 #define DS_ATTR_NT_HASH \
     {'N','T','H','a','s','h',0}
+#define DS_CN_COMPUTERS \
+    {'C','o','m','p','u','t','e','r','s',0}
 
 
 #define DS_OBJECT_CLASS_UNKNOWN          (0)

@@ -182,6 +182,8 @@ VmdirDbAddObject(
     PSTR pszLdapSpn = NULL;
     PSTR pszCifsSpn = NULL;
     PSTR pszRpcSpnUc = NULL;
+    PSTR pszDnsSpnUc = NULL;
+    PSTR pszLdapSpnUcShort = NULL;
 
     if (!hBindHandle || !pwszSqlDn)
     {
@@ -253,6 +255,20 @@ VmdirDbAddObject(
                   &pszRpcSpnUc);
     BAIL_ON_VMDIRDB_ERROR(dwError);
 
+    dwError = VmDirConstructServicePrincipalName(
+                  pszSqlDn,
+                  "DNS",
+                  &pszDnsSpnUc);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
+    dwError = VmDirConstructServicePrincipalNameEx(
+                  pszSqlDn,
+                  "LDAP",
+                  TRUE,  /* Uc host */
+                  TRUE,  /* not FQDN */
+                  &pszLdapSpnUcShort);
+    BAIL_ON_VMDIRDB_ERROR(dwError);
+
 
 #if 0
     /*
@@ -275,7 +291,8 @@ VmdirDbAddObject(
     PSTR valsUserPassword[] = {"VMware123@", NULL}; /* TBD: Make random dummy password, will be changed later */
     PSTR valsdNSHostName[] = {" ", NULL};
     PSTR valsservicePrincipalName[] = { pszHostSpn, pszLdapSpn, pszCifsSpn,
-                                        pszRpcSpnUc, NULL};
+                                        pszRpcSpnUc, pszDnsSpnUc,
+                                        pszLdapSpnUcShort, NULL };
     PSTR valsDescription[] = {" ", NULL};
     PSTR valsOsName[] = {" ", NULL};
     PSTR valsOsVersion[] = {" ", NULL};
@@ -364,6 +381,8 @@ cleanup:
    LW_SAFE_FREE_STRING(pszLdapSpn);
    LW_SAFE_FREE_STRING(pszCifsSpn);
    LW_SAFE_FREE_STRING(pszRpcSpnUc);
+   LW_SAFE_FREE_STRING(pszDnsSpnUc);
+   LW_SAFE_FREE_STRING(pszLdapSpnUcShort);
 
    return dwError;
 

@@ -171,13 +171,6 @@ DrsuapiRpcStartServer(
                                      pszDescription);
     BAIL_ON_LSA_ERROR(dwError);
 
-    /*
-     * Open firewall port for DRSUAPI service. This is an ephemerial port,
-     * and this service is registered with the DCE/RPC endpoint mapper for
-     * client discovery. This port must be open for this to work.
-     */
-    system("/tmp/firewall-drsuapi.sh");
-
 error:
     LW_SAFE_FREE_STRING(pszLpcSocketPath);
 

@@ -39,6 +39,10 @@ NetlogonLdapOpen(
     PHANDLE phDirectory
     );
 
+VOID
+NetlogonLdapRelease(
+    PHANDLE phDirectory
+    );
 
 DWORD
 NetlogonLdapQueryObjects(

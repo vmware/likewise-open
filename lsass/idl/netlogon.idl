@@ -41,6 +41,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 cpp_quote("#endif")
 
+    typedef wchar16_t * LOGONSRV_HANDLE;
 
     NTSTATUS netr_Function00();
     NTSTATUS netr_Function01();
@@ -68,12 +69,24 @@ cpp_quote("#endif")
         [in,ref,switch_is(logon_level)] NetrLogonInfo *logon
         );
 
+
+#if 1 /* Taken from MSDN netlogon IDL */
+     // Opnum 4
+     NTSTATUS
+     NetrServerReqChallenge (
+         [in, string] LOGONSRV_HANDLE PrimaryName,
+         [in, string] wchar16_t *ComputerName,
+         [in] NetrCred *ClientChallenge,
+         [out] NetrCred *ServerChallenge
+         );
+#else
 	/* function 0x04 */
     NTSTATUS NetrServerReqChallenge(
         [in,string,unique] wchar16_t *server_name,
         [in,string] wchar16_t *computer_name,
         [in,out,ref] NetrCred *credentials
         );
+#endif
 
 	/* function 0x05 */
     NTSTATUS NetrServerAuthenticate(
@@ -125,6 +138,22 @@ cpp_quote("#endif")
     NTSTATUS netr_Function18();
     NTSTATUS netr_Function19();
 
+#if 1 /* Taken from MSDN netlogon IDL */
+     // Opnum 26
+     NTSTATUS
+     NetrServerAuthenticate3 (
+         [in,string] LOGONSRV_HANDLE PrimaryName,
+         [in,string] wchar16_t * AccountName,
+         [in] UINT16 SecureChannelType,
+         [in, string] wchar16_t * ComputerName,
+         [in] NetrCred *ClientCredential,
+         [out] NetrCred *ServerCredential,
+         [in,out] ULONG * NegotiateFlags,
+         [out] ULONG * AccountRid
+         );
+#else /* #if 0 */
+/* Windows Netlogon definition, looks different than likewise, hmmm */
+/* This is definitely wrong, missing Client/Server credentials args */
 	/* function 0x1a */
     NTSTATUS NetrServerAuthenticate3(
         [in,string] wchar16_t *server_name,
@@ -135,6 +164,7 @@ cpp_quote("#endif")
         [in,out,ref] UINT32 *negotiate_flags,
         [out,ref] UINT32 *rid
         );
+#endif
 
     NTSTATUS netr_Function1b();
     NTSTATUS netr_Function1c();

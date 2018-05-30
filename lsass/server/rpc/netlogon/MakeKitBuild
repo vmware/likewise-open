@@ -2,7 +2,6 @@ make()
 {
     NETLOGON_SOURCES="\
         globals.c                        \
-	netlogon.c                       \
 	netlogon_cfg.c                   \
 	netlogon_srv.c                   \
 	netlogon_memory.c                \
@@ -31,11 +30,33 @@ make()
 
     mk_dlo \
 	DLO=libnetlogon_srv \
-	SOURCES="$NETLOGON_SOURCES" \
+	SOURCES="netlogon.c $NETLOGON_SOURCES" \
         CPPFLAGS="-DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
 	GROUPS="netlogon_stub" \
 	INCLUDEDIRS=". ../../include ../../api ../../../include" \
 	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwnet.h lwadvapi.h uuid/uuid.h openssl/md4.h" \
 	LIBDEPS="dsapi lsaserverapi lwnetclientapi lwadvapi crypto" \
+	DEPS="netlogon_h.h"
+
+    mk_program \
+        PROGRAM="netlogon_test" \
+        SOURCES="netlogon_test.c netlogon.c $NETLOGON_SOURCES" \
+        INSTALLDIR="${MK_BINDIR}" \
+        CPPFLAGS="-D_NETLOGON_UNIT_TEST -DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
+	GROUPS="netlogon_stub" \
+	INCLUDEDIRS=". ../../include ../../api ../../../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwnet.h lwadvapi.h uuid/uuid.h openssl/md4.h" \
+	LIBDEPS="dsapi lsaserverapi lwnetclientapi lwadvapi regclient rsutils lwadvapi_nothr lwbase lwbase_nothr uuid crypto ldap_r lber dcerpc $LIB_PTHREAD $LIB_DL" \
+	DEPS="netlogon_h.h"
+
+    mk_program \
+        PROGRAM="netlogon_test2" \
+        SOURCES="netlogon_test2.c netlogon.c $NETLOGON_SOURCES" \
+        INSTALLDIR="${MK_BINDIR}" \
+        CPPFLAGS="-D_NETLOGON_UNIT_TEST -DLW_ENABLE_THREADS=1 -DLDAP_DEPRECATED=1" \
+	GROUPS="netlogon_stub" \
+	INCLUDEDIRS=". ../../include ../../api ../../../include" \
+	HEADERDEPS="dce/rpc.h lw/base.h lwio/lwio.h lwnet.h lwadvapi.h uuid/uuid.h openssl/md4.h" \
+	LIBDEPS="dsapi lsaserverapi lwnetclientapi lwadvapi regclient rsutils lwadvapi_nothr lwbase lwbase_nothr uuid crypto ldap_r lber dcerpc $LIB_PTHREAD $LIB_DL" \
 	DEPS="netlogon_h.h"
 }

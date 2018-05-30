@@ -182,6 +182,14 @@ VmDirConstructServicePrincipalName(
     PSTR *ppszAcctSpn);
 
 DWORD
+VmDirConstructServicePrincipalNameEx(
+    PSTR pszSqlDomainName,
+    PSTR pszServiceName,
+    BOOLEAN bUpperCaseHost,
+    BOOLEAN bShortHost,
+    PSTR *ppszAcctSpn);
+
+DWORD
 VmDirConstructMachineUPN(
     PSTR pszSqlDomainName,
     PSTR *ppszMachineAcctUpn);
