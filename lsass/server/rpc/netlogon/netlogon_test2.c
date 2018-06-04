@@ -1,5 +1,7 @@
 #include "includes.h"
 
+#define _MACHACCT_UNICODE_PWD_LENGTH 240
+
 int
 compute_md4_digest(
    PUCHAR puValue,
@@ -68,248 +70,268 @@ void printhex(unsigned char *hex, int hexlen)
     }
 }
 
-int main(int argc, char *argv[])
+typedef struct _netlogon_authdata
 {
-#if 0
-    unsigned char unicodePwd[] = {
- 0x45, 0x00, 0x52, 0x00, 0x33, 0x00, 0x5d, 0x00, 0x31, 0x00, 0x26, 0x00, 0x4d, 0x00, 0x44, 0x00,
- 0x22, 0x00, 0x59, 0x00, 0x76, 0x00, 0x7a, 0x00, 0x38, 0x00, 0x35, 0x00, 0x3b, 0x00, 0x35, 0x00,
- 0x6a, 0x00, 0x5f, 0x00, 0x3c, 0x00, 0x3f, 0x00, 0x51, 0x00, 0x6c, 0x00, 0x34, 0x00, 0x4d, 0x00,
- 0x36, 0x00, 0x67, 0x00, 0x78, 0x00, 0x7a, 0x00, 0x3c, 0x00, 0x50, 0x00, 0x3a, 0x00, 0x58, 0x00,
- 0x5e, 0x00, 0x67, 0x00, 0x61, 0x00, 0x64, 0x00, 0x67, 0x00, 0x20, 0x00, 0x45, 0x00, 0x54, 0x00,
- 0x44, 0x00, 0x32, 0x00, 0x38, 0x00, 0x28, 0x00, 0x38, 0x00, 0x59, 0x00, 0x62, 0x00, 0x5b, 0x00,
- 0x26, 0x00, 0x52, 0x00, 0x71, 0x00, 0x23, 0x00, 0x25, 0x00, 0x46, 0x00, 0x5c, 0x00, 0x36, 0x00,
- 0x3f, 0x00, 0x69, 0x00, 0x68, 0x00, 0x27, 0x00, 0x48, 0x00, 0x5c, 0x00, 0x4b, 0x00, 0x5e, 0x00,
- 0x2b, 0x00, 0x29, 0x00, 0x75, 0x00, 0x5b, 0x00, 0x3a, 0x00, 0x34, 0x00, 0x33, 0x00, 0x5c, 0x00,
- 0x46, 0x00, 0x3d, 0x00, 0x4d, 0x00, 0x51, 0x00, 0x57, 0x00, 0x4d, 0x00, 0x35, 0x00, 0x43, 0x00,
- 0x34, 0x00, 0x54, 0x00, 0x32, 0x00, 0x38, 0x00, 0x3c, 0x00, 0x6b, 0x00, 0x29, 0x00, 0x3f, 0x00,
- 0x49, 0x00, 0x48, 0x00, 0x4c, 0x00, 0x68, 0x00, 0x69, 0x00, 0x62, 0x00, 0x21, 0x00, 0x45, 0x00,
- 0x27, 0x00, 0x51, 0x00, 0x66, 0x00, 0x26, 0x00, 0x64, 0x00, 0x5e, 0x00, 0x72, 0x00, 0x69, 0x00,
- 0x60, 0x00, 0x3e, 0x00, 0x4c, 0x00, 0x36, 0x00, 0x4e, 0x00, 0x5f, 0x00, 0x31, 0x00, 0x5a, 0x00,
- 0x2b, 0x00, 0x54, 0x00, 0x25, 0x00, 0x5d, 0x00, 0x33, 0x00, 0x31, 0x00, 0x3c, 0x00, 0x59, 0x00, };
+    char hex_unicode_pwd[512];
+    char hex_client_challenge[48];
+    char hex_server_challenge[48];
+    char hex_client_credential[48];
+    char hex_server_credential[48];
+    char label[128];
 
-    /* Wireshark capture: 25ff37b7271f71e5 */
-    unsigned char clientChallengeCapture[] = {
- 0x25, 0xff, 0x37, 0xb7, 0x27, 0x1f, 0x71, 0xe5 };
+    unsigned char unicode_pwd[120 * 2];
+    unsigned char client_challenge[8];
+    unsigned char server_challenge[8];
+    unsigned char client_credential[8];
+    unsigned char server_credential[8];
 
-    /* Wireshark capture: 625b47779429cc8f */
-    unsigned char serverChallengeCapture[] = {
- 0x62, 0x5b, 0x47, 0x77, 0x94, 0x29, 0xcc, 0x8f };
+    unsigned char sessionKeyAes[16];
+    unsigned char cliCredential[8];
+    unsigned char srvCredential[8];
+} netlogon_authdata;
 
-    /* Wireshark capture: 1e8343321cfbee04 */
-    unsigned char clientCredentialCapture[] = {
- 0x1e, 0x83, 0x43, 0x32, 0x1c, 0xfb, 0xee, 0x04 };
-#else
-    unsigned char unicodePwd[] = {
- 0x3a, 0x00, 0x54, 0x00, 0x2e, 0x00, 0x2a, 0x00, 0x3d, 0x00, 0x51, 0x00, 0x46, 0x00
-, 0x3b, 0x00, 0x55, 0x00, 0x38, 0x00, 0x37, 0x00, 0x5a, 0x00, 0x72, 0x00, 0x64, 0x00, 0x59, 0x00
-, 0x52, 0x00, 0x58, 0x00, 0x2b, 0x00, 0x4e, 0x00, 0x59, 0x00, 0x50, 0x00, 0x38, 0x00, 0x64, 0x00
-, 0x20, 0x00, 0x74, 0x00, 0x72, 0x00, 0x52, 0x00, 0x5e, 0x00, 0x74, 0x00, 0x68, 0x00, 0x57, 0x00
-, 0x69, 0x00, 0x5b, 0x00, 0x41, 0x00, 0x6c, 0x00, 0x52, 0x00, 0x37, 0x00, 0x2a, 0x00, 0x76, 0x00
-, 0x78, 0x00, 0x47, 0x00, 0x56, 0x00, 0x38, 0x00, 0x46, 0x00, 0x46, 0x00, 0x78, 0x00, 0x56, 0x00
-, 0x66, 0x00, 0x70, 0x00, 0x4d, 0x00, 0x5e, 0x00, 0x6c, 0x00, 0x28, 0x00, 0x6b, 0x00, 0x37, 0x00
-, 0x45, 0x00, 0x2a, 0x00, 0x37, 0x00, 0x31, 0x00, 0x3c, 0x00, 0x22, 0x00, 0x3b, 0x00, 0x5f, 0x00
-, 0x2b, 0x00, 0x72, 0x00, 0x61, 0x00, 0x6b, 0x00, 0x5a, 0x00, 0x27, 0x00, 0x35, 0x00, 0x2d, 0x00
-, 0x4a, 0x00, 0x77, 0x00, 0x28, 0x00, 0x71, 0x00, 0x5d, 0x00, 0x4a, 0x00, 0x3e, 0x00, 0x25, 0x00
-, 0x7a, 0x00, 0x3f, 0x00, 0x43, 0x00, 0x5b, 0x00, 0x4a, 0x00, 0x39, 0x00, 0x39, 0x00, 0x34, 0x00
-, 0x78, 0x00, 0x20, 0x00, 0x62, 0x00, 0x6f, 0x00, 0x4b, 0x00, 0x34, 0x00, 0x5c, 0x00, 0x57, 0x00
-, 0x22, 0x00, 0x5a, 0x00, 0x61, 0x00, 0x6c, 0x00, 0x6e, 0x00, 0x5d, 0x00, 0x5a, 0x00, 0x23, 0x00
-, 0x3e, 0x00, 0x45, 0x00, 0x2a, 0x00, 0x42, 0x00, 0x2f, 0x00, 0x4c, 0x00, 0x58, 0x00, 0x4f, 0x00
-, 0x66, 0x00, 0x50, 0x00, 0x40, 0x00, 0x34, 0x00, 0x47, 0x00, 0x69, 0x00, 0x30, 0x00, 0x6b, 0x00
-, 0x53, 0x00, };
+void texthex_to_binary(char *in, int inlen, unsigned char *binary)
+{
+    int i = 0;
+    int j = 0;
+    char hexpair[3];
 
-    /* Wireshark capture: 25ff37b7271f71e5 */
-    unsigned char clientChallengeCapture[] = {
- 0x10, 0xea, 0xfe, 0x49, 0x6e, 0x41, 0x54, 0x04 };
+    for (i=0; i<inlen; i+= 2)
+    {
+        hexpair[0] = in[i];
+        hexpair[1] = in[i+1];
+        hexpair[2] = '\0';
+        binary[j++] = strtoul(hexpair, NULL, 16);
+    }
+}
 
-    /* Wireshark capture: 625b47779429cc8f */
-    unsigned char serverChallengeCapture[] = {
- 0x9e, 0xfd, 0xef, 0x47, 0x07, 0x9f, 0x37, 0xc0 };
+int read_authdata_file(
+        char *filename,
+        netlogon_authdata *authdata)
+{
+    FILE *fp = NULL;
+    int sts = 0;
+    char *ptr = NULL;
 
-    /* Wireshark capture: 1e8343321cfbee04 */
-    unsigned char clientCredentialCapture[] = {
- 0x56, 0xf0, 0x4b, 0xd4, 0xa4, 0xab, 0xf2, 0x0a };
+    fp = fopen(filename, "r");
+    if (!fp)
+    {
+        sts = errno;
+        goto cleanup;
+    }
 
-    unsigned char serverCredentialCapture[] = {
- 0xd8, 0xa2, 0x28, 0x1e, 0x02, 0x21, 0x03, 0x1d };
+    ptr = fgets(authdata->hex_unicode_pwd, 
+                sizeof(authdata->hex_unicode_pwd), 
+                fp);
+    if (!ptr)
+    {
+        sts = ENOSPC;
+        goto cleanup;
+    }
+    ptr = fgets(authdata->hex_client_challenge,
+                sizeof(authdata->hex_client_challenge),
+                fp);
+    if (!ptr)
+    {
+        sts = ENOSPC;
+        goto cleanup;
+    }
+    ptr = fgets(authdata->hex_server_challenge,
+                sizeof(authdata->hex_server_challenge),
+                fp);
+    if (!ptr)
+    {
+        sts = ENOSPC;
+        goto cleanup;
+    }
+    ptr = fgets(authdata->hex_client_credential,
+                sizeof(authdata->hex_client_credential),
+                fp);
+    if (!ptr)
+    {
+        sts = ENOSPC;
+        goto cleanup;
+    }
+    ptr = fgets(authdata->hex_server_credential,
+                sizeof(authdata->hex_server_credential),
+                fp);
+    if (!ptr)
+    {
+        sts = ENOSPC;
+        goto cleanup;
+    }
 
-    unsigned char unicodePwdSamba4[] = {
-  0x73, 0x00, 0x4f, 0x00, 0x62, 0x00, 0x54, 0x00, 0x6c, 0x00, 0x6e, 0x00, 0x2c, 0x00
-, 0x6e, 0x00, 0x55, 0x00, 0x38, 0x00, 0x75, 0x00, 0x47, 0x00, 0x49, 0x00, 0x56, 0x00, 0x24, 0x00
-, 0x20, 0x00, 0x78, 0x00, 0x69, 0x00, 0x5c, 0x00, 0x6c, 0x00, 0x75, 0x00, 0x25, 0x00, 0x57, 0x00
-, 0x23, 0x00, 0x3c, 0x00, 0x27, 0x00, 0x5c, 0x00, 0x65, 0x00, 0x37, 0x00, 0x5c, 0x00, 0x6a, 0x00
-, 0x52, 0x00, 0x40, 0x00, 0x45, 0x00, 0x6f, 0x00, 0x37, 0x00, 0x62, 0x00, 0x6d, 0x00, 0x77, 0x00
-, 0x3c, 0x00, 0x42, 0x00, 0x4e, 0x00, 0x35, 0x00, 0x55, 0x00, 0x4f, 0x00, 0x6c, 0x00, 0x65, 0x00
-, 0x4a, 0x00, 0x31, 0x00, 0x6c, 0x00, 0x6e, 0x00, 0x67, 0x00, 0x20, 0x00, 0x46, 0x00, 0x53, 0x00
-, 0x2d, 0x00, 0x27, 0x00, 0x22, 0x00, 0x3d, 0x00, 0x4d, 0x00, 0x4b, 0x00, 0x74, 0x00, 0x28, 0x00
-, 0x2e, 0x00, 0x6a, 0x00, 0x54, 0x00, 0x5a, 0x00, 0x64, 0x00, 0x74, 0x00, 0x60, 0x00, 0x76, 0x00
-, 0x38, 0x00, 0x68, 0x00, 0x50, 0x00, 0x75, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x52, 0x00, 0x4b, 0x00
-, 0x28, 0x00, 0x5d, 0x00, 0x76, 0x00, 0x4d, 0x00, 0x5b, 0x00, 0x33, 0x00, 0x6e, 0x00, 0x6b, 0x00
-, 0x49, 0x00, 0x47, 0x00, 0x58, 0x00, 0x60, 0x00, 0x7a, 0x00, 0x77, 0x00, 0x5c, 0x00, 0x26, 0x00
-, 0x48, 0x00, 0x6c, 0x00, 0x29, 0x00, 0x64, 0x00, 0x23, 0x00, 0x25, 0x00, 0x4e, 0x00, 0x54, 0x00
-, 0x60, 0x00, 0x69, 0x00, 0x73, 0x00, 0x67, 0x00, 0x6c, 0x00, 0x4c, 0x00, 0x29, 0x00, 0x46, 0x00
-, 0x75, 0x00, 0x6d, 0x00, 0x72, 0x00, 0x24, 0x00, 0x5d, 0x00, 0x2b, 0x00, 0x70, 0x00, 0x4c, 0x00
-, 0x64, 0x00, };
-    unsigned char clientChallengeCaptureSamba4[] = {
- 0x4e, 0x00, 0x47, 0xa6, 0x75, 0x8b, 0xeb, 0x79 };
-    unsigned char serverChallengeCaptureSamba4[] = {
- 0xa7, 0x4c, 0x75, 0x78, 0x56, 0xa3, 0xe0, 0x78 };
-    unsigned char clientCredentialCaptureSamba4[] = {
- 0xb4, 0x41, 0x72, 0x25, 0xbc, 0x7c, 0xbe, 0x59 };
-    unsigned char serverCredentialCaptureSamba4[] = {
- 0x5d, 0xe8, 0x64, 0xca, 0x7f, 0x58, 0x47, 0xe8 };
-#endif
+    /* Label is optional, and just used for display */
+    authdata->label[0] = '\0';
+    fgets(authdata->label,
+          sizeof(authdata->label),
+          fp);
+    ptr = strstr(authdata->label, "label:");
+    if (ptr)
+    {
+        ptr += sizeof("label:") - 1;
+        memmove(authdata->label, ptr, strlen(ptr) + 1);
+    }
 
-    unsigned char sessionKeyAes[16] = {0};
-    unsigned char cliCredential[8] = {0};
-    unsigned char srvCredential[8] = {0};
+    /* Convert all text hex data to binary values */
+    ptr = strstr(authdata->hex_unicode_pwd, "unicode_pwd:");
+    if (!ptr)
+    {
+        sts = EINVAL;
+        goto cleanup;
+    }
+    ptr += sizeof("unicode_pwd:") - 1;
+    ptr += 4; /* skip WC16 " character */
 
-    unsigned char sessionKeyAesSamba4[16] = {0};
-    unsigned char cliCredentialSamba4[8] = {0};
-    unsigned char srvCredentialSamba4[8] = {0};
+    /* Multiply by 2, as this is text hex representation of WC16 string */
+    texthex_to_binary(ptr, _MACHACCT_UNICODE_PWD_LENGTH * 2, authdata->unicode_pwd);
+
+    ptr = strstr(authdata->hex_client_challenge, "client_challenge:");
+    if (!ptr)
+    {
+        sts = EINVAL;
+        goto cleanup;
+    }
+    ptr += sizeof("client_challenge:") - 1;
+    texthex_to_binary(ptr, 16, authdata->client_challenge);
+
+    ptr = strstr(authdata->hex_server_challenge, "server_challenge:");
+    if (!ptr)
+    {
+        sts = EINVAL;
+        goto cleanup;
+    }
+    ptr += sizeof("server_challenge:") - 1;
+    texthex_to_binary(ptr, 16, authdata->server_challenge);
+
+    ptr = strstr(authdata->hex_client_credential, "client_credential:");
+    if (!ptr)
+    {
+        sts = EINVAL;
+        goto cleanup;
+    }
+    ptr += sizeof("client_credential:") - 1;
+    texthex_to_binary(ptr, 16, authdata->client_credential);
+
+    ptr = strstr(authdata->hex_server_credential, "server_credential:");
+    if (!ptr)
+    {
+        sts = EINVAL;
+        goto cleanup;
+    }
+    ptr += sizeof("server_credential:") - 1;
+    texthex_to_binary(ptr, 16, authdata->server_credential);
+
+cleanup:
+    fclose(fp);
+    return sts;
+}
+
+NTSTATUS 
+ComputeCredentialsAes(
+    netlogon_authdata *authdata)
+{
+
     NTSTATUS ntStatus = 0;
 
     ntStatus = ComputeSessionKeyAes(
-                   unicodePwd,
-                   sizeof(unicodePwd),
-                   clientChallengeCapture,
-                   sizeof(clientChallengeCapture),
-                   serverChallengeCapture,
-                   sizeof(serverChallengeCapture),
-                   sessionKeyAes,
-                   sizeof(sessionKeyAes));
+                   authdata->unicode_pwd,
+                   sizeof(authdata->unicode_pwd),
+                   authdata->client_challenge,
+                   sizeof(authdata->client_challenge),
+                   authdata->server_challenge,
+                   sizeof(authdata->server_challenge),
+                   authdata->sessionKeyAes,
+                   sizeof(authdata->sessionKeyAes));
     if (ntStatus)
     {
-        printf("ComputeSessionKeyAes() failed\n");
-    }
-    else
-    {
-        printf("AES session key computed:\n");
-        printhex(sessionKeyAes, sizeof(sessionKeyAes));
-        printf("\n");
+        goto cleanup;
     }
 
     ntStatus = ComputeNetlogonCredentialAes(
-                   clientChallengeCapture,
-                   sizeof(clientChallengeCapture),
-                   sessionKeyAes,
-                   sizeof(sessionKeyAes),
-                   cliCredential,
-                   sizeof(cliCredential));
+                   authdata->client_challenge,
+                   sizeof(authdata->client_challenge),
+                   authdata->sessionKeyAes,
+                   sizeof(authdata->sessionKeyAes),
+                   authdata->cliCredential,
+                   sizeof(authdata->cliCredential));
     if (ntStatus)
     {
-        printf("ComputeNetlogonCredentialAes() failed\n");
+        goto cleanup;
     }
-    else
+    if (memcmp(authdata->cliCredential, authdata->client_credential, sizeof(authdata->client_credential) != 0))
     {
-        printf("\n");
-        printf("AES client credential computed:\n");
-        printhex(cliCredential, sizeof(cliCredential));
-        printf("\n");
-        printf("AES client credential from W2K8 client:\n");
-        printhex(clientCredentialCapture, sizeof(clientCredentialCapture));
-        printf("\n");
-        if (memcmp(cliCredential,
-                   clientCredentialCapture,
-                   sizeof(clientCredentialCapture)) == 0)
+        ntStatus = STATUS_NETWORK_CREDENTIAL_CONFLICT;
+        goto cleanup;
+    }
+
+    ntStatus = ComputeNetlogonCredentialAes(
+                   authdata->server_challenge,
+                   sizeof(authdata->server_challenge),
+                   authdata->sessionKeyAes,
+                   sizeof(authdata->sessionKeyAes),
+                   authdata->srvCredential,
+                   sizeof(authdata->srvCredential));
+    if (ntStatus)
+    {
+        goto cleanup;
+    }
+
+    if (memcmp(authdata->srvCredential, authdata->server_credential, sizeof(authdata->server_credential) != 0))
+    {
+        ntStatus = STATUS_NETWORK_CREDENTIAL_CONFLICT;
+        goto cleanup;
+    }
+
+cleanup:
+    return ntStatus;
+}
+
+void PrintCredentialsAes(netlogon_authdata *authdata)
+{
+    if (authdata->label[0])
+    {
+        printf("%s\n", authdata->label);
+    }
+    printf("AES session key computed:\n");
+    printhex(authdata->sessionKeyAes, sizeof(authdata->sessionKeyAes));
+    printf("\n");
+    printf("AES client credential computed:\n");
+    printhex(authdata->cliCredential, sizeof(authdata->cliCredential));
+    printf("\n");
+    printf("AES server credential computed:\n");
+    printhex(authdata->srvCredential, sizeof(authdata->srvCredential));
+    printf("\n-----------------------------------------------------------------------\n\n");
+}
+
+int main(int argc, char *argv[])
+{
+    netlogon_authdata authdata = {0};
+    char *authdata_file = NULL;
+    int i = 0;
+
+    NTSTATUS ntStatus = 0;
+
+    for (i=1; i<argc; i++)
+    {
+        authdata_file = argv[i];
+        ntStatus = read_authdata_file(authdata_file, &authdata);
+        if (ntStatus)
         {
-            printf("SUCCESS: cliCredential matches!!!\n");
+            printf("read_auth_data: failed %d\n", ntStatus);
+            exit(1);
+        }
+    
+        ntStatus = ComputeCredentialsAes(&authdata);
+        if (ntStatus)
+        {
+            printf("ComputeCredentialsAes(netlogon-data.txt) failed %d\n", ntStatus);
+        }
+        else
+        {
+            PrintCredentialsAes(&authdata);
         }
     }
 
-    ntStatus = ComputeNetlogonCredentialAes(
-                   serverChallengeCapture,
-                   sizeof(serverChallengeCapture),
-                   sessionKeyAes,
-                   sizeof(sessionKeyAes),
-                   srvCredential,
-                   sizeof(srvCredential));
-    if (ntStatus)
-    {
-        printf("ComputeNetlogonCredentialAes() failed\n");
-    }
-    else
-    {
-        printf("\n");
-        printf("AES server credential computed:\n");
-        printhex(srvCredential, sizeof(srvCredential));
-        printf("\n");
-        printf("\n");
-        printf("AES server credential packet capture :\n");
-        printhex(serverCredentialCapture, sizeof(serverCredentialCapture));
-        printf("\n");
-    }
-
-/* ======= Samba 4 join credential computation  ========= */
-    ntStatus = ComputeSessionKeyAes(
-                   unicodePwdSamba4,
-                   sizeof(unicodePwdSamba4),
-                   clientChallengeCaptureSamba4,
-                   sizeof(clientChallengeCaptureSamba4),
-                   serverChallengeCaptureSamba4,
-                   sizeof(serverChallengeCaptureSamba4),
-                   sessionKeyAesSamba4,
-                   sizeof(sessionKeyAesSamba4));
-    if (ntStatus)
-    {
-        printf("ComputeSessionKeyAes(samba4) failed\n");
-    }
-    else
-    {
-        printf("\n");
-        printf("AES session key computed samba4:\n");
-        printhex(sessionKeyAesSamba4, sizeof(sessionKeyAesSamba4));
-        printf("\n");
-    }
-
-    ntStatus = ComputeNetlogonCredentialAes(
-                   clientChallengeCaptureSamba4,
-                   sizeof(clientChallengeCaptureSamba4),
-                   sessionKeyAesSamba4,
-                   sizeof(sessionKeyAesSamba4),
-                   cliCredentialSamba4,
-                   sizeof(cliCredentialSamba4));
-    if (ntStatus)
-    {
-        printf("ComputeNetlogonCredentialAes(Samba4) failed\n");
-    }
-    else
-    {
-        printf("\n");
-        printf("AES client credential computed Samba4:\n");
-        printhex(cliCredentialSamba4, sizeof(cliCredentialSamba4));
-        printf("\n");
-        printf("AES client credential from W2K8 client Samba4:\n");
-        printhex(clientCredentialCaptureSamba4, sizeof(clientCredentialCaptureSamba4));
-        printf("\n");
-        if (memcmp(cliCredentialSamba4,
-                   clientCredentialCaptureSamba4,
-                   sizeof(clientCredentialCaptureSamba4)) == 0)
-        {
-            printf("SUCCESS: cliCredential matches!!!\n");
-        }
-    }
-
-    ntStatus = ComputeNetlogonCredentialAes(
-                   serverChallengeCaptureSamba4,
-                   sizeof(serverChallengeCaptureSamba4),
-                   sessionKeyAesSamba4,
-                   sizeof(sessionKeyAesSamba4),
-                   srvCredentialSamba4,
-                   sizeof(srvCredentialSamba4));
-    if (ntStatus)
-    {
-        printf("ComputeNetlogonCredentialAes(Samba4) failed\n");
-    }
-    else
-    {
-        printf("\n");
-        printf("AES server credential computed Samba4:\n");
-        printhex(srvCredentialSamba4, sizeof(srvCredentialSamba4));
-        printf("\n");
-        printf("AES server credential packet capture Samba4:\n");
-        printhex(serverCredentialCaptureSamba4, sizeof(serverCredentialCaptureSamba4));
-        printf("\n");
-    }
     return 0;
 }
