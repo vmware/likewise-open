@@ -69,6 +69,7 @@ esac
   if [ -f /tmp/gss-mech-tmp ]; then
     cat /etc/gss/mech >> /tmp/gss-mech-tmp
     grep '^[a-zA-Z0-9]' /tmp/gss-mech-tmp | sort -u > /etc/gss/mech
+    chmod 644 /etc/gss/mech
     rm -f /tmp/gss-mech-tmp
   fi
 
@@ -223,6 +224,7 @@ fi
   if [ -f /tmp/gss-mech-tmp ]; then
     mkdir -p /etc/gss
     cat /tmp/gss-mech-tmp | sed '/^ntlm/d' > /etc/gss/mech
+    chmod 644 /etc/gss/mech
     #
     # Remove this file if it is empty; ntlm was the only mech entry.
     #
