@@ -714,6 +714,12 @@ error:
         LwFreeStringArray(ppszGroupSids, dwGroupSidCount);
     }
 
+    if (dwError == LW_ERROR_LDAP_SERVER_DOWN ||
+        dwError == LW_ERROR_LDAP_INVALID_CREDENTIALS)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+    }
+
     goto cleanup;
 }
 

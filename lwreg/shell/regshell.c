@@ -222,6 +222,76 @@ error:
 
 
 DWORD
+RegShellSetSecurity(
+    PREGSHELL_PARSE_STATE pParseState,
+    PREGSHELL_CMD_ITEM rsItem)
+{
+    DWORD dwError = 0;
+    PSTR pszKeyName = NULL;
+
+    BAIL_ON_INVALID_HANDLE(pParseState);
+    BAIL_ON_INVALID_HANDLE(pParseState->hReg);
+
+    pszKeyName = rsItem->keyName;
+    if (pszKeyName && pszKeyName[0] == '\\')
+    {
+        pszKeyName++;
+    }
+
+    dwError = RegShellUtilSetSecurity(
+                  pParseState->hReg,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
+                  pszKeyName,
+                  rsItem->valueName);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegShellGetSecurity(
+    PREGSHELL_PARSE_STATE pParseState,
+    PREGSHELL_CMD_ITEM rsItem)
+{
+    DWORD dwError = 0;
+    PSTR pszKeyName = NULL;
+    PSTR pszSecurityDescriptor = NULL;
+
+    BAIL_ON_INVALID_HANDLE(pParseState);
+    BAIL_ON_INVALID_HANDLE(pParseState->hReg);
+
+    pszKeyName = rsItem->keyName;
+    if (pszKeyName && pszKeyName[0] == '\\')
+    {
+        pszKeyName++;
+    }
+
+    dwError = RegShellUtilGetSecurity(
+                  pParseState->hReg,
+                  RegShellGetRootKey(pParseState),
+                  RegShellGetDefaultKey(pParseState),
+                  pszKeyName,
+                  &pszSecurityDescriptor);
+    BAIL_ON_REG_ERROR(dwError);
+
+    printf("@security = %s\n", pszSecurityDescriptor);
+
+cleanup:
+    LWREG_SAFE_FREE_STRING(pszSecurityDescriptor);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
 RegShellDeleteValue(
     PREGSHELL_PARSE_STATE pParseState,
     PREGSHELL_CMD_ITEM rsItem)
@@ -887,6 +957,18 @@ RegShellProcessCmd(
             case REGSHELL_CMD_ADD_VALUE:
                 pszErrorPrefix = "add_value: failed ";
                 dwError = RegShellSetValue(pParseState, rsItem);
+                BAIL_ON_REG_ERROR(dwError);
+                break;
+
+            case REGSHELL_CMD_SET_SECURITY:
+                pszErrorPrefix = "set_security: failed ";
+                dwError = RegShellSetSecurity(pParseState, rsItem);
+                BAIL_ON_REG_ERROR(dwError);
+                break;
+
+            case REGSHELL_CMD_GET_SECURITY:
+                pszErrorPrefix = "get_security: failed ";
+                dwError = RegShellGetSecurity(pParseState, rsItem);
                 BAIL_ON_REG_ERROR(dwError);
                 break;
 

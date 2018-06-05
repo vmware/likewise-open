@@ -135,47 +135,57 @@ typedef enum _LW_SERVICE_INFO_MASK
      * @brief Update name
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_NAME         = 0x01,
+    LW_SERVICE_INFO_MASK_NAME         = 0x0001,
     /**
      * @brief Update description
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_DESCRIPTION  = 0x02,
+    LW_SERVICE_INFO_MASK_DESCRIPTION  = 0x0002,
     /**
      * @brief Update type
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_TYPE         = 0x04,
+    LW_SERVICE_INFO_MASK_TYPE         = 0x0004,
     /**
      * @brief Update path
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_PATH         = 0x08,
+    LW_SERVICE_INFO_MASK_PATH         = 0x0008,
     /**
      * @brief Update arguments
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_ARGS         = 0x10,
+    LW_SERVICE_INFO_MASK_ARGS         = 0x0010,
     /**
      * @brief Update environment variables
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_ENVIRONMENT  = 0x20,
+    LW_SERVICE_INFO_MASK_ENVIRONMENT  = 0x0020,
     /**
      * @brief Update dependencies
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_DEPENDENCIES = 0x40,
+    LW_SERVICE_INFO_MASK_DEPENDENCIES = 0x0040,
     /**
      * @brief Update autostart flag
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_AUTOSTART    = 0x80,
+    LW_SERVICE_INFO_MASK_AUTOSTART    = 0x0080,
+    /**
+     * @brief Update user
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_USER         = 0x0100,
+    /**
+     * @brief Update group
+     * @hideinitializer
+     */
+    LW_SERVICE_INFO_MASK_GROUP        = 0x0200,
     /**
      * @brief Update all flags
      * @hideinitializer
      */
-    LW_SERVICE_INFO_MASK_ALL          = 0xFF
+    LW_SERVICE_INFO_MASK_ALL          = 0xFFFF
 } LW_SERVICE_INFO_MASK, *PLW_SERVICE_INFO_MASK;
 
 /**
@@ -202,6 +212,10 @@ typedef struct _LW_SERVICE_INFO
     LW_PWSTR* ppwszDependencies;
     /** @brief Is this service automatically started? */
     LW_BOOL bAutostart;
+    /** @brief User */
+    LW_PWSTR pwszUser;
+    /** @brief Group */
+    LW_PWSTR pwszGroup;
 } LW_SERVICE_INFO, *PLW_SERVICE_INFO;
 
 typedef const LW_SERVICE_INFO* PCLW_SERVICE_INFO;

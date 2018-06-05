@@ -253,6 +253,18 @@ LwSmCopyServiceInfo(
     dwError = LwSmCopyStringList(pInfo->ppwszDependencies, &pCopy->ppwszDependencies);
     BAIL_ON_ERROR(dwError);
 
+    if (pInfo->pwszUser)
+    {
+        dwError = LwSmCopyString(pInfo->pwszUser, &pCopy->pwszUser);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    if (pInfo->pwszGroup)
+    {
+        dwError = LwSmCopyString(pInfo->pwszGroup, &pCopy->pwszGroup);
+        BAIL_ON_ERROR(dwError);
+    }
+
     *ppCopy = pCopy;
 
 cleanup:
@@ -290,7 +302,17 @@ LwSmCommonFreeServiceInfo(
         {
             LwFreeMemory(pInfo->pwszDescription);
         }
-        
+
+        if (pInfo->pwszUser)
+        {
+            LwFreeMemory(pInfo->pwszUser);
+        }
+
+        if (pInfo->pwszGroup)
+        {
+            LwFreeMemory(pInfo->pwszGroup);
+        }
+
         LwSmFreeStringList(pInfo->ppwszArgs);
         LwSmFreeStringList(pInfo->ppwszEnv);
         LwSmFreeStringList(pInfo->ppwszDependencies);

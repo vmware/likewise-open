@@ -52,6 +52,15 @@ case "$1" in
             exit 1
         fi
         ;;
+    2)
+        %{_bindir}/lwsm stop lwreg
+        /bin/systemctl stop lwsmd.service
+        sleep 2
+        if [ -n "`pidof lwsmd`" ]; then
+            echo "Error: Likewise Service Manager detected. Exiting."
+            exit 1
+        fi
+        ;;
 esac
 
 %post
@@ -138,7 +147,9 @@ case "$1" in
     fi
 
     if [ $try_starting_lwregd_svc = true ]; then
-        [ -z "`pidof lwsmd`" ] && /bin/systemctl start lwsmd.service
+
+        /bin/systemctl daemon-reload
+        /bin/systemctl start lwsmd.service
 
         echo "Waiting for lwreg startup."
         while( test -z "`%{_prefix}/bin/lwsm status lwreg | grep standalone:`" )
