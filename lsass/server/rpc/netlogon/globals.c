@@ -55,8 +55,6 @@ NETLOGON_SRV_CONFIG gNetlogonSrvConfig;
 /* netlogon server security descriptor */
 PSECURITY_DESCRIPTOR_ABSOLUTE gpNetlogonSecDesc = NULL;
 
-PHANDLE ghDirectory;
-
 /*
 local variables:
 mode: c

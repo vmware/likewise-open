@@ -123,9 +123,6 @@ NetlogonRpcStartServer(
     DWORD i = 0;
     PSTR pszLpcSocketPath = NULL;
     BOOLEAN bRegisterTcpIp = FALSE;
-    HANDLE hDirectory = NULL;
-    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
-
     dwError = NetlogonGetBindProtocol(&gNetlogonGlobals.bindProtocol);
     BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
 
@@ -133,13 +130,6 @@ NetlogonRpcStartServer(
 /* TBD:Adam "GSSAPI" is hard-disabled for now; figure this out once SSF is disabled */
     gNetlogonGlobals.bindProtocol = NETLOGON_LDAP_BIND_PROTOCOL_SRP;
 #endif
-
-    dwError = NetlogonLdapOpen(&hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ghDirectory = hDirectory;
-    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) hDirectory;
-    strlower(pContext->dirContext.pBindInfo->pszDomainFqdn);
 
     dwError = NetlogonSrvConfigGetLpcSocketPath(&pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
