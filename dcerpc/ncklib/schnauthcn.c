@@ -89,6 +89,7 @@ INTERNAL void rpc__schnauth_cn_fmt_srvr_resp(
         pointer_t                        /*req_auth_value*/,
         unsigned32                       /*req_auth_value_len*/,
         pointer_t                        /*auth_value*/,
+        unsigned32                       /*header_size*/,
         unsigned32                      * /*auth_value_len*/
     
     );
@@ -735,6 +736,7 @@ INTERNAL void rpc__schnauth_cn_fmt_srvr_resp
     pointer_t                       req_auth_value ATTRIBUTE_UNUSED,
     unsigned32                      req_auth_value_len ATTRIBUTE_UNUSED,
     pointer_t                       auth_value,
+    unsigned32                      header_size,
     unsigned32                      *auth_value_len
 )
 {
@@ -763,13 +765,17 @@ INTERNAL void rpc__schnauth_cn_fmt_srvr_resp
 
     assert (verify_st == rpc_s_ok);
     assert (*auth_value_len >= RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL);
-    *auth_value_len = RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL;
 
+    /* Add sizeof credentials_length to auth_value payload length */
+    *auth_value_len = RPC_CN_PKT_SIZEOF_BIND_AUTH_VAL + sizeof(unsigned32);
+
+    memset(auth_value, 0, *auth_value_len);
     priv_auth_value = (rpc_cn_bind_auth_value_priv_t *)auth_value;
-    priv_auth_value->assoc_uuid_crc = assoc_sec->assoc_uuid_crc;
+
+    /* For Schannel, the member is the "Message type:" reply field */
+    priv_auth_value->assoc_uuid_crc = RPC_CN_SCHNAUTH_MSG_REPLY;
     priv_auth_value->sub_type = RPC_C_CN_DCE_SUB_TYPE;
-    priv_auth_value->checksum_length = 0;
-    priv_auth_value->cred_length = 0;
+    priv_auth_value->credentials_length = header_size + *auth_value_len + sizeof(unsigned32);
 }
 
 /*****************************************************************************/

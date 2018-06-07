@@ -571,6 +571,7 @@ RPC_CN_AUTH_FMT_SRVR_RESP(
     pointer_t req_auth_value,
     unsigned16 req_auth_value_len,
     pointer_t auth_value,
+    unsigned32 header_size,
     unsigned32 *auth_value_len)
 {
     sec->sec_cn_info->cn_epv->fmt_srvr_resp(
@@ -580,6 +581,7 @@ RPC_CN_AUTH_FMT_SRVR_RESP(
         req_auth_value,
         req_auth_value_len,
         auth_value,
+        header_size,
         auth_value_len);
 }
 

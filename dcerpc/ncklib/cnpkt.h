@@ -593,11 +593,13 @@ typedef struct
 
 typedef struct
 {
-    unsigned32  assoc_uuid_crc;
+    unsigned32  assoc_uuid_crc;  /* Schannel: Message Type */
     unsigned8   sub_type;
     unsigned8   checksum_length;
     unsigned16  cred_length;
     unsigned8   credentials[1];         /* [size_is (cred_length)] */
+    unsigned8   pad1;
+    unsigned16  credentials_length;
 /*  unsigned8   checksum[1];  */        /* [size_is (checksum_length)] */
 } rpc_cn_bind_auth_value_priv_t, *rpc_cn_bind_auth_value_priv_p_t;
 

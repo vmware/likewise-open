@@ -80,6 +80,8 @@ typedef struct rpc_cn_schnauth_tlr
 
 #define RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR  32
 
+#define RPC_CN_SCHNAUTH_MSG_REQUEST 0
+#define RPC_CN_SCHNAUTH_MSG_REPLY   1
 
 EXTERNAL rpc_cn_auth_epv_t rpc_g_schnauth_cn_epv;
 

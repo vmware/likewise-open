@@ -85,6 +85,7 @@ INTERNAL void rpc__noauth_cn_fmt_srvr_resp(
         pointer_t                        /*req_auth_value*/,
         unsigned32                       /*req_auth_value_len*/,
         pointer_t                        /*auth_value*/,
+        unsigned32                       /*header_size*/,
         unsigned32                      * /*auth_value_len*/
     
     );
@@ -725,6 +726,7 @@ INTERNAL void rpc__noauth_cn_fmt_srvr_resp
     pointer_t                       req_auth_value,
     unsigned32                      req_auth_value_len,
     pointer_t                       auth_value,
+    unsigned32                      header_size,
     unsigned32                      *auth_value_len
 )
 {

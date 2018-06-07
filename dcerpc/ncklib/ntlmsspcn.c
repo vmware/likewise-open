@@ -85,6 +85,7 @@ INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp(
 	pointer_t			/* in */     /*req_auth_value*/,
 	unsigned32			/* in */     /*req_auth_value_len*/,
 	pointer_t			/* in/out */ /*auth_value*/,
+	unsigned32			/* in */     /*header_size*/,
 	unsigned32			/* in/out */ * /*auth_value_len*/
     
     );
@@ -948,6 +949,7 @@ INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp
 	pointer_t			req_auth_value ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32			req_auth_value_len ATTRIBUTE_UNUSED /*TODO*/,
 	pointer_t			auth_value,
+	unsigned32			header_size ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32			*auth_value_len
 )
 {

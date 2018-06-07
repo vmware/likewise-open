@@ -200,6 +200,7 @@ typedef void (*rpc_cn_auth_fmt_srvr_resp_fn_t)(
         pointer_t                      /*  req_auth_value */,
         unsigned32                     /*  req_auth_value_len */,
         pointer_t                      /*  auth_value */,
+        unsigned32                     /*  header_size */,
         unsigned32                      * /* auth_value_len */
     
     );

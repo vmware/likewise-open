@@ -3767,6 +3767,7 @@ INTERNAL void rpc__cn_assoc_process_auth_tlr
                                (pointer_t)req_auth_tlr->auth_value,
                                RPC_CN_PKT_AUTH_LEN (req_header),
                                (pointer_t)resp_auth_tlr->auth_value,
+                               *header_size,
                                auth_len);
 
     /* auth_len now has length of auth_value */

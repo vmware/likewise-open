@@ -137,6 +137,7 @@ RPC_CN_AUTH_FMT_SRVR_RESP(
     pointer_t req_auth_value,
     unsigned16 req_auth_value_len,
     pointer_t auth_value,
+    unsigned32 header_size,
     unsigned32 *auth_value_len);
 
 void
