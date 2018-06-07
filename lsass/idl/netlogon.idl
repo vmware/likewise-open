@@ -70,8 +70,7 @@ cpp_quote("#endif")
         );
 
 
-#if 1 /* Taken from MSDN netlogon IDL */
-     // Opnum 4
+	/* function 0x04 */
      NTSTATUS
      NetrServerReqChallenge (
          [in, string] LOGONSRV_HANDLE PrimaryName,
@@ -79,14 +78,6 @@ cpp_quote("#endif")
          [in] NetrCred *ClientChallenge,
          [out] NetrCred *ServerChallenge
          );
-#else
-	/* function 0x04 */
-    NTSTATUS NetrServerReqChallenge(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string] wchar16_t *computer_name,
-        [in,out,ref] NetrCred *credentials
-        );
-#endif
 
 	/* function 0x05 */
     NTSTATUS NetrServerAuthenticate(
@@ -94,7 +85,8 @@ cpp_quote("#endif")
         [in,string] wchar16_t account_name[],
         [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
-        [in,out,ref] NetrCred *credentials
+        [in] NetrCred *cli_credentials,
+        [out] NetrCred *srv_credentials
         );
 
     NTSTATUS netr_Function06();
@@ -113,7 +105,8 @@ cpp_quote("#endif")
         [in,string] wchar16_t account_name[],
         [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
-        [in,out,ref] NetrCred *credentials,
+        [in] NetrCred *cli_credentials,
+        [out] NetrCred *svr_credentials,
         [in,out,ref] UINT32 *negotiate_flags
         );
 
@@ -138,8 +131,7 @@ cpp_quote("#endif")
     NTSTATUS netr_Function18();
     NTSTATUS netr_Function19();
 
-#if 1 /* Taken from MSDN netlogon IDL */
-     // Opnum 26
+	/* function 0x1a */
      NTSTATUS
      NetrServerAuthenticate3 (
          [in,string] LOGONSRV_HANDLE PrimaryName,
@@ -151,20 +143,6 @@ cpp_quote("#endif")
          [in,out] ULONG * NegotiateFlags,
          [out] ULONG * AccountRid
          );
-#else /* #if 0 */
-/* Windows Netlogon definition, looks different than likewise, hmmm */
-/* This is definitely wrong, missing Client/Server credentials args */
-	/* function 0x1a */
-    NTSTATUS NetrServerAuthenticate3(
-        [in,string] wchar16_t *server_name,
-        [in,string] wchar16_t account_name[],
-        [in] UINT16 secure_channel_type,
-        [in,string] wchar16_t computer_name[],
-        [in,out,ref] NetrCred *credentials,
-        [in,out,ref] UINT32 *negotiate_flags,
-        [out,ref] UINT32 *rid
-        );
-#endif
 
     NTSTATUS netr_Function1b();
     NTSTATUS netr_Function1c();
@@ -199,6 +177,7 @@ cpp_quote("#endif")
 
 	/* function 0x27 */
     NTSTATUS NetrLogonSamLogonEx(
+        [in] handle_t ContextHandle,
         [in,unique,string] wchar16_t *server_name,
         [in,unique,string] wchar16_t *computer_name,
         [in] UINT16 logon_level,

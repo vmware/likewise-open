@@ -936,7 +936,8 @@ NTSTATUS srv_NetrServerAuthenticate(
         /* [in] */ wchar16_t account_name[],
         /* [in] */ UINT16 secure_channel_type,
         /* [in] */ wchar16_t computer_name[],
-        /* [in] */ NetrCred *credentials
+        /* [in] */ NetrCred *cli_credentials,
+        /* [out] */ NetrCred *srv_credentials
         )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1026,7 +1027,8 @@ NTSTATUS srv_NetrServerAuthenticate2(
         /* [in] */ wchar16_t account_name[],
         /* [in] */ UINT16 secure_channel_type,
         /* [in] */ wchar16_t computer_name[],
-        /* [in] */ NetrCred *credentials,
+        /* [in] */ NetrCred *cli_credentials,
+        /* [out] */ NetrCred *srv_credentials,
         /* [in] */ UINT32 *negotiate_flags
         )
 {

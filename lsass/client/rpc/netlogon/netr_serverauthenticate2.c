@@ -62,13 +62,15 @@ NetrServerAuthenticate2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    NetrCred Creds;
+    NetrCred CredsIn;
+    NetrCred CredsOut;
     PWSTR pwszServerName = NULL;
     PWSTR pwszAccountName = NULL;
     PWSTR pwszComputerName = NULL;
     UINT32 Flags = 0;
 
-    memset(&Creds, 0, sizeof(Creds));
+    memset(&CredsIn, 0, sizeof(CredsIn));
+    memset(&CredsOut, 0, sizeof(CredsOut));
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
@@ -78,7 +80,7 @@ NetrServerAuthenticate2(
     BAIL_ON_INVALID_PTR(SrvCreds, ntStatus);
     BAIL_ON_INVALID_PTR(pNegFlags, ntStatus);
 
-    memcpy(Creds.data, CliCreds, sizeof(Creds.data));
+    memcpy(CredsIn.data, CliCreds, sizeof(CredsIn.data));
 
     dwError = LwAllocateWc16String(&pwszServerName,
                                    pwszServer);
@@ -99,16 +101,18 @@ NetrServerAuthenticate2(
                                                       pwszAccountName,
                                                       SchannelType,
                                                       pwszComputerName,
-                                                      &Creds,
+                                                      &CredsIn,
+                                                      &CredsOut,
                                                       &Flags));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(SrvCreds, Creds.data, sizeof(Creds.data));
+    memcpy(SrvCreds, CredsOut.data, sizeof(CredsOut.data));
 
     *pNegFlags = Flags;
 
 cleanup:
-    memset(&Creds, 0, sizeof(Creds));
+    memset(&CredsIn, 0, sizeof(CredsIn));
+    memset(&CredsOut, 0, sizeof(CredsOut));
 
     LW_SAFE_FREE_MEMORY(pwszServerName);
     LW_SAFE_FREE_MEMORY(pwszAccountName);
@@ -123,9 +127,13 @@ cleanup:
     return ntStatus;
 
 error:
+    if (CliCreds)
+    {
+        memset(CliCreds, 0, 8);
+    }
     if (SrvCreds)
     {
-        memset(SrvCreds, 0, sizeof(Creds.data));
+        memset(SrvCreds, 0, 8);
     }
 
     if (pNegFlags)

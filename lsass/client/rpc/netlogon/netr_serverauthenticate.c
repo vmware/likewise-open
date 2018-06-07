@@ -61,12 +61,14 @@ NetrServerAuthenticate(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    NetrCred Creds;
+    NetrCred CredsIn;
+    NetrCred CredsOut;
     PWSTR pwszServerName = NULL;
     PWSTR pwszAccountName = NULL;
     PWSTR pwszComputerName = NULL;
 
-    memset(&Creds, 0, sizeof(Creds));
+    memset(&CredsIn, 0, sizeof(CredsIn));
+    memset(&CredsOut, 0, sizeof(CredsOut));
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
@@ -75,7 +77,7 @@ NetrServerAuthenticate(
     BAIL_ON_INVALID_PTR(CliCreds, ntStatus);
     BAIL_ON_INVALID_PTR(SrvCreds, ntStatus);
 
-    memcpy(Creds.data, CliCreds, sizeof(Creds.data));
+    memcpy(CredsIn.data, CliCreds, sizeof(CredsIn.data));
 
     dwError = LwAllocateWc16String(&pwszServerName,
                                    pwszServer);
@@ -94,13 +96,15 @@ NetrServerAuthenticate(
                                                      pwszAccountName,
                                                      SchannelType,
                                                      pwszComputerName,
-                                                     &Creds));
+                                                     &CredsIn,
+                                                     &CredsOut));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(SrvCreds, Creds.data, sizeof(Creds.data));
+    memcpy(SrvCreds, CredsOut.data, sizeof(CredsOut.data));
 
 cleanup:
-    memset(&Creds, 0, sizeof(Creds));
+    memset(&CredsIn, 0, sizeof(CredsIn));
+    memset(&CredsOut, 0, sizeof(CredsOut));
 
     LW_SAFE_FREE_MEMORY(pwszServerName);
     LW_SAFE_FREE_MEMORY(pwszAccountName);
@@ -115,9 +119,13 @@ cleanup:
     return ntStatus;
 
 error:
+    if (CliCreds)
+    {
+        memset(CliCreds, 0, 8);
+    }
     if (SrvCreds)
     {
-        memset(SrvCreds, 0, sizeof(Creds.data));
+        memset(SrvCreds, 0, 8);
     }
 
     goto cleanup;
