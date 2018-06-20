@@ -24,6 +24,8 @@ interface echo {
 		  [size_is(argc)] string_t argv[];
 	          } args;
 
+  typedef pipe unsigned char BYTE_PIPE;
+
    /*
     * FUNCTIONS:
     * 
@@ -52,6 +54,16 @@ interface echo {
 	[in, size_is(len)] unsigned char *buf,
 	[in] long int len
 	);
+
+  void SendFile_InPipe(
+	[in] handle_t  h,
+        [in] BYTE_PIPE pipe_data
+        );
+
+  void SendFile_OutPipe(
+	[in] handle_t   h,
+        [out] BYTE_PIPE *pipe_data
+        );
 }
 
 

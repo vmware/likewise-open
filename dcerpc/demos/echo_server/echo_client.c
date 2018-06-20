@@ -114,6 +114,8 @@ typedef struct _ntlm_auth_identity
     DCETHREAD_ENDTRY         \
   } while (0)
 
+
+static unsigned char g_ReadBuffer[1024 * 60];
 static char *argv0;
 /*
  * Forward declarations
@@ -193,6 +195,7 @@ typedef struct _PROG_ARGS
     int num_threads;
     int silent;
     char *cat_arg;
+    char *file_arg;
     args *inargs;
 } PROG_ARGS;
 
@@ -489,9 +492,19 @@ parseArgs(
             i++;
             if (i >= argc)
             {
-                usage(argv0, "--pwd-bad value missing");
+                usage(argv0, "--cat value missing");
             }
             args->cat_arg = strdup(argv[i]);
+            i++;
+        }
+        else if (strcmp("--file", argv[i]) == 0)
+        {
+            i++;
+            if (i >= argc)
+            {
+                usage(argv0, "--file value missing");
+            }
+            args->file_arg = strdup(argv[i]);
             i++;
         }
         else
@@ -1314,13 +1327,117 @@ do_rpc_call(
     return thread_arg.status;
 }
 
+
+void pipe_alloc(
+     rpc_ss_pipe_state_t state,
+     idl_ulong_int bsize,
+     idl_char **buf,
+     idl_ulong_int *bcount)
+{ 
+    if (bsize > sizeof(g_ReadBuffer))
+    {
+        *bcount = sizeof(g_ReadBuffer);
+    }
+    else
+    {
+        *bcount = bsize;
+    }
+    *buf = (idl_char *) g_ReadBuffer; 
+}
+
+void pipe_pull( 
+    rpc_ss_pipe_state_t state,
+    idl_char *buf,
+    idl_ulong_int esize,
+    idl_ulong_int *ecount)
+{
+    FILE *fp = (FILE *) state;
+    int read_size = 0;
+    static int total_size = 0;
+    static time_t t_prev;
+    static time_t t_next;
+    static time_t t_secs = 1;
+
+    if (t_next == 0)
+    {
+        time(&t_next);
+        t_prev = t_next;
+    }
+
+    read_size = fread(buf, 1, esize, fp);
+    total_size += read_size;
+    time(&t_next);
+//printf("%ld\r", t_next);
+//fflush(stdout);
+if (t_next != t_prev)
+{
+    printf("total: %3ld %d\r", t_secs++, total_size);
+    fflush(stdout);
+    t_prev = t_next;
+}
+    if (read_size == 0)
+    {
+        fclose(fp);
+        *ecount = 0; /* EOF condition */
+    }
+    else 
+    {
+        *ecount = read_size;
+    } 
+}
+
+void file_send_pipe(
+    rpc_binding_handle_t bh,
+    FILE *fp)
+{
+    BYTE_PIPE inFilePipe;
+
+    inFilePipe.state = (rpc_ss_pipe_state_t) fp;
+    inFilePipe.alloc = pipe_alloc;
+    inFilePipe.pull = pipe_pull;
+
+    SendFile_InPipe(bh, inFilePipe);
+}
+
+int file_send(
+    ASSOC_ARGS *assocs)
+{
+    unsigned32 status = 0;
+    rpc_binding_handle_t binding_handle = NULL;
+    FILE *fp = NULL;
+
+    status = create_binding_handle(&binding_handle,
+                                   echo_v1_0_c_ifspec,
+                                   &assocs->progArgs[0],
+                                   0);
+    switch (status)
+    {
+      case -1: printf ("Couldnt obtain RPC server binding. exiting.\n");
+        return 1;
+        break;
+      case -2: printf ("Couldn't set auth info %u. exiting.\n", status);
+        return 1;
+        break;
+    }
+
+    fp = fopen(assocs->progArgs[0].file_arg, "rb");
+    if (!fp)
+    {
+        printf("Can't open file '%s'\n", assocs->progArgs[0].file_arg);
+        return 1;
+    }
+    file_send_pipe(binding_handle, fp);
+
+    return 0;
+}
+
 size_t cat_data(
     ASSOC_ARGS *assocs)
 {
     unsigned32 status = 0;
     rpc_binding_handle_t binding_handle = NULL;
     long int sent_len = 0;
-    unsigned char buf[1024 * 64];
+    unsigned char buf[1024 * 60];
     size_t read_len = 0;
     size_t sent_total =  0;
     FILE *fp = NULL;
@@ -1431,6 +1548,13 @@ main(
         size_t total_len = 0;
         total_len = cat_data(&assocs);
         printf("cat_data: sent %ld bytes\n", total_len);
+        goto cleanup;
+    }
+
+    /* Enter "pipe file -> remote system" mode */
+    if (assocs.progArgs[0].file_arg)
+    {
+        file_send(&assocs);
         goto cleanup;
     }
 

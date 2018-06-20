@@ -181,11 +181,11 @@ _rpc__bsd_free_if_entry(
  */
 
 #ifndef RPC_C_SOCKET_MAX_RCVBUF
-#  define RPC_C_SOCKET_MAX_RCVBUF (32 * 1024)
+#  define RPC_C_SOCKET_MAX_RCVBUF (60 * 1024)
 #endif
 
 #ifndef RPC_C_SOCKET_MAX_SNDBUF
-#  define RPC_C_SOCKET_MAX_SNDBUF (32 * 1024)
+#  define RPC_C_SOCKET_MAX_SNDBUF (60 * 1024)
 #endif
 
 /*

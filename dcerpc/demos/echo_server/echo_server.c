@@ -24,6 +24,8 @@
 #define RPC_FIELD_COUNT(x) ((x)->count)
 #define RPC_FIELD_BINDING_H(x) ((x)->binding_h)
 
+#define TRANSPORT_SIZE 2048
+
 #include "echo.h"
 #include "misc.h"
 
@@ -242,7 +244,7 @@ int main(int argc, char *argv[])
                     &status);
     if (status)
     {
-        if (protocol && endpoint)
+        if (protocol[0] && endpoint)
         {
             printf("rpc_ep_register: soft failure %d.\n", status);
         }
@@ -471,6 +473,48 @@ idl_long_int SendBuffer(
     idl_long_int len)
 {
     return len;
+}
+
+FILE *g_fp;
+
+
+void SendFile_InPipe(
+    /* [in] */ handle_t h,
+    /* [in] */ BYTE_PIPE pipe_data)
+{
+    unsigned char pull_buf[2048];
+    unsigned int transport_size = TRANSPORT_SIZE;
+ 
+    if (!g_fp)
+    {
+        g_fp = fopen("/tmp/echo_server_pipe.dat", "w");
+    }
+    while(transport_size > 0)
+    {
+        pipe_data.pull(pipe_data.state,
+                        pull_buf,
+                        TRANSPORT_SIZE,
+                        &transport_size);
+        if (g_fp)
+        {
+            if (transport_size > 0)
+            {
+                fwrite(pull_buf, 1, transport_size, g_fp);
+            }
+            else
+            {
+                fclose(g_fp);
+                g_fp = NULL;
+            }
+        }
+    }
+}
+
+void SendFile_OutPipe(
+    /* [in] */ handle_t h,
+    /* [out] */ BYTE_PIPE *pipe_data)
+{
+    return; /* never called */
 }
 
 
