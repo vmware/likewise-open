@@ -27,7 +27,7 @@ VmDirCrackLoginId(
 
         size_t len = pszCursor - pszLoginId;
 
-        dwError = LwAllocateMemory(len, (PVOID*)&pszDomain);
+        dwError = LwAllocateMemory(len+1, (PVOID*)&pszDomain);
         BAIL_ON_VMDIR_ERROR(dwError);
 
         memcpy(pszDomain, pszLoginId, len);
@@ -44,7 +44,7 @@ VmDirCrackLoginId(
 
         size_t len = pszCursor - pszLoginId;
 
-        dwError = LwAllocateMemory(len, (PVOID*)&pszAccount);
+        dwError = LwAllocateMemory(len+1, (PVOID*)&pszAccount);
         BAIL_ON_VMDIR_ERROR(dwError);
 
         memcpy(pszAccount, pszLoginId, len);
