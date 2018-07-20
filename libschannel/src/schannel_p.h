@@ -55,6 +55,11 @@ void schn_seal_generate_key(const unsigned char sess_key[16],
                             const unsigned char seq_number[8],
                             unsigned char seal_key[16]);
 
+uint32 schn_discover_crypto_algorithm(
+    struct schn_tail *tail,
+    uint16 *psign_alg,
+    uint16 *pseal_alg);
+
 /*
   Status codes taken from dcerpc/include/dce/rpcsts.idl
 */

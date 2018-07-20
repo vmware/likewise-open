@@ -172,6 +172,70 @@ void schn_free_blob(struct schn_blob *b)
     b->len  = 0;
 }
 
+uint32 schn_discover_crypto_algorithm(
+    struct schn_tail *tail,
+    uint16 *psign_alg,
+    uint16 *pseal_alg)
+{
+    uint32 status = schn_s_ok;
+    uint16 ubyte2 = 0;
+    uint16 sign_alg = 0;
+    uint16 seal_alg = 0;
+
+    /* sign algorithm; Assumes input data is LE format */
+    memcpy(&ubyte2, &tail->signature[0], sizeof(ubyte2));
+
+    switch (ubyte2)
+    {
+    case SCHANNEL_SIGN_ALG_AES:
+        sign_alg = SCHANNEL_SIGN_ALG_AES;
+        break;
+
+    case SCHANNEL_SIGN_ALG_MD4:
+        sign_alg = SCHANNEL_SIGN_ALG_MD4;
+        break;
+
+    default:
+        status = SEC_E_MESSAGE_ALTERED;
+        return status;
+
+    }
+
+    /* seal algorithm; Assumes input data is LE format */
+    memcpy(&ubyte2, &tail->signature[2], sizeof(ubyte2));
+    switch (ubyte2)
+    {
+        case SCHANNEL_SEAL_ALG_AES:
+            seal_alg = SCHANNEL_SEAL_ALG_AES;
+            break;
+
+        case SCHANNEL_SEAL_ALG_MD4:
+            seal_alg = SCHANNEL_SEAL_ALG_MD4;
+            break;
+
+        default:
+            status = SEC_E_MESSAGE_ALTERED;
+            return status;
+    }
+
+    /* pad test; must be 0xffff, otherwise message is invalid */
+    memcpy(&ubyte2, &tail->signature[4], sizeof(ubyte2));
+    if (seal_alg == SCHANNEL_SEAL_ALG_AES && ubyte2 != 0xffff)
+    {
+        status = SEC_E_MESSAGE_ALTERED;
+        return status;
+    }
+
+    /* "The Flags data SHOULD be <83> disregarded.
+    memcpy(&ubyte2, &tail->signature[6], sizeof(ubyte2));
+    */
+
+    /* Return discovered sign/seal algorithms */
+    *psign_alg = sign_alg;
+    *pseal_alg = seal_alg;
+
+    return status;
+}
 
 /*
 local variables:

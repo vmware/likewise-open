@@ -10,6 +10,7 @@ make()
 	netlogonldapopen.c               \
 	netlogonldapglobals.c            \
 	netlogonldap_ldap.c              \
+	netlogon_list.c                  \
         "
 
     lw_dceidl \

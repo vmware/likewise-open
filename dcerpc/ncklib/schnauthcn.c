@@ -1364,11 +1364,16 @@ INTERNAL void rpc__schnauth_cn_unwrap_pdu
     memcpy(tail.digest,      schn_tlr->digest,     8);
     memcpy(tail.nonce,       schn_tlr->nonce,      8);
 
-    status = schn_unwrap(sec_ctx, sec_level, &input_token, &output_token,
-			 &tail);
-
-    memcpy(input_token.base, output_token.base, output_token.len);
-    schn_free_blob(&output_token);
+    status = schn_unwrap(sec_ctx,
+                         sec_level,
+                         &input_token,
+                         &output_token,
+                         &tail);
+    if (!status)
+    {
+        memcpy(input_token.base, output_token.base, output_token.len);
+        schn_free_blob(&output_token);
+    }
 
     *st = status;
 }
@@ -1673,14 +1678,30 @@ INTERNAL void rpc__schnauth_cn_vfy_client_req
     unsigned32                      *st
 )
 {
-    rpc_cn_bind_auth_value_priv_t       *priv_auth_value;
+    unsigned32                    msg_type = 0;
+    unsigned32                    flags_tlr = 0;
+    uint8                         *ptr = (uint8 *) auth_value;
+    char                          netbios_domain[32] = {0};
+    char                          netbios_host[32] = {0};
+    char                          netbios_host_utf8[32] = {0};
+    int                           dns_len = 0;
+    int                           dns_host_len = 0;
+    int                           tmp_len = 0;
+    char                          *dns_ptr = NULL;
+    char                          *dns_domain_entry = NULL;
+    char                          *dns_host = NULL;
+    char                          *fqdn = NULL;
+    char                          *machine_name = NULL;
+    int                           fqdn_len = 0;
+    struct schn_auth_ctx          *sec_ctx = NULL; /* Alias */
+    void                          *session_key = NULL;
+    extern rpc_auth_key_retrieval_fn_t schnauth_get_key_func;
+    extern void *schnauth_get_key_ctx;
 
     CODING_ERROR (st);
 
     RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
                     ("(rpc__schnauth_cn_vfy_client_req)\n"));
-
-    priv_auth_value = (rpc_cn_bind_auth_value_priv_t *)auth_value;
 
     RPC_DBG_PRINTF (rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_PKT,
                     ("(rpc__schnauth_cn_vfy_client_req) prot->%x level->%x key_id->%x assoc_uuid_crc->%x xmit_seq->%x recv_seq->%x\n",
@@ -1691,6 +1712,145 @@ INTERNAL void rpc__schnauth_cn_vfy_client_req
                     assoc_sec->assoc_next_snd_seq,
                     assoc_sec->assoc_next_rcv_seq));
 
+    /* Message type */
+    memcpy(&msg_type, ptr, sizeof(msg_type));
+    ptr += 4;
+    if (msg_type != SCHANNEL_MSG_TYPE_REQUEST)
+    {
+        /* TBD:Adam-Don't know if this is called when a proper reply is built */
+        *st = SEC_E_OUT_OF_SEQUENCE;
+        goto error;
+    }
+
+    /* Parse auth trailer payload */
+    memcpy(&flags_tlr, ptr, sizeof(flags_tlr));
+    ptr += 4;
+
+    /* NetBIOS Domain entry */
+    if (flags_tlr & SCHANNEL_MSG_FLAGS_NETBIOS_DOMAIN)
+    {
+        strcpy(netbios_domain, (const char *) ptr);
+        ptr += strlen(netbios_domain) + 1;
+    }
+
+    /* NetBIOS Host entry */
+    if (flags_tlr & SCHANNEL_MSG_FLAGS_NETBIOS_HOST)
+    {
+        strcpy(netbios_host, (const char *) ptr);
+        ptr += strlen(netbios_host) + 1;
+    }
+
+    /* DNS Domain entry */
+    if (flags_tlr & SCHANNEL_MSG_FLAGS_DNS_DOMAIN)
+    {
+        /* Compute DNS Domain entry length */
+        dns_ptr = ptr;
+        tmp_len = (int) *dns_ptr;
+        while (tmp_len)
+        {
+            dns_len += tmp_len + 1;
+            dns_ptr += tmp_len + 1;
+            tmp_len = (int) *dns_ptr;
+        }
+
+        dns_domain_entry = calloc(dns_len, sizeof(char));
+        if (!dns_domain_entry)
+        {
+            *st = rpc_s_no_memory;
+            goto error;
+        }
+
+        /* Populate DNS Domain entry */
+        dns_ptr = ptr;
+        tmp_len = (int) *dns_ptr;
+        while (tmp_len)
+        {
+            strncat(dns_domain_entry, dns_ptr+1, tmp_len);
+            dns_ptr += tmp_len + 1;
+            tmp_len = (int) *dns_ptr;
+            if (tmp_len)
+            {
+                strcat(dns_domain_entry, ".");
+            }
+        }
+        ptr = dns_ptr + 1;
+    }
+
+    /* DNS Host entry */
+    if (flags_tlr & SCHANNEL_MSG_FLAGS_DNS_HOST)
+    {
+        /* Assuming this is a null-terminated string */
+        dns_host_len = strlen(ptr) + 1;
+        dns_host = calloc(dns_host_len, sizeof(char));
+        if (!dns_host)
+        {
+            *st = rpc_s_no_memory;
+            goto error;
+        }
+        strcpy(dns_host, (const char *) ptr);
+        ptr += dns_host_len;
+    }
+
+    /* NetBIOS Host UTF-8 entry */
+    if (flags_tlr & SCHANNEL_MSG_FLAGS_NETBIOS_HOST_UTF8)
+    {
+        tmp_len = (int) *ptr++;
+        strncpy(netbios_host_utf8, (const char *) ptr, tmp_len);
+        machine_name = calloc(tmp_len + 1, sizeof(char));
+        if (!machine_name)
+        {
+            *st = rpc_s_no_memory;
+            goto error;
+        }
+        strncpy(machine_name, netbios_host_utf8, tmp_len);
+    }
+
+    /* Build FQDN, but only if host and domain flags are set */
+    if ((flags_tlr & SCHANNEL_MSG_FLAGS_FQDN) == SCHANNEL_MSG_FLAGS_FQDN)
+    {
+        fqdn_len = strlen(machine_name) + 1 + strlen(dns_domain_entry) + 1;
+        fqdn = calloc(fqdn_len, sizeof(char));
+        if (!fqdn)
+        {
+            *st = rpc_s_no_memory;
+            goto error;
+        }
+        strcpy(fqdn, machine_name);
+        strcat(fqdn, ".");
+        strcat(fqdn, dns_domain_entry);
+    }
+
+    /*
+     * schn_auth_ctx fields to populate:
+     *   session_key
+     *   domain_name
+     *   fqdn
+     *   machine_name
+     *   sender_flags
+     *   seq_num
+     */
+
+    /* Alias to schannel security context, which contain above fields */
+    sec_ctx = &((rpc_schnauth_cn_info_p_t) sec->sec_cn_info)->sec_ctx;
+
+    schnauth_get_key_func(schnauth_get_key_ctx,
+                          machine_name,
+                          0,
+                          0,
+                          &session_key,
+                          st);
+    if (*st)
+    {
+        goto error;
+    }
+    memcpy(sec_ctx->session_key, session_key, sizeof(sec_ctx->session_key));
+
+    sec_ctx->domain_name = dns_domain_entry;
+    sec_ctx->fqdn = fqdn;
+    sec_ctx->machine_name = machine_name;
+    sec_ctx->sender_flags = 0;
+    sec_ctx->seq_num = 0;
+
 #ifdef DEBUG
     if (RPC_DBG_EXACT(rpc_es_dbg_cn_errors,
                       RPC_C_CN_DBG_AUTH_VFY_CLIENT_REQ))
@@ -1700,7 +1860,28 @@ INTERNAL void rpc__schnauth_cn_vfy_client_req
     }
 #endif
 
-    *st = rpc_s_ok;
+error:
+    if (*st)
+    {
+        if (dns_domain_entry)
+        {
+            free(dns_domain_entry);
+        }
+        if (dns_host)
+        {
+            free(dns_host);
+        }
+        if (machine_name)
+        {
+            free(machine_name);
+        }
+        if (fqdn)
+        {
+            free(fqdn);
+        }
+    }
+
+    return;
 }
 
 /*****************************************************************************/

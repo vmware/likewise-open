@@ -40,6 +40,9 @@
 #include <dce/schannel.h>
 #include <schnauth.h>
 
+rpc_auth_key_retrieval_fn_t schnauth_get_key_func;
+void *schnauth_get_key_ctx;
+
 /*
  * Size of buffer used when asking for remote server's principal name
  */
@@ -327,6 +330,9 @@ PRIVATE void rpc__schnauth_srv_reg_auth
 {
     RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
 		   ("(rpc__schnauth_srv_reg_auth)\n"));
+
+    schnauth_get_key_func = get_key_func;
+    schnauth_get_key_ctx = arg;
 
     *stp = rpc_s_ok;
 }

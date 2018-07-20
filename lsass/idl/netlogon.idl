@@ -41,15 +41,16 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 cpp_quote("#endif")
 
-    typedef wchar16_t * LOGONSRV_HANDLE;
+/* Use define, as typedef LOGONSRV_HANDLE does not work with dceidl */
+#define LOGONSRV_HANDLE wchar16_t *
 
     NTSTATUS netr_Function00();
     NTSTATUS netr_Function01();
 
     /* function 0x02 */
     NTSTATUS NetrLogonSamLogon(
-        [in,unique,string] wchar16_t *server_name,
-        [in,unique,string] wchar16_t *computer_name,
+        [in,unique,string] LOGONSRV_HANDLE server_name,
+        [in,string,unique] wchar16_t *computer_name,
         [in,unique] NetrAuth *creds,
         [in,out,unique] NetrAuth *ret_creds,
         [in] UINT16 logon_level,
@@ -61,8 +62,8 @@ cpp_quote("#endif")
 
 	/* function 0x03 */
     NTSTATUS NetrLogonSamLogoff(
-        [in,unique,string] wchar16_t *server_name,
-        [in,unique,string] wchar16_t *computer_name,
+        [in,unique,string] LOGONSRV_HANDLE server_name,
+        [in,string,unique] wchar16_t *computer_name,
         [in,unique] NetrAuth *creds,
         [in,out,unique] NetrAuth *ret_creds,
         [in] UINT16 logon_level,
@@ -73,7 +74,7 @@ cpp_quote("#endif")
 	/* function 0x04 */
      NTSTATUS
      NetrServerReqChallenge (
-         [in, string] LOGONSRV_HANDLE PrimaryName,
+         [in,unique,string] LOGONSRV_HANDLE PrimaryName,
          [in, string] wchar16_t *ComputerName,
          [in] NetrCred *ClientChallenge,
          [out] NetrCred *ServerChallenge
@@ -81,7 +82,7 @@ cpp_quote("#endif")
 
 	/* function 0x05 */
     NTSTATUS NetrServerAuthenticate(
-        [in,string,unique] wchar16_t *server_name,
+        [in,unique,string] LOGONSRV_HANDLE PrimaryName,
         [in,string] wchar16_t account_name[],
         [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
@@ -101,7 +102,7 @@ cpp_quote("#endif")
 
 	/* function 0x0f */
     NTSTATUS NetrServerAuthenticate2(
-        [in,string,unique] wchar16_t *server_name,
+        [in,unique,string] LOGONSRV_HANDLE server_name,
         [in,string] wchar16_t account_name[],
         [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
@@ -117,16 +118,31 @@ cpp_quote("#endif")
 
     /* function 0x14 */
     WINERROR DsrGetDcName(
-        [in,string,unique] wchar16_t *server_name,
-        [in,string,unique] wchar16_t *domain_name,
+        [in, unique, string] LOGONSRV_HANDLE server_name,
+        [in, unique, string] wchar16_t *domain_name,
         [in,unique] GUID *domain_guid,
         [in,unique] GUID *site_guid,
         [in] UINT32 get_dc_flags,
         [out,ref] DsrDcNameInfo **info
         );
 
-    NTSTATUS netr_Function15();
-    NTSTATUS netr_Function16();
+	/* function 0x15 */
+    NTSTATUS NetrLogonGetCapabilities(
+        [in, string] LOGONSRV_HANDLE server_name,
+        [in, string, unique] wchar16_t* computer_name,
+        [in] NetrAuth *authenticator,
+        [in, out] NetrAuth *return_authenticator,
+        [in] UINT32 QueryLevel,
+        [out, switch_is(QueryLevel)] NetrCapabilities *server_capabilities
+        );
+
+	/* function 0x16 */
+    NTSTATUS NetrLogonSetServiceBits(
+        [in, string] LOGONSRV_HANDLE server_name,
+        [in] UINT32 ServiceBitsOfInterest,
+        [in] UINT32 ServiceBits
+        );
+
     NTSTATUS netr_Function17();
     NTSTATUS netr_Function18();
     NTSTATUS netr_Function19();
@@ -134,7 +150,7 @@ cpp_quote("#endif")
 	/* function 0x1a */
      NTSTATUS
      NetrServerAuthenticate3 (
-         [in,string] LOGONSRV_HANDLE PrimaryName,
+         [in,unique,string] LOGONSRV_HANDLE PrimaryName,
          [in,string] wchar16_t * AccountName,
          [in] UINT16 SecureChannelType,
          [in, string] wchar16_t * ComputerName,
@@ -149,8 +165,8 @@ cpp_quote("#endif")
 
     /* function 0x1d */
     NTSTATUS NetrLogonGetDomainInfo(
-        [in,string] wchar16_t *server_name,
-        [in,unique,string] wchar16_t *computer_name,
+        [in,string] LOGONSRV_HANDLE server_name,
+        [in,string,unique] wchar16_t *computer_name,
         [in] NetrAuth *creds,
         [in,out,ref] NetrAuth *ret_creds,
         [in] UINT32 level,
@@ -168,7 +184,7 @@ cpp_quote("#endif")
 
 	/* function 0x24 */
     NTSTATUS NetrEnumerateTrustedDomainsEx(
-        [in,string,unique] wchar16_t *server_name,
+        [in, unique, string] LOGONSRV_HANDLE server_name,
         [out,ref] NetrDomainTrustList *domain_trusts
         );
 
@@ -191,7 +207,7 @@ cpp_quote("#endif")
 
 	/* function 0x28 */
    WINERROR DsrEnumerateDomainTrusts(
-        [in,unique,string] wchar16_t *server_name,
+        [in,unique,string] LOGONSRV_HANDLE server_name,
         [in] UINT32 trust_flags,
         [out,ref] NetrDomainTrustList *trusts
         );
@@ -205,6 +221,9 @@ cpp_quote("#endif")
     NTSTATUS netr_Function2f();
     NTSTATUS netr_Function30();
     NTSTATUS netr_Function31();
+
+#if 0
+/* Opcode 0x31 is the last found in the MS-NRPC IDL */
     NTSTATUS netr_Function32();
     NTSTATUS netr_Function33();
     NTSTATUS netr_Function34();
@@ -215,6 +234,7 @@ cpp_quote("#endif")
     NTSTATUS netr_Function39();
     NTSTATUS netr_Function3a();
     NTSTATUS netr_Function3b();
+#endif
 }
 
 

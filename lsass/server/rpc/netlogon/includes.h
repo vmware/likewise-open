@@ -101,6 +101,7 @@
 #include "netlogonldap_config.h"
 #include "netlogonldap_ldap.h"
 #include "netlogonldap_utils.h"
+#include "netlogon_list.h"
 
 #include "externs.h"
 

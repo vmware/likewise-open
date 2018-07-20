@@ -30,10 +30,24 @@
 
 /*
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ *          Adam Bernstein (abernstein@vmware.com)
  */
 
 #include "includes.h"
 
+uint32 schn_wrap_md5(
+                 void                 *sec_ctx,
+                 uint32                sec_level,
+                 struct schn_blob     *in,
+                 struct schn_blob     *out,
+                 struct schn_tail     *tail);
+
+uint32 schn_wrap_aes(
+                 void                 *sec_ctx,
+                 uint32                sec_level,
+                 struct schn_blob     *in,
+                 struct schn_blob     *out,
+                 struct schn_tail     *tail);
 
 /*
  * Wrap the packet prior to sending
@@ -47,26 +61,65 @@ uint32 schn_wrap(void                 *sec_ctx,
 {
     uint32 status = schn_s_ok;
     struct schn_auth_ctx *schn_ctx = NULL;
+
+    schn_ctx = (struct schn_auth_ctx*)sec_ctx;
+
+    out->len  = in->len;
+    out->base = calloc(sizeof(unsigned char), out->len ? out->len : 1);
+    if (out->base == NULL) {
+        status = schn_s_no_memory;
+        goto error;
+    }
+    memcpy(out->base, in->base, out->len);
+
+    switch(schn_ctx->seal_type)
+    {
+    case SCHANNEL_SEAL_ALG_AES:
+        status = schn_wrap_aes(sec_ctx,
+                 sec_level,
+                 in,
+                 out,
+                 tail);
+        break;
+    case SCHANNEL_SEAL_ALG_MD4:
+        status = schn_wrap_md5(sec_ctx,
+                 sec_level,
+                 in,
+                 out,
+                 tail);
+        break;
+
+    default:
+        /* TBD:Adam-Return error here */
+        goto error;
+        break;
+    }
+
+cleanup:
+    return status;
+
+error:
+    goto cleanup;
+}
+
+uint32 schn_wrap_md5(
+                 void                 *sec_ctx,
+                 uint32                sec_level,
+                 struct schn_blob     *in,
+                 struct schn_blob     *out,
+                 struct schn_tail     *tail)
+{
+    uint32 status = schn_s_ok;
+    struct schn_auth_ctx *schn_ctx = NULL;
     unsigned char *schannel_sig = NULL;
     unsigned char sess_key[16], nonce[8], seq_number[8], digest[8];
     uint32 sender_flags;
     unsigned char seal_key[16];
 
-    schn_ctx = (struct schn_auth_ctx*)sec_ctx;
-
     memset(sess_key, 0, sizeof(digest));
     memset(nonce, 0, sizeof(nonce));
     memset(seq_number, 0, sizeof(seq_number));
     memset(digest, 0, sizeof(digest));
-
-    out->len  = in->len;
-    out->base = malloc(out->len ? out->len : 1);
-    if (out->base == NULL) {
-        status = schn_s_no_memory;
-        goto error;
-    }
-
-    memcpy(out->base, in->base, out->len);
 
     /* Nonce ("pseudo_bytes" call is to be replaced with "bytes"
        once we're ready to properly reseed the generator) */
@@ -130,6 +183,43 @@ error:
     goto cleanup;
 }
 
+uint32 schn_wrap_aes(
+                 void                 *sec_ctx,
+                 uint32                sec_level,
+                 struct schn_blob     *in,
+                 struct schn_blob     *out,
+                 struct schn_tail     *tail)
+{
+    uint32 status = schn_s_ok;
+    unsigned char sess_key[16] = {0};
+    unsigned char nonce[8] = {0};
+    unsigned char seq_number[8] = {0};
+    unsigned char digest[8] = {0};
+ //   unsigned char *schannel_sig = NULL;
+    struct schn_auth_ctx *schn_ctx = NULL;
+
+    schn_ctx = (struct schn_auth_ctx*)sec_ctx;
+
+    if (!in || !out)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto error;
+    }
+
+    RAND_pseudo_bytes((unsigned char*)nonce, sizeof(nonce));
+    memcpy(sess_key, schn_ctx, sizeof(sess_key));
+
+//    memcpy(tail->signature,  schannel_sig, 8);
+    memcpy(tail->digest,     digest,       8);
+    memcpy(tail->seq_number, seq_number,   8);
+    memcpy(tail->nonce,      nonce,        8);
+
+cleanup:
+    return status;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:

@@ -47,6 +47,11 @@ struct schn_auth_ctx {
     unsigned char  *machine_name;
     uint32          sender_flags;
     uint32          seq_num;
+    uint32          initialized;
+    uint16          sign_type;
+    uint16          seal_type;
+    uint16          pad;
+    uint16          flags;
 };
 
 
@@ -72,6 +77,14 @@ struct schn_blob {
 };
 
 
+struct schn_nl_auth_sha2_signature {
+    uint16 sign_alg;
+    uint16 seal_alg;
+    uint16 pad;
+    uint16 flags;
+};
+
+
 #define SCHANNEL_SEC_LEVEL_INTEGRITY   (5)
 #define SCHANNEL_SEC_LEVEL_PRIVACY     (6)
 
@@ -79,6 +92,28 @@ struct schn_blob {
 #define SCHANNEL_INITIATOR_FLAGS       (0x0080)
 #define SCHANNEL_ACCEPTOR_FLAGS        (0x0000)
 
+
+#define SCHANNEL_SIGN_ALG_UNDEF        (0)
+#define SCHANNEL_SIGN_ALG_AES          (0x0013)
+#define SCHANNEL_SIGN_ALG_MD4          (0x0077)
+
+
+#define SCHANNEL_SEAL_ALG_UNDEF        (0)
+#define SCHANNEL_SEAL_ALG_AES          (0x001a)
+#define SCHANNEL_SEAL_ALG_MD4          (0x007a)
+
+#define SEC_E_MESSAGE_ALTERED          (0x8009030F)
+#define SEC_E_OUT_OF_SEQUENCE          (0x80090310)
+
+#define SCHANNEL_MSG_TYPE_REQUEST            (0)
+#define SCHANNEL_MSG_TYPE_RESPONSE           (1)
+
+#define SCHANNEL_MSG_FLAGS_NETBIOS_DOMAIN    (0x00000001)
+#define SCHANNEL_MSG_FLAGS_NETBIOS_HOST      (0x00000002)
+#define SCHANNEL_MSG_FLAGS_DNS_DOMAIN        (0x00000004)
+#define SCHANNEL_MSG_FLAGS_DNS_HOST          (0x00000008)
+#define SCHANNEL_MSG_FLAGS_NETBIOS_HOST_UTF8 (0x00000010)
+#define SCHANNEL_MSG_FLAGS_FQDN              (SCHANNEL_MSG_FLAGS_NETBIOS_HOST_UTF8 | SCHANNEL_MSG_FLAGS_DNS_DOMAIN)
 
 uint32 schn_init_creds(struct schn_auth_ctx *ctx,
                        struct schn_blob     *creds);

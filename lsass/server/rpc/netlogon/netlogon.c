@@ -47,12 +47,38 @@
 
 #include "includes.h"
 
-/* Save this stuff (hash table) for access later */
-static    BYTE g_bzSaveSessionKey[16]  = {0};
-static    BYTE g_bzClientCredential[8] = {0};
-static    BYTE g_bzServerCredential[8] = {0};
+typedef struct _listnode{
+    struct _listnode *next;
+    char *computer;
+    char *domain;
+    unsigned char cli_challenge[8];
+    unsigned char srv_challenge[8];
+    unsigned char cli_credential[8];
+    unsigned char srv_credential[8];
+    unsigned char session_key[16];
+    time_t t_expired;
+} listnode;
 
+
+/* context for rpc_server_register_auth_info */
+typedef struct _list_find_entry {
+    unsigned char *(*find_key)(char *computer, void *list);
+    void *list;
+} list_find_entry;
+
+extern void rpc_set_schannel_seskey(
+    unsigned char seskey[16],
+    char *netbios_host,
+    char *dns_domain,
+    unsigned32 *st);
+
+/* Use list methods to save/retrieve client session key info */
+static listhead *g_schn_list;
+
+#if 0
 #define _NETLOGON_TEST_VECTORS
+#endif
+
 #ifdef _NETLOGON_TEST_VECTORS
 static CHAR unicodePwdTest[] = {
  0x73, 0x00, 0x4f, 0x00, 0x62, 0x00, 0x54, 0x00, 0x6c, 0x00, 0x6e, 0x00, 0x2c, 0x00
@@ -85,6 +111,191 @@ static BYTE srvCredentialTest[]  = { 0x5d, 0xe8, 0x64, 0xca, 0x7f, 0x58, 0x47, 0
 static    BOOLEAN bUseTestVector = FALSE;
 #endif
 
+static
+int cmp_computer_name(listnode *find_node, listnode *entry)
+{
+    int found = 0;
+
+    if (strcmp(entry->computer, find_node->computer) == 0)
+    {
+        found = 1;
+    }
+
+    return found;
+}
+
+unsigned char *find_computer_key(char *computer, void *list)
+{
+    NTSTATUS ntStatus = 0;
+    listnode *found_node = NULL;
+    listnode find_node = {0};
+    unsigned char *ret_key = NULL;
+
+    find_node.computer = computer;
+
+    ntStatus = list_iterate_func(
+                   list,
+                   cmp_computer_name,
+                   &find_node,
+                   &found_node);
+    if (ntStatus == 0)
+    {
+        ret_key = (unsigned char *) malloc(sizeof(found_node->session_key));
+        if (ret_key)
+        {
+            memcpy(ret_key, found_node->session_key, sizeof(found_node->session_key));
+        }
+    }
+
+    return ret_key;
+}
+
+list_find_entry *alloc_find_entry_ctx(void)
+{
+    int err = 0;
+    list_find_entry *ret_entry = NULL;
+
+    ret_entry = malloc(sizeof(list_find_entry));
+    if (!ret_entry)
+    {
+        err = errno;
+        goto error;
+    }
+
+    ret_entry->list = g_schn_list;
+    ret_entry->find_key = find_computer_key;
+
+cleanup:
+    return ret_entry;
+
+error:
+    if (err)
+    {
+        if (ret_entry)
+        {
+            free(ret_entry);
+            ret_entry = NULL;
+        }
+    }
+    goto cleanup;
+}
+
+static
+void delete_node(
+    listnode *node)
+{
+    if (!node)
+    {
+        return;
+    }
+    if (node->domain)
+    {
+        free(node->domain);
+    }
+    if (node->computer)
+    {
+        free(node->computer);
+    }
+    free(node);
+}
+
+static
+int cmp_node_names(listnode *find_node, listnode *entry)
+{
+    int found = 0;
+
+    if (strcmp(entry->computer, find_node->computer) == 0 &&
+        strcmp(entry->domain,   find_node->domain)   == 0)
+    {
+        found = 1;
+    }
+
+    return found;
+}
+
+static
+int netlogon_list_alloc_node(
+    char *computer,
+    char *domain,
+    listnode **ret_node)
+{
+    int sts = 0;
+    listnode *new_node = NULL;
+    char *computer_alloc = NULL;
+    char *domain_alloc = NULL;
+    time_t t_cur = 0;
+
+    new_node = calloc(1, sizeof(listnode));
+    if (!new_node)
+    {
+        sts = errno;
+        goto cleanup;
+    }
+
+    computer_alloc = strdup(computer);
+    if (!computer_alloc)
+    {
+        sts = errno;
+        goto cleanup;
+    }
+
+    domain_alloc = strdup(domain);
+    if (!domain_alloc)
+    {
+        sts = errno;
+        goto cleanup;
+    }
+
+    new_node->t_expired = time(&t_cur) + LIST_ENTRY_TIMEOUT;
+
+    /* Assemble the return value */
+    new_node->computer = computer_alloc;
+    new_node->domain = domain_alloc;
+    *ret_node = new_node;
+
+cleanup:
+    if (sts)
+    {
+        if (computer_alloc)
+        {
+            free(computer_alloc);
+        }
+        if (domain_alloc)
+        {
+            free(domain_alloc);
+        }
+        if (new_node)
+        {
+            free(new_node);
+        }
+    }
+
+    return sts;
+}
+
+/* Replace existing list entry with new node */
+static
+NTSTATUS
+netlogon_list_add_node(listhead *list, listnode *new_list_node)
+{
+    NTSTATUS ntStatus = 0;
+    listnode *found_node = {0};
+
+    ntStatus = list_iterate_func(
+                   list,
+                   cmp_node_names, 
+                   new_list_node,
+                   &found_node);
+    if (ntStatus == 0)
+    {
+        delete_node(found_node);
+    }
+    else
+    {
+        ntStatus = list_insert_node(list, new_list_node);
+    }
+    return ntStatus;
+}
 
 #ifndef _NETLOGON_UNIT_TEST
 static
@@ -335,78 +546,268 @@ error:
 }
 
 
+static
+NTSTATUS
+netlogon_ldap_get_unicode_password(
+    wchar16_t *computer_name,
+    wchar16_t **ppwszUnicodePwd,
+    DWORD *pdwUnicodePwdLen)
+{
+    DWORD dwError = 0;
+    HANDLE hDirectory = NULL;
+    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    LDAP *pLd = NULL;
+    PSTR pszLdapSearchBase = NULL;
+    PSTR ppszAttributes[] = { "unicodePwd", NULL }; /* TBD:Adam-Store md4 hash?? */
+    PSTR pszDnsDomainName = NULL;
+    PSTR pszDomainDn = NULL;
+    PSTR pszComputerName = NULL;
+    LDAPMessage *pLdapObject = NULL;
+    struct berval **bv_objectValue = NULL;
+    PWSTR pwszUnicodePwd = NULL;
+    PWSTR pwszUnicodePwdRet = NULL;
+    PWSTR pwszUnicodePwdAlloc = NULL;
+    DWORD dwUnicodePwdLen = 0;
+
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    WCHAR wcQuote = { '"' };
+
+    dwError = NetlogonLdapOpen(&hDirectory);
+    BAIL_ON_NTSTATUS_ERROR(dwError);
+
+    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) hDirectory;
+    pLd = pContext->dirContext.pLd;
+
+    /* Obtain the domain name for this DC */
+    ntStatus = LwRtlCStringDuplicate(&pszDnsDomainName,
+                                     pContext->dirContext.pBindInfo->pszDomainFqdn);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = LwLdapConvertDomainToDN(pszDnsDomainName,
+                                      &pszDomainDn);
+    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                 &pszComputerName,
+                 computer_name);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = LwAllocateStringPrintf(
+                  &pszLdapSearchBase,
+                  "cn=%s,cn=Computers,%s",
+                  pszComputerName,
+                  pszDomainDn);
+    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
+
+    /* Get the computer account password */
+    dwError = NetlogonLdapQueryObjects(
+                  pLd,
+                  pszLdapSearchBase,
+                  LDAP_SCOPE_SUBTREE,
+                  NULL,
+                  ppszAttributes,
+                  -1,
+                  &pLdapObject);
+    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
+
+    bv_objectValue = ldap_get_values_len(pLd, pLdapObject, ppszAttributes[0]);
+    if (bv_objectValue && bv_objectValue[0])
+    {
+         pwszUnicodePwd = (PWSTR) bv_objectValue[0]->bv_val;
+         dwUnicodePwdLen = (DWORD) bv_objectValue[0]->bv_len;
+    }
+    else
+    {
+        ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    /* Allocate a space for a NULL terminated PWSTR string */
+    pwszUnicodePwdAlloc = LwRtlMemoryAllocate(dwUnicodePwdLen + sizeof(WCHAR), 1);
+    if (!pwszUnicodePwdAlloc)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+    memcpy(pwszUnicodePwdAlloc, pwszUnicodePwd, dwUnicodePwdLen);
+
+
+#ifdef _NETLOGON_TEST_VECTORS
+    /* Respond with using previously captured data */
+    if (memcmp(cli_challenge cliNonceTest, sizeof(cliNonceTest) == 0)
+    {
+        bUseTestVector = TRUE;
+        memcpy(pwszUnicodePwdAlloc, unicodePwdTest, sizeof(unicodePwdTest));
+        pwszUnicodePwdAlloc[sizeof(unicodePwdTest) / sizeof(WCHAR)] = (WCHAR) 0;
+    }
+#endif
+
+    dwUnicodePwdLen = (DWORD) LwRtlWC16StringNumChars(pwszUnicodePwdAlloc);
+
+    /* Must prune off the " " around the password */
+    if (pwszUnicodePwdAlloc[0] == wcQuote &&
+        pwszUnicodePwdAlloc[dwUnicodePwdLen-1] == wcQuote)
+    {
+        pwszUnicodePwd = pwszUnicodePwdAlloc + 1;
+
+        /* -2, as the strlen is one shorter after removing the leading " */
+        pwszUnicodePwd[dwUnicodePwdLen - 2] = (WCHAR) '\0';
+
+        /* TBD:Adam Debug */
+        dwUnicodePwdLen = (DWORD) LwRtlWC16StringNumChars(pwszUnicodePwd);
+    }
+    else
+    {
+        pwszUnicodePwd = pwszUnicodePwdAlloc;
+    }
+
+    /* Allocate new pwd, as previous is pointing to aliased memory */
+    ntStatus = NetlogonSrvAllocateMemory(
+                 (VOID *) &pwszUnicodePwdRet,
+                 dwUnicodePwdLen * sizeof(WCHAR) + sizeof(WCHAR)); /* null terminated */
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    memcpy(pwszUnicodePwdRet, pwszUnicodePwd, dwUnicodePwdLen*sizeof(WCHAR));
+
+    *ppwszUnicodePwd = pwszUnicodePwdRet;
+    *pdwUnicodePwdLen = dwUnicodePwdLen;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszUnicodePwdAlloc);
+    LW_SAFE_FREE_MEMORY(pszLdapSearchBase);
+
+    return ntStatus;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszUnicodePwdRet);
+    goto cleanup;
+}
+
+static
+NTSTATUS
+GetSchannelMachineEntry(
+    wchar16_t *server_name,
+    wchar16_t *computer_name,
+    listnode **list_node_ret)
+{
+    NTSTATUS ntStatus = 0;
+    PSTR pszComputerName = NULL;
+    PSTR pszServerName = NULL;
+    listnode *find_node = NULL;
+    listnode *list_node = NULL;
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                 &pszComputerName,
+                 computer_name);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                 &pszServerName,
+                 server_name);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = netlogon_list_alloc_node(
+                  pszComputerName,
+                  pszServerName,
+                  &find_node);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = list_iterate_func(
+                   g_schn_list,
+                   cmp_node_names, 
+                   find_node,
+                   &list_node);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    *list_node_ret = list_node;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pszComputerName);
+    LW_SAFE_FREE_MEMORY(pszServerName);
+    delete_node(find_node);
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
 
 #ifndef _NETLOGON_UNIT_TEST
 static
 #endif
 NTSTATUS
-ComputeNetlogonCredentialAes(
-    PBYTE challengeData,
-    DWORD challengeDataLen,
-    PBYTE key,
-    DWORD keyLen,
-    PBYTE credentialData,
-    DWORD credentialDataLen)
+ComputeSessionKeyAes(
+    PBYTE sharedSecret,
+    DWORD sharedSecretLen,
+    PBYTE cliNonce,
+    DWORD cliNonceLen,
+    PBYTE srvNonce,
+    DWORD srvNonceLen,
+    PBYTE sessionKey,
+    DWORD sessionKeyLen)
 {
-    BYTE IV[16] = {0}; /* Assuming IV is same length as key */
-    DWORD IV_len = 0;
     NTSTATUS ntStatus = 0;
-    EVP_CIPHER_CTX enc_ctx = {0};
-    BYTE encryptedData[16] = {0};
-    int encryptedDataLen = sizeof(encryptedData);
-    int encryptedDataFinalLen = 0;
+    UCHAR md4DigestBuf[MD4_DIGEST_LENGTH] = {0};
+    HMAC_CTX hctx = {0};
+    unsigned char hmac_buf[SHA512_DIGEST_LENGTH] = {0};
+    unsigned int hmac_len = 0;
+    unsigned int i = 0;
+    BOOLEAN bHaveSharedSecret = FALSE;
 
-    ntStatus = EVP_EncryptInit_ex(
-                   &enc_ctx,
-                   EVP_aes_128_cfb8(),
-                   NULL, /* Engine implementation */
-                   key,
-                   IV);
-    if (ntStatus == 0)
+    if (strncmp((char *) sharedSecret, "owfdigest:",  10) == 0)
     {
-        ntStatus = STATUS_INVALID_PARAMETER;
+        /* Test vector with MD4 digest of unicodePassword already computed */
+        bHaveSharedSecret = TRUE;
+        sharedSecretLen -= 10; 
+        sharedSecret += 10; 
+        memcpy(md4DigestBuf, sharedSecret, sharedSecretLen);
+    }
+
+    if (!bHaveSharedSecret &&
+        compute_md4_digest((unsigned char *) sharedSecret,
+                           sharedSecretLen,
+                           md4DigestBuf) == 0)
+    {
+        ntStatus = ERROR_INVALID_PASSWORD;
         goto cleanup;
     }
 
-    /* Double check IV length is correct */
-    IV_len = EVP_CIPHER_iv_length(EVP_aes_128_cfb8());
-    if (IV_len != sizeof(IV))
+    HMAC_CTX_init(&hctx);
+
+    if (HMAC_Init(&hctx,
+        md4DigestBuf,
+        sizeof(md4DigestBuf),
+        EVP_sha256()) == 0)
     {
-        ntStatus = STATUS_INVALID_PARAMETER;
+         ntStatus = ERROR_INVALID_HANDLE;
+         goto cleanup;
+    }
+
+    if (HMAC_Update(&hctx, cliNonce, cliNonceLen) != 1)
+    {
+        ntStatus = ERROR_INVALID_HANDLE;
+        goto cleanup;
+    }
+    if (HMAC_Update(&hctx, srvNonce, srvNonceLen) != 1)
+    {
+        ntStatus = ERROR_INVALID_HANDLE;
+        goto cleanup;
+    }
+    if (HMAC_Final(&hctx, hmac_buf, &hmac_len) == 0)
+    {
+        ntStatus = ERROR_INVALID_HANDLE;
         goto cleanup;
     }
 
-    ntStatus = EVP_EncryptUpdate(
-                   &enc_ctx, 
-                   encryptedData,
-                   &encryptedDataLen,
-                   challengeData,
-                   challengeDataLen);
-    if (ntStatus == 0)
+    for (i=0; i<16 && i<hmac_len && i<sessionKeyLen; i++)
     {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        goto cleanup;
+        sessionKey[i] = hmac_buf[i];
     }
-
-    ntStatus = EVP_EncryptFinal_ex(&enc_ctx, 
-                                   &encryptedData[encryptedDataLen],
-                                   &encryptedDataFinalLen);
-    if (ntStatus == 0)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        goto cleanup;
-    }
-
-    /* encryptedDataFinalLen == credentialDataLen I think */
-    memcpy(credentialData, encryptedData, credentialDataLen);
-
-    /* EVP_xxx() return 1 for success. Being here means success */
-    ntStatus = 0;
 
 cleanup:
+    HMAC_cleanup(&hctx);
+
     return ntStatus;
 }
-
 
 NTSTATUS
 ComputeHmacMD5(
@@ -420,7 +821,7 @@ ComputeHmacMD5(
     unsigned int macLen)
 {
     unsigned int ntStatus = 0;
-    HMAC_CTX hctx;
+    HMAC_CTX hctx = {0};
     unsigned char hmac_buf[SHA512_DIGEST_LENGTH] = {0};
     unsigned int hmac_len = 0;
 
@@ -556,115 +957,204 @@ ComputeSessionKeyMD5(
 
     ntStatus = 0; 
     memcpy(sessionKey, hmac_md5_buf, sessionKeyLen);
-    
+
 cleanup:
     return ntStatus;
 }
-
 
 #ifndef _NETLOGON_UNIT_TEST
 static
 #endif
 NTSTATUS
-ComputeSessionKeyAes(
-    PBYTE sharedSecret,
-    DWORD sharedSecretLen,
-    PBYTE cliNonce,
-    DWORD cliNonceLen,
-    PBYTE srvNonce,
-    DWORD srvNonceLen,
-    PBYTE sessionKey,
-    DWORD sessionKeyLen)
+ComputeNetlogonCredentialAes(
+    PBYTE challengeData,
+    DWORD challengeDataLen,
+    PBYTE key,
+    DWORD keyLen,
+    PBYTE credentialData,
+    DWORD credentialDataLen)
 {
+    BYTE IV[16] = {0}; /* Assuming IV is same length as key */
+    DWORD IV_len = 0;
     NTSTATUS ntStatus = 0;
-    UCHAR md4DigestBuf[MD4_DIGEST_LENGTH] = {0};
-    HMAC_CTX hctx;
-    unsigned char hmac_buf[SHA512_DIGEST_LENGTH] = {0};
-    unsigned int hmac_len = 0;
-    unsigned int i = 0;
-    BOOLEAN bHaveSharedSecret = FALSE;
+    EVP_CIPHER_CTX enc_ctx = {0};
+    BYTE encryptedData[16] = {0};
+    int encryptedDataLen = sizeof(encryptedData);
+    int encryptedDataFinalLen = 0;
 
-    if (strncmp((char *) sharedSecret, "owfdigest:",  10) == 0)
+    ntStatus = EVP_EncryptInit_ex(
+                   &enc_ctx,
+                   EVP_aes_128_cfb8(),
+                   NULL, /* Engine implementation */
+                   key,
+                   IV);
+    if (ntStatus == 0)
     {
-        /* Test vector with MD4 digest of unicodePassword already computed */
-        bHaveSharedSecret = TRUE;
-        sharedSecretLen -= 10; 
-        sharedSecret += 10; 
-        memcpy(md4DigestBuf, sharedSecret, sharedSecretLen);
-    }
-
-    if (!bHaveSharedSecret &&
-        compute_md4_digest((unsigned char *) sharedSecret,
-                           sharedSecretLen,
-                           md4DigestBuf) == 0)
-    {
-        ntStatus = ERROR_INVALID_PASSWORD;
+        ntStatus = STATUS_INVALID_PARAMETER;
         goto cleanup;
     }
 
-    HMAC_CTX_init(&hctx);
-
-    if (HMAC_Init(&hctx,
-        md4DigestBuf,
-        sizeof(md4DigestBuf),
-        EVP_sha256()) == 0)
+    /* Double check IV length is correct */
+    IV_len = EVP_CIPHER_iv_length(EVP_aes_128_cfb8());
+    if (IV_len != sizeof(IV))
     {
-         ntStatus = ERROR_INVALID_HANDLE;
-         goto cleanup;
-    }
-
-    if (HMAC_Update(&hctx, cliNonce, cliNonceLen) != 1)
-    {
-        ntStatus = ERROR_INVALID_HANDLE;
-        goto cleanup;
-    }
-    if (HMAC_Update(&hctx, srvNonce, srvNonceLen) != 1)
-    {
-        ntStatus = ERROR_INVALID_HANDLE;
-        goto cleanup;
-    }
-    if (HMAC_Final(&hctx, hmac_buf, &hmac_len) == 0)
-    {
-        ntStatus = ERROR_INVALID_HANDLE;
+        ntStatus = STATUS_INVALID_PARAMETER;
         goto cleanup;
     }
 
-    for (i=0; i<16 && i<hmac_len && i<sessionKeyLen; i++)
+    ntStatus = EVP_EncryptUpdate(
+                   &enc_ctx, 
+                   encryptedData,
+                   &encryptedDataLen,
+                   challengeData,
+                   challengeDataLen);
+    if (ntStatus == 0)
     {
-        sessionKey[i] = hmac_buf[i];
+        ntStatus = STATUS_INVALID_PARAMETER;
+        goto cleanup;
     }
+
+    ntStatus = EVP_EncryptFinal_ex(&enc_ctx, 
+                                   &encryptedData[encryptedDataLen],
+                                   &encryptedDataFinalLen);
+    if (ntStatus == 0)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        goto cleanup;
+    }
+
+    /* encryptedDataFinalLen == credentialDataLen I think */
+    memcpy(credentialData, encryptedData, credentialDataLen);
+
+    /* EVP_xxx() return 1 for success. Being here means success */
+    ntStatus = 0;
 
 cleanup:
-    HMAC_cleanup(&hctx);
-
     return ntStatus;
 }
 
-#if 0 /* TBD:Adam Deleteme, just copyied sample code */
 static
-void 
-digest_message(const unsigned char *message, size_t message_len, unsigned char **digest, unsigned int *digest_len)
+NTSTATUS
+netlogon_compute_credentials(
+    wchar16_t *server_name,
+    wchar16_t *computer_name,
+    UINT32 negotiate_flags,
+    listnode *list_node,
+    PBYTE bzClientCredential,
+    PBYTE bzServerCredential)
 {
-    EVP_MD_CTX *mdctx;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszUnicodePwd = NULL;
+    DWORD dwUnicodePwdLen = 0;
+    BYTE bzClientCredentialRet[8] = {0};
+    BYTE bzServerCredentialRet[8] = {0};
+    DWORD dwClientChallengeLen = 0;
+    DWORD dwServerChallengeLen = 0;
+    PBYTE pClientChallenge = NULL;
+    PBYTE pServerChallenge = NULL;
+    listnode *find_node = {0};
+    BYTE sessionKey[16] = {0};
 
-    if((mdctx = EVP_MD_CTX_create()) == NULL)
-        handleErrors();
-
-    if(1 != EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL))
-        handleErrors();
-
-    if(1 != EVP_DigestUpdate(mdctx, message, message_len))
-        handleErrors();
-
-    if((*digest = (unsigned char *)OPENSSL_malloc(EVP_MD_size(EVP_sha256()))) == NULL)
-        handleErrors();
-
-    if(1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len))
-        handleErrors();
-
-    EVP_MD_CTX_destroy(mdctx);
-}
+#ifdef _NETLOGON_TEST_VECTORS
+    if (bUseTestVector)
+    {
+        /* Use canned server nonce in response to canned client nonce */
+        /* The computed credential should match the canned server cred */
+        memcpy(server_challenge->data, srvNonceTest, ulRandBytesLen);
+    }
 #endif
+
+    if (negotiate_flags & NETLOGON_NEG_AES_SUPPORT)
+    {
+        pClientChallenge = list_node->cli_challenge;
+        dwClientChallengeLen = sizeof(list_node->cli_challenge);
+
+        pServerChallenge = list_node->srv_challenge;
+        dwServerChallengeLen = sizeof(list_node->srv_challenge);
+
+        ntStatus = netlogon_ldap_get_unicode_password(
+                       computer_name,
+                       &pwszUnicodePwd,
+                       &dwUnicodePwdLen);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        ntStatus = ComputeSessionKeyAes(
+                       (PBYTE) pwszUnicodePwd,
+                       dwUnicodePwdLen * sizeof (WCHAR),
+                       pClientChallenge,
+                       dwClientChallengeLen, /* Same length a server challenge */
+                       pServerChallenge,
+                       dwServerChallengeLen,
+                       sessionKey,
+                       sizeof(sessionKey));
+
+        /* Compute client credential */
+        ntStatus = ComputeNetlogonCredentialAes(
+                       pClientChallenge,
+                       dwClientChallengeLen,
+                       sessionKey,
+                       sizeof(sessionKey),
+                       bzClientCredentialRet,
+                       sizeof(bzClientCredentialRet));
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        /* Compute server credential */
+        ntStatus = ComputeNetlogonCredentialAes(
+                       pServerChallenge,
+                       dwServerChallengeLen,
+                       sessionKey,
+                       sizeof(sessionKey),
+                       bzServerCredentialRet,
+                       sizeof(bzServerCredentialRet));
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+    else
+    {
+        ntStatus = ComputeSessionKeyMD5(
+                       (PBYTE) pwszUnicodePwd,
+                       dwUnicodePwdLen * sizeof (WCHAR),
+                       pClientChallenge,
+                       dwClientChallengeLen, /* Same length a server challenge */
+                       pServerChallenge,
+                       dwServerChallengeLen,
+                       sessionKey,
+                       sizeof(sessionKey));
+    }
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /* Save computed session key to list entry for this computer */
+    memcpy(list_node->session_key, sessionKey, sizeof(sessionKey));
+
+    /* Return credential arguments */
+    memcpy(bzClientCredential, bzClientCredentialRet, sizeof(bzClientCredentialRet));
+    memcpy(bzServerCredential, bzServerCredentialRet, sizeof(bzServerCredentialRet));
+
+cleanup:
+    return ntStatus;
+
+error: 
+    delete_node(find_node);
+    goto cleanup;
+}
+
+/*
+ * Add 64-bit authenticator with 32-bit timestamp without
+ * carrying any overflow from the 32-bit addition.
+ * TBD: Note: This function assumes LE architecture.
+ */
+static
+void
+uint32AddUint64NoCarry(uint64_t *v64, uint32_t v32)
+{
+    uint32_t temp32 = 0;
+
+    /* Add low 4 bytes of v64 with v32, no carry */
+    memcpy(&temp32, v64, sizeof(uint32_t));
+    temp32 += v32;
+
+    /* Copy result of addition back into 64-bit value */
+    memcpy(v64, &temp32, sizeof(uint32_t));
+}
 
 
 NTSTATUS srv_netr_Function00(
@@ -731,196 +1221,50 @@ NTSTATUS srv_NetrServerReqChallenge(
 {
     DWORD dwError = 0;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    HANDLE hDirectory = NULL;
-    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
-    LDAP *pLd = NULL;
-    PSTR pszLdapSearchBase = NULL;
-    PSTR ppszAttributes[] = { "unicodePwd", NULL }; /* TBD:Adam-Store md4 hash?? */
-    PSTR pszDnsDomainName = NULL;
-    PSTR pszDomainDn = NULL;
-    PSTR pszComputerName = NULL;
-    LDAPMessage *pLdapObject = NULL;
-    struct berval **bv_objectValue = NULL;
-    PWSTR pwszUnicodePwd = NULL;
-    PWSTR pwszUnicodePwdAlloc = NULL;
-    DWORD dwUnicodePwdLen = 0;
-    BOOLEAN bUseAesSessionKey = TRUE; /* TBD:Adam-How to determine what client skey is computed? */
 
-    UCHAR randBytes[8];
+    UCHAR randBytes[8] = {0};;
     ULONG ulRandBytesLen = sizeof(randBytes);
-    PBYTE pClientChallenge = NULL;
-    PBYTE pServerChallenge = NULL;
-    DWORD dwClientChallengeLen = sizeof(randBytes);
-    DWORD dwServerChallengeLen = dwClientChallengeLen;
-    WCHAR wcQuote = { '"' };
+    PSTR pszComputerName = NULL;
+    PSTR pszServerName = NULL;
+    listnode *new_list_node = NULL;
 
-    dwError = NetlogonLdapOpen(&hDirectory);
+    ntStatus = list_new(&g_schn_list, delete_node);
     BAIL_ON_NTSTATUS_ERROR(dwError);
-
-    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) hDirectory;
-    pLd = pContext->dirContext.pLd;
-
-    /* Obtain the domain name for this DC */
-    ntStatus = LwRtlCStringDuplicate(&pszDnsDomainName,
-                                     pContext->dirContext.pBindInfo->pszDomainFqdn);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    dwError = LwLdapConvertDomainToDN(pszDnsDomainName,
-                                      &pszDomainDn);
-    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
 
     ntStatus = LwRtlCStringAllocateFromWC16String(
                  &pszComputerName,
                  computer_name);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    dwError = LwAllocateStringPrintf(
-                  &pszLdapSearchBase,
-                  "cn=%s,cn=Computers,%s",
-                  pszComputerName,
-                  pszDomainDn);
-    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
-
-    /* Get the computer account password */
-    dwError = NetlogonLdapQueryObjects(
-                  pLd,
-                  pszLdapSearchBase,
-                  LDAP_SCOPE_SUBTREE,
-                  NULL,
-                  ppszAttributes,
-                  -1,
-                  &pLdapObject);
-    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
-
-    bv_objectValue = ldap_get_values_len(pLd, pLdapObject, ppszAttributes[0]);
-    if (bv_objectValue && bv_objectValue[0])
-    {
-         pwszUnicodePwd = (PWSTR) bv_objectValue[0]->bv_val;
-         dwUnicodePwdLen = (DWORD) bv_objectValue[0]->bv_len;
-    }
-    else
-    {
-        ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
-
-    /* Populate this value! */
-    ntStatus = NetlogonSrvAllocateMemory(
-                 (VOID *) &pwszUnicodePwdAlloc,
-                 dwUnicodePwdLen + sizeof(WCHAR));
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                 &pszServerName,
+                 server_name);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    memcpy(pwszUnicodePwdAlloc, pwszUnicodePwd, dwUnicodePwdLen);
-    pwszUnicodePwdAlloc[dwUnicodePwdLen] = (WCHAR) 0;
-
-#ifdef _NETLOGON_TEST_VECTORS
-    /* Respond with using previously captured data */
-    if (memcmp(client_challenge->data, cliNonceTest, 8) == 0)
-    {
-        bUseTestVector = TRUE;
-        memcpy(pwszUnicodePwdAlloc, unicodePwdTest, sizeof(unicodePwdTest));
-        pwszUnicodePwdAlloc[sizeof(unicodePwdTest) / sizeof(WCHAR)] = (WCHAR) 0;
-    }
-#endif
-
-    dwUnicodePwdLen = (DWORD) LwRtlWC16StringNumChars(pwszUnicodePwdAlloc);
-
-    /* Must prune off the " " around the password */
-    if (pwszUnicodePwdAlloc[0] == wcQuote &&
-        pwszUnicodePwdAlloc[dwUnicodePwdLen-1] == wcQuote)
-    {
-        pwszUnicodePwd = pwszUnicodePwdAlloc + 1;
-
-        /* -2, as the strlen is one shorter after removing the leading " */
-        pwszUnicodePwd[dwUnicodePwdLen - 2] = (WCHAR) '\0';
-
-        /* TBD:Adam Debug */
-        dwUnicodePwdLen = (DWORD) LwRtlWC16StringNumChars(pwszUnicodePwd);
-    }
-    else
-    {
-        pwszUnicodePwd = pwszUnicodePwdAlloc;
-    }
+    ntStatus = netlogon_list_alloc_node(
+                  pszComputerName,
+                  pszServerName,
+                  &new_list_node);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* Generate server nonce (challenge) */
     RAND_pseudo_bytes(randBytes, ulRandBytesLen);
+
+    /* Return argument for this RPC call */
     memcpy(server_challenge->data, randBytes, ulRandBytesLen);
-    pServerChallenge = server_challenge->data;
 
-    
-    /* Save off client nonce (challenge) */
-    pClientChallenge = client_challenge->data;
+    /* Add client/server challenge to list for later use by Authenticate3 */
+    memcpy(new_list_node->cli_challenge, client_challenge->data, sizeof(client_challenge->data));
+    memcpy(new_list_node->srv_challenge, randBytes, ulRandBytesLen);
 
-#ifdef _NETLOGON_TEST_VECTORS
-    if (bUseTestVector)
-    {
-        /* Use canned server nonce in response to canned client nonce */
-        /* The computed credential should match the canned server cred */
-        memcpy(server_challenge->data, srvNonceTest, ulRandBytesLen);
-    }
-#endif
-
-    if (bUseAesSessionKey)
-    {
-        ntStatus = ComputeSessionKeyAes(
-                       (PBYTE) pwszUnicodePwd,
-                       dwUnicodePwdLen * sizeof (WCHAR),
-                       pClientChallenge,
-                       dwClientChallengeLen, /* Same length a server challenge */
-                       pServerChallenge,
-                       dwServerChallengeLen,
-                       g_bzSaveSessionKey,
-                       sizeof(g_bzSaveSessionKey));
-    }
-    else
-    {
-        ntStatus = ComputeSessionKeyMD5(
-                       (PBYTE) pwszUnicodePwd,
-                       dwUnicodePwdLen * sizeof (WCHAR),
-                       pClientChallenge,
-                       dwClientChallengeLen, /* Same length a server challenge */
-                       pServerChallenge,
-                       dwServerChallengeLen,
-                       g_bzSaveSessionKey,
-                       sizeof(g_bzSaveSessionKey));
-    }
+    /* TBD:Adam-Replace existing node if already in list */
+    ntStatus = netlogon_list_add_node(g_schn_list, new_list_node);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    /* Compute client credential */
-    ntStatus = ComputeNetlogonCredentialAes(
-                   pClientChallenge,
-                   dwClientChallengeLen,
-                   g_bzSaveSessionKey,
-                   sizeof(g_bzSaveSessionKey),
-                   g_bzClientCredential,
-                   sizeof(g_bzClientCredential));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    /* Compute server credential */
-    ntStatus = ComputeNetlogonCredentialAes(
-                   pServerChallenge,
-                   dwServerChallengeLen,
-                   g_bzSaveSessionKey,
-                   sizeof(g_bzSaveSessionKey),
-                   g_bzServerCredential,
-                   sizeof(g_bzServerCredential));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-#if 1
-{
-    /* Write client/server credentials to files for debugging */
-    FILE *fp = fopen("/tmp/clicred.dat", "w");
-    fwrite(g_bzClientCredential, 1,  sizeof(g_bzClientCredential), fp);
-    fclose(fp);
-
-    fp = fopen("/tmp/srvcred.dat", "w");
-    fwrite(g_bzServerCredential, 1,  sizeof(g_bzServerCredential), fp);
-    fclose(fp);
-}
-#endif
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pszServerName);
+    LW_SAFE_FREE_MEMORY(pszComputerName);
+
     return ntStatus ? ntStatus : dwError;
 
 error:
@@ -1088,21 +1432,97 @@ WINERROR srv_DsrGetDcName(
     return status;
 }
 
-
-
-NTSTATUS srv_netr_Function15(
-    /* [in] */ handle_t IDL_handle
+    /* function 0x15 */
+NTSTATUS srv_NetrLogonGetCapabilities(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t * server_name,
+    /* [in] */ wchar16_t *computer_name,
+    /* [in] */ NetrAuth *authenticator,
+    /* [in, out] */ NetrAuth *return_authenticator,
+    /* [in] */ DWORD QueryLevel,
+    /* [out] */ NetrCapabilities *server_capabilities
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+    unsigned char sessionKey[16] = {0};
+    unsigned char tempCredential[8] = {0};
+    unsigned char serverRetCredential[8] = {0};
+    uint64_t clientStoredCredential = 0;
+    uint32_t t_auth = 0;
+    listnode *list_node = NULL;
+
+    status = GetSchannelMachineEntry(
+                 server_name,
+                 computer_name,
+                 &list_node);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(&clientStoredCredential, list_node->cli_credential, sizeof(list_node->cli_credential));
+    t_auth = (uint32_t) authenticator->timestamp;
+    memcpy(sessionKey, list_node->session_key, sizeof(list_node->session_key));
+
+    uint32AddUint64NoCarry(&clientStoredCredential, t_auth);
+
+    status = ComputeNetlogonCredentialAes(
+                 (PBYTE) &clientStoredCredential,
+                 sizeof(clientStoredCredential),
+                 sessionKey,
+                 sizeof(sessionKey),
+                 tempCredential,
+                 sizeof(tempCredential));
+    if (status)
+    {
+        goto error;
+    }
+
+    if (memcmp(tempCredential, authenticator->cred.data, sizeof(tempCredential)) != 0)
+    {
+       status = STATUS_ACCESS_DENIED;
+       goto error;
+    }
+
+
+    /*
+     * If the Netlogon credentials match, the server increments the
+     * Netlogon credential in the Netlogon authenticator by one, performs
+     * the computation described in section 3.1.4.5, paragraph 2., Netlogon
+     * Credential Computation, and stores the new Netlogon credential.
+     */
+    memcpy(&clientStoredCredential, list_node->cli_credential, sizeof(list_node->cli_credential));
+    clientStoredCredential++;
+
+    /* The result of these operations is a new Client Credential */
+    memcpy(list_node->cli_credential, &clientStoredCredential, sizeof(clientStoredCredential));
+
+    server_capabilities->server_capabilities = 0x612fffff; /* TBD:Adam-Negotiated earlier?  */
+    status = ComputeNetlogonCredentialAes(
+                 (PBYTE) &clientStoredCredential,
+                 sizeof(clientStoredCredential),
+                 sessionKey,
+                 sizeof(sessionKey),
+                 serverRetCredential,
+                 sizeof(serverRetCredential));
+    if (status)
+    {
+        goto error;
+    }
+
+    memcpy(return_authenticator->cred.data, serverRetCredential, sizeof(serverRetCredential));
+    return_authenticator->timestamp = authenticator->timestamp;
+
+error:
     return status;
 }
 
-NTSTATUS srv_netr_Function16(
-    /* [in] */ handle_t IDL_handle
-    )
+    /* function 0x16 */
+NTSTATUS srv_NetrLogonSetServiceBits(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t * server_name,
+    /* [in] */ UINT32 service_bits_of_interest,
+    /* [in] */ UINT32 service_bits)
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
     return status;
 }
 
@@ -1128,6 +1548,35 @@ NTSTATUS srv_netr_Function19(
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
+}
+
+static
+void
+rpc_auth_key_retrieval_callback
+(
+    void                    *arg,
+    unsigned_char_p_t       server_princ_name,
+    unsigned32              key_type,
+    unsigned32              key_ver,
+    void                    **key,
+    unsigned32              *st)
+{
+    unsigned char *key_ret = NULL;
+    unsigned32 status = 0;
+    list_find_entry *auth_info_ctx = (list_find_entry *) arg;
+
+    key_ret = auth_info_ctx->find_key((char *) server_princ_name, auth_info_ctx->list);
+    if (!key_ret)
+    {
+        status = rpc_s_entry_not_found;
+        goto error;
+    }
+
+    *key = key_ret;
+    *st = status;
+
+error:
+    return;
 }
 
 
@@ -1159,19 +1608,51 @@ NTSTATUS srv_NetrServerAuthenticate3(
     LDAPMessage *pObjectSid = NULL;
     struct berval **bv_objectValue = NULL;
     PSID pDomainSid = NULL;
+    BYTE bzClientCredential[8] = {0};
+    BYTE bzServerCredential[8] = {0};
+    listnode *list_node = NULL;
+    list_find_entry *auth_info_ctx = alloc_find_entry_ctx();
 
     BAIL_ON_INVALID_PTR(credentials_out);
 
+    /* Save computed credential in saved machine account entry */
+    ntStatus = GetSchannelMachineEntry(
+                 server_name,
+                 computer_name,
+                 &list_node);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /* Compute credentials using client/server challenge */
+    ntStatus = netlogon_compute_credentials(
+                   server_name,
+                   computer_name,
+                   *negotiate_flags,
+                   list_node,
+                   bzClientCredential,
+                   bzServerCredential);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    rpc_server_register_auth_info(
+        (unsigned char *) computer_name,
+        rpc_c_authn_schannel,
+        rpc_auth_key_retrieval_callback,
+        auth_info_ctx,
+        &dwError);
+    ntStatus = dwError;
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* Validate locally computed client credential with client's value */
     if (memcmp(credentials_in->data,
-               g_bzClientCredential, 
-               sizeof(g_bzClientCredential)) != 0)
+               bzClientCredential,
+               sizeof(bzClientCredential)) != 0)
     {
         ntStatus = ERROR_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
-                   
+
+    memcpy(list_node->cli_credential, bzClientCredential, sizeof(bzClientCredential));
+    memcpy(list_node->srv_credential, bzServerCredential, sizeof(bzServerCredential));
+
     dwError = NetlogonLdapOpen(&hDirectory);
     BAIL_ON_NTSTATUS_ERROR(dwError);
 
@@ -1224,30 +1705,28 @@ NTSTATUS srv_NetrServerAuthenticate3(
 #ifdef _NETLOGON_TEST_VECTORS
     if (bUseTestVector)
     {
-#if 0
         memcpy(credentials_out->data,
                srvCredentialTest,
-               sizeof(g_bzServerCredential));
-#endif
+               sizeof(srvCredentialTest));
         *rid = 1103;
     }
     else
     {
-#if 0
-        /* Return previously computed server credential */
+        /* Return computed server credential */
         memcpy(credentials_out->data,
-               g_bzServerCredential,
-               sizeof(g_bzServerCredential));
-#endif
+               bzServerCredential,
+               sizeof(bzServerCredential));
 
         *rid = retRid;
     }
-#endif
-
-    /* Return previously computed server credential */
+#else
+    /* Return computed server credential */
     memcpy(credentials_out->data,
-           g_bzServerCredential,
-           sizeof(g_bzServerCredential));
+           bzServerCredential,
+           sizeof(bzServerCredential));
+
+    *rid = retRid;
+#endif
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pszAccountName);
@@ -1296,8 +1775,6 @@ NTSTATUS srv_NetrLogonGetDomainInfo(
 
     return status;
 }
-
-
 
 
 NTSTATUS srv_netr_Function1e(
@@ -1639,6 +2116,7 @@ NTSTATUS srv_netr_Function31(
     return status;
 }
 
+#if 0 /* MS-NRPC does not define any functions beyond 31 */
 NTSTATUS srv_netr_Function32(
     /* [in] */ handle_t IDL_handle
     )
@@ -1719,6 +2197,7 @@ NTSTATUS srv_netr_Function3b(
     return status;
 }
 
+#endif
 
 
 /*
