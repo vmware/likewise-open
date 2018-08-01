@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
                     &status);
     if (status)
     {
-        if (protocol && endpoint)
+        if (endpoint)
         {
             printf("rpc_ep_register: soft failure %d.\n", status);
         }
