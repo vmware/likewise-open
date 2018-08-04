@@ -237,6 +237,118 @@ uint32 schn_discover_crypto_algorithm(
     return status;
 }
 
+uint32 schn_compute_signature_aes(
+    unsigned char *session_key,
+    int           session_key_len,
+    unsigned char *sha2_header,
+    int           sha2_header_len,
+    unsigned char *confounder,
+    int           confounder_len,
+    unsigned char *msg,
+    int           msg_len,
+    unsigned char *signature,
+    unsigned int  *signature_len)
+{
+    int status = 0;
+    int hmac_init_ok = 0;
+    HMAC_CTX sha256ctx = {0};
+
+    status = HMAC_Init_ex(&sha256ctx,
+                 session_key,
+                 session_key_len,
+                 EVP_sha256(),
+                 NULL);
+    if (status == 0)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto cleanup;
+    }
+    hmac_init_ok = 1;
+
+    if (sha2_header)
+    {
+        status = HMAC_Update(&sha256ctx, (unsigned char *) sha2_header, sha2_header_len);
+        if (status == 0)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto cleanup;
+        }
+    }
+
+    if (confounder && confounder_len)
+    {
+        status = HMAC_Update(&sha256ctx, confounder, confounder_len);
+        if (status == 0)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto cleanup;
+        }
+    }
+
+    if (msg && msg_len)
+    {
+        status = HMAC_Update(&sha256ctx, msg, msg_len);
+        if (status == 0)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto cleanup;
+        }
+    }
+
+    status = HMAC_Final(&sha256ctx, signature, signature_len);
+    if (status == 0)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto cleanup;
+    }
+
+    /* Got this far, then return success */
+    status = 0;
+
+cleanup:
+    if (hmac_init_ok)
+    {
+        HMAC_CTX_cleanup(&sha256ctx);
+    }
+
+    return status;
+}
+
+void schn_construct_seqnum_aes(
+    uint32 make_cli_seq,
+    uint64 seq_num,
+    unsigned char copy_seqnum[8])
+{
+    uint32 seqlow = ~0; /* 0xffffffff */
+    uint32 seqhi  = 0;
+
+    seqlow = seq_num & seqlow;
+    seqhi  = seq_num >> sizeof(uint32) * 8; /* shift uint32 bits */
+
+    copy_seqnum[0] = (seqlow >> 24) & 0xff;
+    copy_seqnum[1] = (seqlow >> 16) & 0xff;
+    copy_seqnum[2] = (seqlow >>  8) & 0xff;
+    copy_seqnum[3] = (seqlow >>  0) & 0xff;
+    copy_seqnum[4] = (seqhi  >> 24) & 0xff;
+    copy_seqnum[5] = (seqhi  >> 16) & 0xff;
+    copy_seqnum[6] = (seqhi  >>  8) & 0xff;
+    copy_seqnum[7] = (seqhi  >>  0) & 0xff;
+    if (make_cli_seq)
+    {
+        copy_seqnum[4] |= 0x80;
+    }
+}
+
+void
+schn_cleanup_aes_128_cfb8(
+    EVP_CIPHER_CTX *ctx)
+{
+    if (EVP_CIPHER_CTX_cipher(ctx))
+    {
+        EVP_CIPHER_CTX_cleanup(ctx);
+    }
+}
+
 /*
 local variables:
 mode: c

@@ -30,6 +30,11 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/md5.h>
+#include <openssl/hmac.h>
+#include <openssl/rc4.h>
+#include <openssl/rand.h>
+
 
 #include "config.h"
 
@@ -39,7 +44,3 @@
 #include <schannel.h>
 #include "schannel_p.h"
 
-#include <openssl/md5.h>
-#include <openssl/hmac.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>

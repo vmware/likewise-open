@@ -38,6 +38,7 @@ ComputeNetlogonCredentialAes(
     DWORD credentialDataLen);
 
 
+#if 0
 NTSTATUS
 ComputeSessionKeyDes(
     PBYTE sharedSecret,
@@ -57,6 +58,7 @@ ComputeNetlogonCredentialDes(
     int inputChallengeLen,
     PBYTE retCredential,
     DWORD *retCredentialLen);
+#endif
 
 
 void printhex(unsigned char *hex, int hexlen)
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
  0x25, 0x00, 0x47, 0x00, 0x73, 0x00, 0x2d, 0x00, 0x28, 0x00, 0x22, 0x00, 0x3a, 0x00, 0x20, 0x00,
  0x6d, 0x00, 0x3e, 0x00, 0x21, 0x00, 0x43, 0x00, 0x4c, 0x00, 0x66, 0x00, 0x6e, 0x00, 0x4e, 0x00, };
 
+#if 0
     unsigned char unicodePwdDes[] = {
  0x45, 0x00, 0x52, 0x00, 0x33, 0x00, 0x5d, 0x00, 0x31, 0x00, 0x26, 0x00, 0x4d, 0x00, 0x44, 0x00,
  0x22, 0x00, 0x59, 0x00, 0x76, 0x00, 0x7a, 0x00, 0x38, 0x00, 0x35, 0x00, 0x3b, 0x00, 0x35, 0x00,
@@ -113,6 +116,7 @@ int main(int argc, char *argv[])
 
     unsigned char serverChallengeDes[] = {
  0xef, 0x98, 0xd3, 0x6c, 0x90, 0x4b, 0x40, 0x82 };
+#endif
 
     unsigned char clientChallenge[] = {
  0x3a, 0x03, 0x90, 0xa4, 0x6d, 0x0c, 0x3d, 0x4f };
@@ -146,11 +150,11 @@ int main(int argc, char *argv[])
     unsigned char sample_computed_cli_credential[8] = {0};
     unsigned char sample_computed_srv_credential[8] = {0};
 
+#if 0
     unsigned char computed_cli_credential_des[8] = {0};
     unsigned char computed_srv_credential_des[8] = {0};
     unsigned int retCredentialLen = 0;
 
-#if 0
 /* http://samba.2283325.n4.nabble.com/MS-NRPC-AES-Schannel-problems-td2516943.html test data */
         OWF Password :
             13 c0 b0 4b 66 25 0d 08-b8 a3 90 4d cc 8b 34 e3
@@ -175,8 +179,6 @@ int main(int argc, char *argv[])
     NTSTATUS ntStatus = 0;
 
     unsigned char sessionKeySampleAes[16] = {0};
-
-    unsigned char sessionKeyDes[8] = {0};
 
     compute_md4_digest(md4input_test,
                        sizeof(md4input_test),
@@ -288,6 +290,7 @@ int main(int argc, char *argv[])
         printf("\n");
     }
 
+#if 0
     ntStatus = ComputeSessionKeyDes(
                    unicodePwdDes,
                    sizeof(unicodePwdDes),
@@ -346,6 +349,7 @@ int main(int argc, char *argv[])
         printhex(computed_srv_credential_des, retCredentialLen);
         printf("\n");
     }
+#endif
                    
     return 0;
 }

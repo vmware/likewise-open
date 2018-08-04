@@ -75,10 +75,15 @@ typedef struct rpc_cn_schnauth_tlr
     unsigned8 seq_number[8];
     unsigned8 digest[8];
     unsigned8 nonce[8];
+    unsigned8 pad[24];
 
 } rpc_cn_schnauth_tlr_t, *rpc_cn_schnauth_tlr_p_t;
 
+/* 24 bytes larger for AES support */
+#define RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR  48
+/*
 #define RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR  32
+*/
 
 #define RPC_CN_SCHNAUTH_MSG_REQUEST 0
 #define RPC_CN_SCHNAUTH_MSG_REPLY   1

@@ -101,15 +101,39 @@ static CHAR unicodePwdTest[] = {
 static BYTE cliNonceTest[] = { 0x4e, 0x00, 0x47, 0xa6, 0x75, 0x8b, 0xeb, 0x79, };
 /* Canned server nonce */
 static BYTE srvNonceTest[] = { 0xa7, 0x4c, 0x75, 0x78, 0x56, 0xa3, 0xe0, 0x78, };
-#if 0
-/* Canned server challenge */
-/* Not needed; server can compute these values for the given none/pwd value */
-static BYTE cliCredentialTest[] = { 0xb4, 0x41, 0x72, 0x25, 0xbc, 0x7c, 0xbe, 0x59, };
-/* Canned client challenge */
-static BYTE srvCredentialTest[]  = { 0x5d, 0xe8, 0x64, 0xca, 0x7f, 0x58, 0x47, 0xe8, };
-#endif
 static    BOOLEAN bUseTestVector = FALSE;
 #endif
+
+#ifndef _NETLOGON_UNIT_TEST
+static
+#endif
+NTSTATUS
+ComputeNetlogonCredentialAes(
+    PBYTE challengeData,
+    DWORD challengeDataLen,
+    PBYTE key,
+    DWORD keyLen,
+    PBYTE credentialData,
+    DWORD credentialDataLen);
+
+/*
+ * Add 64-bit authenticator with 32-bit timestamp without
+ * carrying any overflow from the 32-bit addition.
+ * TBD: Note: This function assumes LE architecture.
+ */
+static
+void
+uint32AddUint64NoCarry(uint64_t *v64, uint32_t v32)
+{
+    uint32_t temp32 = 0;
+
+    /* Add low 4 bytes of v64 with v32, no carry */
+    memcpy(&temp32, v64, sizeof(uint32_t));
+    temp32 += v32;
+
+    /* Copy result of addition back into 64-bit value */
+    memcpy(v64, &temp32, sizeof(uint32_t));
+}
 
 static
 int cmp_computer_name(listnode *find_node, listnode *entry)
@@ -204,12 +228,19 @@ int cmp_node_names(listnode *find_node, listnode *entry)
 {
     int found = 0;
 
+    if (!find_node || !entry || !entry->computer || !entry->domain ||
+        !find_node->computer || !find_node->domain)
+    {
+        goto error;
+    }
+
     if (strcmp(entry->computer, find_node->computer) == 0 &&
         strcmp(entry->domain,   find_node->domain)   == 0)
     {
         found = 1;
     }
 
+error:
     return found;
 }
 
@@ -283,7 +314,7 @@ netlogon_list_add_node(listhead *list, listnode *new_list_node)
 
     ntStatus = list_iterate_func(
                    list,
-                   cmp_node_names, 
+                   cmp_node_names,
                    new_list_node,
                    &found_node);
     if (ntStatus == 0)
@@ -297,6 +328,134 @@ netlogon_list_add_node(listhead *list, listnode *new_list_node)
     return ntStatus;
 }
 
+static
+NTSTATUS
+GetSchannelMachineEntry(
+    wchar16_t *server_name,
+    wchar16_t *computer_name,
+    listnode **list_node_ret)
+{
+    NTSTATUS ntStatus = 0;
+    PSTR pszComputerName = NULL;
+    PSTR pszServerName = NULL;
+    listnode *find_node = NULL;
+    listnode *list_node = NULL;
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                 &pszComputerName,
+                 computer_name);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = LwRtlCStringAllocateFromWC16String(
+                 &pszServerName,
+                 server_name);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = netlogon_list_alloc_node(
+                  pszComputerName,
+                  pszServerName,
+                  &find_node);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = list_iterate_func(
+                   g_schn_list,
+                   cmp_node_names,
+                   find_node,
+                   &list_node);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    *list_node_ret = list_node;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pszComputerName);
+    LW_SAFE_FREE_MEMORY(pszServerName);
+    delete_node(find_node);
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+ULONG
+SchannelBuildResponseCredential(
+    wchar16_t * server_name,
+    wchar16_t *computer_name,
+    NetrAuth *authenticator,
+    NetrAuth *return_authenticator)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    unsigned char sessionKey[16] = {0};
+    unsigned char tempCredential[8] = {0};
+    unsigned char serverRetCredential[8] = {0};
+    uint64_t clientCredential64 = 0;
+    uint32_t t_auth = 0;
+    listnode *list_node = NULL;
+
+    status = GetSchannelMachineEntry(
+                 server_name,
+                 computer_name,
+                 &list_node);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    /* Get saved credential and session key for this host */
+    memcpy(&clientCredential64, list_node->cli_credential, sizeof(list_node->cli_credential));
+    memcpy(sessionKey, list_node->session_key, sizeof(list_node->session_key));
+
+    t_auth = (uint32_t) authenticator->timestamp;
+    uint32AddUint64NoCarry(&clientCredential64, t_auth);
+
+    status = ComputeNetlogonCredentialAes(
+                 (PBYTE) &clientCredential64,
+                 sizeof(clientCredential64),
+                 sessionKey,
+                 sizeof(sessionKey),
+                 tempCredential,
+                 sizeof(tempCredential));
+    if (status)
+    {
+        goto error;
+    }
+
+    if (memcmp(tempCredential, authenticator->cred.data, sizeof(tempCredential)) != 0)
+    {
+       status = STATUS_ACCESS_DENIED;
+       goto error;
+    }
+
+    /*
+     * If the Netlogon credentials match, the server increments the
+     * Netlogon credential in the Netlogon authenticator by one, performs
+     * the computation described in section 3.1.4.5, paragraph 2., Netlogon
+     * Credential Computation, and stores the new Netlogon credential.
+     */
+    uint32AddUint64NoCarry(&clientCredential64, 1);
+
+    /*
+     * 7. If AES is negotiated, then a signature MUST be computed using the
+     * following algorithm:
+     */
+    status = ComputeNetlogonCredentialAes(
+                 (PBYTE) &clientCredential64,
+                 sizeof(clientCredential64),
+                 sessionKey,
+                 sizeof(sessionKey),
+                 serverRetCredential,
+                 sizeof(serverRetCredential));
+    if (status)
+    {
+        goto error;
+    }
+
+    /* The result of these operations is a new Client Credential */
+    memcpy(list_node->cli_credential, &clientCredential64, sizeof(clientCredential64));
+
+    memcpy(return_authenticator->cred.data, serverRetCredential, sizeof(serverRetCredential));
+
+
+error:
+    return status;
+}
 #ifndef _NETLOGON_UNIT_TEST
 static
 #endif
@@ -324,227 +483,6 @@ compute_md4_digest(
 
     return 1;
 }
-
-
-static
-void
-InitLMKey(
-    unsigned char *DesKeyIn, 
-    unsigned char *DesKeyOutRet)
-{
-    unsigned char DesKeyOut[8] = {0};
-    int i = 0;
-
-    DesKeyOut[0] = DesKeyIn[0] >> 0x01; 
-    DesKeyOut[1] = ((DesKeyIn[0]&0x01)<<6) | (DesKeyIn[1]>>2); 
-    DesKeyOut[2] = ((DesKeyIn[1]&0x03)<<5) | (DesKeyIn[2]>>3); 
-    DesKeyOut[3] = ((DesKeyIn[2]&0x07)<<4) | (DesKeyIn[3]>>4); 
-    DesKeyOut[4] = ((DesKeyIn[3]&0x0F)<<3) | (DesKeyIn[4]>>5); 
-    DesKeyOut[5] = ((DesKeyIn[4]&0x1F)<<2) | (DesKeyIn[5]>>6); 
-    DesKeyOut[6] = ((DesKeyIn[5]&0x3F)<<1) | (DesKeyIn[6]>>7); 
-    DesKeyOut[7] = DesKeyIn[6] & 0x7F; 
-    for (i=0; i<8; i++)
-    { 
-        DesKeyOut[i] = (DesKeyOut[i] << 1) & 0xfe; 
-    }
-    memcpy(DesKeyOutRet, DesKeyOut, sizeof(DesKeyOut));
-}
-
-
-static
-void
-CopyBytesRange(
-    int byte_first,
-    int byte_last,
-    unsigned char *array_in,
-    unsigned char *array_out)
-{
-    int i = 0;
-    int x = 0;
-
-    for (i=byte_first, x=0; i<=byte_last; i++, x++)
-    {
-        array_out[x] = array_in[i];
-    }
-}
-
-
-static
-NTSTATUS
-DesEncryptEcb(
-    unsigned char *desKey,
-    unsigned char *inPlainText,
-    int inPlainTextLen,
-    unsigned char *outDesEnc,
-    int *outDesEncLen)
-{
-    NTSTATUS ntStatus = 0;
-    EVP_CIPHER_CTX des_ctx = {0};
-    int outDesEncLenRet = 0;
-    BYTE dummyFinal[8] = {0};
-    int dummyFinalLen = 0;
-
-    EVP_CIPHER_CTX_init(&des_ctx);
-    EVP_CIPHER_CTX_set_padding(&des_ctx, 0);
-
-    ntStatus = EVP_EncryptInit_ex(&des_ctx, EVP_des_ecb(), NULL, desKey, NULL); 
-    if (ntStatus == 0)
-    {
-        ntStatus = ERROR_INVALID_HANDLE;
-        goto cleanup;
-    }
-
-    ntStatus = EVP_EncryptUpdate(&des_ctx,
-                                 outDesEnc,
-                                 &outDesEncLenRet,
-                                 inPlainText,
-                                 inPlainTextLen); 
-    if (ntStatus == 0)
-    {
-        ntStatus = ERROR_INVALID_HANDLE;
-        goto cleanup;
-    }
-
-    /* This data is meanless for ECB mode */
-    ntStatus = EVP_EncryptFinal_ex(&des_ctx, dummyFinal, &dummyFinalLen);
-    if (ntStatus == 0)
-    {
-        ntStatus = ERROR_INVALID_HANDLE;
-        goto cleanup;
-    }
-
-    /* Got here, return success */
-    ntStatus = 0;
-    *outDesEncLen = outDesEncLenRet;
-
-cleanup:
-    EVP_CIPHER_CTX_cleanup(&des_ctx);
-
-    return ntStatus;
-}
-
-
-#ifndef _NETLOGON_UNIT_TEST
-// zzz static
-#endif
-NTSTATUS
-ComputeSessionKeyDes(
-    PBYTE sharedSecret,
-    DWORD sharedSecretLen,
-    PBYTE cliNonce,
-    DWORD cliNonceLen,
-    PBYTE srvNonce,
-    DWORD srvNonceLen,
-    PBYTE sessionKey,
-    DWORD sessionKeyLen)
-{
-    NTSTATUS ntStatus  = 0;
-    BYTE key1[8] = {0};
-    BYTE key2[8] = {0};
-    BYTE output1[sizeof(key1)] = {0};
-    int output1Len = 0;
-    BYTE output2[sizeof(key1)] = {0};
-    int output2Len = 0;
-    UCHAR md4DigestBuf[MD4_DIGEST_LENGTH] = {0};
-    UINT64 sumNonce = 0;
-    UINT64 sumCli = 0;
-    UINT64 sumSrv = 0;
-    PBYTE psumNonce = (PBYTE) &sumNonce;
-
-    /* 1:Compute M4SS value. Tested good with known test data */
-    if (compute_md4_digest(sharedSecret,
-                           sharedSecretLen,
-                           md4DigestBuf) == 0)
-    {
-        ntStatus = ERROR_INVALID_PASSWORD;
-        goto cleanup;
-    }
-    memcpy(&sumCli, cliNonce, cliNonceLen);
-    memcpy(&sumSrv, srvNonce, srvNonceLen);
-
-    /* Section 3.1.4.3 Session-Key Computation [MS-NRPC] */
-    sumNonce = sumCli + sumSrv;
-
-    CopyBytesRange(0, 6, md4DigestBuf, key1);
-    CopyBytesRange(9, 15, md4DigestBuf, key2);
-
-    ntStatus = DesEncryptEcb(
-                   key1,
-                   psumNonce,
-                   sizeof(sumNonce),
-                   output1,
-                   &output1Len);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    ntStatus = DesEncryptEcb(
-                   key2,
-                   output1,
-                   sizeof(output1),
-                   output2,
-                   &output2Len);
-
-    memcpy(sessionKey, output2, output2Len);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-#ifndef _NETLOGON_UNIT_TEST
-// zzz static
-#endif
-NTSTATUS
-ComputeNetlogonCredentialDes(
-    PBYTE sessionKey,
-    DWORD sessionKeyLen,
-    PBYTE inputChallenge, 
-    int inputChallengeLen,
-    PBYTE retCredential,
-    DWORD *retCredentialLen)
-{
-    NTSTATUS ntStatus  = 0;
-    unsigned char key1[8] = {0};
-    unsigned char key2[8] = {0};
-    unsigned char key3[8] = {0};
-    unsigned char key4[8] = {0};
-    unsigned char output1[8] = {0};
-    int output1Len = sizeof(output1);
-    unsigned char output2[8] = {0};
-    int output2Len = sizeof(output2);
-
-    CopyBytesRange(0, 6, sessionKey, key1);
-    InitLMKey(key1, key3);
-
-    CopyBytesRange(7, 13, sessionKey, key2);
-    InitLMKey(key2, key4);
-
-    ntStatus = DesEncryptEcb(
-                   key3,
-                   inputChallenge,
-                   inputChallengeLen,
-                   output1,
-                   &output1Len);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = DesEncryptEcb(
-                   key4,
-                   output1,
-                   sizeof(output1),
-                   output2,
-                   &output2Len);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    *retCredentialLen = output2Len;
-    memcpy(retCredential, output2, *retCredentialLen);
-
-cleanup:
-     return ntStatus;
-
-error:
-    goto cleanup;
-}
-
 
 static
 NTSTATUS
@@ -652,8 +590,6 @@ netlogon_ldap_get_unicode_password(
 
         /* -2, as the strlen is one shorter after removing the leading " */
         pwszUnicodePwd[dwUnicodePwdLen - 2] = (WCHAR) '\0';
-
-        /* TBD:Adam Debug */
         dwUnicodePwdLen = (DWORD) LwRtlWC16StringNumChars(pwszUnicodePwd);
     }
     else
@@ -682,54 +618,6 @@ error:
     goto cleanup;
 }
 
-static
-NTSTATUS
-GetSchannelMachineEntry(
-    wchar16_t *server_name,
-    wchar16_t *computer_name,
-    listnode **list_node_ret)
-{
-    NTSTATUS ntStatus = 0;
-    PSTR pszComputerName = NULL;
-    PSTR pszServerName = NULL;
-    listnode *find_node = NULL;
-    listnode *list_node = NULL;
-
-    ntStatus = LwRtlCStringAllocateFromWC16String(
-                 &pszComputerName,
-                 computer_name);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = LwRtlCStringAllocateFromWC16String(
-                 &pszServerName,
-                 server_name);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = netlogon_list_alloc_node(
-                  pszComputerName,
-                  pszServerName,
-                  &find_node);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = list_iterate_func(
-                   g_schn_list,
-                   cmp_node_names, 
-                   find_node,
-                   &list_node);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    *list_node_ret = list_node;
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pszComputerName);
-    LW_SAFE_FREE_MEMORY(pszServerName);
-    delete_node(find_node);
-
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
 
 #ifndef _NETLOGON_UNIT_TEST
 static
@@ -1137,24 +1025,6 @@ error:
     goto cleanup;
 }
 
-/*
- * Add 64-bit authenticator with 32-bit timestamp without
- * carrying any overflow from the 32-bit addition.
- * TBD: Note: This function assumes LE architecture.
- */
-static
-void
-uint32AddUint64NoCarry(uint64_t *v64, uint32_t v32)
-{
-    uint32_t temp32 = 0;
-
-    /* Add low 4 bytes of v64 with v32, no carry */
-    memcpy(&temp32, v64, sizeof(uint32_t));
-    temp32 += v32;
-
-    /* Copy result of addition back into 64-bit value */
-    memcpy(v64, &temp32, sizeof(uint32_t));
-}
 
 
 NTSTATUS srv_netr_Function00(
@@ -1432,6 +1302,7 @@ WINERROR srv_DsrGetDcName(
     return status;
 }
 
+
     /* function 0x15 */
 NTSTATUS srv_NetrLogonGetCapabilities(
     /* [in] */ handle_t IDL_handle,
@@ -1444,71 +1315,21 @@ NTSTATUS srv_NetrLogonGetCapabilities(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    unsigned char sessionKey[16] = {0};
-    unsigned char tempCredential[8] = {0};
-    unsigned char serverRetCredential[8] = {0};
-    uint64_t clientStoredCredential = 0;
-    uint32_t t_auth = 0;
-    listnode *list_node = NULL;
 
-    status = GetSchannelMachineEntry(
+    status = SchannelBuildResponseCredential(
                  server_name,
                  computer_name,
-                 &list_node);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    memcpy(&clientStoredCredential, list_node->cli_credential, sizeof(list_node->cli_credential));
-    t_auth = (uint32_t) authenticator->timestamp;
-    memcpy(sessionKey, list_node->session_key, sizeof(list_node->session_key));
-
-    uint32AddUint64NoCarry(&clientStoredCredential, t_auth);
-
-    status = ComputeNetlogonCredentialAes(
-                 (PBYTE) &clientStoredCredential,
-                 sizeof(clientStoredCredential),
-                 sessionKey,
-                 sizeof(sessionKey),
-                 tempCredential,
-                 sizeof(tempCredential));
+                 authenticator,
+                 return_authenticator);
     if (status)
     {
         goto error;
     }
-
-    if (memcmp(tempCredential, authenticator->cred.data, sizeof(tempCredential)) != 0)
-    {
-       status = STATUS_ACCESS_DENIED;
-       goto error;
-    }
-
-
-    /*
-     * If the Netlogon credentials match, the server increments the
-     * Netlogon credential in the Netlogon authenticator by one, performs
-     * the computation described in section 3.1.4.5, paragraph 2., Netlogon
-     * Credential Computation, and stores the new Netlogon credential.
-     */
-    memcpy(&clientStoredCredential, list_node->cli_credential, sizeof(list_node->cli_credential));
-    clientStoredCredential++;
-
-    /* The result of these operations is a new Client Credential */
-    memcpy(list_node->cli_credential, &clientStoredCredential, sizeof(clientStoredCredential));
 
     server_capabilities->server_capabilities = 0x612fffff; /* TBD:Adam-Negotiated earlier?  */
-    status = ComputeNetlogonCredentialAes(
-                 (PBYTE) &clientStoredCredential,
-                 sizeof(clientStoredCredential),
-                 sessionKey,
-                 sizeof(sessionKey),
-                 serverRetCredential,
-                 sizeof(serverRetCredential));
-    if (status)
-    {
-        goto error;
-    }
 
-    memcpy(return_authenticator->cred.data, serverRetCredential, sizeof(serverRetCredential));
-    return_authenticator->timestamp = authenticator->timestamp;
+    /* No mention of the timestamp field in 3.1.4.5; set to zero */
+    return_authenticator->timestamp = 0;
 
 error:
     return status;
@@ -1773,6 +1594,17 @@ NTSTATUS srv_NetrLogonGetDomainInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    status = SchannelBuildResponseCredential(
+                 server_name,
+                 computer_name,
+                 creds,
+                 ret_creds);
+    if (status)
+    {
+        goto error;
+    }
+
+error:
     return status;
 }
 

@@ -1080,14 +1080,14 @@ INTERNAL void rpc__schnauth_cn_wrap_pdu
     stub_len -= RPC_CN_PKT_SIZEOF_RQST_HDR;
 
     /* ensure auth trailer padding */
-    auth_pad_len = stub_len % 0x0008;
+    auth_pad_len = stub_len % 0x0010;
 
     /*
      * Allocate the entire packet in one piece
      */
     packet_len = stub_len + (RPC_CN_PKT_SIZEOF_RQST_HDR +
 			     RPC_CN_PKT_SIZEOF_COM_AUTH_TLR +
-			     RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR +
+			     sizeof(*schn_tlr) +
 			     auth_pad_len);
 
     out_iov->iov_len = packet_len;
@@ -1140,8 +1140,8 @@ INTERNAL void rpc__schnauth_cn_wrap_pdu
     base += RPC_CN_PKT_SIZEOF_COM_AUTH_TLR;
 
     /* schannel trailer */
-    memcpy(base, (void*)schn_tlr, RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR);
-    base += RPC_CN_PKT_SIZEOF_SCHNAUTH_TLR;
+    memcpy(base, (void*)schn_tlr, sizeof(*schn_tlr));
+    base += sizeof(*schn_tlr);
 
     /* set PDU blob pointer and length */
     pdu_blob = out_iov->iov_base + RPC_CN_PKT_SIZEOF_RQST_HDR;

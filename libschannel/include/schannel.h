@@ -47,7 +47,9 @@ struct schn_auth_ctx {
     unsigned char  *machine_name;
     uint32          sender_flags;
     uint32          seq_num;
-    uint32          initialized;
+
+/*  --- AES support --- */
+    uint64          seq_num_aes;
     uint16          sign_type;
     uint16          seal_type;
     uint16          pad;
@@ -131,7 +133,6 @@ uint32 schn_unwrap(void                 *sec_ctx,
                    struct schn_tail     *tail);
 
 void schn_free_blob(struct schn_blob *b);
-
 
 #endif /* _SCHANNEL_H_ */
 

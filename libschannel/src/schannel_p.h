@@ -60,6 +60,27 @@ uint32 schn_discover_crypto_algorithm(
     uint16 *psign_alg,
     uint16 *pseal_alg);
 
+uint32 schn_compute_signature_aes(
+    unsigned char *session_key,
+    int           session_key_len,
+    unsigned char *sha2_header,
+    int           sha2_header_len,
+    unsigned char *confounder,
+    int           confounder_len,
+    unsigned char *msg,
+    int           msg_len,
+    unsigned char *signature,
+    unsigned int  *signature_len);
+
+void schn_construct_seqnum_aes(
+    uint32 initialized,
+    uint64 seq_num,
+    unsigned char copy_seqnum[8]);
+
+void
+schn_cleanup_aes_128_cfb8(
+    EVP_CIPHER_CTX *ctx);
+
 /*
   Status codes taken from dcerpc/include/dce/rpcsts.idl
 */
@@ -67,6 +88,5 @@ uint32 schn_discover_crypto_algorithm(
 #define schn_s_unsupported_protect_level (0x16c9a0e0)  /* rpc_s_unsupported_protect_level */
 #define schn_s_invalid_credentials       (0x16c9a0e2)  /* rpc_s_invalid_credentials */
 #define schn_s_ok                        (0x00000000)  /* rpc_s_ok */
-
 
 #endif /* _SCHANNEL_P_H_ */
