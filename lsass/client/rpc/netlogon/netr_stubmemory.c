@@ -288,7 +288,6 @@ NetrCleanDomainTrustInfo(
     )
 {
     unsigned32 rpcStatus = 0;
-    UINT32 i = 0;
 
     if (pInfo == NULL) return;
 
@@ -297,12 +296,10 @@ NetrCleanDomainTrustInfo(
     rpc_sm_client_free(pInfo->forest.Buffer, &rpcStatus);
     rpc_sm_client_free(pInfo->sid, &rpcStatus);
 
-    for (i = 0;
-         i < sizeof(pInfo->unknown1)/sizeof(pInfo->unknown1[0]);
-         i++)
-    {
-        rpc_sm_client_free(pInfo->unknown1[i].Buffer, &rpcStatus);
-    }
+    rpc_sm_client_free(pInfo->TrustExtension.Buffer, &rpcStatus);
+    rpc_sm_client_free(pInfo->DummyString2.Buffer, &rpcStatus);
+    rpc_sm_client_free(pInfo->DummyString3.Buffer, &rpcStatus);
+    rpc_sm_client_free(pInfo->DummyString4.Buffer, &rpcStatus);
 }
 
 

@@ -138,6 +138,8 @@
 #define NETR_TRUST_ATTR_CROSS_ORGANIZATION   0x00000010
 #define NETR_TRUST_ATTR_WITHIN_FOREST        0x00000020
 #define NETR_TRUST_ATTR_TREAT_AS_EXTERNAL    0x00000040
+#define NETR_TRUST_ATTR_DOMAIN_PARENT_DOMAIN 0x00400000
+#define NETR_TRUST_ATTR_ROOT_OTHER_FOREST    0x00800000
 
 
 typedef struct netr_domain_trust {
@@ -416,16 +418,22 @@ typedef union netr_domain_query {
 
 #endif /* _DCE_IDL_ */
 
+/* From MS-NRPC netlogon IDL definition of _NETLOGON_ONE_DOMAIN_INFO  */
 typedef struct netr_domain_trust_info {
-    UNICODE_STRING domain_name;
-    UNICODE_STRING full_domain_name;
-    UNICODE_STRING forest;
-    GUID guid;
-    PSID sid;
-    UNICODE_STRING unknown1[4];
-    UINT32 unknown2[4];
+    UNICODE_STRING domain_name;      /* DomainName    */
+    UNICODE_STRING full_domain_name; /* DnsDomainName */
+    UNICODE_STRING forest;           /* DnsForestName */
+    GUID guid;                       /* DomainGuid */
+    PSID sid;                        /* DomainSid */
+    UNICODE_STRING TrustExtension;
+    UNICODE_STRING DummyString2;
+    UNICODE_STRING DummyString3;
+    UNICODE_STRING DummyString4;
+    ULONG DummyLong1;
+    ULONG DummyLong2;
+    ULONG DummyLong3;
+    ULONG DummyLong4;
 } NetrDomainTrustInfo;
-
 
 typedef struct netr_domain_info_1 {
     NetrDomainTrustInfo domain_info;

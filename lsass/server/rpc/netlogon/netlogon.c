@@ -116,6 +116,28 @@ ComputeNetlogonCredentialAes(
     PBYTE credentialData,
     DWORD credentialDataLen);
 
+static
+VOID
+NetrLogonGetNetBiosName(PSTR pszNetBiosName);
+
+static
+NTSTATUS
+NetrLogonGetDomainParameters(
+    PSTR *ppszDnsDomainName,
+    PSID *ppDomainSid,
+    uuid_t retDomainGuid);
+
+static
+NTSTATUS
+RpcUnicodeStringAllocateFromCString(
+    PUNICODE_STRING pString,
+    PCSTR pszString
+    );
+
+static
+VOID
+RpcUnicodeStringFree(
+    PUNICODE_STRING pString);
 /*
  * Add 64-bit authenticator with 32-bit timestamp without
  * carrying any overflow from the 32-bit addition.
@@ -645,8 +667,8 @@ ComputeSessionKeyAes(
     {
         /* Test vector with MD4 digest of unicodePassword already computed */
         bHaveSharedSecret = TRUE;
-        sharedSecretLen -= 10; 
-        sharedSecret += 10; 
+        sharedSecretLen -= 10;
+        sharedSecret += 10;
         memcpy(md4DigestBuf, sharedSecret, sharedSecretLen);
     }
 
@@ -836,14 +858,14 @@ ComputeSessionKeyMD5(
     ntStatus = ComputeHmacMD5(
                    md4DigestBuf, sizeof(md4DigestBuf),
                    md5_buf, md5_len,
-                   NULL, 0, 
+                   NULL, 0,
                    hmac_md5_buf, hmac_md5_len);
     if (ntStatus)
     {
         goto cleanup;
     }
 
-    ntStatus = 0; 
+    ntStatus = 0;
     memcpy(sessionKey, hmac_md5_buf, sessionKeyLen);
 
 cleanup:
@@ -891,7 +913,7 @@ ComputeNetlogonCredentialAes(
     }
 
     ntStatus = EVP_EncryptUpdate(
-                   &enc_ctx, 
+                   &enc_ctx,
                    encryptedData,
                    &encryptedDataLen,
                    challengeData,
@@ -902,7 +924,7 @@ ComputeNetlogonCredentialAes(
         goto cleanup;
     }
 
-    ntStatus = EVP_EncryptFinal_ex(&enc_ctx, 
+    ntStatus = EVP_EncryptFinal_ex(&enc_ctx,
                                    &encryptedData[encryptedDataLen],
                                    &encryptedDataFinalLen);
     if (ntStatus == 0)
@@ -1020,7 +1042,7 @@ netlogon_compute_credentials(
 cleanup:
     return ntStatus;
 
-error: 
+error:
     delete_node(find_node);
     goto cleanup;
 }
@@ -1580,6 +1602,119 @@ NTSTATUS srv_netr_Function1c(
 }
 
 
+
+typedef struct netr_unknown6_query_1
+{
+    DWORD dwOsVersionInfoSize;
+    DWORD dwMajorVersion;
+    DWORD dwMinorVersion;
+    DWORD dwBuildNumber;
+    DWORD dwPlatformId;
+
+    wchar16_t *version_string_wc16;
+    char *version_string;
+} NetrUnknown6Query1, *PNetrUnknown6Query1;
+
+static
+VOID
+NetrLogonQuery1FreeVersion(
+    PNetrUnknown6Query1 pRetQuery1)
+{
+    if (pRetQuery1)
+    {
+        LW_SAFE_FREE_MEMORY(pRetQuery1->version_string_wc16);
+        LW_SAFE_FREE_MEMORY(pRetQuery1->version_string);
+        LW_SAFE_FREE_MEMORY(pRetQuery1);
+    }
+}
+
+/*
+ * MS-PRPN 2.2.3.10.1 OSVERSIONINFO
+ * This is a structured type with the following DWORD fields
+ * dwOsVersionInfoSize
+ * dwMajorVersion
+ * dwMinorVersion
+ * dwBuildNumber
+ * dwPlatformId
+ * szCSDVersion
+ */
+static
+NTSTATUS
+NetrLogonQuery1ParseVersion(
+    NetrDomainQuery *query,
+    PNetrUnknown6Query1 *ppRetQuery1)
+{
+    NTSTATUS status = 0;
+    unsigned char *ptr = NULL;
+    PNetrUnknown6Query1 pRetQuery1 = NULL;
+    DWORD dwOsVersionInfoSize = 0;
+    DWORD dwMajorVersion = 0;
+    DWORD dwMinorVersion = 0;
+    DWORD dwBuildNumber = 0;
+    DWORD dwPlatformId = 0;
+    PWSTR version_string_wc16 = NULL;
+    PSTR version_string = NULL;
+
+    if (!query || !ppRetQuery1)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    ptr = (unsigned char *) query->query1->unknown6.Buffer;
+    status = NetlogonSrvAllocateMemory(
+                 (VOID **) &pRetQuery1,
+                 sizeof(*pRetQuery1));
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(&dwOsVersionInfoSize, ptr, sizeof(DWORD));
+    ptr += sizeof(DWORD);
+
+    memcpy(&dwMajorVersion, ptr, sizeof(DWORD));
+    ptr += sizeof(DWORD);
+
+    memcpy(&dwMinorVersion, ptr, sizeof(DWORD));
+    ptr += sizeof(DWORD);
+
+    memcpy(&dwBuildNumber, ptr, sizeof(DWORD));
+    ptr += sizeof(DWORD);
+
+    memcpy(&dwPlatformId, ptr, sizeof(DWORD));
+    ptr += sizeof(DWORD);
+
+    /* ptr should be pointing at the WC16 version string, which is NULL terminated */
+    status = LwRtlWC16StringDuplicate(
+                 &version_string_wc16,
+                 (PCWSTR) ptr);
+    BAIL_ON_NTSTATUS_ERROR(status);
+    ptr += LwRtlWC16StringNumChars(version_string_wc16) + sizeof(WCHAR);
+
+    status = LwRtlCStringAllocateFromWC16String(
+                 &version_string,
+                 version_string_wc16);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pRetQuery1->dwOsVersionInfoSize = dwOsVersionInfoSize;
+    pRetQuery1->dwMajorVersion = dwMajorVersion;
+    pRetQuery1->dwMinorVersion = dwMinorVersion;
+    pRetQuery1->dwBuildNumber = dwBuildNumber;
+    pRetQuery1->dwPlatformId = dwPlatformId;
+    pRetQuery1->version_string_wc16 = version_string_wc16;
+    pRetQuery1->version_string = version_string;
+
+    *ppRetQuery1 = pRetQuery1;
+
+cleanup:
+    return status;
+
+error:
+    LW_SAFE_FREE_MEMORY(version_string_wc16);
+    LW_SAFE_FREE_MEMORY(version_string);
+    LW_SAFE_FREE_MEMORY(pRetQuery1);
+    goto cleanup;
+}
+
+
     /* function 0x1d */
 NTSTATUS srv_NetrLogonGetDomainInfo(
         /* [in] */ handle_t IDL_handle,
@@ -1593,6 +1728,18 @@ NTSTATUS srv_NetrLogonGetDomainInfo(
         )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PNetrUnknown6Query1 pQuery1 = NULL;
+    NetrDomainInfo1 *pDomainInfo1 = NULL;
+    CHAR szNetBiosName[16] = {0};
+    PSTR pszDnsDomainName = NULL;
+    PSID pDomainSid = NULL;
+    uuid_t domainGuid;
+    UNICODE_STRING *pTrustExtension = NULL;
+    DWORD trustFlags = NETR_TRUST_FLAG_PRIMARY;
+    DWORD trustParentIndex = 0;
+    DWORD trustType = NETR_TRUST_TYPE_UPLEVEL;
+    DWORD trustAttributes = 0; /* TBD:Adam-Compare against Likewise Joined to AD */
+    PBYTE trustPtr = NULL;
 
     status = SchannelBuildResponseCredential(
                  server_name,
@@ -1604,8 +1751,107 @@ NTSTATUS srv_NetrLogonGetDomainInfo(
         goto error;
     }
 
-error:
+
+    if (level == 1)
+    {
+        status = NetrLogonQuery1ParseVersion(query, &pQuery1);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        /* Memory region returned is initialized to zero */
+        status = NetlogonSrvAllocateMemory(
+                     (VOID **) &pDomainInfo1,
+                     sizeof(*pDomainInfo1));
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        NetrLogonGetNetBiosName(szNetBiosName);
+
+        status = NetrLogonGetDomainParameters(
+                     &pszDnsDomainName,
+                     &pDomainSid,
+                     domainGuid);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        /* These two fields must be populated */
+        status = RpcUnicodeStringAllocateFromCString(
+                     &pDomainInfo1->domain_info.domain_name,
+                     szNetBiosName);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        status = RpcUnicodeStringAllocateFromCString(
+                     &pDomainInfo1->domain_info.full_domain_name,
+                     pszDnsDomainName);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        /* TBD:Adam-This may be wrong */
+        status = RpcUnicodeStringAllocateFromCString(
+                     &pDomainInfo1->domain_info.forest,
+                     pszDnsDomainName);
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+        memcpy(&pDomainInfo1->domain_info.guid, domainGuid, sizeof(domainGuid));  /* Domain GUID */
+        pDomainInfo1->domain_info.sid = pDomainSid; /* Domain SID */
+
+        /*
+         * 2.2.1.3.10 NETLOGON_ONE_DOMAIN_INFO
+         * TrustExtension: An RPC_UNICODE_STRING structure, as specified in
+         * [MS-DTYP] section 2.3.10, which does not point to a Unicode string,
+         * but in fact points to a buffer of size 16, in bytes, in the
+         * following format.
+         */
+
+        pTrustExtension = &pDomainInfo1->domain_info.TrustExtension;
+        pTrustExtension->Length = 16;
+        pTrustExtension->MaximumLength = 16;
+        status = NetlogonSrvAllocateMemory(
+                     (VOID **) &pTrustExtension->Buffer,
+                     pTrustExtension->MaximumLength);
+        BAIL_ON_NTSTATUS_ERROR(status);
+        trustPtr = (PBYTE) pTrustExtension->Buffer;
+
+        /* Buffer is a structure with the following 4 DWORD fields:
+         * Flags
+         * ParentIndex
+         * TrustType
+         * TrustAttributes
+         * 2.2.1.6.2 DS_DOMAIN_TRUSTSW defines the semantics of these fields
+         */
+        memcpy(trustPtr, &trustFlags, sizeof(trustFlags));
+        trustPtr += sizeof(trustFlags);
+
+        memcpy(trustPtr, &trustParentIndex, sizeof(trustParentIndex));
+        trustPtr += sizeof(trustParentIndex);
+
+        memcpy(trustPtr, &trustType, sizeof(trustType));
+        trustPtr += sizeof(trustType);
+
+        memcpy(trustPtr, &trustAttributes, sizeof(trustAttributes));
+        trustPtr += sizeof(trustAttributes);
+    }
+    else
+    {
+        status = LW_RPC_NT_INVALID_TAG;
+        goto error;
+    }
+
+    info->info1 = pDomainInfo1;
+
+cleanup:
+    NetrLogonQuery1FreeVersion(pQuery1);
     return status;
+
+error:
+    RpcUnicodeStringFree(&pDomainInfo1->domain_info.domain_name);
+    RpcUnicodeStringFree(&pDomainInfo1->domain_info.full_domain_name);
+    RpcUnicodeStringFree(&pDomainInfo1->domain_info.forest);
+    if (pTrustExtension)
+    {
+        RpcUnicodeStringFree(pTrustExtension);
+    }
+    if (pDomainInfo1)
+    {
+        NetlogonSrvFreeMemory(pDomainInfo1);
+    }
+    goto cleanup;
 }
 
 
@@ -1707,8 +1953,181 @@ NTSTATUS srv_NetrLogonSamLogonEx(
     return status;
 }
 
+#if 1 /* TBD:Adam Helper functions */
+static
+VOID
+NetrLogonGetNetBiosName(
+    PSTR pszNetBiosName)
+{
+    CHAR szHostFqdn[256] = {0}; /* MAX hostname length */
+    DWORD i = 0;
 
+    gethostname(szHostFqdn, sizeof(szHostFqdn));
 
+    /* NetBios Hostname */
+    for (i=0; szHostFqdn[i] && i<15 && szHostFqdn[i] != '.'; i++)
+    {
+        pszNetBiosName[i] = (CHAR) toupper((int) szHostFqdn[i]);
+    }
+    pszNetBiosName[i] = '\0';
+}
+
+static
+NTSTATUS
+NetrLogonGetDomainParameters(
+    PSTR *ppszDnsDomainName,
+    PSID *pRetDomainSid,
+    uuid_t retDomainGuid)
+{
+    NTSTATUS status = 0;
+    PSTR pszDnsDomainName = NULL;
+    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
+    LDAP *pLd = NULL;
+    PSTR pszDomainDn = NULL;
+    PSTR ppszAttributes[] = { "objectSid", "objectGUID", NULL };
+    struct berval **bv_objectValue = NULL;
+    PSID pDomainSid = NULL;
+    PSID pDomainSidAlloc = NULL;
+    DWORD dwDomainSidLen = 0;
+    uuid_t domainGuid;
+    DWORD dwDomainGuidLen = 0;
+    HANDLE hDirectory = NULL;
+    PVOID pDomainGuid = NULL;
+
+    status = NetlogonLdapOpen(&hDirectory);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) hDirectory;
+    pLd = pContext->dirContext.pLd;
+    LDAPMessage *pObjects = NULL;
+
+    /* Obtain the domain name for this DC */
+    status = LwRtlCStringDuplicate(&pszDnsDomainName,
+                                    pContext->dirContext.pBindInfo->pszDomainFqdn);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = LwLdapConvertDomainToDN(pszDnsDomainName,
+                                     &pszDomainDn);
+    BAIL_ON_NETLOGON_LDAP_ERROR(status);
+
+    /* Get the domain objectSid */
+    status = NetlogonLdapQueryObjects(
+                 pLd,
+                 pszDomainDn,
+                 LDAP_SCOPE_SUBTREE,
+                 "(objectClass=*)",
+                 ppszAttributes,
+                 -1,
+                 &pObjects);
+    BAIL_ON_NETLOGON_LDAP_ERROR(status);
+
+    bv_objectValue = ldap_get_values_len(pLd, pObjects, ppszAttributes[0]);
+    if (bv_objectValue && bv_objectValue[0])
+    {
+        /*
+         * Allocate rpc_ss_alloc() memory, then copy the domainSID
+         */
+        pDomainSid = (PSID) bv_objectValue[0]->bv_val;
+        dwDomainSidLen = RtlLengthSid(pDomainSid);
+        status = NetlogonSrvAllocateMemory(
+                 (VOID **) &pDomainSidAlloc,
+                 dwDomainSidLen);
+        BAIL_ON_NETLOGON_LDAP_ERROR(status);
+
+        status = RtlCopySid(dwDomainSidLen,
+                            pDomainSidAlloc,
+                            pDomainSid);
+        BAIL_ON_NETLOGON_LDAP_ERROR(status);
+    }
+
+    /* Get the domain objectGUID */
+    bv_objectValue = ldap_get_values_len(pLd, pObjects, ppszAttributes[1]);
+    if (bv_objectValue && bv_objectValue[0])
+    {
+        pDomainGuid = bv_objectValue[0]->bv_val;
+        dwDomainGuidLen = bv_objectValue[0]->bv_len;
+    }
+
+    /* Convert DomainGuid to binary form */
+    if (dwDomainGuidLen == 16)
+    {
+        memcpy(domainGuid, pDomainGuid, dwDomainGuidLen);
+    }
+    else if (dwDomainGuidLen != 36 || uuid_parse(pDomainGuid, domainGuid) != 0)
+    {
+        status = STATUS_NO_GUID_TRANSLATION;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    *ppszDnsDomainName = pszDnsDomainName;
+    *pRetDomainSid = pDomainSidAlloc;
+    memcpy(retDomainGuid, domainGuid, sizeof(domainGuid));
+
+cleanup:
+    NetlogonLdapRelease(hDirectory);
+    return status;
+
+error:
+    LW_SAFE_FREE_MEMORY(pszDnsDomainName);
+
+    if (pDomainSidAlloc)
+    {
+        NetlogonSrvFreeMemory(pDomainSidAlloc);
+    }
+    goto cleanup;
+}
+
+static
+VOID
+RpcUnicodeStringFree(
+    PUNICODE_STRING pString)
+{
+    if (pString && pString->Buffer)
+    {
+        NetlogonSrvFreeMemory(pString->Buffer);
+    }
+}
+
+static
+NTSTATUS
+RpcUnicodeStringAllocateFromCString(
+    PUNICODE_STRING pString,
+    PCSTR pszString
+    )
+{
+    NTSTATUS status = 0;
+    USHORT allocLen = 0;
+    PWCHAR allocBuf = NULL;
+
+    /* Convert C string to UNICODE */
+    status = LwRtlUnicodeStringAllocateFromCString(
+                 pString,
+                 pszString);
+    BAIL_ON_NTSTATUS_ERROR(status);
+    allocLen = pString->MaximumLength;
+
+    /* Replace heap alloc memory with rpc_ss_alloc() memory */
+    status = NetlogonSrvAllocateMemory(
+                 (VOID **) &allocBuf,
+                 allocLen);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    LW_SAFE_FREE_MEMORY(pString->Buffer);
+    pString->Buffer = allocBuf;
+
+cleanup:
+    return status;
+
+error:
+    LwRtlUnicodeStringFree(pString);
+    if (allocBuf)
+    {
+        NetlogonSrvFreeMemory(allocBuf);
+    }
+    goto cleanup;
+}
+
+#endif
 
 /* function 0x28 */
 WINERROR
@@ -1723,15 +2142,9 @@ srv_DsrEnumerateDomainTrusts(
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszServerName = NULL;
     DWORD dwDomainTrustCount = 1;
-    DWORD i = 0;
     NetrDomainTrust *pDomainTrustArray = {0};
-    CHAR szHostFqdn[256] = {0}; /* MAX hostname length */
     CHAR szNetBiosName[32] = {0}; /* NetBIOS formatted name */
     PSTR pszDnsDomainName = NULL;
-    PVOID pDomainGuid = NULL;
-    PSTR pszDomainDn = NULL;
-    DWORD dwDomainGuidLen = 0;
-    HANDLE hDirectory = NULL;
 
 #if 1 /* TBD:Adam-Perform ldap queries to get this data; hard code now */
     /* 0x1d */
@@ -1746,61 +2159,14 @@ srv_DsrEnumerateDomainTrusts(
     PWSTR pwszDnsDomainName = NULL;
     PSID pDomainSid = NULL;
     uuid_t domainGuid;
-    PNETLOGON_AUTH_PROVIDER_CONTEXT pContext = NULL;
-    LDAP *pLd = NULL;
-    PSTR ppszAttributes[] = { "objectSid", "objectGUID", NULL };
-    LDAPMessage *pObjects = NULL;
-    struct berval **bv_objectValue = NULL;
 
-    dwError = NetlogonLdapOpen(&hDirectory);
-    BAIL_ON_NTSTATUS_ERROR(dwError);
+    NetrLogonGetNetBiosName(szNetBiosName);
 
-    pContext = (PNETLOGON_AUTH_PROVIDER_CONTEXT) hDirectory;
-    pLd = pContext->dirContext.pLd;
-
-    gethostname(szHostFqdn, sizeof(szHostFqdn));
-
-
-    /* NetBios Hostname */
-    for (i=0; szHostFqdn[i] && i<15 && szHostFqdn[i] != '.'; i++)
-    {
-        szNetBiosName[i] = (CHAR) toupper((int) szHostFqdn[i]);
-    }
-    szNetBiosName[i] = '\0';
-
-    /* Obtain the domain name for this DC */
-    status = LwRtlCStringDuplicate(&pszDnsDomainName,
-                                    pContext->dirContext.pBindInfo->pszDomainFqdn);
+    status = NetrLogonGetDomainParameters(
+                 &pszDnsDomainName,
+                 &pDomainSid,
+                 domainGuid);
     BAIL_ON_NTSTATUS_ERROR(status);
-
-    dwError = LwLdapConvertDomainToDN(pszDnsDomainName,
-                                      &pszDomainDn);
-    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
-
-    /* Get the domain objectSid */
-    dwError = NetlogonLdapQueryObjects(
-                  pLd,
-                  pszDomainDn,
-                  LDAP_SCOPE_SUBTREE,
-                  "(objectClass=*)",
-                  ppszAttributes,
-                  -1,
-                  &pObjects);
-    BAIL_ON_NETLOGON_LDAP_ERROR(dwError);
-
-    bv_objectValue = ldap_get_values_len(pLd, pObjects, ppszAttributes[0]);
-    if (bv_objectValue && bv_objectValue[0])
-    {
-         pDomainSid = (PSID) bv_objectValue[0]->bv_val;
-    }
-
-    /* Get the domain objectGUID */
-    bv_objectValue = ldap_get_values_len(pLd, pObjects, ppszAttributes[1]);
-    if (bv_objectValue && bv_objectValue[0])
-    {
-         pDomainGuid = bv_objectValue[0]->bv_val;
-         dwDomainGuidLen = bv_objectValue[0]->bv_len;
-    }
 
     /*
      * I am the DC, so return data returned from calling
@@ -1828,17 +2194,6 @@ srv_DsrEnumerateDomainTrusts(
                  pszDnsDomainName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    /* Convert DomainGuid to binary form */
-
-    if (dwDomainGuidLen == 16)
-    {
-        memcpy(domainGuid, pDomainGuid, dwDomainGuidLen);
-    }
-    else if (dwDomainGuidLen != 36 || uuid_parse(pDomainGuid, domainGuid) != 0)
-    {
-        status = STATUS_NO_GUID_TRANSLATION;
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
 
     /* Populate this value! */
     status = NetlogonSrvAllocateMemory(
@@ -1860,7 +2215,6 @@ srv_DsrEnumerateDomainTrusts(
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pszServerName);
-    NetlogonLdapRelease(hDirectory);
 
     return status;
 
@@ -1869,7 +2223,10 @@ error:
     LW_SAFE_FREE_MEMORY(pwszNetBiosName);
     LW_SAFE_FREE_MEMORY(pwszDnsDomainName);
     LW_SAFE_FREE_MEMORY(pDomainSid);
-    LW_SAFE_FREE_MEMORY(pDomainTrustArray);
+    if (pDomainTrustArray)
+    {
+        NetlogonSrvFreeMemory(pDomainTrustArray);
+    }
 
     goto cleanup;
 }
