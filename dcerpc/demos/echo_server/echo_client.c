@@ -101,19 +101,19 @@ typedef struct _ntlm_auth_identity
 
 #define DO_RPC(rpc_pfn, sts) \
   do {                       \
-    dcethread_exc *exc;      \
+    dcethread_exc *exc = NULL;      \
     DCETHREAD_TRY            \
     {                        \
       exc = NULL;            \
       (sts) = rpc_pfn;       \
+      sts = sts ? sts : dcethread_exc_getstatus(exc); \
     }                        \
     DCETHREAD_CATCH_ALL(exc) \
     {                        \
-      (sts) = dcethread_exc_getstatus(exc); \
+      sts = dcethread_exc_getstatus(exc); \
     }                        \
     DCETHREAD_ENDTRY         \
   } while (0)
-
 
 static unsigned char g_ReadBuffer[1024 * 60];
 static char *argv0;
