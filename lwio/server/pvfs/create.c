@@ -1121,8 +1121,8 @@ PvfsCleanupFailedCreate(
             ntError = PvfsSysStatByFileName(pPath, &Stat2);
             if (ntError == STATUS_SUCCESS)
             {
-                if ((Stat1.s_dev == Stat1.s_dev) &&
-                    (Stat2.s_ino == Stat2.s_ino))
+                if ((Stat1.s_dev == Stat2.s_dev) &&
+                    (Stat1.s_ino == Stat2.s_ino))
                 {
                     ntError = PvfsSysRemoveByFileName(pPath);
                 }

@@ -82,18 +82,22 @@ PvfsQueueCancelIrp(
 
         case PVFS_QUEUE_TYPE_OPLOCK:
             ntError = PvfsScheduleCancelOplock(pIrpContext);
+            BAIL_ON_NT_STATUS(ntError);
             break;
 
         case PVFS_QUEUE_TYPE_PENDING_OPLOCK_BREAK:
             ntError = PvfsScheduleCancelPendingOp(pIrpContext);
+            BAIL_ON_NT_STATUS(ntError);
             break;
 
         case PVFS_QUEUE_TYPE_PENDING_LOCK:
             ntError = PvfsScheduleCancelLock(pIrpContext);
+            BAIL_ON_NT_STATUS(ntError);
             break;
 
         case PVFS_QUEUE_TYPE_NOTIFY:
             ntError = PvfsScheduleCancelNotify(pIrpContext);
+            BAIL_ON_NT_STATUS(ntError);
             break;
 
         default:
@@ -102,6 +106,8 @@ PvfsQueueCancelIrp(
             break;
         }
     }
+
+error:
 
     PvfsReleaseIrpContext(&pIrpContext);
 

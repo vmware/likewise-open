@@ -67,7 +67,7 @@ fi
 
 
 
-export CFLAGS="$force_debug -Wno-error=unused-but-set-variable -Wno-error=implicit-function-declaration -Wno-error=sizeof-pointer-memaccess -Wno-error=unused-local-typedefs -Wno-error=pointer-sign -Wno-error=address"
+export CFLAGS="$force_debug -Wno-error=unused-but-set-variable -Wno-error=implicit-function-declaration -Wno-error=sizeof-pointer-memaccess -Wno-error=unused-local-typedefs -Wno-error=pointer-sign -Wno-error=address -Wno-deprecated-declarations"
 ../configure $DEBUG \
              --prefix=/opt/likewise \
              --libdir=/opt/likewise/lib64 \
