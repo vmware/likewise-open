@@ -29,18 +29,16 @@
 #include "echo.h"
 #include "misc.h"
 
-#define HAVE_GETOPT_H 1
-#ifdef HAVE_GETOPT_H
-#if defined(_WIN32) || defined(__linux__)
-#include <getopt.h>
+#ifndef HAVE_GETOPT_H
+#include "getopt.h"
 #endif
+
 #ifndef _WIN32
 #include <unistd.h>
 static void wait_for_signals();
 void sigpipe_handler(void);
-#else
+#else /* _WIN32 */
 #include <process.h>
-#endif
 #endif
 
 extern int FIPS_mode_set(int);
@@ -484,7 +482,7 @@ void SendFile_InPipe(
 {
     unsigned char pull_buf[2048];
     unsigned int transport_size = TRANSPORT_SIZE;
- 
+
     if (!g_fp)
     {
         g_fp = fopen("/tmp/echo_server_pipe.dat", "w");

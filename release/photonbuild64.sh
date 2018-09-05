@@ -1,16 +1,5 @@
 #! /bin/bash +x
 
-
-DISTRO=`cat /etc/os-release | grep VERSION_ID | cut -d= -f2`
-
-if [ $DISTRO == "1.0" ]; then
-    DIST=""
-else
-    DIST=".lwph2"
-    # hack against glibc-2.26 to avoid getopt declaration mismatch
-    sed -i '/stdio.h/a#define _GETOPT_CORE_H 1' ../dcerpc/demos/echo_server/echo_server.c
-fi
-
 umask 0022
 
 export CWD=`pwd`
