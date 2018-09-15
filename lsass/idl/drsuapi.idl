@@ -25,7 +25,6 @@ typedef struct _uuid {
 } UUID;
 typedef unsigned long int ULARGE_INTEGER;
 typedef [string] WCHAR *LPWSTR;
-typedef LW_UNICODE_STRING RPC_UNICODE_STRING;
 
 cpp_quote("#ifndef RPC_FILETIME_T")
 typedef struct _FILETIME {
