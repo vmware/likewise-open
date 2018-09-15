@@ -106,7 +106,7 @@ typedef struct _ntlm_auth_identity
     {                        \
       exc = NULL;            \
       (sts) = rpc_pfn;       \
-      sts = sts ? sts : dcethread_exc_getstatus(exc); \
+      sts = sts ? sts : exc ? dcethread_exc_getstatus(exc) : 0; \
     }                        \
     DCETHREAD_CATCH_ALL(exc) \
     {                        \
