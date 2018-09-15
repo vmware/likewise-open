@@ -420,20 +420,28 @@ typedef union netr_domain_query {
 
 /* From MS-NRPC netlogon IDL definition of _NETLOGON_ONE_DOMAIN_INFO  */
 typedef struct netr_domain_trust_info {
-    UNICODE_STRING domain_name;      /* DomainName    */
-    UNICODE_STRING full_domain_name; /* DnsDomainName */
-    UNICODE_STRING forest;           /* DnsForestName */
+    RPC_UNICODE_STRING domain_name;      /* DomainName    */
+    RPC_UNICODE_STRING full_domain_name; /* DnsDomainName */
+    RPC_UNICODE_STRING forest;           /* DnsForestName */
     GUID guid;                       /* DomainGuid */
     PSID sid;                        /* DomainSid */
-    UNICODE_STRING TrustExtension;
-    UNICODE_STRING DummyString2;
-    UNICODE_STRING DummyString3;
-    UNICODE_STRING DummyString4;
+    RPC_UNICODE_STRING TrustExtension;
+    RPC_UNICODE_STRING DummyString2;
+    RPC_UNICODE_STRING DummyString3;
+    RPC_UNICODE_STRING DummyString4;
     ULONG DummyLong1;
     ULONG DummyLong2;
     ULONG DummyLong3;
     ULONG DummyLong4;
 } NetrDomainTrustInfo;
+
+typedef struct netr_lsa_policy_info {
+    UINT32 lsa_policy_size;
+#ifdef _DCE_IDL_
+    [size_is(lsa_policy_size)] 
+#endif
+    UINT8 *lsa_policy;
+} NetrLsaPolicyInfo, *PNetrLsaPolicyInfo;
 
 typedef struct netr_domain_info_1 {
     NetrDomainTrustInfo domain_info;
@@ -442,7 +450,16 @@ typedef struct netr_domain_info_1 {
     [size_is(num_trusts)]
 #endif
     NetrDomainTrustInfo *trusts;
-    UINT32 unknown1[14];
+/* MS-NRPC section 2.2.1.3.11 */
+    NetrLsaPolicyInfo lsa_policy;           /* size=12 */
+    RPC_UNICODE_STRING dns_hostname_in_ds;  /* size=12 */
+    RPC_UNICODE_STRING DummyString2;        /* size=12 */
+    RPC_UNICODE_STRING DummyString3;        /* size=12 */
+    RPC_UNICODE_STRING DummyString4;        /* size=12 */
+    ULONG workstation_flags;                /* size=4 */
+    ULONG supported_types;                  /* size=4 */
+    ULONG DummyLong3;                       /* size=4 */
+    ULONG DummyLong4;                       /* size=4 */
 } NetrDomainInfo1;
 
 
