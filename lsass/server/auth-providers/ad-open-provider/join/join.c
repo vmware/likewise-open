@@ -627,7 +627,7 @@ LsaJoinDomainInternal(
     LsaPolicyInformation *pLsaPolicyInfo = NULL;
     PWSTR pwszMachineName = NULL;
     PWSTR pwszMachineAcctName = NULL;
-    PWSTR pwszMachinePassword[MACHPASS_LEN+1] = {0};
+    WCHAR pwszMachinePassword[MACHPASS_LEN+1] = {0};
     PWSTR pwszDomainName = NULL;
     PSID pDomainSid = NULL;
     PWSTR pwszDnsDomainName = NULL;
@@ -728,7 +728,7 @@ LsaJoinDomainInternal(
     }
 
     dwError = LsaGenerateMachinePassword(
-               (PWSTR)pwszMachinePassword,
+               pwszMachinePassword,
                sizeof(pwszMachinePassword)/sizeof(pwszMachinePassword[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -740,7 +740,7 @@ LsaJoinDomainInternal(
     ntStatus = LsaCreateMachineAccount(pwszDCName,
                                        pCreds,
                                        pwszMachineAcctName,
-                                       (PWSTR)pwszMachinePassword,
+                                       pwszMachinePassword,
                                        dwJoinFlags,
                                        &pwszDomainName,
                                        &pDomainSid);
@@ -774,7 +774,7 @@ LsaJoinDomainInternal(
               pwszDnsDomainName,
               pwszDCName,
               pwszSidStr,
-              (PWSTR)pwszMachinePassword);
+              pwszMachinePassword);
     BAIL_ON_LSA_ERROR(dwError);
 
     /*
@@ -789,7 +789,7 @@ LsaJoinDomainInternal(
          */
         if (!(dwJoinFlags & LSAJOIN_DEFER_SPN_SET))
         {
-            PWSTR pwszDnsHostName = NULL;
+            PCWSTR pwszDnsHostName = NULL;
 
             dwError = LwAllocateWc16String(&pwszMachineNameLc,
                                            pwszMachineName);
@@ -808,7 +808,7 @@ LsaJoinDomainInternal(
 
             dwError = LsaMachAcctSetAttribute(pLdap, pwszDn,
                                        pwszDnsAttrName,
-                                       (const wchar16_t**)pwszDnsAttrVal, 0);
+                                       (PCWSTR *) *pwszDnsAttrVal, 0);
             if (dwError == ERROR_DS_CONSTRAINT_VIOLATION)
             {
                 dwError = ERROR_DS_NAME_ERROR_NO_MAPPING;
@@ -824,7 +824,7 @@ LsaJoinDomainInternal(
             pwszSpnAttrVal[2] = NULL;
 
             dwError = LsaMachAcctSetAttribute(pLdap, pwszDn, pwszSpnAttrName,
-                                              (const wchar16_t**)pwszSpnAttrVal, 0);
+                                              (PCWSTR *) *pwszSpnAttrVal, 0);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -844,7 +844,7 @@ LsaJoinDomainInternal(
                       pLdap,
                       pwszDn,
                       pwszDescAttrName,
-                      (const wchar16_t**)pwszDescAttrVal,
+                      (PCWSTR *) *pwszDescAttrVal,
                       0);
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -864,7 +864,7 @@ LsaJoinDomainInternal(
 
             dwError = LsaMachAcctSetAttribute(pLdap, pwszDn,
                                        pwszOSNameAttrName,
-                                       (const wchar16_t**)pwszOSNameAttrVal,
+                                       (PCWSTR *) pwszOSNameAttrVal,
                                        0);
             if (dwError == LW_ERROR_LDAP_INSUFFICIENT_ACCESS)
             {
@@ -891,7 +891,7 @@ LsaJoinDomainInternal(
 
             dwError = LsaMachAcctSetAttribute(pLdap, pwszDn,
                                        pwszOSVersionAttrName,
-                                       (const wchar16_t**)pwszOSVersionAttrVal,
+                                       (PCWSTR *) pwszOSVersionAttrVal,
                                        0);
             if (dwError == LW_ERROR_LDAP_INSUFFICIENT_ACCESS)
             {
@@ -915,7 +915,7 @@ LsaJoinDomainInternal(
 
             dwError = LsaMachAcctSetAttribute(pLdap, pwszDn,
                                        pwszOSServicePackAttrName,
-                                       (const wchar16_t**)pwszOSServicePackAttrVal,
+                                       (PCWSTR *) pwszOSServicePackAttrVal,
                                        0);
             if (dwError == LW_ERROR_LDAP_INSUFFICIENT_ACCESS)
             {
