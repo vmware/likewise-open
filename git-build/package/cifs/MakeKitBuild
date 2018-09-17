@@ -31,7 +31,7 @@ configure()
     then
         mk_export PKG_RPM_NAME="likewise-open-cifs"
         mk_export PKG_RPM_VERSION="${LW_VERSION}"
-        mk_export PKG_RPM_RELEASE="12"
+        mk_export PKG_RPM_RELEASE="13"
 
         PKG_RPM_COMPAT="0"
 
