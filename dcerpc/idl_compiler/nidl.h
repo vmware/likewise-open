@@ -42,6 +42,24 @@
 
 #define NIDLBASE_H
 
+#ifdef _WIN32
+
+#ifndef inline
+#define inline __inline
+#endif
+
+#define YYMALLOC
+#define YYFREE
+
+#define __attribute__(x)
+#define snprintf _snprintf
+#define fileno _fileno
+
+#endif /* ifdef _WIN32 */
+
+#ifndef HAVE_CONFIG_H
+#define HAVE_CONFIG_H
+#endif
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -66,7 +84,7 @@ typedef enum { false = 0, true = 1 } bool;
 # define DEBUG_VERBOSE 1
 #endif
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(_WIN32)
 #   include <stdlib.h>
 #   ifndef CHAR_BIT
 #       include <limits.h>  /* Bring in limits.h if not cacaded in yet */
@@ -149,14 +167,13 @@ typedef enum {
  * @param type of the object that should be allocated
  * @return a valid pointer correctly typed
  */
-#define NEW(type)							\
-( __extension__								\
-	({								\
-		type * __local_pointer = calloc(1, sizeof(type));	\
-		if (NULL == __local_pointer)				\
-			error (NIDL_OUTOFMEM);				\
-		__local_pointer;					\
-	}))
+static inline void *__NEW(size_t len)
+{
+    void *retptr = calloc(1, len);
+    if (!retptr) error(NIDL_OUTOFMEM);
+    return retptr;
+}
+#define NEW(type)	(type *) __NEW(sizeof(type))
 
 
 /**
@@ -173,14 +190,13 @@ typedef enum {
  * @param size number of objects to be allocated
  * @return a valid pointer correctly typed
  */
-#define NEW_VEC(type, size)						\
-( __extension__								\
-	({								\
-		type * __local_pointer = calloc((size), sizeof(type));	\
-		if (NULL == __local_pointer)				\
-			error (NIDL_OUTOFMEM);				\
-		__local_pointer;					\
-	}))
+static inline void *__NEW_VEC(size_t size, size_t len)
+{
+    void *retptr = calloc(size, len);
+    if (!retptr) error(NIDL_OUTOFMEM);
+    return retptr;
+}
+#define NEW_VEC(type, size) (type *)  __NEW_VEC(sizeof(type), size)
 
 
 /**
@@ -197,17 +213,14 @@ typedef enum {
  * @param size number of objects to be allocated
  * @return a valid pointer correctly typed
  */
-#define RENEW(pointer, size)							\
-( __extension__									\
-	({									\
-		__typeof__ (pointer) __local_pointer;				\
-		__local_pointer =						\
-			realloc((pointer),					\
-				size * sizeof(__typeof__ (* (pointer))));	\
-		if (NULL == __local_pointer)					\
-			error (NIDL_OUTOFMEM);					\
-		__local_pointer;						\
-	}))
+static inline void *__RENEW(void *ptr, size_t size)
+{
+    void *retptr = realloc(ptr, size);
+    if (!retptr) error(NIDL_OUTOFMEM);
+    return retptr;
+
+}
+#define RENEW(pointer, type_size, size) __RENEW(pointer, (type_size) * (size))
 
 
 /**
@@ -219,16 +232,13 @@ typedef enum {
  * @param size of the area to be allocated
  * @return a valid pointer to the allocated memory
  */
-#define MALLOC(size)						\
-( __extension__							\
-	({							\
-		void * __local_pointer = calloc(1, (size));	\
-		if (NULL == __local_pointer)			\
-			error (NIDL_OUTOFMEM);			\
-		__local_pointer;				\
-	}))
-
-
+static inline void *__MALLOC(size_t size)
+{
+    void *retptr = calloc(1, size);
+    if (!retptr) error(NIDL_OUTOFMEM);
+    return retptr;
+}
+#define MALLOC(size) __MALLOC(size)
 
 /**
  * Frees memory allocated with one of the above functions

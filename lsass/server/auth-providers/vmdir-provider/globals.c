@@ -49,11 +49,14 @@ LSA_PROVIDER_FUNCTION_TABLE gVmDirProviderAPITable =
 
 VMDIR_AUTH_PROVIDER_GLOBALS gVmDirAuthProviderGlobals =
 {
-	.pMutex_rw  = NULL,
+    .pMutex_rw  = NULL,
     .pMutex     = NULL,
-	.pBindInfo  = NULL,
+    .pBindInfo  = NULL,
     .joinState  = VMDIR_JOIN_STATE_UNSET,
     .pRefreshContext = NULL,
-    .bindProtocol = VMDIR_BIND_PROTOCOL_UNSET
+    .bindProtocol = VMDIR_BIND_PROTOCOL_UNSET,
+    .dwCacheEntryExpiry = 0
 };
 
+VMCACHE_PROVIDER_FUNCTION_TABLE gVmDirCacheTable;
+PVMCACHE_PROVIDER_FUNCTION_TABLE gpCacheProvider = &gVmDirCacheTable;

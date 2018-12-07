@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -57,11 +57,12 @@
  *
  */
 
-PRIVATE void rpc__cn_copy_buffer _DCE_PROTOTYPE_ ((
-        rpc_cn_call_rep_p_t /* call_rep */, 
+PRIVATE void rpc__cn_copy_buffer(
+        rpc_cn_call_rep_p_t /* call_rep */,
         rpc_iovector_elt_p_t /* iov_elt_p */,
         unsigned32     * /* status */
-    ));
+    
+    );
 
 /***********************************************************************/
 /*
@@ -69,10 +70,11 @@ PRIVATE void rpc__cn_copy_buffer _DCE_PROTOTYPE_ ((
  *
  */
 
-PRIVATE void rpc__cn_transmit_buffers _DCE_PROTOTYPE_ ((
-        rpc_cn_call_rep_p_t /* call_rep */, 
-        unsigned32     */* status */
-    ));
+PRIVATE void rpc__cn_transmit_buffers(
+        rpc_cn_call_rep_p_t /* call_rep */,
+        unsigned32     * /* status */
+    
+    );
 
 #if 0
 /***********************************************************************/
@@ -81,10 +83,11 @@ PRIVATE void rpc__cn_transmit_buffers _DCE_PROTOTYPE_ ((
  *
  */
 
-PRIVATE void rpc__cn_flush_buffers _DCE_PROTOTYPE_ ((
-        rpc_cn_call_rep_p_t /* call_rep */, 
-        unsigned32     */* status */
-    ));
+PRIVATE void rpc__cn_flush_buffers(
+        rpc_cn_call_rep_p_t /* call_rep */,
+        unsigned32     * /* status */
+    
+    );
 #endif /* 0 */
 
 /***********************************************************************/
@@ -93,11 +96,12 @@ PRIVATE void rpc__cn_flush_buffers _DCE_PROTOTYPE_ ((
  *
  */
 
-PRIVATE void rpc__cn_add_new_iovector_elmt _DCE_PROTOTYPE_ ((
-        rpc_cn_call_rep_p_t /* call_rep */, 
+PRIVATE void rpc__cn_add_new_iovector_elmt(
+        rpc_cn_call_rep_p_t /* call_rep */,
         rpc_iovector_elt_p_t /* iov_elt_p */,
-        unsigned32     */* status */
-        ));
+        unsigned32     * /* status */
+        
+    );
 
 
 /***********************************************************************/
@@ -106,9 +110,10 @@ PRIVATE void rpc__cn_add_new_iovector_elmt _DCE_PROTOTYPE_ ((
  *
  */
 
-PRIVATE void rpc__cn_dealloc_buffered_data _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__cn_dealloc_buffered_data(
      rpc_cn_call_rep_p_t /*call_rep*/
-    ));
+    
+    );
 
 
 /*

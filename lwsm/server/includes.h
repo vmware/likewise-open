@@ -48,6 +48,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 #include <fcntl.h>
 #include <time.h>
 #include <dirent.h>
@@ -72,5 +74,7 @@
    #include <sched.h>
 #endif
 #include "server.h"
+
+#include <openssl/crypto.h>
 
 #endif

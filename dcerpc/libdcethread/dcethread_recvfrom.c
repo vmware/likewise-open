@@ -13,7 +13,7 @@ ssize_t
 dcethread_recvfrom(int s, void *buf, size_t len, int flags,
                    struct sockaddr *from, socklen_t *fromlen)
 {
-    DCETHREAD_SYSCALL(ssize_t, recvfrom(s, buf, len, flags, from, fromlen));
+    DCETHREAD_SYSCALL(ssize_t, recvfrom(s, buf, (DCETHREAD_SIZE_T) len, flags, from, fromlen));
 }
 
 #endif /* API */

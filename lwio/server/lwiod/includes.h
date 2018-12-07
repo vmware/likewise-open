@@ -85,3 +85,5 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
+
+#include <openssl/crypto.h>

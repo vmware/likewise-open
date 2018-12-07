@@ -1,0 +1,87 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dcelib", "dcelib.vcproj", "{80D11DB7-C668-4B37-9D14-DB9F27AFADA7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F} = {5BEF6331-C009-49C2-A67F-192BA0E5BF2F}
+		{C5C54079-B8BD-4959-9917-841DC2353173} = {C5C54079-B8BD-4959-9917-841DC2353173}
+		{68CEA399-0B48-4A07-9FF5-D5B443FBA097} = {68CEA399-0B48-4A07-9FF5-D5B443FBA097}
+		{AA3E3AB2-4693-4B16-B072-AC7A97B55339} = {AA3E3AB2-4693-4B16-B072-AC7A97B55339}
+		{A46E82DE-4BF1-45FE-95B6-8E7181996EA0} = {A46E82DE-4BF1-45FE-95B6-8E7181996EA0}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "idl_lib", "..\..\idl_lib\win\idl_lib.vcproj", "{A46E82DE-4BF1-45FE-95B6-8E7181996EA0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F} = {5BEF6331-C009-49C2-A67F-192BA0E5BF2F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uuid_dce", "..\..\uuid\win\uuid_dce.vcproj", "{C5C54079-B8BD-4959-9917-841DC2353173}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F} = {5BEF6331-C009-49C2-A67F-192BA0E5BF2F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libdcethread", "..\..\libdcethread\win\libdcethread.vcproj", "{68CEA399-0B48-4A07-9FF5-D5B443FBA097}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F} = {5BEF6331-C009-49C2-A67F-192BA0E5BF2F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ncklib", "..\..\ncklib\win\ncklib.vcproj", "{5BEF6331-C009-49C2-A67F-192BA0E5BF2F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AA3E3AB2-4693-4B16-B072-AC7A97B55339} = {AA3E3AB2-4693-4B16-B072-AC7A97B55339}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "echo_server", "..\..\demos\echo_server\win\echo_server.vcproj", "{0123BB58-0777-49A9-B6E8-CE56F69CD12B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{80D11DB7-C668-4B37-9D14-DB9F27AFADA7} = {80D11DB7-C668-4B37-9D14-DB9F27AFADA7}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "echo_client", "..\..\demos\echo_server\win\echo_client.vcproj", "{F751495E-5D02-4B1F-B20A-D8AFFD1F26EC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{80D11DB7-C668-4B37-9D14-DB9F27AFADA7} = {80D11DB7-C668-4B37-9D14-DB9F27AFADA7}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "idl_compiler", "..\..\idl_compiler\win\idl_compiler.vcproj", "{AA3E3AB2-4693-4B16-B072-AC7A97B55339}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{80D11DB7-C668-4B37-9D14-DB9F27AFADA7}.Debug|x64.ActiveCfg = Debug|x64
+		{80D11DB7-C668-4B37-9D14-DB9F27AFADA7}.Debug|x64.Build.0 = Debug|x64
+		{80D11DB7-C668-4B37-9D14-DB9F27AFADA7}.Release|x64.ActiveCfg = Release|x64
+		{80D11DB7-C668-4B37-9D14-DB9F27AFADA7}.Release|x64.Build.0 = Release|x64
+		{A46E82DE-4BF1-45FE-95B6-8E7181996EA0}.Debug|x64.ActiveCfg = Debug|x64
+		{A46E82DE-4BF1-45FE-95B6-8E7181996EA0}.Debug|x64.Build.0 = Debug|x64
+		{A46E82DE-4BF1-45FE-95B6-8E7181996EA0}.Release|x64.ActiveCfg = Release|x64
+		{A46E82DE-4BF1-45FE-95B6-8E7181996EA0}.Release|x64.Build.0 = Release|x64
+		{C5C54079-B8BD-4959-9917-841DC2353173}.Debug|x64.ActiveCfg = Debug|x64
+		{C5C54079-B8BD-4959-9917-841DC2353173}.Debug|x64.Build.0 = Debug|x64
+		{C5C54079-B8BD-4959-9917-841DC2353173}.Release|x64.ActiveCfg = Release|x64
+		{C5C54079-B8BD-4959-9917-841DC2353173}.Release|x64.Build.0 = Release|x64
+		{68CEA399-0B48-4A07-9FF5-D5B443FBA097}.Debug|x64.ActiveCfg = Debug|x64
+		{68CEA399-0B48-4A07-9FF5-D5B443FBA097}.Debug|x64.Build.0 = Debug|x64
+		{68CEA399-0B48-4A07-9FF5-D5B443FBA097}.Release|x64.ActiveCfg = Release|x64
+		{68CEA399-0B48-4A07-9FF5-D5B443FBA097}.Release|x64.Build.0 = Release|x64
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F}.Debug|x64.ActiveCfg = Debug|x64
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F}.Debug|x64.Build.0 = Debug|x64
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F}.Release|x64.ActiveCfg = Release|x64
+		{5BEF6331-C009-49C2-A67F-192BA0E5BF2F}.Release|x64.Build.0 = Release|x64
+		{0123BB58-0777-49A9-B6E8-CE56F69CD12B}.Debug|x64.ActiveCfg = Debug|x64
+		{0123BB58-0777-49A9-B6E8-CE56F69CD12B}.Debug|x64.Build.0 = Debug|x64
+		{0123BB58-0777-49A9-B6E8-CE56F69CD12B}.Release|x64.ActiveCfg = Release|x64
+		{0123BB58-0777-49A9-B6E8-CE56F69CD12B}.Release|x64.Build.0 = Release|x64
+		{F751495E-5D02-4B1F-B20A-D8AFFD1F26EC}.Debug|x64.ActiveCfg = Debug|x64
+		{F751495E-5D02-4B1F-B20A-D8AFFD1F26EC}.Debug|x64.Build.0 = Debug|x64
+		{F751495E-5D02-4B1F-B20A-D8AFFD1F26EC}.Release|x64.ActiveCfg = Release|x64
+		{F751495E-5D02-4B1F-B20A-D8AFFD1F26EC}.Release|x64.Build.0 = Release|x64
+		{AA3E3AB2-4693-4B16-B072-AC7A97B55339}.Debug|x64.ActiveCfg = Debug|x64
+		{AA3E3AB2-4693-4B16-B072-AC7A97B55339}.Debug|x64.Build.0 = Debug|x64
+		{AA3E3AB2-4693-4B16-B072-AC7A97B55339}.Release|x64.ActiveCfg = Release|x64
+		{AA3E3AB2-4693-4B16-B072-AC7A97B55339}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

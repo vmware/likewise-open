@@ -12,7 +12,7 @@
 ssize_t
 dcethread_recv(int s, void *buf, size_t len, int flags)
 {
-    DCETHREAD_SYSCALL(ssize_t, recv(s, buf, len, flags));
+    DCETHREAD_SYSCALL(ssize_t, recv(s, buf, (DCETHREAD_SIZE_T) len, flags));
 }
 
 #endif /* API */

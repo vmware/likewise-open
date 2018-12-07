@@ -5445,8 +5445,8 @@ static void type_name_len
 )
 {
     char const          *type_name;     /* Type name */
-    int                 type_len;       /* Length of type name */
-    int                 max_len;        /* Maximum identifier length */
+    size_t              type_len;       /* Length of type name */
+    size_t              max_len;        /* Maximum identifier length */
 
     if (!AST_LOCAL_SET(int_p)
         &&  top_type_p->name != NAMETABLE_NIL_ID
@@ -6329,7 +6329,7 @@ static void int_name_len
 )
 {
     char const   *int_name;      /* Interface name */
-    unsigned int max_len;        /* Maximum identifier length */
+    size_t max_len;        /* Maximum identifier length */
 
     NAMETABLE_id_to_string(int_p->name, &int_name);
     if (int_name == NULL)

@@ -151,12 +151,38 @@ UnmarshallNegotiateRequest(
     NEGOTIATE_REQUEST_HEADER* pHeader = NULL;
     uint32_t bufferLeft = bufferLen;
 
-    if (bufferLeft < sizeof(NEGOTIATE_REQUEST_HEADER))
+    if (!pBuffer || bufferLeft < sizeof(NEGOTIATE_REQUEST_HEADER))
     {
-        return EBADMSG;
+        LW_RTL_LOG_VERBOSE(
+            "Invalid request packet: Only %u bytes available, "
+            "We need at least %u bytes for a NEGOTIATE_REQUEST_HEADER",
+            pBuffer ? bufferLen : 0,
+            sizeof(NEGOTIATE_REQUEST_HEADER)
+            );
+        return STATUS_INVALID_NETWORK_RESPONSE;
     }
 
     pHeader = (NEGOTIATE_REQUEST_HEADER*)pBuffer;
+
+    if (pHeader->byteCount < 2)
+    {
+       LW_RTL_LOG_VERBOSE(
+           "Invalid request packet: The value of Byte Count (BCC) parameter "
+           "of SMB Negotiate request is %u. It should be at least 2.",
+           pHeader->byteCount);
+       return STATUS_INVALID_NETWORK_RESPONSE;
+    }
+
+    if (bufferLeft != sizeof(NEGOTIATE_REQUEST_HEADER) + pHeader->byteCount)
+    {
+       LW_RTL_LOG_VERBOSE(
+           "Invalid request packet: The value of Byte Count (BCC) parameter of "
+           "SMB Negotiate request is %u. However, remaining buffer size is %u.",
+           pHeader->byteCount,
+           (bufferLeft - sizeof(NEGOTIATE_REQUEST_HEADER))
+           );
+       return STATUS_INVALID_NETWORK_RESPONSE;
+    }
 
     /* NOTE: The buffer format cannot be trusted! */
     NEGOTIATE_REQUEST_DIALECT *pDialect = (NEGOTIATE_REQUEST_DIALECT*) (pBuffer + sizeof(NEGOTIATE_REQUEST_HEADER));
@@ -170,7 +196,13 @@ UnmarshallNegotiateRequest(
 
         /* If the last string was (sneakily) not null terminated, bail! */
         if (len > bufferLeft)
-            return EBADMSG;
+        {
+            LW_RTL_LOG_VERBOSE(
+                "Invalid request packet:Malformed SMB Negotiate "
+                "request:Dialect Name is not null terminated."
+                );
+            return STATUS_INVALID_NETWORK_RESPONSE;
+        }
 
         if (i < *pDialectCount)
             pszDialects[i] = (uchar8_t *) pDialect->szDialectName;

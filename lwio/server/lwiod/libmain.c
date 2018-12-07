@@ -177,6 +177,11 @@ static IO_STATIC_DRIVER gStaticDrivers[] =
 
 #endif
 
+#ifdef LW_BUILD_ESX
+int FIPS_mode(void);
+int FIPS_mode_set(int ONOFF);
+#endif
+
 static
 VOID
 LwIoInitRtlLogging(
@@ -191,6 +196,20 @@ lwiod_main(
 {
     DWORD dwError = 0;
     NTSTATUS ntStatus = STATUS_SUCCESS;
+
+#ifdef LW_BUILD_ESX
+    int mode = FIPS_mode(), ret = 0;
+    /* Turning off FIPS mode */
+    if(mode == 1)
+    {
+      LWIO_LOG_INFO("Turning FIPS off. Current Mode is %d", mode);
+      ret = FIPS_mode_set(0);
+      if(ret != 1)
+       {
+          LWIO_LOG_ERROR("Could not turn off FIPS successfully");
+       }
+    }
+#endif
 
     ntStatus = LwioSrvInitializeConfig(&gLwioServerConfig);
     dwError = LwNtStatusToWin32Error(ntStatus);

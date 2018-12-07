@@ -57,16 +57,18 @@
 #include <comprot.h>
 #include <comcthd.h>
 
-INTERNAL void scall_xmit_cancel_quack _DCE_PROTOTYPE_ ((
+INTERNAL void scall_xmit_cancel_quack(
         rpc_dg_scall_p_t  /*scall*/,
         unsigned32  /*cancel_id*/,
         unsigned32  /*is_accepting*/
-    ));
+    
+    );
 
-INTERNAL void do_quit_body _DCE_PROTOTYPE_ ((
+INTERNAL void do_quit_body(
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t  /*scall*/
-    ));
+    
+    );
 
 /*
  * Orphan quit packet check macro.
@@ -99,16 +101,10 @@ INTERNAL void do_quit_body _DCE_PROTOTYPE_ ((
  */
 
 PRIVATE boolean32 rpc__dg_svr_chk_and_set_sboot
-#ifdef _DCE_PROTO_
 (
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_sock_pool_elt_p_t sp
 )
-#else
-(rqe, sp)
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_sock_pool_elt_p_t sp;
-#endif
 {
     if (rqe->hdrp->server_boot == 0)
     {
@@ -142,18 +138,11 @@ rpc_dg_sock_pool_elt_p_t sp;
  */
 
 INTERNAL void scall_xmit_cancel_quack
-#ifdef _DCE_PROTO_
 (
     rpc_dg_scall_p_t scall,
     unsigned32 cancel_id,
     unsigned32 is_accepting
 )
-#else
-(scall, cancel_id, is_accepting)
-rpc_dg_scall_p_t scall;
-unsigned32 cancel_id;
-unsigned32 is_accepting;
-#endif
 {
     rpc_socket_iovec_t iov[2];
     rpc_dg_pkt_hdr_t hdr;
@@ -210,16 +199,10 @@ unsigned32 is_accepting;
  */
 
 INTERNAL void do_quit_body
-#ifdef _DCE_PROTO_
 (
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_scall_p_t scall
 )
-#else
-(rqe, scall)
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_scall_p_t scall;
-#endif
 {
     unsigned32 cancel_id;
 
@@ -366,18 +349,11 @@ rpc_dg_scall_p_t scall;
  */
 
 PRIVATE boolean rpc__dg_do_quit
-#ifdef _DCE_PROTO_
 (
     rpc_dg_sock_pool_elt_p_t sp,
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_scall_p_t scall
 )
-#else
-(sp, rqe, scall)
-rpc_dg_sock_pool_elt_p_t sp;
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_scall_p_t scall;
-#endif
 {
     if (! rpc__dg_svr_chk_and_set_sboot(rqe, sp))
     {
@@ -472,18 +448,11 @@ rpc_dg_scall_p_t scall;
  */
 
 PRIVATE boolean rpc__dg_do_ack
-#ifdef _DCE_PROTO_
 (
     rpc_dg_sock_pool_elt_p_t sp,
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_scall_p_t scall
 )
-#else
-(sp, rqe, scall)
-rpc_dg_sock_pool_elt_p_t sp;
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_scall_p_t scall;
-#endif
 {
     rpc_dg_pkt_hdr_p_t hdrp = rqe->hdrp;
     unsigned32 seq          = hdrp->seq;
@@ -550,25 +519,19 @@ rpc_dg_scall_p_t scall;
  * Routine common to request and ping processing, in case we got a packet
  * whose sequence is current.
  */
-INTERNAL void ping_common  _DCE_PROTOTYPE_((
+INTERNAL void ping_common (
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t  /*scall*/
-    ));
+    
+    );
 
 INTERNAL void ping_common
-#ifdef _DCE_PROTO_
 (
     rpc_dg_sock_pool_elt_p_t sp,
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_scall_p_t scall
 )
-#else
-(sp, rqe, scall)
-rpc_dg_sock_pool_elt_p_t sp;
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_scall_p_t scall;
-#endif
 {
     rpc_dg_xmitq_p_t xq = &scall->c.xq;
 #ifdef DEBUG
@@ -704,18 +667,11 @@ rpc_dg_scall_p_t scall;
  */
 
 PRIVATE boolean rpc__dg_do_ping
-#ifdef _DCE_PROTO_
 (
     rpc_dg_sock_pool_elt_p_t sp,
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_scall_p_t scall
 )
-#else
-(sp, rqe, scall)
-rpc_dg_sock_pool_elt_p_t sp;
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_scall_p_t scall;
-#endif
 {
     rpc_dg_pkt_hdr_p_t hdrp = rqe->hdrp;
     unsigned32 seq          = hdrp->seq;
@@ -810,25 +766,19 @@ typedef enum {
     do_req_e_non_idem_rerun
 } do_req_enum_t;
 
-INTERNAL do_req_enum_t do_request_common _DCE_PROTOTYPE_((
+INTERNAL do_req_enum_t do_request_common(
         unsigned32  /*cur_call_seq*/,
         rpc_dg_call_state_t  /*cur_call_state*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/
-    ));
+    
+    );
 
 INTERNAL do_req_enum_t do_request_common
-#ifdef _DCE_PROTO_
 (
     unsigned32 cur_call_seq,
     rpc_dg_call_state_t cur_call_state,
     rpc_dg_recvq_elt_p_t rqe
 )
-#else
-(cur_call_seq, cur_call_state, rqe)
-unsigned32 cur_call_seq;
-rpc_dg_call_state_t cur_call_state;
-rpc_dg_recvq_elt_p_t rqe;
-#endif
 {
     rpc_dg_pkt_hdr_p_t hdrp = rqe->hdrp;
     unsigned32 rqe_seq      = hdrp->seq;
@@ -1049,25 +999,19 @@ rpc_dg_recvq_elt_p_t rqe;
  * can check using the common SCALL processing.
  */
 
-INTERNAL boolean do_cbk_request _DCE_PROTOTYPE_((
+INTERNAL boolean do_cbk_request(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t * /*scallp*/
-    ));
+    
+    );
 
 INTERNAL boolean do_cbk_request
-#ifdef _DCE_PROTO_
 (
     rpc_dg_sock_pool_elt_p_t sp,
     rpc_dg_recvq_elt_p_t rqe,
     rpc_dg_scall_p_t *scallp
 )
-#else
-(sp, rqe, scallp)
-rpc_dg_sock_pool_elt_p_t sp;
-rpc_dg_recvq_elt_p_t rqe;
-rpc_dg_scall_p_t *scallp;
-#endif
 {
     rpc_dg_scall_p_t scall;
     rpc_dg_ccall_p_t ccall;
@@ -1197,16 +1141,10 @@ rpc_dg_scall_p_t *scallp;
  */
 
 PRIVATE boolean rpc__dg_do_request
-#ifdef _DCE_PROTO_
 (
     rpc_dg_sock_pool_elt_p_t sp,
     rpc_dg_recvq_elt_p_t rqe
 )
-#else
-(sp, rqe)
-rpc_dg_sock_pool_elt_p_t sp;
-rpc_dg_recvq_elt_p_t rqe;
-#endif
 {
     rpc_dg_sct_elt_p_t scte;
     boolean rqe_wake_thread;

@@ -31,7 +31,7 @@ configure()
     then
         mk_export PKG_RPM_NAME="vmware-lwis"
         mk_export PKG_RPM_VERSION="${LW_VERSION}"
-        mk_export PKG_RPM_RELEASE="0"
+        mk_export PKG_RPM_RELEASE="11"
 
         PKG_RPM_COMPAT="0"
 
@@ -133,6 +133,7 @@ common_files()
             "${MK_LIBDIR}/*${MK_LIB_EXT}.*" \
             "${MK_LIBDIR}/gss/*${MK_DLO_EXT}" \
             "${MK_LIBDIR}/krb5/plugins/preauth/pkinit${MK_DLO_EXT}" \
+            "${MK_LIBDIR}/krb5/plugins/libkrb5/liblwnet_service_locator${MK_DLO_EXT}" \
             "${MK_LIBDIR}/lwsm-loader/*${MK_DLO_EXT}" \
             "/etc/init.d/*" \
             "${MK_SYSCONFDIR}/*" \

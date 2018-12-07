@@ -120,6 +120,15 @@ SrvListenerInitSocket(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (bInet6)
+    {
+        if (setsockopt(pListener->ListenFd, SOL_IPV6, IPV6_V6ONLY, (const char *)(&on), sizeof(on)))
+        {
+            ntStatus = LwErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
     if (setsockopt(pListener->ListenFd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
@@ -144,6 +153,7 @@ SrvListenerInitSocket(
     opts |= O_NONBLOCK;
     if (fcntl(pListener->ListenFd, F_SETFL, opts) < 0)
     {
+        LWIO_LOG_ERROR("SrvListenerInitSocket: errno=%d", errno);
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }

@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -41,12 +41,47 @@
 
 #ifdef API
 
+#define __DCETHREAD_DEFAULT_STACK_SZ (64 * 1024)
+
 typedef struct
 {
     void* (*start) (void* data);
     void* data;
     dcethread* self;
 } dcethread_start_args;
+
+
+/* Set thread stack size if the current default value is 0 */
+static int _mod_thread_stack_size(size_t new_size, size_t *ret_size)
+{
+   pthread_attr_t attr;
+   size_t size = -1;
+
+   if (pthread_attr_init(&attr) == -1) {
+      return(1);
+   }
+
+   if (pthread_attr_getstacksize(&attr, &size) == -1) {
+      return(2);
+   }
+
+   if (size == 0)
+   {
+       size = new_size;
+       if (pthread_attr_setstacksize(&attr, size) == -1) {
+           return(3);
+       }
+       if (pthread_attr_getstacksize(&attr, &size) == -1) {
+          return(2);
+       }
+   }
+
+   pthread_attr_destroy(&attr);
+
+   *ret_size = size;
+   return 0;
+}
+
 
 static void *
 proxy_start(void *arg)
@@ -55,19 +90,21 @@ proxy_start(void *arg)
     void *result;
     int prev_cancel_state;
     int prev_cancel_type;
-    
+    size_t stack_size = 0;
+
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &prev_cancel_state);
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &prev_cancel_type);
     dcethread__init_self(args->self);
-    
+
+    _mod_thread_stack_size(__DCETHREAD_DEFAULT_STACK_SZ, &stack_size);
     result = args->start(args->data);
 
     (void) pthread_setcancelstate(prev_cancel_state, NULL);
     (void) pthread_setcanceltype(prev_cancel_type, NULL);
-    
+
     dcethread__lock(args->self);
     args->self->status = result;
-    dcethread__cleanup_self(args->self);   
+    dcethread__cleanup_self(args->self);
     dcethread__unlock(args->self);
 
     free(args);
@@ -81,17 +118,17 @@ dcethread_create(dcethread** _thread, dcethread_attr* attr, void *(*start_routin
     dcethread_start_args *start_args;
     dcethread* thread;
     int detachstate;
-    
+
     start_args = (dcethread_start_args *) malloc(sizeof(*start_args));
-    if (start_args == NULL) 
+    if (start_args == NULL)
     {
 	return dcethread__set_errno(ENOMEM);
     }
-    
+
     start_args->start = start_routine;
     start_args->data = arg;
     start_args->self = thread = dcethread__new();
-    
+
     /* Record if this thread was created joinably */
     if (!attr || (pthread_attr_getdetachstate(attr, &detachstate), detachstate == PTHREAD_CREATE_JOINABLE))
     {
@@ -111,7 +148,11 @@ dcethread_create(dcethread** _thread, dcethread_attr* attr, void *(*start_routin
 	return -1;
     }
 
+#if defined(_WIN32)
+    DCETHREAD_TRACE("Thread %p: created (pthread %p)", thread, (unsigned long) thread->pthread.p);
+#else
     DCETHREAD_TRACE("Thread %p: created (pthread %lu)", thread, (unsigned long) thread->pthread);
+#endif
 
     dcethread__lock(thread);
     while (thread->state == DCETHREAD_STATE_CREATED)
@@ -119,7 +160,7 @@ dcethread_create(dcethread** _thread, dcethread_attr* attr, void *(*start_routin
 	dcethread__wait(thread);
     }
     dcethread__unlock(thread);
-    
+
     DCETHREAD_TRACE("Thread %p: started", thread);
 
     *_thread = thread;

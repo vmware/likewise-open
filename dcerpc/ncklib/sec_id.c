@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -31,13 +31,13 @@
 /*
 **
 **  NAME
-**      
+**
 **      sec_id.c
 **
 **  FACILITY:
 **
 **      Remote Procedure Call (RPC)
-**  
+**
 **  ABSTRACT:
 **
 **      Routines for PAC pickling.
@@ -47,11 +47,13 @@
  * Functions
  */
 #include <commonp.h>
-#include <com.h> 
+#include <com.h>
 #include <dce/idl_es.h>
 #include <sec_id_pickle.h>
 
+#if !defined(_WIN32)
 #include <unistd.h>
+#endif
 #include <ctype.h>
 
 #include "pickle.h"
@@ -104,7 +106,7 @@ PRIVATE void sec_id_free(sec_id_t *identity)
 }
 
 /* s e c _ i d _ p a c _ f r e e
- * 
+ *
  * Release dynamic storage associated with a PAC.
  */
 
@@ -185,7 +187,7 @@ PUBLIC void sec_id_pac_pickle(pickle_handle_t  handle,
 
 /* s e c _ i d _ p a c _ u n p i c k l e
  *
- * unpickle a pac 
+ * unpickle a pac
  */
 PUBLIC void sec_id_pac_unpickle(sec_id_pickled_pac_t *pickled_pac,
 	sec_id_pac_t *pac)

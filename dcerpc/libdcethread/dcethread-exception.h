@@ -4,6 +4,7 @@
 #include <dce/dcethread.h>
 
 void dcethread__init_exceptions(void);
+void dcethread__fini_exceptions(void);
 void dcethread__frame_push(dcethread_frame* frame);
 void dcethread__frame_pop(dcethread_frame* frame);
 void dcethread__exc_init(dcethread_exc* exc, const char* name);

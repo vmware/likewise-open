@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -45,13 +45,13 @@ dcethread_attr_create(dcethread_attr *attr)
     {
 	return -1;
     }
-    
+
     if (dcethread__set_errno(pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE)))
     {
 	pthread_attr_destroy(attr);
 	return -1;
     }
-    
+
     return 0;
 }
 

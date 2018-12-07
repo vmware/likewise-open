@@ -40,6 +40,8 @@
 
 #if defined(LWBASE_ATOMIC_X86)
 
+static pthread_mutex_t gAtomicMutex = PTHREAD_MUTEX_INITIALIZER;
+
 LONG
 LwInterlockedCompareExchange(
     IN OUT LONG volatile *plDestination,
@@ -132,6 +134,91 @@ LwInterlockedDecrement(
     return lValue - 1;
 }
 
+LONG64
+LwInterlockedExchange64(
+    IN OUT LONG64 volatile *plDestination,
+    IN LONG64 lNewValue
+    )
+{
+    LONG64 lOldValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lOldValue = *plDestination;
+
+    *plDestination = lNewValue;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lOldValue;
+}
+
+LONG64
+LwInterlockedIncrement64(
+    IN OUT LONG64 volatile* plDestination
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination += 1;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedDecrement64(
+    IN OUT LONG64 volatile* plDestination
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination -= 1;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedAdd64(
+    IN OUT LONG64 volatile* plDestination,
+    IN LONG64 lValue
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination += lValue;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedSubtract64(
+    IN OUT LONG64 volatile* plDestination,
+    IN LONG64 lValue
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination -= lValue;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
 #elif defined(LWBASE_ATOMIC_X86_64)
 
 /*
@@ -210,6 +297,106 @@ LwInterlockedDecrement(
         : "0" (lValue), "m" (*plDestination));
 
     return lValue - 1;
+}
+
+LONG64
+LwInterlockedExchange64(
+    IN OUT LONG64 volatile *plDestination,
+    IN LONG64 lNewValue
+    )
+{
+    LONG64 lOldValue;
+
+    /*
+     * xchg sets the destination operand to the
+     * source operand. The lock prefix ensures
+     * this is done atomically.
+     */
+    __asm__ __volatile__ (
+        "lock; xchgq %0, %1"
+        : "=r" (lOldValue), "=m" (*plDestination)
+        : "0" (lNewValue), "m" (*plDestination));
+
+    return lOldValue;
+}
+
+
+LONG64
+LwInterlockedIncrement64(
+    IN OUT LONG64 volatile* plDestination
+    )
+{
+    LONG64 lValue = 1;
+
+    /*
+     * xadd will give us the old value of
+     * the destination operand, so we need to
+     * add 1 to yield the value after incrementation
+     */
+    __asm__ __volatile__ (
+        "lock; xaddq %0, %1"
+        : "=r" (lValue), "=m" (*plDestination)
+        : "0" (lValue), "m" (*plDestination));
+
+    return lValue + 1;
+}
+
+LONG64
+LwInterlockedDecrement64(
+    IN OUT LONG64 volatile* plDestination
+    )
+{
+    LONG64 lValue = -1;
+
+    /*
+     * Same as increment but with -1 as the source operand
+     */
+    __asm__ __volatile__ (
+        "lock; xaddq %0, %1"
+        : "=r" (lValue), "=m" (*plDestination)
+        : "0" (lValue), "m" (*plDestination));
+
+    return lValue - 1;
+}
+
+LONG64
+LwInterlockedAdd64(
+    IN OUT LONG64 volatile* plDestination,
+    IN LONG64 lValue
+    )
+{
+    LONG64 lOldValue = lValue;
+
+    /*
+     * xadd will give us the old value of
+     * the destination operand, so we need to
+     * add lValue to yield the value after incrementation
+     */
+    __asm__ __volatile__ (
+        "lock; xaddq %0, %1"
+        : "=r" (lOldValue), "=m" (*plDestination)
+        : "0" (lOldValue), "m" (*plDestination));
+
+    return lOldValue + lValue;
+}
+
+LONG64
+LwInterlockedSubtract64(
+    IN OUT LONG64 volatile* plDestination,
+    IN LONG64 lValue
+    )
+{
+    LONG64 lOldValue = -lValue;
+
+    /*
+     * Same as increment but with -lValue as the source operand
+     */
+    __asm__ __volatile__ (
+        "lock; xaddq %0, %1"
+        : "=r" (lOldValue), "=m" (*plDestination)
+        : "0" (lOldValue), "m" (*plDestination));
+
+    return lOldValue - lValue;
 }
 
 #elif defined(LWBASE_ATOMIC_LOCK)
@@ -304,6 +491,91 @@ LwInterlockedDecrement(
     pthread_mutex_lock(&gAtomicMutex);
 
     lNewValue = *plDestination -= 1;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedExchange64(
+    IN OUT LONG64 volatile *plDestination,
+    IN LONG64 lNewValue
+    )
+{
+    LONG64 lOldValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lOldValue = *plDestination;
+
+    *plDestination = lNewValue;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lOldValue;
+}
+
+LONG64
+LwInterlockedIncrement64(
+    IN OUT LONG64 volatile* plDestination
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination += 1;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedDecrement64(
+    IN OUT LONG64 volatile* plDestination
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination -= 1;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedAdd64(
+    IN OUT LONG64 volatile* plDestination,
+    IN LONG64 lValue
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination += lValue;
+
+    pthread_mutex_unlock(&gAtomicMutex);
+
+    return lNewValue;
+}
+
+LONG64
+LwInterlockedSubtract64(
+    IN OUT LONG64 volatile* plDestination,
+    IN LONG64 lValue
+    )
+{
+    LONG64 lNewValue;
+
+    pthread_mutex_lock(&gAtomicMutex);
+
+    lNewValue = *plDestination -= lValue;
 
     pthread_mutex_unlock(&gAtomicMutex);
 

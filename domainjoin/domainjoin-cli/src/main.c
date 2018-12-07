@@ -311,6 +311,7 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
     int passwordIndex = -1;
     PSTR moduleDetails = NULL;
     PSTR wrapped = NULL;
+    PCSTR Hostmodule = "hostname";
 
     DJZeroJoinProcessOptions(&options);
     memset(&enableModules, 0, sizeof(enableModules));
@@ -335,8 +336,7 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
             options.enableMultipleJoins = TRUE;
         else if(!strcmp(argv[0], "--nohosts"))
         {
-            PCSTR module = "hostname";
-            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR), &module, 1));
+            LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR), &Hostmodule, 1));
         }
         else if(argc < 2)
         {
@@ -390,6 +390,11 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
         }
         argv++;
         argc--;
+    }
+
+    if(CTArrayFindString(&enableModules, Hostmodule) == -1)
+    {
+        LW_CLEANUP_CTERR(exc, CTArrayAppend(&disableModules, sizeof(PCSTR), &Hostmodule, 1));
     }
 
     if(argc == 3)

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC)                                 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -39,9 +39,7 @@
 **
 */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 /*
  * R P C _ D G _ R E C V Q _ E L T _ F R O M _ I O V E C T O R _ E L T
@@ -87,9 +85,9 @@
                                 (rqe)->pkt_len; \
 }
 
-PRIVATE void rpc__dg_recvq_init _DCE_PROTOTYPE_(( rpc_dg_recvq_p_t  /*rq*/));
+PRIVATE void rpc__dg_recvq_init( rpc_dg_recvq_p_t  /*rq*/);
 
 
-PRIVATE void rpc__dg_recvq_free _DCE_PROTOTYPE_(( rpc_dg_recvq_p_t  /*rq*/));
+PRIVATE void rpc__dg_recvq_free( rpc_dg_recvq_p_t  /*rq*/);
 
 #endif /* _DGRQ_H */

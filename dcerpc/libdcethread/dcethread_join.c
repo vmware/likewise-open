@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -66,6 +66,11 @@ dcethread_join(dcethread* thread, void **status)
     if (thread == dcethread__self())
     {
         return dcethread__set_errno(EDEADLK);
+    }
+
+    if (!thread)
+    {
+        return dcethread__set_errno(EINVAL);
     }
 
     if (!thread->flag.joinable)
@@ -196,7 +201,7 @@ MU_TEST(dcethread_join, interrupt_post)
 
     ts.tv_nsec = 100000000;
     ts.tv_sec = 0;
-  
+
     MU_TRY_DCETHREAD( dcethread_create(&thread, NULL, join_thread, NULL) );
     MU_TRY_DCETHREAD( dcethread_delay(&ts) );
     MU_TRY_DCETHREAD( dcethread_interrupt(thread) );

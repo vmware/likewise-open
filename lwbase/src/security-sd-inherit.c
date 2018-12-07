@@ -113,16 +113,17 @@ RtlCreatePrivateObjectSecurityEx(
     *ppNewSecDesc = NULL;
     *pNewSecDescLength = 0;
 
-    // pUserToken can only be NULL if bother the following flags
-    // Are set in the AutoInheritFlags
+    //
+    // pUserToken can only be NULL if both of the following flags
+    // are set in the AutoInheritFlags.
     //      (SEF_AVOID_OWNER_CHECK|SEF_AVOID_PRIVILEGE_CHECK)
-
-    if (!((AutoInheritFlags & (SEF_AVOID_OWNER_CHECK|SEF_AVOID_PRIVILEGE_CHECK))
-          != (SEF_AVOID_OWNER_CHECK|SEF_AVOID_PRIVILEGE_CHECK)) &&
-        (pUserToken == NULL))
+    if (pUserToken == NULL)
     {
-        status = STATUS_NO_TOKEN;
-        GOTO_CLEANUP_ON_STATUS(status);
+        if ((AutoInheritFlags & (SEF_AVOID_OWNER_CHECK|SEF_AVOID_PRIVILEGE_CHECK)) != (SEF_AVOID_OWNER_CHECK|SEF_AVOID_PRIVILEGE_CHECK))
+        {
+            status = STATUS_NO_TOKEN;
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
     }
 
     if (pParentSecDesc)
@@ -310,7 +311,7 @@ RtlpObjectSetOwner(
 
         if (pParentSecDescOwner)
         {
-            status = RtlDuplicateSid(&pOwner, pCreatorSecDescOwner);
+            status = RtlDuplicateSid(&pOwner, pParentSecDescOwner);
             GOTO_CLEANUP_ON_STATUS(status);
 
             status = RtlSetOwnerSecurityDescriptor(
@@ -411,7 +412,7 @@ RtlpObjectSetGroup(
 
         if (pParentSecDescGroup)
         {
-            status = RtlDuplicateSid(&pGroup, pCreatorSecDescGroup);
+            status = RtlDuplicateSid(&pGroup, pParentSecDescGroup);
             GOTO_CLEANUP_ON_STATUS(status);
 
             status = RtlSetGroupSecurityDescriptor(
@@ -904,6 +905,7 @@ RtlpObjectInheritSecurity(
     } TokenPrimaryGroupBuffer;
     PTOKEN_PRIMARY_GROUP pTokenPrimaryGroupInfo = (PTOKEN_PRIMARY_GROUP)&TokenPrimaryGroupBuffer;
     ULONG ulTokenPrimaryGroupLength = 0;
+    BOOLEAN bInheritThroughContainer = FALSE;
 
     // Inheritance Algorithm:
     //
@@ -1061,69 +1063,67 @@ RtlpObjectInheritSecurity(
         status = RtlGetAce(pParentDacl, i, OUT_PPVOID(&pAceHeader));
         GOTO_CLEANUP_ON_STATUS(status);
 
-        // Skip if no inheritable access rights
-
-        if ((bIsContainerObject &&
-             !(pAceHeader->AceFlags & CONTAINER_INHERIT_ACE)) ||
-            (!bIsContainerObject &&
-             !(pAceHeader->AceFlags & OBJECT_INHERIT_ACE)))
-        {
-            continue;
-        }
-
-        // See if the inherit ACE should continue to be propagated.
-        // If so, then copy it
-
-        switch(pAceHeader->AceType)
-        {
-            case ACCESS_ALLOWED_ACE_TYPE:
-            {
-                pAllowAce = (PACCESS_ALLOWED_ACE)pAceHeader;
-                mask = pAllowAce->Mask;
-                if (bIsContainerObject &&
-                    !(pAceHeader->AceFlags & NO_PROPAGATE_INHERIT_ACE))
-                {
-                    status = RtlAddAccessAllowedAceEx(
-                                 pDacl,
-                                 ACL_REVISION,
-                                 pAllowAce->Header.AceFlags,
-                                 pAllowAce->Mask,
-                                 (PSID)&pAllowAce->SidStart);
-                    GOTO_CLEANUP_ON_STATUS(status);
-                }
-            }
-            break;
-
-            case ACCESS_DENIED_ACE_TYPE:
-            {
-                pDenyAce = (PACCESS_DENIED_ACE)pAceHeader;
-                mask = pDenyAce->Mask;
-                if (bIsContainerObject &&
-                    !(pAceHeader->AceFlags & NO_PROPAGATE_INHERIT_ACE))
-                {
-                    status = RtlAddAccessDeniedAceEx(
-                                 pDacl,
-                                 ACL_REVISION,
-                                 pDenyAce->Header.AceFlags,
-                                 pDenyAce->Mask,
-                                 (PSID)&pDenyAce->SidStart);
-                    GOTO_CLEANUP_ON_STATUS(status);
-                }
-            }
-            break;
-
-            default:
-                // Skip all other types
-                continue;
-        }
-
-        // Map the generic bits to specific bits and remove inherit flags
-
-        RtlMapGenericMask(&mask, pGenericMap);
         AceFlags = pAceHeader->AceFlags;
-        AceFlags &= ~(CONTAINER_INHERIT_ACE|
-                      OBJECT_INHERIT_ACE|
-                      INHERIT_ONLY_ACE);
+        bInheritThroughContainer = FALSE;
+
+        //
+        // Skip if the inheritance flags don't jibe with the object's type.
+        // We're looking for:
+        // (1) A non-container and OBJECT_INHERIT_ACE is set
+        // or
+        // (1) If it's a container then either:
+        //      (a) CONTAINER_INHERIT_ACE is set (and we'll inherit this ACE
+        //          and it'll be effective for ACL checks).
+        //      (b) OBJECT_INHERIT_ACE is set (and we'll inherit this ACE
+        //          unless NO_PROP is set; the ACE won't be effective for
+        //          ACL checks).
+        //
+        // https://technet.microsoft.com/en-us/library/cc961986.aspx
+        //
+        if (bIsContainerObject)
+        {
+            if (AceFlags & CONTAINER_INHERIT_ACE)
+            {
+                //
+                // This ACE should be inherited, so we'll fall through to
+                // the code below.
+                //
+            }
+            else if (AceFlags & OBJECT_INHERIT_ACE)
+            {
+                //
+                // There's no point in "forcing" the inheritance of this
+                // ACE if it has NO_PROP set.
+                //
+                if (AceFlags & NO_PROPAGATE_INHERIT_ACE)
+                {
+                    continue;
+                }
+
+                bInheritThroughContainer = TRUE;
+            }
+        }
+        else
+        {
+            if ((AceFlags & OBJECT_INHERIT_ACE) == 0)
+            {
+                continue;
+            }
+        }
+
+        if (bInheritThroughContainer)
+        {
+            AceFlags |= INHERIT_ONLY_ACE;
+        }
+        else
+        {
+            AceFlags &= ~INHERIT_ONLY_ACE;
+        }
+
+        if (AceFlags & NO_PROPAGATE_INHERIT_ACE)
+        {
+            AceFlags &= ~(CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE | NO_PROPAGATE_INHERIT_ACE);
+        }
         AceFlags |= INHERITED_ACE;
 
         // Set the inherited direct ACE
@@ -1133,6 +1133,8 @@ RtlpObjectInheritSecurity(
         {
         case ACCESS_ALLOWED_ACE_TYPE:
             pAllowAce = (PACCESS_ALLOWED_ACE)pAceHeader;
+            mask = pAllowAce->Mask;
+            RtlMapGenericMask(&mask, pGenericMap);
 
             pAceSid = (PSID)&pAllowAce->SidStart;
             if (RtlEqualSid(pAceSid, &CreatorOwner.sid))
@@ -1156,6 +1158,8 @@ RtlpObjectInheritSecurity(
 
         case ACCESS_DENIED_ACE_TYPE:
             pDenyAce = (PACCESS_DENIED_ACE)pAceHeader;
+            mask = pDenyAce->Mask;
+            RtlMapGenericMask(&mask, pGenericMap);
 
             pAceSid = (PSID)&pDenyAce->SidStart;
             if (RtlEqualSid(pAceSid, &CreatorOwner.sid))
@@ -1226,4 +1230,5 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+
 

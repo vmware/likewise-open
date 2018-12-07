@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -32,7 +32,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -49,11 +49,23 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 
 #ifndef __DCETHREAD_H__
 #define __DCETHREAD_H__
+
+#ifdef _WIN32
+#ifdef _WIN64
+// You will be in trouble here if ssize_t/size_t are already typedef'ed
+typedef __int64 ssize_t;
+typedef unsigned __int64 size_t;
+#else
+typedef __int32 ssize_t;
+typedef unsigned __int32 size_t;
+#endif
+#endif
+
 
 #include <dce/ndrtypes.h>
 /* Unfortunately, pthreads uses a lot of macros
@@ -64,10 +76,19 @@
 #include <time.h>
 #include <stdio.h>
 #include <setjmp.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#else
+#include <Winsock2.h>
+
+/* Can't include <WS2tcpip.h>, it pulls inline code that doesn't build with POSIX */
+typedef int socklen_t;
+
+#endif
+#include <sys/types.h>
 /* FIXME: this is kind of dirty */
 #ifdef __FreeBSD__
 #include <sys/select.h>
@@ -111,11 +132,25 @@ typedef void* (*dcethread_startroutine)(void*);
 #else
 #  define DCETHREAD_ONCE_INIT PTHREAD_ONCE_INIT
 #endif
+#ifdef _WIN32
+#define DCETHREAD_MUTEX_INITIALIZER {PTHREAD_MUTEX_INITIALIZER}
+#else
 #define DCETHREAD_MUTEX_INITIALIZER {PTHREAD_MUTEX_INITIALIZER, (pthread_t) -1}
+#endif
 #if __LW_BROKEN_ONCE_INIT &&  !defined(_AIX)
 #  define DCETHREAD_COND_INITIALIZER {{{0}, 0, 0}, 0}
 #else
 #  define DCETHREAD_COND_INITIALIZER PTHREAD_COND_INITIALIZER
+#endif
+
+#if !defined (DCETHREAD_ATTR_CONSTRUCTOR) && !defined (DCETHREAD_ATTR_DESTRUCTOR)
+#ifdef _WIN32
+#  define DCETHREAD_ATTR_CONSTRUCTOR
+#  define DCETHREAD_ATTR_DESTRUCTOR
+#else
+#  define DCETHREAD_ATTR_CONSTRUCTOR __attribute__((constructor))
+#  define DCETHREAD_ATTR_DESTRUCTOR __attribute__((destructor))
+#endif
 #endif
 
 /* Entry points */
@@ -133,7 +168,9 @@ int dcethread_mutexattr_getkind(dcethread_mutexattr *attr);
 
 int dcethread_mutexattr_setkind(dcethread_mutexattr *attr, int kind);
 
+#ifndef _WIN32
 void dcethread_signal_to_interrupt(sigset_t *sigset, dcethread* thread);
+#endif
 
 int dcethread_attr_create(dcethread_attr *attr);
 int dcethread_attr_create_throw(dcethread_attr *attr);
@@ -274,7 +311,7 @@ typedef struct _dcethread_exc
     union
     {
         int value;
-        struct _dcethread_exc *address;       
+        struct _dcethread_exc *address;
     } match;
     const char* name;
 } dcethread_exc;
@@ -290,13 +327,38 @@ typedef volatile struct _dcethread_frame
     dcethread_exc exc;
     const char* file;
     unsigned int line;
+#ifndef _WIN32
     sigjmp_buf jmpbuf;
+#else
+    jmp_buf jmpbuf;
+#endif
     volatile struct _dcethread_frame *parent;
 } dcethread_frame;
 
 void dcethread_frame_push(dcethread_frame* frame);
 void dcethread_frame_pop(dcethread_frame* frame);
 
+#if defined(_WIN32)
+#define DCETHREAD_TRY							\
+    do									\
+    {									\
+        /* handler frame */						\
+        __DCETHREAD_UNUSED__ dcethread_frame __dcethread_frame;         \
+	/* has a catch clause been run this frame? */			\
+	__DCETHREAD_UNUSED__ volatile char __dcethread_handled = 0;     \
+	/* has a finally clause been run this frame? */			\
+	__DCETHREAD_UNUSED__ volatile char __dcethread_finally = 0;     \
+	/* is a live (unhandled) exception in play? */			\
+	__DCETHREAD_UNUSED__ volatile int __dcethread_live;             \
+									\
+	dcethread_frame_push(&__dcethread_frame);			\
+	__dcethread_live = setjmp(((struct _dcethread_frame*) &__dcethread_frame)->jmpbuf); \
+									\
+									\
+	if (!__dcethread_live)						\
+	{								\
+	    /* Try block code goes here */				
+#else
 #define DCETHREAD_TRY							\
     do									\
     {									\
@@ -316,6 +378,7 @@ void dcethread_frame_pop(dcethread_frame* frame);
 	if (!__dcethread_live)						\
 	{								\
 	    /* Try block code goes here */				
+#endif
 
 #define DCETHREAD_CATCH(_exc)						 \
         }								 \
@@ -449,6 +512,11 @@ ssize_t dcethread_recv(int s, void *buf, size_t len, int flags);
 ssize_t dcethread_recvfrom(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
 ssize_t dcethread_recvmsg(int s, struct msghdr *msg, int flags);
 int dcethread_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+#ifdef _WIN32
+SOCKET dcethread_get_shutdown_sock(void);
+#else
+int dcethread_get_shutdown_sock(void);
+#endif
 
 pid_t dcethread_fork(void);
 

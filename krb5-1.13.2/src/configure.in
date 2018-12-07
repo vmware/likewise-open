@@ -1419,6 +1419,7 @@ dnl	ccapi ccapi/lib ccapi/lib/unix ccapi/server ccapi/server/unix ccapi/test
 	plugins/authdata/greet
 	plugins/authdata/greet_client
 	plugins/authdata/greet_server
+	plugins/authdata/vmpac
 	plugins/tls/k5tls
 
 	clients clients/klist clients/kinit clients/kvno

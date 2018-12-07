@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,8 +16,8 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
- * 
+ *
+ *
  */
 /*
 **
@@ -25,7 +25,7 @@
 **
 **      codesets_stub.h
 **
-**	This file cannot be IDL file, since 
+**	This file cannot be IDL file, since
 **		idl_cs_convert_t 		-> (idlbase.h)
 **		wchar_t 			-> (stdlib.h)
 **	are defined in header file.  IDL file cannot import *.h files.
@@ -39,7 +39,7 @@
 **  This file defines stub support routines, which support marshalling and
 **  unmarshalling of i18n data.  Code set conversion is done automatically
 **  when code set interoperability functionality is enabled.
-**  
+**
 **
 */
 

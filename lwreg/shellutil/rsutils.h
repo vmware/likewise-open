@@ -159,6 +159,24 @@ RegShellUtilValueArrayFree(
     );
 
 DWORD
+RegShellUtilSetSecurity(
+    HANDLE hReg,
+    PCSTR pszRootKeyName,
+    PCSTR pszDefaultKey,
+    PCSTR keyName,
+    PCSTR valueName
+    );
+
+DWORD
+RegShellUtilGetSecurity(
+    HANDLE hReg,
+    PCSTR pszRootKeyName,
+    PCSTR pszDefaultKey,
+    PCSTR keyName,
+    PSTR *ppszSecurityDescriptor
+    );
+
+DWORD
 RegExportBinaryTypeToString(
     REG_DATA_TYPE token,
     PSTR tokenStr,

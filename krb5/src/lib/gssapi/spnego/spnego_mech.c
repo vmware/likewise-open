@@ -948,7 +948,7 @@ spnego_gss_init_sec_context(
 	gss_buffer_t mechtok_in, mechListMIC_in, mechListMIC_out;
 	gss_buffer_desc mechtok_out = GSS_C_EMPTY_BUFFER;
 	spnego_gss_cred_id_t spcred = NULL;
-	spnego_gss_ctx_id_t spnego_ctx = NULL;
+	spnego_gss_ctx_id_t spnego_ctx = (spnego_gss_ctx_id_t)*context_handle;
 
 	dsyslog("Entering init_sec_context\n");
 
@@ -1011,7 +1011,6 @@ spnego_gss_init_sec_context(
 
 	/* Step 2: invoke the selected or optimistic mechanism's
 	 * gss_init_sec_context function, if it didn't complete previously. */
-	spnego_ctx = (spnego_gss_ctx_id_t)*context_handle;
 	if (!spnego_ctx->mech_complete) {
 		ret = init_ctx_call_init(
 			minor_status, spnego_ctx, spcred,

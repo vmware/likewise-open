@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -36,28 +36,30 @@
 **
 **      RPCD Endpoint Database Mgmt - routines, etc. shared by modules
 **      which know more about epdb internals
-**      
+**
 **
 **
 */
 
 
-/*  
+/*
  *  Delete disk copy of entry and free associated
  *  memory
- */        
+ */
 PRIVATE void epdb_delete_entry
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         db_entry_p_t    entp,
         error_status_t  *status
-    ));
-        
+    
+    );
+
 
 PRIVATE void sliv_init
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         error_status_t  *status
-    ));
+    
+    );
 
 #endif

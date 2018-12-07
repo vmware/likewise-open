@@ -537,8 +537,8 @@ LsaSrvFreePrivileges(
         LwMapSecurityFreeContext(&pGlobals->pSecurityContext);
     }
 
-    LSASRV_PRIVS_UNLOCK_RWLOCK(LockedAccounts, &pGlobals->accountsRwLock);
-    LSASRV_PRIVS_UNLOCK_RWLOCK(LockedPrivileges, &pGlobals->privilegesRwLock);
+    LSASRV_PRIVS_UNLOCK_RWLOCK(LockedAccounts , &pGlobals->accountsRwLock);
+    LSASRV_PRIVS_UNLOCK_RWLOCK(LockedPrivileges , &pGlobals->privilegesRwLock);
     pthread_rwlock_destroy(&pGlobals->accountsRwLock);
     pthread_rwlock_destroy(&pGlobals->privilegesRwLock);
 }

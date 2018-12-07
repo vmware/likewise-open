@@ -50,7 +50,7 @@
     } while(0)
 #endif
 
-#define SYSTEMD_PREFIX "/etc/systemd/system"
+#define SYSTEMD_PREFIX "/etc/systemd/system/multi-user.target.wants"
 #define SYSTEMCTL_PATH "/bin/systemctl"
 
 #endif /* __DJDEFINES_H__ */

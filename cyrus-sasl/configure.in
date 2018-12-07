@@ -274,7 +274,8 @@ main() { void *self, *ptr1, *ptr2; self=dlopen(NULL,RTLD_LAZY);
 fi
 
 dnl See if we can provide a default logging function...
-AC_CHECK_FUNCS(syslog)
+dnl AC_CHECK_FUNCS(syslog)
+dnl ... lets not provide a default logging function
 
 AC_ARG_WITH(pam, [  --with-pam=DIR          use PAM (rooted in DIR) [[yes]] ],
 	with_pam=$withval,

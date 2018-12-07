@@ -73,6 +73,34 @@ LwInterlockedDecrement(
     LW_IN LW_OUT LW_LONG volatile* plDestination
     );
 
+LW_LONG64
+LwInterlockedExchange64(
+    LW_IN LW_OUT LW_LONG64 volatile *plDestination,
+    LW_IN LW_LONG64 lValue
+    );
+
+LW_LONG64
+LwInterlockedIncrement64(
+    LW_IN LW_OUT LW_LONG64 volatile* plDestination
+    );
+
+LW_LONG64
+LwInterlockedDecrement64(
+    LW_IN LW_OUT LW_LONG64 volatile* plDestination
+    );
+
+LW_LONG64
+LwInterlockedAdd64(
+    LW_IN LW_OUT LW_LONG64 volatile* plDestination,
+    LW_IN LW_LONG64 lValue
+    );
+
+LW_LONG64
+LwInterlockedSubtract64(
+    LW_IN LW_OUT LW_LONG64 volatile* plDestination,
+    LW_IN LW_LONG64 lValue
+    );
+
 #ifndef LW_STRICT_NAMESPACE
 
 #define InterlockedCompareExchange(Desination, NewValue, CompareValue) \
@@ -82,6 +110,13 @@ LwInterlockedDecrement(
 #define InterlockedRead(Source)             LwInterlockedRead(Source)
 #define InterlockedIncrement(Destination)   LwInterlockedIncrement(Destination)
 #define InterlockedDecrement(Destination)   LwInterlockedDecrement(Destination)
+
+#define InterlockedExchange64(Desination, Value) \
+    LwInterlockedExchange64(Desination, Value)
+#define InterlockedIncrement64(Destination)   LwInterlockedIncrement64(Destination)
+#define InterlockedDecrement64(Destination)   LwInterlockedDecrement64(Destination)
+#define InterlockedAdd64(Destination, Value)   LwInterlockedAdd64(Destination, Value)
+#define InterlockedSubtract64(Destination, Value)   LwInterlockedSubtract64(Destination, Value)
 
 #endif /* LW_STRICT_NAMESPACE */
 

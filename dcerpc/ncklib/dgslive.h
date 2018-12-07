@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -62,14 +62,16 @@
     } \
 }
 
-PRIVATE void rpc__dg_binding_inq_client _DCE_PROTOTYPE_((   
+PRIVATE void rpc__dg_binding_inq_client(
         rpc_binding_rep_p_t  /*binding_r*/,
         rpc_client_handle_t * /*client_h*/,
         unsigned32 * /*st*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_client_free _DCE_PROTOTYPE_((   
+PRIVATE void rpc__dg_client_free(
         rpc_client_handle_t  /*client_h*/
-    ));
+    
+    );
 
 #endif /* _DGSLIVE_H */

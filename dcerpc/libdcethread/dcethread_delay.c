@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -32,7 +32,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -49,13 +49,17 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 
-#include <sys/time.h>
 #include <time.h>
 #include <errno.h>
 #include <config.h>
+#ifndef _WIN32
+#include <sys/time.h>
+#else
+#include <Winsock2.h>
+#endif
 
 #include "dcethread-private.h"
 #include "dcethread-util.h"
@@ -65,7 +69,22 @@ int
 dcethread_delay(struct timespec const* interval)
 {
 #ifdef HAVE_PTHREAD_DELAY_NP
-#if defined(_AIX)
+#if defined (_WIN32)
+    struct timeval tv;
+    int ret;
+    
+    tv.tv_sec = (long) interval->tv_sec;
+    tv.tv_usec = interval->tv_nsec / 1000;
+    
+    ret = -1;
+    do {
+	ret = select(0, 0, 0, 0, &tv);
+    }
+    while (ret != 0 && errno == EINTR);
+    
+    return ret;
+
+#elif defined(_AIX)
     return pthread_delay_np((struct timespec*) interval);
 #else
     return pthread_delay_np(interval);
@@ -73,10 +92,10 @@ dcethread_delay(struct timespec const* interval)
 #else
     struct timespec rqtp, rmtp;
     int ret;
-    
+
     rqtp.tv_sec = interval->tv_sec;
     rqtp.tv_nsec = interval->tv_nsec;
-    
+
     ret = -1;
     do {
 	ret = nanosleep(&rqtp, &rmtp);
@@ -84,7 +103,7 @@ dcethread_delay(struct timespec const* interval)
 	rqtp.tv_nsec = rmtp.tv_nsec;
     }
     while (ret != 0 && errno == EINTR);
-    
+
     return ret;
 #endif /* HAVE_PTHREAD_DELAY_NP */
 }

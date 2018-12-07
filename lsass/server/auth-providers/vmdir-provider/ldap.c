@@ -45,374 +45,374 @@ VmDirSASLInteractionSRP(
 static
 DWORD
 VmDirLdapGetDN(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PSTR*        ppszDN,
-	BOOLEAN      bOptional
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PSTR*        ppszDN,
+    BOOLEAN      bOptional
+    );
 
 static
 DWORD
 VmDirLdapGetInt32Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PINT32       pValue,
-	BOOLEAN      bOptional
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PINT32       pValue,
+    BOOLEAN      bOptional
+    );
 
 static
 DWORD
 VmDirLdapGetUint32Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PUINT32      pValue,
-	BOOLEAN      bOptional
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PUINT32      pValue,
+    BOOLEAN      bOptional
+    );
 
 static
 DWORD
 VmDirLdapGetInt64Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PINT64       pValue,
-	BOOLEAN      bOptional
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PINT64       pValue,
+    BOOLEAN      bOptional
+    );
 
 static
 DWORD
 VmDirLdapGetUint64Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PUINT64      pValue,
-	BOOLEAN      bOptional
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PUINT64      pValue,
+    BOOLEAN      bOptional
+    );
 
 static
 DWORD
 VmDirLdapGetOptionalStringValue(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PSTR*        ppszValue
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PSTR*        ppszValue
+    );
 
 static
 DWORD
 VmDirLdapGetStringValue(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PSTR*        ppszValue
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PSTR*        ppszValue
+    );
 
 static
 DWORD
 VmDirLdapGetStringArray(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	BOOLEAN      bOptional,
-	PSTR**       pppszStrArray,
-	PDWORD       pdwCount
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    BOOLEAN      bOptional,
+    PSTR**       pppszStrArray,
+    PDWORD       pdwCount
+    );
 
 DWORD
 VmDirLdapInitialize(
-	PCSTR            pszURI,
-	PCSTR            pszUPN,
-	PCSTR            pszPassword,
+    PCSTR            pszURI,
+    PCSTR            pszUPN,
+    PCSTR            pszPassword,
     PCSTR            pszCachePath,
-	LDAP**           ppLd
-	)
+    LDAP**           ppLd
+    )
 {
     DWORD dwError = 0;
-    
+
     switch (gVmDirAuthProviderGlobals.bindProtocol)
     {
         case VMDIR_BIND_PROTOCOL_KERBEROS:
-            
+
             dwError = VmDirLdapInitializeWithKerberos(
                             pszURI,
                             pszUPN,
                             pszPassword,
                             pszCachePath,
                             ppLd);
-            
+
             break;
-            
+
         case VMDIR_BIND_PROTOCOL_SRP:
-            
+
             dwError = VmDirLdapInitializeWithSRP(
                             pszURI,
                             pszUPN,
                             pszPassword,
                             pszCachePath,
                             ppLd);
-            
+
             break;
-            
+
         default:
-            
+
             dwError = ERROR_INVALID_STATE;
-            
+
             break;
     }
-    
+
     return dwError;
 }
 
 DWORD
 VmDirLdapQuerySingleObject(
-	LDAP*         pLd,
-	PCSTR         pszBaseDN,
-	int           scope,
-	PCSTR         pszFilter,
-	char**        attrs,
-	LDAPMessage** ppMessage
-	)
+    LDAP*         pLd,
+    PCSTR         pszBaseDN,
+    int           scope,
+    PCSTR         pszFilter,
+    char**        attrs,
+    LDAPMessage** ppMessage
+    )
 {
-	DWORD dwError = 0;
-	DWORD dwNumObjects = 0;
-	LDAPMessage* pMessage = NULL;
+    DWORD dwError = 0;
+    DWORD dwNumObjects = 0;
+    LDAPMessage* pMessage = NULL;
 
-	dwError = VmDirLdapQueryObjects(
-					pLd,
-					pszBaseDN,
-					scope,
-					pszFilter,
-					attrs,
-					-1,
-					&pMessage);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VmDirLdapQueryObjects(
+                    pLd,
+                    pszBaseDN,
+                    scope,
+                    pszFilter,
+                    attrs,
+                    -1,
+                    &pMessage);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	dwNumObjects = ldap_count_entries(pLd, pMessage);
+    dwNumObjects = ldap_count_entries(pLd, pMessage);
 
-	if (dwNumObjects == 0)
-	{
-		dwError = LW_ERROR_NO_SUCH_OBJECT;
-	}
-	else if (dwNumObjects != 1)
-	{
-		dwError = ERROR_INVALID_DATA;
-	}
-	BAIL_ON_VMDIR_ERROR(dwError);
+    if (dwNumObjects == 0)
+    {
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
+    }
+    else if (dwNumObjects != 1)
+    {
+        dwError = ERROR_INVALID_DATA;
+    }
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppMessage = pMessage;
+    *ppMessage = pMessage;
 
 cleanup:
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppMessage = NULL;
+    *ppMessage = NULL;
 
-	if (pMessage)
-	{
-		VmDirLdapFreeMessage(pMessage);
-	}
+    if (pMessage)
+    {
+        VmDirLdapFreeMessage(pMessage);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 DWORD
 VmDirLdapQueryObjects(
-	LDAP*         pLd,
-	PCSTR         pszBaseDN,
-	int           scope,
-	PCSTR         pszFilter,
-	char**        attrs,
-	int           sizeLimit,
-	LDAPMessage** ppMessage
-	)
+    LDAP*         pLd,
+    PCSTR         pszBaseDN,
+    int           scope,
+    PCSTR         pszFilter,
+    char**        attrs,
+    int           sizeLimit,
+    LDAPMessage** ppMessage
+    )
 {
-	DWORD dwError = 0;
+    DWORD dwError = 0;
 
-	struct timeval waitTime = {0};
+    struct timeval waitTime = {0};
 
-	waitTime.tv_sec  = DEFAULT_LDAP_QUERY_TIMEOUT_SECS;
-	waitTime.tv_usec = 0;
+    waitTime.tv_sec  = DEFAULT_LDAP_QUERY_TIMEOUT_SECS;
+    waitTime.tv_usec = 0;
 
-	dwError = LwMapLdapErrorToLwError(
-				ldap_search_ext_s(
-					pLd,
-					pszBaseDN,
-					scope,
-					pszFilter,
-					attrs,
-					FALSE,     /* Attrs only      */
-					NULL,      /* Server controls */
-					NULL,      /* Client controls */
-					&waitTime,
-					sizeLimit, /* size limit      */
-					ppMessage));
+    dwError = LwMapLdapErrorToLwError(
+                ldap_search_ext_s(
+                    pLd,
+                    pszBaseDN,
+                    scope,
+                    pszFilter,
+                    attrs,
+                    FALSE,     /* Attrs only      */
+                    NULL,      /* Server controls */
+                    NULL,      /* Client controls */
+                    &waitTime,
+                    sizeLimit, /* size limit      */
+                    ppMessage));
 
-	return dwError;
+    return dwError;
 }
 
 DWORD
 VmDirLdapGetValues(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PVMDIR_ATTR  pValueArray,
-	DWORD        dwNumValues
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PVMDIR_ATTR  pValueArray,
+    DWORD        dwNumValues
+    )
 {
-	DWORD dwError = 0;
-	DWORD iValue = 0;
+    DWORD dwError = 0;
+    DWORD iValue = 0;
 
-	for (; iValue < dwNumValues; iValue++)
-	{
-		PVMDIR_ATTR pAttr = &pValueArray[iValue];
+    for (; iValue < dwNumValues; iValue++)
+    {
+        PVMDIR_ATTR pAttr = &pValueArray[iValue];
 
-		switch (pAttr->type)
-		{
-			case VMDIR_ATTR_TYPE_DN:
+        switch (pAttr->type)
+        {
+            case VMDIR_ATTR_TYPE_DN:
 
-				dwError = VmDirLdapGetDN(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->dataRef.ppszData,
-								pAttr->bOptional);
+                dwError = VmDirLdapGetDN(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.ppszData,
+                                pAttr->bOptional);
 
-				break;
+                break;
 
-			case VMDIR_ATTR_TYPE_STRING:
+            case VMDIR_ATTR_TYPE_STRING:
 
-				if (pAttr->bOptional)
-				{
-					dwError = VmDirLdapGetOptionalStringValue(
-									pLd,
-									pMessage,
-									pAttr->pszName,
-									pAttr->dataRef.ppszData);
-				}
-				else
-				{
-					dwError = VmDirLdapGetStringValue(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->dataRef.ppszData);
-				}
+                if (pAttr->bOptional)
+                {
+                    dwError = VmDirLdapGetOptionalStringValue(
+                                    pLd,
+                                    pMessage,
+                                    pAttr->pszName,
+                                    pAttr->dataRef.ppszData);
+                }
+                else
+                {
+                    dwError = VmDirLdapGetStringValue(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.ppszData);
+                }
 
-				break;
+                break;
 
-			case VMDIR_ATTR_TYPE_INT32:
+            case VMDIR_ATTR_TYPE_INT32:
 
-				if (pAttr->size < sizeof(INT32))
-				{
-					dwError = ERROR_INVALID_PARAMETER;
-					BAIL_ON_VMDIR_ERROR(dwError);
-				}
+                if (pAttr->size < sizeof(INT32))
+                {
+                    dwError = ERROR_INVALID_PARAMETER;
+                    BAIL_ON_VMDIR_ERROR(dwError);
+                }
 
-				dwError = VmDirLdapGetInt32Value(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->dataRef.pData_int32,
-								pAttr->bOptional);
+                dwError = VmDirLdapGetInt32Value(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.pData_int32,
+                                pAttr->bOptional);
 
-				break;
+                break;
 
-			case VMDIR_ATTR_TYPE_UINT32:
+            case VMDIR_ATTR_TYPE_UINT32:
 
-				if (pAttr->size < sizeof(UINT32))
-				{
-					dwError = ERROR_INVALID_PARAMETER;
-					BAIL_ON_VMDIR_ERROR(dwError);
-				}
+                if (pAttr->size < sizeof(UINT32))
+                {
+                    dwError = ERROR_INVALID_PARAMETER;
+                    BAIL_ON_VMDIR_ERROR(dwError);
+                }
 
-				dwError = VmDirLdapGetUint32Value(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->dataRef.pData_uint32,
-								pAttr->bOptional);
+                dwError = VmDirLdapGetUint32Value(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.pData_uint32,
+                                pAttr->bOptional);
 
-				break;
+                break;
 
-			case VMDIR_ATTR_TYPE_INT64:
+            case VMDIR_ATTR_TYPE_INT64:
 
-				if (pAttr->size < sizeof(INT64))
-				{
-					dwError = ERROR_INVALID_PARAMETER;
-					BAIL_ON_VMDIR_ERROR(dwError);
-				}
+                if (pAttr->size < sizeof(INT64))
+                {
+                    dwError = ERROR_INVALID_PARAMETER;
+                    BAIL_ON_VMDIR_ERROR(dwError);
+                }
 
-				dwError = VmDirLdapGetInt64Value(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->dataRef.pData_int64,
-								pAttr->bOptional);
+                dwError = VmDirLdapGetInt64Value(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.pData_int64,
+                                pAttr->bOptional);
 
-				break;
+                break;
 
-			case VMDIR_ATTR_TYPE_UINT64:
+            case VMDIR_ATTR_TYPE_UINT64:
 
-				if (pAttr->size < sizeof(UINT64))
-				{
-					dwError = ERROR_INVALID_PARAMETER;
-					BAIL_ON_VMDIR_ERROR(dwError);
-				}
+                if (pAttr->size < sizeof(UINT64))
+                {
+                    dwError = ERROR_INVALID_PARAMETER;
+                    BAIL_ON_VMDIR_ERROR(dwError);
+                }
 
-				dwError = VmDirLdapGetUint64Value(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->dataRef.pData_uint64,
-								pAttr->bOptional);
+                dwError = VmDirLdapGetUint64Value(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->dataRef.pData_uint64,
+                                pAttr->bOptional);
 
-				break;
+                break;
 
-			case VMDIR_ATTR_TYPE_MULTI_STRING:
+            case VMDIR_ATTR_TYPE_MULTI_STRING:
 
-				dwError = VmDirLdapGetStringArray(
-								pLd,
-								pMessage,
-								pAttr->pszName,
-								pAttr->bOptional,
-								pAttr->dataRef.pppszStrArray,
-								pAttr->pdwCount);
-				BAIL_ON_VMDIR_ERROR(dwError);
+                dwError = VmDirLdapGetStringArray(
+                                pLd,
+                                pMessage,
+                                pAttr->pszName,
+                                pAttr->bOptional,
+                                pAttr->dataRef.pppszStrArray,
+                                pAttr->pdwCount);
+                BAIL_ON_VMDIR_ERROR(dwError);
 
-				break;
+                break;
 
-			default:
+            default:
 
-				dwError = ERROR_INVALID_PARAMETER;
-				BAIL_ON_VMDIR_ERROR(dwError);
+                dwError = ERROR_INVALID_PARAMETER;
+                BAIL_ON_VMDIR_ERROR(dwError);
 
-				break;
-		}
-	}
+                break;
+        }
+    }
 
 error:
 
-	return dwError;
+    return dwError;
 }
 
 VOID
 VmDirLdapFreeMessage(
-	LDAPMessage* pMessage
-	)
+    LDAPMessage* pMessage
+    )
 {
-	ldap_msgfree(pMessage);
+    ldap_msgfree(pMessage);
 }
 
 VOID
 VmDirLdapClose(
-	LDAP* pLd
-	)
+    LDAP* pLd
+    )
 {
-	ldap_unbind_ext(pLd, NULL, NULL);
+    ldap_unbind_ext(pLd, NULL, NULL);
 }
 
 static
@@ -430,27 +430,27 @@ VmDirLdapInitializeWithKerberos(
     PSTR  pszUPN_local = NULL;
     LDAP* pLd = NULL;
     PSTR pszOldCachePath = NULL;
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_initialize(&pLd, pszURI));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_set_option(
                                   pLd,
                                   LDAP_OPT_X_SASL_NOCANON,
                                   LDAP_OPT_ON));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwKrb5SetThreadDefaultCachePath(
                     pszCachePath,
                     &pszOldCachePath);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                     ldap_sasl_interactive_bind_s(
                                                pLd,
@@ -462,11 +462,11 @@ VmDirLdapInitializeWithKerberos(
                                                &VmDirSASLInteractionKerberos,
                                                NULL));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     *ppLd = pLd;
-    
+
 cleanup:
-    
+
     if (pszOldCachePath)
     {
         LwKrb5SetThreadDefaultCachePath(
@@ -474,20 +474,20 @@ cleanup:
                 NULL);
         LwFreeString(pszOldCachePath);
     }
-    
+
     LW_SAFE_FREE_STRING(pszUPN_local);
-    
+
     return dwError;
-    
+
 error:
-    
+
     *ppLd = NULL;
-    
+
     if (pLd)
     {
         VmDirLdapClose(pLd);
     }
-    
+
     goto cleanup;
 }
 
@@ -506,31 +506,31 @@ VmDirLdapInitializeWithSRP(
     VMDIR_SASL_INFO srpDefault = {0};
     PSTR  pszUPN_local = NULL;
     LDAP* pLd = NULL;
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_initialize(&pLd, pszURI));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_set_option(pLd, LDAP_OPT_PROTOCOL_VERSION, &ldapVer));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_set_option(
                                   pLd,
                                   LDAP_OPT_X_SASL_NOCANON,
                                   LDAP_OPT_ON));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     dwError = LwAllocateString(pszUPN, &pszUPN_local);
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     LwStrToLower(pszUPN_local);
-    
+
     srpDefault.pszAuthName = pszUPN_local;
-    
+
     srpDefault.pszPassword = pszPassword;
-    
+
     dwError = LwMapLdapErrorToLwError(
                   ldap_sasl_interactive_bind_s(
                                                pLd,
@@ -542,24 +542,24 @@ VmDirLdapInitializeWithSRP(
                                                &VmDirSASLInteractionSRP,
                                                &srpDefault));
     BAIL_ON_VMDIR_ERROR(dwError);
-    
+
     *ppLd = pLd;
-    
+
 cleanup:
-    
+
     LW_SAFE_FREE_STRING(pszUPN_local);
-    
+
     return dwError;
-    
+
 error:
-    
+
     *ppLd = NULL;
-    
+
     if (pLd)
     {
         VmDirLdapClose(pLd);
     }
-    
+
     goto cleanup;
 }
 
@@ -587,7 +587,7 @@ VmDirSASLInteractionSRP(
 {
     sasl_interact_t* pInteract = pIn;
     PVMDIR_SASL_INFO pDef = pDefaults;
-    
+
     while( (pDef != NULL) && (pInteract->id != SASL_CB_LIST_END) )
     {
         switch( pInteract->id )
@@ -607,437 +607,442 @@ VmDirSASLInteractionSRP(
             default:
                 break;
         }
-        
+
         pInteract->result = (pInteract->defresult) ? pInteract->defresult : "";
         pInteract->len    = strlen( pInteract->result );
-        
+
         pInteract++;
     }
-    
+
     return LDAP_SUCCESS;
 }
 
 static
 DWORD
 VmDirLdapGetDN(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PSTR*        ppszDN,
-	BOOLEAN      bOptional
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PSTR*        ppszDN,
+    BOOLEAN      bOptional
+    )
 {
-	DWORD dwError = 0;
-	PSTR  pszDN_ldap = NULL;
-	PSTR  pszDN = NULL;
-	PSTR  pszDNRef = NULL;
+    DWORD dwError = 0;
+    PSTR  pszDN_ldap = NULL;
+    PSTR  pszDN = NULL;
+    PSTR  pszDNRef = NULL;
 
-	pszDN_ldap = ldap_get_dn(pLd, pMessage);
-	if (IsNullOrEmptyString(pszDN_ldap))
-	{
-		if (!bOptional)
-		{
-			dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
-			BAIL_ON_VMDIR_ERROR(dwError);
-		}
-		else
-		{
-			pszDNRef = "";
-		}
-	}
-	else
-	{
-		pszDNRef = pszDN_ldap;
-	}
+    pszDN_ldap = ldap_get_dn(pLd, pMessage);
+    if (IsNullOrEmptyString(pszDN_ldap))
+    {
+        if (!bOptional)
+        {
+            dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+        else
+        {
+            pszDNRef = "";
+        }
+    }
+    else
+    {
+        pszDNRef = pszDN_ldap;
+    }
 
-	dwError = LwAllocateString(pszDNRef, &pszDN);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString(pszDNRef, &pszDN);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppszDN = pszDN;
+    *ppszDN = pszDN;
 
 cleanup:
 
-	if (pszDN_ldap)
-	{
-		ldap_memfree(pszDN_ldap);
-	}
+    if (pszDN_ldap)
+    {
+        ldap_memfree(pszDN_ldap);
+    }
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppszDN = NULL;
+    *ppszDN = NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetInt32Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PINT32       pValue,
-	BOOLEAN      bOptional
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PINT32       pValue,
+    BOOLEAN      bOptional
+    )
 {
-	DWORD dwError = 0;
-	PSTR  pszValue = NULL;
-	PSTR  pszValueRef = NULL;
+    DWORD dwError = 0;
+    PSTR  pszValue = NULL;
+    PSTR  pszValueRef = NULL;
 
-	if (bOptional)
-	{
-		dwError = VmDirLdapGetOptionalStringValue(
-						pLd,
-						pMessage,
-						pszAttrName,
-						&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+    if (bOptional)
+    {
+        dwError = VmDirLdapGetOptionalStringValue(
+                        pLd,
+                        pMessage,
+                        pszAttrName,
+                        &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = !pszValue ? "0" : pszValue;
-	}
-	else
-	{
-		dwError = VmDirLdapGetStringValue(
-						pLd,
-						pMessage,
-						pszAttrName,
-						&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        pszValueRef = !pszValue ? "0" : pszValue;
+    }
+    else
+    {
+        dwError = VmDirLdapGetStringValue(
+                        pLd,
+                        pMessage,
+                        pszAttrName,
+                        &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = pszValue;
-	}
+        pszValueRef = pszValue;
+    }
 
-	*pValue = atoi(pszValueRef);
+    *pValue = atoi(pszValueRef);
 
 cleanup:
 
-	LW_SAFE_FREE_MEMORY(pszValue);
+    LW_SAFE_FREE_MEMORY(pszValue);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*pValue = 0;
+    *pValue = 0;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetUint32Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PUINT32      pValue,
-	BOOLEAN      bOptional
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PUINT32      pValue,
+    BOOLEAN      bOptional
+    )
 {
-	DWORD dwError = 0;
-	PSTR  pszValue = NULL;
-	PSTR  pszValueRef = NULL;
+    DWORD dwError = 0;
+    PSTR  pszValue = NULL;
+    PSTR  pszValueRef = NULL;
 
-	if (bOptional)
-	{
-		dwError = VmDirLdapGetOptionalStringValue(
-							pLd,
-							pMessage,
-							pszAttrName,
-							&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+    if (bOptional)
+    {
+        dwError = VmDirLdapGetOptionalStringValue(
+                            pLd,
+                            pMessage,
+                            pszAttrName,
+                            &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = !pszValue ? "0" : pszValue;
-	}
-	else
-	{
-		dwError = VmDirLdapGetStringValue(
-							pLd,
-							pMessage,
-							pszAttrName,
-							&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        pszValueRef = !pszValue ? "0" : pszValue;
+    }
+    else
+    {
+        dwError = VmDirLdapGetStringValue(
+                            pLd,
+                            pMessage,
+                            pszAttrName,
+                            &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = pszValue;
-	}
+        pszValueRef = pszValue;
+    }
 
-	*pValue = atoi(pszValueRef);
+    *pValue = atoi(pszValueRef);
 
 cleanup:
 
-	LW_SAFE_FREE_MEMORY(pszValue);
+    LW_SAFE_FREE_MEMORY(pszValue);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*pValue = 0;
+    *pValue = 0;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetInt64Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PINT64       pValue,
-	BOOLEAN      bOptional
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PINT64       pValue,
+    BOOLEAN      bOptional
+    )
 {
-	DWORD dwError = 0;
-	PSTR  pszValue = NULL;
-	PSTR  pszValueRef = NULL;
-	PSTR  pszEnd = NULL;
-	INT64 val = 0;
+    DWORD dwError = 0;
+    PSTR  pszValue = NULL;
+    PSTR  pszValueRef = NULL;
+    PSTR  pszEnd = NULL;
+    INT64 val = 0;
 
-	if (bOptional)
-	{
-		dwError = VmDirLdapGetOptionalStringValue(
-						pLd,
-						pMessage,
-						pszAttrName,
-						&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+    if (bOptional)
+    {
+        dwError = VmDirLdapGetOptionalStringValue(
+                        pLd,
+                        pMessage,
+                        pszAttrName,
+                        &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = !pszValue ? "0" : pszValue;
-	}
-	else
-	{
-		dwError = VmDirLdapGetStringValue(
-						pLd,
-						pMessage,
-						pszAttrName,
-						&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        pszValueRef = !pszValue ? "0" : pszValue;
+    }
+    else
+    {
+        dwError = VmDirLdapGetStringValue(
+                        pLd,
+                        pMessage,
+                        pszAttrName,
+                        &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = pszValue;
-	}
+        pszValueRef = pszValue;
+    }
 
-	val = strtoll(pszValueRef, &pszEnd, 10);
+    val = strtoll(pszValueRef, &pszEnd, 10);
 
-	if (!pszEnd || (pszEnd == pszValueRef) || (*pszEnd != '\0'))
-	{
-		dwError = ERROR_INVALID_DATA;
-		BAIL_ON_VMDIR_ERROR(dwError);
-	}
+    if (!pszEnd || (pszEnd == pszValueRef) || (*pszEnd != '\0'))
+    {
+        dwError = ERROR_INVALID_DATA;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
-	*pValue = val;
+    *pValue = val;
 
 cleanup:
 
-	LW_SAFE_FREE_MEMORY(pszValue);
+    LW_SAFE_FREE_MEMORY(pszValue);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*pValue = 0;
+    *pValue = 0;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetUint64Value(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PUINT64      pValue,
-	BOOLEAN      bOptional
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PUINT64      pValue,
+    BOOLEAN      bOptional
+    )
 {
-	DWORD  dwError = 0;
-	PSTR   pszValue = NULL;
-	PSTR   pszValueRef = NULL;
-	PSTR   pszEnd = NULL;
-	UINT64 val = 0;
+    DWORD  dwError = 0;
+    PSTR   pszValue = NULL;
+    PSTR   pszValueRef = NULL;
+    PSTR   pszEnd = NULL;
+    UINT64 val = 0;
 
-	if (bOptional)
-	{
-		dwError = VmDirLdapGetOptionalStringValue(
-						pLd,
-						pMessage,
-						pszAttrName,
-						&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+    if (bOptional)
+    {
+        dwError = VmDirLdapGetOptionalStringValue(
+                        pLd,
+                        pMessage,
+                        pszAttrName,
+                        &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = !pszValue ? "0" : pszValue;
-	}
-	else
-	{
-		dwError = VmDirLdapGetStringValue(
-						pLd,
-						pMessage,
-						pszAttrName,
-						&pszValue);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        pszValueRef = !pszValue ? "0" : pszValue;
+    }
+    else
+    {
+        dwError = VmDirLdapGetStringValue(
+                        pLd,
+                        pMessage,
+                        pszAttrName,
+                        &pszValue);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		pszValueRef = pszValue;
-	}
+        pszValueRef = pszValue;
+    }
 
-	val = strtoull(pszValueRef, &pszEnd, 10);
+    val = strtoull(pszValueRef, &pszEnd, 10);
 
-	if (!pszEnd || (pszEnd == pszValueRef) || (*pszEnd != '\0'))
-	{
-		dwError = ERROR_INVALID_DATA;
-		BAIL_ON_VMDIR_ERROR(dwError);
-	}
+    if (!pszEnd || (pszEnd == pszValueRef) || (*pszEnd != '\0'))
+    {
+        dwError = ERROR_INVALID_DATA;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
-	*pValue = val;
+    *pValue = val;
 
 cleanup:
 
-	LW_SAFE_FREE_MEMORY(pszValue);
+    LW_SAFE_FREE_MEMORY(pszValue);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*pValue = 0;
+    *pValue = 0;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetOptionalStringValue(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PSTR*        ppszValue
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PSTR*        ppszValue
+    )
 {
-	DWORD dwError = 0;
-	PSTR  pszValue = NULL;
+    DWORD dwError = 0;
+    PSTR  pszValue = NULL;
 
-	dwError = VmDirLdapGetStringValue(
-					pLd,
-					pMessage,
-					pszAttrName,
-					&pszValue);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VmDirLdapGetStringValue(
+                    pLd,
+                    pMessage,
+                    pszAttrName,
+                    &pszValue);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppszValue = pszValue;
+    *ppszValue = pszValue;
 
 cleanup:
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppszValue = NULL;
+    *ppszValue = NULL;
 
-	if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
-	{
-		dwError = LW_ERROR_SUCCESS;
-	}
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
+    {
+        dwError = LW_ERROR_SUCCESS;
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetStringValue(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	PSTR*        ppszValue
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    PSTR*        ppszValue
+    )
 {
-	DWORD dwError = 0;
-	PSTR* ppszValues = NULL;
-	PSTR  pszValue = NULL;
+    DWORD dwError = 0;
+    PSTR* ppszValues = NULL;
+    PSTR  pszValue = NULL;
 
-	ppszValues = (PSTR*)ldap_get_values(pLd, pMessage, pszAttrName);
-	if (!ppszValues || !*ppszValues)
-	{
-		dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
-		BAIL_ON_VMDIR_ERROR(dwError);
-	}
+    ppszValues = (PSTR*)ldap_get_values(pLd, pMessage, pszAttrName);
+    if (!ppszValues || !*ppszValues)
+    {
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
-	dwError = LwAllocateString(*ppszValues, &pszValue);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString(*ppszValues, &pszValue);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppszValue = pszValue;
+    *ppszValue = pszValue;
 
 cleanup:
 
-	if (ppszValues)
-	{
-		ldap_value_free(ppszValues);
-	}
+    if (ppszValues)
+    {
+        ldap_value_free(ppszValues);
+    }
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppszValue = NULL;
+    *ppszValue = NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 DWORD
 VmDirLdapGetStringArray(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PCSTR        pszAttrName,
-	BOOLEAN      bOptional,
-	PSTR**       pppszStrArray,
-	PDWORD       pdwCount
-	)
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PCSTR        pszAttrName,
+    BOOLEAN      bOptional,
+    PSTR**       pppszStrArray,
+    PDWORD       pdwCount
+    )
 {
-	DWORD dwError = 0;
-	PSTR* ppszLDAPValues = NULL;
-	PSTR* ppszStrArray = NULL;
-	DWORD dwCount = 0;
+    DWORD dwError = 0;
+    PSTR* ppszLDAPValues = NULL;
+    PSTR* ppszStrArray = NULL;
+    DWORD dwCount = 0;
 
-	ppszLDAPValues = (PSTR*)ldap_get_values(pLd, pMessage, pszAttrName);
-	if (!ppszLDAPValues || !*ppszLDAPValues)
-	{
-		if (!bOptional)
-		{
-			dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
-			BAIL_ON_VMDIR_ERROR(dwError);
-		}
-	}
-	else
-	{
-		DWORD iValue = 0;
+    ppszLDAPValues = (PSTR*)ldap_get_values(pLd, pMessage, pszAttrName);
+    if (!ppszLDAPValues || !*ppszLDAPValues)
+    {
+        if (!bOptional)
+        {
+            dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+    }
+    else
+    {
+        DWORD iValue = 0;
 
-		dwCount = ldap_count_values(ppszLDAPValues);
+        dwCount = ldap_count_values(ppszLDAPValues);
 
-		dwError = LwAllocateMemory(
-						sizeof(PSTR) * dwCount,
-						(PVOID*)&ppszStrArray);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        dwError = LwAllocateMemory(
+                        sizeof(PSTR) * dwCount,
+                        (PVOID*)&ppszStrArray);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		for (; iValue < dwCount; iValue++)
-		{
-			PSTR pszValue = ppszLDAPValues[iValue];
+        for (; iValue < dwCount; iValue++)
+        {
+            PSTR pszValue = ppszLDAPValues[iValue];
 
-			dwError = LwAllocateString(pszValue, &ppszStrArray[iValue]);
-			BAIL_ON_VMDIR_ERROR(dwError);
-		}
-	}
+            dwError = LwAllocateString(pszValue, &ppszStrArray[iValue]);
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
+    }
 
-	*pppszStrArray = ppszStrArray;
-	*pdwCount      = dwCount;
+    *pppszStrArray = ppszStrArray;
+    *pdwCount      = dwCount;
 
 cleanup:
 
-	return dwError;
+    if (ppszLDAPValues)
+    {
+        ldap_value_free(ppszLDAPValues);
+    }
+
+    return dwError;
 
 error:
 
-	*pppszStrArray = NULL;
-	*pdwCount = 0;
+    *pppszStrArray = NULL;
+    *pdwCount = 0;
 
-	if (ppszStrArray)
-	{
-		LwFreeStringArray(ppszStrArray, dwCount);
-	}
+    if (ppszStrArray)
+    {
+        LwFreeStringArray(ppszStrArray, dwCount);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }

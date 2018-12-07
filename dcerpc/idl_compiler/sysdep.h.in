@@ -110,6 +110,29 @@
 #endif
 
 
+/* Windows Visual Studio 2008 */
+#ifdef _WIN32
+#include <direct.h> // prototypes for _getcwd() and _chdir()
+#define BRANCHCHAR '\\'
+#define BRANCHSTRING "\\"
+#define HASPOPEN _popen
+#define HASDIRTREE
+#define INCLUDE_TEMPLATE "#include <dce\\%s>\n"
+#define USER_INCLUDE_TEMPLATE "#include <%s>\n"
+#define USER_INCLUDE_H_TEMPLATE "#include <%s.h>\n"
+#define MESSAGE_CATALOG_DIR "\\bin"
+#define CD_IDIR "."
+#define unlink _unlink
+#define getcwd _getcwd
+#define chdir _chdir
+#define stat _stat
+#define popen _popen
+#define pclose _pclose
+#define S_IFMT _S_IFMT
+#define S_IFDIR _S_IFDIR
+#define S_IFREG _S_IFREG
+#endif
+
 /* VAX VMS  */
 #ifdef VMS
 #define HASDIRTREE
@@ -146,10 +169,18 @@ Porting Message:  You must provide definitions for the symbols
 #ifndef DEFAULT_IDIR
 # define DEFAULT_IDIR "/usr/include"
 #endif
+#ifndef DEFAULT_H_IDIR
 #define DEFAULT_H_IDIR DEFAULT_IDIR
+#endif
+#ifndef INCLUDE_TEMPLATE
 #define INCLUDE_TEMPLATE "#include <dce/%s>\n"
+#endif
+#ifndef USER_INCLUDE_TEMPLATE
 #define USER_INCLUDE_TEMPLATE "#include <%s>\n"
+#endif
+#ifndef USER_INCLUDE_H_TEMPLATE
 #define USER_INCLUDE_H_TEMPLATE "#include <%s.h>\n"
+#endif
 
 /*
  * Default DCE auto import path
@@ -161,7 +192,7 @@ Porting Message:  You must provide definitions for the symbols
 /*
 ** Default filetype names.
 */
-#if defined(VMS) || defined(_MSDOS)
+#if defined(VMS) || defined(_MSDOS) || defined(_WIN32)
 #define OBJ_FILETYPE ".OBJ"
 #else
 #define OBJ_FILETYPE ".@OBJEXT@"
@@ -191,7 +222,7 @@ Porting Message:  You must provide definitions for the symbols
 # define HEADER_SUFFIX  	".h"
 #endif
 
-#ifdef _MSDOS
+#if defined(_MSDOS) || defined(_WIN32)
 # define CSTUB_SUFFIX   "_c.c"
 # define SSTUB_SUFFIX   "_s.c"
 # define HEADER_SUFFIX  ".h"

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -37,7 +37,7 @@
 #include <commonp.h>		/* include nbase.h lbase.h internally	*/
 #include <com.h>		/* definition of rpc_binding_rep_p_t	*/
 #include <dce/rpcsts.h>
-#include <codesets.h>		/* Data definitions for I18N NSI 
+#include <codesets.h>		/* Data definitions for I18N NSI
 							sub-component   */
 #include <stdio.h>		/* definition of NULL			*/
 #include <stdlib.h>		/* definition of MB_CUR_MAX		*/
@@ -51,7 +51,6 @@
 
 
 void stub_conversion
-#ifdef _DCE_PROTOTYPE_
 (
 	rpc_binding_handle_t	h,
 	boolean32		server_side,
@@ -63,19 +62,6 @@ void stub_conversion
 	unsigned32		*conv_p_w_data_len,
 	error_status_t		*status
 )
-#else
-(h, server_side, to_conversion, from_tag, to_tag, conv_ldata, conv_l_data_len,
-                conv_wdata, conv_p_w_data_len, status)
-	rpc_binding_handle_t	h;
-	boolean32		server_side;
-	unsigned32		from_tag;
-	unsigned32		to_tag;
-	byte_t			*conv_ldata;
-	unsigned32		conv_l_data_len;
-	byte_t			*conv_wdata;
-	unsigned32		*conv_p_w_data_len;
-	error_status_t		*status;
-#endif
 {
 	iconv_t			cd;
 	byte_t			*ldata = conv_ldata;

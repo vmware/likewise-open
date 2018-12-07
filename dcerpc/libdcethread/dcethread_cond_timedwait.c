@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -33,7 +33,9 @@
  */
 
 #include <config.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#endif
 #include <time.h>
 #include <errno.h>
 
@@ -59,7 +61,11 @@ dcethread_cond_timedwait(dcethread_cond *cond, dcethread_mutex *mutex, struct ti
             dcethread__dispatchinterrupt(dcethread__self());
             return dcethread__set_errno(EINTR);
         }
+#ifndef _WIN32
         mutex->owner = (pthread_t) -1;
+#else
+        memset((void *) &mutex->owner, 0, sizeof(mutex->owner));
+#endif
 	ret = pthread_cond_timedwait(cond, (pthread_mutex_t*) &mutex->mutex, abstime);
         mutex->owner = pthread_self();
         if (dcethread__end_block(dcethread__self(), interrupt_old, data_old))
@@ -88,4 +94,5 @@ dcethread_cond_timedwait_throw(dcethread_cond *cond, dcethread_mutex *mutex, str
     {
         return ret;
     }
+    return ret;
 }

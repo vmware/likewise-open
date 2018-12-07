@@ -5,10 +5,12 @@ make()
        globals.c \
        ldap.c \
        lock.c \
+       memcache.c \
        provider-main.c \
        refresh.c \
        repository.c \
-       utils.c"
+       utils.c \
+       vmcache.c"
 
     mk_dlo \
        DLO=liblsass_auth_provider_vmdir \

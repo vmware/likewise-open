@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -40,9 +40,7 @@
 #ifndef _DGCCT_H
 #define _DGCCT_H
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 
 /*
@@ -59,7 +57,7 @@
 /*
  * R P C _ D G _ C C T _ R E F E R E N C E
  *
- * Increment the reference count for the CCTE. 
+ * Increment the reference count for the CCTE.
  */
 
 #define RPC_DG_CCT_REFERENCE(ccte) { \
@@ -87,18 +85,21 @@ extern "C" {
 #endif
 
 
-PRIVATE void rpc__dg_cct_get _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_cct_get(
         rpc_auth_info_p_t /*auth_info*/,
         rpc_dg_ccall_p_t /*ccall*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_cct_release _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_cct_release(
         rpc_dg_ccte_ref_p_t /*ccte_ref*/
-    ));
+    
+    );
 
-PRIVATE void rpc__dg_cct_fork_handler _DCE_PROTOTYPE_((
+PRIVATE void rpc__dg_cct_fork_handler(
         rpc_fork_stage_id_t /*stage*/
-    ));
+    
+    );
 
 #ifdef __cplusplus
 }

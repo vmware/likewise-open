@@ -13,7 +13,7 @@ ssize_t
 dcethread_sendto(int s, const void *buf, size_t len, int flags,
                  const struct sockaddr *to, socklen_t tolen)
 {
-    DCETHREAD_SYSCALL(ssize_t, sendto(s, buf, len, flags, to, tolen));
+    DCETHREAD_SYSCALL(ssize_t, sendto(s, buf, (DCETHREAD_SIZE_T) len, flags, to, tolen));
 }
 
 #endif /* API */

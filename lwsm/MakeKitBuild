@@ -44,4 +44,13 @@ configure()
         sched_setaffinity
 
     lw_check_pthread_once_init
+
+    if [ "$MK_HOST_OS" = "darwin" ]
+    then
+        mk_output_file server/com.likewisesoftware.lwsmd.plist
+    fi
+
+    if [ "$LW_BUILD_ESX" = "1" ]; then
+        mk_define LW_BUILD_ESX
+    fi
 }

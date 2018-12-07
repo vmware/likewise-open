@@ -50,10 +50,12 @@
 /*
  *  Include the Internet specific socket address
  */
+#if !defined(_WIN32)
 #ifdef VMS
 #include <un.h>
 #else
 #include <sys/un.h>
+#endif
 #endif
 
 /*
@@ -105,18 +107,11 @@
 
 
 PUBLIC void twr_uxd_lower_flrs_from_sa
-#ifdef _DCE_PROTO_
 (
     sockaddr_p_t      sa,
     twr_p_t           *lower_flrs,
     unsigned32        *status
 )
-#else
-(sa, lower_flrs, status)
-sockaddr_p_t      sa;
-twr_p_t           *lower_flrs;
-unsigned32        *status;
-#endif
 {
     unsigned8   protocol_id[TWR_C_NUM_UXD_LOWER_FLRS];
     unsigned16  id_size = TWR_C_TOWER_PROT_ID_SIZE,
@@ -162,7 +157,7 @@ unsigned32        *status;
     {
         related_data_ptr[0] = (byte_p_t)sun_path;
     }
-    related_data_size[0] = strlen((char*) related_data_ptr[0]) + 1;
+    related_data_size[0] = (unsigned16) (strlen((char*) related_data_ptr[0]) + 1);
 
     /*
      * Calculate the length of the tower floors.
@@ -310,20 +305,12 @@ unsigned32        *status;
 **/
 
 PUBLIC void twr_uxd_lower_flrs_to_sa
-#ifdef _DCE_PROTO_
 (
     byte_p_t          tower_octet_string,
     sockaddr_p_t      *sa,
     unsigned32        *sa_len,
     unsigned32        *status
 )
-#else
-( tower_octet_string, sa, sa_len, status )
-byte_p_t          tower_octet_string;
-sockaddr_p_t      *sa;
-unsigned32        *sa_len;
-unsigned32        *status;
-#endif
 {
     unsigned8   id;
     byte_p_t    tower;

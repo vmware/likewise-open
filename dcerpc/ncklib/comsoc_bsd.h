@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,14 +30,14 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
 **  The platform-specific portion of the internal network "socket" object
 **  interface.  See abstract in "comsoc.h" for details.
 **
-**  For BSD 4.3 & 4.4 systems.  
+**  For BSD 4.3 & 4.4 systems.
 **
 */
 
@@ -45,9 +45,7 @@
 #include <config.h>
 #endif
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -55,6 +53,7 @@
 
 #include <comnaf.h>
 #include <commonp.h>
+#include <comsoc.h>
 #include <ipnaf.h>
 
 PRIVATE rpc_socket_error_t

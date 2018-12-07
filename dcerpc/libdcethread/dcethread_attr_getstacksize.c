@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -42,7 +42,7 @@ long
 dcethread_attr_getstacksize(dcethread_attr* attr)
 {
     size_t stacksize;
-    
+
     if (dcethread__set_errno(pthread_attr_getstacksize(attr, &stacksize)))
     {
 	return -1;

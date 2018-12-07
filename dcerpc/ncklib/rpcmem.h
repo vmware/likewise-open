@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -39,9 +39,7 @@
 **
 */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 /*
  * Memory Allocation.
@@ -51,7 +49,7 @@
  * are allocated in the "critical path" performance wise.  While the
  * runtime will likely be caching some of these structures, the performance
  * of the memory allocator should be of some concern.
- * 
+ *
  * Note that some structures are allocated by the listener task.  In
  * a kernel environment where the listener is implemented as a network
  * software interrupt handler, the memory allocators must be capable
@@ -60,7 +58,7 @@
  * non-blocking mode being required for interrupt level operations (which
  * obviously must be prepared to deal with a "no memory available"
  * indication).
- * 
+ *
  * We want to maintain a flexible interface to cope with the variety
  * of environments that this code may be ported to and to provide us
  * with hooks for determining how memory is being used.  The interface
@@ -68,7 +66,7 @@
  * like BSD4.4 kernel malloc).  We can always make RPC_MEM_ALLOC()
  * "smarter" and maintain a pool for various objects including a fast
  * allocation / free scheme layered on top of malloc(), etc.
- * 
+ *
  * If calling the allocator in a blocking mode (RPC_MEM_WAITOK), one
  * should be prepaired that the process may yield the processor (i.e.
  * make sure that you aren't violating the runtime's mutex lock rules).
@@ -112,7 +110,7 @@
 #define RPC_C_MEM_TOWER            29       /* twr_t                        */
 #define RPC_C_MEM_SYNTAX_ID        30       /* rpc_syntax_id_t              */
 #define RPC_C_MEM_BINDING_VEC      31       /* rpc_binding_vector_t         */
-#define RPC_C_MEM_CN_ASSOC_GRP_BLK 32       
+#define RPC_C_MEM_CN_ASSOC_GRP_BLK 32
                         /* rpc_assoc_group_t[rpc_c_assoc_grp_tbl_alloc_size] */
 #define RPC_C_MEM_CN_ASSOC         33       /* rpc_assoc_t                  */
 #define RPC_C_MEM_CN_CALL_REP      34       /* rpc_cn_call_rep_t            */
@@ -163,7 +161,7 @@
 #define RPC_C_MEM_NOAUTH_CN_INFO   79       /* rpc_noauth_cn_info_t         */
 #define RPC_C_MEM_KRB_INFO         80       /* rpc_krb_info_t               */
 #define RPC_C_MEM_KRB_CN_INFO      81       /* rpc_krb_cn_info_t            */
-#define RPC_C_MEM_CN_ENCRYPT_BUF   82       
+#define RPC_C_MEM_CN_ENCRYPT_BUF   82
                                    /* buffer for encryption & checksumming */
 #define RPC_C_MEM_PORT_RESTRICT_LIST 83     /* rpc_port_restriction_list_t  */
 #define RPC_C_MEM_PORT_RANGE_ELEMENTS 84    /* rpc_port_range_element_t     */
@@ -197,7 +195,7 @@
  * See rpcglob.[ch] for the actual database and lock.
  */
 
-typedef struct 
+typedef struct
 {
     unsigned32 inuse;         /* number currently allocated */
     unsigned32 calls;         /* total ever allocated */
@@ -269,12 +267,12 @@ EXTERNAL rpc_mem_stats_elt_t rpc_g_mem_stats[];
 
 /*
  * R P C _ M E M _ A L L O C _ I L
- * 
+ *
  * (addr) == NULL iff "no memory available"
  *
  * Sample usage:
  *      rpc_dg_ccall_p_t ccall;
- *      RPC_MEM_ALLOC(ccall, rpc_dg_ccall_p_t, sizeof *rpc_dg_ccall_p_t, 
+ *      RPC_MEM_ALLOC(ccall, rpc_dg_ccall_p_t, sizeof *rpc_dg_ccall_p_t,
  *              rpc_c_mem_dg_ccall, rpc_c_mem_nowait);
  *      if (ccall == NULL)
  *          alloc failed
@@ -288,7 +286,7 @@ EXTERNAL rpc_mem_stats_elt_t rpc_g_mem_stats[];
 #define RPC_MEM_ALLOC_IL(addr, cast, size, type, flags) \
 { \
     RPC_LOG_MEM_ALLOC_NTR; \
-    (addr) = (cast) malloc(size); \
+    (addr) = (cast) malloc((size)); \
     RPC_MEM_LOCK (0); \
     rpc_g_mem_stats[type].calls++; \
     if ((addr) == NULL) { \
@@ -310,12 +308,12 @@ EXTERNAL rpc_mem_stats_elt_t rpc_g_mem_stats[];
 
 /*
  * R P C _ M E M _ R E A L L O C _ I L
- * 
+ *
  * (addr) == NULL iff "no memory available"
  *
  * Sample usage:
  *      rpc_dg_ccall_p_t ccall;
- *      RPC_MEM_REALLOC(ccall, rpc_dg_ccall_p_t, sizeof *rpc_dg_ccall_p_t, 
+ *      RPC_MEM_REALLOC(ccall, rpc_dg_ccall_p_t, sizeof *rpc_dg_ccall_p_t,
  *              rpc_c_mem_dg_ccall, rpc_c_mem_nowait);
  *      if (ccall == NULL)
  *          alloc failed
@@ -329,7 +327,7 @@ EXTERNAL rpc_mem_stats_elt_t rpc_g_mem_stats[];
 #define RPC_MEM_REALLOC_IL(addr, cast, size, type, flags) \
 { \
     RPC_LOG_MEM_REALLOC_NTR; \
-    (addr) = (cast) realloc(addr, size); \
+    (addr) = (cast) realloc(addr, (size)); \
     RPC_MEM_LOCK (0); \
     rpc_g_mem_stats[type].calls++; \
     if ((addr) == NULL) { \
@@ -368,22 +366,25 @@ EXTERNAL rpc_mem_stats_elt_t rpc_g_mem_stats[];
 }
 
 
-PRIVATE pointer_t rpc__mem_alloc _DCE_PROTOTYPE_ ((
+PRIVATE pointer_t rpc__mem_alloc(
         unsigned32 /*size*/,
         unsigned32 /*type*/,
         unsigned32  /*flags*/
-    ));
+    
+    );
 
-PRIVATE pointer_t rpc__mem_realloc _DCE_PROTOTYPE_ ((
+PRIVATE pointer_t rpc__mem_realloc(
         pointer_t  /*addr*/,
         unsigned32 /*size*/,
         unsigned32 /*type*/,
         unsigned32  /*flags*/
-    ));
+    
+    );
 
-PRIVATE void rpc__mem_free _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__mem_free(
         pointer_t   /*addr*/,
         unsigned32  /*type*/
-    ));
+    
+    );
 
 #endif /* _RPCMEM_H */

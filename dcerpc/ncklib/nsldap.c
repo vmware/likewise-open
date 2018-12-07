@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -40,7 +40,7 @@
 **
 **  This module supports locating RPC servers in LDAP directories.
 **  Note: only a portion of the RPC NS API is implemented, and
-**  this support is presently experimental. 
+**  this support is presently experimental.
 **
 */
 
@@ -548,7 +548,7 @@ out:
 void
 rpc_ns_binding_import_done(
     /* [in, out] */ rpc_ns_handle_t *import_context,
-    /* [out] */ unsigned32 *status    
+    /* [out] */ unsigned32 *status
 )
 {
 	rpc_ns_handle_rep_t *rep = (rpc_ns_handle_rep_t *)import_context;

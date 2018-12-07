@@ -4,24 +4,32 @@ make()
     ECHO_CLIENT_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
     if [ "$LW_DEVICE_PROFILE" = "photon" ]
     then
-        ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h gssapi_krb5.h"
+        ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h gssapi/gssapi_krb5.h"
     else
         ECHO_CLIENT_HEADERDEPS="dce/rpc.h gssapi.h"
     fi
 
     ECHO_CLIENT_SOURCES="\
-        echo_client.c echo_client_cstub.c misc.c getopt.c"
+        echo_client.c echo_client_cstub.c misc.c"
 
+    if [ "$MK_HOST_OS" = "linux" ]
+    then
     ECHO_CLIENT_CPPFLAGS="-DHAVE_GETOPT_H=1"
+        ECHO_CLIENT_SOURCES="$ECHO_CLIENT_SOURCES getopt.c"
+    fi
 
 # ======= server ========
     ECHO_SERVER_INCLUDEDIRS="../../include . ../include ../../ncklib ../../ncklib/include/${target_os}"
     ECHO_SERVER_HEADERDEPS="dce/rpc.h gssapi.h"
 
     ECHO_SERVER_SOURCES="\
-        echo_server.c echo_client_sstub.c misc.c getopt.c"
+        echo_server.c echo_client_sstub.c misc.c"
 
+    if [ "$MK_HOST_OS" = "linux" ]
+    then
     ECHO_SERVER_CPPFLAGS="-DHAVE_GETOPT_H=1"
+        ECHO_SERVER_SOURCES="$ECHO_SERVER_SOURCES getopt.c"
+    fi
 
     lw_dceidl \
         IDL="echo.idl" \
@@ -40,7 +48,8 @@ make()
             INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
             DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
+
 
         mk_program \
             PROGRAM="echo_server" \
@@ -51,7 +60,7 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="dcerpc gssapi_krb5 $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
     else
         mk_program \
             PROGRAM="echo_client" \
@@ -62,7 +71,7 @@ make()
             INCLUDEDIRS="$ECHO_CLIENT_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_CLIENT_HEADERDEPS" \
             DEPS="echo.h echo_client_cstub.c" \
-            LIBDEPS="dcerpc $LIB_PTHREAD"
+            LIBDEPS="dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
 
         mk_program \
             PROGRAM="echo_server" \
@@ -73,6 +82,6 @@ make()
             INCLUDEDIRS="$ECHO_SERVER_INCLUDEDIRS" \
             HEADERDEPS="$ECHO_SERVER_HEADERDEPS" \
             DEPS="echo.h echo_client_sstub.c" \
-            LIBDEPS="dcerpc $LIB_PTHREAD"
+            LIBDEPS="lwbase lwbase_nothr dcerpc gssapi_krb5 crypto $LIB_PTHREAD"
     fi
 }

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -47,14 +47,6 @@
 #include  <errno.h>
 #include  <sys/file.h>
 
-#ifndef _DCE_PROTOTYPE_
-# ifdef __STDC__
-#  define _DCE_PROTOTYPE_(x) x
-# else 
-#  define _DCE_PROTOTYPE_(x) ()
-# endif
-#endif
-
 /*
  * lseek direction macros
  */
@@ -75,8 +67,8 @@
 
 /*  Records in the data store file are laid out contiguously.  Each record begins with
     a preheader used by DSM (not seen by user).  Each record is padded to a length that
-    ensures clean alignment (at least 8-byte); the preheader is of such a length that 
-    the user data is also cleanly aligned after the preheader.  
+    ensures clean alignment (at least 8-byte); the preheader is of such a length that
+    the user data is also cleanly aligned after the preheader.
 
     We want to arrange that our header fits within a page, as well as a reasonable chunk
     of the beginning of the user data, so the client can have atomic header writes.
@@ -84,7 +76,7 @@
 
 #if defined (vms)
 #   define PAGE_SIZE   512              /* length of system page */
-#else 
+#else
 #if defined(__linux__)
 #   define PAGE_SIZE   4096
 #elif !defined(PAGE_SIZE)
@@ -130,7 +122,7 @@
 /*  Cleanup handling.  Earlier model was based on Apollo PFM, no current
     contender fits that model (combining exception handling and status codes)
     so here's a placeholder using strictly local gotos (pfm is based on
-    nonlocal gotos aka longjmp).  Assumes error_status_t *st in scope. 
+    nonlocal gotos aka longjmp).  Assumes error_status_t *st in scope.
 
 
     CLEANUP {
@@ -166,18 +158,18 @@ typedef struct page_t {     /* generic page */
         +--------+--------+--------+--------+  \
         |         space for link ptr        |   |
         +--------+--------+--------+--------+   |
-        |         size of user data         |   |    
+        |         size of user data         |   |
         +--------+--------+--------+--------+    > preheader (16 bytes)
         |     offset in file of preheader   |   |
         +--------+--------+--------+--------+   |
         |  FREE  | cookie |    (unused)     |   |
         +--------+--------+--------+--------+  /
-        |  user data...       
+        |  user data...
         +--------+
 */
 
 typedef struct block_t {        /* block preheader */
-    struct block_t *link;       /* link to next block on (free) list [meaningless in file] */                    
+    struct block_t *link;       /* link to next block on (free) list [meaningless in file] */
     unsigned long   size;       /* size of user data */
     unsigned long   loc;        /* location (offset) of preheader in file */
     boolean         isfree;     /* true iff free */
@@ -228,29 +220,29 @@ typedef struct dsm_db_t {       /* dsm handle info (what dsm_handle_t really poi
 typedef struct dsm_db_t * dsm_handle;   /* internal version of opaque handle */
 
 
-/* private function prototypes; copied here to force type checking and loosen 
+/* private function prototypes; copied here to force type checking and loosen
    sequence.
 */
 
 #ifdef _I_AM_DSM_C_
-private block_t *   get_free_block      _DCE_PROTOTYPE_((dsm_handle,unsigned long));
-private block_t *   grow_file           _DCE_PROTOTYPE_((dsm_handle,unsigned long, error_status_t *));
-private void        write_header        _DCE_PROTOTYPE_((dsm_handle,block_t *, error_status_t *));
-private void        write_block         _DCE_PROTOTYPE_((dsm_handle,block_t *,unsigned long, error_status_t *));
-private void        update_file_header  _DCE_PROTOTYPE_((dsm_handle, error_status_t *));
-private int         create_file         _DCE_PROTOTYPE_((unsigned char *));
-private void        make_free           _DCE_PROTOTYPE_((dsm_handle,block_t *, error_status_t *));
-private void        free_block          _DCE_PROTOTYPE_((dsm_handle,block_t *));
-private void        free_map            _DCE_PROTOTYPE_((file_map_t *));
-private void        coalesce            _DCE_PROTOTYPE_((dsm_handle, error_status_t *));
-private void        build_freelist      _DCE_PROTOTYPE_((dsm_handle));
-private block_t *   get_next_block      _DCE_PROTOTYPE_((dsm_handle,block_t *));
-private block_t *   block_from_ptr      _DCE_PROTOTYPE_((void *, error_status_t *));
-private block_t *   get_earlier_block   _DCE_PROTOTYPE_((dsm_handle,dsm_marker_t));
-private void        cache_clear         _DCE_PROTOTYPE_((dsm_handle));
-private void        cache_add           _DCE_PROTOTYPE_((dsm_handle,block_t *,dsm_marker_t));
-private block_t *   cache_lookup        _DCE_PROTOTYPE_((dsm_handle,dsm_marker_t));
+private block_t *   get_free_block     (dsm_handle,unsigned long);
+private block_t *   grow_file          (dsm_handle,unsigned long, error_status_t *);
+private void        write_header       (dsm_handle,block_t *, error_status_t *);
+private void        write_block        (dsm_handle,block_t *,unsigned long, error_status_t *);
+private void        update_file_header (dsm_handle, error_status_t *);
+private int         create_file        (unsigned char *);
+private void        make_free          (dsm_handle,block_t *, error_status_t *);
+private void        free_block         (dsm_handle,block_t *);
+private void        free_map           (file_map_t *);
+private void        coalesce           (dsm_handle, error_status_t *);
+private void        build_freelist     (dsm_handle);
+private block_t *   get_next_block     (dsm_handle,block_t *);
+private block_t *   block_from_ptr     (void *, error_status_t *);
+private block_t *   get_earlier_block  (dsm_handle,dsm_marker_t);
+private void        cache_clear        (dsm_handle);
+private void        cache_add          (dsm_handle,block_t *,dsm_marker_t);
+private block_t *   cache_lookup       (dsm_handle,dsm_marker_t);
 #endif
-public void         dsm__lock_file      _DCE_PROTOTYPE_((int, error_status_t *));
-public int          dsm__flush_file     _DCE_PROTOTYPE_((int));
+public void         dsm__lock_file     (int, error_status_t *);
+public int          dsm__flush_file    (int);
 

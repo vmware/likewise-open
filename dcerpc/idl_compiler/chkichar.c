@@ -418,8 +418,8 @@ void CHK_type_cs
         && type_p->name != NAMETABLE_NIL_ID)
     {
         NAMETABLE_id_to_string(type_p->name, &type_name);
-        type_len = strlen(type_name);
-        max_len = MAX_ID - strlen("_from_netcs");
+        type_len = (int) strlen(type_name);
+        max_len = MAX_ID - (int) strlen("_from_netcs");
         if (type_len > max_len)
             CHECKER_error(type_p, NIDL_MAXIDTYPE, "cs_char", max_len);
     }

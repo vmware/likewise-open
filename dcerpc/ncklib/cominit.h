@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -39,9 +39,7 @@
 **
 */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,18 +52,20 @@ extern "C" {
  *
  */
 
-PRIVATE void rpc__init _DCE_PROTOTYPE_ (( void ));
+PRIVATE void rpc__init( void );
 
 
-PRIVATE void rpc__fork_handler _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__fork_handler(
         rpc_fork_stage_id_t   /*stage*/
-        
-    ));
 
-PRIVATE void rpc__set_port_restriction_from_string _DCE_PROTOTYPE_ ((
+    
+    );
+
+PRIVATE void rpc__set_port_restriction_from_string(
         unsigned_char_p_t  /*input_string*/,
         unsigned32         * /*status*/
-    ));
+    
+    );
 
 #ifdef __cplusplus
 }

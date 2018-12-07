@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,12 +16,12 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
 #ifndef _COMNETP_H
-#define _COMNETP_H 
+#define _COMNETP_H
 /*
 **
 **  NAME:
@@ -43,9 +43,7 @@
  * The max number of socket that the listener can keep track of.
  */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 
 #ifndef RPC_C_SERVER_MAX_SOCKETS
@@ -74,10 +72,14 @@ typedef struct
  * between modules.
  */
 
-typedef struct 
+typedef struct
 {
     rpc_mutex_t         mutex;
     rpc_cond_t          cond;
+    rpc_mutex_t         listening_mutex;
+    rpc_cond_t          listening_cond;
+    boolean             listening;
+    boolean             listening_stop;
     unsigned16          num_desc;    /* number "busy" */
     unsigned16          high_water;  /* highest entry in use */
     unsigned32          status;      /* used to convey information about */
@@ -97,22 +99,25 @@ extern "C" {
 #endif
 
 
-PRIVATE void rpc__nlsn_activate_desc _DCE_PROTOTYPE_((
+PRIVATE void rpc__nlsn_activate_desc(
         rpc_listener_state_p_t  /*lstate*/,
         unsigned32              /*idx*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-PRIVATE void rpc__nlsn_deactivate_desc _DCE_PROTOTYPE_((
+PRIVATE void rpc__nlsn_deactivate_desc(
         rpc_listener_state_p_t  /*lstate*/,
         unsigned32              /*idx*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
-PRIVATE void rpc__nlsn_fork_handler _DCE_PROTOTYPE_((
+PRIVATE void rpc__nlsn_fork_handler(
         rpc_listener_state_p_t  /*lstate*/,
         rpc_fork_stage_id_t /*stage*/
-    ));
+    
+    );
 
 #ifdef __cplusplus
 }

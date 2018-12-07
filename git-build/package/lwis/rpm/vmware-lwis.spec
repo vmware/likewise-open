@@ -8,7 +8,7 @@ License: 	GPL 2.0,LGPL 2.1
 URL: 		http://www.vmware.com/
 Group: 		Development/Libraries
 
-Prereq: grep, sh-utils, libopenssl1_0_1
+Requires(pre,preun): grep, sh-utils, libopenssl1_0_1
 ##For ESX use this line:
 ##Prereq: grep, sh-utils
 Obsoletes:   likewise-open-libs, likewise-open-lsass, likewise-open-netlogon, likewise-open-lwio, likewise-open-eventlog, likewise-open-rpc, likewise-open-lwsm, likewise-open-lwreg, likewise-open-srvsvc
@@ -36,7 +36,24 @@ This package provides compatibility with 32-bit applications
 %description devel
 This package provides files for developing against the Likewise APIs
 
+%pre
+#
+# Save pre-existing mech file for later concatentation to installed mech file
+#
+if [ -f /etc/gss/mech ]; then
+  cp /etc/gss/mech /tmp/gss-mech-tmp
+fi
+
 %post
+#
+# Merge saved off mech file with installed mech file
+#
+  if [ -f /tmp/gss-mech-tmp ]; then
+    cat /etc/gss/mech >> /tmp/gss-mech-tmp
+    grep '^[a-zA-Z0-9]' /tmp/gss-mech-tmp | sort -u > /etc/gss/mech
+    rm -f /tmp/gss-mech-tmp
+  fi
+
 case "$1" in
     1)
     ## New install
@@ -148,6 +165,15 @@ case "$1" in
 esac
 
 %preun
+#
+# Save off a copy of gss/mech when it contains entries other than ntlm
+#
+if [ -f /etc/gss/mech ]; then
+  if [ `grep -c -e '^[^n][^t][^l][^m]' /etc/gss/mech` -gt 0 ]; then
+    cp /etc/gss/mech /tmp/gss-mech-tmp
+  fi
+fi
+
 if [ "$1" = 0 ]; then
     ## Be paranoid about cleaning up
     if [ "@IS_EMBEDDED@" = "no" ]
@@ -159,6 +185,22 @@ if [ "$1" = 0 ]; then
     %{_bindir}/lwsm stop lwreg
     /etc/init.d/lwsmd stop
 fi
+
+%postun
+  #
+  # Just remove the ntlm section added by Likewise.
+  #
+  if [ -f /tmp/gss-mech-tmp ]; then
+    mkdir -p /etc/gss
+    cat /tmp/gss-mech-tmp | sed '/^ntlm/d' > /etc/gss/mech
+    #
+    # Remove this file if it is empty; ntlm was the only mech entry.
+    #
+    if [ ! -s /etc/gss/mech ]; then
+      rm -rf /etc/gss
+    fi
+    rm -f /tmp/gss-mech-tmp
+  fi
 
 %changelog
 

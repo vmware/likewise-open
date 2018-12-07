@@ -6,55 +6,55 @@
 
 DWORD
 VmDirRWLockAcquire(
-	pthread_rwlock_t* pMutex,
-	BOOLEAN           bExclusive,
-	PBOOLEAN          pbLocked
-	)
+    pthread_rwlock_t* pMutex,
+    BOOLEAN           bExclusive,
+    PBOOLEAN          pbLocked
+    )
 {
-	DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-	if (!*pbLocked)
-	{
-		int errCode = bExclusive ? 	pthread_rwlock_wrlock(pMutex) :
-									pthread_rwlock_rdlock(pMutex);
-		if (errCode)
-		{
-			dwError = ERROR_LOCK_FAILED;
-		}
-		else
-		{
-			*pbLocked = TRUE;
-		}
-	}
-	else
-	{
-		dwError = ERROR_LOCKED;
-	}
+    if (!*pbLocked)
+    {
+        int errCode = bExclusive ?     pthread_rwlock_wrlock(pMutex) :
+                                    pthread_rwlock_rdlock(pMutex);
+        if (errCode)
+        {
+            dwError = ERROR_LOCK_FAILED;
+        }
+        else
+        {
+            *pbLocked = TRUE;
+        }
+    }
+    else
+    {
+        dwError = ERROR_LOCKED;
+    }
 
-	return dwError;
+    return dwError;
 }
 
 DWORD
 VmDirRWLockRelease(
-	pthread_rwlock_t* pMutex,
-	PBOOLEAN          pbLocked
-	)
+    pthread_rwlock_t* pMutex,
+    PBOOLEAN          pbLocked
+    )
 {
-	DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
-	if (*pbLocked)
-	{
-		int errCode = pthread_rwlock_unlock(pMutex);
+    if (*pbLocked)
+    {
+        int errCode = pthread_rwlock_unlock(pMutex);
 
-		if (errCode)
-		{
-			dwError = ERROR_LOCK_FAILED;
-		}
-		else
-		{
-			*pbLocked = FALSE;
-		}
-	}
+        if (errCode)
+        {
+            dwError = ERROR_LOCK_FAILED;
+        }
+        else
+        {
+            *pbLocked = FALSE;
+        }
+    }
 
-	return dwError;
+    return dwError;
 }

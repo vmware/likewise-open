@@ -113,9 +113,7 @@
  * Include a OS / machine specific configuration file.
  */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif 
 
 #ifdef DCE_RPC_DEBUG
 #define DCE_DEBUG	1
@@ -203,6 +201,9 @@ typedef idl_byte byte_t ;
 #ifdef DCE_RPC_SVC
 #  include <rpcsvc.h>
 #else
+
+#define RPC_NORMALIZE_SLASH(c) ((c) == '\\' ? '/' : (c))
+PRIVATE void rpc_normalize_path(char *str);
 
 #ifndef EPRINTF
 #  define EPRINTF           rpc__printf

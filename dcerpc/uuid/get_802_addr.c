@@ -1,7 +1,7 @@
 /*
  * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */   
+ */
 /* Portions
  * Copyright 2000, John E. Schimmel, All rights reserved.
  * This software is not subject to any license of Mirapoint, Inc.
@@ -21,25 +21,31 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+
+#if !defined(_WIN32)
 #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#else
+#include <Winsock2.h>
+#endif
+
 #include <string.h>
 #include <stdlib.h>
-#ifndef UUID_BUILD_STANDALONE      
+#ifndef UUID_BUILD_STANDALONE
 #include <dce/dce.h>
-#include <dce/dce_utils.h>   
+#include <dce/dce_utils.h>
 #else
 #include "uuid.h"
 #endif
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 /* Bizarre hack for HP-UX ia64 where a system header
  * makes reference to a kernel-only data structure
  */
 #if defined(__hpux) && defined(__ia64) && !defined(_DEFINED_MPINFOU)
 union mpinfou {};
 #endif
-#include <net/if.h>
 #ifdef HAVE_SYS_SOCKIO_H
 #include <sys/sockio.h>
 #endif
@@ -177,7 +183,7 @@ void dce_get_802_addr(dce_802_addr_t *addr, error_status_t *st)
 	    unsigned int seed = 1;
 	    unsigned char* buf = (unsigned char*) addr->eaddr;
 	    int i;
-	    
+	
 	    for (i = 0; i < 6; i++)
 	    {
 		buf[i] = rand_r(&seed);

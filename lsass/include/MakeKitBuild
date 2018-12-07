@@ -36,6 +36,7 @@ make()
 	lw/rpc/netlogon.h        \
 	lw/rpc/dssetup.h         \
 	lw/rpc/krb5pac.h         \
+	lw/rpc/vmpac.h           \
 	lw/rpc/wkssvc.h
 
     mk_headers \

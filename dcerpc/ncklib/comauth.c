@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -47,33 +47,36 @@
  * Internal variables to maintain the auth info cache.
  */
 INTERNAL rpc_list_t     auth_info_cache;
-INTERNAL rpc_mutex_t    auth_info_cache_mutex;    
+INTERNAL rpc_mutex_t    auth_info_cache_mutex;
 
 /*
  * R P C _ _ A U T H _ I N F O _ C A C H E _ L K U P
  */
-INTERNAL rpc_auth_info_t *rpc__auth_info_cache_lkup _DCE_PROTOTYPE_ ((
+INTERNAL rpc_auth_info_t *rpc__auth_info_cache_lkup(
         unsigned_char_p_t                    /*server_princ_name*/,
         rpc_authn_level_t                    /*authn_level*/,
         rpc_auth_identity_handle_t           /*auth_identity*/,
         rpc_authz_protocol_id_t              /*authz_protocol*/,
         rpc_authn_protocol_id_t             /* authn_protocol*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ A U T H _ I N F O _ C A C H E _ A D D
  */
 
-INTERNAL void rpc__auth_info_cache_add _DCE_PROTOTYPE_ ((
+INTERNAL void rpc__auth_info_cache_add(
         rpc_auth_info_p_t                   /*auth_info*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ A U T H _ I N F O _ C A C H E _ R E M O V E
  */
-INTERNAL void rpc__auth_info_cache_remove _DCE_PROTOTYPE_ ((
+INTERNAL void rpc__auth_info_cache_remove(
         rpc_auth_info_p_t                   /*auth_info*/
-    ));
+    
+    );
 
 
 
@@ -89,7 +92,7 @@ INTERNAL void rpc__auth_info_cache_remove _DCE_PROTOTYPE_ ((
 
 #define ASSIGN_COPY(buffer, length, val) do { \
         char* _val = (char*) (val);                             \
-        unsigned32 _vallength = _val ? strlen(_val) : 0;        \
+        unsigned32 _vallength = _val ? (unsigned32) strlen(_val) : 0;        \
         if ((buffer) == NULL || (length) < _vallength) { \
             *st = rpc_s_ss_bad_buffer; \
             return; \
@@ -110,11 +113,11 @@ INTERNAL void rpc__auth_info_cache_remove _DCE_PROTOTYPE_ ((
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Return a boolean indicating whether the authentication protocol
 **  is supported by the runtime.
-**      
+**
 **  INPUTS:
 **
 **      authn_prot_id           Authentication protocol ID
@@ -136,15 +139,10 @@ INTERNAL void rpc__auth_info_cache_remove _DCE_PROTOTYPE_ ((
 **--
 **/
 
-PRIVATE boolean32 rpc__auth_inq_supported 
-#ifdef _DCE_PROTO_
+PRIVATE boolean32 rpc__auth_inq_supported
 (
   rpc_authn_protocol_id_t         authn_prot_id
 )
-#else
-(authn_prot_id)
-rpc_authn_protocol_id_t         authn_prot_id;
-#endif
 {
     return (RPC_AUTHN_INQ_SUPPORTED(authn_prot_id));
 }
@@ -157,11 +155,11 @@ rpc_authn_protocol_id_t         authn_prot_id;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Return the wire value of an authentication protocol ID given its
 **  API counterpart.
-**      
+**
 **  INPUTS:
 **
 **      api_authn_prot_id       API Authentication protocol ID
@@ -185,19 +183,13 @@ rpc_authn_protocol_id_t         authn_prot_id;
 **--
 **/
 
-PRIVATE unsigned32 rpc__auth_cvt_id_api_to_wire 
-#ifdef _DCE_PROTO_
+PRIVATE unsigned32 rpc__auth_cvt_id_api_to_wire
 (
   rpc_authn_protocol_id_t api_authn_prot_id,
   unsigned32              *status
 )
-#else
-(api_authn_prot_id, status)
-rpc_authn_protocol_id_t api_authn_prot_id;
-unsigned32              *status;
-#endif
 {
-    if (! RPC_AUTHN_IN_RANGE(api_authn_prot_id) || 
+    if (! RPC_AUTHN_IN_RANGE(api_authn_prot_id) ||
         ! RPC_AUTHN_INQ_SUPPORTED(api_authn_prot_id))
     {
         *status = rpc_s_unknown_auth_protocol;
@@ -216,18 +208,18 @@ unsigned32              *status;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Return the API value of an authentication protocol ID given its
 **  wire counterpart.
-**      
+**
 **  INPUTS:
 **
 **      wire_authn_prot_id      Wire Authentication protocol ID
 **
 **  INPUTS/OUTPUTS:
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **      status          A value indicating the return status of the routine
 **
@@ -244,22 +236,16 @@ unsigned32              *status;
 **--
 **/
 
-PRIVATE rpc_authn_protocol_id_t rpc__auth_cvt_id_wire_to_api 
-#ifdef _DCE_PROTO_
+PRIVATE rpc_authn_protocol_id_t rpc__auth_cvt_id_wire_to_api
 (
   unsigned32      wire_authn_prot_id,
   unsigned32      *status
 )
-#else
-(wire_authn_prot_id, status)
-unsigned32      wire_authn_prot_id;
-unsigned32      *status;
-#endif
 {
     rpc_authn_protocol_id_t authn_protocol;
 
-    for (authn_protocol = 0; 
-         authn_protocol < RPC_C_AUTHN_PROTOCOL_ID_MAX; 
+    for (authn_protocol = 0;
+         authn_protocol < RPC_C_AUTHN_PROTOCOL_ID_MAX;
          authn_protocol++)
     {
         rpc_authn_protocol_id_elt_p_t aprot = &rpc_g_authn_protocol_id[authn_protocol];
@@ -289,11 +275,11 @@ unsigned32      *status;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Return the RPC protocol specific entry point vector for a given
 **  Authentication protocol.
-**      
+**
 **  INPUTS:
 **
 **      authn_prot_id   Authentication protocol ID
@@ -318,16 +304,10 @@ unsigned32      *status;
 **/
 
 PRIVATE rpc_auth_rpc_prot_epv_t *rpc__auth_rpc_prot_epv
-#ifdef _DCE_PROTO_
 (
   rpc_authn_protocol_id_t authn_prot_id,
   rpc_protocol_id_t       rpc_prot_id
 )
-#else
-(authn_prot_id, rpc_prot_id)  
-rpc_authn_protocol_id_t authn_prot_id;
-rpc_protocol_id_t       rpc_prot_id;
-#endif
 {
     return (RPC_AUTHN_INQ_RPC_PROT_EPV(authn_prot_id,rpc_prot_id));
 }
@@ -340,13 +320,13 @@ rpc_protocol_id_t       rpc_prot_id;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Establish a reference to authentication info.
-**      
+**
 **  INPUTS:
 **
-**      auth_info       Authentication information   
+**      auth_info       Authentication information
 **
 **  INPUTS/OUTPUTS:
 **
@@ -364,14 +344,9 @@ rpc_protocol_id_t       rpc_prot_id;
 **/
 
 PRIVATE void rpc__auth_info_reference
-#ifdef _DCE_PROTO_
 (
   rpc_auth_info_p_t   auth_info
 )
-#else
-(auth_info)  
-rpc_auth_info_p_t   auth_info;
-#endif
 {
 #ifdef DEBUG
     char *info_type = auth_info->is_server?"server":"client";
@@ -390,16 +365,16 @@ rpc_auth_info_p_t   auth_info;
 /*
 **++
 **
-**  ROUTINE NAME:       rpc__auth_info_binding_release  
+**  ROUTINE NAME:       rpc__auth_info_binding_release
 **
 **  SCOPE:              PRIVATE - declared in comauth.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Release reference to authentication info (stored in passed binding
 **  handle) previously returned by set_server or inq_caller.  If we don't
 **  have any auth info, do nothing.
-**      
+**
 **  INPUTS:
 **
 **      binding_rep     RPC binding handle
@@ -420,14 +395,9 @@ rpc_auth_info_p_t   auth_info;
 **/
 
 PRIVATE void rpc__auth_info_binding_release
-#ifdef _DCE_PROTO_
 (
   rpc_binding_rep_p_t     binding_rep
 )
-#else
-(binding_rep)
-rpc_binding_rep_p_t     binding_rep;
-#endif
 {
     rpc__auth_info_release (&binding_rep->auth_info);
 }
@@ -441,11 +411,11 @@ rpc_binding_rep_p_t     binding_rep;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Release reference to authentication info previously returned by
 **  set_server or inq_caller.
-**      
+**
 **  INPUTS:
 **
 **      info            Authentication info
@@ -466,18 +436,13 @@ rpc_binding_rep_p_t     binding_rep;
 **/
 
 PRIVATE void rpc__auth_info_release
-#ifdef _DCE_PROTO_
 (
  rpc_auth_info_p_t       *info
 )
-#else
-(info)
-rpc_auth_info_p_t       *info;
-#endif
 {
     rpc_auth_info_p_t auth_info = *info;
     char *info_type;
-    
+
     if (auth_info == NULL)
     {
         return;
@@ -490,7 +455,7 @@ rpc_auth_info_p_t       *info;
         auth_info->refcount,
         auth_info->refcount-1 ));
     assert(auth_info->refcount >= 1);
-    
+
     /*
      * Remove the reference.
      */
@@ -507,7 +472,7 @@ rpc_auth_info_p_t       *info;
             /*
              * The auth info can be removed from the cache if there is only
              * one reference left to it. That single reference is the cache's
-             * reference. 
+             * reference.
              */
             rpc__auth_info_cache_remove (auth_info);
         }
@@ -518,7 +483,7 @@ rpc_auth_info_p_t       *info;
      */
     if (auth_info->refcount == 0)
     {
-        (*rpc_g_authn_protocol_id[auth_info->authn_protocol].epv->free_info) 
+        (*rpc_g_authn_protocol_id[auth_info->authn_protocol].epv->free_info)
             (&auth_info);
     }
 
@@ -537,13 +502,13 @@ rpc_auth_info_p_t       *info;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Establish a reference to keyentication info.
-**      
+**
 **  INPUTS:
 **
-**      key_info       Authentication information   
+**      key_info       Authentication information
 **
 **  INPUTS/OUTPUTS:
 **
@@ -561,14 +526,9 @@ rpc_auth_info_p_t       *info;
 **/
 
 PRIVATE void rpc__key_info_reference
-#ifdef _DCE_PROTO_
 (
   rpc_key_info_p_t   key_info
 )
-#else
-(key_info)  
-rpc_key_info_p_t   key_info;
-#endif
 {
     RPC_DBG_PRINTF(rpc_e_dbg_auth, 3, ("(rpc__key_info_reference) %x: bumping %s refcnt (was %d, now %d)\n",
         key_info,
@@ -587,11 +547,11 @@ rpc_key_info_p_t   key_info;
 **
 **  SCOPE:              PRIVATE - declared in com.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
 **  Release reference to keyentication info previously returned by
 **  set_server or inq_caller.
-**      
+**
 **  INPUTS:
 **
 **      info            Authentication info
@@ -612,23 +572,18 @@ rpc_key_info_p_t   key_info;
 **/
 
 PRIVATE void rpc__key_info_release
-#ifdef _DCE_PROTO_
 (
   rpc_key_info_p_t       *info
 )
-#else
-(info)
-rpc_key_info_p_t       *info;
-#endif
 {
     rpc_key_info_p_t key_info = *info;
-    
+
     if (key_info == NULL)
     {
         return;
     }
     *info = NULL;
-    
+
     RPC_DBG_PRINTF(rpc_e_dbg_auth, 3,
         ("(rpc__key_info_release) %x: dropping %s refcnt (was %d, now %d)\n",
             key_info,
@@ -636,7 +591,7 @@ rpc_key_info_p_t       *info;
             key_info->refcnt,
             key_info->refcnt-1 ));
     assert(key_info->refcnt >= 1);
-    
+
     /*
      * Remove the reference.
      */
@@ -647,7 +602,7 @@ rpc_key_info_p_t       *info;
      */
     if (key_info->refcnt == 0)
     {
-        (*rpc_g_authn_protocol_id[key_info->auth_info->authn_protocol].epv->free_key) 
+        (*rpc_g_authn_protocol_id[key_info->auth_info->authn_protocol].epv->free_key)
             (&key_info);
     }
 }
@@ -659,12 +614,12 @@ rpc_key_info_p_t       *info;
 **
 **  SCOPE:              PRIVATE - declared in comauth.h
 **
-**  DESCRIPTION:   
+**  DESCRIPTION:
 **
-**  
-**  
-**  
-**      
+**
+**
+**
+**
 **  INPUTS:
 **
 **      h               RPC binding handle
@@ -687,20 +642,12 @@ rpc_key_info_p_t       *info;
 **/
 
 PRIVATE void rpc__auth_inq_my_princ_name
-#ifdef _DCE_PROTO_
 (
   unsigned32              dce_rpc_authn_protocol,
   unsigned32              princ_name_size,
   unsigned_char_p_t       princ_name,
   unsigned32              *st
 )
-#else
-(dce_rpc_authn_protocol, princ_name_size, princ_name, st)
-unsigned32              dce_rpc_authn_protocol;
-unsigned32              princ_name_size;
-unsigned_char_p_t       princ_name;
-unsigned32              *st;
-#endif
 {
     rpc_authn_protocol_id_t authn_protocol;
 
@@ -715,7 +662,7 @@ unsigned32              *st;
             (princ_name_size, princ_name, st);
 }
 
- 
+
 /*
 **++
 **
@@ -724,18 +671,18 @@ unsigned32              *st;
 **  SCOPE:              PUBLIC - declared in rpcauth.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Set up client handle for authentication.
-**  
+**
 **  INPUTS:
 **
 **      h               RPC binding handle
 **
-**      server_princ_name     
+**      server_princ_name
 **                      Name of server to authenticate to
 **
 **      authn_level     Authentication level
-**  
+**
 **      authn_protocol  Desired authentication protocol to use
 **
 **      auth_identity   Credentials to use on calls
@@ -761,8 +708,7 @@ unsigned32              *st;
 **--
 **/
 
-PUBLIC void rpc_binding_set_auth_info 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_binding_set_auth_info
 (
   rpc_binding_handle_t    binding_h,
   unsigned_char_p_t       server_princ_name,
@@ -772,25 +718,14 @@ PUBLIC void rpc_binding_set_auth_info
   unsigned32              authz_protocol,
   unsigned32              *st
 )
-#else
-(binding_h, server_princ_name, authn_level, authn_protocol, 
- auth_identity, authz_protocol, st)
-rpc_binding_handle_t    binding_h;
-unsigned_char_p_t       server_princ_name;
-unsigned32              authn_level;
-unsigned32              authn_protocol;  
-rpc_auth_identity_handle_t auth_identity;
-unsigned32              authz_protocol;
-unsigned32              *st;
-#endif
 {
     rpc_auth_identity_handle_t ref_auth_identity;
     rpc_auth_info_p_t       auth_info;
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_auth_epv_p_t        auth_epv;
     boolean                 need_to_free_server_name = false;
-    
-    CODING_ERROR (st);  
+
+    CODING_ERROR (st);
     RPC_VERIFY_INIT ();
 
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, st);
@@ -801,7 +736,7 @@ unsigned32              *st;
      * If asking to set to authentication type "none", just free any auth info
      * we have and return now.
      */
-    
+
     if (authn_protocol == rpc_c_authn_none)
     {
         rpc__auth_info_binding_release(binding_rep);
@@ -811,7 +746,7 @@ unsigned32              *st;
     RPC_AUTHN_CHECK_SUPPORTED_RPC_PROT(authn_protocol, binding_rep->protocol_id, st);
 
     /*
-     * If asking for default authn level, get the actual level now (i.e., 
+     * If asking for default authn level, get the actual level now (i.e.,
      * spare each auth service the effort of coding this logic).
      */
 
@@ -827,14 +762,14 @@ unsigned32              *st;
      * Resolve the auth_identity into a real reference to the identity
      * prior to the cache lookup.
      */
-    
+
     *st = (*auth_epv->resolve_id)
         (auth_identity, &ref_auth_identity);
 
     if (*st != rpc_s_ok)
         return;
 
-    
+
     /*
      * If no server principal name was specified, go ask for it.
      *
@@ -858,7 +793,7 @@ unsigned32              *st;
           case rpc_c_authn_dce_secret:
           case rpc_c_authn_winnt:
           case rpc_c_authn_gss_negotiate:
-          case rpc_c_authn_gss_mskrb: 
+          case rpc_c_authn_gss_mskrb:
           rpc_mgmt_inq_server_princ_name
               (binding_h,
                authn_protocol,
@@ -883,26 +818,26 @@ unsigned32              *st;
     if ((auth_info = rpc__auth_info_cache_lkup (server_princ_name,
                                                 authn_level,
                                                 ref_auth_identity,
-                                                authz_protocol, 
+                                                authz_protocol,
                                                 authn_protocol)) == NULL)
     {
-        
+
         /*
          * A new auth info will have to be created.
          * Call authentication service to do generic (not specific
          * to a single RPC protocol) "set server" function.
          */
         (*auth_epv->binding_set_auth_info)
-            (server_princ_name, authn_level, auth_identity, 
+            (server_princ_name, authn_level, auth_identity,
              authz_protocol, binding_h, &auth_info, st);
-        
+
         if (*st != rpc_s_ok)
         {
             if (need_to_free_server_name)
                 RPC_MEM_FREE (server_princ_name, RPC_C_MEM_STRING);
             return;
         }
-        
+
         /*
          * Add this new auth info to a cache of auth infos. This cache
          * will be consulted on a subsequent call to this routine.
@@ -910,7 +845,7 @@ unsigned32              *st;
         rpc__auth_info_cache_add (auth_info);
 
     }
-        
+
     /*
      * Release our reference to the identity.  If a new auth_info was
      * created, then it added a reference also.
@@ -951,10 +886,10 @@ unsigned32              *st;
 **  SCOPE:              PUBLIC - declared in rpcauth.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Return authentication and authorization information from a binding
 **  handle.
-**  
+**
 **  INPUTS:
 **
 **      h               RPC binding handle
@@ -963,11 +898,11 @@ unsigned32              *st;
 **
 **  OUTPUTS:
 **
-**      server_princ_name     
+**      server_princ_name
 **                      Name of server to authenticate to
 **
 **      authn_level     Authentication level
-**  
+**
 **      authn_protocol  Desired authentication protocol to use
 **
 **      auth_identity   Credentials to use on calls
@@ -990,33 +925,21 @@ unsigned32              *st;
 **/
 
 PUBLIC void rpc_binding_inq_auth_info
-#ifdef _DCE_PROTO_
 (
     rpc_binding_handle_t    binding_h,
     unsigned_char_p_t       *server_princ_name,
     unsigned32              *authn_level,
-    unsigned32              *authn_protocol,  
+    unsigned32              *authn_protocol,
     rpc_auth_identity_handle_t *auth_identity,
     unsigned32              *authz_protocol,
     unsigned32              *st
     )
-#else
-(binding_h, server_princ_name, authn_level, authn_protocol, 
-     auth_identity, authz_protocol, st)
-rpc_binding_handle_t    binding_h;
-unsigned_char_p_t       *server_princ_name;
-unsigned32              *authn_level;
-unsigned32              *authn_protocol;  
-rpc_auth_identity_handle_t *auth_identity;
-unsigned32              *authz_protocol;
-unsigned32              *st;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_auth_info_p_t       auth_info;
 
-    CODING_ERROR (st);  
-    RPC_VERIFY_INIT (); 
+    CODING_ERROR (st);
+    RPC_VERIFY_INIT ();
 
     RPC_BINDING_VALIDATE_CLIENT(binding_rep, st);
     if (*st != rpc_s_ok)
@@ -1032,17 +955,17 @@ unsigned32              *st;
 
     assert(! auth_info->is_server);
 
-    if (auth_info->server_princ_name == NULL) 
+    if (auth_info->server_princ_name == NULL)
     {
         ASSIGN(server_princ_name, NULL);
-    } else 
+    } else
     {
         ASSIGN(server_princ_name, rpc_stralloc(auth_info->server_princ_name));
     }
     ASSIGN(authn_level,         auth_info->authn_level);
-    ASSIGN(authn_protocol,      auth_info->authn_protocol);  
+    ASSIGN(authn_protocol,      auth_info->authn_protocol);
     ASSIGN(auth_identity,       auth_info->u.auth_identity);
-    ASSIGN(authz_protocol,      auth_info->authz_protocol);  
+    ASSIGN(authz_protocol,      auth_info->authz_protocol);
 
     *st = rpc_s_ok;
 }
@@ -1056,14 +979,14 @@ unsigned32              *st;
 **  SCOPE:              PUBLIC - declared in rpcauth.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Register authentication information with the RPC runtime.
 **
 **  INPUTS:
 **
 **      authn_protocol  Desired authentication protocol to use
 **
-**      server_princ_name     
+**      server_princ_name
 **                      Name server should use
 **
 **      get_key_func    Function ptr to call to get keys
@@ -1087,8 +1010,7 @@ unsigned32              *st;
 **--
 **/
 
-PUBLIC void rpc_server_register_auth_info 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_server_register_auth_info
 (
     unsigned_char_p_t       server_princ_name,
     unsigned32              authn_protocol,
@@ -1096,32 +1018,24 @@ PUBLIC void rpc_server_register_auth_info
     ndr_void_p_t            arg,
     unsigned32              *st
 )
-#else
-(server_princ_name, authn_protocol, get_key_func, arg, st)
-unsigned_char_p_t       server_princ_name;
-unsigned32              authn_protocol;
-rpc_auth_key_retrieval_fn_t get_key_func;
-ndr_void_p_t            arg;
-unsigned32              *st;
-#endif
 {
     CODING_ERROR (st);
     RPC_VERIFY_INIT ();
-    
+
     if (authn_protocol == rpc_c_authn_none)
     {
         *st = rpc_s_ok;
         return;
     }
 
-    if (authn_protocol == (typeof(authn_protocol))(rpc_c_authn_default) && get_key_func != NULL)
+    if (authn_protocol == (unsigned32)(rpc_c_authn_default) && get_key_func != NULL)
     {
         *st = rpc_s_key_func_not_allowed;
         return;
     }
 
     RPC_AUTHN_CHECK_SUPPORTED (authn_protocol, st);
-    
+
     (*rpc_g_authn_protocol_id[authn_protocol]
         .epv->server_register_auth_info)
             (server_princ_name, get_key_func, (pointer_t) arg, st);
@@ -1151,7 +1065,7 @@ unsigned32              *st;
 **
 **      privs           PAC for remote caller.
 **
-**      server_princ_name         
+**      server_princ_name
 **                      Server name that caller authenticated to.
 **
 **      authn_level     Authentication level used by remote caller.
@@ -1176,8 +1090,7 @@ unsigned32              *st;
 **/
 
 PUBLIC void rpc_binding_inq_auth_client
-    
-#ifdef _DCE_PROTO_
+
 (
     rpc_binding_handle_t    binding_h,
     rpc_authz_handle_t      *privs,
@@ -1187,24 +1100,13 @@ PUBLIC void rpc_binding_inq_auth_client
     unsigned32              *authz_protocol,
     unsigned32              *st
 )
-#else
-(binding_h, privs, server_princ_name, authn_level, 
-     authn_protocol, authz_protocol, st)
-rpc_binding_handle_t    binding_h;
-rpc_authz_handle_t      *privs;
-unsigned_char_p_t       *server_princ_name;
-unsigned32              *authn_level;
-unsigned32              *authn_protocol;
-unsigned32              *authz_protocol;
-unsigned32              *st;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_auth_info_p_t       auth_info;
 
     CODING_ERROR (st);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_SERVER(binding_rep, st);
     if (*st != rpc_s_ok)
         return;
@@ -1223,11 +1125,11 @@ unsigned32              *st;
 
     if (server_princ_name != NULL)
     {
-        if (auth_info->server_princ_name == NULL) 
+        if (auth_info->server_princ_name == NULL)
         {
             ASSIGN(server_princ_name,   NULL);
-        } 
-        else 
+        }
+        else
         {
             ASSIGN(server_princ_name, rpc_stralloc(auth_info->server_princ_name));
         }
@@ -1264,7 +1166,7 @@ unsigned32              *st;
 **      creds           Opaque handle on caller's credentials to
 **                      be used in making sec_cred_ calls
 **
-**      server_princ_name         
+**      server_princ_name
 **                      Server name that caller authenticated to.
 **
 **      authn_level     Authentication level used by remote caller.
@@ -1290,7 +1192,6 @@ unsigned32              *st;
 
 PUBLIC void rpc_binding_inq_auth_caller
 
-#ifdef _DCE_PROTO_
 (
     rpc_binding_handle_t    binding_h,
     rpc_authz_cred_handle_t *creds,
@@ -1300,24 +1201,13 @@ PUBLIC void rpc_binding_inq_auth_caller
     unsigned32              *authz_protocol,
     unsigned32              *st
 )
-#else
-(binding_h, creds, server_princ_name, authn_level, 
-     authn_protocol, authz_protocol, st)
-rpc_binding_handle_t    binding_h;
-rpc_authz_cred_handle_t *creds;
-unsigned_char_p_t       *server_princ_name;
-unsigned32              *authn_level;
-unsigned32              *authn_protocol;
-unsigned32              *authz_protocol;
-unsigned32              *st;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_auth_info_p_t       auth_info;
 
     CODING_ERROR (st);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_SERVER(binding_rep, st);
     if (*st != rpc_s_ok)
         return;
@@ -1338,11 +1228,11 @@ unsigned32              *st;
 
     if (server_princ_name != NULL)
     {
-        if (auth_info->server_princ_name == NULL) 
+        if (auth_info->server_princ_name == NULL)
         {
             ASSIGN(server_princ_name,   NULL);
-        } 
-        else 
+        }
+        else
         {
             ASSIGN(server_princ_name, rpc_stralloc(auth_info->server_princ_name));
         }
@@ -1363,7 +1253,7 @@ unsigned32              *st;
 **  SCOPE:              PUBLIC - declared in rpcauth.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Returns the default authentication level for an authentication service.
 **
 **  INPUTS:
@@ -1389,23 +1279,16 @@ unsigned32              *st;
 **--
 **/
 
-PUBLIC void rpc_mgmt_inq_dflt_protect_level 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_inq_dflt_protect_level
 (
     unsigned32              authn_protocol,
     unsigned32              *authn_level,
     unsigned32              *st
 )
-#else
-(authn_protocol, authn_level, st)
-unsigned32              authn_protocol;
-unsigned32              *authn_level;
-unsigned32              *st;
-#endif
 {
     CODING_ERROR (st);
     RPC_VERIFY_INIT ();
-    
+
     if (authn_protocol == rpc_c_authn_none)
     {
         *authn_level = rpc_c_authn_level_none;
@@ -1414,7 +1297,7 @@ unsigned32              *st;
     }
 
     RPC_AUTHN_CHECK_SUPPORTED (authn_protocol, st);
-    
+
     (*rpc_g_authn_protocol_id[authn_protocol]
         .epv->mgmt_inq_dflt_auth_level)
             (authn_level, st);
@@ -1424,19 +1307,12 @@ unsigned32              *st;
  * Retain entry point with old name for compatibility.
  */
 
-PUBLIC void rpc_mgmt_inq_dflt_authn_level 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_mgmt_inq_dflt_authn_level
 (
   unsigned32              authn_protocol,
   unsigned32              *authn_level,
   unsigned32              *st
 )
-#else
-(authn_protocol, authn_level, st)
-unsigned32              authn_protocol;
-unsigned32              *authn_level;
-unsigned32              *st;
-#endif
 {
     rpc_mgmt_inq_dflt_protect_level (authn_protocol, authn_level, st);
 }
@@ -1451,14 +1327,14 @@ unsigned32              *st;
 **  SCOPE:              PRIVATE - declared in comauth.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Initialize the auth info cache including mutexes and list head.
 **
 **  INPUTS:             none
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:           
+**  OUTPUTS:
 **
 **      status          A value indicating the return status of the routine
 **
@@ -1473,15 +1349,10 @@ unsigned32              *st;
 **--
 **/
 
-PRIVATE void rpc__auth_info_cache_init 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__auth_info_cache_init
 (
   unsigned32      *status
 )
-#else
-(status)
-unsigned32      *status;
-#endif
 {
     CODING_ERROR (status);
 
@@ -1499,14 +1370,14 @@ unsigned32      *status;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Scan a linked list of auth info structures looking for one which
 **  contains fields which match the input parameters. If and when a
 **  match is found the reference count of the auth info structure will
 **  be incremented before being returned.
 **
 **  Note that it is possible for a null server principal name to
-**  match an auth info structure if that structure also has a 
+**  match an auth info structure if that structure also has a
 **  null server principal name.
 **
 **  INPUTS:
@@ -1529,7 +1400,7 @@ unsigned32      *status;
 **
 **      A pointer to a matching auth info, NULL if none found.
 **
-**  SIDE EFFECTS:      
+**  SIDE EFFECTS:
 **
 **      If a matching auth info is found the reference count of it
 **      will have already been incremented.
@@ -1537,8 +1408,7 @@ unsigned32      *status;
 **--
 **/
 
-INTERNAL rpc_auth_info_t *rpc__auth_info_cache_lkup 
-#ifdef _DCE_PROTO_
+INTERNAL rpc_auth_info_t *rpc__auth_info_cache_lkup
 (
     unsigned_char_p_t                   server_princ_name,
     rpc_authn_level_t                   authn_level,
@@ -1546,14 +1416,6 @@ INTERNAL rpc_auth_info_t *rpc__auth_info_cache_lkup
     rpc_authz_protocol_id_t             authz_protocol,
     rpc_authn_protocol_id_t             authn_protocol
 )
-#else
-(server_princ_name, authn_level, auth_identity, authz_protocol, authn_protocol)
-unsigned_char_p_t                   server_princ_name;
-rpc_authn_level_t                   authn_level;
-rpc_auth_identity_handle_t          auth_identity;
-rpc_authz_protocol_id_t             authz_protocol;
-rpc_authn_protocol_id_t             authn_protocol;
-#endif
 {
     rpc_auth_info_t     *auth_info;
 
@@ -1573,7 +1435,7 @@ rpc_authn_protocol_id_t             authn_protocol;
               * DCE secret key authentication requires a
               * non-null server principal name for authentication.
               * We allow a null server principal name here so
-              * that this will work in the future when an 
+              * that this will work in the future when an
               * authentication service without this requirement
               * is used.
               */
@@ -1595,7 +1457,7 @@ rpc_authn_protocol_id_t             authn_protocol;
             (auth_identity == auth_info->u.auth_identity))
         {
             /*
-             * A matching auth info was found. 
+             * A matching auth info was found.
              */
             rpc__auth_info_reference (auth_info);
             break;
@@ -1615,7 +1477,7 @@ rpc_authn_protocol_id_t             authn_protocol;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Add an auth info structure to a linked list of them. The
 **  reference count of the added auth info structure will be incremented
 **  by the caller to account for its presence in the cache.
@@ -1637,20 +1499,15 @@ rpc_authn_protocol_id_t             authn_protocol;
 **  SIDE EFFECTS:       none
 **
 **      The reference count of the added auth info structure will be
-**      incremented. 
+**      incremented.
 **
 **--
 **/
 
-INTERNAL void rpc__auth_info_cache_add 
-#ifdef _DCE_PROTO_
+INTERNAL void rpc__auth_info_cache_add
 (
   rpc_auth_info_p_t auth_info
 )
-#else
-(auth_info)
-rpc_auth_info_p_t auth_info;
-#endif
 {
     assert (!auth_info->is_server);
 
@@ -1671,7 +1528,7 @@ rpc_auth_info_p_t auth_info;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Remove an auth info structure from a linked list of them. The
 **  cache's reference to the auth info structure will be released by
 **  the caller.
@@ -1679,9 +1536,9 @@ rpc_auth_info_p_t auth_info;
 **  It is assumed that the caller has already determined it is OK to
 **  remove this auth info from the cache. It is expected that the
 **  cache holds the last reference to this auth info structure at
-**  this point. 
+**  this point.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      auth_info       The auth info to be removed.
 **
@@ -1700,22 +1557,17 @@ rpc_auth_info_p_t auth_info;
 **--
 **/
 
-INTERNAL void rpc__auth_info_cache_remove 
-#ifdef _DCE_PROTO_
+INTERNAL void rpc__auth_info_cache_remove
 (
   rpc_auth_info_p_t       auth_info
 )
-#else
-(auth_info)
-rpc_auth_info_p_t       auth_info;
-#endif
 {
     char *info_type;
 
     assert (!auth_info->is_server);
 
     RPC_MUTEX_LOCK (auth_info_cache_mutex);
-    
+
     /*
      * Make sure, under the protection of the cache lock, that this
      * really should be removed from the cache.
@@ -1773,18 +1625,11 @@ rpc_auth_info_p_t       auth_info;
 
 PUBLIC void rpc_server_inq_call_attributes
 
-#ifdef _DCE_PROTO_
 (
     rpc_binding_handle_t    binding_h,
     rpc_call_attributes_t   *attributes,
     unsigned32              *st
 )
-#else
-(binding_h, attributes, st)
-rpc_binding_handle_t    binding_h;
-rpc_call_attributes_t   *attributes;
-unsigned32              *st;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_auth_info_p_t       auth_info;
@@ -1792,7 +1637,7 @@ unsigned32              *st;
 
     CODING_ERROR (st);
     RPC_VERIFY_INIT ();
-    
+
     RPC_BINDING_VALIDATE_SERVER(binding_rep, st);
     if (*st != rpc_s_ok)
         return;
@@ -1851,9 +1696,9 @@ unsigned32              *st;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Return mechanism-specific security context from a binding handle.
-**  
+**
 **  INPUTS:
 **
 **      h               RPC binding handle
@@ -1863,7 +1708,7 @@ unsigned32              *st;
 **  OUTPUTS:
 **
 **      authn_protocol  Authentication level
-**  
+**
 **      sec_context     Security context
 **
 **      status          A value indicating the return status of the routine
@@ -1882,26 +1727,18 @@ unsigned32              *st;
 **/
 
 PUBLIC void rpc_binding_inq_security_context
-#ifdef _DCE_PROTO_
 (
     rpc_binding_handle_t    binding_h,
-    unsigned32              *authn_protocol,  
+    unsigned32              *authn_protocol,
     void                    **mech_context,
     unsigned32              *st
     )
-#else
-(binding_h, authn_protocol, mech_context, st)
-rpc_binding_handle_t    binding_h;
-unsigned32              *authn_protocol;  
-void                    **mech_context;
-unsigned32              *st;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_auth_info_p_t       auth_info;
 
-    CODING_ERROR (st);  
-    RPC_VERIFY_INIT (); 
+    CODING_ERROR (st);
+    RPC_VERIFY_INIT ();
 
     *authn_protocol = rpc_c_authn_none;
     *mech_context = NULL;

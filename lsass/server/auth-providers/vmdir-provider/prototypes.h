@@ -11,68 +11,78 @@ VmDirGetBindProtocol(
 
 DWORD
 VmDirCreateBindInfo(
-	PVMDIR_BIND_INFO* ppBindInfo
-	);
+    PVMDIR_BIND_INFO* ppBindInfo
+    );
+
+DWORD
+VmDirCreateBindInfoPassword(
+    PSTR *ppszPassword
+    );
 
 PVMDIR_BIND_INFO
 VmDirAcquireBindInfo(
-	PVMDIR_BIND_INFO pBindInfo
-	);
+    PVMDIR_BIND_INFO pBindInfo
+    );
 
 VOID
 VmDirReleaseBindInfo(
-	PVMDIR_BIND_INFO pBindInfo
-	);
+    PVMDIR_BIND_INFO pBindInfo
+    );
+
+DWORD
+VmDirGetCacheEntryExpiry(
+    DWORD *pdwCacheEntryExpiry
+    );
 
 // ldap.c
 
 DWORD
 VmDirLdapInitialize(
-	PCSTR            pszURI,
-	PCSTR            pszUPN,
-	PCSTR            pszPassword,
-        PCSTR            pszCachePath,
-	LDAP**           ppLd
-	);
+    PCSTR            pszURI,
+    PCSTR            pszUPN,
+    PCSTR            pszPassword,
+    PCSTR            pszCachePath,
+    LDAP**           ppLd
+    );
 
 DWORD
 VmDirLdapQuerySingleObject(
-	LDAP*         pLd,
-	PCSTR         pszBaseDN,
-	int           scope,
-	PCSTR         pszFilter,
-	char**        attrs,
-	LDAPMessage** ppMessage
-	);
+    LDAP*         pLd,
+    PCSTR         pszBaseDN,
+    int           scope,
+    PCSTR         pszFilter,
+    char**        attrs,
+    LDAPMessage** ppMessage
+    );
 
 DWORD
 VmDirLdapQueryObjects(
-	LDAP*         pLd,
-	PCSTR         pszBaseDN,
-	int           scope,
-	PCSTR         pszFilter,
-	char**        attrs,
-	int           sizeLimit,
-	LDAPMessage** ppMessage
-	);
+    LDAP*         pLd,
+    PCSTR         pszBaseDN,
+    int           scope,
+    PCSTR         pszFilter,
+    char**        attrs,
+    int           sizeLimit,
+    LDAPMessage** ppMessage
+    );
 
 DWORD
 VmDirLdapGetValues(
-	LDAP*        pLd,
-	LDAPMessage* pMessage,
-	PVMDIR_ATTR  pValueArray,
-	DWORD        dwNumValues
-	);
+    LDAP*        pLd,
+    LDAPMessage* pMessage,
+    PVMDIR_ATTR  pValueArray,
+    DWORD        dwNumValues
+    );
 
 VOID
 VmDirLdapFreeMessage(
-	LDAPMessage* pMessage
-	);
+    LDAPMessage* pMessage
+    );
 
 VOID
 VmDirLdapClose(
-	LDAP* pLd
-	);
+    LDAP* pLd
+    );
 
 // lock.c
 
@@ -377,70 +387,70 @@ VmDirMatchesDomain(
 
 DWORD
 VmDirFindUserByName(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     PCSTR                 pszLoginId,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirFindUserById(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     uid_t                 uid,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirFindUserBySID(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     PCSTR                 pszSID,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirFindGroupByName(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     PCSTR                 pszGroupName,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirFindGroupById(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     gid_t                 gid,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirFindGroupBySID(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     PCSTR                 pszSID,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirFindDomainSID(
-	PVMDIR_DIR_CONTEXT pDirContext,
-	PSTR*              ppszDomainSID
-	);
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PSTR*              ppszDomainSID
+    );
 
 DWORD
 VmDirFindObjectBySID(
-	PVMDIR_DIR_CONTEXT    pDirContext,
+    PVMDIR_DIR_CONTEXT    pDirContext,
     PCSTR                 pszSID,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
 VmDirCreateUserEnumHandle(
-	PVMDIR_DIR_CONTEXT  pDirContext,
-	PVMDIR_ENUM_HANDLE* ppEnumHandle
-	);
+    PVMDIR_DIR_CONTEXT  pDirContext,
+    PVMDIR_ENUM_HANDLE* ppEnumHandle
+    );
 
 DWORD
 VmDirCreateGroupEnumHandle(
-	PVMDIR_DIR_CONTEXT  pDirContext,
-	PVMDIR_ENUM_HANDLE* ppEnumHandle
-	);
+    PVMDIR_DIR_CONTEXT  pDirContext,
+    PVMDIR_ENUM_HANDLE* ppEnumHandle
+    );
 
 DWORD
 VmDirRepositoryEnumObjects(
@@ -452,7 +462,7 @@ VmDirRepositoryEnumObjects(
 
 DWORD
 VmDirInitEnumMembersHandle(
-	PVMDIR_DIR_CONTEXT  pDirContext,
+    PVMDIR_DIR_CONTEXT  pDirContext,
     PCSTR               pszSid,
     PVMDIR_ENUM_HANDLE* ppEnumHandle
     );
@@ -467,28 +477,28 @@ VmDirRepositoryEnumMembers(
 
 DWORD
 VmDirFindMemberships(
-	PVMDIR_DIR_CONTEXT pDirContext,
+    PVMDIR_DIR_CONTEXT pDirContext,
     PCSTR              pszSid,
     PLW_HASH_TABLE     pGroupSidTable
     );
 
 DWORD
 VmDirFindSidForDN(
-	PVMDIR_DIR_CONTEXT pDirContext,
-	PCSTR              pszDN,
-	PSTR*              ppszSid
-	);
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PCSTR              pszDN,
+    PSTR*              ppszSid
+    );
 
 DWORD
 VmDirRepositoryVerifyPassword(
-	PVMDIR_DIR_CONTEXT pDirContext,
-	PCSTR              pszUPN,
-	PCSTR              pszPassword
-	);
+    PVMDIR_DIR_CONTEXT pDirContext,
+    PCSTR              pszUPN,
+    PCSTR              pszPassword
+    );
 
 DWORD
 VmDirRepositoryChangePassword(
-	PVMDIR_DIR_CONTEXT pDirContext,
+    PVMDIR_DIR_CONTEXT pDirContext,
     PCSTR              pszUPN,
     PCSTR              pszNewPassword,
     PCSTR              pszOldPassword
@@ -505,26 +515,26 @@ VmDirCrackLoginId(
 
 DWORD
 VmDirGetBindInfo(
-	PVMDIR_BIND_INFO* ppBindInfo
-	);
+    PVMDIR_BIND_INFO* ppBindInfo
+    );
 
 DWORD
 VmDirGetDomainFromDN(
-	PCSTR pszDN,
-	PSTR* ppszDomain
-	);
+    PCSTR pszDN,
+    PSTR* ppszDomain
+    );
 
 DWORD
 VmDirGetDefaultSearchBase(
-	PCSTR pszBindDN,
-	PSTR* ppszSearchBase
-	);
+    PCSTR pszBindDN,
+    PSTR* ppszSearchBase
+    );
 
 DWORD
 VmDirGetRID(
-	PCSTR  pszObjectSid,
-	PDWORD pdwRID
-	);
+    PCSTR  pszObjectSid,
+    PDWORD pdwRID
+    );
 
 DWORD
 VmDirGetRIDFromUID(
@@ -539,4 +549,9 @@ VmDirInitializeUserLoginCredentials(
     IN uid_t uid,
     IN gid_t gid,
     OUT PDWORD pdwGoodUntilTime
+    );
+
+VOID
+InitializeMemCacheProvider(
+    OUT PVMCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
     );

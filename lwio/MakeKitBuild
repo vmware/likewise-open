@@ -183,6 +183,10 @@ configure()
         mk_output_file "etc/lwiod.reg"
     fi
 
+    if [ "$LW_BUILD_ESX" = "1" ]; then
+        mk_define LW_BUILD_ESX
+    fi
+
     mk_output_file etc/rdr.reg
     mk_output_file etc/npfs.reg
     mk_output_file etc/srv.reg

@@ -70,6 +70,7 @@ auth_getpwent (
 {
     /* VARIABLES */
     struct passwd *pw;			/* pointer to passwd file entry */
+    char *crpt_passwd;
     /* END VARIABLES */
   
     pw = getpwnam(login);
@@ -79,7 +80,7 @@ auth_getpwent (
 	RETURN("NO");
     }
 
-    if (strcmp(pw->pw_passwd, (const char *)crypt(password, pw->pw_passwd))) {
+    if (!(crpt_passwd = crypt(password, pw->pw_passwd)) || strcmp(pw->pw_passwd, (const char *)crpt_passwd)) {
 	RETURN("NO");
     }
 

@@ -969,12 +969,19 @@ RdrSocketTaskConnect(
             }
 
             /* Create socket */
+            err = 0;
             pSocket->fd = socket(pf, SOCK_STREAM, IPPROTO_TCP);
 
             if (pSocket->fd < 0)
             {
+                err = errno;
                 status = ErrnoToNtStatus(errno);
-                /* Treat error non-fatally and try again */
+                LWIO_LOG_ERROR("Socket Creation failed, Error: %d", err);
+                /* Treat error non-fatally except for EAFNOSUPPORT and try again */
+                if (err == EAFNOSUPPORT)
+                {
+                    pSocket->AddressIndex++;
+                }
                 continue;
             }
 

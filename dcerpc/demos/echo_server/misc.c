@@ -6,9 +6,15 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <compat/dcerpc.h>
-#include "misc.h"
 #include <stdlib.h>
+#include <dce/nbase.h>
+#include <dce/dce_error.h>
+
+#ifdef _WIN32 /* needed for exit() prototype */
+#include <process.h>
+#endif
+#include "misc.h"
+
 
 void 
 chk_dce_err(

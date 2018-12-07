@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -44,12 +44,12 @@ dcethread_getprio(dcethread* thread)
 {
     int policy;
     struct sched_param sp;
-    
+
     if (dcethread__set_errno(pthread_getschedparam(thread->pthread, &policy, &sp)))
     {
 	return -1;
     }
-    
+
     return sp.sched_priority;
 }
 

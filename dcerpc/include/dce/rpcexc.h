@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1993 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1993 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1993 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -53,7 +53,7 @@
 
 #include <dce/dcethread.h>
 
-#ifndef HAS_GLOBALDEFS 
+#ifndef HAS_GLOBALDEFS
 #define RPC_EXTERN_EXCEPTION extern dcethread_exc
 #else
 #define RPC_EXTERN_EXCEPTION globalref dcethread_exc

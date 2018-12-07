@@ -8,6 +8,7 @@
 int dcethread__set_errno(int err);
 
 #define DCETHREAD_BEGIN_SYSCALL \
+DCETHREAD_TRACE("DCETHREAD_BEGIN_SYSCALL: file=%s line=%d", __FILE__, __LINE__); \
     do                                                                  \
     {                                                                   \
         if (dcethread__begin_block (dcethread__self(), NULL, NULL, NULL, NULL)) \
@@ -16,8 +17,9 @@ int dcethread__set_errno(int err);
             return dcethread__set_errno(EINTR);                         \
         }                                                               \
     } while (0)
-        
+
 #define DCETHREAD_END_SYSCALL                                           \
+DCETHREAD_TRACE("DCETHREAD_END_SYSCALL: file=%s line=%d", __FILE__, __LINE__); \
     do                                                                  \
     {                                                                   \
         if (dcethread__end_block (dcethread__self(), NULL, NULL))       \
@@ -48,5 +50,5 @@ int dcethread__set_errno(int err);
 	    dcethread__exc_raise(dcethread__exc_from_errno(errno), __FILE__, __LINE__); \
 	return ret;							\
     } while (0);							\
-	      
+	
 #endif

@@ -1,0 +1,20 @@
+mydir=plugins$(S)authdata$(S)vmpac
+BUILDTOP=$(REL)..$(S)..$(S)..
+
+LIBBASE=vmpac
+LIBMAJOR=0
+LIBMINOR=0
+SHLIB_EXPDEPS = $(TOPLIBD)/libk5crypto$(SHLIBEXT) \
+	$(TOPLIBD)/libkrb5$(SHLIBEXT)
+SHLIB_EXPLIBS= -lkrb5 -lcom_err -lk5crypto $(SUPPORT_LIB) $(LIBS)
+STLIBOBJS= vmpac_plugin.o
+
+SRCS=	vmpac_plugin.c
+
+all-unix:: all-libs
+install-unix::
+clean-unix:: clean-libs clean-libobjs
+
+@libnover_frag@
+@libobj_frag@
+

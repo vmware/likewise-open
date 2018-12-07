@@ -1,6 +1,6 @@
 #if 0 /* This module isn't used at all */
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -17,7 +17,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -29,7 +29,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -60,41 +60,45 @@
  *  Internal prototypes and typedefs.
  */
 
-typedef boolean (*enumerate_fn_p_t) _DCE_PROTOTYPE_ ((
+typedef boolean (*enumerate_fn_p_t)(
         int                     /* in  */  /*desc*/,
         struct ifreq            /* in  */ * /*ifr*/,
         unsigned32              /* in  */  /*if_flags*/,
         struct sockaddr         /* in  */ * /*if_addr*/,
         rpc_ip_addr_p_t         /* out */  /*ip_addr*/,
         rpc_ip_addr_p_t         /* out */  /*netmask_addr*/
-    ));
+    
+    );
 
-INTERNAL void enumerate_interfaces _DCE_PROTOTYPE_ ((
+INTERNAL void enumerate_interfaces(
         rpc_protseq_id_t         /*protseq_id*/,
         rpc_socket_t             /*desc*/,
         enumerate_fn_p_t         /*efun*/,
         rpc_addr_vector_p_t     * /*rpc_addr_vec*/,
         rpc_addr_vector_p_t     * /*netmask_addr_vec*/,
         unsigned32              * /*st*/
-    ));
+    
+    );
 
-INTERNAL boolean get_addr _DCE_PROTOTYPE_ ((
+INTERNAL boolean get_addr(
         int                      /*desc*/,
         struct ifreq            * /*ifr*/,
         unsigned32               /*if_flags*/,
         struct sockaddr         * /*if_addr*/,
         rpc_ip_addr_p_t          /*ip_addr*/,
         rpc_ip_addr_p_t          /*netmask_addr*/
-    ));                            
+    
+    );
 
-INTERNAL boolean get_broadcast_addr _DCE_PROTOTYPE_ ((
+INTERNAL boolean get_broadcast_addr(
         int                      /*desc*/,
         struct ifreq            * /*ifr*/,
         unsigned32               /*if_flags*/,
         struct sockaddr         * /*if_addr*/,
         rpc_ip_addr_p_t          /*ip_addr*/,
         rpc_ip_addr_p_t          /*netmask_addr*/
-    ));
+    
+    );
 
 #ifndef NO_SPRINTF
 #  define RPC__IP_NETWORK_SPRINTF   sprintf
@@ -117,12 +121,12 @@ INTERNAL rpc_ip_s_addr_vector_p_t local_ip_addr_vec = NULL;
 /*
 **++
 **
-**  ROUTINE NAME:       enumerate_interfaces 
+**  ROUTINE NAME:       enumerate_interfaces
 **
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a vector of IP RPC addresses.  Note that this function is
 **  shared by both "rpc__ip_desc_inq_addr" and "rpc__ip_get_broadcast"
 **  so that we have to have only one copy of all the gore (ioctl's)
@@ -130,7 +134,7 @@ INTERNAL rpc_ip_s_addr_vector_p_t local_ip_addr_vec = NULL;
 **  filters out all network interface information that doesn't correspond
 **  to up, non-loopback, IP-addressed network interfaces.  The supplied
 **  procedure pointer (efun) does the rest of the work.
-**  
+**
 **
 **  INPUTS:
 **
@@ -174,8 +178,7 @@ INTERNAL rpc_ip_s_addr_vector_p_t local_ip_addr_vec = NULL;
  */
 #endif
 
-INTERNAL void enumerate_interfaces 
-#ifdef _DCE_PROTO_
+INTERNAL void enumerate_interfaces
 (
     rpc_protseq_id_t        protseq_id,
     rpc_socket_t            desc,
@@ -184,15 +187,6 @@ INTERNAL void enumerate_interfaces
     rpc_addr_vector_p_t     *netmask_addr_vec,
     unsigned32              *status
 )
-#else
-(protseq_id, desc, efun, rpc_addr_vec, netmask_addr_vec, status)
-rpc_protseq_id_t        protseq_id;
-rpc_socket_t            desc;
-enumerate_fn_p_t        efun;
-rpc_addr_vector_p_t     *rpc_addr_vec;
-rpc_addr_vector_p_t     *netmask_addr_vec;
-unsigned32              *status;
-#endif
 {
     rpc_ip_addr_p_t         ip_addr;
     int                     n_ifs;
@@ -219,7 +213,7 @@ unsigned32              *status;
     ifc.ifc_buf = (caddr_t) buf;
 
 ifconf_again:
-    if (ioctl (desc, (int) SIOCGIFCONF, (caddr_t) &ifc) < 0) 
+    if (ioctl (desc, (int) SIOCGIFCONF, (caddr_t) &ifc) < 0)
     {
         if (errno == EINTR)
         {
@@ -230,7 +224,7 @@ ifconf_again:
     }
 
     /*
-     * Figure out how many interfaces there must be and allocate an  
+     * Figure out how many interfaces there must be and allocate an
      * RPC address vector with the appropriate number of elements.
      * (We may ask for a few too many in case some of the interfaces
      * are uninteresting.)
@@ -264,7 +258,7 @@ ifconf_again:
         (sizeof **rpc_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
         RPC_C_MEM_RPC_ADDR_VEC,
         RPC_C_MEM_WAITOK);
-    
+
     if (*rpc_addr_vec == NULL)
     {
         *status = rpc_s_no_memory;
@@ -278,7 +272,7 @@ ifconf_again:
          (sizeof **netmask_addr_vec) + ((n_ifs - 1) * (sizeof (rpc_addr_p_t))),
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
-        
+
         if (*netmask_addr_vec == NULL)
         {
             *status = rpc_s_no_memory;
@@ -312,7 +306,7 @@ ifconf_again:
          * at a time.)
          */
         memcpy(&ifreq, ifr, sizeof(ifreq));
-ifflags_again:        
+ifflags_again:
         if (ioctl(desc, SIOCGIFFLAGS, &ifreq) < 0)
         {
             RPC_DBG_PRINTF(rpc_e_dbg_general, 10,
@@ -326,8 +320,8 @@ ifflags_again:
         if_flags = ifreq.ifr_flags;     /* Copy out the flags */
         RPC_DBG_PRINTF(rpc_e_dbg_general, 10, ("flags are %x\n", if_flags));
 
-        /* 
-         * Ignore interfaces which are not 'up'. 
+        /*
+         * Ignore interfaces which are not 'up'.
          */
         if ((if_flags & IFF_UP) == 0)
             continue;
@@ -407,14 +401,14 @@ ifaddr_again:
                 sizeof (rpc_ip_addr_t),
                 RPC_C_MEM_RPC_ADDR,
                 RPC_C_MEM_WAITOK);
-            
+
             if (netmask_addr == NULL)
             {
                 *status = rpc_s_no_memory;
                 RPC_MEM_FREE (ip_addr, RPC_C_MEM_RPC_ADDR);
                 goto FREE_IT;
             }
-            
+
             netmask_addr->rpc_protseq_id = protseq_id;
             netmask_addr->len            = sizeof (struct sockaddr_in);
         }
@@ -439,7 +433,7 @@ ifaddr_again:
                 = (rpc_addr_p_t) netmask_addr;
     }
 
-    if ((*rpc_addr_vec)->len == 0) 
+    if ((*rpc_addr_vec)->len == 0)
     {
         *status = -5;   /* !!! */
         goto FREE_IT;
@@ -474,7 +468,7 @@ FREE_IT:
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  This function is called from "rpc__ip_desc_inq_addr" via
 **  "enumerate_interfaces".  See comments in "enumerate_interfaces" for
 **  details.
@@ -498,7 +492,7 @@ FREE_IT:
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     
+**  FUNCTION VALUE:
 **
 **      result          true => we generated up an address for this interface
 **                      false => we didn't.
@@ -508,8 +502,7 @@ FREE_IT:
 **--
 **/
 
-INTERNAL boolean get_addr 
-#ifdef _DCE_PROTO_
+INTERNAL boolean get_addr
 (
     int                     desc,
     struct ifreq            *ifr,
@@ -518,15 +511,6 @@ INTERNAL boolean get_addr
     rpc_ip_addr_p_t         ip_addr,
     rpc_ip_addr_p_t         netmask_addr
 )
-#else
-(desc, ifr, if_flags, if_addr, ip_addr, netmask_addr)
-int                     desc;
-struct ifreq            *ifr;
-unsigned32              if_flags;
-struct sockaddr         *if_addr;
-rpc_ip_addr_p_t         ip_addr;
-rpc_ip_addr_p_t         netmask_addr;
-#endif
 {
     struct ifreq            ifreq;
 
@@ -549,7 +533,7 @@ rpc_ip_addr_p_t         netmask_addr;
          */
         ifreq = *ifr;
     ifnetaddr_again:
-        if (ioctl(desc, (int) SIOCGIFNETMASK, &ifreq) == -1) 
+        if (ioctl(desc, (int) SIOCGIFNETMASK, &ifreq) == -1)
         {
             if (errno == EINTR)
             {
@@ -572,7 +556,7 @@ rpc_ip_addr_p_t         netmask_addr;
 **  SCOPE:              PRIVATE - declared in ipnaf.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Receive a socket descriptor which is queried to obtain family, endpoint
 **  and network address.  If this information appears valid for an IP
 **  address,  space is allocated for an RPC address which is initialized
@@ -615,21 +599,13 @@ rpc_ip_addr_p_t         netmask_addr;
 **--
 **/
 
-PRIVATE void rpc__ip_desc_inq_addr 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__ip_desc_inq_addr
 (
     rpc_protseq_id_t        protseq_id,
     rpc_socket_t            desc,
     rpc_addr_vector_p_t     *rpc_addr_vec,
     unsigned32              *status
 )
-#else
-(protseq_id, desc, rpc_addr_vec, status)
-rpc_protseq_id_t        protseq_id;
-rpc_socket_t            desc;
-rpc_addr_vector_p_t     *rpc_addr_vec;
-unsigned32              *status;
-#endif
 {
     rpc_ip_addr_p_t         ip_addr;
     rpc_ip_addr_t           loc_ip_addr;
@@ -665,7 +641,7 @@ unsigned32              *status;
 
         if (*status != rpc_s_ok)
         {
-            return; 
+            return;
         }
         for (i = 0; i < (*rpc_addr_vec)->len; i++)
         {
@@ -693,7 +669,7 @@ unsigned32              *status;
             sizeof **rpc_addr_vec,
             RPC_C_MEM_RPC_ADDR_VEC,
             RPC_C_MEM_WAITOK);
-    
+
         if (*rpc_addr_vec == NULL)
         {
             RPC_MEM_FREE (ip_addr, RPC_C_MEM_RPC_ADDR);
@@ -721,7 +697,7 @@ unsigned32              *status;
 **  SCOPE:              INTERNAL - declared locally
 **
 **  DESCRIPTION:
-**      
+**
 **  This function is called from "rpc__ip_get_broadcast" via
 **  "enumerate_interfaces".  See comments in "enumerate_interfaces" for
 **  details.
@@ -753,8 +729,7 @@ unsigned32              *status;
 **--
 **/
 
-INTERNAL boolean get_broadcast_addr 
-#ifdef _DCE_PROTO_
+INTERNAL boolean get_broadcast_addr
 (
     int                     desc,
     struct ifreq            *ifr,
@@ -763,15 +738,6 @@ INTERNAL boolean get_broadcast_addr
     rpc_ip_addr_p_t         ip_addr,
     rpc_ip_addr_p_t         netmask_addr
 )
-#else
-(desc, ifr, if_flags, if_addr, ip_addr, netmask_addr)
-int                     desc;
-struct ifreq            *ifr;
-unsigned32              if_flags;
-struct sockaddr         *if_addr;
-rpc_ip_addr_p_t         ip_addr;
-rpc_ip_addr_p_t         netmask_addr;
-#endif
 {
     struct ifreq            ifreq;
 
@@ -800,7 +766,7 @@ rpc_ip_addr_p_t         netmask_addr;
      */
     ifreq = *ifr;
     ifbrdaddr_again:
-    if (ioctl(desc, (int) SIOCGIFBRDADDR, &ifreq) < 0) 
+    if (ioctl(desc, (int) SIOCGIFBRDADDR, &ifreq) < 0)
     {
         if (errno == EINTR)
         {
@@ -823,7 +789,7 @@ rpc_ip_addr_p_t         netmask_addr;
 **  SCOPE:              PRIVATE - EPV declared in ipnaf.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a vector of RPC addresses that represent all the address
 **  required so that sending on all of them results in broadcasting on
 **  all the local network interfaces.
@@ -838,7 +804,7 @@ rpc_ip_addr_p_t         netmask_addr;
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:                        
+**  OUTPUTS:
 **
 **      rpc_addr_vec
 **
@@ -855,21 +821,13 @@ rpc_ip_addr_p_t         netmask_addr;
 **--
 **/
 
-PRIVATE void rpc__ip_get_broadcast 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__ip_get_broadcast
 (
     rpc_naf_id_t            naf_id,
     rpc_protseq_id_t        protseq_id,
     rpc_addr_vector_p_t     *rpc_addr_vec,
-    unsigned32              *status 
+    unsigned32              *status
 )
-#else
-(naf_id, protseq_id, rpc_addr_vec, status)
-rpc_naf_id_t            naf_id;
-rpc_protseq_id_t        protseq_id;
-rpc_addr_vector_p_t     *rpc_addr_vec;
-unsigned32              *status; 
-#endif
 {
     int                     desc;
 
@@ -881,7 +839,7 @@ unsigned32              *status;
      */
     desc = socket(AF_INET, SOCK_DGRAM, 0);
 
-    if (desc < 0) 
+    if (desc < 0)
     {
         *status = -7;   /* !!! */
         return;
@@ -900,7 +858,7 @@ unsigned32              *status;
 **  SCOPE:              PRIVATE - declared in ipnaf.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Initialize the local address vectors.
 **
 **
@@ -908,7 +866,7 @@ unsigned32              *status;
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:                        
+**  OUTPUTS:
 **
 **      status          A value indicating the status of the routine.
 **
@@ -926,14 +884,9 @@ unsigned32              *status;
 **/
 
 PRIVATE void rpc__ip_init_local_addr_vec
-#ifdef _DCE_PROTO_
 (
     unsigned32 *status
 )
-#else
-(status)
-unsigned32 *status; 
-#endif
 {
     int                     desc;
     unsigned32              lstatus;
@@ -948,7 +901,7 @@ unsigned32 *status;
      */
     desc = socket(AF_INET, SOCK_DGRAM, 0);
 
-    if (desc < 0) 
+    if (desc < 0)
     {
         *status = rpc_s_cant_create_socket;   /* !!! */
         return;
@@ -1046,7 +999,7 @@ free_rpc_addrs:
 **  SCOPE:              PRIVATE - declared in ipnaf.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a boolean value to indicate if the given RPC address is on
 **  the same IP subnet.
 **
@@ -1057,7 +1010,7 @@ free_rpc_addrs:
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:                        
+**  OUTPUTS:
 **
 **      status          A value indicating the status of the routine.
 **
@@ -1075,16 +1028,10 @@ free_rpc_addrs:
 **--
 **/
 PRIVATE boolean32 rpc__ip_is_local_network
-#ifdef _DCE_PROTO_
 (
     rpc_addr_p_t rpc_addr,
     unsigned32   *status
 )
-#else
-(rpc_addr, status)
-rpc_addr_p_t rpc_addr;
-unsigned32   *status; 
-#endif
 {
     rpc_ip_addr_p_t         ip_addr = (rpc_ip_addr_p_t) rpc_addr;
     unsigned32              addr1;
@@ -1141,7 +1088,7 @@ unsigned32   *status;
 **  SCOPE:              PRIVATE - declared in ipnaf.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a boolean value to indicate if the given RPC address is the
 **  the local IP address.
 **
@@ -1152,7 +1099,7 @@ unsigned32   *status;
 **
 **  INPUTS/OUTPUTS:     none
 **
-**  OUTPUTS:                        
+**  OUTPUTS:
 **
 **      status          A value indicating the status of the routine.
 **
@@ -1171,16 +1118,10 @@ unsigned32   *status;
 **/
 
 PRIVATE boolean32 rpc__ip_is_local_addr
-#ifdef _DCE_PROTO_
 (
     rpc_addr_p_t rpc_addr,
     unsigned32   *status
 )
-#else
-(rpc_addr, status)
-rpc_addr_p_t rpc_addr;
-unsigned32   *status; 
-#endif
 {
     rpc_ip_addr_p_t         ip_addr = (rpc_ip_addr_p_t) rpc_addr;
     unsigned32              i;

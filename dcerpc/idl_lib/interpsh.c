@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -80,7 +80,7 @@
                                                 element which has complex type
     element_offset_vec_ptr Pointer to the start of the offset vector entries
                             for an array element of complex type
-    element_size    Size of an array element 
+    element_size    Size of an array element
     field_defn_index Index into definition vector for description of field
                                                         which has complex type
     field_defn_ptr  Pointer to description in definition vector of field
@@ -119,17 +119,11 @@
 /*                                                                            */
 /******************************************************************************/
 idl_ulong_int rpc_ss_type_size
-#ifdef IDL_PROTOTYPES
 (
-    /* [in] */  idl_byte *defn_vec_ptr, /* Pointer to start of type 
+    /* [in] */  idl_byte *defn_vec_ptr, /* Pointer to start of type
                                         specification in definition vector */
     IDL_msp_t IDL_msp
 )
-#else
-( defn_vec_ptr, IDL_msp )
-    idl_byte *defn_vec_ptr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte type;
     idl_ulong_int complex_defn_index; /* Index to description of complex type */
@@ -219,7 +213,7 @@ idl_ulong_int rpc_ss_type_size
             }
             if (type == IDL_DT_VARYING_ARRAY)
                 array_defn_ptr += dimensionality * IDL_DATA_LIMIT_PAIR_WIDTH;
-            return(array_element_count 
+            return(array_element_count
                     * rpc_ss_type_size(array_defn_ptr, IDL_msp));
         case IDL_DT_FULL_PTR:
         case IDL_DT_UNIQUE_PTR:
@@ -288,14 +282,9 @@ interpsh_apply_func_code(byte func_code, idl_long_int size)
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_clean_up
-#ifdef IDL_PROTOTYPES
 (
     IDL_ms_t *IDL_msp
 )
-#else
-( IDL_msp )
-    IDL_ms_t *IDL_msp;
-#endif
 {
     unsigned32 i;
 
@@ -315,7 +304,7 @@ void rpc_ss_ndr_clean_up
             IDL_msp->IDL_iovec.elt[i].buff_dealloc = NULL;
         }
     }
-    
+
     /* Clean up unmarshalling state */
     if (IDL_msp->IDL_elt_p != NULL)
     {
@@ -332,22 +321,14 @@ void rpc_ss_ndr_clean_up
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_Z_values_from_bounds
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  IDL_bound_pair_t *bounds_list,
     /* [in] */  idl_ulong_int dimensionality,
     /* [out] */ idl_ulong_int **p_Z_values,
     IDL_msp_t IDL_msp
 )
-#else
-( bounds_list, dimensionality, p_Z_values, IDL_msp )
-    IDL_bound_pair_t *bounds_list;
-    idl_ulong_int dimensionality;
-    idl_ulong_int **p_Z_values;
-    IDL_msp_t IDL_msp;
-#endif
 {
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     unsigned32 i;
 
     if (*p_Z_values == NULL)
@@ -375,7 +356,6 @@ void rpc_ss_Z_values_from_bounds
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_contiguous_elt
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int dimensionality,
     /* [in] */  idl_ulong_int *Z_values,
@@ -385,17 +365,6 @@ void rpc_ss_ndr_contiguous_elt
     /* [out] */ idl_ulong_int *p_element_count,
     /* [out] */ rpc_void_p_t *p_array_addr
 )
-#else
-(dimensionality, Z_values, range_list, element_size, p_contiguous,
- p_element_count, p_array_addr)
-    idl_ulong_int dimensionality;
-    idl_ulong_int *Z_values;
-    IDL_bound_pair_t *range_list;
-    idl_ulong_int element_size;
-    idl_boolean *p_contiguous;
-    idl_ulong_int *p_element_count;
-    rpc_void_p_t *p_array_addr;
-#endif
 {
     unsigned i;
     idl_ulong_int element_count;
@@ -425,7 +394,6 @@ void rpc_ss_ndr_contiguous_elt
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_arr_align_and_opt
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  IDL_mar_or_unmar_k_t marsh_or_unmar,
     /* [in] */  idl_ulong_int dimensionality ATTRIBUTE_UNUSED,
@@ -434,16 +402,6 @@ void rpc_ss_ndr_arr_align_and_opt
     /* [out] */ idl_boolean *p_optimize,
     IDL_msp_t IDL_msp
 )
-#else
-( marsh_or_unmar, dimensionality, p_base_type, defn_vec_ptr, p_optimize,
-  IDL_msp )
-    IDL_mar_or_unmar_k_t marsh_or_unmar;
-    idl_ulong_int dimensionality;
-    idl_byte *p_base_type;
-    idl_byte *defn_vec_ptr;
-    idl_boolean *p_optimize;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte base_type;
     idl_ulong_int defn_index;
@@ -703,18 +661,11 @@ void rpc_ss_ndr_arr_align_and_opt
 /*                                                                            */
 /******************************************************************************/
 idl_long_int rpc_ss_get_typed_integer
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_byte type,
     /* [in] */  rpc_void_p_t address,
     IDL_msp_t IDL_msp ATTRIBUTE_UNUSED
 )
-#else
-(type, address, IDL_msp)
-    idl_byte type;
-    rpc_void_p_t address;
-    IDL_msp_t IDL_msp;
-#endif
 {
     switch (type)
     {
@@ -742,6 +693,7 @@ idl_long_int rpc_ss_get_typed_integer
         default:
             DCETHREAD_RAISE( rpc_x_coding_error );
     }
+    return 0; /* This case will never be executed, but makes compiler happy */
 }
 
 /******************************************************************************/
@@ -750,16 +702,15 @@ idl_long_int rpc_ss_get_typed_integer
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_build_bounds_list
-#ifdef IDL_PROTOTYPES
 (
     /* [in,out] */ idl_byte **p_defn_vec_ptr,
                         /* On entry defn_vec_ptr points to bounds info */
-                        /* On exit it points at 
+                        /* On exit it points at
                                     conformant array - base type info
                                     open array - data limit info */
     /* [in] */  rpc_void_p_t array_addr,    /* NULL when building bounds list
                                                 for a conformant structure */
-    /* [in] */  rpc_void_p_t struct_addr,   /* Address of structure that array 
+    /* [in] */  rpc_void_p_t struct_addr,   /* Address of structure that array
                                    is field of. NULL if array is a parameter */
     /* [in] */  idl_ulong_int *struct_offset_vec_ptr,
                                            /*  NULL if array is a parameter */
@@ -767,19 +718,8 @@ void rpc_ss_build_bounds_list
     /* [out] */ IDL_bound_pair_t **p_bounds_list,
     IDL_msp_t IDL_msp
 )
-#else
-(p_defn_vec_ptr, array_addr, struct_addr, struct_offset_vec_ptr, dimensionality,
-  p_bounds_list, IDL_msp)
-    idl_byte **p_defn_vec_ptr;
-    rpc_void_p_t array_addr;
-    rpc_void_p_t struct_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t **p_bounds_list;
-    IDL_msp_t IDL_msp;
-#endif
 {
-    return rpc_ss_build_bounds_list_2(p_defn_vec_ptr, array_addr, struct_addr,
+    rpc_ss_build_bounds_list_2(p_defn_vec_ptr, array_addr, struct_addr,
                                       struct_offset_vec_ptr, dimensionality,
                                       NULL, p_bounds_list, IDL_msp);
 }
@@ -791,16 +731,15 @@ void rpc_ss_build_bounds_list
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_build_bounds_list_2
-#ifdef IDL_PROTOTYPES
 (
     /* [in,out] */ idl_byte **p_defn_vec_ptr,
                         /* On entry defn_vec_ptr points to bounds info */
-                        /* On exit it points at 
+                        /* On exit it points at
                                     conformant array - base type info
                                     open array - data limit info */
     /* [in] */  rpc_void_p_t array_addr,    /* NULL when building bounds list
                                                 for a conformant structure */
-    /* [in] */  rpc_void_p_t struct_addr,   /* Address of structure that array 
+    /* [in] */  rpc_void_p_t struct_addr,   /* Address of structure that array
                                    is field of. NULL if array is a parameter */
     /* [in] */  idl_ulong_int *struct_offset_vec_ptr,
                                            /*  NULL if array is a parameter */
@@ -809,18 +748,6 @@ void rpc_ss_build_bounds_list_2
     /* [out] */ IDL_bound_pair_t **p_bounds_list,
     IDL_msp_t IDL_msp
 )
-#else
-(p_defn_vec_ptr, array_addr, struct_addr, struct_offset_vec_ptr, dimensionality,
-  unmarshalled_list, p_bounds_list, IDL_msp)
-    idl_byte **p_defn_vec_ptr;
-    rpc_void_p_t array_addr;
-    rpc_void_p_t struct_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t **p_bounds_list;
-    idl_boolean *unmarshalled_list;
-    IDL_msp_t IDL_msp;
-#endif
 {
     IDL_bound_pair_t *bounds_list;
     idl_byte *defn_vec_ptr = *p_defn_vec_ptr;
@@ -895,12 +822,12 @@ void rpc_ss_build_bounds_list_2
                     /* Conformant field of conformant structure
                         has size determined by [string] */
                     array_addr = (rpc_void_p_t)((idl_byte *)struct_addr
-                                                    + *(struct_offset_vec_ptr 
+                                                    + *(struct_offset_vec_ptr
                                                             + string_field_offset));
                 }
                 if (element_size == 1)
                     bounds_list[i].upper = bounds_list[i].lower
-                                                             + strlen(array_addr);
+                                               + (idl_long_int) strlen(array_addr);
                 else
                 {
                     size = rpc_ss_strsiz( (idl_char *)array_addr, element_size );
@@ -939,7 +866,7 @@ void rpc_ss_build_bounds_list_2
                 {
                     size = rpc_ss_get_typed_integer( bound_type, bound_addr,
                                                         IDL_msp );
-    
+
                     bounds_list[i].upper = bounds_list[i].lower +
                              interpsh_apply_func_code(func_code, size) - 1;
                 }
@@ -965,7 +892,6 @@ void rpc_ss_build_bounds_list_2
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_build_range_list
-#ifdef IDL_PROTOTYPES
 (
     /* [in,out] */ idl_byte **p_defn_vec_ptr,
     /* [in] */  rpc_void_p_t array_addr,  /* Only used if [string] data limit */
@@ -979,21 +905,8 @@ void rpc_ss_build_range_list
     /* [out] */ idl_boolean *p_add_null,
     IDL_msp_t IDL_msp
 )
-#else
-(p_defn_vec_ptr, array_addr, struct_addr, struct_offset_vec_ptr, dimensionality,
-  bounds_list, p_range_list, p_add_null, IDL_msp)
-    idl_byte **p_defn_vec_ptr;
-    rpc_void_p_t array_addr;
-    rpc_void_p_t struct_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t *bounds_list;
-    IDL_bound_pair_t **p_range_list;
-    idl_boolean *p_add_null;
-    IDL_msp_t IDL_msp;
-#endif
 {
-    return rpc_ss_build_range_list_2(p_defn_vec_ptr, array_addr, struct_addr,
+    rpc_ss_build_range_list_2(p_defn_vec_ptr, array_addr, struct_addr,
                                      struct_offset_vec_ptr, dimensionality,
                                      bounds_list, NULL, p_range_list, p_add_null,
                                      IDL_msp);
@@ -1010,7 +923,6 @@ void rpc_ss_build_range_list
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_build_range_list_2
-#ifdef IDL_PROTOTYPES
 (
     /* [in,out] */ idl_byte **p_defn_vec_ptr,
     /* [in] */  rpc_void_p_t array_addr,  /* Only used if [string] data limit */
@@ -1025,20 +937,6 @@ void rpc_ss_build_range_list_2
     /* [out] */ idl_boolean *p_add_null,
     IDL_msp_t IDL_msp
 )
-#else
-(p_defn_vec_ptr, array_addr, struct_addr, struct_offset_vec_ptr, dimensionality,
-  bounds_list, unmrashalled_list, p_range_list, p_add_null, IDL_msp)
-    idl_byte **p_defn_vec_ptr;
-    rpc_void_p_t array_addr;
-    rpc_void_p_t struct_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t *bounds_list;
-    idl_boolean *unmarshalled_list;
-    IDL_bound_pair_t **p_range_list;
-    idl_boolean *p_add_null;
-    IDL_msp_t IDL_msp;
-#endif
 {
     IDL_bound_pair_t *range_list;
     idl_byte *defn_vec_ptr = *p_defn_vec_ptr;
@@ -1116,7 +1014,7 @@ void rpc_ss_build_range_list_2
             if (unmarshalled_list == NULL || unmarshalled_list[i])
             {
                 if (element_size == 1)
-                    data_limit = strlen(array_addr) + 1;
+                    data_limit = (idl_long_int) (strlen(array_addr) + 1);
                 else
                     data_limit = rpc_ss_strsiz( (idl_char *)array_addr,
                                                                  element_size );
@@ -1170,7 +1068,7 @@ void rpc_ss_build_range_list_2
                 else
                 {
                     range_list[i].upper = data_limit - bounds_list[i].lower + 1;
-                } 
+                }
                 if ( range_list[i].upper > (bounds_list[i].upper
                                             - bounds_list[i].lower + 1) )
                     DCETHREAD_RAISE( rpc_x_invalid_bound );
@@ -1198,7 +1096,6 @@ void rpc_ss_build_range_list_2
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_get_string_base_desc
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_byte *defn_vec_ptr, /* Pointer to DT_STRING in base type
                                         specification in definition vector */
@@ -1206,13 +1103,6 @@ void rpc_ss_get_string_base_desc
     /* [out] */ idl_ulong_int *p_array_defn_index,
     IDL_msp_t IDL_msp
 )
-#else
-( defn_vec_ptr, p_array_size, p_array_defn_index, IDL_msp )
-    idl_byte *defn_vec_ptr;
-    idl_ulong_int *p_array_size;
-    idl_ulong_int *p_array_defn_index;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *array_defn_ptr;
     idl_long_int string_lower_bound, string_upper_bound;
@@ -1238,24 +1128,15 @@ void rpc_ss_get_string_base_desc
 /*                                                                            */
 /******************************************************************************/
 idl_boolean rpc_ss_find_union_arm_defn
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */ idl_byte *defn_vec_ptr,    /* Points at first union arm defn */
     /* [in] */ idl_ulong_int arm_count,   /* Number of non-default arms */
     /* [in] */ idl_ulong_int switch_value,  /* to be matched */
     /* [out] */ idl_byte **p_arm_type_ptr,
                     /* Pointer to type part of arm with matching switch value */
-    /* [in] */ IDL_msp_t IDL_msp 
+    /* [in] */ IDL_msp_t IDL_msp
                     /* marshall state ptr needed for IDL_ARM macro */
 )
-#else
-( defn_vec_ptr, arm_count, switch_value, p_arm_type_ptr )
-    idl_byte *defn_vec_ptr;
-    idl_ulong_int arm_count;
-    idl_ulong_int switch_value;
-    idl_byte **p_arm_type_ptr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_long_int low, mid, high;         /* Element indices */
     idl_ulong_int arm_switch_value;       /* To test supplied value against */
@@ -1311,7 +1192,6 @@ idl_boolean rpc_ss_find_union_arm_defn
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_get_switch_from_data
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */ idl_ulong_int switch_index,
                 /* If union is parameter, index in param list of discriminant */
@@ -1324,16 +1204,6 @@ void rpc_ss_get_switch_from_data
     /* [out] */ idl_ulong_int *p_switch_value,
     IDL_msp_t IDL_msp
 )
-#else
-(switch_index, switch_type, struct_addr, struct_offset_vec_ptr, p_switch_value,
- IDL_msp)
-    idl_ulong_int switch_index;
-    idl_byte switch_type;
-    rpc_void_p_t struct_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    idl_ulong_int *p_switch_value;
-    IDL_msp_t IDL_msp;
-#endif
 {
     rpc_void_p_t switch_addr;
 
@@ -1353,16 +1223,10 @@ void rpc_ss_get_switch_from_data
 /*                                                                            */
 /******************************************************************************/
 idl_boolean rpc_ss_bug_1_thru_31
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */ idl_ulong_int bug_mask,
     IDL_msp_t IDL_msp
 )
-#else
-( bug_mask, IDL_msp )
-    idl_ulong_int bug_mask;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int defn_index;
@@ -1388,18 +1252,12 @@ idl_boolean rpc_ss_bug_1_thru_31
 /*                                                                            */
 /******************************************************************************/
 idl_ulong_int rpc_ss_ndr_bug_1_align
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */ idl_byte *defn_vec_ptr,     /* Points at array base type unless
                         in recursive call. In recursive call, points at defn
                         of structure field, union arm, or transmitted type */
     IDL_msp_t IDL_msp
 )
-#else
-(defn_vec_ptr, IDL_msp)
-    idl_byte *defn_vec_ptr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_ulong_int defn_index;
     idl_byte *struct_defn_ptr;
@@ -1513,7 +1371,7 @@ idl_ulong_int rpc_ss_ndr_bug_1_align
     defn_vec_ptr += 2;     /* DT_FIXED_STRUCT and properties byte */
     IDL_GET_LONG_FROM_VECTOR(defn_index, defn_vec_ptr);
     struct_defn_ptr = IDL_msp->IDL_type_vec + defn_index;
- 
+
     /* Find the last field of the structure */
     do {
         type_byte = *struct_defn_ptr;
@@ -1604,14 +1462,9 @@ idl_ulong_int rpc_ss_ndr_bug_1_align
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_type_vec_vers_check
-#ifdef IDL_PROTOTYPES
 (
     IDL_msp_t IDL_msp
 )
-#else
-( IDL_msp )
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_short_int interp_major_version, interp_minor_version;
 
@@ -1645,7 +1498,7 @@ rpc_ss_init_mem_handle(rpc_ss_mem_handle* handle)
 {
     handle->memory = NULL;
     handle->node_table = NULL;
-    
+
     handle->alloc = rpc_ss_default_alloc;
     handle->free = rpc_ss_default_free;
 }
@@ -1656,16 +1509,10 @@ rpc_ss_init_mem_handle(rpc_ss_mem_handle* handle)
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_init_marsh_state
-#ifdef IDL_PROTOTYPES
 (
     idl_byte IDL_type_vec[],
     IDL_msp_t IDL_msp
 )
-#else
-( IDL_type_vec, IDL_msp )
-    idl_byte IDL_type_vec[];
-    IDL_msp_t IDL_msp;
-#endif
 {
     rpc_ss_init_mem_handle(&IDL_msp->IDL_mem_handle);
     IDL_msp->IDL_status = error_status_ok;
@@ -1744,18 +1591,11 @@ idl_ulong_int rpc_ss_arm_switch_value
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_put_typed_integer
-#ifdef IDL_PROTOTYPES
 (
     /* in */ idl_ulong_int value,
     /* in */ idl_byte type,
     /* in */ rpc_void_p_t address
 )
-#else
-(value, type, address)
-    idl_ulong_int value;
-    idl_byte type;
-    rpc_void_p_t address;
-#endif
 {
     switch (type)
     {

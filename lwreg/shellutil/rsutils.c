@@ -2404,3 +2404,253 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+DWORD
+RegShellUtilSetSecurity(
+    HANDLE hReg,
+    PCSTR pszRootKeyName,
+    PCSTR pszDefaultKey,
+    PCSTR keyName,
+    PCSTR valueName)
+{
+    HANDLE hRegLocal = NULL;
+    HKEY hRootKey = NULL;
+    HKEY hDefaultKey = NULL;
+    PSTR pszParentPath = NULL;
+    PSTR pszSubKey = NULL;
+    DWORD dwError = 0;
+    DWORD dwOffset = 0;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor = NULL;
+    DWORD dwSecurityDescriptorLen = 0;
+    NTSTATUS ntStatus = 0;
+    BOOLEAN bIsValidSecDesc = FALSE;
+    SECURITY_INFORMATION SecInfo = 0;
+
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = HKEY_THIS_MACHINE;
+    }
+
+    /*
+     *  Key specified with leading \ is a fully-qualified path, so
+     * ignore the DefaultKey (pwd) and use only this path.
+     */
+    if (keyName && keyName[0] == '\\')
+    {
+        pszDefaultKey = NULL;
+        keyName++;
+    }
+    dwError = RegShellCanonicalizePath(pszDefaultKey,
+                                       keyName,
+                                       &pszParentPath,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_REG_ERROR(dwError);
+    if (pszParentPath[0] == '\\')
+    {
+        dwOffset++;
+    }
+
+    dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, KEY_ALL_ACCESS, &hRootKey);
+    BAIL_ON_REG_ERROR(dwError);
+    if (pszParentPath && strcmp(pszParentPath, "\\") != 0)
+    {
+        dwError = RegOpenKeyExA(
+                      hReg,
+                      hRootKey,
+                      &pszParentPath[dwOffset],
+                      0,
+                      KEY_ALL_ACCESS,
+                      &hDefaultKey);
+	BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        hDefaultKey = hRootKey;
+        hRootKey = NULL;
+    }
+
+    ntStatus = RtlAllocateSecurityDescriptorFromSddlCString(
+                   &pSecurityDescriptor,
+                   &dwSecurityDescriptorLen,
+                   valueName,
+                   SDDL_REVISION_1);
+    dwError = RegNtStatusToWin32Error(ntStatus);
+    BAIL_ON_REG_ERROR(dwError);
+
+    bIsValidSecDesc = RtlValidRelativeSecurityDescriptor(
+                          pSecurityDescriptor,
+                          dwSecurityDescriptorLen,
+                          0);
+    if (!bIsValidSecDesc)
+    {
+        dwError = STATUS_INVALID_SECURITY_DESCR;
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    ntStatus = RtlGetSecurityInformationFromSddlCString(
+                                  valueName,
+                                  &SecInfo);
+    dwError = RegNtStatusToWin32Error(ntStatus);
+    BAIL_ON_REG_ERROR(dwError);
+
+    /* Apply security descriptor to current subkey */
+    dwError = LwRegSetKeySecurity(
+                   hReg,
+                   hDefaultKey,
+                   SecInfo,
+                   pSecurityDescriptor,
+                   dwSecurityDescriptorLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+cleanup:
+    if (hDefaultKey)
+    {
+        RegCloseKey(hReg, hDefaultKey);
+    }
+    if (hRootKey)
+    {
+        RegCloseKey(hReg, hRootKey);
+    }
+    RegCloseServer(hRegLocal);
+    LWREG_SAFE_FREE_STRING(pszParentPath);
+    LWREG_SAFE_FREE_STRING(pszSubKey);
+    LWREG_SAFE_FREE_MEMORY(pSecurityDescriptor);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+RegShellUtilGetSecurity(
+    HANDLE hReg,
+    PCSTR pszRootKeyName,
+    PCSTR pszDefaultKey,
+    PCSTR keyName,
+    PSTR *ppszSecurityDescriptor)
+{
+    HANDLE hRegLocal = NULL;
+    HKEY hRootKey = NULL;
+    HKEY hDefaultKey = NULL;
+    PSTR pszParentPath = NULL;
+    PSTR pszSubKey = NULL;
+    DWORD dwError = 0;
+    DWORD dwOffset = 0;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor = NULL;
+    DWORD dwSecurityDescriptorLen = 0;
+    NTSTATUS ntStatus = 0;
+    SECURITY_INFORMATION SecInfoAll = OWNER_SECURITY_INFORMATION
+                                     |GROUP_SECURITY_INFORMATION
+                                     |DACL_SECURITY_INFORMATION
+                                     |SACL_SECURITY_INFORMATION;
+    PSTR pszSecurityDescriptor = NULL;
+
+    if (!hReg)
+    {
+        dwError = RegOpenServer(&hRegLocal);
+        BAIL_ON_REG_ERROR(dwError);
+        hReg = hRegLocal;
+    }
+
+    if (!pszRootKeyName)
+    {
+        pszRootKeyName = HKEY_THIS_MACHINE;
+    }
+
+    /*
+     *  Key specified with leading \ is a fully-qualified path, so
+     * ignore the DefaultKey (pwd) and use only this path.
+     */
+    if (keyName && keyName[0] == '\\')
+    {
+        pszDefaultKey = NULL;
+        keyName++;
+    }
+
+    dwError = RegShellCanonicalizePath(pszDefaultKey,
+                                       keyName,
+                                       &pszParentPath,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_REG_ERROR(dwError);
+    if (pszParentPath[0] == '\\')
+    {
+        dwOffset++;
+    }
+
+    dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, KEY_READ, &hRootKey);
+    BAIL_ON_REG_ERROR(dwError);
+    if (pszParentPath && strcmp(pszParentPath, "\\") != 0)
+    {
+        dwError = RegOpenKeyExA(
+                      hReg,
+                      hRootKey,
+                      &pszParentPath[dwOffset],
+                      0,
+                      KEY_READ,
+                      &hDefaultKey);
+	BAIL_ON_REG_ERROR(dwError);
+    }
+    else
+    {
+        hDefaultKey = hRootKey;
+        hRootKey = NULL;
+    }
+
+    dwSecurityDescriptorLen = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+    dwError = RegGetKeySecurity(hReg,
+                                hDefaultKey,
+                                SecInfoAll,
+                                NULL,
+                                &dwSecurityDescriptorLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegAllocateMemory(dwSecurityDescriptorLen,
+                                (PVOID)&pSecurityDescriptor);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegGetKeySecurity(hReg,
+                                hDefaultKey,
+                                SecInfoAll,
+                                pSecurityDescriptor,
+                                &dwSecurityDescriptorLen);
+    BAIL_ON_REG_ERROR(dwError);
+
+    ntStatus = RtlAllocateSddlCStringFromSecurityDescriptor(
+                      &pszSecurityDescriptor,
+                      (PSECURITY_DESCRIPTOR_RELATIVE)pSecurityDescriptor,
+                      SDDL_REVISION_1,
+                      SecInfoAll);
+    dwError = RegNtStatusToWin32Error(ntStatus);
+    BAIL_ON_REG_ERROR(dwError);
+
+    *ppszSecurityDescriptor = pszSecurityDescriptor;
+
+cleanup:
+    if (hDefaultKey)
+    {
+        RegCloseKey(hReg, hDefaultKey);
+    }
+    if (hRootKey)
+    {
+        RegCloseKey(hReg, hRootKey);
+    }
+    RegCloseServer(hRegLocal);
+    LWREG_SAFE_FREE_STRING(pszParentPath);
+    LWREG_SAFE_FREE_STRING(pszSubKey);
+    LWREG_SAFE_FREE_MEMORY(pSecurityDescriptor);
+    return dwError;
+
+error:
+    goto cleanup;
+}

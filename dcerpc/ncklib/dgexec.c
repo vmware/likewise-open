@@ -54,10 +54,11 @@
 
 /* ========================================================================= */
 
-INTERNAL void queue_mapped_reject _DCE_PROTOTYPE_ ((
+INTERNAL void queue_mapped_reject(
         rpc_dg_scall_p_t  /*scall*/,
         unsigned32        /*st*/
-    ));
+    
+    );
 
 /* ========================================================================= */
 /*
@@ -85,16 +86,10 @@ GLOBAL  rpc__dg_pre_v2_server_fn_t rpc_g_dg_pre_v2_server_call_p = NULL;
  */
 
 INTERNAL void queue_mapped_reject
-#ifdef _DCE_PROTO_
 (
     rpc_dg_scall_p_t scall,
     unsigned32 st
 )
-#else
-(scall, st)
-rpc_dg_scall_p_t scall;
-unsigned32 st;
-#endif
 {
     rpc_iovector_t iovec;
     unsigned32 tst, mst;
@@ -188,16 +183,10 @@ unsigned32 st;
  */
 
 PRIVATE void rpc__dg_execute_call
-#ifdef _DCE_PROTO_
 (
     pointer_t scall_,
     boolean32 call_was_queued ATTRIBUTE_UNUSED
 )
-#else
-(scall_, call_was_queued)
-pointer_t scall_;
-boolean32 call_was_queued;
-#endif
 {
     ndr_format_t drep;
     unsigned32 st, reject_st;

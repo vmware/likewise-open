@@ -78,6 +78,7 @@
 /*
  *  Include the Internet specific socket address
  */
+#if !defined(_WIN32)
 #if HAVE_SYS_UN_H
 #include <sys/un.h>
 #else
@@ -85,7 +86,14 @@
 #endif
 #include <sys/param.h>
 #include <netdb.h>
+#endif
 #include <ctype.h>
+
+
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 64
+#endif
+
 
 /*
 **++
@@ -136,18 +144,11 @@
 
 
 PUBLIC void twr_np_lower_flrs_from_sa
-#ifdef _DCE_PROTO_
 (
     sockaddr_p_t      sa,
     twr_p_t           *lower_flrs,
     unsigned32        *status
 )
-#else
-(sa, lower_flrs, status)
-sockaddr_p_t      sa;
-twr_p_t           *lower_flrs;
-unsigned32        *status;
-#endif
 {
     unsigned8   protocol_id[TWR_C_NUM_NP_LOWER_FLRS];
     unsigned16  id_size = TWR_C_TOWER_PROT_ID_SIZE,
@@ -193,7 +194,7 @@ unsigned32        *status;
         /* Path is relative, but do not chop off first /. */
         related_data_ptr[0] += RPC_C_NP_DIR_LEN;
     }
-    related_data_size[0] = strlen((char*) related_data_ptr[0]) + 1;
+    related_data_size[0] = (unsigned16) (strlen((char*) related_data_ptr[0]) + 1);
 
     /*
      * related_data[1] contains the NetBIOS name (eg. \\MYSERVER)
@@ -204,7 +205,7 @@ unsigned32        *status;
     hostname[MAXHOSTNAMELEN - 1] = '\0';
     for (p = &hostname[2]; *p != '\0'; p++)
         *p = toupper((int)*p);
-    related_data_size[1] = strlen(hostname) + 1;
+    related_data_size[1] = (unsigned16) (strlen(hostname) + 1);
     related_data_ptr[1] = (unsigned char*) hostname;
 
     /*
@@ -359,20 +360,12 @@ unsigned32        *status;
 **/
 
 PUBLIC void twr_np_lower_flrs_to_sa
-#ifdef _DCE_PROTO_
 (
     byte_p_t          tower_octet_string,
     sockaddr_p_t      *sa,
     unsigned32        *sa_len,
     unsigned32        *status
 )
-#else
-( tower_octet_string, sa, sa_len, status )
-byte_p_t          tower_octet_string;
-sockaddr_p_t      *sa;
-unsigned32        *sa_len;
-unsigned32        *status;
-#endif
 {
     unsigned8   id;
     byte_p_t    tower;

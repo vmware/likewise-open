@@ -21,5 +21,11 @@
 void dcethread__debug_set_callback(void (*cb) (const char*, unsigned int, int, const char*, void*), void* data);
 void dcethread__debug_printf(const char* file, unsigned int line, int level, const char* fmt, ...);
 void dcethread__default_log_callback (const char* file, unsigned int line, int level, const char* str, void* data);
+#ifdef _WIN32
+void dcethread__output_debug_string_log_callback (const char* file, unsigned int line, int level, const char* str, void* data);
+#define DCETHREAD_SIZE_T int
+#else
+#define DCETHREAD_SIZE_T size_t
+#endif
 
 #endif

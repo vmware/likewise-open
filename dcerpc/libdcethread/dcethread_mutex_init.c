@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -41,7 +41,11 @@
 int
 dcethread_mutex_init(dcethread_mutex *mutex, dcethread_mutexattr* attr)
 {
+#ifndef _WIN32
     mutex->owner = (pthread_t) -1;
+#else
+    memset((void *) &mutex->owner, -1, sizeof(mutex->owner));
+#endif
     return dcethread__set_errno(pthread_mutex_init((pthread_mutex_t*) &mutex->mutex, attr));
 }
 

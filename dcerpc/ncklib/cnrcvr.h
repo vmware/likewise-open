@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -40,6 +40,6 @@
 **
 */
 
-PRIVATE void rpc__cn_network_receiver    _DCE_PROTOTYPE_ ((rpc_cn_assoc_p_t));
+PRIVATE void rpc__cn_network_receiver   (rpc_cn_assoc_p_t);
 
 #endif /* _CNRCVR_H */

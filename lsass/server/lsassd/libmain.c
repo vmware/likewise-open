@@ -51,6 +51,7 @@
 #include "lw/base.h"
 #include "lwdscache.h"
 #include "lsasrvutils.h"
+#include <openssl/crypto.h>
 
 /* Needed for dcethread_fork() */
 #include <dce/dcethread.h>
@@ -96,6 +97,11 @@ LsaSrvRemovePidFile(
 
 #endif
 
+#ifdef LW_BUILD_ESX
+int FIPS_mode(void);
+int FIPS_mode_set(int ONOFF);
+#endif
+
 int
 lsassd_main(
     int argc,
@@ -107,6 +113,20 @@ lsassd_main(
     int notifyFd = -1;
     char notifyCode = 0;
     int ret = 0;
+
+#ifdef LW_BUILD_ESX
+    int mode = FIPS_mode(), r = 0;
+    /* Turning of FIPS mode */
+    if(mode == 1)
+    {
+      LSA_LOG_INFO("Turning FIPS off. Currently Mode is %d", mode); 
+      r = FIPS_mode_set(0);
+      if(r != 1)
+       {
+          LSA_LOG_ERROR("FIPS could not be turned off");
+       }
+    }
+#endif
 
     // Register a signal handler for program crashes such that it prints out a
     // backtrace.

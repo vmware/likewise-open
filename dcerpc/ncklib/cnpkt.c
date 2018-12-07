@@ -69,6 +69,7 @@
 #include <ndrp.h>       /* System (machine architecture) dependent definitions */
 #include <cnp.h>        /* NCA Connection private declarations */
 #include <cnpkt.h>	/* NCA Connection packet encoding */
+#include <cninline.h>
 
 /*
  * R P C _ G _ C N _ C O M M O N _ H D R
@@ -96,30 +97,34 @@ GLOBAL rpc_cn_common_hdr_t rpc_g_cn_common_hdr =
 };
 
 
-INTERNAL rpc_cn_pres_result_list_p_t unpack_port_any _DCE_PROTOTYPE_ ((
+INTERNAL rpc_cn_pres_result_list_p_t unpack_port_any(
         rpc_cn_port_any_t       * /*port_any_p*/,
         unsigned8               * /*drepp*/,
         unsigned8               * /*end_of_pkt*/,
         unsigned32              * /*st*/
-        ));
+        
+    );
 
-INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_context_list _DCE_PROTOTYPE_ ((
+INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_context_list(
         rpc_cn_pres_cont_list_p_t /*pcontp*/,
         boolean32                 /*swap*/,
         unsigned8                 * /*end_of_pkt*/,
         unsigned32                * /*st*/
-        ));
+        
+    );
 
-INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_result_list _DCE_PROTOTYPE_ ((
+INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_result_list(
         rpc_cn_pres_result_list_p_t /*presp*/,
         boolean32                   /*swap*/,
         unsigned8                   * /*end_of_pkt*/,
         unsigned32                  * /*st*/
-        ));
+        
+    );
 
-INTERNAL rpc_cn_auth_tlr_p_t unpack_versions_supported _DCE_PROTOTYPE_ ((
+INTERNAL rpc_cn_auth_tlr_p_t unpack_versions_supported(
         rpc_cn_versions_supported_p_t /*versp*/
-        ));
+        
+    );
 
 void SWAP_INPLACE_UUID
 (
@@ -192,20 +197,12 @@ void SWAP_INPLACE_SYNTAX
 **/
 
 INTERNAL rpc_cn_pres_result_list_p_t unpack_port_any
-#ifdef _DCE_PROTO_
 (
     rpc_cn_port_any_t       *port_any_p,
     unsigned8               *drepp,
     unsigned8               *end_of_pkt,
     unsigned32              *st
 )
-#else
-(port_any_p, drepp, end_of_pkt, st)
-rpc_cn_port_any_t       *port_any_p;
-unsigned8               *drepp;
-unsigned8               *end_of_pkt;
-unsigned32              *st;
-#endif
 {
     unsigned8 * string_end;
     union
@@ -295,20 +292,12 @@ unsigned32              *st;
 **/
 
 INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_context_list
-#ifdef _DCE_PROTO_
 (
     rpc_cn_pres_cont_list_p_t     pcontp,
     boolean32                     swap,
     unsigned8                     *end_of_pkt,
     unsigned32                    *st
 )
-#else
-(pcontp, swap, end_of_pkt, st)
-rpc_cn_pres_cont_list_p_t       pcontp;
-boolean32                       swap;
-unsigned8                     *end_of_pkt;
-unsigned32                    *st;
-#endif
 {
     unsigned8 n;                       /* presentation context list element
                                         * loop count */
@@ -429,20 +418,12 @@ unsigned32                    *st;
 **/
 
 INTERNAL rpc_cn_auth_tlr_p_t unpack_pres_result_list
-#ifdef _DCE_PROTO_
 (
     rpc_cn_pres_result_list_p_t presp,
     boolean32                   swap,
     unsigned8                   *end_of_pkt,
     unsigned32                  *st
 )
-#else
-(presp, swap, end_of_pkt, st)
-rpc_cn_pres_result_list_p_t     presp;
-boolean32                       swap;
-unsigned8                   *end_of_pkt;
-unsigned32                  *st;
-#endif
 {
     unsigned8 n;		/* presentation result list element loop
                                         * count */
@@ -518,14 +499,9 @@ unsigned32                  *st;
 **/
 
 INTERNAL rpc_cn_auth_tlr_p_t unpack_versions_supported
-#ifdef _DCE_PROTO_
 (
   rpc_cn_versions_supported_p_t versions_p
 )
-#else
-(versions_p)
-rpc_cn_versions_supported_p_t versions_p;
-#endif
 {
     union
     {
@@ -579,16 +555,10 @@ rpc_cn_versions_supported_p_t versions_p;
 **/
 
 INTERNAL void force_alignment
-#ifdef _DCE_PROTO_
 (
   unsigned32 boundary,
   unsigned8 **ptr
 )
-#else
-(boundary, ptr)
-unsigned32 boundary;
-unsigned8 **ptr;
-#endif
 {
     union
     {
@@ -637,14 +607,9 @@ unsigned8 **ptr;
 **/
 
 INTERNAL rpc_cn_auth_tlr_p_t end_of_stub_data
-#ifdef _DCE_PROTO_
 (
   rpc_cn_packet_p_t pkt_p
 )
-#else
-(pkt_p)
-rpc_cn_packet_p_t pkt_p;
-#endif
 {
     union
     {
@@ -683,7 +648,7 @@ rpc_cn_packet_p_t pkt_p;
 	    break;
 		default:
 			 /* FIXME */
-			 fprintf(stderr, "%s, unhandled case in switch: aborting\n", __PRETTY_FUNCTION__);
+			 fprintf(stderr, "%s, unhandled case in switch: aborting\n", "end_of_stub_data()");
 			 raise(SIGILL);
     }
 
@@ -747,16 +712,10 @@ rpc_cn_packet_p_t pkt_p;
 **/
 
 PRIVATE unsigned32 rpc__cn_unpack_hdr
-#ifdef _DCE_PROTO_
 (
     rpc_cn_packet_p_t pkt_p,
     unsigned32 data_size
 )
-#else
-(pkt_p, data_size)
-rpc_cn_packet_p_t pkt_p;
-unsigned32 data_size;
-#endif
 {
     rpc_cn_auth_tlr_p_t authp;           /* ptr to pkt authentication data */
     rpc_cn_pres_cont_list_p_t pconp;     /* ptr to pkt presentation context lists */
@@ -1051,7 +1010,7 @@ unsigned32 data_size;
                          rpc_svc_cn_pkt,
                          svc_c_sev_fatal | svc_c_action_abort,
                          rpc_m_unalign_authtrl,
-                         "rpc__cn_unpack_hdr" );
+                         "rpc__cn_unpack_hdr" ));
                     return (rpc_s_bad_pkt);
                 }
 #endif
@@ -1117,7 +1076,6 @@ unsigned32 data_size;
 **/
 
 PRIVATE void rpc__cn_pkt_format_common
-#ifdef _DCE_PROTO_
 (
   rpc_cn_packet_p_t       pkt_p,
   unsigned32              ptype,
@@ -1127,16 +1085,6 @@ PRIVATE void rpc__cn_pkt_format_common
   unsigned32              call_id,
   unsigned8               minor_version
 )
-#else
-(pkt_p, ptype, flags, frag_len, auth_len, call_id, minor_version)
-rpc_cn_packet_p_t       pkt_p;
-unsigned32              ptype;
-unsigned32              flags;
-unsigned32              frag_len;
-unsigned32              auth_len;
-unsigned32              call_id;
-unsigned8               minor_version;
-#endif
 {
     /*
      * First copy the template common packet header.
@@ -1261,14 +1209,9 @@ PRIVATE void rpc__cn_stats_print (void)
 **/
 
 PRIVATE char *rpc__cn_pkt_name
-#ifdef _DCE_PROTO_
 (
   unsigned32      ptype
 )
-#else
-(ptype)
-unsigned32      ptype;
-#endif
 {
 #ifndef DEBUG
 
@@ -1302,7 +1245,7 @@ unsigned32      ptype;
         "ORPHANED     "
     };
 
-    return((int) ptype > RPC_C_CN_PKT_MAX_TYPE ? "BOGUS PACKET TYPE" : names[(int) ptype]);
+    return((int) ptype > RPC_C_CN_PKT_MAX_TYPE ? "BOGUS PACKET TYPE" : (char *) names[(int) ptype]);
 
 #endif
 }
@@ -1385,16 +1328,10 @@ unsigned32      ptype;
 **/
 
 PRIVATE unsigned32      rpc__cn_pkt_crc_compute
-#ifdef _DCE_PROTO_
 (
   unsigned8       *block,
   unsigned32      block_len
 )
-#else
-(block, block_len)
-unsigned8       *block;
-unsigned32      block_len;
-#endif
 {
     register unsigned_char_t    *data;
     register unsigned32         c = 0;

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -51,8 +51,8 @@
 
 
 
-/* 
-** Local globals for code set registry access.  
+/*
+** Local globals for code set registry access.
 ** Code set registry is pointed by rpc_g_codesets_list.
 */
 static boolean		rpc_g_codesets_did_read;
@@ -74,16 +74,10 @@ static error_status_t	rpc_g_codesets_status;
 */
 PRIVATE
 void name_sort
-#ifdef _DCE_PROTO_
 (
-	entry_t		**codesets, 
+	entry_t		**codesets,
 	int		entry_count
 )
-#else
-(codesets, entry_count)
-	entry_t		**codesets;
-	int		entry_count;
-#endif
 {
 	int	i, j, k;
 	entry_t	*temp;
@@ -114,16 +108,10 @@ void name_sort
 */
 PRIVATE
 void priority_sort
-#ifdef _DCE_PROTO_
 (
-	entry_t		**codesets, 
+	entry_t		**codesets,
 	int		entry_count
 )
-#else
-(codesets, entry_count)
-	entry_t		**codesets; 
-	int		entry_count;
-#endif
 {
 	int	i, j, k;
 	entry_t	*temp;
@@ -155,22 +143,13 @@ void priority_sort
 */
 PRIVATE
 void c_binary_search
-#ifdef _DCE_PROTO_
 (
-	entry_t		**codesets, 
-	int		low, 
-	int		high, 
+	entry_t		**codesets,
+	int		low,
+	int		high,
 	long		key_value,
 	entry_t		**code_entry
 )
-#else
-(codesets, low, high, key_value, code_entry)
-	entry_t		**codesets;
-	int		low;
-	int		high;
-	long		key_value;
-	entry_t		**code_entry;
-#endif
 {
 	int	middle;
 	long	code1, code2;
@@ -212,22 +191,13 @@ void c_binary_search
 */
 PRIVATE
 void n_binary_search
-#ifdef _DCE_PROTO_
 (
-	entry_t		**codesets, 
-	int		low, 
-	int		high, 
+	entry_t		**codesets,
+	int		low,
+	int		high,
 	char		*key_name,
 	entry_t		**code_entry
 )
-#else
-(codesets, low, high, key_name, code_entry)
-	entry_t		**codesets;
-	int		low;
-	int		high;
-	char		*key_name;
-	entry_t		**code_entry;
-#endif
 {
 	int	middle, k;
 
@@ -268,13 +238,9 @@ void n_binary_search
 */
 PRIVATE
 rpc__codesets_really_read_file
-#ifdef _DCE_PROTO_
 (
 	void
 )
-#else
-()
-#endif
 {
 	int	i, j, k;
 	entry_t	*ep;
@@ -282,10 +248,10 @@ rpc__codesets_really_read_file
 	int	CsrFile;
 	char	*code_set_registry_file;
 
-	/* 
+	/*
 	** Open the code set registry file.  The default path is
 	** "/usr/lib/nls/csr/code_set_registry.db"
-	*/ 
+	*/
 	dce_cf_get_csrgy_filename(&code_set_registry_file, &rpc_g_codesets_status);
 	if (rpc_g_codesets_status != dce_cf_st_ok)
 	{
@@ -423,14 +389,9 @@ rpc__codesets_really_read_file
 */
 PRIVATE
 rpc__codesets_read_registry_file
-#ifdef _DCE_PROTO_
 (
 	error_status_t	*status
 )
-#else
-(status)
-	error_status_t	*status;
-#endif
 {
 	entry_t		**sort_name_codesets;
 	entry_t		**sort_name_save;
@@ -453,7 +414,7 @@ rpc__codesets_read_registry_file
 		}
 	}
 
-	/* 
+	/*
 	** Sort the code set registry file by code set name
 	**/
 	if ((sort_name_save = (entry_t **)malloc(sizeof(entry_t *) * rpc_g_codesets_entry_count)) == NULL)
@@ -473,7 +434,7 @@ rpc__codesets_read_registry_file
 	sort_name_codesets = sort_name_save;
 	name_sort(sort_name_codesets, rpc_g_codesets_entry_count);
 
-	/* 
+	/*
 	** Sort the effective code set by priority
 	**/
 	if ((sort_priority_save = (entry_t **)malloc(sizeof(entry_t *) * rpc_g_codesets_effective_count)) == NULL)
@@ -490,9 +451,9 @@ rpc__codesets_read_registry_file
 	}
 	rpc_g_codesets_sort_by_priority = sort_priority_save;
 	sort_priority_codesets = sort_priority_save;
-	priority_sort(sort_priority_codesets, rpc_g_codesets_effective_count); 
+	priority_sort(sort_priority_codesets, rpc_g_codesets_effective_count);
 
-	/* 
+	/*
 	** Allocate an array for pointers to entry_t.  Code set registry
 	** is already sorted by code set id value.
 	*/
@@ -563,9 +524,8 @@ rpc__codesets_read_registry_file
 **--
 */
 
-PUBLIC 
+PUBLIC
 void dce_cs_loc_to_rgy
-#ifdef _DCE_PROTO_
 (
 	idl_char		*local_code_set_name,
 	unsigned32		*rgy_code_set_value,
@@ -573,15 +533,6 @@ void dce_cs_loc_to_rgy
 	unsigned16		**rgy_char_sets_value,
 	error_status_t		*status
 )
-#else
-(local_code_set_name, rgy_code_set_value, rgy_char_sets_number, 
-						rgy_char_sets_value, status)
-	idl_char		*local_code_set_name;
-	unsigned32		*rgy_code_set_value;
-	unsigned16		*rgy_char_sets_number;
-	unsigned16		**rgy_char_sets_value;
-	error_status_t		*status;
-#endif
 {
 	entry_t		**epp;
 	entry_t		*found = NULL;
@@ -600,7 +551,7 @@ void dce_cs_loc_to_rgy
 	epp = rpc_g_codesets_sort_by_name;
 
 	/* binary search */
-	n_binary_search(epp, 0, rpc_g_codesets_entry_count-1, (char *)local_code_set_name, &found); 
+	n_binary_search(epp, 0, rpc_g_codesets_entry_count-1, (char *)local_code_set_name, &found);
 
 	if (found == NULL)
 	{
@@ -683,9 +634,8 @@ void dce_cs_loc_to_rgy
 **--
 */
 
-PUBLIC 
+PUBLIC
 void dce_cs_rgy_to_loc
-#ifdef _DCE_PROTO_
 (
 	unsigned32		rgy_code_set_value,
 	idl_char 		**local_code_set_name,
@@ -693,15 +643,6 @@ void dce_cs_rgy_to_loc
 	unsigned16		**rgy_char_sets_value,
 	error_status_t		*status
 )
-#else
-(rgy_code_set_value, local_code_set_name, rgy_char_sets_number, 
-						rgy_char_sets_value, status)
-	unsigned32		rgy_code_set_value;
-	idl_char 		**local_code_set_name;
-	unsigned16		*rgy_char_sets_number;
-	unsigned16		**rgy_char_sets_value;
-	error_status_t		*status;
-#endif
 {
 	entry_t		**epp;
 	entry_t		*found = NULL;
@@ -721,7 +662,7 @@ void dce_cs_rgy_to_loc
 	i = rpc_g_codesets_entry_count;
 
 	/* binary search */
-	c_binary_search(epp, 0, rpc_g_codesets_entry_count-1, rgy_code_set_value, &found); 
+	c_binary_search(epp, 0, rpc_g_codesets_entry_count-1, rgy_code_set_value, &found);
 
 	if (found == NULL)
 	{
@@ -804,20 +745,13 @@ void dce_cs_rgy_to_loc
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_rgy_get_max_bytes
-#ifdef _DCE_PROTO_
 (
 	unsigned32		tag,
 	unsigned16		*max_bytes,
 	error_status_t		*status
 )
-#else
-(tag, max_bytes, status)
-	unsigned32		tag;
-	unsigned16		*max_bytes;
-	error_status_t		*status;
-#endif
 {
 	entry_t		**epp;
 	entry_t		*found = NULL;
@@ -837,7 +771,7 @@ void rpc_rgy_get_max_bytes
 	i = rpc_g_codesets_entry_count;
 
 	/* binary search */
-	c_binary_search(epp, 0, rpc_g_codesets_entry_count-1, tag, &found); 
+	c_binary_search(epp, 0, rpc_g_codesets_entry_count-1, tag, &found);
 
 	if (found == NULL)
 	{
@@ -871,7 +805,7 @@ void rpc_rgy_get_max_bytes
 **
 **
 **  INPUTS: none
-**      
+**
 **  INPUT/OUPUTS:
 **
 **	args 		    Actually points to 'rpc_cs_codeset_i14y_data_p'
@@ -890,18 +824,12 @@ void rpc_rgy_get_max_bytes
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_rgy_get_codesets
-#ifdef _DCE_PROTO_
 (
 	rpc_codeset_mgmt_p_t	*codesets_p,
 	error_status_t		*status
 )
-#else
-(codesets_p, status)
-	rpc_codeset_mgmt_p_t	*codesets_p;
-	error_status_t		*status;
-#endif
 {
 	int             i;
 	entry_t		**epp;
@@ -921,7 +849,7 @@ void rpc_rgy_get_codesets
 	RPC_MEM_ALLOC (
 		*codesets_p,
 		rpc_codeset_mgmt_p_t,
-		sizeof(rpc_codeset_mgmt_t) + 
+		sizeof(rpc_codeset_mgmt_t) +
 		  (sizeof(rpc_cs_c_set_t) * (rpc_g_codesets_effective_count - 1)),
 		RPC_C_MEM_CDS_ATTR,
 		RPC_C_MEM_WAITOK);
@@ -942,7 +870,7 @@ void rpc_rgy_get_codesets
 		return;
 	}
 
-	/* 
+	/*
 	 * The top of the list is current locale's code set
 	 */
 	(*codesets_p)->codesets[0].c_set = current_rgy_codeset;

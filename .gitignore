@@ -5,6 +5,7 @@
 *.la
 *.lo
 .libs
+.hmake
 autom4te.cache
 config.log
 config.status

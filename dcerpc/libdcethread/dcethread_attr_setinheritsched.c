@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -43,7 +43,7 @@ int
 dcethread_attr_setinheritsched(dcethread_attr *attr, int inherit)
 {
     int old;
-    
+
     if (dcethread__set_errno(pthread_attr_getinheritsched(attr, &old)))
     {
 	return -1;

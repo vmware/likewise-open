@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -67,7 +67,7 @@ EXTERNAL rpc_dg_stats_t rpc_g_dg_stats;
 #endif /* NO_STATS */
 
 /*
- * The server boot time 
+ * The server boot time
  */
 EXTERNAL unsigned32 rpc_g_dg_server_boot_time;
 
@@ -81,7 +81,7 @@ EXTERNAL dce_uuid_t rpc_g_dg_my_cas_uuid;
 
 /*
  * The DG socket pool
- */  
+ */
 EXTERNAL rpc_dg_sock_pool_t rpc_g_dg_sock_pool;
 
 #endif /* _DGGLOB_H */

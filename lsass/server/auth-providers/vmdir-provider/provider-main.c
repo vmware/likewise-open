@@ -22,6 +22,12 @@ isValidProviderContext(
     PVMDIR_AUTH_PROVIDER_CONTEXT pContext
     );
 
+static
+VOID
+InitVmDirCacheFunctionTable(
+    PVMCACHE_PROVIDER_FUNCTION_TABLE pVmDirCacheProviderTable
+    );
+
 /**
  * Entry point to initialize the authentication provider
  *
@@ -39,6 +45,8 @@ LsaInitializeProvider(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PVMDIR_BIND_INFO pBindInfo = NULL;
+    PCSTR pszDbPath = NULL;
+    PLSA_VMDIR_PROVIDER_STATE pState = NULL;
 
     LOG_FUNC_ENTER;
 
@@ -57,6 +65,9 @@ LsaInitializeProvider(
     dwError = VmDirGetBindProtocol(&gVmDirAuthProviderGlobals.bindProtocol);
     BAIL_ON_VMDIR_ERROR(dwError);
 
+    dwError = VmDirGetCacheEntryExpiry(&gVmDirAuthProviderGlobals.dwCacheEntryExpiry);
+    BAIL_ON_VMDIR_ERROR(dwError);
+
     gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_UNSET;
     dwError = VmDirGetBindInfo(&pBindInfo);
     if (dwError == 0)
@@ -66,6 +77,7 @@ LsaInitializeProvider(
     else
     {
         gVmDirAuthProviderGlobals.joinState = VMDIR_JOIN_STATE_NOT_JOINED;
+        dwError = 0;
     }
 
     if (gVmDirAuthProviderGlobals.bindProtocol == VMDIR_BIND_PROTOCOL_KERBEROS)
@@ -74,6 +86,14 @@ LsaInitializeProvider(
                           &gVmDirAuthProviderGlobals.pRefreshContext);
         BAIL_ON_VMDIR_ERROR(dwError);
     }
+
+    InitVmDirCacheFunctionTable(gpCacheProvider);
+
+    dwError = VMCacheOpen(
+                  pszDbPath,
+                  pState,
+                  &gVmDirAuthProviderGlobals.hDb);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
     *ppszProviderName = gpszVmDirProviderName;
     *ppFunctionTable = &gVmDirProviderAPITable;
@@ -157,29 +177,29 @@ VmDirFindObjects(
                 if (objectType == LSA_OBJECT_TYPE_USER)
                 {
                     dwError2 = VmDirFindUserByName(
-                    				&pContext->dirContext,
-                    				pszKey,
-                    				&ppObjects[i]);
+                                    &pContext->dirContext,
+                                    pszKey,
+                                    &ppObjects[i]);
                 }
                 else if (objectType == LSA_OBJECT_TYPE_GROUP)
                 {
                     dwError2 = VmDirFindGroupByName(
-                    				&pContext->dirContext,
-                    				pszKey,
-                    				&ppObjects[i]);
+                                    &pContext->dirContext,
+                                    pszKey,
+                                    &ppObjects[i]);
                 }
                 else if (objectType == LSA_OBJECT_TYPE_UNDEFINED)
                 {
                     dwError2 = VmDirFindUserByName(
-                    				&pContext->dirContext,
-                    				pszKey,
-                    				&ppObjects[i]);
+                                    &pContext->dirContext,
+                                    pszKey,
+                                    &ppObjects[i]);
                     if (dwError2)
                     {
                         dwError2 = VmDirFindGroupByName(
-										&pContext->dirContext,
-										pszKey,
-										&ppObjects[i]);
+                                        &pContext->dirContext,
+                                        pszKey,
+                                        &ppObjects[i]);
                     }
                 }
 
@@ -192,35 +212,35 @@ VmDirFindObjects(
                     uid_t uid = queryList.pdwIds[i];
 
                     dwError2 = VmDirFindUserById(
-                    				&pContext->dirContext,
-                    				uid,
-                    				&ppObjects[i]);
+                                    &pContext->dirContext,
+                                    uid,
+                                    &ppObjects[i]);
                 }
                 else if (objectType == LSA_OBJECT_TYPE_GROUP)
                 {
                     gid_t gid = queryList.pdwIds[i];
 
                     dwError2 = VmDirFindGroupById(
-                    				&pContext->dirContext,
-                    				gid,
-                    				&ppObjects[i]);
+                                    &pContext->dirContext,
+                                    gid,
+                                    &ppObjects[i]);
                 }
                 else if (objectType == LSA_OBJECT_TYPE_UNDEFINED)
                 {
                     uid_t uid = queryList.pdwIds[i];
 
                     dwError2 = VmDirFindUserById(
-                    				&pContext->dirContext,
-                    				uid,
-                    				&ppObjects[i]);
+                                    &pContext->dirContext,
+                                    uid,
+                                    &ppObjects[i]);
                     if (dwError2)
                     {
                         gid_t gid = queryList.pdwIds[i];
 
                         dwError2 = VmDirFindGroupById(
-                        				&pContext->dirContext,
-                        				gid,
-                        				&ppObjects[i]);
+                                        &pContext->dirContext,
+                                        gid,
+                                        &ppObjects[i]);
                     }
                 }
 
@@ -231,9 +251,9 @@ VmDirFindObjects(
                 pszKey = queryList.ppszStrings[i];
 
                 dwError2 = VmDirFindObjectBySID(
-                				&pContext->dirContext,
-                				pszKey,
-                				&ppObjects[i]);
+                                &pContext->dirContext,
+                                pszKey,
+                                &ppObjects[i]);
                 if (dwError2 == LW_ERROR_SUCCESS)
                 {
                     switch (objectType)
@@ -333,17 +353,17 @@ VmDirOpenEnumObjects(
     {
         case LSA_OBJECT_TYPE_USER:
 
-        	dwError = VmDirCreateUserEnumHandle(
-        					&pContext->dirContext,
-        					&pEnumHandle);
+            dwError = VmDirCreateUserEnumHandle(
+                            &pContext->dirContext,
+                            &pEnumHandle);
 
             break;
 
         case LSA_OBJECT_TYPE_GROUP:
 
-        	dwError = VmDirCreateGroupEnumHandle(
-        					&pContext->dirContext,
-        					&pEnumHandle);
+            dwError = VmDirCreateGroupEnumHandle(
+                            &pContext->dirContext,
+                            &pEnumHandle);
 
             break;
 
@@ -372,7 +392,7 @@ error:
 
     if (pEnumHandle)
     {
-    	VmDirCloseEnum(pEnumHandle);
+        VmDirCloseEnum(pEnumHandle);
     }
 
     goto cleanup;
@@ -392,7 +412,7 @@ VmDirEnumObjects(
     DWORD                 dwCount = 0;
 
     if (!pEnumHandle || (pEnumHandle->type != VMDIR_ENUM_HANDLE_TYPE_OBJECTS) ||
-    	!pppObjects || !pdwObjectsCount || !dwMaxObjectsCount)
+        !pppObjects || !pdwObjectsCount || !dwMaxObjectsCount)
     {
         dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_VMDIR_ERROR(dwError);
@@ -407,10 +427,10 @@ VmDirEnumObjects(
     }
 
     dwError = VmDirRepositoryEnumObjects(
-    				pEnumHandle,
-    				dwMaxObjectsCount,
-    				&ppObjects,
-    				&dwCount);
+                    pEnumHandle,
+                    dwMaxObjectsCount,
+                    &ppObjects,
+                    &dwCount);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     *pppObjects      = ppObjects;
@@ -468,9 +488,9 @@ VmDirOpenEnumMembers(
     }
 
     dwError = VmDirInitEnumMembersHandle(
-    				&pContext->dirContext,
-    				pszSid,
-    				&pEnumHandle);
+                    &pContext->dirContext,
+                    pszSid,
+                    &pEnumHandle);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     *phEnum = pEnumHandle;
@@ -522,10 +542,10 @@ VmDirEnumMembers(
     }
 
     dwError = VmDirRepositoryEnumMembers(
-    				pEnumHandle,
-    				dwMaxMemberSidCount,
-    				&ppszMemberSids,
-    				&dwCount);
+                    pEnumHandle,
+                    dwMaxMemberSidCount,
+                    &ppszMemberSids,
+                    &dwCount);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     *pppszMemberSids = ppszMemberSids;
@@ -566,15 +586,15 @@ VmDirCloseEnum(
 
     if (pEnumHandle)
     {
-    	if (pEnumHandle->ppszDNArray)
-    	{
-    		LwFreeStringArray(pEnumHandle->ppszDNArray, pEnumHandle->dwDNCount);
-    	}
+        if (pEnumHandle->ppszDNArray)
+        {
+            LwFreeStringArray(pEnumHandle->ppszDNArray, pEnumHandle->dwDNCount);
+        }
 
         if (pEnumHandle->pSearchResult)
         {
-        	VmDirLdapFreeMessage(pEnumHandle->pSearchResult);
-        	pEnumHandle->pSearchResult = NULL;
+            VmDirLdapFreeMessage(pEnumHandle->pSearchResult);
+            pEnumHandle->pSearchResult = NULL;
         }
 
         LwFreeMemory(pEnumHandle);
@@ -631,9 +651,9 @@ VmDirQueryMemberOf(
         PSTR pszSid = ppszSids[iSid];
 
         dwError = VmDirFindMemberships(
-        				&pContext->dirContext,
-        				pszSid,
-        				pGroupSidTable);
+                        &pContext->dirContext,
+                        pszSid,
+                        pGroupSidTable);
         BAIL_ON_VMDIR_ERROR(dwError);
     }
 
@@ -692,6 +712,12 @@ error:
     if (ppszGroupSids)
     {
         LwFreeStringArray(ppszGroupSids, dwGroupSidCount);
+    }
+
+    if (dwError == LW_ERROR_LDAP_SERVER_DOWN ||
+        dwError == LW_ERROR_LDAP_INVALID_CREDENTIALS)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
     }
 
     goto cleanup;
@@ -802,6 +828,8 @@ VmDirShutdownProvider(
 
     LOG_FUNC_ENTER;
 
+    VMCacheSafeClose(&gVmDirAuthProviderGlobals.hDb);
+
     if (gVmDirAuthProviderGlobals.pRefreshContext)
     {
         VmDirStopMachineAccountRefresh(gVmDirAuthProviderGlobals.pRefreshContext);
@@ -841,7 +869,6 @@ VmDirOpenHandle(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PVMDIR_AUTH_PROVIDER_CONTEXT pContext = NULL;
-    BOOLEAN bInLock = FALSE;
 
     LOG_FUNC_ENTER;
 
@@ -867,33 +894,12 @@ VmDirOpenHandle(
 
     if (VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED)
     {
-        dwError = VmDirGetBindInfo(&pContext->dirContext.pBindInfo);
-        if (dwError == 0)
-        {
-            dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
-                                    &gVmDirAuthProviderGlobals.pRefreshContext->rwlock,
-                                    bInLock);
-            BAIL_ON_VMDIR_ERROR(dwError);
-
-            dwError = VmDirLdapInitialize(
-                                    pContext->dirContext.pBindInfo->pszURI,
-                                    pContext->dirContext.pBindInfo->pszUPN,
-                                    pContext->dirContext.pBindInfo->pszPassword,
-                                    VMDIR_KRB5_CC_NAME,
-                                    &pContext->dirContext.pLd);
-        }
-        /*
-         * Return success even when dir context initialization fails.  Each method must
-         * validate the dir context before using it.
-         */
         dwError = LW_ERROR_SUCCESS;
     }
 
     *phProvider = pContext;
 
 cleanup:
-
-    VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.pRefreshContext->rwlock, bInLock);
 
     LOG_FUNC_EXIT;
 
@@ -926,14 +932,14 @@ VmDirCloseHandle(
 
     if (pProviderContext)
     {
-    	if (pProviderContext->dirContext.pBindInfo)
-    	{
-    		VmDirReleaseBindInfo(pProviderContext->dirContext.pBindInfo);
-    	}
-    	if (pProviderContext->dirContext.pLd)
-    	{
-    		VmDirLdapClose(pProviderContext->dirContext.pLd);
-    	}
+        if (pProviderContext->dirContext.pBindInfo)
+        {
+            VmDirReleaseBindInfo(pProviderContext->dirContext.pBindInfo);
+        }
+        if (pProviderContext->dirContext.pLd)
+        {
+            VmDirLdapClose(pProviderContext->dirContext.pLd);
+        }
         if (pProviderContext->pMutex)
         {
             pthread_mutex_destroy(&pProviderContext->mutex);
@@ -1279,7 +1285,7 @@ VmDirChangePassword(
     }
 
     dwError = VmDirRepositoryChangePassword(
-    				&pContext->dirContext,
+                    &pContext->dirContext,
                     pUser->userInfo.pszUPN,
                     pszNewPassword_local,
                     pszOldPassword_local);
@@ -1674,8 +1680,8 @@ VmDirRefreshConfiguration(
     LOG_FUNC_ENTER;
 
     dwError = VMDIR_ACQUIRE_RWLOCK_EXCLUSIVE(
-    					&gVmDirAuthProviderGlobals.mutex_rw,
-    					bInLock);
+                        &gVmDirAuthProviderGlobals.mutex_rw,
+                        bInLock);
     BAIL_ON_VMDIR_ERROR(dwError);
 
     if (gVmDirAuthProviderGlobals.pBindInfo)
@@ -1841,13 +1847,19 @@ isValidProviderContext(
 {
     BOOLEAN isValid = FALSE;
 
-    if (VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED &&
-        pContext &&
-        pContext->dirContext.pBindInfo &&
-        pContext->dirContext.pLd)
+    if (pContext &&
+        VmDirGetJoinState() == VMDIR_JOIN_STATE_JOINED)
     {
         isValid = TRUE;
     }
 
     return isValid;
+}
+
+static
+VOID
+InitVmDirCacheFunctionTable(
+    PVMCACHE_PROVIDER_FUNCTION_TABLE pVmDirCacheProviderTable)
+{
+    InitializeMemCacheProvider(pVmDirCacheProviderTable);
 }

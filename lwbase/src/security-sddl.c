@@ -318,6 +318,20 @@ RtlAllocateSecurityDescriptorFromSddlCString(
                                  pszStringSecurityDescriptor);
     GOTO_CLEANUP_ON_STATUS(status);
 
+    // Check OWNER
+    if (LwRtlCStringIsNullOrEmpty(pszOwner))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    // Check GROUP
+    if (LwRtlCStringIsNullOrEmpty(pszGroup))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
     // Check to see if it is alias sddl sid-string
     // OWNER
     pszOwnerSid = RtlpSddlToSidString(pszOwner);
@@ -325,13 +339,6 @@ RtlAllocateSecurityDescriptorFromSddlCString(
     if (LwRtlCStringIsNullOrEmpty(pszOwnerSid))
     {
         pszOwnerSid = pszOwner;
-    }
-
-    // Check OWNER
-    if (LwRtlCStringIsNullOrEmpty(pszOwnerSid))
-    {
-        status = STATUS_INVALID_PARAMETER;
-        GOTO_CLEANUP_ON_STATUS(status);
     }
 
     status = RtlAllocateSidFromCString(&pOwnerSid, pszOwnerSid);
@@ -350,13 +357,6 @@ RtlAllocateSecurityDescriptorFromSddlCString(
     if (LwRtlCStringIsNullOrEmpty(pszGroupSid))
     {
         pszGroupSid = pszGroup;
-    }
-
-    // Check GROUP
-    if (LwRtlCStringIsNullOrEmpty(pszGroupSid))
-    {
-        status = STATUS_INVALID_PARAMETER;
-        GOTO_CLEANUP_ON_STATUS(status);
     }
 
     status = RtlAllocateSidFromCString(&pGroupSid, pszGroupSid);
@@ -839,7 +839,6 @@ RtlpGetSddlSidStringFromSid(
 {
     NTSTATUS status = 0;
     PSTR pszSddlSidString = NULL;
-    ULONG ulRid = 0;
     PSTR pszSid = NULL;
     // Do not free
     PCSTR pszSddlSid = NULL;
@@ -862,11 +861,8 @@ RtlpGetSddlSidStringFromSid(
     }
     else
     {
-        status = RtlGetRidSid(&ulRid,
-                              pSid);
-        GOTO_CLEANUP_ON_STATUS(status);
+        pszSddlSid = RtlpSidStringToSddl(pszSid);
 
-        pszSddlSid = RtlpRidToSddl(ulRid);
         // Exclude SDDL_EVERYONE and SDDL_CREATOR_OWNER
         // As it is handled above
         if (pszSddlSid == NULL ||
@@ -1973,6 +1969,14 @@ RtlpParseSddlAclString(
     PSTR pszTmp = NULL;
     PSTR pszstrtok_rSav = NULL;
 
+    //
+    // A DACL can have zero ACEs.
+    //
+    if (LwRtlCStringIsNullOrEmpty(pszSddlAclString))
+    {
+        GOTO_CLEANUP();
+    }
+
     status  = LwRtlCStringDuplicate(&pszSddlAclString1,
                                     pszSddlAclString);
     GOTO_CLEANUP_ON_STATUS(status);
@@ -2022,6 +2026,7 @@ cleanup:
     if (!NT_SUCCESS(status))
     {
         RtlpFreeStringArray(ppszAceStrings, sCount);
+        ppszAceStrings = NULL;
         sCount = 0;
     }
 
@@ -2267,17 +2272,28 @@ RtlpGetAclFromSddlAclString(
     PSDDL_ACE* ppSddlAces = NULL;
     PACCESS_ALLOWED_ACE pAce = NULL;
 
-
     if (LwRtlCStringIsNullOrEmpty(pszAclString))
     {
         GOTO_CLEANUP();
     }
 
-    // Obtain Dacl_flags/Sacl_flags in front of the first '('
+    //
+    // Obtain Dacl_flags/Sacl_flags. Note that there might not be any ACEs
+    // after the flags.
+    //
     pszAceBegin = strchr(pszAclString, SDDL_ACE_BEGIN_C);
-    if (pszAceBegin-pszAclString)
+    if (pszAceBegin == NULL)
     {
-        memcpy(szAclFlag, pszAclString, pszAceBegin-pszAclString);
+        //
+        // There are no ACEs, so we want to just copy the remainder of
+        // pszAclString.
+        //
+        pszAceBegin = pszAclString + strlen(pszAclString);
+    }
+
+    if (pszAceBegin - pszAclString)
+    {
+        memcpy(szAclFlag, pszAclString, pszAceBegin - pszAclString);
     }
 
     status = RtlpMapSddlControlToAclControl(szAclFlag,
@@ -2290,8 +2306,11 @@ RtlpGetAclFromSddlAclString(
                                     pszAceBegin);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RTL_ALLOCATE(&ppSddlAces, PSDDL_ACE, sizeof(*ppSddlAces) * sAceCount);
-    GOTO_CLEANUP_ON_STATUS(status);
+    if (sAceCount != 0)
+    {
+        status = RTL_ALLOCATE(&ppSddlAces, PSDDL_ACE, sizeof(*ppSddlAces) * sAceCount);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     for (sIndex = 0; sIndex < sAceCount; sIndex++)
     {

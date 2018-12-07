@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,11 +30,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  Definitions of types/constants internal to the Common Communications 
+**  Definitions of types/constants internal to the Common Communications
 **  Service component of the RPC runtime.
 **
 **
@@ -43,9 +43,7 @@
 
 /***********************************************************************/
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 #include <comprot.h>    /* Externals for Protocol Services sub-component*/
 #include <comnaf.h>     /* Externals for NAF Services sub-component     */
@@ -71,26 +69,26 @@
  *
  * The RPC Protocol ID table element structure.  An element describes
  * a single RPC Protocol.
- * 
+ *
  * The fields are:
  *
  *      prot_init       The address of an initialization routine in the
  *                      Protocol Service that will be called by rpc__init.
- * 
- *      prot_fork_handler  The address of a routine to call to handle 
+ *
+ *      prot_fork_handler  The address of a routine to call to handle
  *                      protocol specific, fork-related processing.
  *
  *      rpc_protocol_id A constant identifier for this RPC Protocol.
- *      
+ *
  *      call_epv        An entry point vector for the Call Services in
  *                      the Protocol Service.
- *      
- *      mgmt_epv        An entry point vector for the Management Services in 
+ *
+ *      mgmt_epv        An entry point vector for the Management Services in
  *                      the Protocol Service.
- *      
+ *
  *      binding_epv     An entry point vector for the Binding Services
  *                      in the Protocol Service.
- *      
+ *
  *      network_epv     An entry point vector for the Network Services
  *                      in the Protocol Service.
  */
@@ -130,11 +128,11 @@ EXTERNAL rpc_protocol_id_elt_t   rpc_g_protocol_id[];
 
 /*
  * Protocol Sequence ID Table
- * 
+ *
  * This table contains the valid combination of protocol ids
  * for upper floor 3 and the lower tower floors.
- * This table maps each combination to the appropriate 
- * RPC protocol id sequence.  
+ * This table maps each combination to the appropriate
+ * RPC protocol id sequence.
  *
  * The field num_floors provides for the number of significant
  * floors comprising the RPC protocol sequence.
@@ -167,7 +165,7 @@ EXTERNAL unsigned32 rpc_g_tower_prot_id_number;	/* number of elts in rpc_g_tower
  *
  * The Network Address Family ID table element structure.  An element
  * describes a single Network Address Family Extension.
- * 
+ *
  * The fields are:
  *
  *      naf_init        The address of an initialization routine in the
@@ -178,7 +176,7 @@ EXTERNAL unsigned32 rpc_g_tower_prot_id_number;	/* number of elts in rpc_g_tower
  *      net_if_id       A constant identifier for the network interface
  *                      type used in the NAF initialization routine (when
  *                      determining if this NAF is supported).
- *      
+ *
  *      naf_epv         An entry point vector for the NAF Service.
  */
 typedef struct
@@ -217,11 +215,11 @@ EXTERNAL rpc_naf_id_elt_t   rpc_g_naf_id[RPC_C_NAF_ID_MAX];
  * R P C _ A U T H N _ P R O T O C O L _ I D _ E L T _ T
  *
  * The RPC Authentication Protocol ID table element structure.
- * 
+ *
  * The fields are:
  *
  *      auth_init           The address of an initialization routine in the
- *                          Authentication Service that will be called by 
+ *                          Authentication Service that will be called by
  *                          rpc__init.
  *
  *      authn_protocol_id   A constant identifier for this Authentication Service.
@@ -246,7 +244,7 @@ typedef struct
 {
     rpc_auth_init_fn_t      auth_init;
     rpc_authn_protocol_id_t authn_protocol_id;
-    dce_rpc_authn_protocol_id_t 
+    dce_rpc_authn_protocol_id_t
                             dce_rpc_authn_protocol_id;
     rpc_auth_epv_t          *epv;
     rpc_auth_rpc_prot_epv_tbl_t
@@ -283,14 +281,18 @@ EXTERNAL rpc_authn_protocol_id_elt_t  rpc_g_authn_protocol_id[RPC_C_AUTHN_PROTOC
  * future.)
  */
 
+#if defined(_WIN32)
+int RPC_AUTHN_IN_RANGE(unsigned32 id);
+#else
 static inline int RPC_AUTHN_IN_RANGE(unsigned32 id)
 {
 	return (id > 0) ? (id < RPC_C_AUTHN_PROTOCOL_ID_MAX) : 0;
 }
+#endif
 	
 #define RPC_AUTHN_CHECK_SUPPORTED(id, st) \
 { \
-    if ((id) == (typeof(id))(rpc_c_authn_default)) \
+    if ((id) == (unsigned32)(rpc_c_authn_default)) \
     { \
         id = rpc_c_authn_dce_private; \
     } \
@@ -354,7 +356,7 @@ EXTERNAL dcethread_attr     rpc_g_server_dcethread_attr;
     } \
     else \
         *(st) = rpc_s_ok; \
-} 
+}
 
 /*
  * The following macros are for use by callers that want to verify
@@ -386,12 +388,13 @@ EXTERNAL dcethread_attr     rpc_g_server_dcethread_attr;
 extern "C" {
 #endif
 
-PRIVATE void rpc__if_inq_endpoint _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__if_inq_endpoint(
         rpc_if_rep_p_t          /*ifspec*/,
         rpc_protseq_id_t        /*protseq_id*/,
         unsigned_char_t         ** /*endpoint*/,
         unsigned32              * /*status*/
-    ));
+    
+    );
 
 #include <comimage.h>
 

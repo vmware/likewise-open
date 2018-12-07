@@ -47,7 +47,6 @@ typedef struct _VMDIR_BIND_INFO
 
     PSTR pszURI;
     PSTR pszUPN;
-    PSTR pszPassword;
     PSTR pszDomainFqdn;
     PSTR pszDomainShort;
     PSTR pszSearchBase;
@@ -62,10 +61,13 @@ typedef struct _VMDIR_SASL_INFO
     PCSTR pszPassword;
 } VMDIR_SASL_INFO, *PVMDIR_SASL_INFO;
 
+typedef struct _MEM_CACHE_CONNECTION LSA_CACHE_HANDLE, *PLSA_CACHE_HANDLE;
+
 typedef struct _VMDIR_DIR_CONTEXT
 {
     PVMDIR_BIND_INFO pBindInfo;
     LDAP*            pLd;
+    DWORD            dwCacheEntryExpiry;
 
 } VMDIR_DIR_CONTEXT, *PVMDIR_DIR_CONTEXT;
 
@@ -78,7 +80,7 @@ typedef struct _VMDIR_AUTH_PROVIDER_CONTEXT
     gid_t peer_gid;
     pid_t peer_pid;
 
-    VMDIR_DIR_CONTEXT  dirContext;
+    VMDIR_DIR_CONTEXT dirContext;
 
 } VMDIR_AUTH_PROVIDER_CONTEXT, *PVMDIR_AUTH_PROVIDER_CONTEXT;
 
@@ -101,6 +103,7 @@ typedef struct _VMDIR_ENUM_HANDLE
     DWORD              dwDNCount;
 
     LDAPMessage*       pSearchResult;
+    LDAPMessage*       pCurrentEntry;
     LONG64             llLastUSNChanged;
 
     int                sizeLimit;        // # objects to retrieve per query
@@ -148,6 +151,10 @@ typedef struct _VMDIR_REFRESH_CONTEXT {
     VMDIR_REFRESH_STATE state;
 } VMDIR_REFRESH_CONTEXT, *PVMDIR_REFRESH_CONTEXT;
 
+struct _LSA_DB_CONNECTION;
+typedef struct _LSA_DB_CONNECTION *LSA_DB_HANDLE;
+typedef LSA_DB_HANDLE *PLSA_DB_HANDLE;
+
 typedef struct _VMDIR_AUTH_PROVIDER_GLOBALS
 {
     pthread_rwlock_t   mutex_rw;
@@ -158,7 +165,15 @@ typedef struct _VMDIR_AUTH_PROVIDER_GLOBALS
     PVMDIR_BIND_INFO   pBindInfo;
     VMDIR_JOIN_STATE   joinState;
     PVMDIR_REFRESH_CONTEXT pRefreshContext;
+    PLSA_CACHE_HANDLE pCacheHandle;
+
+    LSA_DB_HANDLE hDb;
     
     VMDIR_BIND_PROTOCOL bindProtocol;
+    DWORD dwCacheEntryExpiry;
 
 } VMDIR_AUTH_PROVIDER_GLOBALS, *PVMDIR_AUTH_PROVIDER_GLOBALS;
+
+typedef struct _LSA_VMDIR_PROVIDER_STATE {
+    int nRefCount;
+} LSA_VMDIR_PROVIDER_STATE, *PLSA_VMDIR_PROVIDER_STATE;

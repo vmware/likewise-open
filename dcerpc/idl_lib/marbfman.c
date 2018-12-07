@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -52,18 +52,11 @@
 #endif
 
 void rpc_ss_marsh_change_buff
-#ifdef IDL_PROTOTYPES
 (
     rpc_ss_marsh_state_t    *msp,  /* Pointer to marshalling state block */
     unsigned long size_next_structure
                             /* Size of next structure to be marshalled */
 )
-#else
-( msp, size_next_structure )
-    rpc_ss_marsh_state_t    *msp;  /* Pointer to marshalling state block */
-    unsigned long size_next_structure;
-                            /* Size of next structure to be marshalled */
-#endif
 {
     ndr_byte *wp_buff;
     unsigned long req_buff_size;
@@ -79,9 +72,9 @@ void rpc_ss_marsh_change_buff
     if (msp->p_iovec->elt[0].buff_addr != NULL)
     {
         /* Despatch buffer to the comm layer */
-        msp->p_iovec->elt[0].data_len = msp->p_iovec->elt[0].buff_len
+        msp->p_iovec->elt[0].data_len = (unsigned32) (msp->p_iovec->elt[0].buff_len
               - (msp->p_iovec->elt[0].data_addr - msp->p_iovec->elt[0].buff_addr)
-                                    - msp->space_in_buff;
+                                    - msp->space_in_buff);
         rpc_call_transmit ( msp->call_h, msp->p_iovec, msp->p_st );
 
 #ifdef NO_EXCEPTIONS
@@ -123,8 +116,8 @@ void rpc_ss_marsh_change_buff
     msp->p_iovec->elt[0].data_addr = wp_buff + preserved_offset;
     /* Output parameters */
     msp->mp = (rpc_mp_t)msp->p_iovec->elt[0].data_addr;
-    msp->space_in_buff = req_buff_size -
-                 (msp->p_iovec->elt[0].data_addr - msp->p_iovec->elt[0].buff_addr);
+    msp->space_in_buff = (unsigned long) (req_buff_size -
+                 (msp->p_iovec->elt[0].data_addr - msp->p_iovec->elt[0].buff_addr));
 
 #ifdef PERFMON
     RPC_SS_MARSH_CHANGE_BUFF_X;

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -49,11 +49,13 @@
  */
 
 
-#define RPC_C_CN_DBG_AUTH_ROUTINE_TRACE 20
-#define RPC_C_CN_DBG_AUTH_PKT           7
-#define RPC_C_CN_DBG_AUTH_REFRESH       5
-#define RPC_C_CN_DBG_AUTH_BIG_PAC       3
-#define RPC_C_CN_DBG_AUTH_GENERAL       1
+enum {
+        RPC_C_CN_DBG_AUTH_ROUTINE_TRACE = 20,
+        RPC_C_CN_DBG_AUTH_PKT           = 7,
+        RPC_C_CN_DBG_AUTH_REFRESH       = 5,
+        RPC_C_CN_DBG_AUTH_BIG_PAC       = 3,
+        RPC_C_CN_DBG_AUTH_GENERAL       = 1,
+};
 
 
 /*
@@ -63,19 +65,21 @@
  * when one of the error debug levels are set.
  */
 
-#define RPC_S_CN_DBG_AUTH_FAILURE               0xdeadbeefU
-#define RPC_C_CN_DBG_AUTH_CREATE_INFO           64      /* server */
-#define RPC_C_CN_DBG_AUTH_CRED_CHANGED          65      /* client */
-#define RPC_C_CN_DBG_AUTH_FMT_CLIENT_REQ        66      /* client */
-#define RPC_C_CN_DBG_AUTH_FMT_SERVER_RESP       67      /* server */
-#define RPC_C_CN_DBG_AUTH_GET_PROT_INFO         68      /* client & server */
-#define RPC_C_CN_DBG_AUTH_PRE_CALL              69      /* client & server */
-#define RPC_C_CN_DBG_AUTH_PRE_SEND              70      /* client & server */
-#define RPC_C_CN_DBG_AUTH_RECV_CHECK            71      /* client & server */
-#define RPC_C_CN_DBG_AUTH_VFY_CLIENT_REQ        72      /* server */
-#define RPC_C_CN_DBG_AUTH_VFY_SERVER_RESP       73      /* client */
-#define RPC_C_CN_DBG_AUTH_CONTEXT_VALID         74      /* client */
-#define RPC_C_CN_DBG_AUTH_CRED_REFRESH          75      /* client */
+enum {
+        RPC_S_CN_DBG_AUTH_FAILURE             = 0xdeadbeefU,
+        RPC_C_CN_DBG_AUTH_CREATE_INFO         = 64,     /* server */
+        RPC_C_CN_DBG_AUTH_CRED_CHANGED,                 /* client */
+        RPC_C_CN_DBG_AUTH_FMT_CLIENT_REQ,               /* client */
+        RPC_C_CN_DBG_AUTH_FMT_SERVER_RESP,              /* server */
+        RPC_C_CN_DBG_AUTH_GET_PROT_INFO,                /* client & server */
+        RPC_C_CN_DBG_AUTH_PRE_CALL,                     /* client & server */
+        RPC_C_CN_DBG_AUTH_PRE_SEND,                     /* client & server */
+        RPC_C_CN_DBG_AUTH_RECV_CHECK,                   /* client & server */
+        RPC_C_CN_DBG_AUTH_VFY_CLIENT_REQ,               /* server */
+        RPC_C_CN_DBG_AUTH_VFY_SERVER_RESP,              /* client */
+        RPC_C_CN_DBG_AUTH_CONTEXT_VALID,                /* client */
+        RPC_C_CN_DBG_AUTH_CRED_REFRESH,                 /* client */
+};
 
 /*
  * NOTE: rpc_c_cn_large_frag_size must always be at least
@@ -83,7 +87,7 @@
  * an architectural requirement which is checked in cnfbuf.h.
  */
 
-#define RPC_C_CN_LARGE_FRAG_SIZE        4096
+#define RPC_C_CN_LARGE_FRAG_SIZE        (1024 * 20)
 #define RPC_C_CN_SMALL_FRAG_SIZE        256
 
 /*
@@ -99,9 +103,12 @@ typedef struct rpc_cn_auth_info_s_t
  * R P C _ C N _ S E C _ C O N T E X T _ T
  */
 
-#define RPC_C_SEC_STATE_INVALID			0
-#define RPC_C_SEC_STATE_INCOMPLETE		1
-#define RPC_C_SEC_STATE_COMPLETE		2
+enum
+{
+    RPC_C_SEC_STATE_INVALID = 0,
+    RPC_C_SEC_STATE_INCOMPLETE,
+    RPC_C_SEC_STATE_COMPLETE,
+};
 
 typedef struct rpc_cn_sec_context_s_t
 {
@@ -145,32 +152,36 @@ typedef struct rpc_cn_assoc_sec_context_s_t
 /*
  * The CN specific authentication protocol EPV.
  */
-typedef boolean32 (*rpc_cn_auth_context_valid_fn_t) _DCE_PROTOTYPE_((
+typedef boolean32 (*rpc_cn_auth_context_valid_fn_t)(
         rpc_cn_sec_context_p_t         /*  sec */,
         unsigned32                   * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_create_info_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_create_info_fn_t)(
        rpc_authn_level_t                /* authn_level */,
        rpc_auth_info_p_t                * /* auth_info */,
        unsigned32                       * /* st*/
-    ));
+    
+    );
 
-typedef boolean32 (*rpc_cn_auth_cred_changed_fn_t) _DCE_PROTOTYPE_((
+typedef boolean32 (*rpc_cn_auth_cred_changed_fn_t)(
         rpc_cn_sec_context_p_t         /*  sec */,
         unsigned32                     * /* st */
-    ));
+    
+    );
 
 /*
  * This routine is not CN specific and could be moved into the
  * protocol-independent auth interface.
  */
-typedef void (*rpc_cn_auth_cred_refresh_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_cred_refresh_fn_t)(
         rpc_auth_info_p_t              /*  auth_info */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_fmt_client_req_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_fmt_client_req_fn_t)(
         rpc_cn_assoc_sec_context_p_t      /* assoc_sec */,
         rpc_cn_sec_context_p_t            /* sec */,
         pointer_t                         /* auth_value */,
@@ -179,9 +190,10 @@ typedef void (*rpc_cn_auth_fmt_client_req_fn_t) _DCE_PROTOTYPE_((
         unsigned32                      * /* auth_len_remain */,
         unsigned32                        /* old_server */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_fmt_srvr_resp_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_fmt_srvr_resp_fn_t)(
         unsigned32                     /*  verify_st */,
         rpc_cn_assoc_sec_context_p_t   /*  assoc_sec */,
         rpc_cn_sec_context_p_t         /*  sec */,
@@ -189,37 +201,42 @@ typedef void (*rpc_cn_auth_fmt_srvr_resp_fn_t) _DCE_PROTOTYPE_((
         unsigned32                     /*  req_auth_value_len */,
         pointer_t                      /*  auth_value */,
         unsigned32                      * /* auth_value_len */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_free_prot_info_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_free_prot_info_fn_t)(
         rpc_auth_info_p_t              /*  info */,
         rpc_cn_auth_info_p_t            * /* cn_info */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_get_prot_info_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_get_prot_info_fn_t)(
         rpc_auth_info_p_t              /*  info */,
         rpc_cn_auth_info_p_t           * /* cn_info */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_pre_call_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_pre_call_fn_t)(
         rpc_cn_assoc_sec_context_p_t   /*  assoc_sec */,
         rpc_cn_sec_context_p_t         /*  sec */,
         pointer_t                      /*  auth_value */,
         unsigned32                     * /*  auth_value_len */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_pre_send_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_pre_send_fn_t)(
         rpc_cn_assoc_sec_context_p_t    /* assoc_sec */,
         rpc_cn_sec_context_p_t          /* sec */,
         rpc_socket_iovec_p_t            /* iov */,
         unsigned32                      /* iovlen */,
         rpc_socket_iovec_p_t            /* out_iov */,
         unsigned32                      *st
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_recv_check_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_recv_check_fn_t)(
         rpc_cn_assoc_sec_context_p_t    /* assoc_sec */,
         rpc_cn_sec_context_p_t          /* sec */,
         rpc_cn_common_hdr_p_t           /* pdu */,
@@ -228,38 +245,43 @@ typedef void (*rpc_cn_auth_recv_check_fn_t) _DCE_PROTOTYPE_((
         rpc_cn_auth_tlr_p_t             /* auth_tlr */,
         boolean32                       /* unpack_ints */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_tlr_uuid_crc_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_tlr_uuid_crc_fn_t)(
         pointer_t               /* auth_value */,
         unsigned32              /* auth_value_len */,
         unsigned32              * /* uuid_crc */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_tlr_unpack_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_tlr_unpack_fn_t)(
         rpc_cn_packet_p_t       /* pkt_p */,
         unsigned32              /* auth_value_len */,
         unsigned8               * /* packed_drep */
-    ));
+    
+    );
 
-typedef boolean32 (*rpc_cn_auth_three_way_fn_t) _DCE_PROTOTYPE_((void));
+typedef boolean32 (*rpc_cn_auth_three_way_fn_t)(void);
 
-typedef void (*rpc_cn_auth_vfy_client_req_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_vfy_client_req_fn_t)(
         rpc_cn_assoc_sec_context_p_t    /* assoc_sec */,
         rpc_cn_sec_context_p_t          /* sec */,
         pointer_t                       /* auth_value */,
         unsigned32                      /* auth_value_len */,
 	unsigned32		        /* old_client */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
-typedef void (*rpc_cn_auth_vfy_srvr_resp_fn_t) _DCE_PROTOTYPE_((
+typedef void (*rpc_cn_auth_vfy_srvr_resp_fn_t)(
         rpc_cn_assoc_sec_context_p_t    /* assoc_sec */,
         rpc_cn_sec_context_p_t          /* sec */,
         pointer_t                       /* auth_value */,
         unsigned32                      /* auth_value_len */,
         unsigned32                      * /* st */
-    ));
+    
+    );
 
 typedef struct rpc_cn_auth_epv_s_t
 {
@@ -281,8 +303,9 @@ typedef struct rpc_cn_auth_epv_s_t
     rpc_cn_auth_vfy_srvr_resp_fn_t      vfy_srvr_resp;
 } rpc_cn_auth_epv_t , *rpc_cn_auth_epv_p_t;
 
-PRIVATE unsigned32      rpc__cn_crc_compute _DCE_PROTOTYPE_((
+PRIVATE unsigned32      rpc__cn_crc_compute(
         unsigned8       * /* block */,
         unsigned32      /* block_len */
-    ));
+    
+    );
 #endif /* _CN_H */

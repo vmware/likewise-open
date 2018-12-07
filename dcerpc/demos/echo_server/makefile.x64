@@ -1,0 +1,25 @@
+#
+# nmake file to build echo_server IDL files for Win32
+#
+TOP = ..\..
+DCEIDL = $(TOP)\idl_compiler\win\x64\Debug\dceidl.exe
+
+IDL_OUT_INCDIR = $(PROJECT_DIR)$(PLATFORM_NAME)\include
+IDL_OUT_SRCDIR = $(PROJECT_DIR)$(PLATFORM_NAME)\src
+
+IDL_INCLUDE_DIR=$(TOP)\include
+MY_IDLFLAGS = -I$(IDL_INCLUDE_DIR) -I$(top_builddir)\include $(DCETHREADINCLUDES) -keep c_source
+
+all: $(IDL_OUT_INCDIR) $(IDL_OUT_SRCDIR) $(IDL_OUT_INCDIR)\echo.h $(IDL_OUT_SRCDIR)\echo_cstub.c $(IDL_OUT_SRCDIR)\echo_sstub.c
+
+$(IDL_OUT_INCDIR): 
+	md $(IDL_OUT_INCDIR) 
+
+$(IDL_OUT_SRCDIR):
+	md $(IDL_OUT_SRCDIR)
+
+$(IDL_OUT_INCDIR)\echo.h $(IDL_OUT_SRCDIR)\echo_sstub.c $(IDL_OUT_SRCDIR)\echo_cstub.c: $(IDL_OUT_INCDIR) $(IDL_OUT_SRCDIR) echo.idl
+	$(DCEIDL) $(IDL) $(MY_IDLFLAGS) -cstub $(IDL_OUT_SRCDIR)\echo_cstub.c -sstub $(IDL_OUT_SRCDIR)\echo_sstub.c -header $(IDL_OUT_INCDIR)\echo.h $(TOP)\demos\echo_server\echo.idl
+
+clean: $(IDL_OUT_INCDIR) $(IDL_OUT_SRCDIR) 
+	del /f $(IDL_OUT_INCDIR)\echo.h $(IDL_OUT_SRCDIR)\echo_sstub.c $(IDL_OUT_SRCDIR)\echo_cstub.c echo_server.exe > NUL 2>&1

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -46,7 +46,7 @@
 #define RPC_DCE_SVC_PRINTF(args) do {;} while (0)
 /*
  * New debug switches map to offsets in
- * rpc_g_dbg_switches in kernel.  In user 
+ * rpc_g_dbg_switches in kernel.  In user
  * space, they map to S12Y sub-components.
  */
 #define rpc_e_dbg_general rpc_es_dbg_general
@@ -165,7 +165,7 @@
  *      RPC_DBG_PRINTF(rpc_e_dbg_xmit, 3, ("Sent pkt %d", pkt_count));
  *
  * I.e. the third parameter is the argument list to "printf" and must be
- * enclosed in parens.  The macro is designed this way to allow us to 
+ * enclosed in parens.  The macro is designed this way to allow us to
  * eliminate all debug code when DEBUG is not defined.
  *
  */
@@ -174,7 +174,7 @@
  * Recoded to use serviceability debug interface ...
  *
  * Call a function that can deal with the "pargs"
- * argument and then call DCE_SVC_DEBUG ... 
+ * argument and then call DCE_SVC_DEBUG ...
  *
  * rpc__svc_fmt_dbg_msg returns a pointer to malloc()'ed
  * storage, since trying to use internal allocation
@@ -202,9 +202,6 @@
  * Format arguments and print as a serviceability
  * debug message.  (This routine is what EPRINTF
  * now evaluates to.)
- *
- * Since we need stdarg and all DCE code is now
- * supposed to be ANSI, no need for _DCE_PROTOTYPE_.
  */
 
 #include <stdarg.h>
@@ -217,14 +214,6 @@ int rpc__svc_eprintf (
 #ifdef DEBUG
 /*
  * R P C _ _ S V C _ F M T _ D B G _ MSG
- */
-
-/*
- * Requires ANSI prototype for stdargs, so no
- * point in using _DCE_PROTOTYPE_ ... DCE is
- * supposed to be pure ANSI now anyway ...
- *
- * Called only by RPC_DBG_PRINTF macro.
  */
 
 #include <stdarg.h>

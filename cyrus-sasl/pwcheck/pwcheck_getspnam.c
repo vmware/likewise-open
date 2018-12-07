@@ -30,6 +30,7 @@ extern char *crypt();
 char *pwcheck(userid, password)
 char *userid;
 char *password;
+char *crpt_passwd;
 {
     struct spwd *pwd;
 
@@ -38,7 +39,7 @@ char *password;
 	return "Userid not found";
     }
     
-    if (strcmp(pwd->sp_pwdp, crypt(password, pwd->sp_pwdp)) != 0) {
+    if (!(crpt_passwd = crypt(password, pwd->sp_pwdp)) || strcmp(pwd->sp_pwdp, (const char *)crpt_passwd) != 0) {
 	return "Incorrect password";
     }
     else {

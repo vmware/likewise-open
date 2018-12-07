@@ -6,6 +6,50 @@
 
 pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
+#ifdef _WIN32
+#include <Windows.h>
+void
+dcethread__output_debug_string_log_callback (const char* file, unsigned int line, int level, const char* str, void* data)
+{
+    const char* level_name = NULL;
+    static char *fmtbuf = NULL;
+
+    if (!fmtbuf)
+    {
+        fmtbuf = (char *) malloc(1024);
+    }
+
+    switch (level)
+    {
+    case DCETHREAD_DEBUG_ERROR:
+        level_name = "ERROR";
+        break;
+    case DCETHREAD_DEBUG_WARNING:
+        level_name = "WARNING";
+        break;
+    case DCETHREAD_DEBUG_INFO:
+        level_name = "INFO";
+        break;
+    case DCETHREAD_DEBUG_VERBOSE:
+        level_name = "VERBOSE";
+        break;
+    case DCETHREAD_DEBUG_TRACE:
+        level_name = "TRACE";
+        break;
+    default:
+        level_name = "UNKNOWN";
+        break;
+    }
+
+    pthread_mutex_lock(&log_lock);
+    _snprintf(fmtbuf, 1024, "dcethread-%s %s:%i: %s\n", level_name, file, line, str);
+    OutputDebugStringA(fmtbuf);
+    if (level == DCETHREAD_DEBUG_ERROR)
+        abort();
+    pthread_mutex_unlock(&log_lock);
+}
+#else
+
 void
 dcethread__default_log_callback (const char* file, unsigned int line, int level, const char* str, void* data)
 {
@@ -39,6 +83,7 @@ dcethread__default_log_callback (const char* file, unsigned int line, int level,
         abort();
     pthread_mutex_unlock(&log_lock);
 }
+#endif /* #ifdef _WIN32 */
 
 static void (*log_callback) (const char* file, unsigned int line, int level, const char* str, void* data) = NULL;
 static void *log_callback_data = NULL;
@@ -60,7 +105,12 @@ my_vasprintf(const char* format, va_list args)
     char* outputString = NULL;
     va_list args2;
 
+#ifndef _WIN32
     va_copy(args2, args);
+#else
+    /* TBD: Adam-This may not work properly with VS2008 */
+    args2 = args;
+#endif
 
     bufsize = 4;
     /* Use a small buffer in case libc does not like NULL */
@@ -105,7 +155,7 @@ my_vasprintf(const char* format, va_list args)
     return outputString;
 }
 
-void 
+void
 dcethread__debug_printf(const char* file, unsigned int line, int level, const char* fmt, ...)
 {
     va_list ap;

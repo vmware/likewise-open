@@ -38,11 +38,16 @@
 #ifdef HAVE_CONFIG_H
 #    include <config.h>
 #endif
+
+/*
+ * This module only implements functionality used by HPUX.
+ * See ncklib/include/hpux11.11/xnet-private.h
+ */
+#if defined(__hpux)
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#if defined(__hpux)
 
 #include "xnet-private.h"
 

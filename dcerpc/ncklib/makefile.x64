@@ -1,0 +1,208 @@
+# -keep c_source: Don't compile to object code
+# -cstub name.c:  Source clien stub C file name
+# -sstub name.c:  Source server stub C file name
+# -header name.h: Source header stub C file name
+# -client none:   Don't generate client stub
+# -server none:   Don't generate client stub
+# -I path:        Include path for IDL compiler .h or .idl dependencies
+# -no_cpp:        Don't run C preprocessor
+# -no_mepv:       Causes the compiler not to generate a manager Entry Point
+#                 Vector (EPV) in the server stub.
+# http://publib.boulder.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.euvmk00%2Feuva7a00934.htm
+# -cepv:          Generates local routines in the client stub file and defines a Client 
+#                 Entry Point Vector (CEPV) of the name if-name_vmajor-version_minor-
+#                 version_c_epv where if-name is the interface name. 
+# http://publib.boulder.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.euvmk00%2Feuva7a00934.htm
+
+INCLUDE = -I..\include -I.
+NCK_IDLFLAGS=-no_cpp -no_mepv
+IDL_OUT_INCDIR = $(SOLUTION_DIR)$(PLATFORM_NAME)\include\dce
+IDL_OUT_SRCDIR = $(SOLUTION_DIR)$(PLATFORM_NAME)\src
+IDL_IN_SRCDIR = ..\include\dce
+DCEIDL = Z:\abernstein\workspaces\panda\dcerpc-win32-1.1\src\vmware\idl_compiler\win\x64\Debug\dceidl.exe
+DCEIDL = $(SOLUTION_DIR)..\..\idl_compiler\win\$(INTDIR)\dceidl.exe
+
+# all target is dependent on INCDIR and SRCDIR
+all:    \
+	$(IDL_OUT_INCDIR) $(IDL_OUT_SRCDIR)  \
+	$(IDL_OUT_INCDIR)\dce.h  \
+	$(IDL_OUT_INCDIR)\dce_utils.h  \
+	$(IDL_OUT_INCDIR)\ndr_rep.h  \
+	$(IDL_OUT_INCDIR)\ndrtypes.h  \
+	$(IDL_OUT_INCDIR)\marshall.h  \
+	$(IDL_OUT_INCDIR)\dce_error.h  \
+	$(IDL_OUT_INCDIR)\sec_authn.h  \
+	$(IDL_OUT_INCDIR)\pickle.h $(IDL_OUT_SRCDIR)\pickle_c.c $(IDL_OUT_INCDIR)\ep.h $(IDL_OUT_SRCDIR)\ep_c.c  \
+	$(IDL_OUT_INCDIR)\mgmt.h $(IDL_OUT_SRCDIR)\mgmt_c.c $(IDL_OUT_SRCDIR)\mgmt_s.c $(IDL_OUT_INCDIR)\nbase.h  \
+	$(IDL_OUT_INCDIR)\lbase.h $(IDL_OUT_INCDIR)\codesets.h  \
+	$(IDL_OUT_INCDIR)\conv.h $(IDL_OUT_INCDIR)\convc.h  \
+	$(IDL_OUT_INCDIR)\iovector.h $(IDL_OUT_INCDIR)\ncastat.h  \
+	$(IDL_OUT_INCDIR)\ndrold.h $(IDL_OUT_INCDIR)\rpc.h  \
+	$(IDL_OUT_INCDIR)\rpcbase.h $(IDL_OUT_INCDIR)\rpcpvt.h  \
+	$(IDL_OUT_INCDIR)\rpcsts.h $(IDL_OUT_INCDIR)\rpctypes.h  \
+	$(IDL_OUT_INCDIR)\twr.h $(IDL_OUT_INCDIR)\uuid.h  \
+	$(IDL_OUT_INCDIR)\id_base.h $(IDL_OUT_INCDIR)\schannel.h  \
+	$(IDL_OUT_INCDIR)\smb.h $(IDL_OUT_INCDIR)\lrpc.h \
+
+$(IDL_OUT_INCDIR):
+	echo Making $(IDL_OUT_INCDIR) directory
+	md $(IDL_OUT_INCDIR)
+
+$(IDL_OUT_SRCDIR):
+	echo Making $(IDL_OUT_SRCDIR) directory
+	md $(IDL_OUT_SRCDIR)
+
+# Create dce.h from template file
+$(IDL_OUT_INCDIR)\dce.h: $(IDL_IN_SRCDIR)/dce.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/dce.h.in').read(); modline=re.sub('@target_os@', 'win_x64', line); open(r'$(IDL_OUT_INCDIR)\dce.h', 'w').write(modline);"
+
+$(IDL_OUT_INCDIR)\dce_utils.h: $(IDL_IN_SRCDIR)/dce_utils.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/dce_utils.h.in').read(); modline=re.sub('@target_os@', 'win_x64', line); open(r'$(IDL_OUT_INCDIR)\dce_utils.h', 'w').write(modline);"
+
+# Create ndr_rep.h from template file
+$(IDL_OUT_INCDIR)\ndr_rep.h: $(IDL_IN_SRCDIR)/ndr_rep.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/ndr_rep.h.in').read(); modline=re.sub('@target_cpu@', 'win_x64', line); open(r'$(IDL_OUT_INCDIR)\ndr_rep.h', 'w').write(modline);"
+
+# Create ndrtypes.h from template file
+$(IDL_OUT_INCDIR)\ndrtypes.h: $(IDL_IN_SRCDIR)/ndrtypes.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/ndrtypes.h.in').read(); modline=re.sub('@target_cpu@', 'win_x64', line); modline=re.sub('@BROKEN_ONCE_INIT@', '', modline); open(r'$(IDL_OUT_INCDIR)\ndrtypes.h', 'w').write(modline);"
+
+# Create marshall.h from template file
+$(IDL_OUT_INCDIR)\marshall.h: $(IDL_IN_SRCDIR)/marshall.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/marshall.h.in').read(); modline=re.sub('@target_cpu@', 'win_x64', line); open(r'$(IDL_OUT_INCDIR)\marshall.h', 'w').write(modline);"
+
+# Create dce_error.h from template file
+$(IDL_OUT_INCDIR)\dce_error.h: $(IDL_IN_SRCDIR)/dce_error.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/dce_error.h.in').read(); modline=re.sub('@target_os@', 'win_x64', line); open(r'$(IDL_OUT_INCDIR)\dce_error.h', 'w').write(modline);"
+
+# Create sec_authn.h from template file
+$(IDL_OUT_INCDIR)\sec_authn.h: $(IDL_IN_SRCDIR)/sec_authn.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open(r'$(IDL_IN_SRCDIR)/sec_authn.h.in').read(); modline=re.sub('@target_os@', 'win_x64', line); open(r'$(IDL_OUT_INCDIR)\sec_authn.h', 'w').write(modline);"
+
+# pickle.idl processing...
+$(IDL_OUT_INCDIR)\pickle.h $(IDL_OUT_SRCDIR)\pickle_c.c: pickle.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source $(NCK_IDLFLAGS) -cstub $(IDL_OUT_SRCDIR)\pickle_c.c -sstub none -header $(IDL_OUT_INCDIR)\pickle.h pickle.idl
+
+# ep.idl processing...
+$(IDL_OUT_INCDIR)\ep.h $(IDL_OUT_SRCDIR)\ep_c.c: $(IDL_IN_SRCDIR)\ep.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source $(NCK_IDLFLAGS) -cepv -cstub $(IDL_OUT_SRCDIR)\ep_c.c -server none -header $(IDL_OUT_INCDIR)\ep.h $(IDL_IN_SRCDIR)\ep.idl
+
+
+# mgmt.idl processing...
+$(IDL_OUT_INCDIR)\mgmt.h mgmt_c.c $(IDL_OUT_SRCDIR)\mgmt_s.c: $(IDL_IN_SRCDIR)\mgmt.idl $(IDL_OUT_INCDIR)\nbase.h
+	$(DCEIDL) $(INCLUDE) -keep c_source $(NCK_IDLFLAGS) -cepv -cstub $(IDL_OUT_SRCDIR)\mgmt_c.c -sstub $(IDL_OUT_SRCDIR)\mgmt_s.c -header $(IDL_OUT_INCDIR)\mgmt.h $(IDL_IN_SRCDIR)\mgmt.idl
+
+
+#
+# Core include/dce/*.idl files
+# 
+# nbase.idl processing...
+$(IDL_OUT_INCDIR)\nbase.h: $(IDL_IN_SRCDIR)\nbase.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\nbase.h $(IDL_IN_SRCDIR)\nbase.idl
+
+# lbase.idl processing...
+$(IDL_OUT_INCDIR)\lbase.h: $(IDL_IN_SRCDIR)/lbase.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\lbase.h $(IDL_IN_SRCDIR)\lbase.idl
+
+# codesets.idl processing...
+$(IDL_OUT_INCDIR)\codesets.h: $(IDL_IN_SRCDIR)/codesets.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\codesets.h $(IDL_IN_SRCDIR)/codesets.idl
+
+# conv.idl processing...
+$(IDL_OUT_INCDIR)\conv.h: $(IDL_IN_SRCDIR)/conv.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -server none -cepv -header $(IDL_OUT_INCDIR)\conv.h $(IDL_IN_SRCDIR)/conv.idl
+
+# convc.idl processing...
+$(IDL_OUT_INCDIR)\convc.h: $(IDL_IN_SRCDIR)/convc.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -server none -cepv -header $(IDL_OUT_INCDIR)\convc.h $(IDL_IN_SRCDIR)/convc.idl
+
+# iovector.idl processing...
+$(IDL_OUT_INCDIR)\iovector.h: $(IDL_IN_SRCDIR)/iovector.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\iovector.h $(IDL_IN_SRCDIR)/iovector.idl
+
+# ncastat.idl processing...
+$(IDL_OUT_INCDIR)\ncastat.h: $(IDL_IN_SRCDIR)/ncastat.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\ncastat.h $(IDL_IN_SRCDIR)/ncastat.idl
+
+# ndrold.idl processing...
+$(IDL_OUT_INCDIR)\ndrold.h: $(IDL_IN_SRCDIR)/ndrold.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\ndrold.h $(IDL_IN_SRCDIR)/ndrold.idl
+
+# rpc.idl processing...
+$(IDL_OUT_INCDIR)\rpc.h: $(IDL_IN_SRCDIR)/rpc.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\rpc.h $(IDL_IN_SRCDIR)/rpc.idl
+
+# rpcbase.idl processing...
+$(IDL_OUT_INCDIR)\rpcbase.h: $(IDL_IN_SRCDIR)/rpcbase.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\rpcbase.h $(IDL_IN_SRCDIR)/rpcbase.idl
+
+# rpcpvt.idl processing...
+$(IDL_OUT_INCDIR)\rpcpvt.h: $(IDL_IN_SRCDIR)/rpcpvt.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\rpcpvt.h $(IDL_IN_SRCDIR)/rpcpvt.idl
+
+# rpcsts.idl processing...
+$(IDL_OUT_INCDIR)\rpcsts.h: $(IDL_IN_SRCDIR)/rpcsts.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\rpcsts.h $(IDL_IN_SRCDIR)/rpcsts.idl
+
+# rpctypes.idl processing...
+$(IDL_OUT_INCDIR)\rpctypes.h: $(IDL_IN_SRCDIR)/rpctypes.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\rpctypes.h $(IDL_IN_SRCDIR)/rpctypes.idl
+
+# twr.idl processing...
+$(IDL_OUT_INCDIR)\twr.h: $(IDL_IN_SRCDIR)/twr.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\twr.h $(IDL_IN_SRCDIR)/twr.idl
+
+# uuid.idl processing...
+$(IDL_OUT_INCDIR)\uuid.h: $(IDL_IN_SRCDIR)/uuid.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\uuid.h $(IDL_IN_SRCDIR)/uuid.idl
+
+# id_base.idl processing...
+$(IDL_OUT_INCDIR)\id_base.h: $(IDL_IN_SRCDIR)/id_base.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\id_base.h $(IDL_IN_SRCDIR)/id_base.idl
+
+# schannel.idl processing...
+$(IDL_OUT_INCDIR)\schannel.h: $(IDL_IN_SRCDIR)/schannel.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\schannel.h $(IDL_IN_SRCDIR)/schannel.idl
+
+# smb.idl processing...
+$(IDL_OUT_INCDIR)\smb.h: $(IDL_IN_SRCDIR)/smb.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\smb.h $(IDL_IN_SRCDIR)/smb.idl
+
+# lrpc.idl processing...
+$(IDL_OUT_INCDIR)\lrpc.h: $(IDL_IN_SRCDIR)/lrpc.idl
+	$(DCEIDL) $(INCLUDE) -keep c_source -client none -cepv -header $(IDL_OUT_INCDIR)\lrpc.h $(IDL_IN_SRCDIR)/lrpc.idl
+
+# Clean is dependent on existence of INCDIR and SRCDIR
+clean:  clean_target
+
+clean_target: $(IDL_OUT_INCDIR) $(IDL_OUT_SRCDIR)
+	del /f $(IDL_OUT_INCDIR)\dce.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\dce_utils.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\ndr_rep.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\ndrtypes.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\marshall.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\dce_error.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\sec_authn.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\pickle.h $(IDL_OUT_SRCDIR)\pickle_c.c > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\ep.h $(IDL_OUT_SRCDIR)\ep_s.c $(IDL_OUT_SRCDIR)\ep_c.c > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\mgmt.h $(IDL_OUT_SRCDIR)\mgmt_c.c $(IDL_OUT_SRCDIR)\mgmt_s.c > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\nbase.h $(IDL_OUT_SRCDIR)\nbase.c > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\lbase.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\codesets.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\conv.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\convc.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\ep.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\iovector.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\mgmt.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\ndrold.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\rpc.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\rpcbase.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\rpcpvt.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\rpcsts.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\rpctypes.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\twr.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\uuid.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\id_base.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\schannel.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\smb.h > NUL 2>&1
+	del /f $(IDL_OUT_INCDIR)\lrpc.h > NUL 2>&1

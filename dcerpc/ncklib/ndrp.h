@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -63,7 +63,7 @@
  * The following macros manipulate data representation descriptors.
  * "NDR_COPY_DREP" copies one packed drep into another.  "NDR_UNPACK_DREP"
  * copies from a packed drep into a variable of the type "ndr_format_t".
- * 
+ *
  */
 
 #ifdef CONVENTIONAL_ALIGNMENT

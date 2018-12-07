@@ -253,6 +253,25 @@
     range = boolean
 }
 
+[HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\VmDir]
+"Id" = {
+    default = "lsa-vmdir-provider"
+    doc = ""
+}
+"Path" = {
+    default = "@providerdir@/liblsass_auth_provider_vmdir@MOD_EXT@"
+    doc = ""
+}
+"BindProtocol" = {
+    default = "Kerberos"
+    doc = "Bind protocol for connecting to vmdir"
+}
+"CacheEntryExpiry" = {
+    default = dword:00003840
+    range = integer:0-86400
+    doc = "Duration for when object cache entries are marked stale"
+}
+
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
 "Id" = {
     default = "lsa-local-provider"

@@ -1262,7 +1262,7 @@ static IR_tup_n_t *IR_gen_bound_tups    /* Returns ptr to last tuple gen'd */
 					tup_p->arg[IR_ARG_PFNUM].int_val =
 						IR_param_num(tup_p->arg[IR_ARG_PARAM].param);
 				}
-				tup_p->arg[IR_ARG_BOUND_XTRA].byt_val = fattr_p->size_is_vec[i].xtra_opcode;
+				tup_p->arg[IR_ARG_BOUND_XTRA].byt_val = (byte) (fattr_p->size_is_vec[i].xtra_opcode);
 				/* Set the early correlation flag if referenced field occurs first */
 				if (IR_bound_early(ctx_p, inst_p, tup_p->arg[IR_ARG_PFNUM].int_val))
 					tup_p->flags |= IR_CF_EARLY;
@@ -1532,7 +1532,7 @@ static IR_tup_n_t *IR_gen_limit_tups    /* Returns ptr to last tuple gen'd */
 					tup_p->arg[IR_ARG_PFNUM].int_val =
 						IR_param_num(tup_p->arg[IR_ARG_PARAM].param);
 				}
-				tup_p->arg[IR_ARG_BOUND_XTRA].byt_val = fattr_p->length_is_vec[i].xtra_opcode;
+				tup_p->arg[IR_ARG_BOUND_XTRA].byt_val = (byte) (fattr_p->length_is_vec[i].xtra_opcode);
 				/* Set the early correlation flag if referenced field occurs first */
 				if (IR_bound_early(ctx_p, inst_p, tup_p->arg[IR_ARG_PFNUM].int_val))
 					tup_p->flags |= IR_CF_EARLY;
@@ -1984,9 +1984,14 @@ static void IR_gen_pointer_rep
      
 
     if (inst_p && inst_p->type == type_p)
+	{
         tup_p = IR_gen_ptr_tup(ctx_p, type_p, inst_p);
+	}
     else
+	{
         tup_p = IR_gen_ptr_tup(ctx_p, type_p, NULL);
+	}
+
 	IR_process_tup(ctx_p, tup_p);
 
 	/*

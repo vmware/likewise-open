@@ -89,7 +89,7 @@ static char     *client;
 #define client_all  3
 static char     *client_vals[]    = { "none", "stub", "aux", "all", NULL };
 
-#if defined(VMS) || defined(UNIX)
+#if defined(VMS) || defined(UNIX) || defined(_WIN32)
 char            *CMD_def_cpp_cmd;
 static char     *cpp_cmd;
 static char     *cpp_opt;
@@ -174,7 +174,7 @@ OPTIONS option_table[]={
 	{"cepv",         ASSERTARG,                      FD(cmd_opt[opt_cepv])},
 	{"client",       STRARG,                         FD(client)},
 	{"confirm",      ASSERTARG|HIDARG,               FD(cmd_opt[opt_confirm])},
-#if defined(VMS) || defined(UNIX)
+#if defined(VMS) || defined(UNIX) || defined(_WIN32)
 	{"cpp_cmd",      OSTRARG,                        FD(cpp_cmd)},
 	{"cpp_opt",      STRARG,                         FD(cpp_opt)},
 #endif
@@ -540,7 +540,7 @@ boolean add_def_string
 	{
 	    /* it makes no sens to define the same thing twice */
 	    if (!strcmp(def, def_string)) return true;
-	    len = strlen(def);
+	    len = (int) strlen(def);
 	}
 	def = defs[++i];
     }
@@ -707,7 +707,9 @@ boolean CMD_parse_args          /* Returns TRUE on success */
     caux_file                   = "";
 
     cmd_opt[opt_cc_cmd]         = TRUE;
+#ifdef CC_DEF_CMD 
     cc_cmd                      = CC_DEF_CMD;
+#endif
 
     cmd_opt[opt_cc_opt]         = TRUE;
 #if defined(__alpha) && defined(__osf__)
@@ -727,13 +729,17 @@ boolean CMD_parse_args          /* Returns TRUE on success */
     cpp_cmd                     = UNSPECIFIED;
     cmd_opt[opt_cpp]            = FALSE;
 #endif
-#ifdef UNIX
+#if defined(UNIX) || defined(_WIN32)
+#ifdef CPP
     cpp_cmd                     = CPP;
+#endif
     cmd_opt[opt_cpp]            = TRUE;
 #endif
 
-#if defined(VMS) || defined(UNIX)
+#if defined(VMS) || defined(UNIX) || defined(_WIN32)
+#ifdef CPP
     CMD_def_cpp_cmd             = CPP;
+#endif
     cmd_opt[opt_cpp_opt]        = TRUE;
     cpp_opt                     = "";
 #endif
@@ -1262,7 +1268,7 @@ boolean CMD_parse_args          /* Returns TRUE on success */
     cmd_val[opt_caux]       = (void *)alloc_and_copy(caux_file);
     cmd_val[opt_cc_cmd]     = (void *)cc_cmd;
     cmd_val[opt_cc_opt]     = (void *)cc_opt;
-#ifdef UNIX
+#if defined(UNIX) || defined(_WIN32)
     cmd_val[opt_cpp]        = (void *)cpp_cmd;
     cmd_val[opt_cpp_opt]    = (void *)cpp_opt;
 #endif

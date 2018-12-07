@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -32,7 +32,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -49,12 +49,13 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 
 #include <config.h>
 #include <string.h>
 #include <setjmp.h>
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #ifdef HAVE_EXECINFO_H
@@ -122,13 +123,13 @@ default_uncaught_handler(dcethread_exc* exc, const char* file, unsigned int line
 #ifdef HAVE_BACKTRACE_SYMBOLS_FD
         void* buffer[256];
         int size;
-        
+
         size = backtrace(buffer, 256);
 
         fprintf(stderr, "Backtrace:\n");
         backtrace_symbols_fd(buffer, size, fileno(stderr));
 #endif
-        abort();        
+        abort();
     }
 
     pthread_exit(0);
@@ -137,7 +138,9 @@ default_uncaught_handler(dcethread_exc* exc, const char* file, unsigned int line
 void
 dcethread__init_exceptions(void)
 {
-    pthread_key_create(&frame_key, NULL);
+    int sts;
+    sts = pthread_key_create(&frame_key, NULL);
+    assert(sts == 0); /* There is no resonable way to recover if this fails */
     uncaught_handler = default_uncaught_handler;
 
     DCETHREAD_EXC_INIT(dcethread_uninitexc_e);
@@ -175,30 +178,45 @@ dcethread__init_exceptions(void)
 }
 
 void
+dcethread__fini_exceptions(void)
+{
+    pthread_key_delete(frame_key);
+    frame_key = 0;
+}
+
+void
 dcethread__frame_push(dcethread_frame* frame)
 {
-    dcethread_frame* cur = pthread_getspecific(frame_key);
+    dcethread_frame* cur = NULL;
     void *pframe = (void*)(struct _dcethread_frame*) frame;
-    
+
+    dcethread__init();
+    cur = pthread_getspecific(frame_key);
+
     memset(pframe, 0, sizeof(*frame));
 
     frame->parent = cur;
-    
+
+    DCETHREAD_TRACE("dcethread__frame_push:  TID=%p frame=%p parent=%p", dcethread_self(), frame, cur);
     pthread_setspecific(frame_key, (void*) frame);
 }
 
 void
 dcethread__frame_pop(dcethread_frame* frame)
 {
-    dcethread_frame* cur = pthread_getspecific(frame_key);
+    dcethread_frame* cur = NULL;
 
+    dcethread__init();
+    cur = pthread_getspecific(frame_key);
     if (cur == frame)
     {
+        DCETHREAD_TRACE("dcethread__frame_pop:  TID=%p cur=%p", dcethread_self(), cur);
 	pthread_setspecific(frame_key, (void*) frame->parent);
     }
     else
     {
-	DCETHREAD_ERROR("Attempted to pop exception frame in incorrect order");
+	DCETHREAD_TRACE("ERROR: Attempted to pop exception frame in incorrect order");
+        DCETHREAD_ERROR("ERROR: dcethread__frame_pop: TID=%p frame=%p parent=%p", dcethread_self(), frame, cur);
     }
 }
 
@@ -258,7 +276,11 @@ dcethread__exc_raise(dcethread_exc* exc, const char* file, unsigned int line)
 	cur->exc = *exc;
         cur->file = file;
         cur->line = line;
+#ifndef _WIN32
 	siglongjmp(((struct _dcethread_frame*) cur)->jmpbuf, 1);
+#else
+	longjmp(((struct _dcethread_frame*) cur)->jmpbuf, 1);
+#endif
     }
     else
     {
@@ -270,6 +292,8 @@ dcethread__exc_raise(dcethread_exc* exc, const char* file, unsigned int line)
 void
 dcethread__exc_handle_interrupt(dcethread* thread, void* data)
 {
+    DCETHREAD_TRACE("dcethread__exc_raise: Thread %p longjmp %p",
+                    thread, ((struct _dcethread_frame*) pthread_getspecific(frame_key))->jmpbuf);
     dcethread__exc_raise((dcethread_exc*) data, NULL, 0);
 }
 

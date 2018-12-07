@@ -847,7 +847,7 @@ static unsigned long DDBE_compute_vec_offsets
             offset = offset | 3;
             if (offset != save_offset)
             {
-                DDBE_pad_vec_entry(&prev_vec_p, (byte)offset-save_offset);
+                DDBE_pad_vec_entry(&prev_vec_p, (byte)(offset-save_offset));
                 /* prev_vec_p now points at the new pad entry */
                 prev_vec_p->index = save_offset;
             }
@@ -2315,7 +2315,7 @@ static void DDBE_op_array_bounds
     DDBE_comment_vec_entry(&vip->defn_p, comment);
 
     DDBE_byte_vec_entry(&vip->defn_p, DDBE_vec_byte_3m4_k,
-        tup_p->arg[IR_ARG_INT].int_val, "num dimensions");
+        (byte)(tup_p->arg[IR_ARG_INT].int_val), "num dimensions");
 }
 
 static void DDBE_func_code_vec_entry(
@@ -2444,7 +2444,7 @@ static void DDBE_op_bound
         }
         else
             DDBE_byte_vec_entry(&vip->defn_p, DDBE_vec_byte_k,
-                tup_p->arg[IR_ARG_INT].int_val, "octetsize");
+                (byte) (tup_p->arg[IR_ARG_INT].int_val), "octetsize");
         /*
          * A conformant string within a struct requires the string field number
          * so an Interpreter can compute the string, and therefore struct, size.
@@ -2559,7 +2559,7 @@ static void DDBE_op_limit
         }
         else
             DDBE_byte_vec_entry(&vip->defn_p, DDBE_vec_byte_k,
-                tup_p->arg[IR_ARG_INT].int_val, "octetsize");
+                (byte) tup_p->arg[IR_ARG_INT].int_val, "octetsize");
         DDBE_long_vec_entry(&vip->defn_p, DDBE_vec_long_k, -1, "dummy value");
         return;
     }
@@ -3521,13 +3521,13 @@ static void DDBE_op_interface
 		DDBE_short_vec_entry(&vip->defn_p, DDBE_vec_short_k,
 				int_p->uuid.time_hi_and_version, NULL);
 		DDBE_byte_vec_entry(&vip->defn_p, DDBE_vec_byte_k,
-				int_p->uuid.clock_seq_hi_and_reserved, NULL);
+				(byte) (int_p->uuid.clock_seq_hi_and_reserved), NULL);
 		DDBE_byte_vec_entry(&vip->defn_p, DDBE_vec_byte_k,
-				int_p->uuid.clock_seq_low, NULL);
+				(byte) (int_p->uuid.clock_seq_low), NULL);
 		for (i = 0; i < 6; i++)
 		{
 			DDBE_byte_vec_entry(&vip->defn_p, DDBE_vec_byte_k,
-					int_p->uuid.node[i], NULL);
+					(byte) (int_p->uuid.node[i]), NULL);
 		}
 
 		/*
@@ -4757,7 +4757,7 @@ static void DDBE_gen_vector_reps
                      & ~(DDBE_ADDENDA_ALIGN-1);
     if (addenda_offset != vip->type_vec_size)
     {
-        DDBE_pad_vec_entry(&type_l, (byte)addenda_offset-vip->type_vec_size);
+        DDBE_pad_vec_entry(&type_l, (byte)(addenda_offset-vip->type_vec_size));
         /* type_l now points at the new pad entry */
         type_l->index = vip->type_vec_size;
         vip->type_vec_size = addenda_offset;

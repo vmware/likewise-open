@@ -296,6 +296,23 @@ LwSmTableUpdateEntry(
     dwError = LwSmCopyString(
         mask & LW_SERVICE_INFO_MASK_PATH ? pInfo->pwszPath : pEntry->pInfo->pwszPath,
         &pUpdate->pwszPath);
+    BAIL_ON_ERROR(dwError);
+
+    if (pInfo->pwszUser || pEntry->pInfo->pwszUser)
+    {
+        dwError = LwSmCopyString(
+            mask & LW_SERVICE_INFO_MASK_USER ? pInfo->pwszUser : pEntry->pInfo->pwszUser,
+            &pUpdate->pwszUser);
+        BAIL_ON_ERROR(dwError);
+    }
+
+    if (pInfo->pwszGroup || pEntry->pInfo->pwszGroup)
+    {
+        dwError = LwSmCopyString(
+            mask & LW_SERVICE_INFO_MASK_GROUP ? pInfo->pwszGroup : pEntry->pInfo->pwszGroup,
+            &pUpdate->pwszGroup);
+        BAIL_ON_ERROR(dwError);
+    }
 
     dwError = LwSmCopyString(
         mask & LW_SERVICE_INFO_MASK_DESCRIPTION ? pInfo->pwszDescription : pEntry->pInfo->pwszDescription,

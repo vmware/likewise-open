@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -56,7 +56,11 @@ dcethread_cond_wait(dcethread_cond *cond, dcethread_mutex *mutex)
         dcethread__dispatchinterrupt(dcethread__self());
         return dcethread__set_errno(EINTR);
     }
+#if defined(_WIN32)
+    memset((void *) &mutex->owner, 0, sizeof(mutex->owner));
+#else
     mutex->owner = (pthread_t) -1;
+#endif
     ret = dcethread__set_errno(pthread_cond_wait(cond, (pthread_mutex_t*) &mutex->mutex));
     mutex->owner = pthread_self();
     if (dcethread__end_block(dcethread__self(), interrupt_old, data_old))
@@ -132,7 +136,7 @@ MU_TEST(dcethread_cond_wait, interrupt_post)
 
     ts.tv_nsec = 100000000;
     ts.tv_sec = 0;
-    
+
     MU_TRY_DCETHREAD( dcethread_create(&thread, NULL, basic_thread, NULL) );
     MU_TRY_DCETHREAD( dcethread_delay(&ts) );
     MU_TRY_DCETHREAD( dcethread_interrupt(thread) );
@@ -172,7 +176,7 @@ global_lock_thread(void* data)
 
     MU_ASSERT(interrupt_caught);
 
-    return NULL;    
+    return NULL;
 }
 
 MU_TEST(dcethread_cond_wait, interrupt_global)
@@ -188,7 +192,7 @@ MU_TEST(dcethread_cond_wait, interrupt_global)
     MU_TRY_DCETHREAD( dcethread_mutex_lock(&global_mutex) );
     MU_TRY_DCETHREAD( dcethread_interrupt(thread) );
     MU_TRY_DCETHREAD( dcethread_mutex_unlock(&global_mutex) );
-    MU_TRY_DCETHREAD( dcethread_join(thread, NULL) );    
+    MU_TRY_DCETHREAD( dcethread_join(thread, NULL) );
 }
 
 #endif /* TEST */

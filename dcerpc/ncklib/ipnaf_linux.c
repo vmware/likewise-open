@@ -76,19 +76,21 @@ int ioctl(int d, int request, ...);
  *  Internal prototypes and typedefs.
  */
 
-INTERNAL boolean get_addr _DCE_PROTOTYPE_ ((
+INTERNAL boolean get_addr(
         rpc_socket_t          /*sock*/,
         rpc_addr_p_t          /*ip_addr*/,
         rpc_addr_p_t          /*netmask_addr*/,
         rpc_addr_p_t          /*broadcast_addr*/
-    ));
+    
+    );
 
-INTERNAL boolean get_broadcast_addr _DCE_PROTOTYPE_ ((
+INTERNAL boolean get_broadcast_addr(
         rpc_socket_t          /*sock*/,
         rpc_addr_p_t          /*ip_addr*/,
         rpc_addr_p_t          /*netmask_addr*/,
         rpc_addr_p_t          /*broadcast_addr*/
-    ));
+    
+    );
 
 #ifndef NO_SPRINTF
 #  define RPC__IP_NETWORK_SPRINTF   sprintf
@@ -414,8 +416,8 @@ PRIVATE void rpc__ip_desc_inq_addr6
         return;
     }
 
-    if (memcmp(&loc_ip6_addr.sa.sin6_addr.s6_addr, 
-               &zero_ip6_addr.sa.sin6_addr.s6_addr, 
+    if (memcmp(&loc_ip6_addr.sa.sin6_addr.s6_addr,
+               &zero_ip6_addr.sa.sin6_addr.s6_addr,
                sizeof(zero_ip6_addr.sa.sin6_addr.s6_addr)) == 0)
     {
         err = rpc__socket_enum_ifaces(sock, get_addr_noloop, rpc_addr_vec, NULL, NULL);
@@ -693,7 +695,9 @@ INTERNAL void _rpc__ipx_init_local_addr_vec(
         memcpy(&local_ip_addr_vec->elt[i].netmask,
                &((rpc_ip_addr_p_t) netmask_addr_vec->addrs[i])->sa,
                sin_addr_len);
-#ifdef DEBUG
+
+
+#ifdef DEBUG_FIXME /* TBD:Adam-BUGBUG build break for "DEBUG" in below section */
         if (RPC_DBG2(rpc_e_dbg_general, 10))
         {
             char         buff[128], mbuff[128];
@@ -766,14 +770,9 @@ error:
 
 
 PRIVATE void rpc__ip_init_local_addr_vec
-#ifdef _DCE_PROTO_
 (
     unsigned32 *status
 )
-#else
-(status)
-unsigned32 *status;
-#endif
 {
     rpc_socket_t            sock = RPC_SOCKET_INVALID;
     int err;
@@ -870,16 +869,10 @@ error:
 **--
 **/
 PRIVATE boolean32 rpc__ip_is_local_network
-#ifdef _DCE_PROTO_
 (
     rpc_addr_p_t rpc_addr,
     unsigned32   *status
 )
-#else
-(rpc_addr, status)
-rpc_addr_p_t rpc_addr;
-unsigned32   *status;
-#endif
 {
     rpc_ip_addr_p_t         ip_addr = (rpc_ip_addr_p_t) rpc_addr;
     unsigned char           *addr1;
@@ -998,16 +991,10 @@ unsigned32   *status;
 **/
 
 PRIVATE boolean32 rpc__ip_is_local_addr
-#ifdef _DCE_PROTO_
 (
     rpc_addr_p_t rpc_addr,
     unsigned32   *status
 )
-#else
-(rpc_addr, status)
-rpc_addr_p_t rpc_addr;
-unsigned32   *status;
-#endif
 {
     rpc_ip_addr_p_t         ip_addr;
     unsigned32              i;

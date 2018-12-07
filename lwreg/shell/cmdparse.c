@@ -52,6 +52,8 @@
  * delete_tree "[KeyName]"
  * set_value ["[KeyName]"] "ValueName" "Value" ["Value2"] ["Value3"] [...]
  * add_value ["[KeyName]"] "ValueName" type "Value" ["Value2"] ["Value3"] [...]
+ * set_security "[KeyName]" SDDL_SECURITY_DESCRIPTOR
+ * get_security "[KeyName]"
  *
  * Note: "KeyName" format is [HKEY_THIS_MACHINE/Subkey1/SubKey2]. ["[KeyName]"]
  * means the key parameter is optional.
@@ -69,6 +71,9 @@
  * set_value:   REGLEX_PLAIN_TEXT REGLEX_REG_KEY
  *                  REGLEX_REG_SZ|REGLEX_PLAIN_TEXT
  *                  REGLEX_PLAIN_TEXT REGLEX_REG_SZ ...
+ * set_security: REGLEX_PLAIN_TEXT REGLEX_REG_KEY
+ *                  REGLEX_PLAIN_TEXT
+ * get_security: REGLEX_PLAIN_TEXT REGLEX_REG_KEY
  *
  * Supported types:
  *   REG_SZ
@@ -86,7 +91,7 @@
  *
  * <regshell_command_verb> ::= "list_keys" | "list_values" | "add_key" |
  *                             "add_value" | "cd" | "delete_key" |
- *                             "delete_tree" | "set_value"
+ *                             "delete_tree" | "set_value" | "set_security" | "get_security"
  *
  * <regshell_key_name> ::= "[" <key_path> "]"
  *   <key_path> ::= <name_chars> <end_of_line>
@@ -166,6 +171,8 @@ static REGSHELL_CMD_ID shellCmds[] = {
     { "delete_key", REGSHELL_CMD_DELETE_KEY   },
     { "delete_value", REGSHELL_CMD_DELETE_VALUE },
     { "delete_tree", REGSHELL_CMD_DELETE_TREE },
+    { "set_security", REGSHELL_CMD_SET_SECURITY },
+    { "get_security", REGSHELL_CMD_GET_SECURITY },
     { "set_value", REGSHELL_CMD_SET_VALUE     },
     { "set_hive", REGSHELL_CMD_SET_HIVE       },
     { "pwd", REGSHELL_CMD_PWD                 },
@@ -1053,6 +1060,57 @@ error:
 
 
 DWORD
+RegShellCmdParseSecurityString(
+    PREGSHELL_PARSE_STATE pParseState,
+    REGSHELL_CMD_E cmd,
+    DWORD argc,
+    PCHAR *argv,
+    PREGSHELL_CMD_ITEM *pRetCmdItem)
+{
+    DWORD dwError = 0;
+    DWORD argIndx = 2;
+    PSTR pszValue = NULL;
+    PREGSHELL_CMD_ITEM pCmdItem = NULL;
+
+    BAIL_ON_INVALID_POINTER(argv);
+    BAIL_ON_INVALID_POINTER(pRetCmdItem);
+
+    if (argv[2][0] == '[')
+    {
+        dwError = RegShellCmdParseKeyName(
+                      pParseState,
+                      cmd,
+                      argv[2],
+                      &pCmdItem);
+        BAIL_ON_REG_ERROR(dwError);
+        argIndx = 3;
+    }
+    else
+    {
+        dwError = RegShellCmdParseCommand(
+                      cmd,
+                      &pCmdItem);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    BAIL_ON_INVALID_POINTER(pCmdItem);
+
+    pszValue = argv[argIndx++];
+
+    dwError = RegCStringDuplicate(&pCmdItem->valueName, pszValue);
+    BAIL_ON_REG_ERROR(dwError);
+    *pRetCmdItem = pCmdItem;
+    pCmdItem = NULL;
+
+cleanup:
+    RegShellCmdParseFree(pCmdItem);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
 RegShellDumpCmdItem(
     PREGSHELL_CMD_ITEM rsItem)
 {
@@ -1364,6 +1422,7 @@ RegShellCmdParse(
         case REGSHELL_CMD_CHDIR:
         case REGSHELL_CMD_DELETE_KEY:
         case REGSHELL_CMD_DELETE_TREE:
+        case REGSHELL_CMD_GET_SECURITY:
             if (argc != 3)
             {
                 dwError = LWREG_ERROR_INVALID_CONTEXT;
@@ -1383,6 +1442,20 @@ RegShellCmdParse(
                 goto error;
             }
             dwError = RegShellCmdParseValueName(
+                          pParseState,
+                          cmd,
+                          argc,
+                          argv,
+                          &pCmdItem);
+            break;
+
+        case REGSHELL_CMD_SET_SECURITY:
+            if (argc > 4)
+            {
+                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                goto error;
+            }
+            dwError = RegShellCmdParseSecurityString(
                           pParseState,
                           cmd,
                           argc,
@@ -1656,6 +1729,20 @@ RegShellCmdlineParseToArgv(
                     dwAllocSize = 4;
                     dwArgc = 2;
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE;
+                }
+                else if (cmdEnum == REGSHELL_CMD_SET_SECURITY)
+                {
+                    d_printf(("RegShellCmdlineParseToArgv: set_security found\n"));
+                    state = REGSHELL_CMDLINE_STATE_ADDVALUE;
+                    dwArgc += 1;
+                    dwAllocSize = dwArgc + 3;
+                }
+                else if (cmdEnum == REGSHELL_CMD_GET_SECURITY)
+                {
+                    d_printf(("RegShellCmdlineParseToArgv: get_security found\n"));
+                    state = REGSHELL_CMDLINE_STATE_LIST_KEYS_STOP;
+                    dwArgc += 1;
+                    dwAllocSize = dwArgc;
                 }
                 else
                 {
@@ -2269,6 +2356,8 @@ RegShellUsage(
         "       set_value [[KeyName]] \"ValueName\" \"Value\" [\"Value2\"] [...]\n"
         "       list_values [[keyName]]\n"
         "       delete_value [[KeyName]] \"ValueName\"\n"
+        "       set_security [[KeyName]] SDDL_SECURITY_DESCRIPTOR\"\n"
+        "       get_security [[KeyName]]\"\n"
         "       set_hive HIVE_NAME\n"
         "       import file.reg | -\n"
         "       export [--legacy | --values] [[keyName]] [file.reg | -]\n"

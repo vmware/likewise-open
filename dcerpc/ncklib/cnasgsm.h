@@ -1,5 +1,5 @@
-/* 
- * 
+/*
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,11 +28,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  Definitions of types/constants internal to the 
+**  Definitions of types/constants internal to the
 **  NCA Connection (cn) Association (as) Group (g) State Machine (sm).
 **
 **
@@ -41,6 +41,9 @@
 
 #ifndef _CNASGSM_H
 #define _CNASGSM_H  1
+
+#include <cnassoc.h>
+
 /***********************************************************************/
 /*
  * R P C _ C N _ A S S O C _ G R P _ S M _ T R C
@@ -103,19 +106,9 @@
  *
  * This macro will be called when association group events are detected.
  */
+
 #define RPC_CN_ASSOC_GRP_EVAL_EVENT(assoc_grp, event_id, event_param, st)\
-{\
-    RPC_CN_ASSOC_GRP_SM_TRC (assoc_grp, event_id);\
-    st = rpc__cn_sm_eval_event ((event_id),\
-                                (pointer_t) (event_param),\
-                                (pointer_t) (assoc_grp),\
-                                &((assoc_grp)->grp_state));\
-    if ((assoc_grp)->grp_state.cur_state == RPC_C_ASSOC_GRP_CLOSED)\
-    {\
-        rpc__cn_assoc_grp_dealloc (assoc_grp->grp_id);\
-    }\
-    RPC_CN_ASSOC_GRP_SM_TRC_STATE (assoc_grp); \
-}
+    _RPC_CN_ASSOC_GRP_EVAL_EVENT(assoc_grp, event_id, event_param, &(st))
 
 
 /***********************************************************************/
@@ -125,15 +118,11 @@
  * This macro will be called when an event is generated inside an
  * action routine of the association group state machine.
  */
-#define RPC_CN_ASSOC_GRP_INSERT_EVENT(assoc_grp, event)\
-{\
-    RPC_DBG_PRINTF (rpc_e_dbg_cn_state, RPC_C_CN_DBG_ASSOC_GRP_SM_TRACE, \
-                    ("STATE INSERT EVENT ")); \
-    RPC_CN_ASSOC_SM_TRC ((assoc_grp), (event)->event_id);\
-    rpc__cn_sm_insert_event ((event),\
-                             &((assoc_grp)->grp_state));\
-}
 
+#define RPC_CN_ASSOC_GRP_INSERT_EVENT(assoc_grp, event)\
+    _RPC_CN_ASSOC_GRP_INSERT_EVENT(assoc_grp, event)
+
+
 /***********************************************************************/
 /*
  * A S S O C   G R P   E V E N T S
@@ -145,15 +134,16 @@
  * State values are incremented by 100 to distinguish them from
  * action routine indexes which are all < 100.  This was done as
  * an efficiency measure to the engine, rpc__cn_sm_eval_event().
- */ 
-#define RPC_C_ASSOC_GRP_NEW                     100
-#define RPC_C_ASSOC_GRP_ADD_ASSOC               101 
-#define RPC_C_ASSOC_GRP_REM_ASSOC               102 
+ */
+enum {
+        RPC_C_ASSOC_GRP_NEW                    = 100,
+        RPC_C_ASSOC_GRP_ADD_ASSOC              = 101,
+        RPC_C_ASSOC_GRP_REM_ASSOC              = 102,
 
 /*
  * Events only applicable to server state machine
  */
-#define RPC_C_ASSOC_GRP_NO_CALLS_IND            103
+        RPC_C_ASSOC_GRP_NO_CALLS_IND           = 103,
 
 
 /***********************************************************************/
@@ -164,16 +154,17 @@
 /*
  * States common to both client and server state machines
  */
-#define RPC_C_ASSOC_GRP_CLOSED                  100 
-#define RPC_C_ASSOC_GRP_OPEN                    101 
-#define RPC_C_ASSOC_GRP_ACTIVE                  102 
+        RPC_C_ASSOC_GRP_CLOSED                 = 100,
+        RPC_C_ASSOC_GRP_OPEN                   = 101,
+        RPC_C_ASSOC_GRP_ACTIVE                 = 102,
 
 /***********************************************************************/
 /*
  * C L I E N T   A S S O C   G R P   S T A T E S
  */
 
-#define RPC_C_CLIENT_ASSOC_GRP_STATES	        103 
+        RPC_C_CLIENT_ASSOC_GRP_STATES	       = 103,
+};
 
 /***********************************************************************/
 /*
@@ -192,10 +183,14 @@ EXTERNAL char   *rpc_g_cn_grp_client_states [];
  * S E R V E R   A S S O C   G R P   S T A T E S
  */
 
-#define RPC_C_SERVER_ASSOC_GRP_CALL_WAIT        103  
-#define RPC_C_SERVER_ASSOC_GRP_STATES           104 
+enum {
+        RPC_C_SERVER_ASSOC_GRP_CALL_WAIT       = 103,
+        RPC_C_SERVER_ASSOC_GRP_STATES          = 104,
+};
 
 /***********************************************************************/
+
+
 /*
  * S E R V E R    A S S O C   G R P   T A B L E S
  */
@@ -205,5 +200,6 @@ EXTERNAL rpc_cn_sm_action_fn_t     rpc_g_cn_server_grp_action_tbl [];
 #if DEBUG
 EXTERNAL char   *rpc_g_cn_grp_server_events [];
 EXTERNAL char   *rpc_g_cn_grp_server_states [];
+
 #endif
 #endif /* _CNASGSM_H */

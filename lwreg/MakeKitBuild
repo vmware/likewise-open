@@ -82,11 +82,16 @@ configure()
 
 make()
 {
-    mk_autotools \
-        SOURCEDIR="libedit" \
-        LIBS="edit" \
-        HEADERS="editline/readline.h histedit.h" \
-        HEADERDEPS="ncurses/ncurses.h" \
-        LIBDEPS="ncurses" \
-        CFLAGS="-Wno-error"
+    for package in $LW_BUNDLED
+    do
+        if [ xlibedit == x"$package" ]; then
+            mk_autotools \
+                SOURCEDIR="libedit" \
+                LIBS="edit" \
+                HEADERS="editline/readline.h histedit.h" \
+                HEADERDEPS="ncurses/ncurses.h" \
+                LIBDEPS="ncurses" \
+                CFLAGS="-Wno-error"
+        fi
+    done
 }

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,11 +28,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  The support routines for the rpcrand.h abstraction.  These should NOT 
+**  The support routines for the rpcrand.h abstraction.  These should NOT
 **  be called directly; use the macros defined in rpcrand.h .
 **
 **
@@ -40,38 +40,35 @@
 
 #include <commonp.h>
 
-/* 
+/*
  * R P C _ _ R A N D O M _ I N I T
  */
 
 PRIVATE void rpc__random_init
-#ifdef _DCE_PROTO_
 (
     unsigned32 seed
 )
-#else
-(seed)
-unsigned32 seed;
-#endif
 {
+#if defined(_WIN32)
+    srand ((int) seed);
+#else
     srandom ((int) seed);
+#endif
 }
 
-/* 
+/*
  * R P C _ _ R A N D O M _ G E T
  */
 
 PRIVATE unsigned32 rpc__random_get
-#ifdef _DCE_PROTO_
 (
     unsigned32 lower ATTRIBUTE_UNUSED,
     unsigned32 upper ATTRIBUTE_UNUSED
 )
-#else
-(lower, upper)
-unsigned32 lower;
-unsigned32 upper;
-#endif
 {
+#if defined(_WIN32)
+    return (rand ());
+#else
     return (random ());
+#endif
 }

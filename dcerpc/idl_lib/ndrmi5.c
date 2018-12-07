@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -52,7 +52,6 @@
 /*****************************************************************************/
 
 static void rpc_ss_ndr_m_array_shadow (
-#ifdef IDL_PROTOTYPES
     rpc_void_p_t struct_addr,   /* [in] Address of struct array is a field of.
                                     NULL if array is a parameter */
     idl_ulong_int *struct_offset_vec_ptr,   /* [in] Base of offset vector for
@@ -64,17 +63,6 @@ static void rpc_ss_ndr_m_array_shadow (
                                     /* [out] Points after array defn indices */
     IDL_msp_t IDL_msp
 )
-#else
-struct_addr, struct_offset_vec_ptr, offset_vec_ptr, cs_shadow, shadow_index,
- p_defn_vec_ptr, IDL_msp)
-    rpc_void_p_t struct_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    idl_ulong_int *offset_vec_ptr;
-    IDL_cs_shadow_elt_t *cs_shadow;
-    idl_ulong_int shadow_index;
-    idl_byte **p_defn_vec_ptr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_byte array_type;
@@ -138,11 +126,15 @@ struct_addr, struct_offset_vec_ptr, offset_vec_ptr, cs_shadow, shadow_index,
 
     if (array_type == IDL_DT_VARYING_ARRAY)
     {
-      if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
-        rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
-                                        IDL_msp);
-      else
-        bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
+        {
+            rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
+                                            IDL_msp);
+        }
+        else
+        {
+            bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
         array_defn_ptr += IDL_FIXED_BOUND_PAIR_WIDTH;
         l_storage_len = bounds_list[0].upper - bounds_list[0].lower + 1;
     }
@@ -155,7 +147,7 @@ struct_addr, struct_offset_vec_ptr, offset_vec_ptr, cs_shadow, shadow_index,
         if (struct_addr != NULL)
         {
             l_storage_len = rpc_ss_get_typed_integer(sz_type,
-                     (rpc_void_p_t)((idl_byte *)struct_addr 
+                     (rpc_void_p_t)((idl_byte *)struct_addr
                                         + *(struct_offset_vec_ptr + sz_index)),
                      IDL_msp);
         }
@@ -179,7 +171,7 @@ struct_addr, struct_offset_vec_ptr, offset_vec_ptr, cs_shadow, shadow_index,
         if (struct_addr != NULL)
         {
             l_data_len = rpc_ss_get_typed_integer(ln_type,
-                     (rpc_void_p_t)((idl_byte *)struct_addr 
+                     (rpc_void_p_t)((idl_byte *)struct_addr
                                         + *(struct_offset_vec_ptr + ln_index)),
                      IDL_msp);
         }
@@ -267,7 +259,7 @@ struct_addr, struct_offset_vec_ptr, offset_vec_ptr, cs_shadow, shadow_index,
 
  common_return:
     ;
-    
+
     *p_defn_vec_ptr = defn_vec_ptr;
 
     if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
@@ -283,7 +275,6 @@ struct_addr, struct_offset_vec_ptr, offset_vec_ptr, cs_shadow, shadow_index,
 /*****************************************************************************/
 
 void rpc_ss_ndr_m_struct_cs_shadow (
-#ifdef IDL_PROTOTYPES
 
     rpc_void_p_t struct_addr,           /* [in] Address of struct */
     idl_byte struct_type ATTRIBUTE_UNUSED,               /* [in] FIXED_STRUCT or CONF_STRUCT */
@@ -293,17 +284,6 @@ void rpc_ss_ndr_m_struct_cs_shadow (
     IDL_cs_shadow_elt_t **p_cs_shadow,  /* [out] Address of cs-shadow */
     IDL_msp_t IDL_msp
 )
-#else
-struct_addr, struct_type, shadow_length, offset_index, defn_vec_ptr,
- p_cs_shadow, IDL_msp)
-    rpc_void_p_t struct_addr;
-    idl_byte struct_type;
-    idl_ulong_int shadow_length;
-    idl_ulong_int offset_index;
-    idl_byte *defn_vec_ptr;
-    IDL_cs_shadow_elt_t **p_cs_shadow;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_ulong_int *struct_offset_vec_ptr; /* Start of offsets for this struct */
     idl_ulong_int *offset_vec_ptr;
@@ -333,7 +313,7 @@ struct_addr, struct_type, shadow_length, offset_index, defn_vec_ptr,
                 offset_vec_ptr++;
                 break;
             /* For fields that are not array of [cs_char],
-             advance the definition and offset pointers and shadow index 
+             advance the definition and offset pointers and shadow index
              in step. And note they have no translation storage */
             case IDL_DT_BYTE:
             case IDL_DT_CHAR:
@@ -424,7 +404,6 @@ struct_addr, struct_type, shadow_length, offset_index, defn_vec_ptr,
 /*                                                                            */
 /*****************************************************************************/
 static void rpc_ss_ndr_m_cs_farr_or_single
-#ifdef IDL_PROTOTYPES
 (
     rpc_void_p_t data_addr,             /* [in] Address of array or char */
     IDL_bound_pair_t *bounds_list,      /* [in] - for array or char treated
@@ -433,14 +412,6 @@ static void rpc_ss_ndr_m_cs_farr_or_single
     idl_ulong_int l_storage_len,        /* [in] number of elements */
     IDL_msp_t IDL_msp
 )
-#else
-(data_addr, bounds_list, cs_type_defn_index, l_storage_len, IDL_msp)
-    rpc_void_p_t data_addr;
-    IDL_bound_pair_t *bounds_list;
-    idl_ulong_int cs_type_defn_index;
-    idl_ulong_int l_storage_len;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *cs_type_defn_ptr;
     idl_ulong_int routine_index;
@@ -500,19 +471,12 @@ static void rpc_ss_ndr_m_cs_farr_or_single
 /*                                                                            */
 /*****************************************************************************/
 void rpc_ss_ndr_m_fixed_cs_array
-#ifdef IDL_PROTOTYPES
 (
     rpc_void_p_t array_addr,        /* [in] Address of array */
     idl_byte **p_defn_vec_ptr,      /* [in] Points at DT_FIXED_ARRAY */
                                     /* [out] Points after array defn */
     IDL_msp_t IDL_msp
 )
-#else
-(array_addr, p_defn_vec_ptr, IDL_msp)
-    rpc_void_p_t array_addr;
-    idl_byte **p_defn_vec_ptr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int array_defn_index;
@@ -551,18 +515,11 @@ void rpc_ss_ndr_m_fixed_cs_array
 /*                                                                            */
 /*****************************************************************************/
 void rpc_ss_ndr_marsh_cs_char
-#ifdef IDL_PROTOTYPES
 (
     rpc_void_p_t char_addr,             /* [in] Address */
     idl_ulong_int cs_type_defn_index,   /* [in] */
     IDL_msp_t IDL_msp
 )
-#else
-(char_addr, cs_type_defn_index, IDL_msp)
-    rpc_void_p_t char_addr;
-    idl_ulong_int cs_type_defn_index;
-    IDL_msp_t IDL_msp;
-#endif
 {
     IDL_bound_pair_t bound_pair;    /* To treat the character as an array */
 
@@ -579,10 +536,9 @@ void rpc_ss_ndr_marsh_cs_char
 /****************************************************************************/
 
 void rpc_ss_ndr_marsh_cs_array (
-#ifdef IDL_PROTOTYPES
 
     rpc_void_p_t array_addr,    /* [in] Used only for fixed arrays */
-    IDL_cs_shadow_elt_t *cs_shadow,  /* [in] Address of cs-shadow 
+    IDL_cs_shadow_elt_t *cs_shadow,  /* [in] Address of cs-shadow
                                             (Not used for fixed arrays) */
     idl_ulong_int shadow_index, /* [in] Index in cs_shadow of array */
     idl_boolean in_struct,      /* [in] TRUE => array is structure field */
@@ -590,15 +546,6 @@ void rpc_ss_ndr_marsh_cs_array (
                                    [out] After array indirection words */
     IDL_msp_t IDL_msp
 )
-#else 
- array_addr, cs_shadow, shadow_index, in_struct, p_defn_vec_ptr, IDL_msp)
-    rpc_void_p_t array_addr;
-    IDL_cs_shadow_elt_t *cs_shadow;
-    idl_ulong_int shadow_index;
-    idl_boolean in_struct;
-    idl_byte **p_defn_vec_ptr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte array_type ;
     idl_byte *defn_vec_ptr = 0 ;
@@ -647,11 +594,16 @@ void rpc_ss_ndr_marsh_cs_array (
 
     if (array_type == IDL_DT_VARYING_ARRAY)
     {
-      if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
-	rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
+        if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
+        {
+            rpc_ss_fixed_bounds_from_vector(1, array_defn_ptr, &bounds_list,
                                         IDL_msp);
-      else
-	bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
+        else
+        {
+	        bounds_list = (IDL_bound_pair_t *)array_defn_ptr;
+        }
+
         array_defn_ptr += IDL_FIXED_BOUND_PAIR_WIDTH;
     }
     else    /* Conformant or varying */
@@ -742,18 +694,11 @@ void rpc_ss_ndr_marsh_cs_array (
 /*                                                                            */
 /*****************************************************************************/
 void rpc_ss_ndr_m_rlse_cs_shadow
-#ifdef IDL_PROTOTYPES
 (
     IDL_cs_shadow_elt_t *cs_shadow,  /* [in] Address of cs-shadow */
     idl_ulong_int shadow_length,     /* [in] Number of structure fields */
     IDL_msp_t IDL_msp
 )
-#else
-(cs_shadow, shadow_length, IDL_msp)
-    IDL_cs_shadow_elt_t *cs_shadow;
-    idl_ulong_int shadow_length;
-    IDL_msp_t IDL_msp;
-#endif
 {
     unsigned32 i;
 
@@ -775,7 +720,6 @@ void rpc_ss_ndr_m_rlse_cs_shadow
 /*****************************************************************************/
 
 void rpc_ss_ndr_m_param_cs_shadow
-#ifdef IDL_PROTOTYPES
 (
     idl_byte *type_vec_ptr,     /* [in] After shadow length */
     idl_ulong_int param_index,  /* [in] Index for first parameter */
@@ -784,15 +728,6 @@ void rpc_ss_ndr_m_param_cs_shadow
     IDL_cs_shadow_elt_t **p_cs_shadow,  /* [out] Address of cs-shadow */
     IDL_msp_t IDL_msp
 )
-#else
-(type_vec_ptr, param_index, shadow_length, p_cs_shadow,
- IDL_msp)
-    idl_byte *type_vec_ptr;
-    idl_ulong_int param_index;
-    idl_ulong_int shadow_length;
-    IDL_cs_shadow_elt_t **p_cs_shadow;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte type_byte;
     IDL_cs_shadow_elt_t *cs_shadow;
@@ -821,7 +756,7 @@ void rpc_ss_ndr_m_param_cs_shadow
             switch(type_byte)
             {
                 case IDL_DT_CS_ARRAY:
-                    rpc_ss_ndr_m_array_shadow(NULL, NULL, NULL,  cs_shadow, 
+                    rpc_ss_ndr_m_array_shadow(NULL, NULL, NULL,  cs_shadow,
                             param_index - 1, &type_vec_ptr, IDL_msp);
                     break;
                 /* For parameters that are not array of [cs_char],
@@ -916,20 +851,12 @@ void rpc_ss_ndr_m_param_cs_shadow
 /*                                                                           */
 /*****************************************************************************/
 void rpc_ss_conf_struct_cs_bounds
-#ifdef IDL_PROTOTYPES
 (
     idl_byte *defn_vec_ptr,     /* [in] Points at bounds info*/
     IDL_cs_shadow_elt_t *cs_shadow,  /* [in] Address of cs-shadow*/
     IDL_bound_pair_t *bounds_list,   /* [out]*/
     IDL_msp_t IDL_msp
 )
-#else
-(defn_vec_ptr, cs_shadow, bounds_list, IDL_msp)
-    idl_byte *defn_vec_ptr;
-    IDL_cs_shadow_elt_t *cs_shadow;
-    IDL_bound_pair_t *bounds_list;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte sz_type;           /* Data type of [size_is] item*/
     idl_ulong_int sz_index;     /* Index in shadow of [size_is] item*/

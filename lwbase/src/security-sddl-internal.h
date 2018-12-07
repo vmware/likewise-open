@@ -293,6 +293,11 @@ RtlpSddlToSidString(
     LW_IN PCSTR pszAliasSidString
     );
 
+LW_PCSTR
+RtlpSidStringToSddl(
+    LW_IN PCSTR pszSidString
+    );
+
 LW_END_EXTERN_C
 
 

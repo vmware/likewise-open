@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -45,14 +45,10 @@
 #    define __IDL_UNUSED_LABEL__
 #endif
 
-#ifndef _DCE_PROTOTYPE_
-#define _DCE_PROTOTYPE_(arg) arg 
-#define _DCE_PROTO_
-#ifndef TRUE 
+#ifndef TRUE
 #define TRUE 1
 #define FALSE 0
-#endif  /* TRUE */
-#endif /* _DCE_PROTOTYPE_ */
+#endif
 
 #ifndef IDLBASE_H
 #define IDLBASE_H 	1
@@ -116,9 +112,9 @@
 
 /*
  * Work around C's flawed model for global variable definitions.
- * this definition now depends on the preprocessor variable 
- * HAS_GLOBALDEF 
- * which should be defined in platform specific dce.h file 
+ * this definition now depends on the preprocessor variable
+ * HAS_GLOBALDEF
+ * which should be defined in platform specific dce.h file
  */
 
 #ifndef HAS_GLOBALDEF
@@ -140,13 +136,13 @@
  * side... at worst your compiler will complain and you can enhance the
  * list and/or add "-Dvolatile" to the cc command line.
  *
- * this definition now depends on the preprocessor variable 
- * VOLATILE_NOT_SUPPORTED 
- * which should be defined in platform specific dce.h file 
+ * this definition now depends on the preprocessor variable
+ * VOLATILE_NOT_SUPPORTED
+ * which should be defined in platform specific dce.h file
  *
  */
 
-#ifdef VOLATILE_NOT_SUPPORTED 
+#ifdef VOLATILE_NOT_SUPPORTED
 #  define volatile
 #endif
 
@@ -156,15 +152,10 @@
  *  Define IDL_PROTOTYPES to control function prototyping.
  *  Define IDL_NO_PROTOTYPES to hide prototypes regardless of conditions.
  *  Define NIDL_PROTOTYPES for compatibility.
- *
- * use _DCE_PROTOTYPE_ instead, since this should 
- * apply to all of DCE for a particular platform
  */
 
-#ifdef _DCE_PROTO_
 #if ! defined(IDL_PROTOTYPES) && ! defined(IDL_NO_PROTOTYPES)
 #define IDL_PROTOTYPES 1
-#endif
 #endif
 
 /***************************************************************************/
@@ -185,7 +176,7 @@
 #endif /* true */
 
 #ifndef false
-#   define false       FALSE 
+#   define false       FALSE
 #endif /* false */
 
 /***************************************************************************/
@@ -202,7 +193,7 @@ typedef struct rpc_handle_s_t *handle_t;
  * (unless some target specific section below #undef's the symbol) of
  * these symbols.
  *
- * for DCE 1.1, we include the platform specific file ndrtypes.h 
+ * for DCE 1.1, we include the platform specific file ndrtypes.h
  */
 
 #include <dce/ndrtypes.h>
@@ -211,23 +202,23 @@ typedef struct rpc_handle_s_t *handle_t;
 
 typedef ndr_boolean		idl_boolean ;
 
-#define idl_false ndr_false 
-#define idl_true  ndr_true 
+#define idl_false ndr_false
+#define idl_true  ndr_true
 
 typedef ndr_byte		idl_byte ;
 
 /*
  * when compiling DCE programs and/or libraries, we want the base type
  * of idl_char to be "unsigned char" (IDL doesn't support signed chars).
- * However, we compiling external programs, we want idl_char to have 
+ * However, we compiling external programs, we want idl_char to have
  * the char type native to the platform on which the program is being
- * compiled. So ... use a macro that should only be defined if we 
+ * compiled. So ... use a macro that should only be defined if we
  * are building the RPC runtime of the IDL compiler.
  */
 
-#ifndef IDL_CHAR_IS_CHAR 
+#ifndef IDL_CHAR_IS_CHAR
 typedef unsigned char idl_char ;
-#else 
+#else
 typedef char idl_char ;
 #endif /* idl_char */
 
@@ -268,11 +259,11 @@ typedef idl_void_p_t ndr_void_p_t;
  *  Allocate and free node storage
  */
 
-idl_void_p_t rpc_ss_allocate _DCE_PROTOTYPE_ ( (idl_size_t));
+idl_void_p_t rpc_ss_allocate (idl_size_t);
 
-void rpc_ss_free _DCE_PROTOTYPE_ ( (idl_void_p_t) );
+void rpc_ss_free (idl_void_p_t );
 
-void rpc_ss_client_free _DCE_PROTOTYPE_ ( (idl_void_p_t) );
+void rpc_ss_client_free (idl_void_p_t );
 
 /*
  *  Helper thread support
@@ -280,30 +271,32 @@ void rpc_ss_client_free _DCE_PROTOTYPE_ ( (idl_void_p_t) );
 
 typedef idl_void_p_t rpc_ss_thread_handle_t;
 
-rpc_ss_thread_handle_t rpc_ss_get_thread_handle _DCE_PROTOTYPE_ ( (void) );
+rpc_ss_thread_handle_t rpc_ss_get_thread_handle (void );
 
-void rpc_ss_set_thread_handle _DCE_PROTOTYPE_ ( (rpc_ss_thread_handle_t) );
+void rpc_ss_set_thread_handle (rpc_ss_thread_handle_t );
 
-void rpc_ss_set_client_alloc_free _DCE_PROTOTYPE_ ((
+void rpc_ss_set_client_alloc_free(
      idl_void_p_t (*)(idl_size_t),
     void (*)(idl_void_p_t)
-));
- 
-void rpc_ss_swap_client_alloc_free _DCE_PROTOTYPE_ ((
+
+    );
+
+void rpc_ss_swap_client_alloc_free(
     idl_void_p_t (*)(idl_size_t),
     void (*)(idl_void_p_t),
     idl_void_p_t (**)(idl_size_t),
     void (**)( idl_void_p_t)
-));
 
-void rpc_ss_enable_allocate _DCE_PROTOTYPE_ ( (void) );
+    );
 
-void rpc_ss_disable_allocate _DCE_PROTOTYPE_ ( (void) );
+void rpc_ss_enable_allocate (void );
+
+void rpc_ss_disable_allocate (void );
 
 /*
  * Destroy an unusable client context handle
  */
-void rpc_ss_destroy_client_context _DCE_PROTOTYPE_ ( (rpc_ss_context_t *) );
+void rpc_ss_destroy_client_context (rpc_ss_context_t * );
 
 
 
@@ -311,38 +304,41 @@ void rpc_ss_destroy_client_context _DCE_PROTOTYPE_ ( (rpc_ss_context_t *) );
  *  Prototypes for rpc_sm_... routines
  */
 
-idl_void_p_t rpc_sm_allocate _DCE_PROTOTYPE_ ((idl_size_t, idl_ulong_int *));
+idl_void_p_t rpc_sm_allocate(idl_size_t, idl_ulong_int *);
 
-void rpc_sm_client_free _DCE_PROTOTYPE_ ((idl_void_p_t, idl_ulong_int *));
+void rpc_sm_client_free(idl_void_p_t, idl_ulong_int *);
 
-void rpc_sm_destroy_client_context  _DCE_PROTOTYPE_ ((
+void rpc_sm_destroy_client_context (
     rpc_ss_context_t *,
-    idl_ulong_int * 
-));
+    idl_ulong_int *
 
-void rpc_sm_disable_allocate _DCE_PROTOTYPE_ ( (idl_ulong_int * ) );
+    );
 
-void rpc_sm_enable_allocate _DCE_PROTOTYPE_ ( (  idl_ulong_int * ) );
+void rpc_sm_disable_allocate (idl_ulong_int *  );
 
-void rpc_sm_free _DCE_PROTOTYPE_ ( (idl_void_p_t, idl_ulong_int * ) );
+void rpc_sm_enable_allocate (  idl_ulong_int *  );
 
-rpc_ss_thread_handle_t rpc_sm_get_thread_handle _DCE_PROTOTYPE_ ( (idl_ulong_int * ) );
+void rpc_sm_free (idl_void_p_t, idl_ulong_int *  );
 
-void rpc_sm_set_client_alloc_free  _DCE_PROTOTYPE_ ((
+rpc_ss_thread_handle_t rpc_sm_get_thread_handle (idl_ulong_int *  );
+
+void rpc_sm_set_client_alloc_free (
     idl_void_p_t (*)(idl_size_t),
     void (*)(idl_void_p_t ),
     idl_ulong_int *
-));
 
-void rpc_sm_set_thread_handle _DCE_PROTOTYPE_ ( ( rpc_ss_thread_handle_t , idl_ulong_int * ) );
+    );
 
-void rpc_sm_swap_client_alloc_free _DCE_PROTOTYPE_ ((
+void rpc_sm_set_thread_handle ( rpc_ss_thread_handle_t , idl_ulong_int *  );
+
+void rpc_sm_swap_client_alloc_free(
      idl_void_p_t (*)(idl_size_t),
     void (*)(idl_void_p_t),
     idl_void_p_t (**)(idl_size_t),
     void (**)(idl_void_p_t),
     idl_ulong_int *
-));
+
+    );
 
 /* International character machinery */
 
@@ -369,7 +365,7 @@ typedef enum {
 /*
  *  Cause a syntax error if compiling on VAX and G_float not specified when any
  *  doubles are used.  Note that on VAX G_float *must* be used by the
- *  application, or incorrect double floating point values will be returned. 
+ *  application, or incorrect double floating point values will be returned.
  *  This test should remain outside the IDLBASE_H conditional, because it
  *  needs to be checked on every include.
  *

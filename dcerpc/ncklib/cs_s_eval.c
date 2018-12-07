@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -32,8 +32,8 @@
 **
 **  ABSTRACT:
 **
-**      PUBLIC RPC 
-**      by 
+**      PUBLIC RPC
+**      by
 **
 */
 
@@ -69,22 +69,22 @@
 **      args		    Arguments to the custom evaluation routine.
 **                          For OSF supplied evaluation routine, this is NULL.
 **
-**	evaluation function 
+**	evaluation function
 **			    Function pointer to an evaluation routine.
 **			    Currently, only evaluation expected is code set
 **			    compatibility evaluations.
 **
-**	free function 
+**	free function
 **			    Function pointer to a free routine.  This is
-**			    a user supplied routine, which is called when 
+**			    a user supplied routine, which is called when
 **			    'function type' is 'rpc_custom_eval_type_codesets'.
 **
-**      
-**      
+**
+**
 **  INPUT/OUPUTS:
 **
 **	import context	    Import context which is used for finding a server.
-**			    This is allocated by the previous 
+**			    This is allocated by the previous
 **			    rpc_ns_binding_import_begin() call. 'eval_routines'
 **			    (which is type rpc_ns_handle_t) will hold the
 **			    information about evaluation routines.
@@ -108,9 +108,8 @@
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_ns_import_ctx_add_eval
-#ifdef _DCE_PROTO_
 (
 	rpc_ns_handle_t		*import_ctx,
 	unsigned32		func_type,
@@ -119,15 +118,6 @@ void rpc_ns_import_ctx_add_eval
 	void			(*cs_free_func)(void *cntx),
 	error_status_t		*status
 )
-#else
-(import_ctx, func_type, args, eval_func, cs_free_func, status)
-	rpc_ns_handle_t		*import_ctx;
-	unsigned32		func_type;
-	void			*args;
-	void			(*eval_func)(handle_t binding_h, void *args, void **cntx);
-	void			(*cs_free_func)(void *cntx);
-	error_status_t		*status;
-#endif
 {
 	rpc_cs_eval_func_p_t		eval_func_rep;
 	rpc_cs_eval_list_p_t		eval_list_p;
@@ -253,7 +243,7 @@ void rpc_ns_import_ctx_add_eval
 			/*
 			 * set the stack pointer to newly allocated stack
 			 */
-			eval_func_rep = (rpc_cs_eval_func_p_t)lookup_p->eval_routines; 
+			eval_func_rep = (rpc_cs_eval_func_p_t)lookup_p->eval_routines;
 			eval_func_rep->list->next = eval_list_p;
 	
 			eval_func_rep->num += 1;
@@ -288,7 +278,7 @@ void rpc_ns_import_ctx_add_eval
 **
 **	args 		Actually points to 'rpc_cs_codeset_i14y_data_p'
 **			data type.
-**      
+**
 **  INPUT/OUPUTS:
 **
 **	cntx 		Points to 'rpc_cs_codeset_i14y_data_p' data type,
@@ -307,20 +297,13 @@ void rpc_ns_import_ctx_add_eval
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_cs_eval_with_universal
-#ifdef _DCE_PROTO_
 (
 	handle_t		binding_h,
 	void			*args,
 	void			**cntx
 )
-#else
-(binding_h, args, cntx)
-	handle_t		binding_h;
-	void			*args;
-	void			**cntx;
-#endif
 {
 	rpc_cs_codeset_i14y_data_p	i14y_data_p;	
 	rpc_cs_codeset_i14y_data_p	cntx_i14y_data_p;	
@@ -355,12 +338,12 @@ void rpc_cs_eval_with_universal
 	else
 		cntx_i14y_data_p = (rpc_cs_codeset_i14y_data_p)*cntx;
 
-	/* 
+	/*
 	 * Get the client's supported code sets.
 	 */
 	if (method_p->client == NULL)
 	{
-		rpc_rgy_get_codesets ( 
+		rpc_rgy_get_codesets (
 			&method_p->client,
 			&cntx_i14y_data_p->status);
 		
@@ -368,7 +351,7 @@ void rpc_cs_eval_with_universal
 			return;
 	}
 
-	/* 
+	/*
 	** Get the server's supported code sets from NSI.
 	*/
 
@@ -386,14 +369,14 @@ void rpc_cs_eval_with_universal
 		return;
 	}
 
-	/* 
+	/*
 	 * Start evaluation
 	 */
-	if (method_p->client->codesets[0].c_set 
+	if (method_p->client->codesets[0].c_set
 			== method_p->server->codesets[0].c_set)
 	{
-		/* 
-		 * Both client and server are using the same code set 
+		/*
+		 * Both client and server are using the same code set
 		 */
 		method_p->method = RPC_EVAL_NO_CONVERSION;
 		method_p->tags.stag = method_p->client->codesets[0].c_set;
@@ -411,10 +394,10 @@ void rpc_cs_eval_with_universal
 		
 		if (cntx_i14y_data_p->status != rpc_s_ok)
 		{
-			/* 
+			/*
 			 * Character set for client and server didn't match.
-			 * Mass of data loss could result, so we quit the 
-			 * evaluation here. 
+			 * Mass of data loss could result, so we quit the
+			 * evaluation here.
 			 */
 			rpc_ns_mgmt_free_codesets( &method_p->server, &temp_status);
 			return;
@@ -428,14 +411,14 @@ void rpc_cs_eval_with_universal
 			   if (model_found)
 				break;
 	
-			   if (method_p->client->codesets[0].c_set 
+			   if (method_p->client->codesets[0].c_set
 				== method_p->server->codesets[i].c_set)
 			   {
 				smir_true = 1;
 				model_found = 1;
 			   }
 
-			   if (method_p->server->codesets[0].c_set 
+			   if (method_p->server->codesets[0].c_set
 				== method_p->client->codesets[i].c_set)
 			   {
 				cmir_true = 1;
@@ -449,13 +432,13 @@ void rpc_cs_eval_with_universal
 			   {
 				/* RMIR model works */
 				method_p->method = RPC_EVAL_RMIR_MODEL;
-				method_p->tags.stag 
+				method_p->tags.stag
 					= method_p->client->codesets[0].c_set;
 				method_p->tags.drtag
 				    	= method_p->server->codesets[0].c_set;
-				method_p->tags.stag_max_bytes 
+				method_p->tags.stag_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -468,9 +451,9 @@ void rpc_cs_eval_with_universal
 				    	= method_p->client->codesets[0].c_set;
 				method_p->tags.drtag
 				     	= method_p->client->codesets[0].c_set;
-				method_p->tags.stag_max_bytes 
+				method_p->tags.stag_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -483,9 +466,9 @@ void rpc_cs_eval_with_universal
 					= method_p->server->codesets[0].c_set;
 				method_p->tags.drtag
 					= method_p->server->codesets[0].c_set;
-				method_p->tags.stag_max_bytes 
+				method_p->tags.stag_max_bytes
 				    = method_p->server->codesets[0].c_max_bytes;
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -496,7 +479,7 @@ void rpc_cs_eval_with_universal
 				/*
 				 * We try to find the intermediate code set
 				 */
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -512,7 +495,7 @@ void rpc_cs_eval_with_universal
 					   {
 						i_code = method_p->client->codesets[i].c_set;
 						i_max_bytes = method_p->client->codesets[i].c_max_bytes;
-						method_p->tags.stag_max_bytes 
+						method_p->tags.stag_max_bytes
 						   = method_p->client->codesets[i].c_max_bytes;
 						model_found = 1;
 						   break;
@@ -533,7 +516,7 @@ void rpc_cs_eval_with_universal
 					method_p->method = RPC_EVAL_UNIVERSAL_MODEL;
 					method_p->tags.stag = UCS2_L2;
 					method_p->tags.drtag = UCS2_L2;
-					method_p->tags.client_tag 
+					method_p->tags.client_tag
 				    	   = method_p->client->codesets[0].c_set;
 					method_p->tags.client_max_bytes
 					    = method_p->client->codesets[0].c_max_bytes;
@@ -569,7 +552,7 @@ void rpc_cs_eval_with_universal
 **  DESCRIPTION:
 **
 **  An evaluation routine to evaluate client's and server's supported
-**  code sets.  If no code sets match it fails.  Universal code set will 
+**  code sets.  If no code sets match it fails.  Universal code set will
 **  not be used for the wire communication.
 **
 **  INPUTS:
@@ -579,12 +562,12 @@ void rpc_cs_eval_with_universal
 **
 **	args 		Actually points to 'rpc_cs_codeset_i14y_data_p'
 **			data type.
-**      
+**
 **  INPUT/OUPUTS:
 **
 **	cntx 		Points to 'rpc_cs_codeset_i14y_data_p' data type,
 **			and keep track of function execution.
-**      
+**
 **  OUTPUTS: none
 **
 **  IMPLICIT INPUTS:        none
@@ -598,20 +581,13 @@ void rpc_cs_eval_with_universal
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_cs_eval_without_universal
-#ifdef _DCE_PROTO_
 (
 	handle_t		binding_h,
 	void			*args,
 	void			**cntx
 )
-#else
-(binding_h, args, cntx)
-	handle_t		binding_h;
-	void			*args;
-	void			**cntx;
-#endif
 {
 	rpc_cs_codeset_i14y_data_p	i14y_data_p;	
 	rpc_cs_codeset_i14y_data_p	cntx_i14y_data_p;	
@@ -647,13 +623,13 @@ void rpc_cs_eval_without_universal
 		cntx_i14y_data_p = (rpc_cs_codeset_i14y_data_p)*cntx;
 
 
-	/* 
+	/*
 	 * Get the client's supported code sets if it is not set.
 	method_p->client = (rpc_codeset_mgmt_p_t)i14y_data_p->args;
 	 */
 	if (method_p->client == NULL)
 	{
-		rpc_rgy_get_codesets ( 
+		rpc_rgy_get_codesets (
 			&method_p->client,
 			&cntx_i14y_data_p->status);
 		
@@ -661,7 +637,7 @@ void rpc_cs_eval_without_universal
 			return;
 	}
 
-	/* 
+	/*
 	** Get the server's supported code sets from NSI.
 	*/
 
@@ -679,14 +655,14 @@ void rpc_cs_eval_without_universal
 		return;
 	}
 
-	/* 
+	/*
 	 * Start evaluation
 	 */
-	if (method_p->client->codesets[0].c_set 
+	if (method_p->client->codesets[0].c_set
 			== method_p->server->codesets[0].c_set)
 	{
-		/* 
-		 * Both client and server are using the same code set 
+		/*
+		 * Both client and server are using the same code set
 		 */
 		method_p->method = RPC_EVAL_NO_CONVERSION;
 		method_p->tags.stag = method_p->client->codesets[0].c_set;
@@ -704,10 +680,10 @@ void rpc_cs_eval_without_universal
 		
 		if (cntx_i14y_data_p->status != rpc_s_ok)
 		{
-			/* 
+			/*
 			 * Character set for client and server didn't match.
-			 * Mass of data loss could result, so we quit the 
-			 * evaluation here. 
+			 * Mass of data loss could result, so we quit the
+			 * evaluation here.
 			 */
 			rpc_ns_mgmt_free_codesets( &method_p->server, &temp_status);
 			return;
@@ -721,14 +697,14 @@ void rpc_cs_eval_without_universal
 			   if (model_found)
 				break;
 
-			   if (method_p->client->codesets[0].c_set 
+			   if (method_p->client->codesets[0].c_set
 				== method_p->server->codesets[i].c_set)
 			   {
 				smir_true = 1;
 				model_found = 1;
 			   }
 
-			   if (method_p->server->codesets[0].c_set 
+			   if (method_p->server->codesets[0].c_set
 				== method_p->client->codesets[i].c_set)
 			   {
 				cmir_true = 1;
@@ -746,7 +722,7 @@ void rpc_cs_eval_without_universal
 				method_p->tags.drtag = method_p->server->codesets[0].c_set;
 				method_p->tags.stag_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -759,7 +735,7 @@ void rpc_cs_eval_without_universal
 				method_p->tags.drtag = method_p->client->codesets[0].c_set;
 				method_p->tags.stag_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -772,7 +748,7 @@ void rpc_cs_eval_without_universal
 				method_p->tags.drtag = method_p->server->codesets[0].c_set;
 				method_p->tags.stag_max_bytes
 				    = method_p->server->codesets[0].c_max_bytes;
-				method_p->tags.client_tag 
+				method_p->tags.client_tag
 				    = method_p->client->codesets[0].c_set;
 				method_p->tags.client_max_bytes
 				    = method_p->client->codesets[0].c_max_bytes;
@@ -809,7 +785,7 @@ void rpc_cs_eval_without_universal
 			   }
 			   if (model_found)
 			   {
-				method_p->method 
+				method_p->method
 					= RPC_EVAL_INTERMEDIATE_MODEL;
 				method_p->tags.stag = i_code;
 				method_p->tags.drtag = i_code;
@@ -819,7 +795,7 @@ void rpc_cs_eval_without_universal
 				/*
 				 * We do not use UNIVERSAL code set
 				 */
-				cntx_i14y_data_p->status 
+				cntx_i14y_data_p->status
 						= rpc_s_ss_no_compat_codeset;
 				rpc_ns_mgmt_free_codesets( &method_p->server, &temp_status);
 				return;
@@ -849,7 +825,7 @@ void rpc_cs_eval_without_universal
 **  and server are connected.
 **
 **  INPUTS:
-**      
+**
 **	client_codeset 	    OSF code set registry value for client's current
 **			    code set.
 **
@@ -876,20 +852,13 @@ void rpc_cs_eval_without_universal
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_cs_char_set_compat_check
-#ifdef _DCE_PROTO_
 (
 	unsigned32		client_codeset,
 	unsigned32		server_codeset,
 	error_status_t		*status
 )
-#else
-(client_codeset, server_codeset, status)
-	unsigned32		client_codeset;
-	unsigned32		server_codeset;
-	error_status_t		*status;
-#endif
 {
 	unsigned_char_t	*client_code_set_name;
 	unsigned16	client_char_sets_number;
@@ -934,11 +903,11 @@ void rpc_cs_char_set_compat_check
 		server_number_save = server_char_sets_number;
 		server_value_save  = server_char_sets_value;
 
-		while (client_char_sets_number--) 
+		while (client_char_sets_number--)
 		{
 			while (server_char_sets_number--)
 			{
-				if (*client_char_sets_value 
+				if (*client_char_sets_value
 						== *server_char_sets_value++)
 					match++;
 			}
@@ -971,7 +940,7 @@ void rpc_cs_char_set_compat_check
 **  INPUTS:
 **	method_p	   pointer to the method structure.
 **	
-**      
+**
 **  INPUT/OUPUTS:
 **
 **	h 		    rpc binding handle.  rpc_binding_rep_t will be
@@ -995,18 +964,11 @@ void rpc_cs_char_set_compat_check
 */
 PRIVATE
 void rpc_cs_binding_set_method
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t		*h,
 	rpc_cs_method_eval_p_t		method_p,
 	error_status_t			*status
 )
-#else
-(h, method_p, status)
-	rpc_binding_handle_t		*h;
-	rpc_cs_method_eval_p_t		method_p;
-	error_status_t			*status;
-#endif
 {
 	rpc_cs_method_eval_p_t  bind_method;
 	rpc_binding_rep_p_t	bind_eval_p;
@@ -1049,7 +1011,7 @@ void rpc_cs_binding_set_method
 **	stag		   sending tag
 **	
 **	drtag		   desired receving tag
-**      
+**
 **  INPUT/OUPUTS:
 **
 **	h 		    rpc binding handle.  rpc_binding_rep_t will be
@@ -1072,9 +1034,8 @@ void rpc_cs_binding_set_method
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_cs_binding_set_tags
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t		*h,
 	unsigned32			stag,
@@ -1082,14 +1043,6 @@ void rpc_cs_binding_set_tags
 	unsigned16			stag_max_bytes,
 	error_status_t			*status
 )
-#else
-(h, stag, drtag, stag_max_bytes, status)
-	rpc_binding_handle_t		*h;
-	unsigned32			stag;
-	unsigned32			drtag;
-	unsigned16			stag_max_bytes;
-	error_status_t			*status;
-#endif
 {
 	rpc_cs_tags_eval_p_t	bind_tags;
 	rpc_binding_rep_p_t	bind_eval_p;
@@ -1163,20 +1116,13 @@ void rpc_cs_binding_set_tags
 **--
 */
 
-PUBLIC 
+PUBLIC
 void rpc_cs_binding_set_eval
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t		*h,
 	void				(*cs_stub_eval_func)(unsigned32 *p_stag, unsigned32 *p_drtag, error_status_t *status),
 	error_status_t			*status
 )
-#else
-(h, cs_stub_eval_func, status)
-	rpc_binding_handle_t		*h;
-	void				(*cs_stub_eval_func)(unsigned32 *p_stag, unsigned32 *p_drtag, error_status_t *status);
-	error_status_t			*status;
-#endif
 {
 	rpc_cs_method_eval_p_t  bind_method;
 	rpc_binding_rep_p_t	bind_eval_p;

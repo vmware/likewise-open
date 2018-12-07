@@ -128,11 +128,14 @@ SamrSrvDecryptPasswordBlobEx(
            sizeof(KeyInit));
 
     /*
-     * Prepare the session key digested with key initialisator
+     * Prepare the session key digested with key initializer.
+     *
+     * Session key should be 16 bytes according to Microsoft's MS-SAMR.pdf
+     * in section 3.2.2.2 MD5 Usage. RC4 happens to have a 16 byte session key.
      */
     MD5_Init(&ctx);
     MD5_Update(&ctx, KeyInit, sizeof(KeyInit));
-    MD5_Update(&ctx, pKey, dwKeyLen);
+    MD5_Update(&ctx, pKey, dwKeyLen > 16 ? 16 : dwKeyLen);
     MD5_Final(DigestedSessionKey, &ctx);
 
     /*
@@ -452,8 +455,8 @@ SamrSrvEncryptPasswordBlobEx(
      * Prepare the session key digested with key initialisator
      */
     MD5_Init(&ctx);
-    MD5_Update(&ctx, pKeyInit, dwKeyInitLen);
-    MD5_Update(&ctx, pKey, dwKeyLen);
+    MD5_Update(&ctx, pKeyInit, dwKeyInitLen > 16 ? 16 : dwKeyInitLen);
+    MD5_Update(&ctx, pKey, dwKeyLen > 16 ? 16 : dwKeyLen);
     MD5_Final(DigestedSessionKey, &ctx);
 
     /*

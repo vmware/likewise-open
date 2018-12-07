@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -41,20 +41,19 @@
 **
 */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 /***********************************************************************
  *
- *  Include the Internet specific socket address 
+ *  Include the Internet specific socket address
  */
 
-
+#ifndef _WIN32
 #ifdef VMS
 #include <un.h>
 #else
 #include <sys/un.h>
+#endif
 #endif
 
 #ifndef RPC_C_UXD_DIR
@@ -101,48 +100,54 @@ typedef struct rpc_addr_uxd_t
  *
  *  Routine Prototypes for the Internet Extension service routines.
  */
-    
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-PRIVATE void rpc__uxd_init _DCE_PROTOTYPE_ ((  
+PRIVATE void rpc__uxd_init(
         rpc_naf_epv_p_t             * /*naf_epv*/,
         unsigned32                  * /*status*/
-    ));
+    
+    );
 
-PRIVATE void rpc__uxd_desc_inq_addr _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__uxd_desc_inq_addr(
         rpc_protseq_id_t             /*protseq_id*/,
         rpc_socket_t                 /*desc*/,
         rpc_addr_vector_p_t         * /*rpc_addr_vec*/,
         unsigned32                  * /*st*/
-    ));
+    
+    );
 
-PRIVATE void rpc__uxd_get_broadcast _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__uxd_get_broadcast(
         rpc_naf_id_t                 /*naf_id*/,
         rpc_protseq_id_t             /*rpc_protseq_id*/,
         rpc_addr_vector_p_t         * /*rpc_addrs*/,
         unsigned32                  * /*status*/
-    ));
+    
+    );
 
-PRIVATE void rpc__uxd_init_local_addr_vec _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__uxd_init_local_addr_vec(
         unsigned32                  * /*status*/
-    ));
+    
+    );
 
-PRIVATE boolean32 rpc__uxd_is_local_network _DCE_PROTOTYPE_ ((
+PRIVATE boolean32 rpc__uxd_is_local_network(
         rpc_addr_p_t                 /*rpc_addr*/,
         unsigned32                  * /*status*/
-    ));
+    
+    );
 
-PRIVATE boolean32 rpc__uxd_is_local_addr _DCE_PROTOTYPE_ ((
+PRIVATE boolean32 rpc__uxd_is_local_addr(
         rpc_addr_p_t                 /*rpc_addr*/,
         unsigned32                  * /*status*/
-    ));
+    
+    );
 
 #ifdef __cplusplus
 }
 #endif
 
-              
+
 #endif /* _UXDNAF_H */

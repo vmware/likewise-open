@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,11 +28,11 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
-**  DG protocol service routines.  Server-oriented routines that run in the 
+**  DG protocol service routines.  Server-oriented routines that run in the
 **  listener thread.
 **
 **
@@ -41,37 +41,40 @@
 #ifndef _DGSLSN_H
 #define _DGSLSN_H
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 
-PRIVATE boolean32 rpc__dg_svr_chk_and_set_sboot _DCE_PROTOTYPE_((
+PRIVATE boolean32 rpc__dg_svr_chk_and_set_sboot(
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_sock_pool_elt_p_t  /*sp*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_quit _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_quit(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t  /*scall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_ack _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_ack(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t  /*scall*/
-     ));
+     
+    );
 
-PRIVATE boolean rpc__dg_do_ping _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_ping(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/,
         rpc_dg_scall_p_t  /*scall*/
-    ));
+    
+    );
 
-PRIVATE boolean rpc__dg_do_request _DCE_PROTOTYPE_((
+PRIVATE boolean rpc__dg_do_request(
         rpc_dg_sock_pool_elt_p_t  /*sp*/,
         rpc_dg_recvq_elt_p_t  /*rqe*/
-    ));
+    
+    );
 
 #endif /* _DGSLSN_H */

@@ -79,6 +79,7 @@
 #include <cncall.h>     /* NCA connection call service */
 #include <comcthd.h>    /* Externals for call thread services component */
 #include <cncthd.h>     /* NCA Connection call executor service */
+#include <cninline.h>
 
 
 /******************************************************************************/
@@ -141,19 +142,21 @@ INTERNAL rpc_cn_pkt_info_t packet_info_table[] =
 /*
  * R E C E I V E _ D I S P A T C H
  */
-INTERNAL void receive_dispatch _DCE_PROTOTYPE_ ((
+INTERNAL void receive_dispatch(
         rpc_cn_assoc_p_t        /*assoc*/
-    ));
+    
+    );
 
 /*
  * R E C E I V E _ P A C K E T
  */
-INTERNAL void receive_packet _DCE_PROTOTYPE_ ((
+INTERNAL void receive_packet(
         rpc_cn_assoc_p_t        /*assoc*/,
         rpc_cn_fragbuf_p_t      * /*fragbuf_p*/,
         rpc_cn_fragbuf_p_t      * /*ovf_fragbuf_p*/,
         unsigned32              * /*st*/
-    ));
+    
+    );
 
 /*
  * R P C _ C N _ S E N D _ F A U L T
@@ -211,14 +214,9 @@ INTERNAL void receive_packet _DCE_PROTOTYPE_ ((
 */
 
 PRIVATE void rpc__cn_network_receiver
-#ifdef _DCE_PROTO_
 (
   rpc_cn_assoc_p_t        assoc
 )
-#else
-(assoc)
-rpc_cn_assoc_p_t        assoc;
-#endif
 {
     rpc_socket_error_t  serr;
     volatile boolean    done = false;
@@ -527,14 +525,9 @@ rpc_cn_assoc_p_t        assoc;
 **/
 
 INTERNAL void receive_dispatch
-#ifdef _DCE_PROTO_
 (
   rpc_cn_assoc_p_t        assoc
 )
-#else
-(assoc)
-rpc_cn_assoc_p_t        assoc;
-#endif
 {
     volatile rpc_cn_fragbuf_p_t          fragbuf_p;
     volatile rpc_cn_fragbuf_p_t          ovf_fragbuf_p;
@@ -664,7 +657,7 @@ rpc_cn_assoc_p_t        assoc;
              * to determine whether we have to bother unpacking the
              * packet header.
              */
-            NDR_UNPACK_DREP (&(RPC_CN_ASSOC_NDR_FORMAT (assoc)),
+            NDR_UNPACK_DREP (RPC_CN_ASSOC_NDR_FORMAT (assoc),
                              RPC_CN_PKT_DREP (pktp));
             if ((NDR_DREP_INT_REP (RPC_CN_PKT_DREP (pktp)) !=
                  NDR_LOCAL_INT_REP))
@@ -1347,20 +1340,12 @@ rpc_cn_assoc_p_t        assoc;
 **/
 
 INTERNAL void receive_packet
-#ifdef _DCE_PROTO_
 (
   rpc_cn_assoc_p_t        assoc,
   rpc_cn_fragbuf_p_t      *fragbuf_p,
   rpc_cn_fragbuf_p_t      *ovf_fragbuf_p,
   unsigned32              *st
 )
-#else
-(assoc, fragbuf_p, ovf_fragbuf_p, st)
-rpc_cn_assoc_p_t        assoc;
-rpc_cn_fragbuf_p_t      *fragbuf_p;
-rpc_cn_fragbuf_p_t      *ovf_fragbuf_p;
-unsigned32              *st;
-#endif
 {
     rpc_cn_fragbuf_t    * volatile fbp;
     volatile unsigned16 frag_length;

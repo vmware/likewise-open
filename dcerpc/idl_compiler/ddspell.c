@@ -1093,7 +1093,7 @@ void DDBE_spell_type_vec_preamble
                          int_name, shortint);
     fprintf(fid, "\n");
 
-    shortint = int_p->version / 65536;
+    shortint = (unsigned short int) (int_p->version / 65536);
     DDBE_SPELL_INDEX(fid, 14);
     DDBE_spell_short_bytes(fid, &shortint, DDBE_little_endian);
     DDBE_SPELL_TEXT_2ARG(fid, "\t/* interface %s minor version %d */",

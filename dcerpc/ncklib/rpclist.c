@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -82,9 +82,9 @@ GLOBAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb =
 **      mutex           The list specific mutex used to protect the
 **                      integrity of the list. If the NULL is
 **                      provided the global lookaside list mutex and
-**                      condition variable will be used.It is used when 
+**                      condition variable will be used.It is used when
 **                      blocking on or signalling condition
-**                      variables. Note that the neither 
+**                      variables. Note that the neither
 **                      rpc__list_element_alloc or _free ever
 **                      explicitly acquires or releases this mutex.
 **                      This must be done by the caller.
@@ -108,8 +108,7 @@ GLOBAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb =
 **--
 **/
 
-PRIVATE void rpc__list_desc_init 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__list_desc_init
 (
     rpc_list_desc_p_t               list_desc,
     unsigned32                      max_size,
@@ -120,17 +119,6 @@ PRIVATE void rpc__list_desc_init
     rpc_mutex_p_t                   mutex,
     rpc_cond_p_t                    cond
 )
-#else
-(list_desc, max_size, element_size, element_type, alloc_rtn, free_rtn, mutex, cond) 
-rpc_list_desc_p_t               list_desc;
-unsigned32                      max_size;
-unsigned32                      element_size;
-unsigned32                      element_type;
-rpc_list_element_alloc_fn_t     alloc_rtn;
-rpc_list_element_free_fn_t      free_rtn;
-rpc_mutex_p_t                   mutex;
-rpc_cond_p_t                    cond;
-#endif
 {
     list_desc->max_size = max_size;
     list_desc->cur_size = 0;
@@ -180,7 +168,7 @@ rpc_cond_p_t                    cond;
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     
+**  FUNCTION VALUE:
 **
 **      return          Pointer to the allocated list element.
 **
@@ -246,17 +234,11 @@ PRIVATE pointer_t rpc__list_element_alloc
 
 #else
 
-PRIVATE pointer_t rpc__list_element_alloc 
-#ifdef _DCE_PROTO_
+PRIVATE pointer_t rpc__list_element_alloc
 (
     rpc_list_desc_p_t       list_desc,
     boolean32               block
 )
-#else
-(list_desc, block)
-rpc_list_desc_p_t       list_desc;
-boolean32               block;
-#endif
 {
     volatile pointer_t  element;
     unsigned32          wait_cnt;
@@ -355,23 +337,23 @@ boolean32               block;
                 /*
                  * If we are using the global lookaside list lock
                  * then reaquire the global lookaside list lock and
-                 * wait on the global lookaside list condition 
+                 * wait on the global lookaside list condition
                  * variable otherwise use the caller's mutex and
-                 * condition variable. 
+                 * condition variable.
                  */
                 if (list_desc->use_global_mutex)
                 {
                     RPC_MUTEX_LOCK (rpc_g_lookaside_rcb.res_lock);
                     RPC_COND_TIMED_WAIT (rpc_g_lookaside_rcb.wait_flg,
                                          rpc_g_lookaside_rcb.res_lock,
-                                         &abstime); 
+                                         &abstime);
                     RPC_MUTEX_UNLOCK (rpc_g_lookaside_rcb.res_lock);
                 }
                 else
                 {
                     RPC_COND_TIMED_WAIT (*list_desc->cond,
                                          *list_desc->mutex,
-                                         &abstime); 
+                                         &abstime);
                 }
 
                 /*
@@ -488,17 +470,11 @@ PRIVATE void rpc__list_element_free
 
 #else
 
-PRIVATE void rpc__list_element_free 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__list_element_free
 (
     rpc_list_desc_p_t       list_desc,
     pointer_t               list_element
 )
-#else
-(list_desc, list_element)
-rpc_list_desc_p_t       list_desc;
-pointer_t               list_element;
-#endif
 {
     RPC_LOG_LIST_ELT_FREE_NTR;
 
@@ -513,7 +489,7 @@ pointer_t               list_element;
     {
         RPC_MUTEX_LOCK (rpc_g_lookaside_rcb.res_lock);
     }
-    
+
     if (list_desc->cur_size < list_desc->max_size)
     {
         list_desc->cur_size++;
@@ -524,7 +500,7 @@ pointer_t               list_element;
 
         /*
          * Now check whether any other thread is waiting for a lookaside list
-         * structure. 
+         * structure.
          */
         if (rpc_g_lookaside_rcb.waiter_cnt > 0)
         {
@@ -536,7 +512,7 @@ pointer_t               list_element;
              */
             if (list_desc->use_global_mutex)
             {
-                RPC_COND_SIGNAL (rpc_g_lookaside_rcb.wait_flg, 
+                RPC_COND_SIGNAL (rpc_g_lookaside_rcb.wait_flg,
                                  rpc_g_lookaside_rcb.res_lock);
             }
             else
@@ -548,7 +524,7 @@ pointer_t               list_element;
 
         /*
          * Release the global resource control lock for all lookaside
-         * lists if the caller doesn't have their own lock 
+         * lists if the caller doesn't have their own lock
          * since the structure has now been added to the list.
          */
         if (list_desc->use_global_mutex)
@@ -570,7 +546,7 @@ pointer_t               list_element;
         /*
          * Release the global resource control lock for all
          * lookaside lists if the caller doesn't have their own lock.
-         * 
+         *
          * We do it now because freeing an element to the heap is a relatively
          * time consuming operation.
          */
@@ -578,8 +554,8 @@ pointer_t               list_element;
         {
             RPC_MUTEX_UNLOCK (rpc_g_lookaside_rcb.res_lock);
         }
-       
-	memset (list_element, 0, list_desc->element_size); 
+
+	memset (list_element, 0, list_desc->element_size);
         RPC_MEM_FREE (list_element, list_desc->element_type);
     }
 
@@ -596,7 +572,7 @@ pointer_t               list_element;
 **
 **  DESCRIPTION:
 **
-**  Perform fork-related processing, depending on what stage of the 
+**  Perform fork-related processing, depending on what stage of the
 **  fork we are currently in.
 **
 **  INPUTS:
@@ -619,14 +595,9 @@ pointer_t               list_element;
 **/
 
 PRIVATE void rpc__list_fork_handler
-#ifdef _DCE_PROTO_
 (
     rpc_fork_stage_id_t     stage
 )
-#else
-(stage)
-rpc_fork_stage_id_t     stage;
-#endif
 {
     switch ((int)stage)
     {
@@ -634,11 +605,11 @@ rpc_fork_stage_id_t     stage;
                 break;
         case RPC_C_POSTFORK_PARENT:
                 break;
-        case RPC_C_POSTFORK_CHILD:  
+        case RPC_C_POSTFORK_CHILD:
                 /*
                  * Reset the lookaside waiter's count.
                  */
                 rpc_g_lookaside_rcb.waiter_cnt = 0;
                 break;
-    }  
+    }
 }

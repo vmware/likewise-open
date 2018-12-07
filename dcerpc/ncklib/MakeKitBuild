@@ -45,7 +45,7 @@ make()
         cnassoc.c cnbind.c cncall.c cncasgsm.c \
         cncassm.c cncclsm.c cncthd.c cnfbuf.c cnid.c cninit.c cnmgmt.c \
         cnnet.c cnp.c cnpkt.c cnrcvr.c cnsasgsm.c cnsassm.c cnsclsm.c \
-        cnsm.c cnxfer.c"
+        cnsm.c cnxfer.c cninline.c"
 
     PROT_NCADG_SOURCES="\
         conv.c dg.c dgcall.c dgccall.c \
@@ -142,7 +142,7 @@ make()
             GROUP="prot_ncacn" \
             SOURCES="$PROT_NCACN_SOURCES" \
             INCLUDEDIRS="$NCK_INCLUDEDIRS" \
-            CFLAGS="$NCK_CFLAGS" \
+            CFLAGS="$NCK_CFLAGS -DLW_USE_TYPES" \
             HEADERDEPS="$NCK_HEADERDEPS"
 
         NCK_EXTRA_GROUPS="$NCK_EXTRA_GROUPS prot_ncacn"

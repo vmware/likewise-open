@@ -27,7 +27,7 @@ VmDirCrackLoginId(
 
         size_t len = pszCursor - pszLoginId;
 
-        dwError = LwAllocateMemory(len, (PVOID*)&pszDomain);
+        dwError = LwAllocateMemory(len+1, (PVOID*)&pszDomain);
         BAIL_ON_VMDIR_ERROR(dwError);
 
         memcpy(pszDomain, pszLoginId, len);
@@ -44,7 +44,7 @@ VmDirCrackLoginId(
 
         size_t len = pszCursor - pszLoginId;
 
-        dwError = LwAllocateMemory(len, (PVOID*)&pszAccount);
+        dwError = LwAllocateMemory(len+1, (PVOID*)&pszAccount);
         BAIL_ON_VMDIR_ERROR(dwError);
 
         memcpy(pszAccount, pszLoginId, len);
@@ -83,230 +83,230 @@ error:
 
 DWORD
 VmDirGetBindInfo(
-	PVMDIR_BIND_INFO* ppBindInfo
-	)
+    PVMDIR_BIND_INFO* ppBindInfo
+    )
 {
-	DWORD dwError = 0;
-	BOOLEAN bInLock = FALSE;
-	PVMDIR_BIND_INFO pBindInfo = NULL;
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PVMDIR_BIND_INFO pBindInfo = NULL;
 
-	dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
-					&gVmDirAuthProviderGlobals.mutex_rw,
-					bInLock);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = VMDIR_ACQUIRE_RWLOCK_SHARED(
+                    &gVmDirAuthProviderGlobals.mutex_rw,
+                    bInLock);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	if (gVmDirAuthProviderGlobals.pBindInfo)
-	{
-		pBindInfo = VmDirAcquireBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
-	}
-	else
-	{
-		VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
+    if (gVmDirAuthProviderGlobals.pBindInfo)
+    {
+        pBindInfo = VmDirAcquireBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
+    }
+    else
+    {
+        VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
 
-		dwError = VmDirCreateBindInfo(&pBindInfo);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        dwError = VmDirCreateBindInfo(&pBindInfo);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		dwError = VMDIR_ACQUIRE_RWLOCK_EXCLUSIVE(
-						&gVmDirAuthProviderGlobals.mutex_rw,
-						bInLock);
-		BAIL_ON_VMDIR_ERROR(dwError);
+        dwError = VMDIR_ACQUIRE_RWLOCK_EXCLUSIVE(
+                        &gVmDirAuthProviderGlobals.mutex_rw,
+                        bInLock);
+        BAIL_ON_VMDIR_ERROR(dwError);
 
-		if (gVmDirAuthProviderGlobals.pBindInfo)
-		{
-			VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
-		}
+        if (gVmDirAuthProviderGlobals.pBindInfo)
+        {
+            VmDirReleaseBindInfo(gVmDirAuthProviderGlobals.pBindInfo);
+        }
 
-		gVmDirAuthProviderGlobals.pBindInfo = VmDirAcquireBindInfo(pBindInfo);
-	}
+        gVmDirAuthProviderGlobals.pBindInfo = VmDirAcquireBindInfo(pBindInfo);
+    }
 
-	*ppBindInfo = pBindInfo;
+    *ppBindInfo = pBindInfo;
 
 cleanup:
 
-	VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
+    VMDIR_RELEASE_RWLOCK(&gVmDirAuthProviderGlobals.mutex_rw, bInLock);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppBindInfo = NULL;
+    *ppBindInfo = NULL;
 
-	if (pBindInfo)
-	{
-		VmDirReleaseBindInfo(pBindInfo);
-	}
+    if (pBindInfo)
+    {
+        VmDirReleaseBindInfo(pBindInfo);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 DWORD
 VmDirGetDomainFromDN(
-	PCSTR pszDN,
-	PSTR* ppszDomain
-	)
+    PCSTR pszDN,
+    PSTR* ppszDomain
+    )
 {
-	DWORD  dwError = 0;
-	PSTR   pszDN_local = NULL;
-	PSTR   pszReadCursor = NULL;
-	PSTR   pszDC = NULL;
-	PCSTR  pszDCPrefix = "DC=";
-	size_t sLenDCPrefix = sizeof("DC=") - 1;
-	size_t sLenDomain = 0;
-	PSTR   pszDomain = NULL;
-	PSTR   pszWriteCursor = NULL;
+    DWORD  dwError = 0;
+    PSTR   pszDN_local = NULL;
+    PSTR   pszReadCursor = NULL;
+    PSTR   pszDC = NULL;
+    PCSTR  pszDCPrefix = "DC=";
+    size_t sLenDCPrefix = sizeof("DC=") - 1;
+    size_t sLenDomain = 0;
+    PSTR   pszDomain = NULL;
+    PSTR   pszWriteCursor = NULL;
 
-	dwError = LwAllocateString(pszDN, &pszDN_local);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString(pszDN, &pszDN_local);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	LwStrToUpper(pszDN_local);
+    LwStrToUpper(pszDN_local);
 
-	pszDC = strstr(pszDN_local, pszDCPrefix);
-	if (!pszDC)
-	{
-		dwError = ERROR_NO_SUCH_DOMAIN;
-		BAIL_ON_VMDIR_ERROR(dwError);
-	}
+    pszDC = strstr(pszDN_local, pszDCPrefix);
+    if (!pszDC)
+    {
+        dwError = ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
-	pszReadCursor = pszDC;
+    pszReadCursor = pszDC;
 
-	// Find the length of the domain
-	while (!IsNullOrEmptyString(pszReadCursor))
-	{
-		size_t sLenPart = 0;
+    // Find the length of the domain
+    while (!IsNullOrEmptyString(pszReadCursor))
+    {
+        size_t sLenPart = 0;
 
-		if (0 != strncmp(pszReadCursor, pszDCPrefix, sLenDCPrefix))
-		{
-			dwError = ERROR_INVALID_PARAMETER;
-			BAIL_ON_VMDIR_ERROR(dwError);
-		}
+        if (0 != strncmp(pszReadCursor, pszDCPrefix, sLenDCPrefix))
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
 
-		pszReadCursor  += sLenDCPrefix;
+        pszReadCursor  += sLenDCPrefix;
 
-		sLenPart = strcspn(pszReadCursor, ",");
+        sLenPart = strcspn(pszReadCursor, ",");
 
-		if (sLenPart == 0)
-		{
-			dwError = ERROR_INVALID_PARAMETER;
-			BAIL_ON_VMDIR_ERROR(dwError);
-		}
+        if (sLenPart == 0)
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+            BAIL_ON_VMDIR_ERROR(dwError);
+        }
 
-		if (sLenDomain > 0)
-		{
-			sLenDomain++;
-		}
+        if (sLenDomain > 0)
+        {
+            sLenDomain++;
+        }
 
-		sLenDomain += sLenPart;
+        sLenDomain += sLenPart;
 
-		pszReadCursor  += sLenPart;
+        pszReadCursor  += sLenPart;
 
-		sLenPart = strspn(pszReadCursor, ",");
+        sLenPart = strspn(pszReadCursor, ",");
 
-		pszReadCursor  += sLenPart;
-	}
+        pszReadCursor  += sLenPart;
+    }
 
-	sLenDomain++;
+    sLenDomain++;
 
-	dwError = LwAllocateMemory(sLenDomain, (PVOID*)&pszDomain);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateMemory(sLenDomain, (PVOID*)&pszDomain);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	pszReadCursor = pszDC;
-	pszWriteCursor = pszDomain;
+    pszReadCursor = pszDC;
+    pszWriteCursor = pszDomain;
 
-	while (!IsNullOrEmptyString(pszReadCursor))
-	{
-		size_t sLenPart = 0;
+    while (!IsNullOrEmptyString(pszReadCursor))
+    {
+        size_t sLenPart = 0;
 
-		pszReadCursor += sLenDCPrefix;
+        pszReadCursor += sLenDCPrefix;
 
-		sLenPart = strcspn(pszReadCursor, ",");
+        sLenPart = strcspn(pszReadCursor, ",");
 
-		if (pszWriteCursor != pszDomain)
-		{
-			*pszWriteCursor++ = '.';
-		}
+        if (pszWriteCursor != pszDomain)
+        {
+            *pszWriteCursor++ = '.';
+        }
 
-		memcpy(pszWriteCursor, pszReadCursor, sLenPart);
+        memcpy(pszWriteCursor, pszReadCursor, sLenPart);
 
-		pszWriteCursor += sLenPart;
-		pszReadCursor += sLenPart;
+        pszWriteCursor += sLenPart;
+        pszReadCursor += sLenPart;
 
-		sLenPart = strspn(pszReadCursor, ",");
+        sLenPart = strspn(pszReadCursor, ",");
 
-		pszReadCursor += sLenPart;
-	}
+        pszReadCursor += sLenPart;
+    }
 
-	*ppszDomain = pszDomain;
+    *ppszDomain = pszDomain;
 
 cleanup:
 
-	LW_SAFE_FREE_STRING(pszDN_local);
+    LW_SAFE_FREE_STRING(pszDN_local);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppszDomain = NULL;
+    *ppszDomain = NULL;
 
-	LW_SAFE_FREE_STRING(pszDomain);
+    LW_SAFE_FREE_STRING(pszDomain);
 
-	goto cleanup;
+    goto cleanup;
 }
 
 DWORD
 VmDirGetDefaultSearchBase(
-	PCSTR pszBindDN,
-	PSTR* ppszSearchBase
-	)
+    PCSTR pszBindDN,
+    PSTR* ppszSearchBase
+    )
 {
-	DWORD dwError = LW_ERROR_SUCCESS;
-	PSTR  pszBindDN_local = NULL;
-	PCSTR pszDCPrefix   = "DC=";
-	PCSTR pszDC = NULL;
-	PSTR  pszSearchBase = NULL;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PSTR  pszBindDN_local = NULL;
+    PCSTR pszDCPrefix   = "DC=";
+    PCSTR pszDC = NULL;
+    PSTR  pszSearchBase = NULL;
 
-	dwError = LwAllocateString(pszBindDN, &pszBindDN_local);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString(pszBindDN, &pszBindDN_local);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	LwStrToUpper(pszBindDN_local);
+    LwStrToUpper(pszBindDN_local);
 
-	pszDC = strstr(pszBindDN_local, pszDCPrefix);
-	if (!pszDC)
-	{
-		dwError = ERROR_NO_SUCH_DOMAIN;
-		BAIL_ON_VMDIR_ERROR(dwError);
-	}
+    pszDC = strstr(pszBindDN_local, pszDCPrefix);
+    if (!pszDC)
+    {
+        dwError = ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
-	if (IsNullOrEmptyString(pszDC))
-	{
-		dwError = ERROR_NO_SUCH_DOMAIN;
-		BAIL_ON_VMDIR_ERROR(dwError);
-	}
+    if (IsNullOrEmptyString(pszDC))
+    {
+        dwError = ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_VMDIR_ERROR(dwError);
+    }
 
-	dwError = LwAllocateString(pszDC, &pszSearchBase);
-	BAIL_ON_VMDIR_ERROR(dwError);
+    dwError = LwAllocateString(pszDC, &pszSearchBase);
+    BAIL_ON_VMDIR_ERROR(dwError);
 
-	*ppszSearchBase = pszSearchBase;
+    *ppszSearchBase = pszSearchBase;
 
 cleanup:
 
-	LW_SAFE_FREE_MEMORY(pszBindDN_local);
+    LW_SAFE_FREE_MEMORY(pszBindDN_local);
 
-	return dwError;
+    return dwError;
 
 error:
 
-	*ppszSearchBase = NULL;
+    *ppszSearchBase = NULL;
 
-	LW_SAFE_FREE_MEMORY(pszSearchBase);
+    LW_SAFE_FREE_MEMORY(pszSearchBase);
 
-	goto cleanup;
+    goto cleanup;
 }
 
 DWORD
 VmDirGetRID(
-	PCSTR  pszObjectSid,
-	PDWORD pdwRID
-	)
+    PCSTR  pszObjectSid,
+    PDWORD pdwRID
+    )
 {
     DWORD dwError = 0;
     PCSTR pszDash = NULL;
@@ -432,7 +432,7 @@ VmDirGetRIDFromUID(
 error:
     if (dwError)
     {
-	LW_SAFE_FREE_MEMORY(pszRetRid);
+        LW_SAFE_FREE_MEMORY(pszRetRid);
     }
     return dwError;
 }

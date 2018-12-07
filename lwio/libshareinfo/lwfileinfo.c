@@ -70,6 +70,7 @@ static LWMsgTypeSpec gFileInfo3Spec[] =
 #define FILE_INFO_LEVEL_2   2
 #define FILE_INFO_LEVEL_3   3
 
+#if 0
 static LWMsgTypeSpec gFileInfoUnionSpec[] =
 {
     LWMSG_UNION_BEGIN(FILE_INFO_UNION),
@@ -80,6 +81,7 @@ static LWMsgTypeSpec gFileInfoUnionSpec[] =
     LWMSG_UNION_END,
     LWMSG_TYPE_END
 };
+#endif
 
 static LWMsgTypeSpec gFileInfoEnumInParamsSpec[] =
 {

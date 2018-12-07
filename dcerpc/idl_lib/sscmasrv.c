@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1993 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1993 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1993 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
 **
@@ -35,7 +35,7 @@
 **  VERSION: DCE 1.0
 **
 */
-#if HAVE_CONFIG_H
+#ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
@@ -62,12 +62,12 @@
     ndr_boolean rpc_ss_server_is_set_up = ndr_false;
 #endif
 
-void rpc_ss_init_server_once(
-#ifdef IDL_PROTOTYPES
+/* This is used by functions internal dcelib */
+static void rpc__static_ss_init_server_once(
     void
-#endif
 )
 {
+    if (rpc_ss_server_is_set_up) return;
 
 #ifdef PERFMON
     RPC_SS_INIT_SERVER_ONCE_N;
@@ -80,13 +80,45 @@ void rpc_ss_init_server_once(
     rpc_ss_server_is_set_up = ndr_true;
 #endif
 
+    rpc_ss_server_is_set_up = ndr_true;
 #ifdef PERFMON
     RPC_SS_INIT_SERVER_ONCE_X;
 #endif
 
 }
 
+typedef void (*pf_ss_init_server_once_t)(void);
 
+
+/*
+ * Return pointer to static function for internal use by macros
+ * within dcelib.
+ */
+pf_ss_init_server_once_t rpc__pf_static_ss_init_server_once(void)
+{
+    return rpc__static_ss_init_server_once;
+}
+
+/*
+ * This is publicly exported function, which is a wrapper
+ * around rpc__static_ss_init_server_once().
+ */
+void rpc_ss_init_server_once(
+    void
+)
+{
+    pf_ss_init_server_once_t pf_once = NULL;
+
+    pf_once = rpc__pf_static_ss_init_server_once();
+    pf_once();
+}
+
+void rpc__internal_ss_init_server_once(
+    void
+)
+{
+    rpc__static_ss_init_server_once();
+}
 /******************************************************************************/
 /*                                                                            */
 /*   Map an exception into a fault code and send a fault packet               */
@@ -94,16 +126,10 @@ void rpc_ss_init_server_once(
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_send_server_exception
-#ifdef IDL_PROTOTYPES
 (
     rpc_call_handle_t h,
     dcethread_exc *e
 )
-#else
-( h, e )
-    rpc_call_handle_t h;
-    dcethread_exc *e;
-#endif
 {
     ndr_ulong_int mapped_code;
     ndr_ulong_int fault_buff;
@@ -183,7 +209,6 @@ void rpc_ss_send_server_exception
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_send_server_exception_2
-#ifdef IDL_PROTOTYPES
 (
     rpc_call_handle_t h,
     dcethread_exc *e,
@@ -191,14 +216,6 @@ void rpc_ss_send_server_exception_2
     dcethread_exc *user_exception_pointers[],
     IDL_msp_t IDL_msp ATTRIBUTE_UNUSED
 )
-#else
-( h, e, num_user_exceptions, user_exception_pointers, IDL_msp )
-    rpc_call_handle_t h;
-    dcethread_exc *e;
-    idl_long_int num_user_exceptions;
-    dcethread_exc *user_exception_pointers[];
-    IDL_msp_t IDL_msp;
-#endif
 {
     ndr_ulong_int mapped_code;
     ndr_ulong_int fault_buff[2];

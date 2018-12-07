@@ -59,6 +59,12 @@ RtlpSddlLookupSddl(
     );
 
 static
+PTABLE_ENTRY
+RtlpSddlLookupSidString(
+    IN PCSTR pszSidString
+    );
+
+static
 TABLE_ENTRY LwSddlSidStringTable[] =
 {
     { SECURITY_ANONYMOUS_LOGON_RID, SDDL_ANONYMOUS, SECURITY_ANONYMOUS_LOGON_PREFIX },
@@ -159,6 +165,23 @@ RtlpSddlToSidString(
     }
 }
 
+LW_PCSTR
+RtlpSidStringToSddl(
+    LW_IN PCSTR pszSidString
+    )
+{
+    PTABLE_ENTRY pEntry = RtlpSddlLookupSidString(pszSidString);
+
+    if (pEntry && pEntry->pszSddl)
+    {
+        return pEntry->pszSddl;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 static
 PTABLE_ENTRY
 RtlpSddlLookupRid(
@@ -186,9 +209,33 @@ RtlpSddlLookupSddl(
 {
     ULONG index;
 
+    if (!pszSddl)
+    {
+        return NULL;
+    }
+
     for (index = 0; index < sizeof(LwSddlSidStringTable) / sizeof(*LwSddlSidStringTable); index++)
     {
         if (!strcasecmp(LwSddlSidStringTable[index].pszSddl, pszSddl))
+        {
+            return &LwSddlSidStringTable[index];
+        }
+    }
+
+    return NULL;
+}
+
+static
+PTABLE_ENTRY
+RtlpSddlLookupSidString(
+    IN PCSTR pszSidString
+    )
+{
+    ULONG index;
+
+    for (index = 0; index < sizeof(LwSddlSidStringTable) / sizeof(*LwSddlSidStringTable); index++)
+    {
+        if (!strcasecmp(LwSddlSidStringTable[index].pszSidString, pszSidString))
         {
             return &LwSddlSidStringTable[index];
         }

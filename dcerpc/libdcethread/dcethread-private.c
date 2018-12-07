@@ -6,7 +6,7 @@
 /*
  * Copyright (c) 2007, Novell, Inc.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -40,19 +40,57 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#else
+#include <sys/timeb.h>
+#include <sys/types.h>
+#endif
 
 static pthread_once_t dcethread_init_once = DCETHREAD_ONCE_INIT;
+static pthread_once_t dcethread_fini_once = DCETHREAD_ONCE_INIT;
 static pthread_key_t dcethread_self_key;
 static pthread_attr_t dcethread_attr_default;
 static pthread_mutexattr_t dcethread_mutexattr_default;
 static pthread_condattr_t dcethread_condattr_default;
+static int dcethread_init_called;
 
+#ifdef _WIN32
+/* Use pthread_cond_signal() vs pthread_kill() during shutdown */
+static int dcethread_terminate_signaled;
+static pthread_mutex_t dcethread_terminate_mutex;
+static pthread_cond_t dcethread_terminate_cond;
+static SOCKET select_wake_socket;
+#endif
+
+#define _DCETHREAD_MS_DELAY_IN_NS 100000000
 #ifdef SIGRTMIN
 #    define INTERRUPT_SIGNAL (SIGRTMIN + 5)
 #else
 #    define INTERRUPT_SIGNAL (SIGXCPU)
 #endif
+
+#ifndef RPC_SOCKET_T
+#ifdef _WIN32
+#define RPC_SOCKET_T SOCKET
+#else
+#define RPC_SOCKET_T int
+#endif
+#endif
+
+static RPC_SOCKET_T select_wake_socket;
+
+RPC_SOCKET_T
+dcethread_get_shutdown_sock(void)
+{
+    if (select_wake_socket == -1)
+    {
+        select_wake_socket = socket(AF_INET, SOCK_STREAM, 0);
+    }
+    return select_wake_socket;
+}
+
 
 static void
 interrupt_signal_handler(int sig)
@@ -80,13 +118,43 @@ self_destructor(void* data)
     }
 }
 
+#ifdef _WIN32
+/*
+ * Mimic shutdown semantics of UNIX using pthread_kill(). However, use
+ * condition variables and wait until the terminate condition has
+ * been set and signaled. Afterwards, call interrupt_signal_handler().
+ */
+static void *
+terminate_thread_startroutine(void *args)
+{
+    pthread_mutex_lock(&dcethread_terminate_mutex);
+    while (!dcethread_terminate_signaled)
+    {
+        pthread_cond_wait(&dcethread_terminate_cond, &dcethread_terminate_mutex);
+    }
+    pthread_mutex_unlock(&dcethread_terminate_mutex);
+
+    // Signal value is ignored by handler
+    interrupt_signal_handler(SIGTERM);
+    return NULL;
+}
+
+#endif
+
 static void
-init()
+init(void)
 {
     int cancelstate, oldstate;
+    int sts;
+#ifndef _WIN32
     struct sigaction act;
+#else
+    pthread_attr_t terminate_thread_attr;
+    pthread_t terminate_thread;
+#endif
 
-    pthread_key_create(&dcethread_self_key, self_destructor);
+    sts = pthread_key_create(&dcethread_self_key, self_destructor);
+    assert(sts == 0); /* There is no resonable way to recover if this fails */
 
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancelstate);
     pthread_attr_init(&dcethread_attr_default);
@@ -99,18 +167,85 @@ init()
     dcethread__init_exceptions();
     pthread_setcancelstate(cancelstate, &oldstate);
 
+#ifndef _WIN32
     sigemptyset(&act.sa_mask);
     act.sa_handler = interrupt_signal_handler;
     act.sa_flags = 0;
     sigaction(INTERRUPT_SIGNAL, &act, NULL);
+#else
+    pthread_mutex_init(&dcethread_terminate_mutex, NULL);
+    pthread_cond_init(&dcethread_terminate_cond, NULL);
+    pthread_attr_init(&terminate_thread_attr);
+    pthread_attr_setdetachstate(&terminate_thread_attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&terminate_thread, &terminate_thread_attr,
+                   terminate_thread_startroutine, NULL);
+    select_wake_socket = -1;
+#endif
+
     if (getenv("DCETHREAD_DEBUG"))
+#if defined(_WIN32)
+    {
+        dcethread__debug_set_callback(dcethread__output_debug_string_log_callback, NULL);
+    }
+#else
+    {
 	dcethread__debug_set_callback(dcethread__default_log_callback, NULL);
+    }
+#endif
+    dcethread_init_called = 1;
+}
+
+
+static void
+fini(void)
+{
+    int cancelstate, oldstate;
+#ifndef _WIN32
+    struct sigaction act;
+#else
+#if 0
+    pthread_attr_t terminate_thread_attr;
+    pthread_t terminate_thread;
+#endif
+#endif
+
+    if (!dcethread_init_called)
+    {
+        return;
+    }
+    pthread_key_delete(dcethread_self_key);
+    dcethread_self_key = 0;
+
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancelstate);
+    pthread_attr_destroy(&dcethread_attr_default);
+    pthread_mutexattr_destroy(&dcethread_mutexattr_default);
+    pthread_condattr_destroy(&dcethread_condattr_default);
+    dcethread__fini_exceptions();
+    pthread_setcancelstate(cancelstate, &oldstate);
+
+#ifndef _WIN32
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = NULL;
+    act.sa_flags = 0;
+    sigaction(INTERRUPT_SIGNAL, &act, NULL);
+#else
+#if 0 /* Windows wakeup select mechanism */
+    pthread_mutex_init(&dcethread_terminate_mutex, NULL);
+    pthread_cond_init(&dcethread_terminate_cond, NULL);
+    pthread_attr_init(&terminate_thread_attr);
+    pthread_attr_setdetachstate(&terminate_thread_attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&terminate_thread, &terminate_thread_attr,
+                   terminate_thread_startroutine, NULL);
+    select_wake_socket = -1;
+#endif
+#endif
 }
 
 #ifdef __SUNPRO_C
 #pragma init dcethread__init
 #else
-void dcethread__init(void) __attribute__ ((constructor));
+void dcethread__init(void) DCETHREAD_ATTR_CONSTRUCTOR;
+void dcethread__fini(void) DCETHREAD_ATTR_DESTRUCTOR;
 #endif
 
 void dcethread__init(void)
@@ -118,10 +253,37 @@ void dcethread__init(void)
     pthread_once(&dcethread_init_once, init);
 }
 
+void dcethread__fini(void)
+{
+    pthread_once(&dcethread_fini_once, fini);
+}
+
 int
 dcethread__interrupt_syscall(dcethread* thread, void* data)
 {
+#ifndef _WIN32
+    /*
+     * TBD: Adam-Investigate getting rid of pthread_kill()
+     * and use generic mechanism below
+     */
     pthread_kill(thread->pthread, INTERRUPT_SIGNAL);
+#else
+
+    DCETHREAD_TRACE("dcethread__interrupt_syscall: Thread %p: called", thread);
+    pthread_mutex_lock(&dcethread_terminate_mutex);
+    dcethread_terminate_signaled = 1;
+    pthread_mutex_unlock(&dcethread_terminate_mutex);
+    pthread_cond_signal(&dcethread_terminate_cond);
+    if (select_wake_socket != -1)
+    {
+        closesocket(select_wake_socket);
+        select_wake_socket = -1;
+        DCETHREAD_TRACE("dcethread__interrupt_syscall: "
+                        "Thread %p: select_wake_socket=%d",
+                        thread, select_wake_socket);
+    }
+
+#endif
     return 0;
 }
 
@@ -131,9 +293,20 @@ my_clock_gettime(struct timespec* tp)
 #ifdef CLOCK_REALTIME
   return clock_gettime(CLOCK_REALTIME, tp);
 #else
+
+#ifdef _WIN32
+
+    struct _timeb timev;
+    _ftime(&timev);
+    tp->tv_sec = timev.time;
+    tp->tv_nsec = timev.millitm * 1000;
+    return 0;
+    
+#else
+
   int result;
   struct timeval tv;
-       
+
   if ((result = gettimeofday(&tv, NULL)))
     return result;
 
@@ -141,6 +314,7 @@ my_clock_gettime(struct timespec* tp)
   tp->tv_nsec = tv.tv_usec * 1000;
 
   return 0;
+#endif
 #endif
 }
 
@@ -169,14 +343,22 @@ dcethread__interrupt_condwait(dcethread* thread, void* data)
         if (pthread_cond_broadcast(info->cond))
         {
             DCETHREAD_ERROR("Thread %p: broadcast failed", thread);
+#ifndef _WIN32
             info->mutex->owner = (pthread_t) -1;
+#else
+            memset((void *) &info->mutex->owner, -1, sizeof(info->mutex->owner));
+#endif
             pthread_mutex_unlock((pthread_mutex_t*) &info->mutex->mutex);
             return 0;
         }
         else
         {
             DCETHREAD_TRACE("Thread %p: broadcast to interrupt condwait", thread);
+#ifndef _WIN32
             info->mutex->owner = (pthread_t) -1;
+#else
+            memset((void *) &info->mutex->owner, -1, sizeof(info->mutex->owner));
+#endif
             pthread_mutex_unlock((pthread_mutex_t*) &info->mutex->mutex);
             return 1;
         }
@@ -211,6 +393,7 @@ dcethread__new (void)
     /* Set default interrupt method that pokes the thread with a signal */
     thread->interrupt = dcethread__interrupt_syscall;
     thread->interrupt_data = NULL;
+    DCETHREAD_TRACE("dcethread_new: %p interrupt %p", thread, thread->interrupt);
 
     return thread;
 }
@@ -277,7 +460,9 @@ dcethread__delete(dcethread* thread)
 {
     DCETHREAD_TRACE("Thread %p: deleted", thread);
     pthread_mutex_destroy((pthread_mutex_t*) &thread->lock);
-    pthread_cond_destroy((pthread_cond_t*) &thread->state_change);    
+    pthread_cond_destroy((pthread_cond_t*) &thread->state_change);
+
+    /* There is no dcethread_join() API, so detach joinable threads */
     if (thread->flag.joinable)
         pthread_detach(thread->pthread);
     free((void*) thread);
@@ -350,7 +535,7 @@ dcethread__wait(dcethread* thread)
 {
     dcethread__sanity(thread);
     thread->flag.locked = 0;
-    pthread_cond_wait((pthread_cond_t*) &thread->state_change, 
+    pthread_cond_wait((pthread_cond_t*) &thread->state_change,
                       (pthread_mutex_t*) &thread->lock);
     thread->flag.locked = 1;
 }
@@ -360,7 +545,7 @@ dcethread__timedwait(dcethread* thread, struct timespec* ts)
 {
     dcethread__sanity(thread);
     thread->flag.locked = 0;
-    pthread_cond_timedwait((pthread_cond_t*) &thread->state_change, 
+    pthread_cond_timedwait((pthread_cond_t*) &thread->state_change,
                            (pthread_mutex_t*) &thread->lock, ts);
     thread->flag.locked = 1;
 }
@@ -426,7 +611,7 @@ dcethread__interrupt(dcethread* thread)
 {
     int count = 0;
     int old_state = thread->state;
-    
+
     if (old_state == DCETHREAD_STATE_INTERRUPT ||
         old_state == DCETHREAD_STATE_DEAD)
     {
@@ -436,7 +621,7 @@ dcethread__interrupt(dcethread* thread)
 
     DCETHREAD_TRACE("Thread %p: interrupt posted", thread);
     dcethread__change_state(thread, DCETHREAD_STATE_INTERRUPT);
-    
+
     /* We need to poke the thread and wait for an acknowledgement of the interrupt if: */
     if (thread != dcethread__self() &&         /* The interrupted thread is not us, and */
         thread->flag.interruptible &&          /* The thread can be interrupted, and */
@@ -450,7 +635,7 @@ dcethread__interrupt(dcethread* thread)
 
             if (count > 2)
                 DCETHREAD_WARNING("Thread %p: still not interrupted after %i ms", thread, count * 100);
-            
+
             if (thread->interrupt(thread, thread->interrupt_data))
             {
                 /* Interrupt is guaranteed to have succeeded, so
@@ -459,20 +644,21 @@ dcethread__interrupt(dcethread* thread)
             }
 
             count++;
-            
+
             my_clock_gettime(&waittime);
-            waittime.tv_nsec += 100000000;
-            
-            if (waittime.tv_nsec > 1000000000)
+            waittime.tv_nsec += _DCETHREAD_MS_DELAY_IN_NS;
+
+            if (waittime.tv_nsec > _DCETHREAD_MS_DELAY_IN_NS)
             {
-	       waittime.tv_nsec -= 1000000000;
+	       waittime.tv_nsec -= _DCETHREAD_MS_DELAY_IN_NS;
 	       waittime.tv_sec += 1;
 	    }
-            
+
             /* Wait for state change */
             dcethread__timedwait(thread, &waittime);
         }
     }
+    DCETHREAD_TRACE("Thread %p: interrupt completed!!", thread);
 }
 
 void
@@ -495,6 +681,8 @@ dcethread__begin_block(dcethread* thread, int (*interrupt)(dcethread*, void*), v
     /* If thread is currently active */
     if (state == DCETHREAD_STATE_ACTIVE)
     {
+        DCETHREAD_TRACE("dcethread__begin_block: interrupt=%p old interrupt=%p",
+                        interrupt, thread->interrupt);
 	/* Set up interruption callbacks */
 	if (old_interrupt)
 	    *old_interrupt = thread->interrupt;
@@ -528,9 +716,11 @@ dcethread__poll_end_block(dcethread* thread, int (*interrupt)(dcethread*, void*)
     dcethread__lock(thread);
     state = thread->state;
     interruptible = thread->flag.interruptible;
-    
+
     if (state == DCETHREAD_STATE_INTERRUPT)
     {
+        DCETHREAD_TRACE("dcethread__poll_end_block: interrupt=%p old interrupt=%p",
+                        interrupt, thread->interrupt);
         if (interrupt)
             thread->interrupt = interrupt;
         if (data)
@@ -566,6 +756,8 @@ dcethread__end_block(dcethread* thread, int (*interrupt)(dcethread*, void*), voi
     if ((interruptible && state == DCETHREAD_STATE_INTERRUPT) ||
         (state == DCETHREAD_STATE_BLOCKED))
     {
+        DCETHREAD_TRACE("dcethread__end_block: interrupt=%p old interrupt=%p",
+                        interrupt, thread->interrupt);
         if (interrupt)
             thread->interrupt = interrupt;
         if (data)

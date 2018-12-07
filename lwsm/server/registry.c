@@ -200,6 +200,10 @@ LwSmRegistryReadServiceInfo(
         {'E', 'n', 'v', 'i', 'r', 'o', 'n', 'm', 'e', 'n', 't', 0};
     static const WCHAR wszAutostart[] =
         {'A', 'u', 't', 'o', 's', 't', 'a', 'r', 't', 0};
+    static const WCHAR wszUser[] =
+        {'U', 's', 'e', 'r', 0};
+    static const WCHAR wszGroup[] =
+        {'G', 'r', 'o', 'u', 'p', 0};
 
     dwError = LwWc16sToMbs(pwszName, &pszName);
     BAIL_ON_ERROR(dwError);
@@ -243,12 +247,36 @@ LwSmRegistryReadServiceInfo(
         &pInfo->pwszDescription);
     BAIL_ON_ERROR(dwError);
 
-   dwError = LwSmRegistryReadString(
+    dwError = LwSmRegistryReadString(
         hReg,
         pRootKey,
         pwszParentKey,
         wszPath,
         &pInfo->pwszPath);
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmRegistryReadString(
+        hReg,
+        pRootKey,
+        pwszParentKey,
+        wszUser,
+        &pInfo->pwszUser);
+    if (dwError == LWREG_ERROR_NO_SUCH_KEY_OR_VALUE)
+    {
+        dwError = 0;
+    }
+    BAIL_ON_ERROR(dwError);
+
+    dwError = LwSmRegistryReadString(
+        hReg,
+        pRootKey,
+        pwszParentKey,
+        wszGroup,
+        &pInfo->pwszGroup);
+    if (dwError == LWREG_ERROR_NO_SUCH_KEY_OR_VALUE)
+    {
+        dwError = 0;
+    }
     BAIL_ON_ERROR(dwError);
 
     dwError = LwSmRegistryReadStringList(
@@ -357,12 +385,9 @@ LwSmRegistryReadString(
     )
 {
     DWORD dwError = 0;
-    WCHAR wszValue[MAX_VALUE_LENGTH];
     DWORD dwSize = 0;
     DWORD dwType = 0;
-
-    memset(wszValue, 0, sizeof(wszValue));
-    dwSize = sizeof(wszValue);
+    PWSTR pwszValue = NULL;
 
     dwError = RegGetValueW(
         hReg,
@@ -371,12 +396,25 @@ LwSmRegistryReadString(
         pwszValueName,
         RRF_RT_REG_SZ,
         &dwType,
-        wszValue,
+        pwszValue,
         &dwSize);
     BAIL_ON_ERROR(dwError);
 
-    dwError = LwAllocateWc16String(ppwszValue, wszValue);
+    dwError = LwAllocateMemory(dwSize + sizeof(WCHAR), OUT_PPVOID(&pwszValue));
     BAIL_ON_ERROR(dwError);
+
+    dwError = RegGetValueW(
+        hReg,
+        pRootKey,
+        pwszParentKey,
+        pwszValueName,
+        RRF_RT_REG_SZ,
+        &dwType,
+        pwszValue,
+        &dwSize);
+    BAIL_ON_ERROR(dwError);
+
+    *ppwszValue = pwszValue;
 
 cleanup:
 

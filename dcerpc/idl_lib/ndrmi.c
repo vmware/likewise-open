@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -55,14 +55,9 @@
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_attach_buff_to_iovec
-#ifdef IDL_PROTOTYPES
 (
     IDL_msp_t IDL_msp
 )
-#else
-( IDL_msp )
-    IDL_msp_t IDL_msp;
-#endif
 {
     rpc_iovector_elt_t *p_elt;
 
@@ -92,7 +87,7 @@ void rpc_ss_attach_buff_to_iovec
     p_elt->buff_addr = (byte_p_t)IDL_msp->IDL_buff_addr;
     p_elt->buff_len = IDL_BUFF_SIZE;
     p_elt->data_addr = (byte_p_t)IDL_msp->IDL_data_addr;
-    p_elt->data_len = IDL_msp->IDL_mp - IDL_msp->IDL_data_addr;
+    p_elt->data_len = (unsigned32) (IDL_msp->IDL_mp - IDL_msp->IDL_data_addr);
     (IDL_msp->IDL_elts_in_use)++;
     IDL_msp->IDL_buff_addr = NULL;
 }
@@ -105,17 +100,11 @@ void rpc_ss_attach_buff_to_iovec
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_xmit_iovec_if_necess
-#ifdef IDL_PROTOTYPES
 (
-    /* [in] */ idl_boolean attached_pointed_at,  /* TRUE => last element added 
+    /* [in] */ idl_boolean attached_pointed_at,  /* TRUE => last element added
                                      to iovector was a pointer to user data */
     IDL_msp_t IDL_msp
 )
-#else
-( attached_pointed_at, IDL_msp )
-    idl_boolean attached_pointed_at;
-    IDL_msp_t IDL_msp;
-#endif
 {
     if (IDL_msp->IDL_pickling_handle != NULL)
     {
@@ -129,7 +118,7 @@ void rpc_ss_xmit_iovec_if_necess
         /* Despatch the iovector */
         IDL_msp->IDL_iovec.num_elt = IDL_msp->IDL_elts_in_use;
         rpc_call_transmit( (rpc_call_handle_t)IDL_msp->IDL_call_h,
-                           (rpc_iovector_p_t)&IDL_msp->IDL_iovec, 
+                           (rpc_iovector_p_t)&IDL_msp->IDL_iovec,
                            (unsigned32 *)&IDL_msp->IDL_status );
         /* rpc_call_transmit() will always assume ownership of the
          * iovector elements, even on error, so empty it now */
@@ -151,14 +140,9 @@ void rpc_ss_xmit_iovec_if_necess
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_init_buffer
-#ifdef IDL_PROTOTYPES
 (
     IDL_msp_t IDL_msp
 )
-#else
-( IDL_msp )
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *beyond_usable_buffer; /* (0 mod 8) address of byte beyond usable
                                         buffer area */
@@ -212,7 +196,7 @@ void rpc_ss_ndr_marsh_init_buffer
                 ((((IDL_msp->IDL_buff_addr - (idl_byte *)0) + 7) & (~7))
                                              + IDL_msp->IDL_mp_start_offset);
     IDL_msp->IDL_mp = IDL_msp->IDL_data_addr;
-    IDL_msp->IDL_left_in_buff = beyond_usable_buffer - IDL_msp->IDL_data_addr;
+    IDL_msp->IDL_left_in_buff = (idl_ulong_int) (beyond_usable_buffer - IDL_msp->IDL_data_addr);
 }
 
 /******************************************************************************/
@@ -221,20 +205,12 @@ void rpc_ss_ndr_marsh_init_buffer
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_by_pointing
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int element_count,
     /* [in] */  idl_ulong_int element_size,
     /* [in] */  rpc_void_p_t array_addr,
     IDL_msp_t IDL_msp
 )
-#else
-(element_count, element_size, array_addr, IDL_msp)
-    idl_ulong_int element_count;
-    idl_ulong_int element_size;
-    rpc_void_p_t array_addr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     rpc_iovector_elt_t *p_elt;
     idl_ulong_int array_size_in_bytes;
@@ -285,20 +261,12 @@ void rpc_ss_ndr_marsh_by_pointing
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_by_copying
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int element_count,
     /* [in] */  idl_ulong_int element_size,
     /* [in] */  rpc_void_p_t array_addr,
     IDL_msp_t IDL_msp
 )
-#else
-(element_count, element_size, array_addr, IDL_msp)
-    idl_ulong_int element_count;
-    idl_ulong_int element_size;
-    rpc_void_p_t array_addr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_ulong_int bytes_required;   /* Number of bytes left to copy */
     idl_ulong_int bytes_to_copy;  /* Number of bytes to copy into this buffer */
@@ -325,21 +293,13 @@ void rpc_ss_ndr_marsh_by_copying
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_struct
-#ifdef IDL_PROTOTYPES
 (
-    /* [in] */  idl_byte struct_type,   /* DT_FIXED_STRUCT, DT_CONF_STRUCT 
+    /* [in] */  idl_byte struct_type,   /* DT_FIXED_STRUCT, DT_CONF_STRUCT
                                             or DT_V1_CONF_STRUCT */
     /* [in] */  idl_ulong_int defn_index,
     /* [in] */  rpc_void_p_t struct_addr,
     IDL_msp_t IDL_msp
 )
-#else
-(struct_type, defn_index, struct_addr, IDL_msp)
-    idl_byte struct_type;
-    idl_ulong_int defn_index;
-    rpc_void_p_t struct_addr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_ulong_int offset_index;
     idl_byte *defn_vec_ptr;
@@ -353,7 +313,7 @@ void rpc_ss_ndr_marsh_struct
     IDL_bound_pair_t *conf_bounds;   /* Bounds list from conformance info */
     IDL_bound_pair_t normal_conf_bounds[IDL_NORMAL_DIMS];
     IDL_bound_pair_t range_bounds; /* Bounds list from range info */
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
     IDL_bound_pair_t *range_list;
     IDL_bound_pair_t normal_range_list[IDL_NORMAL_DIMS];
@@ -379,7 +339,7 @@ void rpc_ss_ndr_marsh_struct
     if ( (struct_type == IDL_DT_CONF_STRUCT)
         || (struct_type == IDL_DT_V1_CONF_STRUCT) )
     {
-        /* Next integer in the definition vector is index to a fully flattened 
+        /* Next integer in the definition vector is index to a fully flattened
             array rep for the conformant array field */
         IDL_GET_LONG_FROM_VECTOR(field_defn_index,defn_vec_ptr);
         field_defn_ptr = IDL_msp->IDL_type_vec + field_defn_index;
@@ -401,7 +361,7 @@ void rpc_ss_ndr_marsh_struct
             defn_vec_ptr++;
             IDL_GET_LONG_FROM_VECTOR(shadow_length, defn_vec_ptr);
             rpc_ss_ndr_m_struct_cs_shadow(struct_addr, struct_type,
-                                          shadow_length, offset_index, 
+                                          shadow_length, offset_index,
                                           defn_vec_ptr, &cs_shadow, IDL_msp);
             if (*(field_defn_ptr
                  + conf_dims * IDL_CONF_BOUND_PAIR_WIDTH) == IDL_DT_CS_TYPE)
@@ -438,7 +398,7 @@ void rpc_ss_ndr_marsh_struct
                     but no conformant array of [cs_char] */
                 IDL_GET_LONG_FROM_VECTOR(shadow_length, defn_vec_ptr);
                 rpc_ss_ndr_m_struct_cs_shadow(struct_addr, struct_type,
-                                          shadow_length, offset_index, 
+                                          shadow_length, offset_index,
                                           defn_vec_ptr, &cs_shadow, IDL_msp);
                 break;
             case IDL_DT_BYTE:
@@ -648,7 +608,7 @@ void rpc_ss_ndr_marsh_struct
                 offset = *offset_vec_ptr;
                 offset_vec_ptr++;
                 /* Get a value of 0 if pointer is null, 1 otherwise */
-                node_number = 
+                node_number =
                         (*(byte_p_t *)((idl_byte *)struct_addr+offset) != NULL);
                 IDL_MARSH_ULONG( &node_number );
                 break;
@@ -729,7 +689,7 @@ void rpc_ss_ndr_marsh_struct
                 rpc_ss_ndr_marsh_cs_array(
                         (rpc_void_p_t)((idl_byte *)struct_addr+offset),
                         cs_shadow,
-                        offset_vec_ptr-(struct_offset_vec_ptr+1),
+                        (idl_ulong_int) (offset_vec_ptr-(struct_offset_vec_ptr+1)),
                         idl_true, &defn_vec_ptr, IDL_msp);
                 offset_vec_ptr++;
                 break;
@@ -769,7 +729,6 @@ void rpc_ss_ndr_marsh_struct
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_by_looping
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int element_count,
     /* [in] */  idl_byte base_type,
@@ -780,16 +739,6 @@ void rpc_ss_ndr_marsh_by_looping
                                 /* Used if array of constructed type */
     IDL_msp_t IDL_msp
 )
-#else
-(element_count, base_type, array_addr, element_size, element_defn_index,
-  IDL_msp)
-    idl_ulong_int element_count;
-    idl_byte base_type;
-    rpc_void_p_t array_addr;
-    idl_ulong_int element_size;
-    idl_ulong_int element_defn_index;
-    IDL_msp_t IDL_msp;
-#endif
 {
     unsigned32 i;
     idl_ulong_int node_number;
@@ -914,7 +863,7 @@ void rpc_ss_ndr_marsh_by_looping
                     base_type_size = rpc_ss_type_size(element_defn_ptr,
                                                                      IDL_msp);
                     if (base_type_size == 1)
-                        B = strlen(array_addr) + 1;
+                        B = (idl_ulong_int) (strlen(array_addr) + 1);
                     else
                         B = rpc_ss_strsiz((idl_char *)array_addr,
                                                                base_type_size);
@@ -973,7 +922,6 @@ void rpc_ss_ndr_marsh_by_looping
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_m_fix_or_conf_arr
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  rpc_void_p_t array_addr,
     /* [in] */  idl_ulong_int dimensionality,
@@ -982,25 +930,16 @@ void rpc_ss_ndr_m_fix_or_conf_arr
     /* [in] */  idl_ulong_int flags,
     IDL_msp_t IDL_msp
 )
-#else
-( array_addr, dimensionality, bounds_list, defn_vec_ptr, flags, IDL_msp )
-    rpc_void_p_t array_addr;
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t *bounds_list;
-    idl_byte *defn_vec_ptr;
-    idl_ulong_int flags;
-    IDL_msp_t IDL_msp;
-#endif
 {
-    idl_ulong_int element_count;
-    int i;
-    idl_ulong_int element_defn_index;
-    idl_ulong_int element_offset_index;
-    idl_ulong_int element_size;
-    idl_byte *element_defn_ptr;
-    idl_byte base_type;
-    idl_boolean marshall_by_pointing;
-    IDL_bound_pair_t *bound_p;	    /* Steps through bounds */
+    idl_ulong_int element_count = 0;
+    int i = 0;
+    idl_ulong_int element_defn_index = 0;
+    idl_ulong_int element_offset_index = 0;
+    idl_ulong_int element_size = 0;
+    idl_byte *element_defn_ptr = 0;
+    idl_byte base_type = 0;
+    idl_boolean marshall_by_pointing = 0;
+    IDL_bound_pair_t *bound_p = 0;	    /* Steps through bounds */
 
     if ( (*defn_vec_ptr == IDL_DT_STRING)
         || (*defn_vec_ptr == IDL_DT_V1_STRING) )
@@ -1020,7 +959,7 @@ void rpc_ss_ndr_m_fix_or_conf_arr
     if (element_count == 0)
         return;
 
-    rpc_ss_ndr_arr_align_and_opt( IDL_marshalling_k, dimensionality, 
+    rpc_ss_ndr_arr_align_and_opt( IDL_marshalling_k, dimensionality,
                                   &base_type, defn_vec_ptr,
                                   &marshall_by_pointing, IDL_msp );
 
@@ -1139,31 +1078,23 @@ void rpc_ss_ndr_m_fix_or_conf_arr
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_fixed_arr
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int defn_index,
     /* [in] */  rpc_void_p_t array_addr,
     /* [in] */  idl_ulong_int flags,
     IDL_msp_t IDL_msp
 )
-#else
-(defn_index, array_addr, flags, IDL_msp)
-    idl_ulong_int defn_index;
-    rpc_void_p_t array_addr;
-    idl_ulong_int flags;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
 
-    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index; 
+    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index;
     dimensionality = (idl_ulong_int)*defn_vec_ptr;
     defn_vec_ptr++;
     /* By design defn_vec_ptr is now aligned (0 mod 4) */
     if (IDL_msp->IDL_type_vec[TVEC_INT_REP_OFFSET] != NDR_LOCAL_INT_REP)
-      rpc_ss_fixed_bounds_from_vector(dimensionality, defn_vec_ptr, 
+      rpc_ss_fixed_bounds_from_vector(dimensionality, defn_vec_ptr,
 				      &bounds_list, IDL_msp);
     else
       bounds_list = (IDL_bound_pair_t *)defn_vec_ptr;
@@ -1180,18 +1111,11 @@ void rpc_ss_ndr_marsh_fixed_arr
 /*                                                                            */
 /******************************************************************************/
 static void rpc_ss_ndr_marsh_A_B_pairs
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int dimensionality,
     /* [in] */  IDL_bound_pair_t *range_list,
     IDL_msp_t IDL_msp
 )
-#else
-(dimensionality, range_list, IDL_msp)
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t *range_list;
-    IDL_msp_t IDL_msp;
-#endif
 {
     unsigned32 i;
     idl_ulong_int A,B;
@@ -1213,7 +1137,6 @@ static void rpc_ss_ndr_marsh_A_B_pairs
 static idl_byte null_byte = 0;
 
 void rpc_ss_ndr_m_var_or_open_arr
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  rpc_void_p_t array_addr,
     /* [in] */  idl_ulong_int *Z_values,
@@ -1223,17 +1146,6 @@ void rpc_ss_ndr_m_var_or_open_arr
     /* [in] */ idl_ulong_int flags,
     IDL_msp_t IDL_msp
 )
-#else
-( array_addr, Z_values, dimensionality, range_list, defn_vec_ptr, flags,
- IDL_msp )
-    rpc_void_p_t array_addr;
-    idl_ulong_int *Z_values;
-    idl_ulong_int dimensionality;
-    IDL_bound_pair_t *range_list;
-    idl_byte *defn_vec_ptr;
-    idl_ulong_int flags;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_ulong_int element_defn_index;
     idl_ulong_int element_size;
@@ -1274,7 +1186,7 @@ void rpc_ss_ndr_m_var_or_open_arr
                 rpc_ss_ndr_arr_align_and_opt( IDL_marshalling_k, dimensionality,
                                               &base_type, defn_vec_ptr,
                                               &marshall_by_pointing, IDL_msp );
-                if ( rpc_ss_bug_1_thru_31(IDL_BUG_1, IDL_msp) 
+                if ( rpc_ss_bug_1_thru_31(IDL_BUG_1, IDL_msp)
                         && ( (base_type == IDL_DT_FIXED_STRUCT)
                                 || (base_type == IDL_DT_ENC_UNION)
                                 || (base_type == IDL_DT_TRANSMIT_AS) ) )
@@ -1326,7 +1238,7 @@ void rpc_ss_ndr_m_var_or_open_arr
         rpc_ss_get_string_base_desc(defn_vec_ptr, &element_size,
                                     &element_defn_index, IDL_msp);
     else
-        element_size = rpc_ss_type_size(defn_vec_ptr, IDL_msp); 
+        element_size = rpc_ss_type_size(defn_vec_ptr, IDL_msp);
 
     if (marshall_by_pointing)
     {
@@ -1405,13 +1317,13 @@ void rpc_ss_ndr_m_var_or_open_arr
     else
         control_data = normal_control_data;
     control_data[dimensionality-1].subslice_size = element_size;
-    control_data[dimensionality-1].index_value = 
+    control_data[dimensionality-1].index_value =
                                             range_list[dimensionality-1].lower;
     for (i=dimensionality-2; i>=0; i--)
     {
         control_data[i].index_value = range_list[i].lower;
         control_data[i].subslice_size = control_data[i+1].subslice_size
-                                                            * Z_values[i+1];   
+                                                            * Z_values[i+1];
     }
 
     do {
@@ -1424,7 +1336,7 @@ void rpc_ss_ndr_m_var_or_open_arr
         rpc_ss_ndr_marsh_by_looping(
                  range_list[dimensionality-1].upper
                                          - range_list[dimensionality-1].lower,
-                 base_type, (rpc_void_p_t)inner_slice_address, 
+                 base_type, (rpc_void_p_t)inner_slice_address,
                  element_size, element_defn_index, IDL_msp);
         dim = dimensionality - 2;
         while (dim >= 0)
@@ -1456,7 +1368,6 @@ void rpc_ss_ndr_m_var_or_open_arr
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_varying_arr
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int defn_index,
                                     /* Index of start of array description */
@@ -1468,21 +1379,11 @@ void rpc_ss_ndr_marsh_varying_arr
     /* [in] */ idl_ulong_int flags,
     IDL_msp_t IDL_msp
 )
-#else
-(defn_index, array_addr, struct_addr, struct_offset_vec_ptr, flags,
- IDL_msp)
-    idl_ulong_int defn_index;
-    rpc_void_p_t array_addr;
-    idl_ulong_int *struct_offset_vec_ptr;
-    rpc_void_p_t struct_addr;
-    idl_ulong_int flags;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
     IDL_bound_pair_t *range_list;
     IDL_bound_pair_t normal_range_list[IDL_NORMAL_DIMS];
@@ -1490,7 +1391,7 @@ void rpc_ss_ndr_marsh_varying_arr
     rpc_void_p_t array_data_addr; /* May need to decode descriptor to get
                                         the address of the array data */
 
-    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index; 
+    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index;
     dimensionality = (idl_ulong_int)*defn_vec_ptr;
     defn_vec_ptr++;
     /* By design we are now longword aligned */
@@ -1517,7 +1418,7 @@ void rpc_ss_ndr_marsh_varying_arr
         array_data_addr = array_addr;
 
     rpc_ss_build_range_list( &defn_vec_ptr, array_data_addr, struct_addr,
-                        struct_offset_vec_ptr, dimensionality, bounds_list, 
+                        struct_offset_vec_ptr, dimensionality, bounds_list,
                         &range_list, &add_null, IDL_msp );
     rpc_ss_ndr_m_var_or_open_arr( array_addr, Z_values, dimensionality,
                                   range_list, defn_vec_ptr,
@@ -1538,18 +1439,11 @@ void rpc_ss_ndr_marsh_varying_arr
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_Z_values
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int dimensionality,
     /* [in] */  idl_ulong_int *Z_values,
     IDL_msp_t IDL_msp
 )
-#else
-(dimensionality, Z_values, IDL_msp)
-    idl_ulong_int dimensionality;
-    idl_ulong_int *Z_values;
-    IDL_msp_t IDL_msp;
-#endif
 {
     unsigned32 i;
 
@@ -1565,27 +1459,20 @@ void rpc_ss_ndr_marsh_Z_values
 /*                                                                            */
 /******************************************************************************/
 static void rpc_ss_ndr_marsh_conf_arr
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int defn_index,
     /* [in] */  rpc_void_p_t array_addr,
     IDL_msp_t IDL_msp
 )
-#else
-(defn_index, array_addr, IDL_msp)
-    idl_ulong_int defn_index;
-    rpc_void_p_t array_addr;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
     IDL_bound_pair_t normal_bounds_list[IDL_NORMAL_DIMS];
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
 
-    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index; 
+    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index;
     dimensionality = (idl_ulong_int)*defn_vec_ptr;
     defn_vec_ptr++;
     if (dimensionality > IDL_NORMAL_DIMS)
@@ -1618,26 +1505,18 @@ static void rpc_ss_ndr_marsh_conf_arr
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_open_arr
-#ifdef IDL_PROTOTYPES
 (
     /* [in] */  idl_ulong_int defn_index,
     /* [in] */  rpc_void_p_t array_addr,
     /* [in] */ idl_ulong_int flags,
     IDL_msp_t IDL_msp
 )
-#else
-(defn_index, array_addr, flags, IDL_msp)
-    idl_ulong_int defn_index;
-    rpc_void_p_t array_addr;
-    idl_ulong_int flags;
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *defn_vec_ptr;
     idl_ulong_int dimensionality;
     IDL_bound_pair_t *bounds_list;
     IDL_bound_pair_t normal_bounds_list[IDL_NORMAL_DIMS];
-    idl_ulong_int *Z_values;
+    idl_ulong_int *Z_values = NULL;
     idl_ulong_int normal_Z_values[IDL_NORMAL_DIMS];
     IDL_bound_pair_t *range_list;
     IDL_bound_pair_t normal_range_list[IDL_NORMAL_DIMS];
@@ -1647,7 +1526,7 @@ void rpc_ss_ndr_marsh_open_arr
                                         the address of the array_data */
     unsigned32 i;
 
-    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index; 
+    defn_vec_ptr = IDL_msp->IDL_type_vec + defn_index;
     dimensionality = (idl_ulong_int)*defn_vec_ptr;
     defn_vec_ptr++;
     if (dimensionality > IDL_NORMAL_DIMS)
@@ -1670,7 +1549,7 @@ void rpc_ss_ndr_marsh_open_arr
     rpc_ss_Z_values_from_bounds( bounds_list, dimensionality, &Z_values,
                                                                      IDL_msp );
     rpc_ss_build_range_list( &defn_vec_ptr, array_data_addr, NULL,
-                        NULL, dimensionality, bounds_list, 
+                        NULL, dimensionality, bounds_list,
                         &range_list, &add_null, IDL_msp );
     if (IDL_M_FLAGS_TEST(flags, IDL_M_V1_ARRAY))
     {
@@ -1699,16 +1578,11 @@ void rpc_ss_ndr_marsh_open_arr
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_discard_allocate_ref
-#ifdef IDL_PROTOTYPES
 (
     /* [in,out] */ idl_byte **p_type_vec_ptr
                             /* On entry type_vec_ptr points to type of parameter
                                          It is advanced over type definition */
 )
-#else
-( p_type_vec_ptr )
-    idl_byte **p_type_vec_ptr;
-#endif
 {
     idl_byte type_byte;
     idl_byte *type_vec_ptr = *p_type_vec_ptr;
@@ -1749,7 +1623,6 @@ void rpc_ss_discard_allocate_ref
 /*                                                                            */
 /******************************************************************************/
 void rpc_ss_ndr_marsh_interp
-#ifdef IDL_PROTOTYPES
 (
     idl_ulong_int IDL_parameter_count, /* [in] -- Number of parameters to   */
                                   /* marshall in this call to the           */
@@ -1765,13 +1638,6 @@ void rpc_ss_ndr_marsh_interp
 
     IDL_msp_t IDL_msp        /* [in,out] -- Pointer to marshalling state   */
 )
-#else
-( IDL_parameter_count, IDL_type_index, IDL_param_vector, IDL_msp)
-    idl_ulong_int IDL_parameter_count;
-    idl_ulong_int IDL_type_index;
-    rpc_void_p_t IDL_param_vector[];
-    IDL_msp_t IDL_msp;
-#endif
 {
     idl_byte *type_vec_ptr;
     idl_byte type_byte;
@@ -1895,7 +1761,7 @@ void rpc_ss_ndr_marsh_interp
                     IDL_DISCARD_LONG_FROM_VECTOR(type_vec_ptr);
                                             /* Discard full array definition */
                     IDL_GET_LONG_FROM_VECTOR(defn_index,type_vec_ptr);
-                    rpc_ss_ndr_marsh_fixed_arr(defn_index, param_addr, 
+                    rpc_ss_ndr_marsh_fixed_arr(defn_index, param_addr,
                                                IDL_M_IS_PARAM, IDL_msp);
                     if (type_has_pointers)
                     {
@@ -1988,7 +1854,7 @@ void rpc_ss_ndr_marsh_interp
                                                         idl_false, IDL_msp);
                     if (type_has_pointers)
                     {
-                        rpc_ss_ndr_m_n_e_union_or_ptees( param_addr, 
+                        rpc_ss_ndr_m_n_e_union_or_ptees( param_addr,
                                                  switch_index, defn_index, NULL,
                                                  NULL, idl_true, IDL_msp);
                     }

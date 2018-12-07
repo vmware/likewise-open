@@ -1,0 +1,44 @@
+NIDL_NAMESPACE=nidl_yy
+ACF_NAMESPACE=acf_yy
+
+IDL_OUT_INCDIR = $(SOLUTION_DIR)$(PLATFORM_NAME)\include\dce
+IDL_OUT_SRCDIR = $(SOLUTION_DIR)$(PLATFORM_NAME)\src
+IDL_IN_SRCDIR = ../include/dce
+
+#all: acf_l.c nidl_l.c acf_y.c acf_y.h nidl_y.c nidl_y.h sysdep.h default_msg.h
+all: $(IDL_OUT_SRCDIR)\acf_l.c $(IDL_OUT_SRCDIR)\nidl_l.c $(IDL_OUT_INCDIR)\sysdep.h $(IDL_OUT_INCDIR)\default_msg.h
+
+#
+# Must remove existing sysdep.h file, because permissions don't allow it to be overwritten
+#
+#clean_sysdep_h:
+#	del /f sysdep.h > NULL 2>&1
+
+$(IDL_OUT_INCDIR)\sysdep.h: sysdep.h.in
+	if not exist $(IDL_OUT_INCDIR) md $(IDL_OUT_INCDIR)
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open('sysdep.h.in').read(); modline=re.sub('@IDL_CPP@', 'cl.exe /nologo /E ', line); open(r'$(IDL_OUT_INCDIR)\sysdep.h', 'w').write(modline);"
+
+$(IDL_OUT_INCDIR)\default_msg.h: default_msg.h.in
+	%TCROOT%\win32\python-2.6.1\python -c "import re; line=open('default_msg.h.in').read(); modline=re.sub(r'[0-9]\$$', '', line); open(r'$(IDL_OUT_INCDIR)\default_msg.h', 'w').write(modline);"
+
+$(IDL_OUT_SRCDIR)\acf_l.c: acf_l.l
+	if not exist $(IDL_OUT_SRCDIR) md $(IDL_OUT_SRCDIR)
+	%TCROOT%\win32\flex-2.5.4a\bin\flex -P$(ACF_NAMESPACE) -o$(IDL_OUT_SRCDIR)\acf_l.c acf_l.l
+
+$(IDL_OUT_SRCDIR)\nidl_l.c: nidl_l.l
+	if not exist $(IDL_OUT_SRCDIR) md $(IDL_OUT_SRCDIR)
+	%TCROOT%\win32\flex-2.5.4a\bin\flex -P$(NIDL_NAMESPACE) -o$(IDL_OUT_SRCDIR)\nidl_l.c nidl_l.l
+# Don't rebuild bison components. The output is checked in. bison.exe in the sandbox doesn't work.
+#acf_y.c acf_y.h: acf_y.y
+#	bison -p $(ACF_NAMESPACE) -d acf_y.y -o acf_y.c
+#
+#nidl_y.c nidl_y.h: nidl_y.y
+#	bison -p $(NIDL_NAMESPACE) -d nidl_y.y -o nidl_y.c
+#
+#clean:
+#	del /f acf_l.c nidl_l.c acf_y.c acf_y.h nidl_y.c nidl_y.h sysdep.h default_msg.h > NUL 2>&1
+clean:
+	if exist $(IDL_OUT_SRCDIR)\acf_l.c del /f $(IDL_OUT_SRCDIR)\acf_l.c > NUL 2>&1
+	if exist $(IDL_OUT_SRCDIR)\nidl_l.c del /f $(IDL_OUT_SRCDIR)\nidl_l.c > NUL 2>&1
+	if exist $(IDL_OUT_INCDIR)\sysdep.h del /f $(IDL_OUT_INCDIR)\sysdep.h > NUL 2>&1
+	if exist $(IDL_OUT_INCDIR)\default_msg.h del /f $(IDL_OUT_INCDIR)\default_msg.h > NUL 2>&1

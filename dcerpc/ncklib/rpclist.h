@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -43,7 +43,7 @@
 /***********************************************************************/
 /*
  * List Processing.
- * 
+ *
  * The RPC services maintain a number of structures in the form of lists
  * and queues.  Lists are doubly linked with the list head containing both
  * a pointer to the first element of the list as well as a pointer to the
@@ -59,8 +59,8 @@
  * Memory for these lists is obtained in large "chunks", which is then
  * provided to individual list elements on an as-needed basis.
  *
- * ***CAVEAT***: 
- * 
+ * ***CAVEAT***:
+ *
  * The structures kept on lists which are processed by the
  * RPC_LIST* macros can be kept on only one list at a time.
  * This is because the macros *assume* the first field of the
@@ -69,18 +69,10 @@
  * rpc_list_t structure and manipulates the fields of it ("next" and
  * "last"). Enqueuing a structure on a second list would effectively
  * remove it from the first list since the "next" and "last" fields
- * would be overwritten. 
+ * would be overwritten.
  */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
-
-#ifdef _WIN32
-#ifndef inline
-#define inline __inline
-#endif
-#endif
 
 /*int pthd4_get_expiration_np(struct timespec *delta, struct timespec *abstime);*/
 
@@ -107,9 +99,10 @@ typedef struct
  *
  */
 
-typedef void (*rpc_list_element_alloc_fn_t) _DCE_PROTOTYPE_ ((
+typedef void (*rpc_list_element_alloc_fn_t)(
         pointer_t   /*list_element*/
-    ));
+    
+    );
 
 
 /***********************************************************************/
@@ -118,9 +111,10 @@ typedef void (*rpc_list_element_alloc_fn_t) _DCE_PROTOTYPE_ ((
  *
  */
 
-typedef void (*rpc_list_element_free_fn_t) _DCE_PROTOTYPE_ ((
+typedef void (*rpc_list_element_free_fn_t)(
         pointer_t   /*list_element*/
-    ));
+    
+    );
 
 
 /***********************************************************************/
@@ -166,9 +160,9 @@ typedef struct
 EXTERNAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb;
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ M U T E X _ I N I T
- * 
+ *
  *  Initialize the global lookaside list mutex.
  *
  * Sample usage:
@@ -183,9 +177,9 @@ EXTERNAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb;
 }
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ I N I T
- * 
+ *
  *  Initialize a list head.
  *
  * Sample usage:
@@ -203,7 +197,7 @@ EXTERNAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb;
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ E M P T Y
  *
  *  Determine whether or not a list has any elements left.
@@ -318,7 +312,7 @@ EXTERNAL rpc_lookaside_rcb_t rpc_g_lookaside_rcb;
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ R E M O V E
  *
  * Remove an element (pointed to by list_element) from a list.
@@ -362,7 +356,7 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
     __RPC_LIST_REMOVE((&list), list_element)
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ R E M O V E _ H E A D
  *
  * Remove the first entry from a list and return it. If the list is
@@ -393,7 +387,7 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ R E M O V E _ T A I L
  *
  * Remove the last entry from a list and return it. If the list is
@@ -422,9 +416,9 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ E X T R A C T
- * 
+ *
  * Remove the nth entry on a list and return it.
  * If n exceeds the length of the list a NULL pointer is returned.
  *
@@ -447,9 +441,9 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ F I R S T
- * 
+ *
  * Returns the first element in a list (without removing it).
  *
  * Sample usage:
@@ -462,12 +456,12 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 #define RPC_LIST_FIRST(list, list_element, list_element_type) \
     list_element = (list_element_type) (list.next);
-    
+
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ L A S T
- * 
+ *
  * Return the last element in a list (without removing it).
  *
  * Sample usage:
@@ -480,12 +474,12 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 #define RPC_LIST_LAST(list, list_element, list_element_type) \
     list_element = (list_element_type) (list.last);
-    
+
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ N E X T
- * 
+ *
  * Can be used iteratively to walk a list and read all entries.
  * When there are no more entries a NULL pointer is returned.
  *
@@ -512,9 +506,9 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ L O O K U P
- * 
+ *
  * Get the nth entry on a list (without removing it).
  * If n exceeds the length of the list a NULL pointer is returned.
  *
@@ -541,9 +535,9 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
 
 
 /***********************************************************************/
-/* 
+/*
  * R P C _ L I S T _ C O U N T
- * 
+ *
  * Return the number of entries on the list.
  *
  * Sample usage:
@@ -570,7 +564,7 @@ static inline void __RPC_LIST_REMOVE(rpc_list_p_t list, void *list_element)
  *
  */
 
-PRIVATE void rpc__list_desc_init _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__list_desc_init(
         rpc_list_desc_p_t            /*list_desc*/,
         unsigned32                   /*max_size*/,
         unsigned32                   /*element_size*/,
@@ -579,7 +573,8 @@ PRIVATE void rpc__list_desc_init _DCE_PROTOTYPE_ ((
         rpc_list_element_free_fn_t   /*free_rtn*/,
         rpc_mutex_p_t                /*mutex*/,
         rpc_cond_p_t                 /*cond*/
-    ));
+    
+    );
 
 
 /***********************************************************************/
@@ -588,22 +583,24 @@ PRIVATE void rpc__list_desc_init _DCE_PROTOTYPE_ ((
  *
  */
 
-PRIVATE pointer_t rpc__list_element_alloc _DCE_PROTOTYPE_ ((
+PRIVATE pointer_t rpc__list_element_alloc(
         rpc_list_desc_p_t            /*list_desc*/,
         boolean32                    /*block*/
-    ));
+    
+    );
 
-  
+
 /***********************************************************************/
 /*
  * R P C _ _ L I S T _ E L E M E N T _ F R E E
  *
  */
 
-PRIVATE void rpc__list_element_free _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__list_element_free(
         rpc_list_desc_p_t        /*list_desc*/,
         pointer_t                /*list_element*/
-    ));
+    
+    );
 
 /***********************************************************************/
 /*
@@ -611,9 +608,10 @@ PRIVATE void rpc__list_element_free _DCE_PROTOTYPE_ ((
  *
  */
 
-PRIVATE void rpc__list_fork_handler _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__list_fork_handler(
         rpc_fork_stage_id_t      /*stage*/
-    ));
+    
+    );
 
 
 #endif /* _RPCLIST_H */

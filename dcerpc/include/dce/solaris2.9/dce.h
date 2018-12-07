@@ -43,8 +43,12 @@ extern "C" {
 #include <sys/byteorder.h>
 
 /* Only one place needed for DCE to define these */
+#ifndef FALSE
 #define FALSE 0
+#endif
+#ifndef TRUE
 #define TRUE 1
+#endif
 
 #if !defined(MIN)
 #  define MIN(x, y)         ((x) < (y) ? (x) : (y))
@@ -53,42 +57,6 @@ extern "C" {
 #if !defined(MAX)
 #  define MAX(x, y)         ((x) > (y) ? (x) : (y))
 #endif
-
-
-/* 
- * The following allows for the support of both old and new style 
- * function definitions and prototypes.  All DCE code is required to 
- * be ANSI C compliant and to use prototypes.  For those components 
- * that wish to support old-style definitions, the following macros 
- * must be used.
- *
- *  Declare a prototype like this (don't use variables):
- *      int foo _DCE_PROTOTYPE_((int, void *, struct bar *))
- *  
- *  Define a function like this:
- *      int foo 
- *      #if defined(_DCE_PROTO_)
- *              (
- *              int a, 
- *              void *b,
- *              struct bar *c
- *              )
- *      #else
- *              (a, b, c)
- *              int a;
- *              void *b;
- *              struct bar *c;
- *      #endif
- */
-#if defined(__STDC__)                   /* other conditionals can be tested */
-#  define _DCE_PROTO_
-#endif                                  /* defined(__STDC__) */
-
-#if defined(_DCE_PROTO_)
-#  define _DCE_PROTOTYPE_(arg) arg 
-#else                                   /* defined(_DCE_PROTO_) */
-#  define _DCE_PROTOTYPE_(arg) ()
-#endif                                  /* defined(_DCE_PROTO_) */
 
 /* 
  * For those components wishing to support platforms where void 

@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,13 +30,13 @@ extern "C" {
 /*
  * Common definitions for DCE
  * This is a machine specific file that must be ported to each platform.
- */ 
+ */
 
 #define DCE_VERSION "1.1"
 #define DCE_MAJOR_VERSION 1
 #define DCE_MINOR_VERSION 1
 
-/* 
+/*
  * Define the endianess of the platform. Pulled in from machine/endian.h.
  */
 
@@ -45,48 +45,17 @@ extern "C" {
 #include <sys/param.h>
 
 /* Only one place needed for DCE to define these */
+#ifndef FALSE
 #define FALSE 0
+#endif
+#ifndef TRUE
 #define TRUE 1
+#endif
 
-/* 
- * The following allows for the support of both old and new style 
- * function definitions and prototypes.  All DCE code is required to 
- * be ANSI C compliant and to use prototypes.  For those components 
- * that wish to support old-style definitions, the following macros 
- * must be used.
- *
- *  Declare a prototype like this (don't use variables):
- *      int foo _DCE_PROTOTYPE_((int, void *, struct bar *))
- *  
- *  Define a function like this:
- *      int foo 
- *      #if defined(_DCE_PROTO_)
- *              (
- *              int a, 
- *              void *b,
- *              struct bar *c
- *              )
- *      #else
- *              (a, b, c)
- *              int a;
- *              void *b;
- *              struct bar *c;
- *      #endif
- */
-#if defined(__STDC__)                   /* other conditionals can be tested */
-#  define _DCE_PROTO_
-#endif                                  /* defined(__STDC__) */
-
-#if defined(_DCE_PROTO_)
-#  define _DCE_PROTOTYPE_(arg) arg 
-#else                                   /* defined(_DCE_PROTO_) */
-#  define _DCE_PROTOTYPE_(arg) ()
-#endif                                  /* defined(_DCE_PROTO_) */
-
-/* 
- * For those components wishing to support platforms where void 
- * pointers are not available, they can use the following typedef for 
- * a generic pointer type.  If they are supporting such platforms they 
+/*
+ * For those components wishing to support platforms where void
+ * pointers are not available, they can use the following typedef for
+ * a generic pointer type.  If they are supporting such platforms they
  * must use this.
  */
 #if defined(__STDC__)
@@ -99,9 +68,9 @@ extern "C" {
   typedef char * pointer_t;
 #endif                                  /* defined(_DCE_VOID_) */
 
-/* 
- * Here is a macro that can be used to support token concatenation in 
- * an ANSI and non-ANSI environment.  Support of non-ANSI environments 
+/*
+ * Here is a macro that can be used to support token concatenation in
+ * an ANSI and non-ANSI environment.  Support of non-ANSI environments
  * is not required, but where done, this macro must be used.
  */
 #if defined(__STDC__)
@@ -123,20 +92,20 @@ extern const char *dceshared_path;
 /* If DCE_DEBUG is defined then debugging code is activated. */
 /* #define DCE_DEBUG */
 
-/* 
+/*
  * Machine dependent typedefs for boolean, byte, and (un)signed integers.
  * All DCE code should be using these typedefs where applicable.
  * The following are defined in nbase.h:
  *     unsigned8       unsigned  8 bit integer
  *     unsigned16      unsigned 16 bit integer
  *     unsigned32      unsigned 32 bit integer
- *     signed8           signed  8 bit integer       
+ *     signed8           signed  8 bit integer
  *     signed16          signed 16 bit integer
  *     signed32          signed 32 bit integer
- * Define the following from idl types in idlbase.h (which is included 
+ * Define the following from idl types in idlbase.h (which is included
  * by nbase.h:
  *     byte            unsigned  8 bits
- *     boolean         unsigned  8 bits   
+ *     boolean         unsigned  8 bits
  * Define (un)signed64 to be used with the U64* macros
  */
 #include <dce/nbase.h>
@@ -164,8 +133,8 @@ typedef struct unsigned128_s_t {
     unsigned long hihi;
 } unsigned128;
 
-/* 
- * Serviceability and perhaps other DCE-wide include files 
+/*
+ * Serviceability and perhaps other DCE-wide include files
  * will be included here.  This is a sample only.
  */
 #if 0

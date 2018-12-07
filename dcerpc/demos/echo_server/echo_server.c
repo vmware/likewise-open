@@ -17,6 +17,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <lw/base.h>
 
 #include <dce/dcethread.h>
 #include <dce/dce_error.h>
@@ -28,14 +29,19 @@
 
 #define HAVE_GETOPT_H 1
 #ifdef HAVE_GETOPT_H
+#if defined(_WIN32) || defined(__linux__)
 #include <getopt.h>
+#endif
 #ifndef _WIN32
 #include <unistd.h>
 static void wait_for_signals();
+void sigpipe_handler(void);
 #else
 #include <process.h>
 #endif
 #endif
+
+extern int FIPS_mode_set(int);
 
 /*
  *
@@ -114,19 +120,30 @@ static void usage()
 
 int main(int argc, char *argv[])
 {
-    unsigned32 status;
-    rpc_binding_vector_p_t server_binding;
-    unsigned char *string_binding;
-    unsigned32 i;
-    char * protocol = PROTOCOL_TCP;
+    unsigned32 status = 0;
+    rpc_binding_vector_p_t server_binding = NULL;
+    unsigned char *string_binding = NULL;
+    unsigned32 i = 0;
+    char * protocol[5] = {0};
     char * endpoint = "31415";
     int c;
+    int protocol_idx = 0;
     char * spn = NULL;
+    char *envptr = NULL;
+
+    envptr = getenv("FIPS_MODE_SET");
+    if (envptr)
+    {
+        FIPS_mode_set(atoi(envptr));
+    }
+    else
+    {
+        FIPS_mode_set(1);
+    }
 
     /*
      * Process the cmd line args
      */
-
     while ((c = getopt(argc, argv, "a:e:nutl")) != EOF)
     {
         switch (c)
@@ -138,26 +155,38 @@ int main(int argc, char *argv[])
             endpoint = optarg;
             break;
         case 'l':
-            protocol = PROTOCOL_NCALRPC;
+            if (protocol_idx < sizeof(protocol)/sizeof(protocol[0]))
+            {
+                protocol[protocol_idx++] = PROTOCOL_NCALRPC;
+            }
             break;
         case 'n':
-            protocol = PROTOCOL_NP;
+            if (protocol_idx < sizeof(protocol)/sizeof(protocol[0]))
+            {
+                protocol[protocol_idx++] = PROTOCOL_NP;
+            }
             break;
         case 'u':
-            protocol = PROTOCOL_UDP;
+            if (protocol_idx < sizeof(protocol)/sizeof(protocol[0]))
+            {
+                protocol[protocol_idx++] = PROTOCOL_UDP;
+            }
             break;
         case 't':
-            protocol = PROTOCOL_TCP;
+            if (protocol_idx < sizeof(protocol)/sizeof(protocol[0]))
+            {
+                protocol[protocol_idx++] = PROTOCOL_TCP;
+            }
             break;
         default:
             usage();
         }
     }
 
-    if (endpoint && !protocol)
+    if (endpoint && !protocol[0])
     {
-        printf("ERROR: protocol is required when endpoint is specified\n");
-        return(1);
+        protocol[protocol_idx++] = PROTOCOL_TCP;
+        printf("NOTICE: Default protocol is '%s'\n", PROTOCOL_TCP);
     }
 
     if (spn)
@@ -188,7 +217,17 @@ int main(int argc, char *argv[])
 
     printf("registered.\nPreparing binding handle...\n");
 
-    bind_server(&server_binding, echo_v1_0_s_ifspec, protocol, endpoint);
+    for (i=0; i<protocol_idx; i++)
+    {
+        if (server_binding)
+        {
+            rpc_binding_vector_free(&server_binding, &status);
+        }
+        bind_server(&server_binding,
+                    echo_v1_0_s_ifspec,
+                    protocol[i],
+                    endpoint);
+    }
 
     /*
      * Register bindings with the endpoint mapper
@@ -245,6 +284,7 @@ int main(int argc, char *argv[])
      * Catch SIGINT and gracefully shutdown the server.
      */
 
+    sigpipe_handler();
     wait_for_signals();
 #endif
 
@@ -278,6 +318,8 @@ int main(int argc, char *argv[])
                       &status);
     chk_dce_err(status, "rpc_ep_unregister()", "", 0);
 
+    rpc_binding_vector_free(&server_binding, &status);
+
     /*
      * retire the binding information
      */
@@ -290,6 +332,132 @@ int main(int argc, char *argv[])
     return(0);
 }
 
+#if 0
+#ifndef _WIN32
+static void
+display_access_token(
+    PACCESS_TOKEN pAccessToken)
+{
+    union
+    {
+        SID_AND_ATTRIBUTES user;
+        BYTE buffer[sizeof(SID_AND_ATTRIBUTES) + SID_MAX_SIZE];
+    } u;
+    NTSTATUS status = 0;
+    ULONG len = 0;
+    PSTR sidstr = NULL;
+    DWORD dwError = 0;
+    DWORD dwSize = 0;
+    PTOKEN_GROUPS pTokenInfo = NULL;
+    DWORD iGroup = 0;
+    PSTR *ppszSIDs = NULL;
+
+    status = RtlQueryAccessTokenInformation(
+        pAccessToken,
+        TokenUser,
+        &u.user,
+        sizeof(u),
+        &len);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError)
+    {
+        printf("RtlQueryAccessTokenInformation() failed: %d, %d\n", status, dwError);
+        goto error;
+    }
+
+    status = RtlAllocateCStringFromSid(
+        &sidstr,
+        u.user.Sid);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError)
+    {
+        printf("RtlAllocateCStringFromSid() failed: %d, %d\n", status, dwError);
+        goto error;
+    }
+
+    printf("client: %s\n", sidstr);
+
+    status = RtlQueryAccessTokenInformation(
+                     pAccessToken,
+                     TokenGroups,
+                     pTokenInfo,
+                     dwSize,
+                     &dwSize);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError == ERROR_INSUFFICIENT_BUFFER)
+    {
+        dwError = 0;
+    }
+    if (dwError)
+    {
+        goto error;
+    }
+
+    pTokenInfo = calloc(dwSize, 1);
+    if (!pTokenInfo)
+    {
+        dwError = ERROR_OUTOFMEMORY;
+        goto error;
+    }
+
+    status = RtlQueryAccessTokenInformation(
+                     pAccessToken,
+                     TokenGroups,
+                     pTokenInfo,
+                     dwSize,
+                     &dwSize);
+    dwError = LwNtStatusToWin32Error(status);
+    if (dwError)
+    {
+        printf("RtlQueryAccessTokenInformation() failed: %d, %d\n", status, dwError);
+        goto error;
+    }
+
+    printf("Number of groups: %d\n", pTokenInfo->GroupCount);
+
+    if (pTokenInfo->GroupCount)
+    {
+        ppszSIDs = calloc(sizeof(PSTR *) *pTokenInfo->GroupCount, 1);
+        if (!ppszSIDs)
+        {
+            dwError = ERROR_OUTOFMEMORY;
+            goto error;
+        }
+
+        for (iGroup = 0; iGroup < pTokenInfo->GroupCount; iGroup++)
+        {
+            status = RtlAllocateCStringFromSid(
+                          &ppszSIDs[iGroup],
+                          pTokenInfo->Groups[iGroup].Sid);
+            dwError = LwNtStatusToWin32Error(status);
+            if (dwError)
+            {
+                printf("RtlAllocateCStringFromSid() failed: %d, %d\n", status, dwError);
+                goto error;
+            }
+
+            printf("%s\n", ppszSIDs[iGroup]);
+        }
+
+    }
+
+cleanup:
+    if (pTokenInfo)
+    {
+        free(pTokenInfo);
+    }
+    if (ppszSIDs)
+    {
+        free(ppszSIDs);
+    }
+    RTL_FREE(&sidstr);
+    return;
+
+error:
+    goto cleanup;
+}
+#endif
+#endif
 
 /*=========================================================================
  *
@@ -316,6 +484,7 @@ ReverseIt(
     unsigned32 rpc_status = rpc_s_ok;
     unsigned char *authPrinc = NULL;
 #if 0
+    PACCESS_TOKEN token = NULL;
     rpc_transport_info_handle_t transport_info = NULL;
     unsigned32 rpcstatus = 0;
     unsigned char* sesskey = NULL;
@@ -346,8 +515,19 @@ ReverseIt(
         printf("rpc_binding_inq_auth_caller: sts=%d authPrinc=%s prot=%d\n",
                rpc_status, (char*) authPrinc, dwProtectLevel);
         rpc_string_free(&authPrinc, status);
-
     }
+
+#if 0
+    rpc_binding_inq_access_token_caller(
+            h,
+            &token,
+            &rpc_status);
+    if (rpc_status == rpc_s_ok)
+    {
+        display_access_token(token);
+    }
+#endif
+
 #if 0
     rpc_binding_inq_transport_info(h, &transport_info, &rpcstatus);
 
@@ -431,6 +611,33 @@ ReverseIt(
  * we use a plain old, lame old Unix signal handler.
  *
  *=========================================================================*/
+void *pfn_sigpipe(void *ctx)
+{
+    sigset_t sm;
+    int sig = 0;
+
+    sigemptyset(&sm);
+    sigaddset(&sm, SIGPIPE);
+
+    for (;;)
+    {
+        fprintf(stderr, "Waiting for SIGPIPE...\n");
+        sigwait(&sm, &sig);
+        fprintf(stderr, "SIGPIPE caught!\n");
+    }
+}
+
+void sigpipe_handler(void)
+{
+    sigset_t sm;
+    pthread_t th;
+
+    sigemptyset(&sm);
+    sigaddset(&sm, SIGPIPE);
+    pthread_sigmask(SIG_BLOCK,  &sm, NULL);
+    pthread_create(&th, NULL, pfn_sigpipe, NULL);
+}
+
 
 void
 wait_for_signals()

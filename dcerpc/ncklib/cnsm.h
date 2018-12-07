@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -39,50 +39,46 @@
 **
 */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
-#ifdef _WIN32
-#ifndef inline
-#define inline __inline
-#endif
-#endif
 /*
  * R P C _ _ C N _ S M _ I N I T
  */
 
-void rpc__cn_sm_init _DCE_PROTOTYPE_ ((
-    rpc_cn_sm_state_entry_p_t   */* state_tbl */,
+void rpc__cn_sm_init(
+    rpc_cn_sm_state_entry_p_t   * /* state_tbl */,
     rpc_cn_sm_action_fn_p_t     /* action_tbl */,
     rpc_cn_sm_ctlblk_p_t         /* sm */,
-    unsigned32			 /* tbl_id */));
-                       
+    unsigned32			 /* tbl_id */
+    );
+
 /*
  * R P C _ _ C N _ S M _ E V A L _ E V E N T
  */
 
-unsigned32     rpc__cn_sm_eval_event _DCE_PROTOTYPE_ ((
+unsigned32     rpc__cn_sm_eval_event(
     unsigned32                  /* event_id */,
     pointer_t                   /* event_parameter */,
     pointer_t                   /* spc_struct */,
-    rpc_cn_sm_ctlblk_p_t         /* sm */));
+    rpc_cn_sm_ctlblk_p_t         /* sm */
+    );
 
 
 /*
  * R P C _ _ C N _ S M _ I N I T _ E V E N T _ L I S T
  */
 
-void rpc__cn_sm_init_event_list _DCE_PROTOTYPE_ ((rpc_cn_sm_ctlblk_t  *));
+void rpc__cn_sm_init_event_list(rpc_cn_sm_ctlblk_t  *);
 
 
 /*
  * R P C _ _ C N _ S M _ I N S E R T _ E V E N T
  */
 
-void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
+void rpc__cn_sm_insert_event(
     rpc_cn_sm_event_entry_p_t   /* event */,
-    rpc_cn_sm_ctlblk_t          * /* sm */));
+    rpc_cn_sm_ctlblk_t          * /* sm */
+    );
 
 
 /*
@@ -93,24 +89,24 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 **  SCOPE:            Internal to the rpc;  used here and in cnassoc.c.
 **
 **  DESCRIPTION:
-**      
+**
 **  MACRO to set the active predicate to true. The server
 **  runtime allocated the association for the new call and its
 **  callbacks. Only one call and its related callbacks may allocate an
 **  association at a time.  This macro includes the essence of
-**  incr_active_action_rtn.  
+**  incr_active_action_rtn.
 **
 **  INPUTS:
 **
 **      assoc		Pointer to the association.
-** 
+**
 **   	sm 		The control block from the event evaluation
 **                      routine.  Input is the current state and
 **                      event for the control block.  Output is the
 **                      next state or updated current state, for the
 **                      control block.
 **
-**  INPUTS/OUTPUTS:     none  
+**  INPUTS/OUTPUTS:     none
 **
 **  OUTPUTS:            Modifies the association reference count and the
 **			current state of the control block.
@@ -119,7 +115,7 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     none      
+**  FUNCTION VALUE:     none
 **
 **  SIDE EFFECTS:       none
 **
@@ -137,12 +133,12 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 /*
 **++
 **
-**  MACRO NAME:         RPC_CN_INCR_ACTIVE_CL_ACTION  
+**  MACRO NAME:         RPC_CN_INCR_ACTIVE_CL_ACTION
 **
 **  SCOPE:              GLOBAL
 **
 **  DESCRIPTION:
-**      
+**
 **  Action client side macro, to set the active predicate to true. The client
 **  runtime allocated the association for the new call and its
 **  callbacks. Only one call and its related callbacks may allocate an
@@ -158,7 +154,7 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 **                      next state or updated current state, for the
 **                      control block.
 **
-**  INPUTS/OUTPUTS:     none  
+**  INPUTS/OUTPUTS:     none
 **
 **  OUTPUTS:            Modifies the association reference count and the
 **			current state of the control block.
@@ -172,7 +168,7 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 **  SIDE EFFECTS:       none
 **
 **--
-*/ 
+*/
 #define RPC_CN_INCR_ACTIVE_CL_ACTION(assoc, sm)\
 {\
     RPC_CN_DBG_RTN_PRINTF(CLIENT rpc_cn_incr_active_cl_action_macro); \
@@ -187,24 +183,24 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 **  SCOPE:            Internal to the rpc;  used here and in cnassoc.c.
 **
 **  DESCRIPTION:
-**      
+**
 **  MACRO to set the active predicate to true. The server
 **  runtime allocated the association for the new call and its
 **  callbacks. Only one call and its related callbacks may allocate an
 **  association at a time.  This macro includes the essence of
-**  decr_active_action_rtn.  
+**  decr_active_action_rtn.
 **
 **  INPUTS:
 **
 **      assoc		Pointer to the association.
-** 
+**
 **   	sm 		The control block from the event evaluation
 **                      routine.  Input is the current state and
 **                      event for the control block.  Output is the
 **                      next state or updated current state, for the
 **                      control block.
 **
-**  INPUTS/OUTPUTS:     none  
+**  INPUTS/OUTPUTS:     none
 **
 **  OUTPUTS:            Modifies the association reference count and the
 **			current state of the control block.
@@ -213,7 +209,7 @@ void rpc__cn_sm_insert_event _DCE_PROTOTYPE_ ((
 **
 **  IMPLICIT OUTPUTS:   none
 **
-**  FUNCTION VALUE:     none      
+**  FUNCTION VALUE:     none
 **
 **  SIDE EFFECTS:       none
 **

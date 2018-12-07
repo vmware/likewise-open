@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,13 +16,13 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
 
 /*
- *  OSF DCE Version 1.0 
+ *  OSF DCE Version 1.0
  */
 /*
 **
@@ -51,7 +51,9 @@
 #ifdef HAVE_NL_TYPES_H
 #include <nl_types.h>       /* public types for NLS (I18N) routines */
 #else
+#if !defined(_WIN32)
 #warning Message catalog support disabled
+#endif
 #endif /* HAVE_NL_TYPES_H */
 
 #define FACILITY_CODE_MASK          0xF0000000
@@ -87,14 +89,14 @@
 **  SCOPE:              PUBLIC - declared in dce_error.h
 **
 **  DESCRIPTION:
-**      
-**  Returns a text string in a user provided buffer associated with a given 
-**  error status code. In the case of errors a text string will also be 
+**
+**  Returns a text string in a user provided buffer associated with a given
+**  error status code. In the case of errors a text string will also be
 **  returned indicating the nature of the error.
 **
 **  INPUTS:
 **
-**      status_to_convert   A DCE error status code to be converted to 
+**      status_to_convert   A DCE error status code to be converted to
 **                          text form.
 **
 **  INPUTS/OUTPUTS:         None.
@@ -104,7 +106,7 @@
 **      error_text          A user provided buffer to hold the text
 **                          equivalent of status_to_convert or
 **                          a message indicating what error occurred.
-**                          
+**
 **
 **      status              The result of the operation. One of:
 **                           0  -  success
@@ -140,8 +142,10 @@ int                     *status;
     char        *facility_name;
     char        filename_prefix[7];
     char        nls_filename[11];
+#ifdef HAVE_NL_TYPES_H
     char        alt_filename[80];
     char        *message;
+#endif
     static char alphabet[] = "abcdefghijklmnopqrstuvwxyz_0123456789-+@";
     static char *facility_names[] = {
         "dce",
@@ -155,7 +159,7 @@ int                     *status;
     {
         *status = -1;
     }
-    
+
     /*
      * check for ok input status
      */
@@ -174,9 +178,9 @@ int                     *status;
      */
     facility_code = (status_to_convert & FACILITY_CODE_MASK)
         >> FACILITY_CODE_SHIFT;
-        
-    component_code = (status_to_convert & COMPONENT_CODE_MASK)
-        >> COMPONENT_CODE_SHIFT;
+
+    component_code = (unsigned short) ((status_to_convert & COMPONENT_CODE_MASK)
+        >> COMPONENT_CODE_SHIFT);
 
     status_code = (status_to_convert & STATUS_CODE_MASK)
         >> STATUS_CODE_SHIFT;
@@ -187,7 +191,7 @@ int                     *status;
     if (facility_code == 0 || facility_code > sizeof (facility_names) / sizeof (char *))
     {
         sprintf ((char *) error_text, "status %08lx (unknown facility)", status_to_convert);
-        return; 
+        return;
     }
 
     facility_name = facility_names[facility_code - 1];
@@ -223,18 +227,18 @@ int                     *status;
          * If we did not succeed in opening message file using NLSPATH,
          * try to open the message file in a well-known default area
          */
-         
+
         sprintf (alt_filename,
                  RPC_DEFAULT_NLSPATH,
                  filename_prefix);
         catd = (nl_catd) catopen (alt_filename, 0);
-            
+
         if (catd == (nl_catd) -1)
         {
             sprintf ((char *) error_text, "status %08lx", status_to_convert);
             return;
         }
-    }    
+    }
 
     /*
      * try to get the specified message from the file
@@ -262,7 +266,7 @@ int                     *status;
 #else
     sprintf ((char *) error_text, "status %08lx", status_to_convert);
 #endif
-}        
+}
 void dce_error_inq_text (
 unsigned long           status_to_convert,
 unsigned char           *error_text,
@@ -285,7 +289,7 @@ int                     *status
         return;
     }
 
-    dce_get_msg (status_to_convert, error_text, fname, cname, status);
+    dce_get_msg (status_to_convert, error_text, (unsigned char *)fname, (unsigned char *)cname, status);
     strcat ((char*) error_text, " (");
     strcat ((char*) error_text, fname);
     strcat ((char*) error_text, " / ");
@@ -300,7 +304,7 @@ int dce_fprintf(FILE *f, unsigned long index, ...)
     int i;
     char format[1024];
 
-    dce_get_msg(index, format, NULL, NULL, &st);
+    dce_get_msg(index, (unsigned char *)format, NULL, NULL, &st);
     if (st != 0) return EOF;
 
     va_start(ap, index);
@@ -315,7 +319,7 @@ int dce_printf(unsigned long index, ...)
     int i;
     char format[1024];
 
-    dce_get_msg(index, format, NULL, NULL, &st);
+    dce_get_msg(index, (unsigned char *)format, NULL, NULL, &st);
     if (st != 0) return EOF;
 
     va_start(ap, index);

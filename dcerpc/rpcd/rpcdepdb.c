@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -66,86 +66,96 @@ INTERNAL epdb_handle_t    epdb_handle = NULL;
 
 
 INTERNAL void epdb_recreate_lists
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         error_status_t  *status
-    ));
     
+    );
+
 INTERNAL void epdb_chk_entry
-    _DCE_PROTOTYPE_((
+   (
         ept_entry_p_t   xentry,
         twr_fields_p_t  tfp,
         rpc_addr_p_t    addr,
         error_status_t  *status
-    ));
+    
+    );
 
 INTERNAL void epdb_chk_map_entry
-    _DCE_PROTOTYPE_((
+   (
         twr_fields_p_t  tfp,
         error_status_t  *status
-    ));
+    
+    );
 
 INTERNAL void epdb_to_ept
-    _DCE_PROTOTYPE_((
+   (
         db_entry_p_t    entp,
         ept_entry_t     *xentry,
         error_status_t  *status
-    ));
-        
+    
+    );
+
 INTERNAL void epdb_insert_entry
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         ept_entry_p_t   xentry,
         twr_fields_p_t  tfp,
         rpc_addr_p_t    addr,
         db_entry_p_t    *entp,
         error_status_t  *status
-    ));
-        
+    
+    );
+
 INTERNAL void epdb_replace_entry
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         ept_entry_p_t   xentry,
         db_entry_p_t    entp,
         error_status_t  *status
-    ));
-        
+    
+    );
+
 INTERNAL boolean32 epdb_is_replace_candidate
-    _DCE_PROTOTYPE_((
+   (
         db_entry_t      *entp,
         dce_uuid_p_t        object,
         twr_fields_p_t  tfp,
         rpc_addr_p_t    addr
-    ));
+    
+    );
 
 INTERNAL void epdb_delete_replaceable_entries
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         dce_uuid_p_t        object,
         twr_fields_p_t  tfp,
         rpc_addr_p_t    addr,
         error_status_t  *status
-    ));
+    
+    );
 
 INTERNAL void epdb_delete_entries_by_obj_if_addr
-    _DCE_PROTOTYPE_((
+   (
         struct db           *h,
         boolean32           object_speced,
         dce_uuid_p_t            object,
         rpc_if_id_p_t       interface,
         rpc_addr_p_t        addr,
         error_status_t      *status
-    ));
+    
+    );
 
 INTERNAL db_entry_t *epdb_lookup_entry
-    _DCE_PROTOTYPE_((
+   (
         struct db       *h,
         ept_entry_p_t   xentry
-    ));
-        
+    
+    );
+
 
 INTERNAL void lookup
-    _DCE_PROTOTYPE_((
+   (
         struct db           *h,
         unsigned32          inquiry_type,
         dce_uuid_p_t            object,
@@ -156,10 +166,11 @@ INTERNAL void lookup
         unsigned32          *num_ents,
         ept_entry_t         entries[],
         error_status_t      *status
-    ));
-        
+    
+    );
+
 INTERNAL void lookup_match
-    _DCE_PROTOTYPE_((
+   (
         unsigned32          inquiry_type,
         dce_uuid_p_t            object,
         rpc_if_id_p_t       interface,
@@ -170,10 +181,11 @@ INTERNAL void lookup_match
         unsigned32          list_type,
         db_lists_t          **lpp,
         error_status_t      *status
-    ));
-        
+    
+    );
+
 INTERNAL void map
-    _DCE_PROTOTYPE_((
+   (
         struct db           *h,
         dce_uuid_p_t            object,
         rpc_if_id_p_t       interface,
@@ -187,10 +199,11 @@ INTERNAL void map
         unsigned32          *n_ents,
         db_entry_t          *db_entries[],
         unsigned32          *status
-    ));
-        
+    
+    );
+
 INTERNAL void map_match
-    _DCE_PROTOTYPE_((
+   (
         dce_uuid_p_t            object,
         rpc_if_id_p_t       interface,
         rpc_syntax_id_p_t   data_rep,
@@ -206,10 +219,11 @@ INTERNAL void map_match
         db_list_type_t      list,
         db_lists_t          **lpp,
         unsigned32          *status
-    ));
+    
+    );
 
 INTERNAL void map_mgmt
-    _DCE_PROTOTYPE_((
+   (
         struct db           *h,
         dce_uuid_p_t            object,
         rpc_syntax_id_p_t   data_rep,
@@ -222,10 +236,11 @@ INTERNAL void map_mgmt
         unsigned32          *n_ents,
         db_entry_t          *db_entries[],
         unsigned32          *status
-    ));
-        
+    
+    );
+
 INTERNAL void map_mgmt_match
-    _DCE_PROTOTYPE_((
+   (
         dce_uuid_p_t            object,
         rpc_syntax_id_p_t   data_rep,
         rpc_protocol_id_t   rpc_protocol,
@@ -240,14 +255,16 @@ INTERNAL void map_mgmt_match
         db_list_type_t      list,
         db_lists_t          **lpp,
         unsigned32          *status
-    ));
+    
+    );
 
 INTERNAL boolean32 map_mgmt_endpt_unique
-    _DCE_PROTOTYPE_((
+   (
         rpc_addr_p_t    addr,
         unsigned32      n_ents,
         db_entry_t      *entries[]
-    ));
+    
+    );
 
 
 /*
@@ -300,7 +317,7 @@ PRIVATE epdb_handle_t epdb_inq_handle()
 
 
 /*
- *  Open/create a database and return a handle to it.  
+ *  Open/create a database and return a handle to it.
  *  Init the database lists and lock.  Start the task
  *  to check server liveness and to purge entries that
  *  are marked as deleted.
@@ -359,19 +376,19 @@ error_status_t  *status;
 
     dsm_marker_reset(&marker);
 
-    while(true) 
+    while(true)
     {
         void* _entp = NULL;
         dsm_read(h->dsh,&marker, &_entp,status);    /* get next record */
         entp = (db_entry_t*) _entp;
         if (! STATUS_OK(status))
         {
-            if (*status == dsm_err_no_more_entries) 
+            if (*status == dsm_err_no_more_entries)
             {
                 SET_STATUS(status, error_status_ok);
             }
             else
-            { 
+            {
                 if (dflag)
                     show_st("Error reading ept database", status);
                 SET_STATUS(status, ept_s_cant_access);
@@ -380,7 +397,7 @@ error_status_t  *status;
         }
 
         tower_to_addr(&entp->tower, &entp->addr, status);
-        if (! STATUS_OK(status)) 
+        if (! STATUS_OK(status))
         {
             if (dflag)
                 show_st("tower_to_addr error for ept entry", status);
@@ -410,14 +427,14 @@ ept_entry_p_t   xentry;
 twr_fields_p_t  tfp;
 rpc_addr_p_t    addr;
 error_status_t  *status;
-{ 
+{
     rpc_binding_handle_t    binding_h;
     error_status_t          tmp_st;
 
     if (dce_uuid_is_nil(&tfp->interface.uuid, &tmp_st) ||
         dce_uuid_is_nil(&tfp->data_rep.id, &tmp_st) ||
         (addr == NULL) ||
-        (addr->len == 0)) 
+        (addr->len == 0))
     {
         SET_STATUS(status, ept_s_invalid_entry);
         return;
@@ -449,7 +466,7 @@ ept_entry_t     *xentry;
 error_status_t  *status;
 {
     xentry->object = entp->object;
-    memcpy((char *)xentry->annotation, (char *)entp->annotation, 
+    memcpy((char *)xentry->annotation, (char *)entp->annotation,
         sizeof(xentry->annotation));
 
     tower_ss_copy(&entp->tower, &xentry->tower, status);
@@ -469,11 +486,11 @@ twr_fields_p_t  tfp;
 rpc_addr_p_t    addr;
 db_entry_p_t    *entp;
 error_status_t  *status;
-{ 
+{
     db_entry_t      *db_entp;
     error_status_t  tmp_st;
 
-    dsm_allocate(h->dsh, sizeof(db_entry_t) + xentry->tower->tower_length, 
+    dsm_allocate(h->dsh, sizeof(db_entry_t) + xentry->tower->tower_length,
         (void **) entp, status);
     if (! STATUS_OK(status)) return;
 
@@ -494,10 +511,10 @@ error_status_t  *status;
     db_entp->rpc_protocol_vers_major = tfp->rpc_protocol_vers_major;
     db_entp->rpc_protocol_vers_minor = tfp->rpc_protocol_vers_minor;
     db_entp->addr = addr;
-    memcpy((char *)db_entp->annotation, (char *)xentry->annotation, 
+    memcpy((char *)db_entp->annotation, (char *)xentry->annotation,
         sizeof(db_entp->annotation));
     db_entp->tower.tower_length = xentry->tower->tower_length;
-    memcpy((char *) db_entp->tower.tower_octet_string, (char *) xentry->tower->tower_octet_string, 
+    memcpy((char *) db_entp->tower.tower_octet_string, (char *) xentry->tower->tower_octet_string,
         xentry->tower->tower_length);
 
     dsm_write(h->dsh, (void *) db_entp, status);
@@ -519,19 +536,19 @@ error_status_t  *status;
 {
     entp->ncomm_fails = 0;
     entp->delete_flag = false;
-    memcpy((char *)entp->annotation, (char *)xentry->annotation, 
+    memcpy((char *)entp->annotation, (char *)xentry->annotation,
         sizeof(entp->annotation));
 
     db_update_entry(h, entp, status);
-}        
+}
 
 /*  epdb_delete_entry
  *  Delete an entry from the database.
  *
- *  If any readers have unlocked the db but 
- *  are pointing to this entry, mark the entry 
+ *  If any readers have unlocked the db but
+ *  are pointing to this entry, mark the entry
  *  as deleted and write it to disk.
- *  Otherwise, remove the entry from all 
+ *  Otherwise, remove the entry from all
  *  lists and delete it from the database
  */
 PRIVATE void epdb_delete_entry(h, entp, status)
@@ -544,7 +561,7 @@ error_status_t  *status;
         db_lists_remove(h, entp);
         rpc__naf_addr_free(&entp->addr, status);
         dsm_free(h->dsh, (void *) entp, status);
-    } 
+    }
     else
     {
         entp->delete_flag = true;
@@ -578,7 +595,7 @@ rpc_addr_p_t    addr;
 
     return (dce_uuid_equal(object, &entp->object, &tmp_st) &&
             dce_uuid_equal(&tfp->interface.uuid, &entp->interface.uuid, &tmp_st) &&
-            (tfp->interface.vers_major == entp->interface.vers_major) && 
+            (tfp->interface.vers_major == entp->interface.vers_major) &&
             (addr->rpc_protseq_id == entp->addr->rpc_protseq_id) &&
             dce_uuid_equal(&tfp->data_rep.id, &entp->data_rep_id, &tmp_st) &&
             (data_rep_vers_major == entp->data_rep_vers_major) &&
@@ -610,14 +627,14 @@ error_status_t  *status;
     error_status_t      tmp_st;
 
     rpc__naf_addr_inq_netaddr(addr, &netaddr, status);
-    if (! STATUS_OK(status)) 
+    if (! STATUS_OK(status))
     {
         SET_STATUS(status, ept_s_invalid_entry);
         return;
     }
 
     if (! dce_uuid_is_nil(object, &tmp_st))
-    { 
+    {
         list_type = db_c_object_list;
         lp_first = db_list_first(&h->lists_mgmt, db_c_object_list, object);
     }
@@ -625,7 +642,7 @@ error_status_t  *status;
     {
         list_type = db_c_interface_list;
         lp_first = db_list_first(&h->lists_mgmt, db_c_interface_list, &tfp->interface.uuid);
-    } 
+    }
 
     /*
      *  Scan the list and see if there are any replace candidates with an
@@ -670,7 +687,7 @@ error_status_t  *status;
 
             if (strcmp((char *) netaddr, (char *) netaddr2) == 0)
             {
-                /*  Entry matches target in all fields except 
+                /*  Entry matches target in all fields except
                  *  endpoint so delete it
                  */
                 epdb_delete_entry(h, entp, &tmp_st);
@@ -752,7 +769,7 @@ error_status_t      *status;
 INTERNAL db_entry_t *epdb_lookup_entry(h, xentry)
 struct db       *h;
 ept_entry_p_t   xentry;
-{ 
+{
     db_entry_t      *entp;
     db_lists_t      *lp;
     db_list_type_t  list_type;
@@ -760,7 +777,7 @@ ept_entry_p_t   xentry;
     error_status_t  tmp_st;
 
     if (! dce_uuid_is_nil(&xentry->object, &tmp_st))
-    { 
+    {
         list_type = db_c_object_list;
         lp = db_list_first(&h->lists_mgmt, db_c_object_list, &xentry->object);
     }
@@ -769,7 +786,7 @@ ept_entry_p_t   xentry;
         tower_to_if_id(xentry->tower, &interface, &tmp_st);
         list_type = db_c_interface_list;
         lp = db_list_first(&h->lists_mgmt, db_c_interface_list, &interface.uuid);
-    } 
+    }
 
     for ( ; lp != NULL; lp = db_list_next(list_type, lp))
     {
@@ -777,8 +794,8 @@ ept_entry_p_t   xentry;
 
         if (dce_uuid_equal(&xentry->object, &entp->object, &tmp_st) &&
             (xentry->tower->tower_length == entp->tower.tower_length) &&
-            (memcmp((char *) xentry->tower->tower_octet_string, 
-                    (char *) entp->tower.tower_octet_string, 
+            (memcmp((char *) xentry->tower->tower_octet_string,
+                    (char *) entp->tower.tower_octet_string,
                     xentry->tower->tower_length) == 0))
         {
             return(entp);
@@ -814,13 +831,13 @@ error_status_t  *status;
 
     addr = NULL;
 
-    /*  Parse the new entry's tower and check 
+    /*  Parse the new entry's tower and check
      *  whether the new entry is ok.
      *  Prefill status to bad entry for quick return.
      */
     SET_STATUS(status, ept_s_invalid_entry);
 
-    /*  
+    /*
      * Parse xentry's tower into twr_fields
      */
     tower_to_fields(xentry->tower, &twr_fields, &tmp_st);
@@ -844,7 +861,7 @@ error_status_t  *status;
          *  in all fields except endpoint
          */
         epdb_delete_replaceable_entries(h, &xentry->object, &twr_fields, addr, status);
-        if (! STATUS_OK(status)) 
+        if (! STATUS_OK(status))
         {
             rpc__naf_addr_free(&addr, &tmp_st);
             db_unlock(h);
@@ -855,7 +872,7 @@ error_status_t  *status;
     entp = epdb_lookup_entry(h, xentry);
 
     if (entp == NULL)
-    { 
+    {
         /*  New entry
          *  insert it in dbase and add it to lists
          */
@@ -905,7 +922,7 @@ error_status_t  *status;
             SET_STATUS(status, ept_s_not_registered);
         else
         {
-        /*  
+        /*
          *  Matching entry found so delete it
          */
         epdb_delete_entry(h, entp, status);
@@ -925,7 +942,7 @@ dce_uuid_p_t            object;
 twr_p_t             tower;
 error_status_t      *status;
 {
-    struct db       *h = (struct db *) h_; 
+    struct db       *h = (struct db *) h_;
     rpc_if_id_t     interface;
     rpc_addr_p_t    addr;
     error_status_t  tmp_st;
@@ -954,9 +971,9 @@ error_status_t      *status;
  *  epdb_lookup
  *  Return entries that match filter speced by inquiry_type, vers_option,
  *  object, and interface.
- * 
+ *
  */
-PRIVATE void epdb_lookup(h_, inquiry_type, object, interface, vers_option, entry_handle, max_ents, 
+PRIVATE void epdb_lookup(h_, inquiry_type, object, interface, vers_option, entry_handle, max_ents,
     num_ents, entries, status)
 epdb_handle_t       h_;
 unsigned32          inquiry_type;
@@ -990,7 +1007,7 @@ error_status_t      *status;
     db_unlock(h);
 }
 
-INTERNAL void lookup(h, inquiry_type, object, interface, vers_option, entry_handle, max_ents, 
+INTERNAL void lookup(h, inquiry_type, object, interface, vers_option, entry_handle, max_ents,
     num_ents, entries, status)
 struct db           *h;
 unsigned32          inquiry_type;
@@ -1046,7 +1063,7 @@ error_status_t      *status;
          *  restore context
          */
         db_get_context(h, entry_handle, &list_type, &lp, &pass, status);
-        if (! STATUS_OK(status)) 
+        if (! STATUS_OK(status))
         {
             *entry_handle = NULL;
             return;
@@ -1084,7 +1101,7 @@ error_status_t      *status;
         }
     }
 
-    lookup_match(inquiry_type, object, interface, vers_option, max_ents, num_ents, entries, list_type, 
+    lookup_match(inquiry_type, object, interface, vers_option, max_ents, num_ents, entries, list_type,
         &lp, status);
 
     if (! STATUS_OK(status))
@@ -1110,7 +1127,7 @@ error_status_t      *status;
     }
 }
 
-INTERNAL void lookup_match(inquiry_type, object, interface, vers_option, max_ents, num_ents, entries, list_type, 
+INTERNAL void lookup_match(inquiry_type, object, interface, vers_option, max_ents, num_ents, entries, list_type,
     lpp, status)
 unsigned32          inquiry_type;
 dce_uuid_p_t            object;
@@ -1133,7 +1150,7 @@ error_status_t      *status;
         entp = (db_entry_t *) lp;
 
         if (entp->delete_flag) continue;
-                                        
+
         match = false;
         switch ((int)inquiry_type)
         {
@@ -1167,7 +1184,7 @@ error_status_t      *status;
         {
             if ((inquiry_type == rpc_c_ep_match_by_if) || (inquiry_type == rpc_c_ep_match_by_both))
             {
-                /* check interface version 
+                /* check interface version
                  */
 
                 match = false;
@@ -1178,13 +1195,13 @@ error_status_t      *status;
                         break;
 
                     case rpc_c_vers_compatible:
-                        if ((interface->vers_major == entp->interface.vers_major) && 
+                        if ((interface->vers_major == entp->interface.vers_major) &&
                             (interface->vers_minor <= entp->interface.vers_minor))
                             match = true;
                         break;
 
                     case rpc_c_vers_exact:
-                        if ((interface->vers_major == entp->interface.vers_major) && 
+                        if ((interface->vers_major == entp->interface.vers_major) &&
                             (interface->vers_minor == entp->interface.vers_minor))
                             match = true;
                         break;
@@ -1198,7 +1215,7 @@ error_status_t      *status;
                         if (interface->vers_major > entp->interface.vers_major)
                             match = true;
                         else
-                        if ((interface->vers_major == entp->interface.vers_major) && 
+                        if ((interface->vers_major == entp->interface.vers_major) &&
                             (interface->vers_minor >= entp->interface.vers_minor))
                             match = true;
                         break;
@@ -1211,8 +1228,8 @@ error_status_t      *status;
         }
 
         if (match)
-        {   
-            if (*num_ents >= max_ents) 
+        {
+            if (*num_ents >= max_ents)
             {
                 break;
             }
@@ -1229,11 +1246,11 @@ error_status_t      *status;
     SET_STATUS_OK(status);
 }
 
-/* 
+/*
  *  epdb_fwd
  *
- *  Invoke map or map_mgmt to do a sequence of searches through the 
- *  endpoint map for appropriate entries to forward to and return pointers 
+ *  Invoke map or map_mgmt to do a sequence of searches through the
+ *  endpoint map for appropriate entries to forward to and return pointers
  *  to these entries.  Copy the entries' addr info into fwd_addrs.
  *
  *  map_mgmt is used for the search if the interface is the mgmt interface,
@@ -1254,13 +1271,13 @@ error_status_t      *status;
  * an inexact lookup match (due to the nil interface id) for operations
  * that are really for the server implementing the endpoint map operations.
  *
- * Also note that rpcd.c/fwd_map invokes epdb_fwd with max_ents = 1 and 
+ * Also note that rpcd.c/fwd_map invokes epdb_fwd with max_ents = 1 and
  * map_handle = NULL.  We could remove the context handle mgmt code from
- * epdb_fwd and gain some in performance - but we'd still need to leave 
+ * epdb_fwd and gain some in performance - but we'd still need to leave
  * the context handle code in map and map_match for epdb_map.
  */
 
-PRIVATE void epdb_fwd(h_, object, interface, data_rep, 
+PRIVATE void epdb_fwd(h_, object, interface, data_rep,
                         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor,
                         addr, map_handle, max_ents, num_ents, fwd_addrs, status)
 epdb_handle_t           h_;
@@ -1307,21 +1324,21 @@ unsigned32              *status;
     start_ent = *num_ents;
 
     if (dce_uuid_equal(&interface->uuid, &mgmt_if_rep->id, &tmp_st))
-        map_mgmt(h, object, data_rep, 
-        rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, addr->rpc_protseq_id,
-        map_handle, max_ents, num_ents, db_entries, status); 
-    else
-        map(h, object, interface, data_rep, 
+        map_mgmt(h, object, data_rep,
         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, addr->rpc_protseq_id,
         map_handle, max_ents, num_ents, db_entries, status);
-    if (! STATUS_OK(status)) 
+    else
+        map(h, object, interface, data_rep,
+        rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, addr->rpc_protseq_id,
+        map_handle, max_ents, num_ents, db_entries, status);
+    if (! STATUS_OK(status))
     {
         free(db_entries);
         db_unlock(h);
         return;
     }
 
-    for (i = start_ent; i < *num_ents; i++) 
+    for (i = start_ent; i < *num_ents; i++)
     {
         rpc__naf_addr_copy(db_entries[i]->addr, &fwd_addrs[i], status);
         if (! STATUS_OK(status))
@@ -1331,7 +1348,7 @@ unsigned32              *status;
              */
             db_delete_context(h, map_handle);
             *num_ents = i;
-            if (*num_ents > 0) 
+            if (*num_ents > 0)
             {
                 SET_STATUS_OK(status);
             }
@@ -1349,8 +1366,8 @@ unsigned32              *status;
 }
 
 /*  epdb_map
- *  Invoke map or map_mgmt to do a sequence of searches through the 
- *  endpoint map for appropriate entries to forward to and return pointers 
+ *  Invoke map or map_mgmt to do a sequence of searches through the
+ *  endpoint map for appropriate entries to forward to and return pointers
  *  to these entries.  Copy the entries' tower info into fwd_towers.
  *
  *  map_mgmt is used for the search if the interface is the mgmt interface,
@@ -1390,22 +1407,22 @@ unsigned32          *status;
     db_lock(h);
 
     tower_to_fields(map_tower, &twr_fields, status);
-    if (! STATUS_OK(status)) 
+    if (! STATUS_OK(status))
     {
         db_delete_context(h, map_handle);
         SET_STATUS(status, ept_s_invalid_entry);
         db_unlock(h);
         return;
-    } 
+    }
 
     epdb_chk_map_entry(&twr_fields, status);
-    if (! STATUS_OK(status)) 
+    if (! STATUS_OK(status))
     {
         db_delete_context(h, map_handle);
         SET_STATUS(status, ept_s_invalid_entry);
         db_unlock(h);
         return;
-    } 
+    }
 
     db_entries = (db_entry_t **) malloc(max_ents * sizeof(db_entry_p_t));
 
@@ -1421,21 +1438,21 @@ unsigned32          *status;
     start_ent = *num_ents;
 
     if (dce_uuid_equal(&tfp->interface.uuid, &mgmt_if_rep->id, &tmp_st))
-        map_mgmt(h, object, &tfp->data_rep, 
-        tfp->rpc_protocol, tfp->rpc_protocol_vers_major, tfp->rpc_protocol_vers_minor, 
+        map_mgmt(h, object, &tfp->data_rep,
+        tfp->rpc_protocol, tfp->rpc_protocol_vers_major, tfp->rpc_protocol_vers_minor,
         tfp->protseq, map_handle, max_ents, num_ents, db_entries, status);
     else
-        map(h, object, &tfp->interface, &tfp->data_rep, 
-        tfp->rpc_protocol, tfp->rpc_protocol_vers_major, tfp->rpc_protocol_vers_minor, 
+        map(h, object, &tfp->interface, &tfp->data_rep,
+        tfp->rpc_protocol, tfp->rpc_protocol_vers_major, tfp->rpc_protocol_vers_minor,
         tfp->protseq, map_handle, max_ents, num_ents, db_entries, status);
-    if (! STATUS_OK(status)) 
+    if (! STATUS_OK(status))
     {
         free(db_entries);
         db_unlock(h);
         return;
     }
 
-    for (i = start_ent; i < *num_ents; i++) 
+    for (i = start_ent; i < *num_ents; i++)
     {
         tower_ss_copy(&(db_entries[i]->tower), &fwd_towers[i], status);
         if (! STATUS_OK(status))
@@ -1445,7 +1462,7 @@ unsigned32          *status;
              */
             db_delete_context(h, map_handle);
             *num_ents = i;
-            if (*num_ents > 0) 
+            if (*num_ents > 0)
             {
                 SET_STATUS_OK(status);
             }
@@ -1463,7 +1480,7 @@ unsigned32          *status;
 }
 
 /*
- *  Search the endpoint database looking for entries which match the target object, 
+ *  Search the endpoint database looking for entries which match the target object,
  *  interface, etc.
  *
  *  If the target object is non-nil, do a 2 pass search
@@ -1484,16 +1501,16 @@ unsigned32          *status;
  *  No Match:  ' - '
  *
  *
- *   \   Map   |                                  
- *     \ entry |                                  
- *  key  \     | <nil,I1> <nil,I2> <O1,I1> <O1,I2> <O2,I1> 
+ *   \   Map   |
+ *     \ entry |
+ *  key  \     | <nil,I1> <nil,I2> <O1,I1> <O1,I2> <O2,I1>
  *  -----------|-------------------------------------------
- *  <nil,I1>   |   Moi       -        -       -      -     
- *  <O1,I1>    |   Mi        -       Moi      -      -     
+ *  <nil,I1>   |   Moi       -        -       -      -
+ *  <O1,I1>    |   Mi        -       Moi      -      -
  *
  */
 
-INTERNAL void map(h, object, interface, data_rep, 
+INTERNAL void map(h, object, interface, data_rep,
         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
         map_handle, max_ents, n_ents, db_entries, status)
 struct db               *h;
@@ -1532,7 +1549,7 @@ unsigned32              *status;
             lp = db_list_first(&h->lists_mgmt, list_type, object);
         }
     }
-    else 
+    else
     {
         db_get_context(h, map_handle, &list_type, &lp, &pass, status);
         if (! STATUS_OK(status)) return;
@@ -1542,7 +1559,7 @@ unsigned32              *status;
     if (pass == 1)
     {
         map_match(
-            object, interface, data_rep, 
+            object, interface, data_rep,
             rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
             max_ents, n_ents, db_entries, map_handle, pass, list_type, &lp, status);
         if (! STATUS_OK(status))
@@ -1550,12 +1567,12 @@ unsigned32              *status;
             db_delete_context(h, map_handle);
             return;
         }
-    
+
         if ((*n_ents >= max_ents) && ((lp != NULL) || (map_handle == NULL)))
         {
             /*  If entry buffer is full and
              *  have found next match or are not saving context
-             *  save context and return 
+             *  save context and return
              *  (save_context just returns if map_handle == NULL)
              */
             db_save_context(h, map_handle, list_type, lp, pass);
@@ -1563,7 +1580,7 @@ unsigned32              *status;
         }
 
         /*  get organized for next pass
-         */ 
+         */
         pass = 2;
         list_type = db_c_interface_list;
         lp = db_list_first(&h->lists_mgmt, list_type, &interface->uuid);
@@ -1574,7 +1591,7 @@ unsigned32              *status;
     if (pass == 2)
     {
         map_match(
-            &nil_uuid, interface, data_rep, 
+            &nil_uuid, interface, data_rep,
             rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
             max_ents, n_ents, db_entries, map_handle, pass, list_type, &lp, status);
         if (! STATUS_OK(status))
@@ -1590,14 +1607,14 @@ unsigned32              *status;
      */
     db_save_context(h, map_handle, list_type, lp, pass);
 
-    if (*n_ents == 0) 
+    if (*n_ents == 0)
     {
         SET_STATUS(status, ept_s_not_registered);
     }
 }
 
 INTERNAL void map_match(
-        object, interface, data_rep, 
+        object, interface, data_rep,
         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
         max_ents, n_ents, entries, map_handle, pass, list_type, lpp, status)
 dce_uuid_p_t                object;
@@ -1635,10 +1652,10 @@ unsigned32              *status;
 
         if (entp->delete_flag) continue;
 
-        if  (((object_nil && entp->object_nil) || 
+        if  (((object_nil && entp->object_nil) ||
                 dce_uuid_equal(object, &entp->object, &tmp_st)) &&
             dce_uuid_equal(&interface->uuid, &entp->interface.uuid, &tmp_st) &&
-            (interface->vers_major == entp->interface.vers_major) && 
+            (interface->vers_major == entp->interface.vers_major) &&
             (interface->vers_minor <= entp->interface.vers_minor) &&
             (protseq == entp->addr->rpc_protseq_id) &&
             dce_uuid_equal(&data_rep->id, &entp->data_rep_id, &tmp_st) &&
@@ -1650,12 +1667,12 @@ unsigned32              *status;
              * We dont do this so we can rev the minor protocol number
              * && (rpc_protocol_vers_minor <= entp->rpc_protocol_vers_minor) )
              */
-        {   
+        {
             /*
              *  found the next match and have filled the
              *  entries vector so quit search
              */
-            if (*n_ents >= max_ents) 
+            if (*n_ents >= max_ents)
             {
                 *lpp = lp;
                 return;
@@ -1666,9 +1683,9 @@ unsigned32              *status;
             (*n_ents)++;
 
             /* if not saving search context don't look for next matching
-             * entry 
+             * entry
              */
-            if ((map_handle == NULL) && (*n_ents >= max_ents)) 
+            if ((map_handle == NULL) && (*n_ents >= max_ents))
             {
                 *lpp = lp;
                 return;
@@ -1681,11 +1698,11 @@ unsigned32              *status;
 }
 
 /*  map_mgmt
- *  Packet is for the mgmt interface which all processes export. 
+ *  Packet is for the mgmt interface which all processes export.
  *  Look for entries with matching object, protseq, data_rep,
  *  and rpc_protocol.  Only return one entry per endpoint.
  */
-INTERNAL void map_mgmt(h, object, data_rep, 
+INTERNAL void map_mgmt(h, object, data_rep,
         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
         map_handle, max_ents, n_ents, db_entries, status)
 struct db               *h;
@@ -1719,14 +1736,14 @@ unsigned32              *status;
         list_type = db_c_object_list;
         lp = db_list_first(&h->lists_mgmt, list_type, object);
     }
-    else 
+    else
     {
         db_get_context(h, map_handle, &list_type, &lp, &pass, status);
         if (! STATUS_OK(status)) return;
     }
 
     map_mgmt_match(
-        object, data_rep, 
+        object, data_rep,
         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
         max_ents, n_ents, db_entries, map_handle, pass, list_type, &lp, status);
     if (! STATUS_OK(status))
@@ -1741,14 +1758,14 @@ unsigned32              *status;
      */
     db_save_context(h, map_handle, list_type, lp, pass);
 
-    if (*n_ents == 0) 
+    if (*n_ents == 0)
     {
         SET_STATUS(status, ept_s_not_registered);
     }
-}        
+}
 
 INTERNAL void map_mgmt_match(
-        object, data_rep, 
+        object, data_rep,
         rpc_protocol, rpc_protocol_vers_major, rpc_protocol_vers_minor, protseq,
         max_ents, n_ents, entries, map_handle, pass, list_type, lpp, status)
 dce_uuid_p_t                object;
@@ -1798,15 +1815,15 @@ unsigned32              *status;
              *  this endpoint in entries
              */
             map_mgmt_endpt_unique(entp->addr, *n_ents, entries) )
-        {   
+        {
             /*
-             *  found the next match with unique endpoint 
+             *  found the next match with unique endpoint
              */
 
             /*
              *  have filled the entries vector so quit search
              */
-            if (*n_ents >= max_ents) 
+            if (*n_ents >= max_ents)
             {
                 *lpp = lp;
                 return;
@@ -1817,9 +1834,9 @@ unsigned32              *status;
             (*n_ents)++;
 
             /* if not saving search context don't look for next matching
-             * entry 
+             * entry
              */
-            if ((map_handle == NULL) && (*n_ents >= max_ents)) 
+            if ((map_handle == NULL) && (*n_ents >= max_ents))
             {
                 *lpp = lp;
                 return;
@@ -1832,7 +1849,7 @@ unsigned32              *status;
 }
 
 /*  map_mgmt_endpt_unique
- *  return true if addr does not match addr of any entry in entries 
+ *  return true if addr does not match addr of any entry in entries
  *  otherwise return false
  */
 INTERNAL boolean32 map_mgmt_endpt_unique(addr, n_ents, entries)
@@ -1844,7 +1861,7 @@ db_entry_t      *entries[];
     error_status_t  tmp_st;
 
     for (i = 0; i < n_ents; i++)
-    { 
+    {
         /*  matching endpoint
          */
         if (rpc__naf_addr_compare(addr, entries[i]->addr, &tmp_st))

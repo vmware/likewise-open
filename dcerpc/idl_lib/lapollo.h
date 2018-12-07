@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -38,7 +38,7 @@
 
 #ifndef LAPOLLO_H
 #define LAPOLLO_H
-    
+
 /*
  * If we're building an apollo shared library, we need to use the shared
  * vesions of the functions in libc.  The following include file will
@@ -48,7 +48,7 @@
 #   include <local/shlib.h>
 #endif
 
-#include <stdlib.h>         
+#include <stdlib.h>
 
 /*
  * Tell the compiler to place all static data, declared within the scope

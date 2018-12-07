@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -62,10 +62,10 @@ int             line;
 {
     unsigned32 i;
 
-    fprintf(stderr, "Bad tower (%s, line %d); length=%lu\n    octets:\n", 
+    fprintf(stderr, "Bad tower (%s, line %d); length=%lu\n    octets:\n",
             file, line, (unsigned long) tower->tower_length);
 
-    for (i = 0; i < tower->tower_length; i++)   
+    for (i = 0; i < tower->tower_length; i++)
         fprintf(stderr, "%02x", tower->tower_octet_string[i]);
 
     fprintf(stderr, "\n");
@@ -77,13 +77,13 @@ int             line;
 
 #else
 
-#define CHECK_TOWER_STATUS(tower, status) 
+#define CHECK_TOWER_STATUS(tower, status)
 
 #endif
 
 
 /*  Parse and check a tower
- *  Fill entp's fields derived from the tower 
+ *  Fill entp's fields derived from the tower
  */
 PRIVATE void tower_to_fields(tower, tfp, status)
 twr_p_t         tower;
@@ -110,9 +110,9 @@ error_status_t  *status;
     if (STATUS_OK(status))
         rpc__tower_flr_to_drep(tref->floor[1], &tfp->data_rep, status);
 
-    if (STATUS_OK(status)) 
-        rpc__tower_flr_to_rpc_prot_id(tref->floor[2],  
-            &tfp->rpc_protocol, &tfp->rpc_protocol_vers_major, 
+    if (STATUS_OK(status))
+        rpc__tower_flr_to_rpc_prot_id(tref->floor[2],
+            &tfp->rpc_protocol, &tfp->rpc_protocol_vers_major,
             &tfp->rpc_protocol_vers_minor, status);
 
     CHECK_TOWER_STATUS(tower, status);
@@ -167,7 +167,7 @@ error_status_t  *status;
     twr_p_t     dtp;
 
     *dest_tower = (twr_p_t) rpc_ss_allocate(sizeof(twr_t) + (src_tower->tower_length - 1));
-    if (*dest_tower == NULL) 
+    if (*dest_tower == NULL)
     {
         SET_STATUS(status, ept_s_no_memory);
         return;
@@ -175,7 +175,7 @@ error_status_t  *status;
 
     dtp = *dest_tower;
     dtp->tower_length = src_tower->tower_length;
-    memcpy((char *) dtp->tower_octet_string, (char *) src_tower->tower_octet_string, 
+    memcpy((char *) dtp->tower_octet_string, (char *) src_tower->tower_octet_string,
         src_tower->tower_length);
 
     SET_STATUS_OK(status);
@@ -185,10 +185,10 @@ error_status_t  *status;
 /*  Sleep until starttime + nsecs
  */
 PRIVATE void ru_sleep_until(starttime, nsecs)
-struct timeval  *starttime; 
+struct timeval  *starttime;
 unsigned32      nsecs;
 {
-    unsigned32      waketime; 
+    unsigned32      waketime;
     struct timeval  now;
     struct timezone tz;
     unsigned32      sleep_secs;

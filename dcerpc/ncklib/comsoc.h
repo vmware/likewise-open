@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,24 +30,24 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
 **  The internal network "socket" object interface.  A very thin veneer
 **  over the BSD socket abstraction interfaces.  This makes life a little
 **  easier when porting to different environments.
-**  
+**
 **  All operations return a standard error value of type
 **  rpc_socket_error_t, operate on socket handles of type rpc_socket_t
 **  and socket addresses of type rpc_socket_addr_t.  These are the types
 **  that one should use when coding.
-**  
+**
 **  Note that there is a distinction between local runtime internal
 **  representations of socket addresses and architected (on-the-wire)
 **  representations used by location services.  This interface specifies
 **  the local runtime internal representation.
-**  
+**
 **  Operations that return an error value always set the value
 **  appropriately.  A value other than rpc_c_socket_ok indicates failure;
 **  the values of additional output parameters are undefined.  Other
@@ -61,9 +61,7 @@
  * Include platform-specific socket definitions
  */
 
-#ifndef _DCE_PROTOTYPE_
 #include <dce/dce.h>
-#endif
 
 /*
  * The maximum number of iov elements which can be sent through
@@ -225,6 +223,7 @@ typedef struct rpc_socket_vtbl_s
         rpc_socket_t sock,
         struct timeval *tmo
         );
+
     /* Get peer credentials for local connection */
     rpc_socket_error_t
     (*socket_getpeereid) (
@@ -232,6 +231,7 @@ typedef struct rpc_socket_vtbl_s
         uid_t* uid,
         gid_t* gid
         );
+
     /* Get a file descriptor suitable for using select() to decide when data is readable */
     int
     (*socket_get_select_desc) (
@@ -281,6 +281,9 @@ typedef struct rpc_socket_handle_s
         ssize_t word;
         void* pointer;
     } data;
+    rpc_socket_t sock_transport;
+    char endpoint[108]; /* Size of sun_path in sockaddr_un */
+    char *ncalrpc_port;
 } rpc_socket_handle_t, *rpc_socket_handle_p_t;
 
 typedef int rpc_socket_basic_t;
@@ -303,27 +306,29 @@ extern "C" {
  * (see BSD UNIX socket(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_open _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_open(
         rpc_protseq_id_t pseq_id,
         rpc_transport_info_handle_t info,
         rpc_socket_t * sock
-    ));
+    
+    );
 
 
 /*
  * R P C _ _ S O C K E T _ O P E N _ B A S I C
  *
- * A special version of socket_open that is used *only* by 
- * the low level initialization code when it is trying to 
+ * A special version of socket_open that is used *only* by
+ * the low level initialization code when it is trying to
  * determine what network services are supported by the host OS.
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_open_basic _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_open_basic(
         rpc_naf_id_t  /*naf*/,
         rpc_network_if_id_t  /*net_if*/,
         rpc_network_protocol_id_t  /*net_prot*/,
         rpc_socket_basic_t * /*sock*/
-    ));
+    
+    );
 
 
 /*
@@ -334,9 +339,10 @@ PRIVATE rpc_socket_error_t rpc__socket_open_basic _DCE_PROTOTYPE_((
  * (see BSD UNIX close(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_close _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_close(
         rpc_socket_t /*sock*/
-    ));
+    
+    );
 
 
 /*
@@ -347,9 +353,10 @@ PRIVATE rpc_socket_error_t rpc__socket_close _DCE_PROTOTYPE_((
  * (see BSD UNIX close(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_close_basic _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_close_basic(
         rpc_socket_basic_t /*sock*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ B I N D
@@ -359,10 +366,11 @@ PRIVATE rpc_socket_error_t rpc__socket_close_basic _DCE_PROTOTYPE_((
  * (see BSD UNIX bind(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_bind _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_bind(
         rpc_socket_t  /*sock*/,
         rpc_addr_p_t /*addr*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ C O N N E C T
@@ -373,11 +381,12 @@ PRIVATE rpc_socket_error_t rpc__socket_bind _DCE_PROTOTYPE_((
  * (see BSD UNIX connect(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_connect _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_connect(
         rpc_socket_t  /*sock*/,
         rpc_addr_p_t /*addr*/,
 	rpc_cn_assoc_t* /*assoc*/
-    ));
+    
+    );
 
 
 /*
@@ -389,15 +398,16 @@ PRIVATE rpc_socket_error_t rpc__socket_connect _DCE_PROTOTYPE_((
  * of addr.sa.  This operation fills in addr.sa and sets addr.len to
  * the new size of the field.  This is used only by Connection oriented
  * Protocol Services.
- * 
+ *
  * (see BSD UNIX accept(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_accept _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_accept(
         rpc_socket_t  /*sock*/,
         rpc_addr_p_t  /*addr*/,
         rpc_socket_t * /*newsock*/
-    ));
+    
+    );
 
 
 /*
@@ -409,10 +419,11 @@ PRIVATE rpc_socket_error_t rpc__socket_accept _DCE_PROTOTYPE_((
  * (see BSD UNIX listen(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_listen _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_listen(
         rpc_socket_t /*sock*/,
         int /*backlog*/
-    ));
+    
+    );
 
 
 /*
@@ -424,13 +435,14 @@ PRIVATE rpc_socket_error_t rpc__socket_listen _DCE_PROTOTYPE_((
  * (see BSD UNIX sendmsg(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_sendmsg _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_sendmsg(
         rpc_socket_t  /*sock*/,
         rpc_socket_iovec_p_t  /*iov*/,   /* array of bufs of data to send */
         int  /*iov_len*/,        /* number of bufs */
         rpc_addr_p_t  /*addr*/,  /* addr of receiver */
         int * /*cc*/             /* returned number of bytes actually sent */
-    ));
+    
+    );
 
 
 /*
@@ -442,17 +454,18 @@ PRIVATE rpc_socket_error_t rpc__socket_sendmsg _DCE_PROTOTYPE_((
  * operation fills in addr.sa and sets addr.len to the new size of the
  * field.  An error status as well as the actual number of bytes received
  * are also returned.
- * 
+ *
  * (see BSD UNIX recvfrom(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_recvfrom _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_recvfrom(
         rpc_socket_t  /*sock*/,
         byte_p_t  /*buf*/,       /* buf for rcvd data */
         int  /*len*/,            /* len of above buf */
         rpc_addr_p_t  /*from*/,  /* addr of sender */
         int * /*cc*/             /* returned number of bytes actually rcvd */
-    ));
+    
+    );
 
 
 /*
@@ -463,17 +476,18 @@ PRIVATE rpc_socket_error_t rpc__socket_recvfrom _DCE_PROTOTYPE_((
  * set to the actual size of addr.sa.  This operation fills in addr.sa
  * and sets addr.len to the new size of the field.  An error code as
  * well as the actual number of bytes received are also returned.
- * 
+ *
  * (see BSD UNIX recvmsg(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_recvmsg _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_recvmsg(
         rpc_socket_t  /*sock*/,
         rpc_socket_iovec_p_t  /*iov*/,   /* array of bufs for rcvd data */
         int  /*iov_len*/,        /* number of bufs */
         rpc_addr_p_t  /*addr*/,  /* addr of sender */
         int * /*cc*/             /* returned number of bytes actually rcvd */
-    ));
+    
+    );
 
 
 /*
@@ -495,10 +509,11 @@ PRIVATE rpc_socket_error_t rpc__socket_recvmsg _DCE_PROTOTYPE_((
  * (see BSD UNIX getsockname(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_inq_endpoint _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_inq_endpoint(
         rpc_socket_t  /*sock*/,
         rpc_addr_p_t /*addr*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ I N Q _ P E E R _ E N D P O I N T
@@ -519,10 +534,11 @@ PRIVATE rpc_socket_error_t rpc__socket_inq_endpoint _DCE_PROTOTYPE_((
  * (see BSD UNIX getsockname(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_inq_peer_endpoint _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_inq_peer_endpoint(
         rpc_socket_t  /*sock*/,
         rpc_addr_p_t /*addr*/
-    ));
+    
+    );
 
 
 /*
@@ -532,9 +548,10 @@ PRIVATE rpc_socket_error_t rpc__socket_inq_peer_endpoint _DCE_PROTOTYPE_((
  * Used only by Datagram based Protocol Services.
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_set_broadcast _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_set_broadcast(
         rpc_socket_t /*sock*/
-    ));
+    
+    );
 
 
 /*
@@ -542,17 +559,18 @@ PRIVATE rpc_socket_error_t rpc__socket_set_broadcast _DCE_PROTOTYPE_((
  *
  * Set the socket's send and receive buffer sizes and return the new
  * values.
- * 
+ *
  * (similar to BSD UNIX setsockopt()).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_set_bufs _DCE_PROTOTYPE_((
-        rpc_socket_t  /*sock*/, 
-        unsigned32  /*txsize*/, 
-        unsigned32  /*rxsize*/, 
-        unsigned32 * /*ntxsize*/, 
+PRIVATE rpc_socket_error_t rpc__socket_set_bufs(
+        rpc_socket_t  /*sock*/,
+        unsigned32  /*txsize*/,
+        unsigned32  /*rxsize*/,
+        unsigned32 * /*ntxsize*/,
         unsigned32 * /*nrxsize*/
-    ));
+    
+    );
 
 
 /*
@@ -563,9 +581,10 @@ PRIVATE rpc_socket_error_t rpc__socket_set_bufs _DCE_PROTOTYPE_((
  * (see BSD UNIX fcntl(sock, F_SETFL, O_NDELAY))
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_set_nbio _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_set_nbio(
         rpc_socket_t /*sock*/
-    ));
+    
+    );
 
 
 /*
@@ -577,9 +596,10 @@ PRIVATE rpc_socket_error_t rpc__socket_set_nbio _DCE_PROTOTYPE_((
  * (see BSD UNIX fcntl(sock, F_SETFD, 1))
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_set_close_on_exec _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_set_close_on_exec(
         rpc_socket_t /*sock*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ G E T P E E R N A M E
@@ -590,10 +610,11 @@ PRIVATE rpc_socket_error_t rpc__socket_set_close_on_exec _DCE_PROTOTYPE_((
  * (see BSD UNIX getpeername(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_getpeername _DCE_PROTOTYPE_ ((
+PRIVATE rpc_socket_error_t rpc__socket_getpeername(
         rpc_socket_t  /*sock*/,
         rpc_addr_p_t /*addr*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ G E T _ I F _ I D
@@ -603,10 +624,11 @@ PRIVATE rpc_socket_error_t rpc__socket_getpeername _DCE_PROTOTYPE_ ((
  * (see BSD UNIX getsockopt(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_get_if_id _DCE_PROTOTYPE_ ((
+PRIVATE rpc_socket_error_t rpc__socket_get_if_id(
         rpc_socket_t         /*sock*/,
         rpc_network_if_id_t * /*network_if_id*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ S E T _ K E E P A L I V E.
@@ -617,9 +639,10 @@ PRIVATE rpc_socket_error_t rpc__socket_get_if_id _DCE_PROTOTYPE_ ((
  * (see BSD UNIX setsockopt(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_set_keepalive _DCE_PROTOTYPE_ ((
+PRIVATE rpc_socket_error_t rpc__socket_set_keepalive(
         rpc_socket_t        /*sock*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ N O W R I T E B L O C K _ W A I T
@@ -630,10 +653,11 @@ PRIVATE rpc_socket_error_t rpc__socket_set_keepalive _DCE_PROTOTYPE_ ((
  * if a timeout occurs.  This operation in not cancellable.
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_nowriteblock_wait _DCE_PROTOTYPE_((
+PRIVATE rpc_socket_error_t rpc__socket_nowriteblock_wait(
         rpc_socket_t  /*sock*/,
         struct timeval * /*tmo*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ S E T _ R C V T I M E O
@@ -644,10 +668,11 @@ PRIVATE rpc_socket_error_t rpc__socket_nowriteblock_wait _DCE_PROTOTYPE_((
  * (see BSD UNIX setsockopt(2)).
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_set_rcvtimeo _DCE_PROTOTYPE_ ((
+PRIVATE rpc_socket_error_t rpc__socket_set_rcvtimeo(
         rpc_socket_t,       /*sock*/
         struct timeval *    /*tmo*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ S O C K E T _ G E T P E E R E I D
@@ -655,11 +680,12 @@ PRIVATE rpc_socket_error_t rpc__socket_set_rcvtimeo _DCE_PROTOTYPE_ ((
  * Get UNIX domain socket peer credentials
  */
 
-PRIVATE rpc_socket_error_t rpc__socket_getpeereid _DCE_PROTOTYPE_ ((
+PRIVATE rpc_socket_error_t rpc__socket_getpeereid(
 	rpc_socket_t,	    /*sock*/
 	uid_t *,
 	gid_t *
-    ));
+    
+    );
 
 PRIVATE int
 rpc__socket_get_select_desc(
@@ -711,6 +737,52 @@ rpc__transport_info_equal(
  */
 
 #define RPC_C_SOCKET_OK           0             /* a successful error value */
+
+#ifdef _WIN32
+/* Windows: Use WSAXXX equivalents here */
+#define RPC_C_SOCKET_EWOULDBLOCK  WSAEWOULDBLOCK   /* operation would block */
+#define RPC_C_SOCKET_EINTR        WSAEINTR         /* operation was interrupted */
+#define RPC_C_SOCKET_EIO          WSAEIO           /* I/O error */
+#define RPC_C_SOCKET_EADDRINUSE   WSAEADDRINUSE    /* address was in use (see bind) */
+#define RPC_C_SOCKET_ECONNRESET   WSAECONNRESET    /* connection reset by peer */
+#define RPC_C_SOCKET_ETIMEDOUT    WSAETIMEDOUT     /* connection request timed out*/
+#define RPC_C_SOCKET_ECONNREFUSED WSAECONNREFUSED  /* connection request refused */
+#define RPC_C_SOCKET_ENOTSOCK     WSAENOTSOCK      /* descriptor was not a socket */
+#define RPC_C_SOCKET_ENETUNREACH  WSAENETUNREACH   /* network is unreachable*/
+#define RPC_C_SOCKET_ENOSPC       ENOSPC        /* no local or remote resources */
+#define RPC_C_SOCKET_ENETDOWN     WSAENETDOWN      /* network is down */
+#define RPC_C_SOCKET_ETOOMANYREFS WSAETOOMANYREFS  /* too many remote connections */
+#define RPC_C_SOCKET_ESRCH        ESRCH         /* remote endpoint not found */
+#define RPC_C_SOCKET_EHOSTDOWN    WSAEHOSTDOWN     /* remote host is down */
+#define RPC_C_SOCKET_EHOSTUNREACH WSAEHOSTUNREACH  /* remote host is unreachable */
+#define RPC_C_SOCKET_ECONNABORTED WSAECONNABORTED  /* local host aborted connect */
+#define RPC_C_SOCKET_ENETRESET    WSAENETRESET     /* remote host crashed */
+#define RPC_C_SOCKET_ENOEXEC      ENOEXEC       /* invalid endpoint format for remote */
+#define RPC_C_SOCKET_EACCESS      WSAEACCES        /* access control information */
+                                                /* invalid at remote node */
+#define RPC_C_SOCKET_EPIPE        EPIPE         /* a write on a pipe */
+                                                /* or socket for which there */
+                                                /* is no process to */
+                                                /* read the data. */
+#define RPC_C_SOCKET_EAGAIN       WSAEAGAIN        /* no more processes */
+#define RPC_C_SOCKET_EALREADY     WSAEALREADY      /* operation already */
+                                                /* in progress */
+#define RPC_C_SOCKET_EDEADLK      WSAEDEADLK       /* resource deadlock */
+                                                /* would occur */
+#define RPC_C_SOCKET_EINPROGRESS  WSAEINPROGRESS   /* operation now in */
+                                                /* progress */
+#define RPC_C_SOCKET_EISCONN      WSAEISCONN       /* socket is already */
+                                                /* connected */
+#define RPC_C_SOCKET_ENOTSUP      WSAENOTSUP       /* operation not supported */
+
+#ifdef ETIME
+#define RPC_C_SOCKET_ETIME        ETIME   /* A time skew occurred */
+#else
+#define RPC_C_SOCKET_ETIME        WSAENOBUFS   /* A time skew occurred; can't find better substitute */
+#endif
+#else
+
+/* UNIX implementation */
 #define RPC_C_SOCKET_EWOULDBLOCK  EWOULDBLOCK   /* operation would block */
 #define RPC_C_SOCKET_EINTR        EINTR         /* operation was interrupted */
 #define RPC_C_SOCKET_EIO          EIO           /* I/O error */
@@ -746,10 +818,12 @@ rpc__transport_info_equal(
 #define RPC_C_SOCKET_EISCONN      EISCONN       /* socket is already */
                                                 /* connected */
 #define RPC_C_SOCKET_ENOTSUP      ENOTSUP       /* operation not supported */
+
 #ifdef ETIME
 #define RPC_C_SOCKET_ETIME        ETIME         /* A time skew occurred */
 #else
 #define RPC_C_SOCKET_ETIME        (ELAST + 1)   /* A time skew occurred */
+#endif
 #endif
 
 /*
@@ -766,6 +840,43 @@ rpc__transport_info_equal(
 
 #define RPC_SOCKET_ETOI(serr)       (serr)
 
+#if defined(_WIN32)
+int __rpc_socket_close(rpc_socket_t* sock);
+#ifndef ATTRIBUTE_UNUSED
+#define ATTRIBUTE_UNUSED
+#endif
+
+#define strncasecmp _strnicmp
+#define snprintf _snprintf
+
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX    108
+#endif
+
+struct sockaddr_un {
+  unsigned short int  sun_family;               /* AF_UNIX */
+  char        sun_path[UNIX_PATH_MAX];  /* pathname */
+};
+
+
+struct iovec {
+    void  *iov_base;    /* Starting address */
+    size_t iov_len;     /* Number of bytes to transfer */
+};
+
+struct msghdr {
+    void         *msg_name;       /* optional address */
+    socklen_t     msg_namelen;    /* size of address */
+    struct iovec *msg_iov;        /* scatter/gather array */
+    size_t        msg_iovlen;     /* # elements in msg_iov */
+    void         *msg_control;    /* ancillary data, see below */
+    socklen_t     msg_controllen; /* ancillary data buffer len */
+    int           msg_flags;      /* flags on received message */
+};
+
+
+
+#else
 static inline int
 __rpc_socket_close(rpc_socket_t* sock)
 {
@@ -773,6 +884,7 @@ __rpc_socket_close(rpc_socket_t* sock)
     *sock = NULL;
     return __err;
 }
+#endif
 
 #define RPC_SOCKET_CLOSE(s) __rpc_socket_close((rpc_socket_t*)(void*)&(s))
 

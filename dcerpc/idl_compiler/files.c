@@ -47,7 +47,9 @@
 
 #include <nidl.h>
 #include <files.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include "message.h"
 
 /*
@@ -187,7 +189,7 @@ boolean FILE_lookup             /* Returns TRUE on success */
             return TRUE;
     }
 
-#if defined(UNIX) || defined(_MSDOS)
+#if defined(UNIX) || defined(_MSDOS) || defined(_WIN32)
     /*
      * On Unix-like filesystems, make another pass over the idir_list if the
      * search filespec has a directory name, prepending each idir to the search
@@ -492,8 +494,8 @@ boolean FILE_parse              /* Returns TRUE on success */
 #if defined(HASDIRTREE)
     FILE_k_t    filekind;       /* File kind */
     char const  *pn;
-    int         pn_len,
-                leaf_len;
+    int         pn_len;
+    int         leaf_len;
     int         i,
                 j;
     int         leaf_start,
@@ -529,7 +531,7 @@ boolean FILE_parse              /* Returns TRUE on success */
      *  If not found, then no directory was specified.
      */
     pn = filespec;
-    pn_len = strlen(pn);
+    pn_len = (int) strlen(pn);
     slash_seen = FALSE;
     dir_end = -1;
     leaf_start = 0;
@@ -546,7 +548,7 @@ boolean FILE_parse              /* Returns TRUE on success */
 #ifdef VMS
             || pn[i] == ':'
 #endif
-#if BRANCHAR == '\\'
+#if BRANCHCHAR == '\\'
             || pn[i] == '/'
 #endif
            )

@@ -11,5 +11,6 @@ extern LSA_PROVIDER_FUNCTION_TABLE gVmDirProviderAPITable;
 
 extern VMDIR_AUTH_PROVIDER_GLOBALS gVmDirAuthProviderGlobals;
 
-#endif /* __EXTERNS_H__ */
+extern PVMCACHE_PROVIDER_FUNCTION_TABLE gpCacheProvider;
 
+#endif /* __EXTERNS_H__ */

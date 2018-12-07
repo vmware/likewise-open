@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -28,7 +28,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -55,7 +55,7 @@
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Begin a Remote Procedure Call. This is the first in a sequence of calls
 **  by the client stub. It returns the information needed to marshal input
 **  arguments. This routine is intended for use by the client stub only.
@@ -110,8 +110,7 @@
 **--
 **/
 
-PUBLIC void rpc_call_start 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_start
 (
     rpc_binding_handle_t    binding_h,
     unsigned32              flags,
@@ -121,16 +120,6 @@ PUBLIC void rpc_call_start
     rpc_transfer_syntax_t   *xfer_syntax,
     unsigned32              *status
 )
-#else
-(binding_h, flags, ifspec_h, opnum, call_handle, xfer_syntax, status)
-rpc_binding_handle_t    binding_h;
-unsigned32              flags;
-rpc_if_handle_t         ifspec_h;
-unsigned32              opnum;
-rpc_call_handle_t       *call_handle;
-rpc_transfer_syntax_t   *xfer_syntax;
-unsigned32              *status;
-#endif
 {
     rpc_binding_rep_p_t     binding_rep = (rpc_binding_rep_p_t) binding_h;
     rpc_call_rep_p_t        call_rep;
@@ -144,7 +133,7 @@ unsigned32              *status;
     if (*status != rpc_s_ok)
     {
         *call_handle = NULL;
-        return;              
+        return;
     }
     RPC_IF_VALIDATE((rpc_if_rep_p_t) ifspec_h, status);
     if (*status != rpc_s_ok)
@@ -182,7 +171,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Transmit a vector of marshaled arguments to the remote thread. Use the
 **  call handle as the identifier of the RPC being performed. This routine
 **  is intended for use by the client or server stub only.
@@ -215,23 +204,16 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_transmit 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_transmit
 (
     rpc_call_handle_t       call_h,
     rpc_iovector_p_t        call_args,
     unsigned32              *status
 )
-#else
-(call_h, call_args, status)
-rpc_call_handle_t       call_h;
-rpc_iovector_p_t        call_args;
-unsigned32              *status;
-#endif
-{ 
+{
     RPC_LOG_CALL_TRANSMIT_NTR;
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -250,7 +232,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Transmit a vector of marshaled arguments to the remote thread. Use the
 **  call handle as the identifier of the RPC being performed. Block until
 **  the first buffer of marshaled output arguments has been received. This
@@ -290,8 +272,7 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_transceive 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_transceive
 (
     rpc_call_handle_t       call_h,
     rpc_iovector_p_t        in_call_args,
@@ -299,18 +280,10 @@ PUBLIC void rpc_call_transceive
     ndr_format_t            *remote_ndr_fmt,
     unsigned32              *status
 )
-#else
-(call_h, in_call_args, out_call_args, remote_ndr_fmt, status)
-rpc_call_handle_t       call_h;
-rpc_iovector_p_t        in_call_args;
-rpc_iovector_elt_t      *out_call_args;
-ndr_format_t            *remote_ndr_fmt;
-unsigned32              *status;
-#endif
-{ 
+{
     RPC_LOG_CALL_TRANSCEIVE_NTR;
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -330,7 +303,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a buffer of marshaled arguments from the remote thread. This
 **  routine is intended for use by the client or server stub only.
 **
@@ -361,23 +334,16 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_receive 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_receive
 (
     rpc_call_handle_t       call_h,
     rpc_iovector_elt_t      *call_args,
     unsigned32              *status
 )
-#else
-(call_h, call_args, status)
-rpc_call_handle_t       call_h;
-rpc_iovector_elt_t      *call_args;
-unsigned32              *status;
-#endif
 {
     RPC_LOG_CALL_RECEIVE_NTR;
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -396,7 +362,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will block until all marshaled RPC output arguments have
 **  been transmitted and acknowledged. It is provided for use by the server
 **  stub when the marshaled arguments are contained in buffers which are on
@@ -426,20 +392,14 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_block_until_free 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_block_until_free
 (
     rpc_call_handle_t       call_h,
     unsigned32              *status
 )
-#else
-(call_h, status)
-rpc_call_handle_t       call_h;
-unsigned32              *status;
-#endif
-{ 
+{
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -455,7 +415,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Forward a cancel to the remote RPC thread by the call handle
 **  provided. This routine is intended for use by the client stub only.
 **
@@ -483,20 +443,14 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_cancel 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_cancel
 (
     rpc_call_handle_t       call_h,
     unsigned32              *status
 )
-#else
-(call_h, status)
-rpc_call_handle_t       call_h;
-unsigned32              *status;
-#endif
-{ 
+{
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -512,7 +466,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  End a Remote Procedure Call. This is the last in a sequence of calls by
 **  the client or server stub. This routine is intended for use by the
 **  client stub only.
@@ -542,21 +496,15 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_end 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_end
 (
     rpc_call_handle_t       *call_h,
     unsigned32              *status
 )
-#else
-(call_h, status)
-rpc_call_handle_t       *call_h;
-unsigned32              *status;
-#endif
-{ 
+{
     RPC_LOG_CALL_END_NTR;
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -574,7 +522,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Forward an exception to the remote RPC thread identified by the call
 **  handle. This routine is intended for use by the client or server stub
 **  only.
@@ -605,29 +553,22 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC void rpc_call_transmit_fault 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_call_transmit_fault
 (
     rpc_call_handle_t       call_h,
     rpc_iovector_p_t        call_fault_info,
     unsigned32              *status
 )
-#else
-(call_h, call_fault_info, status)
-rpc_call_handle_t       call_h;
-rpc_iovector_p_t        call_fault_info;
-unsigned32              *status;
-#endif
-{ 
+{
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
     (*rpc_g_protocol_id[((rpc_call_rep_p_t) (call_h))->protocol_id].call_epv
         ->call_transmit_fault)
             ((rpc_call_rep_p_t) call_h, call_fault_info, status);
-} 
+}
 
 /*
 **++
@@ -637,7 +578,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a buffer of marshaled fault information from the remote thread. This
 **  routine is intended for use by the client or server stub only.
 **
@@ -680,10 +621,10 @@ rpc_call_handle_t       call_h;
 rpc_iovector_elt_t      *fault_info;
 ndr_format_t            *remote_ndr_fmt;
 unsigned32              *status;
-        
+
 {
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */
@@ -701,7 +642,7 @@ unsigned32              *status;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Return a boolean indicating whether the manager routine for the
 **  RPC identified by the call handle has begun executing.
 **
@@ -732,20 +673,14 @@ unsigned32              *status;
 **--
 **/
 
-PUBLIC boolean32 rpc_call_did_mgr_execute 
-#ifdef _DCE_PROTO_
+PUBLIC boolean32 rpc_call_did_mgr_execute
 (
     rpc_call_handle_t       call_h,
     unsigned32              *status
 )
-#else
-(call_h, status)
-rpc_call_handle_t       call_h;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
-    
+
     /*
      * dispatch to the appropriate protocol service
      */

@@ -14,7 +14,6 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_SUBST(LT_VERSION, [0:33:0])
 
 # Checks for programs.
-AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LN_S
 AC_PROG_AWK

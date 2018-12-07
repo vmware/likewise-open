@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -102,8 +102,8 @@ typedef enum {
     rpc_es_dbg_np_max_pth_unfrag_tpdu,   /*  39 */
     rpc_es_dbg_np_max_loc_unfrag_tpdu,   /*  40 */
     rpc_es_dbg_np_max_tsdu,              /* 41 */
- 
-    /* 
+
+    /*
      * Add new switches above this comment and adjust the
      * "last_switch" value if necessary.  We keep a few
      * empty slots to allow for easy temporary additions.
@@ -133,7 +133,7 @@ EXTERNAL unsigned8 rpc_g_dbg_switches[];
  * Tests whether a particular debug switch is set at a particular level (or
  * higher).
  */
-#ifdef DEBUG 
+#ifdef DEBUG
 
 #define RPC_DBG(switch, level) (rpc_g_dbg_switches[(int) (switch)] >= (level))
 
@@ -148,7 +148,7 @@ EXTERNAL unsigned8 rpc_g_dbg_switches[];
  *
  * Tests whether a particular debug switch is set at exactly a particular level
  */
-#ifdef DEBUG 
+#ifdef DEBUG
 
 #define RPC_DBG_EXACT(switch, level) (rpc_g_dbg_switches[(int) (switch)] == (level))
 
@@ -182,7 +182,7 @@ EXTERNAL unsigned8 rpc_g_dbg_switches[];
  *      RPC_DBG_PRINTF(rpc_es_dbg_xmit, 3, ("Sent pkt %d", pkt_count));
  *
  * I.e. the third parameter is the argument list to "printf" and must be
- * enclosed in parens.  The macro is designed this way to allow us to 
+ * enclosed in parens.  The macro is designed this way to allow us to
  * eliminate all debug code when DEBUG is not defined.
  *
  */
@@ -232,10 +232,11 @@ EXTERNAL unsigned8 rpc_g_dbg_switches[];
  * R P C _ _ D B G _ S E T _ S W I T C H E S
  */
 
-PUBLIC void rpc__dbg_set_switches    _DCE_PROTOTYPE_ ((
+PUBLIC void rpc__dbg_set_switches   (
         char            * /*s*/,
         unsigned32      * /*st*/
-    ));
+    
+    );
 
 
 #ifndef	DCE_RPC_SVC
@@ -265,7 +266,7 @@ PUBLIC void rpc__dbg_set_switches    _DCE_PROTOTYPE_ ((
 
 #include <stdarg.h>
 
-PRIVATE int rpc__printf _DCE_PROTOTYPE_ (( char * /*format*/, ...));
+PRIVATE int rpc__printf( char * /*format*/, ...);
 
 #endif /* NO_RPC_PRINTF */
 
@@ -275,25 +276,27 @@ PRIVATE int rpc__printf _DCE_PROTOTYPE_ (( char * /*format*/, ...));
  * R P C _ _ D I E
  */
 
-PRIVATE void rpc__die _DCE_PROTOTYPE_ ((
+PRIVATE void rpc__die(
         char            * /*text*/,
         char            * /*file*/,
         int              /*line*/
-    ));
+    
+    );
 
 /*
  * R P C _ _ U U I D _ S T R I N G
  */
 
-PRIVATE char *rpc__uuid_string _DCE_PROTOTYPE_(( dce_uuid_t */*uuid*/));
+PRIVATE char *rpc__uuid_string( dce_uuid_t * /*uuid*/);
 
 /*
  * R P C _ _ P R I N T _ S O U R C E
  */
 
-PRIVATE void rpc__print_source _DCE_PROTOTYPE_((
+PRIVATE void rpc__print_source(
         char            * /*file*/,
         int             /*line*/
-    ));
+    
+    );
 
 #endif /* _RPCDBG_H */

@@ -39,30 +39,34 @@
 #include <ntlmssp.h>
 #include <ntlmsspcn.h>
 
-INTERNAL boolean32 rpc__ntlmauth_cn_three_way _DCE_PROTOTYPE_((void));
+INTERNAL boolean32 rpc__ntlmauth_cn_three_way(void);
 
-INTERNAL boolean32 rpc__ntlmauth_cn_context_valid _DCE_PROTOTYPE_((
+INTERNAL boolean32 rpc__ntlmauth_cn_context_valid(
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_create_info _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_create_info(
        rpc_authn_level_t		/* in */     /*authn_level*/,
        rpc_auth_info_p_t		/* out */    * /*auth_info*/,
        unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL boolean32 rpc__ntlmauth_cn_cred_changed _DCE_PROTOTYPE_((
+INTERNAL boolean32 rpc__ntlmauth_cn_cred_changed(
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_cred_refresh _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_cred_refresh(
 	rpc_auth_info_p_t		/* in */     /*auth_info*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_fmt_client_req _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_fmt_client_req(
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	pointer_t			/* in/out */ /*auth_value*/,
@@ -71,9 +75,10 @@ INTERNAL void rpc__ntlmauth_cn_fmt_client_req _DCE_PROTOTYPE_((
 	unsigned32			/* out */    * /*auth_len_remain*/,
 	unsigned32			/* in */     /*old_server*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp(
 	unsigned32			/* in */     /*verify_st*/,
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
@@ -81,37 +86,42 @@ INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp _DCE_PROTOTYPE_((
 	unsigned32			/* in */     /*req_auth_value_len*/,
 	pointer_t			/* in/out */ /*auth_value*/,
 	unsigned32			/* in/out */ * /*auth_value_len*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_free_prot_info _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_free_prot_info(
 	rpc_auth_info_p_t		/* in */     /*info*/,
 	rpc_cn_auth_info_p_t		/* in/out */ * /*cn_info*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_get_prot_info _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_get_prot_info(
 	rpc_auth_info_p_t		/* in */     /*info*/,
 	rpc_cn_auth_info_p_t		/* out */    * /*cn_info*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_pre_call _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_pre_call(
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	pointer_t			/* in/out */ /*auth_value*/,
 	unsigned32			/* in/out */ * /*auth_value_len*/,
 	unsigned32			/* in/out */ * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_pre_send _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_pre_send(
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	rpc_socket_iovec_p_t		/* in/out */ /*iov*/,
 	unsigned32			/* in */     /*iovlen*/,
 	rpc_socket_iovec_p_t		/* out */    /*out_iov*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_recv_check _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_recv_check(
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	rpc_cn_common_hdr_p_t		/* in */     /*pdu*/,
@@ -120,36 +130,41 @@ INTERNAL void rpc__ntlmauth_cn_recv_check _DCE_PROTOTYPE_((
 	rpc_cn_auth_tlr_p_t		/* in */     /*auth_tlr*/,
 	boolean32			/* in */     /*unpack_ints*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_tlr_uuid_crc _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_tlr_uuid_crc(
 	pointer_t			/* in */     /*auth_value*/,
 	unsigned32			/* in */     /*auth_value_len*/,
 	unsigned32			/* out */    * /*uuid_crc*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_tlr_unpack _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_tlr_unpack(
 	rpc_cn_packet_p_t		/* in */     /*pkt_p*/,
 	unsigned32			/* in */     /*auth_value_len*/,
 	unsigned8			/* out */    * /*packed_drep*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_vfy_client_req _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_vfy_client_req(
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	pointer_t			/* in */     /*auth_value*/,
 	unsigned32			/* in */     /*auth_value_len*/,
 	unsigned32			/* in */     /*old_client*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
-INTERNAL void rpc__ntlmauth_cn_vfy_srvr_resp _DCE_PROTOTYPE_((
+INTERNAL void rpc__ntlmauth_cn_vfy_srvr_resp(
 	rpc_cn_assoc_sec_context_p_t	/* in */     /*assoc_sec*/,
 	rpc_cn_sec_context_p_t		/* in */     /*sec*/,
 	pointer_t			/* in/out */ /*auth_value*/,
 	unsigned32			/* in */     /*auth_value_len*/,
 	unsigned32			/* out */    * /*st*/
-    ));
+    
+    );
 
 INTERNAL rpc_cn_auth_epv_t rpc_g_ntlmauth_cn_epv =
 {
@@ -260,16 +275,10 @@ INTERNAL boolean32 rpc__ntlmauth_cn_three_way (void)
 **/
 
 INTERNAL boolean32 rpc__ntlmauth_cn_context_valid
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_sec_context_p_t	sec,
 	unsigned32		*st
 )
-#else
-(sec, st)
-	rpc_cn_sec_context_p_t	sec;
-	unsigned32		*st;
-#endif
 {
 	CODING_ERROR (st);
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
@@ -339,18 +348,11 @@ INTERNAL boolean32 rpc__ntlmauth_cn_context_valid
 **/
 
 INTERNAL void rpc__ntlmauth_cn_create_info
-#ifdef _DCE_PROTO_
 (
 	rpc_authn_level_t	authn_level,
 	rpc_auth_info_p_t	*auth_info,
 	unsigned32		*st
 )
-#else
-(authn_level, auth_info, st)
-	rpc_authn_level_t	authn_level;
-	rpc_auth_info_p_t	*auth_info;
-	unsigned32		*st;
-#endif
 {
 	rpc_ntlmauth_info_p_t ntlmauth_info = NULL;
 
@@ -388,7 +390,7 @@ INTERNAL void rpc__ntlmauth_cn_create_info
 	 * Initialize the common auth_info stuff.
 	 */
 	ntlmauth_info->auth_info.refcount           = 1;
-	ntlmauth_info->auth_info.server_princ_name  = '\0';
+	ntlmauth_info->auth_info.server_princ_name  = NULL;
 	ntlmauth_info->auth_info.authn_level        = authn_level;
 	ntlmauth_info->auth_info.authn_protocol     = rpc_c_authn_winnt;
 	ntlmauth_info->auth_info.authz_protocol     = rpc_c_authz_name;
@@ -446,16 +448,10 @@ INTERNAL void rpc__ntlmauth_cn_create_info
 **/
 
 INTERNAL boolean32 rpc__ntlmauth_cn_cred_changed
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_sec_context_p_t	sec,
 	unsigned32		*st
 )
-#else
-(sec, st)
-	rpc_cn_sec_context_p_t	sec;
-	unsigned32		*st;
-#endif
 {
 	CODING_ERROR(st);
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
@@ -518,16 +514,10 @@ INTERNAL boolean32 rpc__ntlmauth_cn_cred_changed
 **/
 
 INTERNAL void rpc__ntlmauth_cn_cred_refresh
-#ifdef _DCE_PROTO_
 (
 	rpc_auth_info_p_t	auth_info,
 	unsigned32		*st
 )
-#else
-(auth_info, st)
-	rpc_auth_info_p_t	auth_info;
-	unsigned32		*st;
-#endif
 {
 	CODING_ERROR(st);
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
@@ -553,7 +543,6 @@ INTERNAL void rpc__ntlmauth_cn_cred_refresh
 }
 
 PRIVATE const char *rpc__ntlmauth_error_map
-#ifdef _DCE_PROTO_
 (
 	int			major_status,
 	OM_uint32		minor_status,
@@ -562,15 +551,6 @@ PRIVATE const char *rpc__ntlmauth_error_map
 	unsigned32		message_length,
 	unsigned32		*st
 )
-#else
-(major_status, minor_status, mech, message_buffer, message_length, st)
-	int			major_status;
-	OM_uint32		minor_status;
-	const gss_OID		mech;
-	char			*message_buffer;
-	unsigned32		message_length;
-	unsigned32		*st;
-#endif
 {
 	switch (minor_status)
 	{
@@ -624,18 +604,11 @@ PRIVATE const char *rpc__ntlmauth_error_map
 }
 
 INTERNAL int rpc__ntlmauth_select_flags
-#ifdef _DCE_PROTO_
 (
 	OM_uint32		*minor_status,
 	rpc_authn_level_t	authn_level,
 	OM_uint32		*req_flags
 )
-#else
-(minor_status, authn_level, req_flags)
-	OM_uint32		*minor_status;
-	rpc_authn_level_t	authn_level;
-	OM_uint32		*req_flags;
-#endif
 {
 	OM_uint32 flags = GSS_C_MUTUAL_FLAG | GSS_C_REPLAY_FLAG |
 	                  GSS_C_DCE_STYLE;
@@ -659,7 +632,6 @@ INTERNAL int rpc__ntlmauth_select_flags
 static const gss_OID_desc rpc__ntlmauth_ntlmssp_oid = {GSS_MECH_NTLM_LEN, GSS_MECH_NTLM};
 
 INTERNAL int rpc__ntlmauth_create_client_token
-#ifdef _DCE_PROTO_
 (
 	OM_uint32			*minor_status,
 	const rpc_cn_sec_context_p_t	sec,
@@ -668,15 +640,6 @@ INTERNAL int rpc__ntlmauth_create_client_token
 	gss_ctx_id_t			*gss_ctx,
 	gss_buffer_desc			*output_token
 )
-#else
-(minor_status, sec, gss_server_name, gss_ctx, output_token)
-	OM_uint32			*minor_status;
-	const rpc_cn_sec_context_p_t	sec;
-	const gss_cred_id_t		gss_creds;
-	const gss_name_t		gss_server_name;
-	gss_ctx_id_t			*gss_ctx;
-	gss_buffer_desc			*output_token;
-#endif
 {
 	int gss_rc = 0;
 	gss_OID req_mech = (gss_OID)&rpc__ntlmauth_ntlmssp_oid;
@@ -720,7 +683,6 @@ INTERNAL int rpc__ntlmauth_create_client_token
 }
 
 INTERNAL int rpc__ntlmauth_verify_server_token
-#ifdef _DCE_PROTO_
 (
 	OM_uint32			*minor_status,
 	const rpc_cn_sec_context_p_t	sec,
@@ -730,16 +692,6 @@ INTERNAL int rpc__ntlmauth_verify_server_token
 	gss_buffer_desc			input_token,
 	gss_buffer_desc			*output_token
 )
-#else
-(minor_status, assoc_sec, sec, gss_creds, gss_ctx, input_token, output_token)
-	OM_uint32			*minor_status;
-	const rpc_cn_sec_context_p_t	sec;
-	const gss_cred_id_t		gss_creds;
-	const gss_name_t		gss_server_name;
-	gss_ctx_id_t			gss_ctx;
-	gss_buffer_desc			input_token;
-	gss_buffer_desc			*output_token;
-#endif
 {
 	int gss_rc = 0;
 
@@ -820,7 +772,6 @@ INTERNAL int rpc__ntlmauth_verify_server_token
 #define RPC__NTLMAUTH_CN_AUTH_MAX_LEN 396
 
 INTERNAL void rpc__ntlmauth_cn_fmt_client_req
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t	assoc_sec ATTRIBUTE_UNUSED,
 	rpc_cn_sec_context_p_t		sec,
@@ -831,17 +782,6 @@ INTERNAL void rpc__ntlmauth_cn_fmt_client_req
 	unsigned32			old_server ATTRIBUTE_UNUSED,
 	unsigned32			*st
 )
-#else
-(assoc_sec, sec, auth_value, auth_value_len, last_auth_pos, auth_len_remain, old_server, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec ATTRIBUTE_UNUSED;
-	rpc_cn_sec_context_p_t		sec;
-	pointer_t			auth_value;
-	unsigned32			*auth_value_len;
-	pointer_t			*last_auth_pos ATTRIBUTE_UNUSED;
-	unsigned32			*auth_len_remain;
-	unsigned32			old_server ATTRIBUTE_UNUSED;
-	unsigned32			*st;
-#endif
 {
 	rpc_ntlmauth_info_p_t ntlmauth_info = (rpc_ntlmauth_info_p_t)sec->sec_info;
 	rpc_ntlmauth_cn_info_p_t ntlmauth_cn_info = (rpc_ntlmauth_cn_info_p_t)sec->sec_cn_info;
@@ -1001,7 +941,6 @@ INTERNAL void rpc__ntlmauth_cn_fmt_client_req
 **/
 
 INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp
-#ifdef _DCE_PROTO_
 (
 	unsigned32			verify_st,
 	rpc_cn_assoc_sec_context_p_t    assoc_sec,
@@ -1011,16 +950,6 @@ INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp
 	pointer_t			auth_value,
 	unsigned32			*auth_value_len
 )
-#else
-(verify_st, assoc_sec, sec, req_auth_value, req_auth_value_len, auth_value, auth_value_len)
-	unsigned32			verify_st;
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	rpc_cn_sec_context_p_t		sec;
-	pointer_t			req_auth_value ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32			req_auth_value_len ATTRIBUTE_UNUSED /*TODO*/;
-	pointer_t			auth_value;
-	unsigned32			*auth_value_len;
-#endif
 {
 	OM_uint32 minor_status;
 	gss_buffer_desc output_token = GSS_C_EMPTY_BUFFER;
@@ -1106,16 +1035,10 @@ INTERNAL void rpc__ntlmauth_cn_fmt_srvr_resp
 **/
 
 INTERNAL void rpc__ntlmauth_cn_free_prot_info
-#ifdef _DCE_PROTO_
 (
 	rpc_auth_info_p_t	info,
 	rpc_cn_auth_info_p_t	*cn_info
 )
-#else
-(info, cn_info)
-	rpc_auth_info_p_t	info;
-	rpc_cn_auth_info_p_t	*cn_info;
-#endif
 {
 	rpc_ntlmauth_cn_info_p_t ntlmauth_cn_info = NULL;
 	OM_uint32 minor_status = 0;
@@ -1190,18 +1113,11 @@ INTERNAL void rpc__ntlmauth_cn_free_prot_info
 **/
 
 INTERNAL void rpc__ntlmauth_cn_get_prot_info
-#ifdef _DCE_PROTO_
 (
 	rpc_auth_info_p_t		info,
 	rpc_cn_auth_info_p_t		*cn_info,
 	unsigned32			*st
 )
-#else
-(info, cn_info, st)
-	rpc_auth_info_p_t		info;
-	rpc_cn_auth_info_p_t		*cn_info;
-	unsigned32			*st;
-#endif
 {
         rpc_ntlmauth_cn_info_t   *ntlmauth_cn_info = NULL;
 	rpc_ntlmauth_info_t      *ntlmauth_info = (rpc_ntlmauth_info_p_t)info;
@@ -1303,7 +1219,6 @@ INTERNAL void rpc__ntlmauth_cn_get_prot_info
 **/
 
 INTERNAL void rpc__ntlmauth_cn_pre_call
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t	assoc_sec,
 	rpc_cn_sec_context_p_t		sec,
@@ -1311,14 +1226,6 @@ INTERNAL void rpc__ntlmauth_cn_pre_call
 	unsigned32			*auth_value_len ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32			*st
 )
-#else
-(assoc_sec, sec, auth_value, auth_value_len, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	rpc_cn_sec_context_p_t		sec;
-	pointer_t			auth_value ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32			*auth_value_len ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32			*st;
-#endif
 {
 	CODING_ERROR(st);
 
@@ -1353,7 +1260,6 @@ INTERNAL void rpc__ntlmauth_cn_pre_call
 }
 
 INTERNAL void rpc__ntlmauth_cn_wrap_packet
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_sec_context_p_t		sec,
 	const char			*comment,
@@ -1364,17 +1270,6 @@ INTERNAL void rpc__ntlmauth_cn_wrap_packet
 	rpc_socket_iovec_p_t		out_iov,
 	unsigned32			*st
 )
-#else
-(sec, comment, header_size, iov, iovlen, seal, out_iov, st)
-	rpc_cn_sec_context_p_t		sec;
-	const char			*comment;
-	unsigned8			header_size;
-	rpc_socket_iovec_p_t		iov;
-	unsigned32			iovlen;
-	unsigned32                      seal,
-	rpc_socket_iovec_p_t		out_iov;
-	unsigned32			*st;
-#endif
 {
 	rpc_ntlmauth_cn_info_p_t ntlmauth_cn_info = (rpc_ntlmauth_cn_info_p_t)sec->sec_cn_info;
 	rpc_cn_common_hdr_p_t hdr = NULL;
@@ -1569,7 +1464,6 @@ cleanup:
 }
 
 INTERNAL void rpc__ntlmauth_cn_create_large_frag
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t	assoc_sec,
 	const char			*comment,
@@ -1579,16 +1473,6 @@ INTERNAL void rpc__ntlmauth_cn_create_large_frag
 	rpc_socket_iovec_p_t		out_iov,
 	unsigned32			*st
 )
-#else
-(assoc_sec, comment, header_size, iov, iovlen, out_iov, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	const char			*comment;
-	unsigned8			header_size;
-	rpc_socket_iovec_p_t		iov;
-	unsigned32			iovlen;
-	rpc_socket_iovec_p_t		out_iov;
-	unsigned32			*st;
-#endif
 {
 	rpc_cn_common_hdr_p_t hdr = NULL;
 	unsigned32 i = 0;
@@ -1732,7 +1616,6 @@ INTERNAL void rpc__ntlmauth_cn_create_large_frag
 **/
 
 INTERNAL void rpc__ntlmauth_cn_pre_send
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t	assoc_sec,
 	rpc_cn_sec_context_p_t		sec,
@@ -1741,15 +1624,6 @@ INTERNAL void rpc__ntlmauth_cn_pre_send
 	rpc_socket_iovec_p_t		out_iov,
 	unsigned32			*st
 )
-#else
-(assoc_sec, sec, iov, iovlen, out_iov, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	rpc_cn_sec_context_p_t		sec;
-	rpc_socket_iovec_p_t		iov;
-	unsigned32			iovlen;
-	rpc_socket_iovec_p_t		out_iov;
-	unsigned32			*st;
-#endif
 {
 	unsigned32 ptype = 0;
 	unsigned32 seal = 0;
@@ -1873,7 +1747,6 @@ INTERNAL void rpc__ntlmauth_cn_pre_send
 }
 
 INTERNAL void rpc__ntlmauth_cn_unwrap_packet
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_sec_context_p_t		sec,
 	const char			*comment,
@@ -1886,19 +1759,6 @@ INTERNAL void rpc__ntlmauth_cn_unwrap_packet
 	boolean32			unpack_ints,
 	unsigned32			*st
 )
-#else
-(sec, comment, header_size, pkt, pkt_len, cred_len, auth_tlr, sealed, unpack_ints, st)
-	rpc_cn_sec_context_p_t		sec;
-	const char			*comment;
-	unsigned8			header_size;
-	rpc_cn_common_hdr_p_t		pkt;
-	unsigned32			pkt_len;
-	unsigned32			cred_len ATTRIBUTE_UNUSED /*TODO*/;
-	rpc_cn_auth_tlr_p_t		auth_tlr;
-	unsigned32                      sealed;
-	boolean32			unpack_ints;
-	unsigned32			*st;
-#endif
 {
 	rpc_ntlmauth_cn_info_p_t ntlmauth_cn_info = (rpc_ntlmauth_cn_info_p_t)sec->sec_cn_info;
 	unsigned32 pdu_len = 0;
@@ -2052,7 +1912,6 @@ cleanup:
 **/
 
 INTERNAL void rpc__ntlmauth_cn_recv_check
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t    assoc_sec,
 	rpc_cn_sec_context_p_t		sec,
@@ -2063,17 +1922,6 @@ INTERNAL void rpc__ntlmauth_cn_recv_check
 	boolean32			unpack_ints,
 	unsigned32			*st
 )
-#else
-(assoc_sec, sec, pdu, pdu_len, cred_len, auth_tlr, unpack_ints, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	rpc_cn_sec_context_p_t		sec;
-	rpc_cn_common_hdr_p_t		pdu;
-	unsigned32			pdu_len;
-	unsigned32			cred_len;
-	rpc_cn_auth_tlr_p_t		auth_tlr;
-	boolean32			unpack_ints;
-	unsigned32			*st;
-#endif
 {
 	unsigned32 sealed = 0;
 
@@ -2204,18 +2052,11 @@ INTERNAL void rpc__ntlmauth_cn_recv_check
 **/
 
 INTERNAL void rpc__ntlmauth_cn_tlr_uuid_crc
-#ifdef _DCE_PROTO_
 (
 	pointer_t		auth_value ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32		auth_value_len ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32		*uuid_crc
 )
-#else
-(auth_value, auth_value_len, uuid_crc)
-	pointer_t		auth_value ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32		auth_value_len ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32		*uuid_crc;
-#endif
 {
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
 		("(rpc__ntlmauth_cn_tlr_uuid_crc)\n"));
@@ -2267,18 +2108,11 @@ INTERNAL void rpc__ntlmauth_cn_tlr_uuid_crc
 **/
 
 INTERNAL void rpc__ntlmauth_cn_tlr_unpack
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_packet_p_t	pkt_p ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32		auth_value_len ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned8		*packed_drep ATTRIBUTE_UNUSED /*TODO*/
 )
-#else
-(pkt_p, auth_value_len, packed_drep)
-	rpc_cn_packet_p_t	pkt_p ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32		auth_value_len ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned8		*packed_drep ATTRIBUTE_UNUSED /*TODO*/;
-#endif
 {
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,
 		("(rpc__ntlmauth_cn_tlr_unpack)\n"));
@@ -2333,7 +2167,6 @@ INTERNAL void rpc__ntlmauth_cn_tlr_unpack
 **/
 
 INTERNAL void rpc__ntlmauth_cn_vfy_client_req
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t	assoc_sec,
 	rpc_cn_sec_context_p_t		sec,
@@ -2342,15 +2175,6 @@ INTERNAL void rpc__ntlmauth_cn_vfy_client_req
 	unsigned32			old_client ATTRIBUTE_UNUSED /*TODO*/,
 	unsigned32			*st
 )
-#else
-(assoc_sec, sec, auth_value, auth_value_len, old_client, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	rpc_cn_sec_context_p_t		sec;
-	pointer_t			auth_value;
-	unsigned32			auth_value_len;
-	unsigned32			old_client ATTRIBUTE_UNUSED /*TODO*/;
-	unsigned32			*st;
-#endif
 {
 	rpc_ntlmauth_cn_info_p_t ntlmauth_cn_info = (rpc_ntlmauth_cn_info_p_t)sec->sec_cn_info;
 	int gss_rc = 0;
@@ -2469,7 +2293,6 @@ INTERNAL void rpc__ntlmauth_cn_vfy_client_req
 **/
 
 INTERNAL void rpc__ntlmauth_cn_vfy_srvr_resp
-#ifdef _DCE_PROTO_
 (
 	rpc_cn_assoc_sec_context_p_t	assoc_sec,
 	rpc_cn_sec_context_p_t		sec,
@@ -2477,14 +2300,6 @@ INTERNAL void rpc__ntlmauth_cn_vfy_srvr_resp
 	unsigned32			auth_value_len,
 	unsigned32			*st
 )
-#else
-(assoc_sec, sec, auth_value, auth_value_len, st)
-	rpc_cn_assoc_sec_context_p_t	assoc_sec;
-	rpc_cn_sec_context_p_t		sec;
-	pointer_t			auth_value;
-	unsigned32			auth_value_len;
-	unsigned32			*st;
-#endif
 {
 	rpc_ntlmauth_info_p_t ntlmauth_info = (rpc_ntlmauth_info_p_t)sec->sec_info;
 	rpc_ntlmauth_cn_info_p_t ntlmauth_cn_info = (rpc_ntlmauth_cn_info_p_t)sec->sec_cn_info;
@@ -2563,16 +2378,10 @@ done:
 
 
 PRIVATE rpc_protocol_id_t rpc__ntlmauth_cn_init
-#ifdef _DCE_PROTO_
 (
 	rpc_auth_rpc_prot_epv_p_t	*epv,
 	unsigned32			*st
 )
-#else
-(epv, st)
-	rpc_auth_rpc_prot_epv_p_t	*epv;
-	unsigned32			*st;
-#endif
 {
 	CODING_ERROR(st);
 	RPC_DBG_PRINTF(rpc_e_dbg_auth, RPC_C_CN_DBG_AUTH_ROUTINE_TRACE,

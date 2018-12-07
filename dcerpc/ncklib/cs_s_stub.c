@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1991 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1991 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1991 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -40,7 +40,7 @@
 #include <nsp.h>
 #include <dce/idlbase.h>	/* definitions for idl_cs_* 		*/
 #include <dce/rpcsts.h>
-#include <codesets.h>		/* Data definitions for I18N NSI 
+#include <codesets.h>		/* Data definitions for I18N NSI
 							sub-component   */
 #include <dce/codesets_stub.h>	/* Stub support routines */
 
@@ -58,12 +58,12 @@
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Convert an encoding of a local data to network encoding, based on
 **  the information from a tag.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -73,7 +73,7 @@
 **
 **      l_data_len	The number of "byte" data elements to be processed.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	wdata		Address to which the converted data is to be written.
 **
@@ -99,26 +99,15 @@
 */
 
 PUBLIC void cs_byte_to_netcs
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,
 	idl_byte		*ldata,
-	unsigned32		l_data_len, 
-	idl_byte		*wdata, 
-	unsigned32		*p_w_data_len, 
+	unsigned32		l_data_len,
+	idl_byte		*wdata,
+	unsigned32		*p_w_data_len,
 	error_status_t		*status
 )
-#else
-(h, tag, ldata, l_data_len, wdata, p_w_data_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;
-	idl_byte		*ldata;
-	unsigned32		l_data_len;
-	idl_byte		*wdata;
-	unsigned32		*p_w_data_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -239,8 +228,8 @@ PUBLIC void cs_byte_to_netcs
 		 */
 		current_codeset = nl_langinfo(CODESET);
 		dce_cs_loc_to_rgy(
-			(unsigned_char_p_t)current_codeset, 
-			&current_rgy_codeset, 
+			(unsigned_char_p_t)current_codeset,
+			&current_rgy_codeset,
 			NULL, NULL,
 			status);
 
@@ -297,12 +286,12 @@ PUBLIC void cs_byte_to_netcs
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Convert an encoding of a local data to network encoding, based on
 **  the information from a tag.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -312,7 +301,7 @@ PUBLIC void cs_byte_to_netcs
 **
 **      l_data_len	The number of "byte" data elements to be processed.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	wdata		Address to which the converted data is to be written.
 **
@@ -338,26 +327,15 @@ PUBLIC void cs_byte_to_netcs
 */
 
 PUBLIC void wchar_t_to_netcs
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,
 	wchar_t			*ldata,
-	unsigned32		l_data_len, 
-	idl_byte		*wdata, 
-	unsigned32		*p_w_data_len, 
+	unsigned32		l_data_len,
+	idl_byte		*wdata,
+	unsigned32		*p_w_data_len,
 	error_status_t		*status
 )
-#else
-(h, tag, ldata, l_data_len, wdata, p_w_data_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;
-	wchar_t			*ldata;
-	unsigned32		l_data_len;
-	idl_byte		*wdata;
-	unsigned32		*p_w_data_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -372,7 +350,7 @@ PUBLIC void wchar_t_to_netcs
 	rpc_cs_tags_eval_p_t	tags_p;
 	rpc_binding_rep_p_t 	bind_p;
 
-	/* 
+	/*
 	 *  Allocate the largest buffer for the conversion.
 	 */
 	ldata_length = l_data_len * MB_CUR_MAX + MB_CUR_MAX;
@@ -491,8 +469,8 @@ PUBLIC void wchar_t_to_netcs
 		 */
 		current_codeset = nl_langinfo(CODESET);
 		dce_cs_loc_to_rgy(
-			(unsigned_char_p_t)current_codeset, 
-			&current_rgy_codeset, 
+			(unsigned_char_p_t)current_codeset,
+			&current_rgy_codeset,
 			NULL, NULL,
 			status);
 
@@ -544,12 +522,12 @@ PUBLIC void wchar_t_to_netcs
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Convert an encoding of a network data to local encoding, based on
 **  the information from a tag.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -559,7 +537,7 @@ PUBLIC void wchar_t_to_netcs
 **
 **      w_data_len	The number of "byte" data elements to be processed.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	ldata		Address to which the converted data is to be written.
 **
@@ -585,28 +563,16 @@ PUBLIC void wchar_t_to_netcs
 */
 
 PUBLIC void cs_byte_from_netcs
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,
 	idl_byte		*wdata,
-	unsigned32		w_data_len, 
-	unsigned32		l_storage_len, 
-	idl_byte		*ldata, 
-	unsigned32		*p_l_data_len, 
+	unsigned32		w_data_len,
+	unsigned32		l_storage_len,
+	idl_byte		*ldata,
+	unsigned32		*p_l_data_len,
 	error_status_t		*status
 )
-#else
-(h, tag, wdata, w_data_len, l_storage_len, ldata, p_l_data_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;
-	idl_byte		*wdata;
-	unsigned32		w_data_len;
-	unsigned32		l_storage_len;
-	idl_byte		*ldata;
-	unsigned32		*p_l_data_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -724,8 +690,8 @@ PUBLIC void cs_byte_from_netcs
 		 */
 		current_codeset = nl_langinfo(CODESET);
 		dce_cs_loc_to_rgy(
-			(unsigned_char_p_t)current_codeset, 
-			&current_rgy_codeset, 
+			(unsigned_char_p_t)current_codeset,
+			&current_rgy_codeset,
 			NULL, NULL,
 			status);
 
@@ -782,12 +748,12 @@ PUBLIC void cs_byte_from_netcs
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Convert an encoding of a network data to local encoding, based on
 **  the information from a tag.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -797,7 +763,7 @@ PUBLIC void cs_byte_from_netcs
 **
 **      w_data_len	The number of "byte" data elements to be processed.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	ldata		Address to which the converted data is to be written.
 **
@@ -823,28 +789,16 @@ PUBLIC void cs_byte_from_netcs
 */
 
 PUBLIC void wchar_t_from_netcs
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,
 	idl_byte		*wdata,
-	unsigned32		w_data_len, 
-	unsigned32		l_storage_len, 
-	wchar_t			*ldata, 
-	unsigned32		*p_l_data_len, 
+	unsigned32		w_data_len,
+	unsigned32		l_storage_len,
+	wchar_t			*ldata,
+	unsigned32		*p_l_data_len,
 	error_status_t		*status
 )
-#else
-(h, tag, wdata, w_data_len, l_storage_len, ldata, p_l_data_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;
-	idl_byte		*wdata;
-	unsigned32		w_data_len;
-	unsigned32		l_storage_len;
-	wchar_t			*ldata;
-	unsigned32		*p_l_data_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -873,7 +827,7 @@ PUBLIC void wchar_t_from_netcs
 			case RPC_EVAL_SMIR_MODEL:
 
         			wdata_length = mbstowcs(ldata, (char *)wdata, (size_t)w_data_len);
-				if (wdata_length == -1)         
+				if (wdata_length == -1)
 					/* Conversion error took place */
 					*status = rpc_s_ss_invalid_char_input;
 				else
@@ -913,7 +867,7 @@ PUBLIC void wchar_t_from_netcs
 					status );
 
 				wdata_length = mbstowcs(ldata, (char *)byte_wdata, (size_t)w_data_len);
-				if (wdata_length == -1)         
+				if (wdata_length == -1)
 					/* Conversion error took place */
 					*status = rpc_s_ss_invalid_char_input;
 				else
@@ -942,7 +896,7 @@ PUBLIC void wchar_t_from_netcs
 					/* No conversion required */
 			{
         			wdata_length = mbstowcs(ldata, (char *)wdata, (size_t)w_data_len);
-				if (wdata_length == -1)         
+				if (wdata_length == -1)
 					/* Conversion error took place */
 					*status = rpc_s_ss_invalid_char_input;
 				else
@@ -978,7 +932,7 @@ PUBLIC void wchar_t_from_netcs
 					status );
 
 				wdata_length = mbstowcs(ldata, (char *)byte_wdata, (size_t)w_data_len);
-				if (wdata_length == -1)         
+				if (wdata_length == -1)
 					/* Conversion error took place */
 					*status = rpc_s_ss_invalid_char_input;
 				else
@@ -1006,8 +960,8 @@ PUBLIC void wchar_t_from_netcs
 		 */
 		current_codeset = nl_langinfo(CODESET);
 		dce_cs_loc_to_rgy(
-			(unsigned_char_p_t)current_codeset, 
-			&current_rgy_codeset, 
+			(unsigned_char_p_t)current_codeset,
+			&current_rgy_codeset,
 			NULL, NULL,
 			status);
 
@@ -1024,7 +978,7 @@ PUBLIC void wchar_t_from_netcs
 				/* No conversion required */
 		{
         		wdata_length = mbstowcs(ldata, (char *)wdata, (size_t)w_data_len);
-			if (wdata_length == -1)         
+			if (wdata_length == -1)
 				/* Conversion error took place */
 				*status = rpc_s_ss_invalid_char_input;
 			else
@@ -1062,7 +1016,7 @@ PUBLIC void wchar_t_from_netcs
 				status );
 
 			wdata_length = mbstowcs(ldata, (char *)byte_wdata, (size_t)w_data_len);
-			if (wdata_length == -1)         
+			if (wdata_length == -1)
 				/* Conversion error took place */
 				*status = rpc_s_ss_invalid_char_input;
 			else
@@ -1086,12 +1040,12 @@ PUBLIC void wchar_t_from_netcs
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Calculate the necessary buffer size for code set converesion, based on
 **  the information from a binding handle, tag, and local storage size.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -1103,10 +1057,10 @@ PUBLIC void wchar_t_from_netcs
 **			allocated for the I-char data.  This is the local value
 **			of the size_is variable for the array.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	p_convert_type	Indicate whether data conversion is necessary.
-**			In case of  idl_cs_in_place_convert, l_storage_len 
+**			In case of  idl_cs_in_place_convert, l_storage_len
 **			is assumed to be sufficient for the buffer size.
 **
 **	p_w_storage_len	NULL if fixed or varying array is being marshalled.
@@ -1132,24 +1086,14 @@ PUBLIC void wchar_t_from_netcs
 */
 
 PUBLIC void cs_byte_net_size
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,		/* wire encoding */
-	unsigned32		l_storage_len, 
-	idl_cs_convert_t	*p_convert_type, 
-	unsigned32		*p_w_storage_len, 
+	unsigned32		l_storage_len,
+	idl_cs_convert_t	*p_convert_type,
+	unsigned32		*p_w_storage_len,
 	error_status_t		*status
 )
-#else
-(h, tag, l_storage_len, p_convert_type, p_w_storage_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;		/* wire encoding */
-	unsigned32		l_storage_len;
-	idl_cs_convert_t	*p_convert_type;
-	unsigned32		*p_w_storage_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -1171,9 +1115,9 @@ PUBLIC void cs_byte_net_size
 
 			if (method_p->tags.type_handle != NULL)
 			{
-				if ((idl_cs_convert_t)method_p->tags.type_handle 
+				if ((idl_cs_convert_t)method_p->tags.type_handle
 						==  idl_cs_no_convert ||
-				    (idl_cs_convert_t)method_p->tags.type_handle 
+				    (idl_cs_convert_t)method_p->tags.type_handle
 						==  idl_cs_in_place_convert)
 				{
 
@@ -1185,15 +1129,15 @@ PUBLIC void cs_byte_net_size
 
 				}
 				else if ((idl_cs_convert_t)
-					method_p->tags.type_handle 
+					method_p->tags.type_handle
 						==  idl_cs_new_buffer_convert)
 				{
 					*p_convert_type = (idl_cs_convert_t)
 							method_p->tags.type_handle;
 
 					if (p_w_storage_len != NULL)
-					   *p_w_storage_len 
-						= l_storage_len * 
+					   *p_w_storage_len
+						= l_storage_len *
 						     method_p->tags.stag_max_bytes;
 					*status = rpc_s_ok;
 
@@ -1210,8 +1154,8 @@ PUBLIC void cs_byte_net_size
 					if (p_w_storage_len != NULL)
 					   *p_w_storage_len = l_storage_len;
 
-					if (method_p->fixed) 
-					    method_p->tags.type_handle 
+					if (method_p->fixed)
+					    method_p->tags.type_handle
 						= (rpc_ns_handle_t)*p_convert_type;
 
 					*status = rpc_s_ok;
@@ -1225,7 +1169,7 @@ PUBLIC void cs_byte_net_size
 					    (method_p->tags.stag_max_bytes ==
 					       method_p->tags.client_max_bytes))
 					{
-						*p_convert_type = 
+						*p_convert_type =
 							idl_cs_in_place_convert;
 					        if (p_w_storage_len != NULL)
 						     *p_w_storage_len = l_storage_len;
@@ -1233,23 +1177,23 @@ PUBLIC void cs_byte_net_size
 					else if ( method_p->tags.stag_max_bytes ==
 					       method_p->client->codesets[0].c_max_bytes)
 					{
-						*p_convert_type = 
+						*p_convert_type =
 							idl_cs_in_place_convert;
 					        if (p_w_storage_len != NULL)
 						     *p_w_storage_len = l_storage_len;
 					}
 					else
 					{
-					    *p_convert_type 
+					    *p_convert_type
 					        = idl_cs_new_buffer_convert;
 					    if (p_w_storage_len != NULL)
-					    	*p_w_storage_len = l_storage_len 
+					    	*p_w_storage_len = l_storage_len
 						      * method_p->tags.stag_max_bytes;
 					}
 					*status = rpc_s_ok;
 
 					if (method_p->fixed)
-					    method_p->tags.type_handle 
+					    method_p->tags.type_handle
 					     = (rpc_ns_handle_t)*p_convert_type;
 					break;
 	
@@ -1266,9 +1210,9 @@ PUBLIC void cs_byte_net_size
 
 			if (tags_p->type_handle != NULL)
 			{
-				if ((idl_cs_convert_t)tags_p->type_handle 
+				if ((idl_cs_convert_t)tags_p->type_handle
 							== idl_cs_no_convert ||
-				(idl_cs_convert_t)tags_p->type_handle 
+				(idl_cs_convert_t)tags_p->type_handle
 							== idl_cs_in_place_convert)
 				{
 					*p_convert_type = (idl_cs_convert_t)
@@ -1279,14 +1223,14 @@ PUBLIC void cs_byte_net_size
 					*status = rpc_s_ok;
 
 				}
-				else if ((idl_cs_convert_t)tags_p->type_handle 
+				else if ((idl_cs_convert_t)tags_p->type_handle
 						== idl_cs_new_buffer_convert)
 				{
 					*p_convert_type = (idl_cs_convert_t)
 							tags_p->type_handle;
 
 					if (p_w_storage_len != NULL)
-					   *p_w_storage_len = 
+					   *p_w_storage_len =
 					       l_storage_len * tags_p->stag_max_bytes;
 
 					*status = rpc_s_ok;
@@ -1310,7 +1254,7 @@ PUBLIC void cs_byte_net_size
 						tags_p->client_max_bytes)
 
 					{
-						*p_convert_type = 
+						*p_convert_type =
 							idl_cs_in_place_convert;
 
 					     if (p_w_storage_len != NULL)
@@ -1321,7 +1265,7 @@ PUBLIC void cs_byte_net_size
 						*p_convert_type =
 							idl_cs_new_buffer_convert;
 						if (p_w_storage_len != NULL)
-					    	    *p_w_storage_len = 
+					    	    *p_w_storage_len =
 							l_storage_len * tags_p->stag_max_bytes;
 					}
 
@@ -1345,8 +1289,8 @@ PUBLIC void cs_byte_net_size
 		 */
 		current_codeset = nl_langinfo(CODESET);
 		dce_cs_loc_to_rgy(
-			(unsigned_char_p_t)current_codeset, 
-			&current_rgy_codeset, 
+			(unsigned_char_p_t)current_codeset,
+			&current_rgy_codeset,
 			NULL, NULL,
 			status);
 
@@ -1415,12 +1359,12 @@ PUBLIC void cs_byte_net_size
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Calculate the necessary buffer size for code set converesion, based on
 **  the information from a binding handle, tag, and local storage size.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -1432,10 +1376,10 @@ PUBLIC void cs_byte_net_size
 **			allocated for the I-char data.  This is the local value
 **			of the size_is variable for the array.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	p_convert_type	Indicate whether data conversion is necessary.
-**			In case of  idl_cs_in_place_convert, l_storage_len 
+**			In case of  idl_cs_in_place_convert, l_storage_len
 **			is assumed to be sufficient for the buffer size.
 **
 **	p_w_storage_len	NULL if fixed or varying array is being marshalled.
@@ -1466,24 +1410,14 @@ PUBLIC void cs_byte_net_size
 */
 
 PUBLIC void wchar_t_net_size
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,			/* wire encoding */
-	unsigned32		l_storage_len,		/* wchar_t length */ 
-	idl_cs_convert_t	*p_convert_type, 
-	unsigned32		*p_w_storage_len, 
+	unsigned32		l_storage_len,		/* wchar_t length */
+	idl_cs_convert_t	*p_convert_type,
+	unsigned32		*p_w_storage_len,
 	error_status_t		*status
 )
-#else
-(h, tag, l_storage_len, p_convert_type, p_w_storage_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;			/* wire encoding */
-	unsigned32		l_storage_len;		/* wchar_t length */ 
-	idl_cs_convert_t	*p_convert_type;
-	unsigned32		*p_w_storage_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -1528,13 +1462,13 @@ PUBLIC void wchar_t_net_size
 					*p_convert_type = idl_cs_new_buffer_convert;
 
 					if (p_w_storage_len != NULL)
-					    	*p_w_storage_len = l_storage_len 
+					    	*p_w_storage_len = l_storage_len
 						      * sizeof(wchar_t);
 
 					*status = rpc_s_ok;
 
 					if (method_p->fixed)
-					   method_p->tags.type_handle 
+					   method_p->tags.type_handle
 						= (rpc_ns_handle_t)*p_convert_type;
 					break;
 	
@@ -1554,7 +1488,7 @@ PUBLIC void wchar_t_net_size
 				*p_convert_type = (idl_cs_convert_t)tags_p->type_handle;
 
 				if (p_w_storage_len != NULL)
-				   *p_w_storage_len = l_storage_len 
+				   *p_w_storage_len = l_storage_len
 							* sizeof(wchar_t);
 
 				*status = rpc_s_ok;
@@ -1569,7 +1503,7 @@ PUBLIC void wchar_t_net_size
 			    		*p_w_storage_len = l_storage_len * sizeof(wchar_t);
 				*status = rpc_s_ok;
 
-				tags_p->type_handle = 
+				tags_p->type_handle =
 					(rpc_ns_handle_t)*p_convert_type;
 			}
 			break;
@@ -1598,12 +1532,12 @@ PUBLIC void wchar_t_net_size
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Calculate the necessary buffer size for code set converesion, based on
 **  the information from a binding handle, tag, and on-the_wire storage size.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -1612,12 +1546,12 @@ PUBLIC void wchar_t_net_size
 **			When the caller is a server stub, this is cs_rtag value.
 **
 **      w_storage_len	The size, in units of byte, of the on-the_wire storage
-**			allocated for the I-char data.  
+**			allocated for the I-char data.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	p_convert_type	Indicate whether data conversion is necessary.
-**			In case of  idl_cs_in_place_convert, w_storage_len 
+**			In case of  idl_cs_in_place_convert, w_storage_len
 **			is assumed to be sufficient for the buffer size.
 **
 **	p_l_storage_len	NULL if fixed or varying array is being marshalled.
@@ -1643,24 +1577,14 @@ PUBLIC void wchar_t_net_size
 */
 
 PUBLIC void cs_byte_local_size
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,		/* wire encoding */
-	unsigned32		w_storage_len, 
-	idl_cs_convert_t	*p_convert_type, 
-	unsigned32		*p_l_storage_len, 
+	unsigned32		w_storage_len,
+	idl_cs_convert_t	*p_convert_type,
+	unsigned32		*p_l_storage_len,
 	error_status_t		*status
 )
-#else
-(h, tag, w_storage_len, p_convert_type, p_l_storage_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;		/* wire encoding */
-	unsigned32		w_storage_len;
-	idl_cs_convert_t	*p_convert_type;
-	unsigned32		*p_l_storage_len;
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -1682,9 +1606,9 @@ PUBLIC void cs_byte_local_size
 
 			if (method_p->tags.type_handle != NULL)
 			{
-				if ((idl_cs_convert_t)method_p->tags.type_handle 
+				if ((idl_cs_convert_t)method_p->tags.type_handle
 						==  idl_cs_no_convert ||
-				    (idl_cs_convert_t)method_p->tags.type_handle 
+				    (idl_cs_convert_t)method_p->tags.type_handle
 						==  idl_cs_in_place_convert)
 				{
 
@@ -1696,14 +1620,14 @@ PUBLIC void cs_byte_local_size
 					*status = rpc_s_ok;
 
 				}
-				else if ((idl_cs_convert_t)method_p->tags.type_handle 
+				else if ((idl_cs_convert_t)method_p->tags.type_handle
 						==  idl_cs_new_buffer_convert)
 				{
 					*p_convert_type = (idl_cs_convert_t)
 						method_p->tags.type_handle;
 
 					if (p_l_storage_len != NULL)
-					   *p_l_storage_len = w_storage_len 
+					   *p_l_storage_len = w_storage_len
 						* method_p->tags.stag_max_bytes;
 
 					*status = rpc_s_ok;
@@ -1742,13 +1666,13 @@ PUBLIC void cs_byte_local_size
 					{
 					    *p_convert_type = idl_cs_new_buffer_convert;
 					    if (p_l_storage_len != NULL)
-					    	*p_l_storage_len = w_storage_len 
+					    	*p_l_storage_len = w_storage_len
 						     * method_p->tags.stag_max_bytes;
 					}
 					*status = rpc_s_ok;
 
 					if (method_p->fixed)
-						method_p->tags.type_handle = 
+						method_p->tags.type_handle =
 						(rpc_ns_handle_t)*p_convert_type;
 					break;
 	
@@ -1765,25 +1689,25 @@ PUBLIC void cs_byte_local_size
 
 			if (tags_p->type_handle != NULL)
 			{
-				if ((idl_cs_convert_t)tags_p->type_handle 
+				if ((idl_cs_convert_t)tags_p->type_handle
 						== idl_cs_no_convert ||
-				(idl_cs_convert_t)tags_p->type_handle 
+				(idl_cs_convert_t)tags_p->type_handle
 						== idl_cs_in_place_convert)
 				{
-					*p_convert_type = 
+					*p_convert_type =
 					     (idl_cs_convert_t)tags_p->type_handle;
 					if (p_l_storage_len != NULL)
 				   		*p_l_storage_len = w_storage_len;
 					*status = rpc_s_ok;
 
 				}
-				else if ((idl_cs_convert_t)tags_p->type_handle 
+				else if ((idl_cs_convert_t)tags_p->type_handle
 						== idl_cs_new_buffer_convert)
 				{
-					*p_convert_type = 
+					*p_convert_type =
 					     (idl_cs_convert_t)tags_p->type_handle;
 					if (p_l_storage_len != NULL)
-					   *p_l_storage_len  = 
+					   *p_l_storage_len  =
 						w_storage_len * tags_p->stag_max_bytes;
 					*status = rpc_s_ok;
 				}
@@ -1802,10 +1726,10 @@ PUBLIC void cs_byte_local_size
 				}
 				else
 				{
-					if (tags_p->stag_max_bytes == 
+					if (tags_p->stag_max_bytes ==
 						tags_p->client_max_bytes)
 					{
-						*p_convert_type 
+						*p_convert_type
 						     = idl_cs_in_place_convert;
 
 					     if (p_l_storage_len != NULL)
@@ -1813,11 +1737,11 @@ PUBLIC void cs_byte_local_size
 					}
 					else
 					{
-						*p_convert_type 
+						*p_convert_type
 						    = idl_cs_new_buffer_convert;
 
 						if (p_l_storage_len != NULL)
-					    	    *p_l_storage_len 
+					    	    *p_l_storage_len
 							= w_storage_len * tags_p->stag_max_bytes;
 					}
 
@@ -1841,8 +1765,8 @@ PUBLIC void cs_byte_local_size
 		 */
 		current_codeset = nl_langinfo(CODESET);
 		dce_cs_loc_to_rgy(
-			(unsigned_char_p_t)current_codeset, 
-			&current_rgy_codeset, 
+			(unsigned_char_p_t)current_codeset,
+			&current_rgy_codeset,
 			NULL, NULL,
 			status);
 
@@ -1912,12 +1836,12 @@ PUBLIC void cs_byte_local_size
 **
 **  SCOPE:              PUBLIC - declared in dce/codesets_stub.h
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Calculate the necessary buffer size for code set converesion, based on
 **  the information from a binding handle, tag, and on-the_wire storage size.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
@@ -1926,12 +1850,12 @@ PUBLIC void cs_byte_local_size
 **			When the caller is a server stub, this is cs_rtag value.
 **
 **      w_storage_len	The size, in units of byte, of the on-the_wire storage
-**			allocated for the I-char data.  
+**			allocated for the I-char data.
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	p_convert_type	Indicate whether data conversion is necessary.
-**			In case of  idl_cs_in_place_convert, w_storage_len 
+**			In case of  idl_cs_in_place_convert, w_storage_len
 **			is assumed to be sufficient for the buffer size.
 **
 **	p_l_storage_len	NULL if fixed or varying array is being marshalled.
@@ -1957,24 +1881,14 @@ PUBLIC void cs_byte_local_size
 */
 
 PUBLIC void wchar_t_local_size
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	unsigned32		tag,			/* wire encoding */
-	unsigned32		w_storage_len, 
-	idl_cs_convert_t	*p_convert_type, 
-	unsigned32		*p_l_storage_len,	/* wchar_t size */ 
+	unsigned32		w_storage_len,
+	idl_cs_convert_t	*p_convert_type,
+	unsigned32		*p_l_storage_len,	/* wchar_t size */
 	error_status_t		*status
 )
-#else
-(h, tag, w_storage_len, p_convert_type, p_l_storage_len, status)
-	rpc_binding_handle_t	h;
-	unsigned32		tag;			/* wire encoding */
-	unsigned32		w_storage_len;
-	idl_cs_convert_t	*p_convert_type;
-	unsigned32		*p_l_storage_len;	/* wchar_t size */ 
-	error_status_t		*status;
-#endif
 {
 	char			*current_codeset;
 	unsigned32		current_rgy_codeset;
@@ -2018,13 +1932,13 @@ PUBLIC void wchar_t_local_size
 
 					*p_convert_type = idl_cs_new_buffer_convert;
 					if (p_l_storage_len != NULL)
-				  		*p_l_storage_len = 
+				  		*p_l_storage_len =
 						w_storage_len / sizeof(wchar_t);
 
 					*status = rpc_s_ok;
 
 					if (method_p->fixed)
-					    method_p->tags.type_handle = 
+					    method_p->tags.type_handle =
 						(rpc_ns_handle_t)*p_convert_type;
 					break;
 	
@@ -2041,7 +1955,7 @@ PUBLIC void wchar_t_local_size
 
 			if (tags_p->type_handle != NULL)
 			{
-				*p_convert_type = 
+				*p_convert_type =
 				     (idl_cs_convert_t)tags_p->type_handle;
 
 				if (p_l_storage_len != NULL)
@@ -2089,17 +2003,17 @@ PUBLIC void wchar_t_local_size
 **
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
-**  DESCRIPTION:        
+**  DESCRIPTION:
 **
 **  Select codeset conversion tags based on the binding handle
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      h		Binding handle
 **
 **      server_side	boolean input to indicate if the caller is a server stub
 **
-**  OUTPUTS:            
+**  OUTPUTS:
 **
 **	p_stag		tag to indicate the sending codeset by a client
 **			When the caller is a server stub, this is unused.
@@ -2129,24 +2043,14 @@ PUBLIC void wchar_t_local_size
 */
 
 PUBLIC void rpc_cs_get_tags
-#ifdef _DCE_PROTO_
 (
 	rpc_binding_handle_t	h,
 	idl_boolean		server_side,
-	unsigned32		*p_stag, 
-	unsigned32		*p_drtag, 
-	unsigned32		*p_rtag, 
+	unsigned32		*p_stag,
+	unsigned32		*p_drtag,
+	unsigned32		*p_rtag,
 	error_status_t		*status
 )
-#else
-(h, server_side, p_stag, p_drtag, p_rtag, status)
-	rpc_binding_handle_t	h;
-	idl_boolean		server_side;
-	unsigned32		*p_stag;
-	unsigned32		*p_drtag;
-	unsigned32		*p_rtag;
-	error_status_t		*status;
-#endif
 {
 	rpc_binding_rep_p_t	bind_p;
 	rpc_cs_method_eval_p_t	method_p;
@@ -2180,7 +2084,7 @@ PUBLIC void rpc_cs_get_tags
 				}
 				else
 				{
-					/* 
+					/*
 					 * We will evaluate code set I14Y here
 					 */
 					 (*(method_p->cs_stub_eval_func))(p_stag, p_drtag, status);

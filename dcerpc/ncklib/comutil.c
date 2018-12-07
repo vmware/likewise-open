@@ -1,6 +1,6 @@
 /* ex: set shiftwidth=4 expandtab: */
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -17,7 +17,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -29,7 +29,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -53,7 +53,7 @@
  *
  *****************************************************************************
  */
- 
+
 INTERNAL unsigned_char_t cvt_ascii_to_ebcdic[] = {
      0x00, 0x01, 0x02, 0x03, 0x37, 0x2D, 0x2E, 0x2F, /* 0x00 - 0x07 */
      0x16, 0x05, 0x25, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, /* 0x08 - 0x0F */
@@ -132,7 +132,7 @@ INTERNAL unsigned_char_t cvt_ebcdic_to_ascii[] = {
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  This routine will free the memory allocated for a string data structure.
 **  A NULL pointer will be returned.
 **
@@ -161,22 +161,16 @@ INTERNAL unsigned_char_t cvt_ebcdic_to_ascii[] = {
 **--
 **/
 
-PUBLIC void rpc_string_free 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_string_free
 (
     unsigned_char_p_t       *string,
     unsigned32              *status
 )
-#else
-(string, status)
-unsigned_char_p_t       *string;
-unsigned32              *status;
-#endif
 {
     CODING_ERROR (status);
-   
+
     if (*string != NULL)
-    { 
+    {
         RPC_MEM_FREE (*string, RPC_C_MEM_STRING);
         *string = NULL;
     }
@@ -216,7 +210,7 @@ PRIVATE size_t rpc__get_token(
     unsigned_char_t is_deliminator[256];
 
     CODING_ERROR (status);
-   
+
     if (string == NULL)
         string = (const unsigned char *)"";
 
@@ -251,7 +245,7 @@ PRIVATE size_t rpc__get_token(
     RPC_MEM_ALLOC (
         *token,
         unsigned_char_p_t,
-        escaped_size + 1,
+        (unsigned32) (escaped_size + 1),
         RPC_C_MEM_STRING,
         RPC_C_MEM_NOWAIT);
     if(*token == NULL)
@@ -302,7 +296,7 @@ PRIVATE size_t rpc__get_token(
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Searches a given string for any of a set of given terminating
 **  characters and returns a count of the number of non-terminating
 **  characters in the string preceding the first occurrance of any
@@ -311,7 +305,7 @@ PRIVATE size_t rpc__get_token(
 **  The same signature and basically the same semantics as strcspn,
 **  except that members of the terminator set will not terminate the
 **  string if preceded by an escape (\) character.  Note that the escape
-**  character cannot be used as a member of the terminator set. 
+**  character cannot be used as a member of the terminator set.
 **
 **  INPUTS:
 **
@@ -333,7 +327,7 @@ PRIVATE size_t rpc__get_token(
 **      A count of the number of character in the string preceding the
 **      first occurrance of any member of the terminating set. The count
 **      will be set to zero if no member of the terminating set is found
-**      in the string, or the string pointer is NULL. If a member of the 
+**      in the string, or the string pointer is NULL. If a member of the
 **      terminating set is escaped ('\') in "string", it will be skipped
 **      over.
 **
@@ -342,17 +336,11 @@ PRIVATE size_t rpc__get_token(
 **--
 **/
 
-PRIVATE unsigned32 rpc__strcspn 
-#ifdef _DCE_PROTO_
+PRIVATE unsigned32 rpc__strcspn
 (
     unsigned_char_p_t       string,
     char                    *term_set
 )
-#else
-(string, term_set)
-unsigned_char_p_t       string;
-char                    *term_set;
-#endif
 {
     unsigned_char_p_t   ptr;
     unsigned_char_p_t   term_ptr;
@@ -373,15 +361,17 @@ char                    *term_set;
      */
     for (count = 1, escaped = false, ptr = string; *ptr != '\0'; count++, ptr++)
     {
+#if !defined(_WIN32)
         /*
          * Check to see if the current character is an escape character
-         * and if so, skip over it to the next character, setting the flag. 
+         * and if so, skip over it to the next character, setting the flag.
          */
         if (*ptr == '\\')
         {
             escaped = true;
             ptr++;
         }
+#endif
 
         /*
          * make sure it's not the end of the line
@@ -391,10 +381,10 @@ char                    *term_set;
             break;
         }
 
-        if (escaped == true) 
+        if (escaped == true)
         {
             /*
-             * Watch out for multiple '\' 
+             * Watch out for multiple '\'
              */
             if (*ptr != '\\')
             {
@@ -404,13 +394,13 @@ char                    *term_set;
             continue;
         }
 
-        if (escaped == false) 
+        if (escaped == false)
         {
             /*
              * search the terminator set for a match
              */
             for (term_ptr = (unsigned_char_p_t) term_set;
-                 *term_ptr != '\0'; 
+                 *term_ptr != '\0';
                  term_ptr++)
             {
                 if (*ptr == *term_ptr)
@@ -426,7 +416,7 @@ char                    *term_set;
      */
     return (0);
 }
-    
+
 /*
 **++
 **
@@ -435,7 +425,7 @@ char                    *term_set;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Copies n characters from one string into another.
 **  The same signature and basically the same semantics as strncpy,
 **  except that the destination string is *always* null terminated.
@@ -467,19 +457,12 @@ char                    *term_set;
 **--
 **/
 
-PRIVATE void rpc__strncpy 
-#ifdef _DCE_PROTO_
+PRIVATE void rpc__strncpy
 (
     unsigned_char_p_t       dst_string,
     unsigned_char_p_t       src_string,
     unsigned32              max_len
 )
-#else
-(dst_string, src_string, max_len)
-unsigned_char_p_t       dst_string;
-unsigned_char_p_t       src_string;
-unsigned32              max_len;
-#endif
 {
     /*
      * make sure there's something to do before we start
@@ -505,7 +488,7 @@ unsigned32              max_len;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
+**
 **  Compress white space (space and tab characters) out of a given
 **  string. An escaped space or tab will be preserved in the result.
 **  Spaces, tabs and escapes within quoted strings will be preserved
@@ -535,19 +518,15 @@ unsigned32              max_len;
 **--
 **/
 
-PRIVATE unsigned32 rpc__strsqz 
-#ifdef _DCE_PROTO_
+PRIVATE unsigned32 rpc__strsqz
 (
     unsigned_char_t         *string
 )
-#else
-(string)
-unsigned_char_t         *string;
-#endif
 {
+#if !defined(_WIN32)
     unsigned_char_p_t   ptr1, ptr2;
-    unsigned32          count;
-
+    unsigned32          count = 0;
+#endif
 
     /*
      * make sure there's something to do before we start
@@ -557,6 +536,18 @@ unsigned_char_t         *string;
         return (0);
     }
 
+#if defined(_WIN32)
+    /*
+     * TBD: Adam: Why are escape sequences used?
+     * Unknown if this will negatively impact UNIX/Linux.
+     * This breaks windows \ path separator support.
+     * Normalize string to lower case for path
+     * comparisons. Windows filesystem is case-insensitive,
+     * so this operation won't harm saving endpoints to disc.
+     */
+    return (unsigned32) strlen(string);
+
+#else /* !defined(_WIN32) */
     for (count = 0, ptr1 = ptr2 = string; *ptr1 != '\0'; ptr1++)
     {
         /*
@@ -584,7 +575,7 @@ unsigned_char_t         *string;
             /*
              * if we're not escaped, eliminate spaces and tabs
              */
-            if (*ptr1 != ' ' && *ptr1 != '\t')        
+            if (*ptr1 != ' ' && *ptr1 != '\t')
             {
                 *(ptr2++) = *ptr1;
                 count++;
@@ -597,6 +588,7 @@ unsigned_char_t         *string;
      */
     *ptr2 = '\0';
     return (count);
+#endif
 }
 
 
@@ -609,10 +601,10 @@ unsigned_char_t         *string;
 **  SCOPE:              PUBLIC - declared in rpcpvt.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Make a copy of the input string into alloc'd storage.
 **
-**  INPUTS:             
+**  INPUTS:
 **
 **      string          A pointer to the string to be copied.
 **
@@ -639,12 +631,12 @@ unsigned_char_p_t       string;
 
 {
     unsigned_char_p_t   cstring;
-                        
+
 
     RPC_MEM_ALLOC (
         cstring,
         unsigned_char_p_t,
-        strlen ((char *) string) + 1,
+        (unsigned32) (strlen ((char *) string) + 1),
         RPC_C_MEM_STRING,
         RPC_C_MEM_WAITOK);
 
@@ -661,11 +653,11 @@ unsigned_char_p_t       string;
 **  SCOPE:              PRIVATE - declared in com.h
 **
 **  DESCRIPTION:
-**      
-**  Old routine whose functionality has been replaced
-**  by rpc_stralloc.  
 **
-**  INPUTS:             
+**  Old routine whose functionality has been replaced
+**  by rpc_stralloc.
+**
+**  INPUTS:
 **
 **      string          A pointer to the string to be copied.
 **
@@ -686,15 +678,10 @@ unsigned_char_p_t       string;
 **--
 **/
 
-PRIVATE unsigned_char_p_t rpc__stralloc 
-#ifdef _DCE_PROTO_
+PRIVATE unsigned_char_p_t rpc__stralloc
 (
     unsigned_char_p_t       string
 )
-#else
-(string)
-unsigned_char_p_t       string;
-#endif
 {
 
     return (rpc_stralloc (string));
@@ -710,7 +697,7 @@ unsigned_char_p_t       string;
 **  SCOPE:              PUBLIC - declared in rpc.idl
 **
 **  DESCRIPTION:
-**      
+**
 **  Routine to convert between ASCII and EBCDIC character representations.
 **
 **  INPUTS:
@@ -739,21 +726,13 @@ unsigned_char_p_t       string;
 **--
 **/
 
-PUBLIC void rpc_util_strcvt 
-#ifdef _DCE_PROTO_
+PUBLIC void rpc_util_strcvt
 (
     boolean32		to_ascii,
     unsigned32		len,
     unsigned_char_p_t	src,
     unsigned_char_p_t	dst
 )
-#else
-(to_ascii, len, src, dst)
-boolean32		to_ascii;
-unsigned32		len;
-unsigned_char_p_t	src;
-unsigned_char_p_t	dst;
-#endif
 {
     unsigned_char_p_t cvt_tbl;
 

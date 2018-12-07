@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -40,7 +40,7 @@
 */
 
 /*
- * Define constants to be passed to fork handling routines.  The value passed 
+ * Define constants to be passed to fork handling routines.  The value passed
  * indicates at which stage of the fork we are.
  */
 
@@ -51,6 +51,6 @@
 
 typedef unsigned32       rpc_fork_stage_id_t;
 
-PRIVATE void rpc__atfork _DCE_PROTOTYPE_(( void *handler));
+PRIVATE void rpc__atfork( void *handler);
 
 #endif /* RCPFORK_H */

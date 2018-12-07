@@ -28,9 +28,14 @@
 #include <lsautils.h>
 #include <lsasrvapi.h>
 #include <lsavmdirprovider.h>
+#include <lsasrvutils.h>
+#include <lsasrvcred.h>
 
+#include "lwldap.h"
 #include "defines.h"
 #include "structs.h"
+#include "vmcache.h"
+#include "vmcachespi.h"
+#include "memcache_p.h"
 #include "prototypes.h"
 #include "externs.h"
-

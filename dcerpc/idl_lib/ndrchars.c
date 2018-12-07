@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1990 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1990 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1990 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -130,20 +130,12 @@ globaldef rpc_trans_tab_t ndr_g_def_ebcdic_to_ascii = {
  */
 
 void ndr_cvt_string
-#ifdef IDL_PROTOTYPES
 (
 ndr_format_t src_drep,
 ndr_format_t dst_drep,
 char_p_t src,
 char_p_t dst
 )
-#else
-(src_drep, dst_drep, src, dst)
-ndr_format_t src_drep;
-ndr_format_t dst_drep;
-char_p_t src;
-char_p_t dst;
-#endif
 {
     if (src_drep.char_rep == dst_drep.char_rep)
         strcpy((char *) dst, (char *) src);
@@ -167,16 +159,10 @@ char_p_t dst;
  */
 
 idl_ulong_int rpc_ss_strsiz
-#ifdef IDL_PROTOTYPES
 (
     idl_char        *s,
     idl_ulong_int   octets_per_char
 )
-#else
-(s, octets_per_char)
-    idl_char        *s;
-    idl_ulong_int   octets_per_char;
-#endif
 {
     idl_ulong_int   i = 0, j;
     idl_char        *octet;
@@ -196,7 +182,7 @@ idl_ulong_int rpc_ss_strsiz
         for (j = 1; j < octets_per_char && octet[j] == '\0'; j++)
             ;
         if (j == octets_per_char)
-            return ((octet + j - s) / octets_per_char);
+            return (idl_ulong_int) ((octet + j - s) / octets_per_char);
 
         /*
          * Not a full null char, update to next char and continue.

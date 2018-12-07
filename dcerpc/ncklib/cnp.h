@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * (c) Copyright 1989 OPEN SOFTWARE FOUNDATION, INC.
  * (c) Copyright 1989 HEWLETT-PACKARD COMPANY
  * (c) Copyright 1989 DIGITAL EQUIPMENT CORPORATION
@@ -16,7 +16,7 @@
  * Packard Company, nor Digital Equipment Corporation makes any
  * representations about the suitability of this software for any
  * purpose.
- * 
+ *
  */
 /*
  */
@@ -30,7 +30,7 @@
 **
 **  FACILITY:
 **
-**      Remote Procedure Call (RPC) 
+**      Remote Procedure Call (RPC)
 **
 **  ABSTRACT:
 **
@@ -40,6 +40,7 @@
 **
 */
 
+#include <com.h>
 #include <cn.h>
 
 /* Turn on all SM tables, not just when DEBUG is defined */
@@ -49,13 +50,13 @@
 
 /*
  * CN internal status codes. These will not be passed out of CN.
- *	RPC_C_CN_STATEBASE:  determines base value for the state 
- *			     and this value is used to quickly determine 
- *			     by the state evaluation routine, whether a 
+ *	RPC_C_CN_STATEBASE:  determines base value for the state
+ *			     and this value is used to quickly determine
+ *			     by the state evaluation routine, whether a
  *			     value is a state or action.
  */
 #define RPC_S_HEADER_FULL               0x0001beef
-#define RPC_C_CN_STATEBASE 		100	
+#define RPC_C_CN_STATEBASE              100
 /*
  * Macros for serializing access to the connection protocol code.
  */
@@ -66,35 +67,36 @@
 /*
  * rpc_e_dbg_general debug switch levels
  */
-#define RPC_C_CN_DBG_ROUTINE_TRACE      20
-#define RPC_C_CN_DBG_THREADS            2       /* exact */
-#define RPC_C_CN_DBG_ERRORS             1
-#define RPC_C_CN_DBG_BUFFS              1
-#define RPC_C_CN_DBG_GENERAL            1
-#define RPC_C_CN_DBG_SECURITY_ERRORS    1
+enum {
+        RPC_C_CN_DBG_ROUTINE_TRACE     = 20,
+        RPC_C_CN_DBG_THREADS           = 2,       /* exact */
+        RPC_C_CN_DBG_ERRORS            = 1,
+        RPC_C_CN_DBG_BUFFS             = 1,
+        RPC_C_CN_DBG_GENERAL           = 1,
+        RPC_C_CN_DBG_SECURITY_ERRORS   = 1,
 
 /*
  * rpc_e_dbg_cn_state debug switch levels
  */
-#define RPC_C_CN_DBG_ASSOC_SM_TRACE     3
-#define RPC_C_CN_DBG_ASSOC_GRP_SM_TRACE 2
-#define RPC_C_CN_DBG_CALL_SM_TRACE      1
+        RPC_C_CN_DBG_ASSOC_SM_TRACE    = 3,
+        RPC_C_CN_DBG_ASSOC_GRP_SM_TRACE= 2,
+        RPC_C_CN_DBG_CALL_SM_TRACE     = 1,
 
 /*
  * rpc_e_dbg_orphan debug switch levels
  */
-#define RPC_C_CN_DBG_ORPHAN             1
+        RPC_C_CN_DBG_ORPHAN            = 1,
 
 /*
  * rpc_e_dbg_cancel debug switch levels
  */
-#define RPC_C_CN_DBG_CANCEL             1
+        RPC_C_CN_DBG_CANCEL            = 1,
 
 /*
  * rpc_e_dbg_cn_pkt debug switch levels
  */
-#define RPC_C_CN_DBG_PKT_DUMP           20
-#define RPC_C_CN_DBG_PKT                1
+        RPC_C_CN_DBG_PKT_DUMP          = 20,
+        RPC_C_CN_DBG_PKT               = 1,
 
 /*
  * rpc_e_dbg_cn_errors debug switch levels
@@ -102,50 +104,69 @@
  * Switches to set on server to generate bind NAKs and a status code used only
  * when one of the error debug levels are set.
  */
-#define RPC_S_CN_DBG_FAILURE            0xdeadbeefU
-#define RPC_C_CN_DBG_PROT_VERS_MISMATCH 1 /* server: force a mismatch */
-#define RPC_C_CN_DBG_GRP_LKUP_BY_ID     2 /* server: make lkup fail  */
+        RPC_S_CN_DBG_FAILURE           = 0xdeadbeefU,
+        RPC_C_CN_DBG_PROT_VERS_MISMATCH= 1, /* server: force a mismatch */
+        RPC_C_CN_DBG_GRP_LKUP_BY_ID    = 2, /* server: make lkup fail  */
                                           /* (>1 assoc on group) */
-                                          /* Must be more than 1 */
+                                          /* Must be more than= 1, */
                                           /* client thread making */
-                                          /* call on group. */ 
-#define RPC_C_CN_DBG_GRP_ALLOC          3 /* server: make alloc fail */
-#define RPC_C_CN_DBG_HEADER_FULL        4 /* server: make bind ACK too big */
+                                          /* call on group. */
+        RPC_C_CN_DBG_GRP_ALLOC         = 3, /* server: make alloc fail */
+        RPC_C_CN_DBG_HEADER_FULL       = 4, /* server: make bind ACK too big */
                                           /* for large fragbuf */
-#define RPC_C_CN_DBG_GRP_MAX_EXCEEDED   5 /* server: set grp_cur_assoc = */
+        RPC_C_CN_DBG_GRP_MAX_EXCEEDED  = 5, /* server: set grp_cur_assoc = */
                                           /* grp_max_assoc */
                                           /* (>1 assoc on group) */
-                                          /* Must be more than 1 */
+                                          /* Must be more than= 1, */
                                           /* client thread making */
-                                          /* call on group. */ 
+                                          /* call on group. */
 /*
  * Switches to set on server to generate bind ACKs with various
  * pprov reason codes.
  */
-#define RPC_C_CN_DBG_IF_LOOKUP          6 /* server: cause the abstract */
+        RPC_C_CN_DBG_IF_LOOKUP         = 6, /* server: cause the abstract */
                                           /* syntax to not be found */
-#define RPC_C_CN_DBG_NO_XFER_SYNTAX     7 /* server: cause no matching xfer */
+        RPC_C_CN_DBG_NO_XFER_SYNTAX    = 7, /* server: cause no matching xfer */
                                           /* syntax to be found */
 
 /*
  * Various other switches to force errors.
  */
-#define RPC_C_CN_DBG_SEC_ALLOC_FAIL     8 /* cause the sec_alloc to */
+        RPC_C_CN_DBG_SEC_ALLOC_FAIL    = 8, /* cause the sec_alloc to */
                                           /* fail */
-#define RPC_C_CN_DBG_ASSOC_REQ_FAIL     9 /* cause the association */
+        RPC_C_CN_DBG_ASSOC_REQ_FAIL    = 9, /* cause the association */
                                           /* request eval event to */
                                           /* fail */
 
 /*
  * Error switches to force packet fragmentation.
  */
-#define RPC_C_CN_DBG_FRAG_BIND		10 /* bind (and alter_ctx) fragment */
-#define RPC_C_CN_DBG_FRAG_BIND_ACK	11 /* bind_ack (and alter_ctx_resp) 
+        RPC_C_CN_DBG_FRAG_BIND       = 10, /* bind (and alter_ctx) fragment */
+        RPC_C_CN_DBG_FRAG_BIND_ACK   = 11, /* bind_ack (and alter_ctx_resp)
                                               fragment */
+};
 
 #define RPC_CN_DBG_RTN_PRINTF(s) RPC_DBG_PRINTF(rpc_e_dbg_general, \
                                                 RPC_C_CN_DBG_ROUTINE_TRACE,\
                                                 ("(" #s ")\n"))
+#ifndef RPC_SOCKET_T
+#ifdef _WIN32
+PRIVATE rpc_socket_error_t
+rpc__winx64_winerr_to_errno(DWORD WSAErrval);
+
+PRIVATE int
+rpc__winx64_set_errno(DWORD WSAErrval);
+
+#define SocketErrno rpc__winx64_winerr_to_errno(WSAGetLastError())
+#define SocketErrnoReturn rpc__winx64_set_errno(WSAGetLastError())
+
+#define RPC_SOCKET_T SOCKET
+#else
+#define RPC_SOCKET_T int
+#define SocketErrno errno
+#define SocketErrnoReturn -1
+#endif
+#endif
 
 
 /***********************************************************************/
@@ -153,7 +174,7 @@
  * R P C _ C N _ M G M T _ T
  */
 #include <cnpkt.h>
-typedef struct 
+typedef struct
 {
     unsigned32          calls_sent;
     unsigned32          calls_rcvd;
@@ -166,7 +187,7 @@ typedef struct
     unsigned32          aborted_assocs;
     unsigned32          assoc_grps;
     struct cn_pkt_stats_t              /* Breakdown of pkts sent/rcvd by pkt type */
-    {                               
+    {
         unsigned32 sent;
         unsigned32 rcvd;
     } pstats[RPC_C_CN_PKT_MAX_TYPE + 1];
@@ -203,16 +224,16 @@ typedef struct
 
 #define RPC_C_NUM_PREDICATES 	3
 
-/* 
+/*
  * The rpc_cn_sm_state_entry_t can contain either the action
  * or the next state.  If both are required, then we include the
  * action, which updates the next state internally.  Distinguish
  * between actions and states by numeric value.  States will
- * be some value (usually 0 -> 14) + rpc_c_cn_statebase. 
- */ 
+ * be some value (usually 0 -> 14) + rpc_c_cn_statebase.
+ */
 typedef struct
 {
-    unsigned8                           action;  
+    unsigned8                           action;
 } rpc_cn_sm_state_entry_t, *rpc_cn_sm_state_entry_p_t;
 
 #define ILLEGAL_TRANSITION \
@@ -232,10 +253,11 @@ typedef rpc_cn_sm_state_entry_t         rpc_cn_sm_state_tbl_entry_t[];
  * R P C _ C N _ S M _ A C T I O N _ F N _ T
  */
 
-typedef unsigned32     (*rpc_cn_sm_action_fn_t) _DCE_PROTOTYPE_((
+typedef unsigned32     (*rpc_cn_sm_action_fn_t)(
     pointer_t   /*spc_struct*/,
     pointer_t   /*event_parameter*/,
-    pointer_t   /*sm*/));
+    pointer_t   /*sm*/
+    );
 
 typedef rpc_cn_sm_action_fn_t      *rpc_cn_sm_action_fn_p_t;
 
@@ -243,9 +265,10 @@ typedef rpc_cn_sm_action_fn_t      *rpc_cn_sm_action_fn_p_t;
  * R P C _ C N _ S M _ P R E D I C A T E _ F N _ T
  */
 
-typedef unsigned8 (*rpc_cn_sm_predicate_fn_t) _DCE_PROTOTYPE_((
+typedef unsigned8 (*rpc_cn_sm_predicate_fn_t)(
     pointer_t   /*spc_struct*/,
-    pointer_t   /*event_parameter*/));
+    pointer_t   /*event_parameter*/
+    );
 
 typedef rpc_cn_sm_predicate_fn_t   *rpc_cn_sm_predicate_fn_p_t;
 
@@ -265,7 +288,7 @@ typedef struct
 
 #define RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES 2
 typedef rpc_cn_sm_event_entry_t
-        rpc_cn_sm_event_list_t [ RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES ]; 
+        rpc_cn_sm_event_list_t [ RPC_C_CN_SM_EVENT_LIST_MAX_ENTRIES ];
 
 /*
  * R P C _ C N _ S M _ C T L B L K _ T
@@ -274,17 +297,19 @@ typedef rpc_cn_sm_event_entry_t
  * State values are incremented by 100 to distinguish them from
  * action routine indexes which are all < 100.  This was done as
  * an efficiency measure to the engine, rpc__cn_sm_eval_event().
- */ 
+ */
 
 /*
- * Performance Table ID defines 
+ * Performance Table ID defines
  */
-#define       rpc_c_cn_svr_assoc   1  /* server association tbl */
-#define       rpc_c_cn_cl_assoc    2  /* client association tbl */
-#define       rpc_c_cn_svr_call    3  /* server call rep tbl */
-#define       rpc_c_cn_cl_call     4  /* client call rep tbl */
-#define       rpc_c_cn_svr_a_g     5  /* server assoc group tbl */
-#define       rpc_c_cn_cl_a_g	   6  /* client assoc group tbl */
+enum {
+              rpc_c_cn_svr_assoc  = 1,  /* server association tbl */
+              rpc_c_cn_cl_assoc   = 2,  /* client association tbl */
+              rpc_c_cn_svr_call   = 3,  /* server call rep tbl */
+              rpc_c_cn_cl_call    = 4,  /* client call rep tbl */
+              rpc_c_cn_svr_a_g    = 5,  /* server assoc group tbl */
+              rpc_c_cn_cl_a_g     = 6,  /* client assoc group tbl */
+};
 
 typedef struct
 {
@@ -299,7 +324,7 @@ typedef struct
 #define RPC_C_CN_SM_EVENT_LIST_EMPTY       0
     unsigned8                           event_list_state;
     rpc_cn_sm_event_list_t              event_list;
-    unsigned32				tbl_id; 
+    unsigned32				tbl_id;
 } rpc_cn_sm_ctlblk_t, *rpc_cn_sm_ctlblk_p_t;
 
 
@@ -337,7 +362,7 @@ typedef struct
     unsigned16                          id_seqnum;
     unsigned16                          id_index;
 } rpc_cn_local_id_parts_t, *rpc_cn_local_id_parts_p_t;
-    
+
 typedef union
 {
     unsigned long                       all;
@@ -380,14 +405,14 @@ typedef struct
  * local_count         : # of cancels detected locally but not
  *                       forwarded yet. These may be forwarded
  *                       by setting the PFC_PENDING_ALERT bit in
- *                       the first fragment of a request. 
+ *                       the first fragment of a request.
  * server_count        : # of cancels detected and forwarded
  *                       locally *not* including the PFC_PENDING_ALERT
  *                       bit in the first fragment of a request.
  * server_had_pending  : indicates whether the server completed
  *                       with a pending alert. If so the alert
  *                       should be re-generated before returning
- *                       to the client stub  
+ *                       to the client stub
  */
 typedef struct rpc_cn_cancel_info_s_t
 {
@@ -410,7 +435,7 @@ typedef struct rpc_cn_call_rep_s_t
     struct rpc_cn_assoc_s_t             *assoc;
     rpc_cn_fragbuf_t                    *prot_header;
     rpc_cn_fragbuf_t                    *prot_tlr;
-    unsigned32                          max_seg_size;   
+    unsigned32                          max_seg_size;
     rpc_cn_buffered_output_t            buffered_output;
     unsigned16                          context_id;
     unsigned16                          num_pkts;
@@ -421,7 +446,7 @@ typedef struct rpc_cn_call_rep_s_t
     rpc_cn_sec_context_t                *sec;
     union
     {
-        struct 
+        struct
         {
             rpc_cn_fragbuf_t            *fault_data;
             rpc_cn_cancel_info_t        cancel;
@@ -455,7 +480,7 @@ typedef struct rpc_cn_call_rep_s_t
 
 /*
  * R P C _ C N _ C R E P _ A D J _ F O R _ T L R
- * 
+ *
  * This macro will adjust all the appriate field in the call rep
  * "buffered_output" structure so that an authentication trailer can
  * be added to the packet. Note that the size of the trailer will be
@@ -507,7 +532,7 @@ typedef struct
  * R P C _ C N _ S Y N T A X _ T
  */
 
-typedef void    (*rpc_cn_marshal_fn_t) _DCE_PROTOTYPE_((void));
+typedef void    (*rpc_cn_marshal_fn_t)(void);
 
 typedef struct rpc_cn_syntax_s_t
 {
@@ -531,7 +556,7 @@ typedef struct rpc_cn_syntax_s_t
  *
  * This structure is used to hold various pieces of information
  * which are needed by action routines in the association state
- * machine. 
+ * machine.
  */
 typedef struct
 {
@@ -541,12 +566,14 @@ typedef struct
     rpc_cn_sec_context_t        *sec_context;
 } rpc_cn_assoc_sm_work_t, *rpc_cn_assoc_sm_work_p_t;
 
-/* 
+/*
  * R P C _ C N _ A S S O C _ G R P _ T
  */
 
-#define RPC_C_CN_ASSOC_GRP_CLIENT       1
-#define RPC_C_CN_ASSOC_GRP_SERVER       2
+enum {
+        RPC_C_CN_ASSOC_GRP_CLIENT      = 1,
+        RPC_C_CN_ASSOC_GRP_SERVER      = 2,
+};
 
 typedef struct rpc_cn_assoc_grp_s_t
 {
@@ -595,11 +622,13 @@ typedef struct
  * R P C _ C N _ A S S O C _ T
  */
 
-#define RPC_C_CN_ASSOC_CLIENT                   0x00000001
-#define RPC_C_CN_ASSOC_SERVER                   0x00000002
-#define RPC_C_CN_ASSOC_SHUTDOWN_REQUESTED       0x00000004
-#define RPC_C_CN_ASSOC_SCANNED                  0x00000008
-#define RPC_C_CN_ASSOC_AUTH_EXPECTED            0x00000010
+enum {
+        RPC_C_CN_ASSOC_CLIENT                  = 0x00000001,
+        RPC_C_CN_ASSOC_SERVER                  = 0x00000002,
+        RPC_C_CN_ASSOC_SHUTDOWN_REQUESTED      = 0x00000004,
+        RPC_C_CN_ASSOC_SCANNED                 = 0x00000008,
+        RPC_C_CN_ASSOC_AUTH_EXPECTED           = 0x00000010,
+};
 
 struct rpc_cn_assoc_s_t
 {
@@ -647,67 +676,8 @@ struct rpc_cn_assoc_s_t
  * authentication protocol ID table using an auth prot ID and the CN
  * RPC prot ID.
  */
-#ifdef CN_AUTH
-#define RPC_CN_AUTH_PROT_EPV(prot)              (rpc_cn_auth_epv_t *)(rpc__auth_rpc_prot_epv(prot, RPC_C_PROTOCOL_ID_NCACN))
-#else
-#define RPC_CN_AUTH_PROT_EPV(prot)              (rpc_cn_auth_epv_t *)(0xbabababa)
-#endif /* CN_AUTH */
 
-#define RPC_CN_AUTH_SEC_THREE_WAY(sec, ind)\
-{\
-    ind = (*(sec)->sec_cn_info->cn_epv->three_way)();\
-}
-
-#define RPC_CN_AUTH_THREE_WAY(prot, ind)\
-{\
-    rpc_cn_auth_epv_t   *_cn_epv;\
-    _cn_epv = RPC_CN_AUTH_PROT_EPV(prot);\
-    ind = (*_cn_epv->three_way)();\
-}
-
-#define RPC_CN_AUTH_CONTEXT_VALID(sec, st)\
-    (*(sec)->sec_cn_info->cn_epv->context_valid)(sec, st)
-
-#define RPC_CN_AUTH_CREATE_INFO(prot, level, info, st)\
-{\
-    rpc_cn_auth_epv_t   *_cn_epv;\
-    _cn_epv = RPC_CN_AUTH_PROT_EPV(prot);\
-    (*_cn_epv->create_info)(level, info, st);\
-}
-
-#define RPC_CN_AUTH_CRED_CHANGED(sec, st)\
-    (*(sec)->sec_cn_info->cn_epv->cred_changed)(sec, st)
-
-#define RPC_CN_AUTH_CRED_REFRESH(auth_info, st)\
-{\
-    rpc_cn_auth_epv_t   *_cn_epv;\
-    _cn_epv = RPC_CN_AUTH_PROT_EPV((auth_info)->authn_protocol);\
-    (*_cn_epv->cred_refresh)(auth_info, st);\
-}
-
-#define RPC_CN_AUTH_FMT_CLIENT_REQ(assoc_sec, sec, auth_value, auth_value_len, last_auth_pos, auth_len_remain, retry, st)\
-    (*(sec)->sec_cn_info->cn_epv->fmt_client_req)(assoc_sec, sec, auth_value, auth_value_len, last_auth_pos, auth_len_remain, retry, st)
-
-#define RPC_CN_AUTH_FMT_SRVR_RESP(verify_st, assoc_sec, sec, req_auth_value, req_auth_value_len, auth_value, auth_value_len)\
-    (*(sec)->sec_cn_info->cn_epv->fmt_srvr_resp)(verify_st,assoc_sec,sec,\
-                                                 req_auth_value, req_auth_value_len, auth_value, auth_value_len)
-
-#define RPC_CN_AUTH_FREE_PROT_INFO(info, cn_info)\
-    (*(*(cn_info))->cn_epv->free_prot_info)(info, cn_info)
-
-#define RPC_CN_AUTH_GET_PROT_INFO(info, cn_info, st)\
-{\
-    rpc_cn_auth_epv_t   *_cn_epv;\
-    _cn_epv = RPC_CN_AUTH_PROT_EPV((info)->authn_protocol);\
-    (*_cn_epv->get_prot_info)(info, cn_info, st);\
-}
-
-#define RPC_CN_AUTH_PRE_CALL(assoc_sec, sec, auth_value, auth_value_len, st)\
-    (*(sec)->sec_cn_info->cn_epv->pre_call)(assoc_sec, sec, auth_value, auth_value_len, st);
-
-#define RPC_CN_AUTH_PRE_SEND(assoc_sec, sec, iovp, iovlen, out_iov, st)\
-    (*(sec)->sec_cn_info->cn_epv->pre_send)(assoc_sec, sec, iovp, iovlen, out_iov, st);
-
+/* This is used in multiple C sources, so this isn't so easy to expand */
 #define RPC_CN_AUTH_RECV_CHECK(authn_prot, assoc_sec, sec, pdu, pdu_len, cred_len, auth_tlr, unpack_ints, st)\
 {\
     if (sec == NULL)\
@@ -738,30 +708,6 @@ struct rpc_cn_assoc_s_t
     (*_cn_epv->tlr_unpack)(pkt_p, auth_value_len, packed_drep);\
 }
 
-#define RPC_CN_AUTH_VFY_CLIENT_REQ(assoc_sec, sec, auth_value, auth_value_len, old_client, st)\
-    (*(sec)->sec_cn_info->cn_epv->vfy_client_req)(assoc_sec, sec, auth_value, auth_value_len, old_client, st)
-
-#define RPC_CN_AUTH_VFY_SRVR_RESP(assoc_sec, sec, auth_value, auth_value_len, st)\
-    (*(sec)->sec_cn_info->cn_epv->vfy_srvr_resp)(assoc_sec, sec, auth_value, auth_value_len, st)
-
-
-/*
- * These macros are RPC protocol independent.
- */
-#define RPC_CN_AUTH_ADD_REFERENCE(info)         rpc__auth_info_reference(info)
-#define RPC_CN_AUTH_RELEASE_REFERENCE(info)     rpc__auth_info_release(info)
-#ifdef CN_AUTH
-#define RPC_CN_AUTH_CVT_ID_API_TO_WIRE(id,st)   rpc__auth_cvt_id_api_to_wire(\
-id,st)
-#define RPC_CN_AUTH_CVT_ID_WIRE_TO_API(id,st)   rpc__auth_cvt_id_wire_to_api(\
-id,st)
-#define RPC_CN_AUTH_INQ_SUPPORTED(id)           rpc__auth_inq_supported(id)
-#else
-#define RPC_CN_AUTH_CVT_ID_API_TO_WIRE(id,st)   0
-#define RPC_CN_AUTH_CVT_ID_WIRE_TO_API(id,st)   0
-#define RPC_CN_AUTH_INQ_SUPPORTED(id)           false
-#endif
-
 /*
  * R P C _ C N _ A L I G N _ P T R
  *
@@ -770,25 +716,8 @@ id,st)
  * Casting to (unsigned long) is needed because bitwise operations are not
  * allowed with pointers as an operand.
  *
- * NOTE: Assumption sizeof(unsigned long) = sizeof(unsigned8 *).  This
- *       assumption may not be correct for all machines.
  */
 
-/* ??? */
-
-#define RPC_CN_ALIGN_PTR(ptr, boundary) \
-    ((size_t) ((unsigned8 *)(ptr) + ((boundary)-1)) & ~((boundary)-1))
-
-/*
- * R P C _ C N _ A U T H _ R E Q U I R E D
- */
-
-#define RPC_CN_AUTH_REQUIRED(info) ((info != NULL) && \
-                                    ((info)->authn_protocol != rpc_c_authn_none))
-
-#define RPC_CN_PKT_AUTH_REQUIRED(info) ((info != NULL) && \
-                                    ((info)->authn_level != rpc_c_protect_level_none) && \
-                                    ((info)->authn_level != rpc_c_protect_level_connect))
 
 /*
  * R P C _ G _ C N _ A S S O C _ G R P _ T B L
