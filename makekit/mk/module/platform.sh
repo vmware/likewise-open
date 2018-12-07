@@ -285,6 +285,9 @@ option()
                 x86_64|amd64)
                     _default_MK_BUILD_ARCH="x86_64"
                     ;;
+                aarch64|arm64)
+                    _default_MK_BUILD_ARCH="aarch64"
+                    ;;
                 *)
                     mk_fail "unknown architecture: `uname -m`"
                     ;;
