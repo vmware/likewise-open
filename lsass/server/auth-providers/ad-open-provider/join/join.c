@@ -627,7 +627,7 @@ LsaJoinDomainInternal(
     LsaPolicyInformation *pLsaPolicyInfo = NULL;
     PWSTR pwszMachineName = NULL;
     PWSTR pwszMachineAcctName = NULL;
-    PWSTR pwszMachinePassword[MACHPASS_LEN+1] = {0};
+    WCHAR wszMachinePassword[MACHPASS_LEN+1] = {0};
     PWSTR pwszDomainName = NULL;
     PSID pDomainSid = NULL;
     PWSTR pwszDnsDomainName = NULL;
@@ -728,11 +728,11 @@ LsaJoinDomainInternal(
     }
 
     dwError = LsaGenerateMachinePassword(
-               (PWSTR)pwszMachinePassword,
-               sizeof(pwszMachinePassword)/sizeof(pwszMachinePassword[0]));
+               (PWSTR)wszMachinePassword,
+               sizeof(wszMachinePassword)/sizeof(wszMachinePassword[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pwszMachinePassword[0] == '\0')
+    if (wszMachinePassword[0] == '\0')
     {
         BAIL_ON_NT_STATUS(STATUS_INTERNAL_ERROR);
     }
@@ -740,7 +740,7 @@ LsaJoinDomainInternal(
     ntStatus = LsaCreateMachineAccount(pwszDCName,
                                        pCreds,
                                        pwszMachineAcctName,
-                                       (PWSTR)pwszMachinePassword,
+                                       wszMachinePassword,
                                        dwJoinFlags,
                                        &pwszDomainName,
                                        &pDomainSid);
@@ -774,7 +774,7 @@ LsaJoinDomainInternal(
               pwszDnsDomainName,
               pwszDCName,
               pwszSidStr,
-              (PWSTR)pwszMachinePassword);
+              wszMachinePassword);
     BAIL_ON_LSA_ERROR(dwError);
 
     /*
