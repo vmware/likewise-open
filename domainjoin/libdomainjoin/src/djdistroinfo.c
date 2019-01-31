@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -133,7 +133,7 @@ DWORD DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 "/etc/photon-release",
                 /*
                 # The format of the line is something like:
-                #   VMware Photon Linux 1.0 (x86_64)
+                #   VMware Photon OS 1.0 (x86_64)
                 */
                 "^[[:space:]]*VMware Photon Linux ([[:digit:]]+(\\.[[:digit:]]+)?)"
                 "( \\(\\S+\\))?",
@@ -539,7 +539,7 @@ struct
 {
     OSType value;
     const char *name;
-} static const osList[] = 
+} static const osList[] =
 {
     { OS_AIX, "AIX" },
     { OS_SUNOS, "SunOS" },
@@ -577,7 +577,7 @@ struct
 {
     DistroType value;
     const char *name;
-} static const distroList[] = 
+} static const distroList[] =
 {
     { DISTRO_AIX, "AIX" },
     { DISTRO_SUNOS, "Solaris" },
@@ -624,7 +624,7 @@ struct
 {
     ArchType value;
     const char *name;
-} static const archList[] = 
+} static const archList[] =
 {
     { ARCH_X86_32, "x86_32" },
     { ARCH_X86_32, "i386" },
@@ -678,7 +678,7 @@ DJGetLikewiseVersion(
     )
 {
     FILE *versionFile = NULL;
-    PSTR line = NULL; 
+    PSTR line = NULL;
     BOOLEAN isEndOfFile = FALSE;
     DWORD ceError = ERROR_SUCCESS;
     BOOLEAN bIsEnterprise = FALSE;
@@ -760,7 +760,7 @@ DJGetLikewiseVersion(
     _version = NULL;
     _build = NULL;
     _revision = NULL;
-    
+
 cleanup:
 
     CTSafeCloseFile(&versionFile);
