@@ -142,6 +142,19 @@ DWORD DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 1
             },
             {
+                DISTRO_VMWARE_PHOTON,
+                "/etc/photon-release",
+                /*
+                # The format of the line is something like:
+                #   VMware Photon OS 1.0 (x86_64)
+                */
+                "^[[:space:]]*VMware Photon OS ([[:digit:]]+(\\.[[:digit:]]+)?)"
+                "( \\(\\S+\\))?",
+                1,
+                -1,
+                1
+            },
+            {
                 DISTRO_RHEL,
                 "/etc/redhat-release",
                 /*

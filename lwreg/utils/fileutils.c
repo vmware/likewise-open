@@ -866,7 +866,7 @@ RegGetMatchingFilePathsInFolder(
     {
         PSTR pszPath;
         struct __PATHNODE *pNext;
-    } PATHNODE, *PPATHNODE;
+    } *PPATHNODE;
 
     DWORD dwError = 0;
     DIR* pDir = NULL;
