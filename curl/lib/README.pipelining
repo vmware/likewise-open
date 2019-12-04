@@ -10,7 +10,7 @@ interface use.
 Considerations
 
 When using the multi interface, you create one easy handle for each transfer.
-Bascially any number of handles can be created, added and used with the multi
+Basically any number of handles can be created, added and used with the multi
 interface - simultaneously. It is an interface designed to allow many
 simultaneous transfers while still using a single thread. Pipelining does not
 change any of these details.
