@@ -133,9 +133,9 @@ DWORD DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 "/etc/photon-release",
                 /*
                 # The format of the line is something like:
-                #   VMware Photon Linux 1.0 (x86_64)
+                #   VMware Photon OS 1.0 (x86_64)
                 */
-                "^[[:space:]]*VMware Photon Linux ([[:digit:]]+(\\.[[:digit:]]+)?)"
+                "^[[:space:]]*VMware Photon OS ([[:digit:]]+(\\.[[:digit:]]+)?)"
                 "( \\(\\S+\\))?",
                 1,
                 -1,
