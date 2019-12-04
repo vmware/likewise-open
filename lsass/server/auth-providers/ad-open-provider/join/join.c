@@ -728,7 +728,7 @@ LsaJoinDomainInternal(
     }
 
     dwError = LsaGenerateMachinePassword(
-               (PWSTR)wszMachinePassword,
+               wszMachinePassword,
                sizeof(wszMachinePassword)/sizeof(wszMachinePassword[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
