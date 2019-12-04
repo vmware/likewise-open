@@ -14,7 +14,7 @@ make()
 
     if [ "$MK_HOST_OS" = "linux" ]
     then
-    ECHO_CLIENT_CPPFLAGS="-DHAVE_GETOPT_H=1"
+        ECHO_CLIENT_CPPFLAGS="-DHAVE_GETOPT_H=1 -D_GETOPT_CORE_H=1"
         ECHO_CLIENT_SOURCES="$ECHO_CLIENT_SOURCES getopt.c"
     fi
 
@@ -27,7 +27,7 @@ make()
 
     if [ "$MK_HOST_OS" = "linux" ]
     then
-    ECHO_SERVER_CPPFLAGS="-DHAVE_GETOPT_H=1"
+        ECHO_SERVER_CPPFLAGS="-DHAVE_GETOPT_H=1 -D_GETOPT_CORE_H=1"
         ECHO_SERVER_SOURCES="$ECHO_SERVER_SOURCES getopt.c"
     fi
 

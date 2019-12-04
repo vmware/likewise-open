@@ -31,7 +31,7 @@ configure()
     then
         mk_export PKG_RPM_NAME="vmware-lwis"
         mk_export PKG_RPM_VERSION="${LW_VERSION}"
-        mk_export PKG_RPM_RELEASE="11"
+        mk_export PKG_RPM_RELEASE="14"
 
         PKG_RPM_COMPAT="0"
 
