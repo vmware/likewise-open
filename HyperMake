@@ -5,12 +5,21 @@ name: likewise-open
 description: Likewise Open
 
 targets:
-  rebuild-toolchain:
+  rebuild-toolchain-photon2:
     description: build toolchain image
     watches:
       - support/toolchain/docker/photon2
     build: support/toolchain/docker/photon2
     cache: false
+    image: 'vmware/likewise-open-toolchain-photon:1.0.0'
+
+  rebuild-toolchain-photon3:
+    description: build toolchain image
+    watches:
+      - support/toolchain/docker/photon3
+    build: support/toolchain/docker/photon3
+    cache: false
+    image: 'vmware/likewise-open-toolchain-photon3:1.0.0'
 
   toolchain:
     description: placeholder for additional toolchain dependencies
@@ -18,19 +27,19 @@ targets:
   build:
     description: build source code
     after:
-      - 'build-likewise-open-*'
+      - 'build-likewise-open-photon'
+
+  build-likewise-open-photon:
+    description: build source code
+    after:
+      - 'build-likewise-open-photon-3'
 
   clean:
     description: clean built code
     after:
-      - 'clean-likewise-open-*'
+      - 'clean-likewise-open-photon-3'
 
-  build-likewise-open:
-    description: build Likewise Open
-    after:
-      - 'build-likewise-open-*'
-
-  build-likewise-open-photon:
+  build-likewise-open-photon-2:
     description: build Likewise Open for Photon OS
     watches:
       - '**/**/*.c*'
@@ -40,13 +49,33 @@ targets:
       - 'configure'
     cmds:
       - ./support/scripts/build-photon.sh
+    image: 'vmware/likewise-open-toolchain-photon:1.0.0'
 
-  clean-likewise-open-photon:
+  build-likewise-open-photon-3:
+    description: build Likewise Open for Photon OS
+    watches:
+      - '**/**/*.c*'
+      - '**/**/*.h*'
+      - '**/**/MakeKitBuild'
+      - 'release/photonbuild64.sh'
+      - 'configure'
+    cmds:
+      - ./support/scripts/build-photon.sh
+    image: 'vmware/likewise-open-toolchain-photon3:1.0.0'
+
+  clean-likewise-open-photon-2:
     description: Clean Likewise Open for Photon OS
     cmds:
       - ./support/scripts/clean-photon.sh
+    image: 'vmware/likewise-open-toolchain-photon:1.0.0'
 
-  build-likewise-open-photon-debug:
+  clean-likewise-open-photon-3:
+    description: Clean Likewise Open for Photon OS
+    cmds:
+      - ./support/scripts/clean-photon.sh
+    image: 'vmware/likewise-open-toolchain-photon3:1.0.0'
+
+  build-likewise-open-debug-photon-2:
     description: build Likewise Open (Debug) for Photon OS
     watches:
       - '**/**/*.c*'
@@ -56,14 +85,32 @@ targets:
       - 'configure'
     cmds:
       - ./support/scripts/build-photon.sh -d 1
+    image: 'vmware/likewise-open-toolchain-photon:1.0.0'
 
-  clean-likewise-open-photon-debug:
+  build-likewise-open-debug-photon-3:
+    description: build Likewise Open (Debug) for Photon OS
+    watches:
+      - '**/**/*.c*'
+      - '**/**/*.h*'
+      - '**/**/MakeKitBuild'
+      - 'release/photonbuild64.sh'
+      - 'configure'
+    cmds:
+      - ./support/scripts/build-photon.sh -d 1
+    image: 'vmware/likewise-open-toolchain-photon3:1.0.0'
+
+  clean-likewise-open-debug-photon-2:
     description: Clean Likewise Open (Debug) for Photon OS
     cmds:
       - ./support/scripts/clean-photon.sh -d 1
+    image: 'vmware/likewise-open-toolchain-photon:1.0.0'
+
+  clean-likewise-open-debug-photon-3:
+    description: Clean Likewise Open (Debug) for Photon OS
+    cmds:
+      - ./support/scripts/clean-photon.sh -d 1
+    image: 'vmware/likewise-open-toolchain-photon3:1.0.0'
 
 settings:
   default-targets:
     - build-likewise-open-photon
-  docker:
-    image: 'vmware/likewise-open-toolchain-photon:1.0.0'
