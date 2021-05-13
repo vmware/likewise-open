@@ -71,18 +71,9 @@ LWNetExtendEnvironmentForKrb5Affinity(
     BOOLEAN bNoDefault
     )
 {
-    // NOTE: This intentionally leaks memory.  However, this function
-    // tries to make sure that it only leaks once if called multiple
-    // times.  The invariant is that it puts the appropriate prefix
-    // to the file path in the KRB5_CONFIG environment variable,
-    // not putting anything there if the correct prefix
-    // already there.  Note that we still add a prefix if the "prefix"
-    // is present, but is in the middle of the variable's value instead
-    // of being at the start.
-
     DWORD dwError = 0;
     PCSTR pszEnvironmentValue = NULL;
-    PSTR pszPutenvSetting = NULL;
+    PSTR pszSetenvSetting = NULL;
 
     pszEnvironmentValue = getenv(LWNET_KRB5_CONFIG_VARIABLE_NAME);
     if (IsNullOrEmptyString(pszEnvironmentValue))
@@ -109,23 +100,21 @@ LWNetExtendEnvironmentForKrb5Affinity(
 
     if (bNoDefault)
     {
-        dwError = LwAllocateStringPrintf(&pszPutenvSetting,
-                                            "%s=%s",
-                                            LWNET_KRB5_CONFIG_VARIABLE_NAME,
+        dwError = LwAllocateStringPrintf(&pszSetenvSetting,
+                                            "%s",
                                             LWNET_KRB5_ENV_PREFIX);
         BAIL_ON_LWNET_ERROR(dwError);
     }
     else
     {
-        dwError = LwAllocateStringPrintf(&pszPutenvSetting,
-                                            "%s=%s:%s",
-                                            LWNET_KRB5_CONFIG_VARIABLE_NAME,
+        dwError = LwAllocateStringPrintf(&pszSetenvSetting,
+                                            "%s:%s",
                                             LWNET_KRB5_ENV_PREFIX,
                                             pszEnvironmentValue);
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    dwError = putenv(pszPutenvSetting);
+    dwError = setenv(LWNET_KRB5_CONFIG_VARIABLE_NAME, pszSetenvSetting, 1);
     if(dwError)
     {
         dwError = LwMapErrnoToLwError(errno);
@@ -133,11 +122,7 @@ LWNetExtendEnvironmentForKrb5Affinity(
     }
 
 error:
-    // Explicitly leak if we successfully called putenv.
-    if (dwError)
-    {
-        LWNET_SAFE_FREE_STRING(pszPutenvSetting);
-    }
+    LWNET_SAFE_FREE_STRING(pszSetenvSetting);
     return dwError;
 }
 

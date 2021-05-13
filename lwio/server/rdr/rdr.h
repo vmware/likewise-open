@@ -413,6 +413,12 @@ RdrCloseRoot(
     PIRP pIrp
     );
 
+VOID
+FreePair(
+    PLW_HASHMAP_PAIR pPair,
+    PVOID pUnused
+    );
+
 NTSTATUS
 RdrIoctl(
     IO_DEVICE_HANDLE IoDeviceHandle,

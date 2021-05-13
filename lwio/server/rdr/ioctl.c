@@ -137,7 +137,6 @@ error:
     goto cleanup;
 }
 
-static
 VOID
 FreePair(
     PLW_HASHMAP_PAIR pPair,

@@ -158,6 +158,7 @@ cleanup:
     if (status != STATUS_PENDING)
     {
         RdrContinueContext(pContext->State.DfsConnect.pContinue, status, NULL);
+        RTL_FREE(&pContext->State.DfsConnect.pwszNamespace);
         RTL_FREE(pContext->State.DfsConnect.ppwszCanonicalPath);
         RTL_FREE(pContext->State.DfsConnect.ppwszFilePath);
         RdrFreeContext(pContext);

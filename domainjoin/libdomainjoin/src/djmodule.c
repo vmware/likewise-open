@@ -258,6 +258,9 @@ void DJInitModuleStates(JoinProcessOptions *options, LWException **exc)
                 goto cleanup;
         }
     }
+    if (joinedInfo != NULL)
+        FreeDomainJoinInfo(joinedInfo);
+
     return;
 
 cleanup:

@@ -451,6 +451,12 @@ RdrShutdown(
         gRdrRuntime.bLockConstructed = FALSE;
     }
 
+    if (gRdrRuntime.pDomainHints)
+    {
+        LwRtlHashMapClear(gRdrRuntime.pDomainHints, FreePair, NULL);
+        LwRtlFreeHashMap(&gRdrRuntime.pDomainHints);
+    }
+
     return status;
 }
 
