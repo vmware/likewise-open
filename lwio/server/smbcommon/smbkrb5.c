@@ -171,7 +171,6 @@ SMBGSSContextBuild(
     gss_buffer_desc authDataBuffer = {0};
     gss_name_t pUsername = NULL;
     gss_OID_set_desc desiredMechs;
-    gss_OID_set actualMechs;
     OM_uint32 timeRec = 0;
     SEC_WINNT_AUTH_IDENTITY authData;
     static gss_OID_desc gssCredOptionPasswordOidDesc =
@@ -266,7 +265,7 @@ SMBGSSContextBuild(
                 &desiredMechs,
                 GSS_C_INITIATE,
                 &pContext->credHandle,
-                &actualMechs,
+                NULL,
                 &timeRec);
             BAIL_ON_SEC_ERROR(dwMajorStatus);
             break;
@@ -316,7 +315,7 @@ SMBGSSContextBuild(
                 &desiredMechs,
                 GSS_C_INITIATE,
                 &pContext->credHandle,
-                &actualMechs,
+                NULL,
                 &timeRec);
             BAIL_ON_SEC_ERROR(dwMajorStatus);
 

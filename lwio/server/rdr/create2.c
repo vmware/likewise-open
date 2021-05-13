@@ -97,11 +97,11 @@ RdrCreateTreeConnect2Complete(
     pFile->pTree = pTree;
     pTree = NULL;
 
-    status = LwRtlWC16StringDuplicate(&pFile->pwszPath, pContext->State.Create.pwszFilename);
-    BAIL_ON_NT_STATUS(status);
+    pFile->pwszPath = pContext->State.Create.pwszFilename;
+    pContext->State.Create.pwszFilename = NULL;
 
-    status = LwRtlWC16StringDuplicate(&pFile->pwszCanonicalPath, pContext->State.Create.pwszCanonicalPath);
-    BAIL_ON_NT_STATUS(status);
+    pFile->pwszCanonicalPath = pContext->State.Create.pwszCanonicalPath;
+    pContext->State.Create.pwszCanonicalPath = NULL;
 
     pContext->Continue = RdrFinishCreate2;
 
@@ -144,11 +144,11 @@ RdrCreateTreeConnect2Complete(
 
 cleanup:
 
-    RTL_FREE(&pContext->State.Create.pwszFilename);
-
     if (status != STATUS_PENDING)
     {
         RdrFreeContext(pContext);
+        RTL_FREE(&pContext->State.Create.pwszFilename);
+        RTL_FREE(&pContext->State.Create.pwszCanonicalPath);
         pIrp->IoStatusBlock.Status = status;
         IoIrpComplete(pIrp);
     }
@@ -299,6 +299,8 @@ cleanup:
     if (status != STATUS_PENDING)
     {
         pContext->pIrp->IoStatusBlock.Status = status;
+        RTL_FREE(&pContext->State.Create.pwszFilename);
+        RTL_FREE(&pContext->State.Create.pwszCanonicalPath);
         IoIrpComplete(pContext->pIrp);
         RdrFreeContext(pContext);
     }

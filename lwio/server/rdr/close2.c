@@ -71,6 +71,12 @@ RdrReleaseFile2(
         pthread_mutex_destroy(&pFile->mutex);
     }
 
+    if (pFile->Enum.pPacket)
+    {
+        RdrFreePacket(pFile->Enum.pPacket);
+        pFile->Enum.pPacket = NULL;
+    }
+
     RTL_FREE(&pFile->pwszPath);
     RTL_FREE(&pFile->pwszCanonicalPath);
 

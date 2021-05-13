@@ -462,6 +462,8 @@ cleanup:
     {
         pIrp->IoStatusBlock.Status = status;
         IoIrpComplete(pIrp);
+        RTL_FREE(&pContext->State.Create.pwszFilename);
+        RTL_FREE(&pContext->State.Create.pwszCanonicalPath);
         RdrFreeContext(pContext);
         status = STATUS_PENDING;
     }

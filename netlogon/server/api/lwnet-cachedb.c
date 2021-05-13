@@ -151,6 +151,12 @@ LWNetCacheDbEntryFree(
     );
 
 static
+VOID
+LWNetCacheDbEntryFreeContents(
+    IN OUT PLWNET_CACHE_DB_ENTRY pEntry
+    );
+
+static
 DWORD
 LWNetCacheDbUpdate(
     IN LWNET_CACHE_DB_HANDLE DbHandle,
@@ -327,6 +333,19 @@ LWNetCacheDbEntryFree(
 {
     if (pEntry)
     {
+        LWNetCacheDbEntryFreeContents(pEntry);
+        LWNET_SAFE_FREE_MEMORY(pEntry);
+    }
+}
+
+static
+VOID
+LWNetCacheDbEntryFreeContents(
+    IN OUT PLWNET_CACHE_DB_ENTRY pEntry
+    )
+{
+    if (pEntry)
+    {
         LWNET_SAFE_FREE_STRING(pEntry->pszDnsDomainName);
         LWNET_SAFE_FREE_STRING(pEntry->pszSiteName);
         LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszDomainControllerName);
@@ -338,7 +357,7 @@ LWNetCacheDbEntryFree(
         LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszClientSiteName);
         LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszNetBIOSHostName);
         LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszUserName);
-        LWNET_SAFE_FREE_MEMORY(pEntry);
+        memset(pEntry, 0, sizeof(*pEntry));
     }
 }
 
@@ -736,6 +755,11 @@ LWNetCacheDbReadFromRegistry(
         RegCloseKey(hReg, pNetLogonKey);
         pNetLogonKey = NULL;
 
+        if (cacheEntry.pszSiteName && LW_IS_EMPTY_STR(cacheEntry.pszSiteName))
+        {
+            LWNET_SAFE_FREE_STRING(cacheEntry.pszSiteName);
+        }
+
         dwError = LWNetCacheDbUpdate(
                       dbHandle,
                       cacheEntry.pszDnsDomainName,
@@ -747,9 +771,11 @@ LWNetCacheDbReadFromRegistry(
                       cacheEntry.LastBackoffToWritableDc,
                       &cacheEntry.DcInfo);
         BAIL_ON_LWNET_ERROR(dwError);
-        memset(&cacheEntry, 0, sizeof(cacheEntry));
+        LWNetCacheDbEntryFreeContents(&cacheEntry);
     }
 cleanup:
+    LWNetCacheDbEntryFreeContents(&cacheEntry);
+
     if (hReg)
     {
         if (pNetLogonKey)
@@ -1059,7 +1085,8 @@ LWNetCacheDbQuery(
         if ( pEntry->QueryType == queryType &&
              !strcmp(pEntry->pszDnsDomainName, pszDnsDomainNameLower))
         {
-            if (!pEntry->pszSiteName && !pszSiteNameLower)
+            if (LW_IS_NULL_OR_EMPTY_STR(pEntry->pszSiteName) &&
+                    LW_IS_NULL_OR_EMPTY_STR(pszSiteNameLower))
             {
                 break;
             }
