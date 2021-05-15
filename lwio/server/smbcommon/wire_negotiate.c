@@ -311,3 +311,35 @@ UnmarshallNegotiateResponse(
     return 0;
 }
 
+NTSTATUS
+MarshalNegotiateRequest2(
+    uint8_t        *pBuffer,
+    uint32_t        bufferLen,
+    uint32_t       *pBufferUsed,
+    const uint16_t  pusDialects[],
+    uint32_t        dialectCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PUSHORT pusDial = (PUSHORT) pBuffer;
+    uint32_t bufferUsed = 0;
+    uint32_t i = 0;
+    uint32_t len = sizeof(USHORT);
+
+    for (i = 0; i < dialectCount; i++)
+    {
+        *pusDial = pusDialects[i];
+        pusDial++;
+        bufferUsed += len;
+    }
+
+    if (bufferUsed > bufferLen)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+    }
+
+    *pBufferUsed = bufferUsed;
+
+    return ntStatus;
+
+}

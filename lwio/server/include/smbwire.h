@@ -2167,6 +2167,20 @@ typedef enum
 
 typedef struct _LWIO_PACKET_ALLOCATOR *PLWIO_PACKET_ALLOCATOR;
 
+typedef struct __SMB2_NEGOTIATE_REQUEST_HEADER
+{
+    USHORT  usLength;
+    USHORT  usDialectCount;
+    USHORT  usSecurityMode;
+    USHORT  usPad;
+    ULONG   ulCapabilities;
+    UCHAR   clientGUID[16];
+    ULONG64 ulStartTime;
+
+    // List of dialects follow immediately
+} __attribute__((__packed__)) SMB2_NEGOTIATE_REQUEST_HEADER,
+                             *PSMB2_NEGOTIATE_REQUEST_HEADER;
+
 typedef struct _SMB2_FILE_BASIC_INFORMATION {
     LONG64 CreationTime;
     LONG64 LastAccessTime;
@@ -2176,6 +2190,15 @@ typedef struct _SMB2_FILE_BASIC_INFORMATION {
     ULONG  unknown;
 } __attribute__((__packed__)) SMB2_FILE_BASIC_INFORMATION,
                             *PSMB2_FILE_BASIC_INFORMATION;
+
+NTSTATUS
+MarshalNegotiateRequest2(
+    uint8_t        *pBuffer,
+    uint32_t        bufferLen,
+    uint32_t       *pBufferUsed,
+    const uint16_t  pusDialects[],
+    uint32_t        dialectCount
+    );
 
 NTSTATUS
 MarshallNegotiateRequest(
@@ -2832,6 +2855,21 @@ SMBPacketMarshallHeader(
     uint16_t    mid,
     BOOLEAN     bCommandAllowsSignature,
     PSMB_PACKET pPacket
+    );
+
+NTSTATUS
+SMB2PacketMarshalHeader(
+    IN OUT          PBYTE         pBuffer,
+    IN              ULONG         bufferLen,
+    IN              USHORT        usCommand,
+    IN              ULONG         ulPid,
+    IN              ULONG64       ullMid,
+    IN              ULONG         ulTid,
+    IN              ULONG64       ullSessionId,
+    IN              NTSTATUS      status,
+    IN              BOOLEAN       bIsResponse,
+    IN              BOOLEAN       bCommandAllowsSignature,
+    OUT             PSMB_PACKET   pPacket
     );
 
 NTSTATUS
