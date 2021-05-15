@@ -630,6 +630,79 @@ error:
 }
 
 NTSTATUS
+SMB2PacketMarshalHeader(
+    IN OUT          PBYTE         pBuffer,
+    IN              ULONG         bufferLen,
+    IN              USHORT        usCommand,
+    IN              ULONG         ulPid,
+    IN              ULONG64       ullMid,
+    IN              ULONG         ulTid,
+    IN              ULONG64       ullSessionId,
+    IN              NTSTATUS      status,
+    IN              BOOLEAN       bIsResponse,
+    IN              BOOLEAN       bCommandAllowsSignature,
+    OUT             PSMB_PACKET   pPacket
+    )
+{
+    NTSTATUS ntStatus = 0;
+    uint32_t bufferUsed = 0;
+    PSMB2_HEADER    pSMB2Header = NULL;
+    static uchar8_t smb2Magic[4] = { 0xFE, 'S', 'M', 'B' };
+
+    pPacket->allowSignature = bCommandAllowsSignature;
+
+    pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer + bufferUsed);
+
+    ntStatus = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(NETBIOS_HEADER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
+
+    pPacket->pSMB2Header = (PSMB2_HEADER) (pBuffer + bufferUsed);
+
+    ntStatus = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(SMB2_HEADER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSMB2Header = pPacket->pSMB2Header;
+
+    memcpy(&pSMB2Header->smb, smb2Magic, sizeof(smb2Magic));
+
+    pSMB2Header->usHeaderLen = SMB_HTOL16(sizeof(SMB2_HEADER));
+    pSMB2Header->usEpoch = SMB_HTOL16(0);
+    pSMB2Header->error = SMB_HTOL32(status);
+    pSMB2Header->command = SMB_HTOL16(usCommand);
+    pSMB2Header->usCredits = SMB_HTOL16(0);
+    pSMB2Header->ulFlags = bIsResponse ? FLAG_RESPONSE : SMB_HTOL32(0);
+    pSMB2Header->ulChainOffset = SMB_HTOL32(0);
+    pSMB2Header->ullCommandSequence = SMB_HTOL64(ullMid);
+    pSMB2Header->ulPid = SMB_HTOL32(ulPid);
+    pSMB2Header->ulTid = SMB_HTOL32(ulTid);
+    pSMB2Header->ullSessionId = SMB_HTOL64(ullSessionId);
+
+    pPacket->pAndXHeader = NULL;
+    pPacket->pParams = pBuffer + bufferUsed;
+    pPacket->pData = NULL;
+    pPacket->bufferLen = bufferLen;
+    pPacket->bufferUsed = bufferUsed;
+
+    assert(bufferUsed <= bufferLen);
+
+cleanup:
+    return ntStatus;
+
+error:
+    pPacket->pNetBIOSHeader = NULL;
+    pPacket->pSMB2Header = NULL;
+    pPacket->pAndXHeader = NULL;
+    pPacket->pParams = NULL;
+    pPacket->pData = NULL;
+    pPacket->bufferLen = bufferLen;
+    pPacket->bufferUsed = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMBPacketMarshallFooter(
     PSMB_PACKET pPacket
     )

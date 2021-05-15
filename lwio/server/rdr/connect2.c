@@ -96,6 +96,87 @@ RdrTreeConnect2Complete(
     PVOID pParam
     );
 
+NTSTATUS
+RdrTransceiveNegotiate2(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_SOCKET pSocket
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSMB2_NEGOTIATE_REQUEST_HEADER pRequestHeader = NULL;
+    uint32_t packetByteCount = 0;
+
+    // Specify the dialects 0x0202, 0x0210..
+    USHORT pusDialects[2] = {0, 0};
+    USHORT usDialectCount = 0;
+
+    // SMB 2.0.2
+    pusDialects[usDialectCount++] = 0x0202;
+
+    status = RdrAllocateContextPacket(pContext, 1024*64);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SMB2PacketMarshalHeader(
+        pContext->Packet.pRawBuffer,
+        pContext->Packet.bufferLen,
+        COM2_NEGOTIATE,
+        gRdrRuntime.SysPid, /* ulPid */
+        0, /* ullMid */
+        0xFFFFFFFF, /* ulTid */
+        0, /* ullSessionID */
+        0, /* error */
+        0, /* isResponse */
+        FALSE, /* sign messages */
+        &pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->Packet.pData = pContext->Packet.pParams + sizeof(SMB2_NEGOTIATE_REQUEST_HEADER);
+    pContext->Packet.bufferUsed += sizeof(SMB2_NEGOTIATE_REQUEST_HEADER);
+
+    pRequestHeader = (PSMB2_NEGOTIATE_REQUEST_HEADER)pContext->Packet.pParams;
+
+    status = MarshalNegotiateRequest2(
+        pContext->Packet.pData,
+        pContext->Packet.bufferLen - pContext->Packet.bufferUsed,
+        &packetByteCount,
+        pusDialects,
+        usDialectCount);
+    BAIL_ON_NT_STATUS(status);
+
+    assert(packetByteCount <= UINT16_MAX);
+    pRequestHeader->usLength = 0x0024;
+    pRequestHeader->usDialectCount = usDialectCount;
+    pRequestHeader->usSecurityMode = 0x0001;
+    pRequestHeader->usPad = 0;
+    pRequestHeader->ulCapabilities = 0;
+    uuid_generate(pRequestHeader->clientGUID);
+    pRequestHeader->ulStartTime = 0;
+
+    pContext->Packet.bufferUsed += packetByteCount;
+
+    // byte order conversions
+    SMB_HTOL16_INPLACE(pRequestHeader->usLength);
+    SMB_HTOL16_INPLACE(pRequestHeader->usDialectCount);
+    SMB_HTOL16_INPLACE(pRequestHeader->usSecurityMode);
+    SMB_HTOL16_INPLACE(pRequestHeader->usPad);
+    SMB_HTOL32_INPLACE(pRequestHeader->ulCapabilities);
+    SMB_HTOL64_INPLACE(pRequestHeader->ulStartTime);
+
+    status = SMBPacketMarshallFooter(&pContext->Packet);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RdrSocketTransceive(pSocket, pContext);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
 BOOLEAN
 RdrProcessNegotiateResponse2(
     PRDR_OP_CONTEXT pContext,

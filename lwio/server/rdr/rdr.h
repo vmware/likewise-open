@@ -53,6 +53,8 @@
 #include "config.h"
 #include "lwiosys.h"
 
+#include <uuid/uuid.h>
+
 #include <openssl/md5.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -343,6 +345,12 @@ NTSTATUS
 RdrCreateTreeConnect(
     PRDR_OP_CONTEXT pContext,
     PWSTR pwszFilename
+    );
+
+NTSTATUS
+RdrTransceiveNegotiate2(
+    PRDR_OP_CONTEXT pContext,
+    PRDR_SOCKET pSocket
     );
 
 BOOLEAN

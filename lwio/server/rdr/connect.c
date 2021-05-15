@@ -860,12 +860,12 @@ RdrTransceiveNegotiate(
     BYTE const* pszDialects[2] = {NULL, NULL};
     ULONG ulDialectCount = 0;
 
-    pszDialects[ulDialectCount++] = (BYTE const*) "NT LM 0.12";
-
     if (gRdrRuntime.config.bSmb2Enabled)
     {
-        pszDialects[ulDialectCount++] = (BYTE const*) "SMB 2.002";
+        return RdrTransceiveNegotiate2(pContext, pSocket);
     }
+
+    pszDialects[ulDialectCount++] = (BYTE const*) "NT LM 0.12";
 
     status = RdrAllocateContextPacket(pContext, 1024*64);
     BAIL_ON_NT_STATUS(status);
